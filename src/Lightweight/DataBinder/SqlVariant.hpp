@@ -47,6 +47,7 @@ struct SqlVariant
                                    double,
                                    std::string,
                                    std::string_view,
+                                   std::u16string,
                                    std::u16string_view,
                                    SqlText,
                                    SqlDate,
@@ -72,9 +73,7 @@ struct SqlVariant
     {
     }
 
-    template <std::size_t N,
-              typename T = char,
-              SqlFixedStringMode Mode>
+    template <std::size_t N, typename T = char, SqlFixedStringMode Mode>
     constexpr LIGHTWEIGHT_FORCE_INLINE SqlVariant(SqlFixedString<N, T, Mode> const& other):
         value { std::string_view { other.data(), other.size() } }
     {
@@ -205,6 +204,13 @@ struct SqlVariant
         if (auto const* date = std::get_if<SqlDate>(&value))
             return *date;
 
+        if (auto const* datetime = std::get_if<SqlDateTime>(&value))
+        {
+            return SqlDate { std::chrono::year(datetime->sqlValue.year),
+                             std::chrono::month(datetime->sqlValue.month),
+                             std::chrono::day(datetime->sqlValue.day) };
+        }
+
         throw std::bad_variant_access();
     }
 
@@ -215,6 +221,14 @@ struct SqlVariant
 
         if (auto const* time = std::get_if<SqlTime>(&value))
             return *time;
+
+        if (auto const* datetime = std::get_if<SqlDateTime>(&value))
+        {
+            return SqlTime { std::chrono::hours(datetime->sqlValue.hour),
+                             std::chrono::minutes(datetime->sqlValue.minute),
+                             std::chrono::seconds(datetime->sqlValue.second),
+                             std::chrono::microseconds(datetime->sqlValue.fraction) };
+        }
 
         throw std::bad_variant_access();
     }

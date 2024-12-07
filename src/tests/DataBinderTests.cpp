@@ -222,43 +222,46 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: NULL values", "[SqlDataBinder],[Sq
 TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlDate", "[SqlDataBinder],[SqlVariant]")
 {
     auto stmt = SqlStatement {};
-    stmt.ExecuteDirect("CREATE TABLE Test (Value DATE NULL)");
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Date {});
+    });
 
     using namespace std::chrono_literals;
     auto const expected = SqlVariant { SqlDate { 2017y, std::chrono::August, 16d } };
 
-    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
     stmt.Execute(expected);
 
-    stmt.ExecuteDirect("SELECT Value FROM Test");
+    stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
     {
         auto reader = stmt.GetResultCursor();
         (void) stmt.FetchRow();
         auto const actual = reader.GetColumn<SqlVariant>(1);
-        CHECK(std::get<SqlDate>(actual.value) == std::get<SqlDate>(expected.value));
+        CHECK(actual.TryGetDate().value() == std::get<SqlDate>(expected.value));
     }
 
     // Test for inserting/getting NULL values
-    stmt.ExecuteDirect("DELETE FROM Test");
-    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    stmt.ExecuteDirect(stmt.Query("Test").Delete());
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
     stmt.Execute(SqlNullValue);
-    auto const result = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Value FROM Test");
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>(stmt.Query("Test").Select().Field("Value").All());
     CHECK(result.IsNull());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlTime", "[SqlDataBinder],[SqlVariant]")
 {
     auto stmt = SqlStatement {};
-    UNSUPPORTED_DATABASE(stmt, SqlServerType::ORACLE);
-    stmt.ExecuteDirect("CREATE TABLE Test (Value TIME NULL)");
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Time {});
+    });
 
     using namespace std::chrono_literals;
     auto const expected = SqlVariant { SqlTime { 12h, 34min, 56s } };
 
-    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
     stmt.Execute(expected);
 
-    auto const actual = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Value FROM Test");
+    auto const actual = stmt.ExecuteDirectScalar<SqlVariant>(stmt.Query("Test").Select().Field("Value").All());
 
     if (stmt.Connection().ServerType() == SqlServerType::POSTGRESQL)
     {
@@ -267,13 +270,13 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlTime", "[SqlDataBinder],[SqlVar
         return;
     }
 
-    CHECK(std::get<SqlTime>(actual.value) == std::get<SqlTime>(expected.value));
+    CHECK(actual.TryGetTime().value() == std::get<SqlTime>(expected.value));
 
     // Test for inserting/getting NULL values
-    stmt.ExecuteDirect("DELETE FROM Test");
-    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    stmt.ExecuteDirect(stmt.Query("Test").Delete());
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
     stmt.Execute(SqlNullValue);
-    auto const result = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Value FROM Test");
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>(stmt.Query("Test").Select().Field("Value").All());
     CHECK(result.IsNull());
 }
 
@@ -419,6 +422,9 @@ struct TestTypeTraits<int32_t>
 template <>
 struct TestTypeTraits<int64_t>
 {
+    static constexpr auto blacklist = std::array {
+        std::pair { SqlServerType::ORACLE, "Oracle does not support 64-bit integers via SQL_BIGINT it seems"sv },
+    };
     static constexpr auto inputValue = (std::numeric_limits<int64_t>::max)();
     static constexpr auto expectedOutputValue = (std::numeric_limits<int64_t>::max)();
 };

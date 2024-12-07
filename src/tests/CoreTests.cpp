@@ -220,7 +220,7 @@ TEST_CASE_METHOD(SqlTestFixture, "execute binding output parameters (direct)")
     REQUIRE(!stmt.FetchRow());
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch")
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch", "[SqlStatement]")
 {
     auto stmt = SqlStatement {};
 
@@ -257,7 +257,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch")
     REQUIRE(!stmt.FetchRow());
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatchNative")
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatchNative", "[SqlStatement]")
 {
     auto stmt = SqlStatement {};
     UNSUPPORTED_DATABASE(stmt, SqlServerType::ORACLE);
@@ -298,7 +298,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatchNative")
     REQUIRE(!stmt.FetchRow());
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect")
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect", "[SqlConnection]")
 {
     auto conn = SqlConnection { std::nullopt };
     REQUIRE(!conn.IsAlive());
@@ -307,7 +307,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect")
     CHECK(conn.IsAlive());
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect (invalid)")
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect (invalid)", "[SqlConnection]")
 {
     auto conn = SqlConnection { std::nullopt };
     REQUIRE(!conn.IsAlive());
@@ -321,7 +321,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect (invalid)")
     CHECK(!conn.IsAlive());
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "LastInsertId")
+TEST_CASE_METHOD(SqlTestFixture, "LastInsertId", "[SqlStatement]")
 {
     auto stmt = SqlStatement {};
     UNSUPPORTED_DATABASE(stmt, SqlServerType::ORACLE);
@@ -333,7 +333,7 @@ TEST_CASE_METHOD(SqlTestFixture, "LastInsertId")
     REQUIRE(stmt.LastInsertId() == 3);
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "SELECT * FROM Table")
+TEST_CASE_METHOD(SqlTestFixture, "SELECT * FROM Table", "[SqlStatement]")
 {
     auto stmt = SqlStatement {};
     CreateEmployeesTable(stmt);
@@ -366,7 +366,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT * FROM Table")
     REQUIRE(!result.FetchRow());
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "GetNullableColumn")
+TEST_CASE_METHOD(SqlTestFixture, "GetNullableColumn", "[SqlStatement]")
 {
     auto stmt = SqlStatement {};
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {

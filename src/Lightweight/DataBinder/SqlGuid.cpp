@@ -132,7 +132,7 @@ SQLRETURN SqlDataBinder<SqlGuid>::InputParameter(SQLHSTMT stmt,
                                     sizeof(value.data),
                                     0,
                                     (SQLPOINTER) &value.data,
-                                    0,
+                                    sizeof(value),
                                     nullptr);
         case SqlServerType::MYSQL: // TODO
         case SqlServerType::POSTGRESQL:
