@@ -64,9 +64,10 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
                 SqlDataBinder<std::string>::GetColumn(stmt, column, &variant.emplace<std::string>(), indicator, cb);
             break;
         case SQL_DATE:
-            SqlLogger::GetLogger().OnWarning(
-                std::format("SQL_DATE is from ODBC 2. SQL_TYPE_DATE should have been received instead."));
-            [[fallthrough]];
+            // Oracle ODBC driver returns SQL_DATE for DATE columns
+            returnCode =
+                SqlDataBinder<SqlDateTime>::GetColumn(stmt, column, &variant.emplace<SqlDateTime>(), indicator, cb);
+            break;
         case SQL_TYPE_DATE:
             returnCode = SqlDataBinder<SqlDate>::GetColumn(stmt, column, &variant.emplace<SqlDate>(), indicator, cb);
             break;

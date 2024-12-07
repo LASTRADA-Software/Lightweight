@@ -510,8 +510,16 @@ class OracleSqlQueryFormatter final: public BasicSqlQueryFormatter
                 using Type = std::decay_t<decltype(actualType)>;
                 if constexpr (std::same_as<Type, Bool>)
                     return "BIT";
+                else if constexpr (std::same_as<Type, Bigint>)
+                    return "NUMBER(19, 0)";
+                else if constexpr (std::same_as<Type, DateTime>)
+                    return "TIMESTAMP";
+                else if constexpr (std::same_as<Type, Time>)
+                    return "TIMESTAMP";
                 else if constexpr (std::same_as<Type, Guid>)
-                    return "UNIQUEIDENTIFIER";
+                    return "RAW(16)";
+                else if constexpr (std::same_as<Type, NVarchar>)
+                    return std::format("NVARCHAR2({})", actualType.size);
                 else if constexpr (std::same_as<Type, Text>)
                 {
                     if (actualType.size <= 4000)
@@ -530,15 +538,18 @@ class OracleSqlQueryFormatter final: public BasicSqlQueryFormatter
         std::stringstream sqlQueryString;
         sqlQueryString << '"' << column.name << "\" " << ColumnType(column.type);
 
-        if (column.required)
+        if (column.required && column.primaryKey != SqlPrimaryKeyType::AUTO_INCREMENT)
             sqlQueryString << " NOT NULL";
 
         if (column.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT)
-            sqlQueryString << " IDENTITY(1,1) PRIMARY KEY";
-
-        if (column.unique && !column.index)
+            sqlQueryString << " GENERATED ALWAYS AS IDENTITY";
+        else if (column.unique && !column.index)
             sqlQueryString << " UNIQUE";
 
+        if (column.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT)
+        {
+            sqlQueryString << ",\n    PRIMARY KEY (\"" << column.name << "\")";
+        }
         return sqlQueryString.str();
     }
 };
