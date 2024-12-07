@@ -47,6 +47,7 @@ struct SqlVariant
                                    double,
                                    std::string,
                                    std::string_view,
+                                   std::u16string,
                                    std::u16string_view,
                                    SqlText,
                                    SqlDate,

@@ -54,9 +54,15 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
         case SQL_CHAR:          // fixed-length string
         case SQL_VARCHAR:       // variable-length string
         case SQL_LONGVARCHAR:   // long string
+            returnCode =
+                SqlDataBinder<std::string>::GetColumn(stmt, column, &variant.emplace<std::string>(), indicator, cb);
+            break;
         case SQL_WCHAR:         // fixed-length Unicode (UTF-16) string
         case SQL_WVARCHAR:      // variable-length Unicode (UTF-16) string
         case SQL_WLONGVARCHAR:  // long Unicode (UTF-16) string
+            returnCode =
+                SqlDataBinder<std::u16string>::GetColumn(stmt, column, &variant.emplace<std::u16string>(), indicator, cb);
+            break;
         case SQL_BINARY:        // fixed-length binary
         case SQL_VARBINARY:     // variable-length binary
         case SQL_LONGVARBINARY: // long binary
