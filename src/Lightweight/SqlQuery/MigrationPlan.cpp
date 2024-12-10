@@ -7,11 +7,11 @@ std::string SqlMigrationPlan::ToSql() const
 {
     std::string result;
     for (auto const& step: steps)
-        result += ToSql(formatter, step);
+        result += ::ToSql(formatter, step);
     return result;
 }
 
-std::string SqlMigrationPlan::ToSql(SqlQueryFormatter const& formatter, SqlMigrationPlanElement const& element)
+std::string ToSql(SqlQueryFormatter const& formatter, SqlMigrationPlanElement const& element)
 {
     using namespace std::string_literals;
     return std::visit(

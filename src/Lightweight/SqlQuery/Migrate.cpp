@@ -121,6 +121,13 @@ SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::RequiredColumn(std::stri
     });
 }
 
+SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::Timestamps()
+{
+    RequiredColumn("created_at", SqlColumnTypeDefinitions::DateTime {}).Index();
+    RequiredColumn("updated_at", SqlColumnTypeDefinitions::Timestamp {}).Index();
+    return *this;
+}
+
 SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::PrimaryKey(std::string columnName,
                                                                    SqlColumnTypeDefinition columnType)
 {

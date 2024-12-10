@@ -25,6 +25,9 @@ class [[nodiscard]] SqlCreateTableQueryBuilder final
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& RequiredColumn(std::string columnName,
                                                                SqlColumnTypeDefinition columnType);
 
+    // Adds the created_at and updated_at columns to the table.
+    LIGHTWEIGHT_API SqlCreateTableQueryBuilder& Timestamps();
+
     // Creates a new primary key column.
     // Primary keys are always required, unique, have an index, and are non-nullable.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& PrimaryKey(std::string columnName, SqlColumnTypeDefinition columnType);

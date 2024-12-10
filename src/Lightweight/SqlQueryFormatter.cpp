@@ -236,6 +236,8 @@ class BasicSqlQueryFormatter: public SqlQueryFormatter
             }
         }
 
+        sqlQueryString << '\n';
+
         return sqlQueryString.str();
     }
 
@@ -297,6 +299,7 @@ class BasicSqlQueryFormatter: public SqlQueryFormatter
                     }
                 },
                 command);
+            sqlQueryString << '\n';
         }
 
         return sqlQueryString.str();
