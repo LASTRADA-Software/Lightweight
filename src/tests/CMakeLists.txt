@@ -16,6 +16,7 @@ set(SOURCE_FILES
     CoreTests.cpp
     DataBinderTests.cpp
     DataMapperTests.cpp
+    MigrationTests.cpp
     QueryBuilderTests.cpp
     UnicodeConverterTests.cpp
 )

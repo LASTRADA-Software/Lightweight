@@ -55,6 +55,7 @@ set(HEADER_FILES
     SqlConnection.hpp
     SqlError.hpp
     SqlLogger.hpp
+    SqlMigration.hpp
     SqlQueryFormatter.hpp
     SqlSchema.hpp
     SqlScopedTraceLogger.hpp
@@ -70,6 +71,7 @@ set(SOURCE_FILES
     SqlConnection.cpp
     SqlError.cpp
     SqlLogger.cpp
+    SqlMigration.cpp
     SqlQuery.cpp
     SqlQuery/Migrate.cpp
     SqlQuery/MigrationPlan.cpp

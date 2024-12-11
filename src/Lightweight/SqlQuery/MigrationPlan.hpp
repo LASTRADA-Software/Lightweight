@@ -235,13 +235,12 @@ using SqlMigrationPlanElement = std::variant<
 >;
 // clang-format on
 
+std::string ToSql(SqlQueryFormatter const& formatter, SqlMigrationPlanElement const& element);
+
 struct [[nodiscard]] SqlMigrationPlan
 {
     SqlQueryFormatter const& formatter;
     std::vector<SqlMigrationPlanElement> steps {};
 
     [[nodiscard]] LIGHTWEIGHT_API std::string ToSql() const;
-
-    [[nodiscard]] LIGHTWEIGHT_API static std::string ToSql(SqlQueryFormatter const& formatter,
-                                                           SqlMigrationPlanElement const& element);
 };
