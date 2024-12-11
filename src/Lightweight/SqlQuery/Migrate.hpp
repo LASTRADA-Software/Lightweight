@@ -32,6 +32,9 @@ class [[nodiscard]] SqlCreateTableQueryBuilder final
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& PrimaryKeyWithAutoIncrement(
         std::string columnName, SqlColumnTypeDefinition columnType = SqlColumnTypeDefinitions::Bigint {});
 
+    // Creates a new foreign key column.
+    LIGHTWEIGHT_API SqlCreateTableQueryBuilder& ForeignKey(std::string columnName,SqlColumnTypeDefinition columnType, SqlForeignKeyReferenceDefinition foreignKey);
+
     // Enables the UNIQUE constraint on the last declared column.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& Unique();
 

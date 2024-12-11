@@ -783,6 +783,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with PrimaryKeyWithAutoIncrement",
                             )sql",
         });
 }
+
 TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Index", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;
@@ -797,6 +798,36 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Index", "[SqlQueryBuilder][Mi
                                      );
                                      CREATE INDEX "Table_column_index" ON "Table"("column");
                                )sql"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Foreign key", "[SqlQueryBuilder][Migration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    checkSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.CreateTable("Table").ForeignKey("other_id",
+                                                      Integer {},
+                                                      SqlForeignKeyReferenceDefinition {
+                                                          .tableName = "OtherTable",
+                                                          .columnName = "id",
+                                                      });
+            return migration.GetPlan();
+        },
+        QueryExpectations {
+            .sqlite = R"sql(CREATE TABLE "Table" (
+                                   FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                     );)sql",
+            .postgres = R"sql(CREATE TABLE "Table" (
+                                   FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                     );)sql",
+            .sqlServer = R"sql(CREATE TABLE "Table" (
+                                   CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                     );)sql",
+            .oracle = R"sql(CREATE TABLE "Table" (
+                                   CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                     );)sql",
+        });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "CreateTable complex demo", "[SqlQueryBuilder][Migration]")
