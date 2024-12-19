@@ -992,3 +992,37 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable DropIndex", "[SqlQueryBuilder][Migr
         },
         QueryExpectations::All(R"sql(DROP INDEX "Table_column_index";)sql"));
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddForeignKeyColumn", "[SqlQueryBuilder][Migration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+    checkSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.AlterTable("Table").AddForeignKeyColumn("other_id",
+                                                              Integer {},
+                                                              SqlForeignKeyReferenceDefinition {
+                                                                  .tableName = "OtherTable",
+                                                                  .columnName = "id",
+                                                              });
+            return migration.GetPlan();
+        },
+        QueryExpectations {
+            .sqlite = R"sql(
+                        ALTER TABLE "Table" ADD COLUMN "other_id" INTEGER NOT NULL;
+                        ALTER TABLE "Table" ADD CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                    )sql",
+            .postgres = R"sql(
+                        ALTER TABLE "Table" ADD COLUMN "other_id" INTEGER NOT NULL;
+                        ALTER TABLE "Table" ADD CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                    )sql",
+            .sqlServer = R"sql(
+                        ALTER TABLE "Table" ADD "other_id" INTEGER NOT NULL;
+                        ALTER TABLE "Table" ADD CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                    )sql",
+            .oracle = R"sql(
+                        ALTER TABLE "Table" ADD "other_id" INTEGER NOT NULL;
+                        ALTER TABLE "Table" ADD CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                    )sql",
+        });
+}

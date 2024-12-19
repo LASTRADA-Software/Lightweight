@@ -75,11 +75,11 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& RenameTo(std::string_view newTableName);
 
     // Adds a new column to the table that is non-nullable.
-    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumn(std::string_view columnName,
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumn(std::string columnName,
                                                          SqlColumnTypeDefinition columnType);
 
     // Adds a new column to the table that is nullable.
-    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumnAsNullable(std::string_view columnName,
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumnAsNullable(std::string columnName,
                                                                    SqlColumnTypeDefinition columnType);
 
     // Alters the column to have a new non-nullable type.
@@ -100,6 +100,29 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddUniqueIndex(std::string_view columnName);
 
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropIndex(std::string_view columnName);
+
+    /// Adds a foreign key column @p columnName to @p referencedColumn to an existing column.
+    ///
+    /// @param columnName The name of the column to add.
+    /// @param referencedColumn The column to reference.
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddForeignKey(std::string columnName,SqlForeignKeyReferenceDefinition referencedColumn);
+
+    /// Adds a foreign key column @p columnName of type @p columnType to @p referencedColumn.
+    ///
+    /// @param columnName The name of the column to add.
+    /// @param columnType The type of the column to add.
+    /// @param referencedColumn The column to reference.
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddForeignKeyColumn(std::string columnName,SqlColumnTypeDefinition columnType, SqlForeignKeyReferenceDefinition referencedColumn);
+
+    /// Adds a nullable foreign key column @p columnName of type @p columnType to @p referencedColumn.
+    ///
+    /// @param columnName The name of the column to add.
+    /// @param columnType The type of the column to add.
+    /// @param referencedColumn The column to reference.
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddForeignKeyColumnAsNullable(std::string columnName,SqlColumnTypeDefinition columnType, SqlForeignKeyReferenceDefinition referencedColumn);
+
+    /// Drops a foreign key for the column @p columnName from the table.
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropForeignKey(std::string columnName);
 
   private:
     SqlAlterTablePlan& _plan;

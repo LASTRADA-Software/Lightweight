@@ -42,12 +42,24 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::RenameTo(std::string_view 
     return *this;
 }
 
-SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddColumn(std::string_view columnName,
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddColumn(std::string columnName,
                                                                 SqlColumnTypeDefinition columnType)
 {
     _plan.commands.emplace_back(SqlAlterTableCommands::AddColumn {
-        .columnName = columnName,
+        .columnName = std::move(columnName),
         .columnType = columnType,
+        .nullable = false,
+    });
+    return *this;
+}
+
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddColumnAsNullable(std::string columnName,
+                                                                          SqlColumnTypeDefinition columnType)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::AddColumn {
+        .columnName = std::move(columnName),
+        .columnType = columnType,
+        .nullable = true,
     });
     return *this;
 }
@@ -91,6 +103,38 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddUniqueIndex(std::string
 SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::DropIndex(std::string_view columnName)
 {
     _plan.commands.emplace_back(SqlAlterTableCommands::DropIndex {
+        .columnName = columnName,
+    });
+    return *this;
+}
+
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddForeignKey(std::string columnName,
+                                                                    SqlForeignKeyReferenceDefinition referencedColumn)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::AddForeignKey {
+        .columnName = std::move(columnName),
+        .referencedColumn = std::move(referencedColumn),
+    });
+    return *this;
+}
+
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddForeignKeyColumn(
+    std::string columnName, SqlColumnTypeDefinition columnType, SqlForeignKeyReferenceDefinition referencedColumn)
+{
+    return AddColumn(columnName, columnType).AddForeignKey(std::move(columnName), std::move(referencedColumn));
+}
+
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddForeignKeyColumnAsNullable(
+    std::string columnName, SqlColumnTypeDefinition columnType, SqlForeignKeyReferenceDefinition referencedColumn)
+{
+    AddColumnAsNullable(columnName, columnType);
+    AddForeignKey(std::move(columnName), std::move(referencedColumn));
+    return *this;
+}
+
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::DropForeignKey(std::string columnName)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::DropForeignKey {
         .columnName = columnName,
     });
     return *this;
