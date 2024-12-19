@@ -121,6 +121,9 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// @param referencedColumn The column to reference.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddForeignKeyColumnAsNullable(std::string columnName,SqlColumnTypeDefinition columnType, SqlForeignKeyReferenceDefinition referencedColumn);
 
+    /// Drops a foreign key for the column @p columnName from the table.
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropForeignKey(std::string columnName);
+
   private:
     SqlAlterTablePlan& _plan;
 };

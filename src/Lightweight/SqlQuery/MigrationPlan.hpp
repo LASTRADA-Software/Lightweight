@@ -220,6 +220,10 @@ struct AddForeignKey
     std::string columnName;
     SqlForeignKeyReferenceDefinition referencedColumn;
 };
+struct DropForeignKey
+{
+    std::string_view columnName;
+};
 
 } // namespace SqlAlterTableCommands
 
@@ -229,7 +233,8 @@ using SqlAlterTableCommand = std::variant<SqlAlterTableCommands::RenameTable,
                                           SqlAlterTableCommands::RenameColumn,
                                           SqlAlterTableCommands::DropColumn,
                                           SqlAlterTableCommands::DropIndex,
-                                          SqlAlterTableCommands::AddForeignKey>;
+                                          SqlAlterTableCommands::AddForeignKey,
+                                          SqlAlterTableCommands::DropForeignKey>;
 
 struct SqlAlterTablePlan
 {

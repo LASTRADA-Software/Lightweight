@@ -319,6 +319,10 @@ class BasicSqlQueryFormatter: public SqlQueryFormatter
                             tableName,
                             BuildForeignKeyConstraint(actualCommand.columnName, actualCommand.referencedColumn));
                     },
+                    [tableName](DropForeignKey const& actualCommand) -> std::string {
+                        return std::format(
+                            R"(ALTER TABLE "{}" DROP CONSTRAINT "{}";)", tableName, std::format("FK_{}", actualCommand.columnName));
+                    },
                 },
                 command);
         }
@@ -528,6 +532,10 @@ class SqlServerQueryFormatter final: public BasicSqlQueryFormatter
                             R"(ALTER TABLE "{}" ADD {};)",
                             tableName,
                             BuildForeignKeyConstraint(actualCommand.columnName, actualCommand.referencedColumn));
+                    },
+                    [tableName](DropForeignKey const& actualCommand) -> std::string {
+                        return std::format(
+                            R"(ALTER TABLE "{}" DROP CONSTRAINT "{}";)", tableName, std::format("FK_{}", actualCommand.columnName));
                     },
                 },
                 command);

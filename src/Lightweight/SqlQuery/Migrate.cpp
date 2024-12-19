@@ -132,6 +132,14 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddForeignKeyColumnAsNulla
     return *this;
 }
 
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::DropForeignKey(std::string columnName)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::DropForeignKey {
+        .columnName = columnName,
+    });
+    return *this;
+}
+
 SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::Column(SqlColumnDeclaration column)
 {
     _plan.columns.emplace_back(std::move(column));
