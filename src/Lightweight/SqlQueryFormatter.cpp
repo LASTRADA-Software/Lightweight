@@ -193,13 +193,14 @@ class BasicSqlQueryFormatter: public SqlQueryFormatter
         return sqlQueryString.str();
     }
 
-    [[nodiscard]] static std::string BuildForeignKeyConstraint(SqlColumnDeclaration const& column)
+    [[nodiscard]] static std::string BuildForeignKeyConstraint(std::string const& columnName,
+                                                               SqlForeignKeyReferenceDefinition const& referencedColumn)
     {
         return std::format(R"(CONSTRAINT {} FOREIGN KEY ("{}") REFERENCES "{}"("{}"))",
-                           std::format("FK_{}", column.name),
-                           column.name,
-                           column.foreignKey->tableName,
-                           column.foreignKey->columnName);
+                           std::format("FK_{}", columnName),
+                           columnName,
+                           referencedColumn.tableName,
+                           referencedColumn.columnName);
     }
 
     [[nodiscard]] StringList CreateTable(std::string_view tableName,
@@ -231,7 +232,7 @@ class BasicSqlQueryFormatter: public SqlQueryFormatter
                 if (column.foreignKey)
                 {
                     foreignKeyConstraints += ",\n    ";
-                    foreignKeyConstraints += BuildForeignKeyConstraint(column);
+                    foreignKeyConstraints += BuildForeignKeyConstraint(column.name, *column.foreignKey);
                 }
             }
             if (!primaryKeyColumns.empty())
