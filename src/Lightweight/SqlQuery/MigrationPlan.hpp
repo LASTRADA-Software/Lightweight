@@ -188,8 +188,9 @@ struct RenameTable
 
 struct AddColumn
 {
-    std::string_view columnName;
+    std::string columnName;
     SqlColumnTypeDefinition columnType;
+    bool nullable = true;
 };
 
 struct AddIndex
@@ -214,14 +215,21 @@ struct DropIndex
     std::string_view columnName;
 };
 
-}; // namespace SqlAlterTableCommands
+struct AddForeignKey
+{
+    std::string columnName;
+    SqlForeignKeyReferenceDefinition referencedColumn;
+};
+
+} // namespace SqlAlterTableCommands
 
 using SqlAlterTableCommand = std::variant<SqlAlterTableCommands::RenameTable,
                                           SqlAlterTableCommands::AddColumn,
                                           SqlAlterTableCommands::AddIndex,
                                           SqlAlterTableCommands::RenameColumn,
                                           SqlAlterTableCommands::DropColumn,
-                                          SqlAlterTableCommands::DropIndex>;
+                                          SqlAlterTableCommands::DropIndex,
+                                          SqlAlterTableCommands::AddForeignKey>;
 
 struct SqlAlterTablePlan
 {
