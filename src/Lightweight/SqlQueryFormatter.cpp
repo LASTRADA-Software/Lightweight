@@ -278,50 +278,39 @@ class BasicSqlQueryFormatter: public SqlQueryFormatter
                 sqlQueryString << '\n';
             ++currentCommand;
 
+            using namespace SqlAlterTableCommands;
             sqlQueryString << std::visit(
-                [this, tableName](auto const& actualCommand) -> std::string {
-                    using Type = std::decay_t<decltype(actualCommand)>;
-                    if constexpr (std::same_as<Type, SqlAlterTableCommands::RenameTable>)
-                    {
+                detail::overloaded {
+                    [tableName](RenameTable const& actualCommand) -> std::string {
                         return std::format(
                             R"(ALTER TABLE "{}" RENAME TO "{}";)", tableName, actualCommand.newTableName);
-                    }
-                    else if constexpr (std::same_as<Type, SqlAlterTableCommands::AddColumn>)
-                    {
+                    },
+                    [tableName, this](AddColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE "{}" ADD COLUMN "{}" {};)",
                                            tableName,
                                            actualCommand.columnName,
                                            ColumnType(actualCommand.columnType));
-                    }
-                    else if constexpr (std::same_as<Type, SqlAlterTableCommands::RenameColumn>)
-                    {
+                    },
+                    [tableName](RenameColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE "{}" RENAME COLUMN "{}" TO "{}";)",
                                            tableName,
                                            actualCommand.oldColumnName,
                                            actualCommand.newColumnName);
-                    }
-                    else if constexpr (std::same_as<Type, SqlAlterTableCommands::DropColumn>)
-                    {
+                    },
+                    [tableName](DropColumn const& actualCommand) -> std::string {
                         return std::format(
                             R"(ALTER TABLE "{}" DROP COLUMN "{}";)", tableName, actualCommand.columnName);
-                    }
-                    else if constexpr (std::same_as<Type, SqlAlterTableCommands::AddIndex>)
-                    {
+                    },
+                    [tableName](AddIndex const& actualCommand) -> std::string {
                         auto const uniqueStr = actualCommand.unique ? "UNIQUE "sv : ""sv;
                         return std::format(R"(CREATE {2}INDEX "{0}_{1}_index" ON "{0}"("{1}");)",
                                            tableName,
                                            actualCommand.columnName,
                                            uniqueStr);
-                    }
-                    else if constexpr (std::same_as<Type, SqlAlterTableCommands::DropIndex>)
-                    {
+                    },
+                    [tableName](DropIndex const& actualCommand) -> std::string {
                         return std::format(R"(DROP INDEX "{0}_{1}_index";)", tableName, actualCommand.columnName);
-                    }
-                    else
-                    {
-                        throw std::runtime_error(
-                            std::format("Unknown alter table command: {}", Reflection::TypeName<Type>));
-                    }
+                    },
                 },
                 command);
         }
