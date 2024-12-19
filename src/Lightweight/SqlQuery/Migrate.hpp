@@ -7,12 +7,10 @@
 
 #include <reflection-cpp/reflection.hpp>
 
-/// @ingroup QueryBuilder
-/// @{
-
 /// @brief Query builder for building CREATE TABLE queries.
 ///
 /// @see SqlQueryBuilder
+/// @ingroup QueryBuilder
 class [[nodiscard]] SqlCreateTableQueryBuilder final
 {
   public:
@@ -21,21 +19,21 @@ class [[nodiscard]] SqlCreateTableQueryBuilder final
     {
     }
 
-    // Adds a new column to the table.
+    /// Adds a new column to the table.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& Column(SqlColumnDeclaration column);
 
-    // Creates a new nullable column.
+    /// Creates a new nullable column.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& Column(std::string columnName, SqlColumnTypeDefinition columnType);
 
-    // Creates a new column that is non-nullable.
+    /// Creates a new column that is non-nullable.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& RequiredColumn(std::string columnName,
                                                                SqlColumnTypeDefinition columnType);
 
-    // Adds the created_at and updated_at columns to the table.
+    /// Adds the created_at and updated_at columns to the table.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& Timestamps();
 
-    // Creates a new primary key column.
-    // Primary keys are always required, unique, have an index, and are non-nullable.
+    /// Creates a new primary key column.
+    /// Primary keys are always required, unique, have an index, and are non-nullable.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& PrimaryKey(std::string columnName, SqlColumnTypeDefinition columnType);
 
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& PrimaryKeyWithAutoIncrement(
@@ -51,13 +49,13 @@ class [[nodiscard]] SqlCreateTableQueryBuilder final
                                                                    SqlColumnTypeDefinition columnType,
                                                                    SqlForeignKeyReferenceDefinition foreignKey);
 
-    // Enables the UNIQUE constraint on the last declared column.
+    /// Enables the UNIQUE constraint on the last declared column.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& Unique();
 
-    // Enables the UNIQUE constraint on the last declared column.
+    /// Enables the INDEX constraint on the last declared column.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& Index();
 
-    // Enables the UNIQUE constraint on the last declared column and makes it an index.
+    /// Enables the UNIQUE and INDEX constraint on the last declared column and makes it an index.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& UniqueIndex();
 
   private:
@@ -67,6 +65,7 @@ class [[nodiscard]] SqlCreateTableQueryBuilder final
 /// @brief Query builder for building ALTER TABLE queries.
 ///
 /// @see SqlQueryBuilder
+/// @ingroup QueryBuilder
 class [[nodiscard]] SqlAlterTableQueryBuilder final
 {
   public:
@@ -75,20 +74,16 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     {
     }
 
-    // Renames the table.
+    /// Renames the table.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& RenameTo(std::string_view newTableName);
 
-    // Adds a new column to the table that is non-nullable.
+    /// Adds a new column to the table that is non-nullable.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumn(std::string columnName,
                                                          SqlColumnTypeDefinition columnType);
 
-    // Adds a new column to the table that is nullable.
+    /// Adds a new column to the table that is nullable.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumnAsNullable(std::string columnName,
                                                                    SqlColumnTypeDefinition columnType);
-
-    // Alters the column to have a new nullable type.
-    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AlterColumnAsNullable(std::string_view columnName,
-                                                                     SqlColumnTypeDefinition columnType);
 
     /// @brief Alters the column to have a new non-nullable type.
     ///
@@ -110,15 +105,44 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AlterColumnType(std::string columnName,
                                                                SqlColumnTypeDefinition columnType);
 
+    /// Renames a column.
+    /// @param oldColumnName The old column name.
+    /// @param newColumnName The new column name.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& RenameColumn(std::string_view oldColumnName,
                                                             std::string_view newColumnName);
 
+    /// Drops a column from the table.
+    /// @param columnName The name of the column to drop.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropColumn(std::string_view columnName);
 
+    /// Add an index to the table for the specified column.
+    /// @param columnName The name of the column to index.
+    ///
+    /// @code
+    /// SqlQueryBuilder q;
+    /// q.Migration().AlterTable("Table").AddIndex("column");
+    /// // Will execute CREATE INDEX "Table_column_index" ON "Table"("column");
+    /// @endcode
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddIndex(std::string_view columnName);
 
+    /// Add an index to the table for the specified column that is unique.
+    /// @param columnName The name of the column to index.
+    ///
+    /// @code
+    /// SqlQueryBuilder q;
+    /// q.Migration().AlterTable("Table").AddUniqueIndex("column");
+    /// // Will execute CREATE UNIQUE INDEX "Table_column_index" ON "Table"("column");
+    /// @endcode
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddUniqueIndex(std::string_view columnName);
 
+    /// Drop an index from the table for the specified column.
+    /// @param columnName The name of the column to drop the index from.
+    ///
+    /// @code
+    /// SqlQueryBuilder q;
+    /// q.Migration().AlterTable("Table").DropIndex("column");
+    /// // Will execute DROP INDEX "Table_column_index";
+    /// @endcode
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropIndex(std::string_view columnName);
 
     /// Adds a foreign key column @p columnName to @p referencedColumn to an existing column.
@@ -153,6 +177,7 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
 };
 
 /// @brief Query builder for building SQL migration queries.
+/// @ingroup QueryBuilder
 class [[nodiscard]] SqlMigrationQueryBuilder final
 {
   public:
@@ -181,5 +206,3 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     SqlQueryFormatter const& _formatter;
     SqlMigrationPlan _migrationPlan;
 };
-
-/// @}

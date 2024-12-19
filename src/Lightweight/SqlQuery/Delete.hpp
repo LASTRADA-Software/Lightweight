@@ -9,13 +9,13 @@
 /// @brief Query builder for building DELETE FROM ... queries.
 ///
 /// @ingroup QueryBuilder
-class LIGHTWEIGHT_API SqlDeleteQueryBuilder final: public detail::SqlWhereClauseBuilder<SqlDeleteQueryBuilder>
+class LIGHTWEIGHT_API SqlDeleteQueryBuilder final: public SqlWhereClauseBuilder<SqlDeleteQueryBuilder>
 {
   public:
     explicit SqlDeleteQueryBuilder(SqlQueryFormatter const& formatter,
                                    std::string table,
                                    std::string tableAlias) noexcept:
-        detail::SqlWhereClauseBuilder<SqlDeleteQueryBuilder> {},
+        SqlWhereClauseBuilder<SqlDeleteQueryBuilder> {},
         m_formatter { formatter }
     {
         m_searchCondition.tableName = std::move(table);

@@ -7,9 +7,6 @@
 
 #include <reflection-cpp/reflection.hpp>
 
-/// @ingroup SqlQueryBuilder
-/// @{
-
 enum class SqlResultOrdering : uint8_t
 {
     ASCENDING,
@@ -25,7 +22,7 @@ enum class SqlQueryBuilderMode : uint8_t
 /// @brief Query builder for building SELECT ... queries.
 ///
 /// @see SqlQueryBuilder
-class [[nodiscard]] SqlSelectQueryBuilder final: public detail::SqlWhereClauseBuilder<SqlSelectQueryBuilder>
+class [[nodiscard]] SqlSelectQueryBuilder final: public SqlWhereClauseBuilder<SqlSelectQueryBuilder>
 {
   public:
     enum class SelectType : std::uint8_t
@@ -59,7 +56,7 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public detail::SqlWhereClauseBu
     explicit SqlSelectQueryBuilder(SqlQueryFormatter const& formatter,
                                    std::string table,
                                    std::string tableAlias) noexcept:
-        detail::SqlWhereClauseBuilder<SqlSelectQueryBuilder> {},
+        SqlWhereClauseBuilder<SqlSelectQueryBuilder> {},
         m_formatter { formatter }
     {
         m_query.formatter = &formatter;
@@ -204,5 +201,3 @@ inline LIGHTWEIGHT_FORCE_INLINE SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fi
     }
     return *this;
 }
-
-/// @}

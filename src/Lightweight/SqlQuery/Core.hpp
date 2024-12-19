@@ -13,9 +13,6 @@
 ///
 /// The query builder is a high level API for building SQL queries using high level C++ syntax.
 
-/// @ingroup QueryBuilder
-/// @{
-
 /// @brief SqlWildcardType is a placeholder for an explicit wildcard input parameter in a SQL query.
 ///
 /// Use this in the SqlQueryBuilder::Where method to insert a '?' placeholder for a wildcard.
@@ -39,6 +36,7 @@ struct RawSqlCondition
 } // namespace detail
 
 /// @brief SqlQualifiedTableColumnName represents a column name qualified with a table name.
+/// @ingroup QueryBuilder
 struct SqlQualifiedTableColumnName
 {
     std::string_view tableName;
@@ -84,6 +82,7 @@ struct [[nodiscard]] SqlSearchCondition
 };
 
 /// @brief Query builder for building JOIN conditions.
+/// @ingroup QueryBuilder
 class SqlJoinConditionBuilder
 {
   public:
@@ -131,14 +130,12 @@ class SqlJoinConditionBuilder
     bool _firstCall = true;
 };
 
-namespace detail
-{
 
 /// Helper CRTP-based class for building WHERE clauses.
 ///
 /// This class is inherited by the SqlSelectQueryBuilder, SqlUpdateQueryBuilder, and SqlDeleteQueryBuilder
 ///
-/// @see SqlQueryBuilder
+/// @ingroup QueryBuilder
 template <typename Derived>
 class [[nodiscard]] SqlWhereClauseBuilder
 {
@@ -317,19 +314,19 @@ class [[nodiscard]] SqlWhereClauseBuilder
         FULL
     };
 
-    // Constructs a JOIN clause.
+    /// Constructs a JOIN clause.
     [[nodiscard]] Derived& Join(JoinType joinType,
                                 std::string_view joinTable,
                                 std::string_view joinColumnName,
                                 SqlQualifiedTableColumnName onOtherColumn);
 
-    // Constructs a JOIN clause.
+    /// Constructs a JOIN clause.
     [[nodiscard]] Derived& Join(JoinType joinType,
                                 std::string_view joinTable,
                                 std::string_view joinColumnName,
                                 std::string_view onMainTableColumn);
 
-    // Constructs a JOIN clause.
+    /// Constructs a JOIN clause.
     template <typename OnChainCallable>
     [[nodiscard]] Derived& Join(JoinType joinType, std::string_view joinTable, OnChainCallable const& onClauseBuilder);
 };
@@ -415,6 +412,8 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(C
     return static_cast<Derived&>(*this);
 }
 
+namespace detail {
+
 inline LIGHTWEIGHT_FORCE_INLINE RawSqlCondition PopulateSqlSetExpression(auto const& values)
 {
     using namespace std::string_view_literals;
@@ -429,6 +428,8 @@ inline LIGHTWEIGHT_FORCE_INLINE RawSqlCondition PopulateSqlSetExpression(auto co
     fragment << ')';
     return RawSqlCondition { fragment.str() };
 }
+
+} // namespace detail
 
 template <typename Derived>
 template <typename ColumnName, std::ranges::input_range InputRange>
@@ -452,7 +453,7 @@ template <typename ColumnName, typename SubSelectQuery>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn(ColumnName const& columnName,
                                                                                  SubSelectQuery const& subSelectQuery)
 {
-    return Where(columnName, "IN", RawSqlCondition { "(" + subSelectQuery.ToSql() + ")" });
+    return Where(columnName, "IN", detail::RawSqlCondition { "(" + subSelectQuery.ToSql() + ")" });
 }
 
 template <typename Derived>
@@ -592,7 +593,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(C
                                                                                std::string_view binaryOp,
                                                                                SubSelectQuery const& value)
 {
-    return Where(columnName, binaryOp, RawSqlCondition { "(" + value.ToSql() + ")" });
+    return Where(columnName, binaryOp, detail::RawSqlCondition { "(" + value.ToSql() + ")" });
 }
 
 template <typename Derived>
@@ -820,8 +821,3 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(Jo
 
     return static_cast<Derived&>(*this);
 }
-
-} // namespace detail
-
-/// @}
-
