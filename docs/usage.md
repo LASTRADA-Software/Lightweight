@@ -2,7 +2,7 @@
 
 ## Configure default connection information to the database
 
-To connect to the database you need to provide connection string that library uses to establish connection and you can check if it alive in the following way
+To connect to the database you need to provide connection string that library uses to establish connection and you can check if it is alive in the following way
 ```cpp
 SqlConnection::SetDefaultConnectionString(SqlConnectionString { 
     .value = std::format("DRIVER=SQLite3;Database=test.sqlite")
@@ -19,7 +19,7 @@ if (!sqlConnection.IsAlive())
 
 ## Raw SQL Queries
 
-You can directly make a call to the database using `ExecuteDirect` function, for example
+To directly make a call to the database use `ExecuteDirect` function, for example
 ```cpp
 auto stmt = SqlStatement {};
 stmt.ExecuteDirect(R"("SELECT "a", "b", "c" FROM "That" ORDER BY "That"."b" DESC)"));
@@ -33,7 +33,6 @@ while (stmt.FetchRow())
 ```
 
 ## Prepared Statements
-
 
 You can also use prepared statements to execute queries, for example
 ```cpp
@@ -53,16 +52,27 @@ while (cursor.FetchRow())
 
 ## SQL Query Builder
 
-Or you can constuct statement using `SqlQueryBuilder` for different databases
+Or constuct statement using `SqlQueryBuilder`
 ```cpp
-auto sqliteQueryBuilder = SqlQueryBuilder(formatter);
-auto const sqlQuery =  sqliteQueryBuilder.FromTable("That")
+
+auto stmt = SqlStatement { };
+auto const sqlQuery =  stmt.Query("That")
                 .Select()
                 .Fields("a", "b")
                 .Field("c")
                 .OrderBy(SqlQualifiedTableColumnName { .tableName = "That", .columnName = "b" },
                          SqlResultOrdering::DESCENDING)
                 .All()
+stmt.Prepare(sqlQuery);
+stmt.Execute();
+
+while(stmt.FetchRow())
+{
+    auto a = stmt.GetColumn<int>(1);
+    auto b = stmt.GetColumn<int>(2);
+    auto c = stmt.GetColumn<int>(3);
+}
+
 
 ```
 
@@ -70,6 +80,8 @@ For more info see `SqlQuery` and `SqlQueryFormatter` documentation
 
 ## High level Data Mapping
 
+The `DataMapper` provides a higher-level abstraction for interacting with databases. It simplifies operations by automatically creating tables based on the specified type and enabling data retrieval through straightforward method calls.
+For more info see `DataMapper` documentation
 ```cpp
 // Define a person structure, mapping to a table
 // The field members are mapped to the columns in the table,
@@ -95,7 +107,7 @@ void CRUD(DataMapper& dm)
     dm.Create(person);
 
     // Update the person
-    name.age = 25;
+    person.age = 25;
     dm.Update(person);
 
     // Query the person
@@ -104,6 +116,11 @@ void CRUD(DataMapper& dm)
 
     // Query all persons
     auto const persons = dm.Query<Person>(); 
+
+    // Iterate over all persons 
+    auto stmt = SqlStatement { dm.Connection() };
+    for(const auto& person: SqlRowIterator<Person>(stmt))
+        std::println("|{}|{}|", person.name, person.age);
 
     // Delete the person
     dm.Delete(person);
