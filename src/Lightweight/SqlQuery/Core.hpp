@@ -13,9 +13,6 @@
 ///
 /// The query builder is a high level API for building SQL queries using high level C++ syntax.
 
-/// @ingroup QueryBuilder
-/// @{
-
 /// @brief SqlWildcardType is a placeholder for an explicit wildcard input parameter in a SQL query.
 ///
 /// Use this in the SqlQueryBuilder::Where method to insert a '?' placeholder for a wildcard.
@@ -39,6 +36,7 @@ struct RawSqlCondition
 } // namespace detail
 
 /// @brief SqlQualifiedTableColumnName represents a column name qualified with a table name.
+/// @ingroup QueryBuilder
 struct SqlQualifiedTableColumnName
 {
     std::string_view tableName;
@@ -84,6 +82,7 @@ struct [[nodiscard]] SqlSearchCondition
 };
 
 /// @brief Query builder for building JOIN conditions.
+/// @ingroup QueryBuilder
 class SqlJoinConditionBuilder
 {
   public:
@@ -822,6 +821,3 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(Jo
 }
 
 } // namespace detail
-
-/// @}
-
