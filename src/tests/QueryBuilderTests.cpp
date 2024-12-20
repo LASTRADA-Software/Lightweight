@@ -579,8 +579,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Use SqlQueryBuilder for SqlStatement.Prepare: 
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: sub select with Where", "[SqlQueryBuilder]")
 {
-    auto sharedConnection = SqlConnection {};
-    auto stmt = SqlStatement { sharedConnection };
+    auto stmt = SqlStatement {};
 
     stmt.ExecuteDirect(R"SQL(DROP TABLE IF EXISTS "Test")SQL");
     stmt.ExecuteDirect(R"SQL(
