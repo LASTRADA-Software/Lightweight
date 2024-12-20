@@ -64,6 +64,16 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddColumnAsNullable(std::s
     return *this;
 }
 
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AlterColumnType(std::string columnName,
+                                                                      SqlColumnTypeDefinition columnType)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::AlterColumnType {
+        .columnName = std::move(columnName),
+        .columnType = columnType,
+    });
+    return *this;
+}
+
 SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::RenameColumn(std::string_view oldColumnName,
                                                                    std::string_view newColumnName)
 {

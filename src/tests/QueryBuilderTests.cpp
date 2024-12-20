@@ -62,6 +62,45 @@ void checkSqlQueryBuilder(TheSqlQuery const& sqlQueryBuilder,
     // TODO: checkOne(SqlQueryFormatter::OracleSQL(), "Oracle", expectations.oracle);
 }
 
+struct QueryBuilderCheck
+{
+    std::function<SqlMigrationPlan(SqlMigrationQueryBuilder)> prepare = [](SqlMigrationQueryBuilder b) {
+        // Do nothing by default
+        return b.GetPlan();
+    };
+
+    std::function<SqlMigrationPlan(SqlMigrationQueryBuilder)> test {};
+
+    std::function<void(SqlStatement&)> post = [](SqlStatement&) {
+        // Do nothing by default
+    };
+};
+
+void runSqlQueryBuilder(QueryBuilderCheck const& info,
+                        std::source_location const& location = std::source_location::current())
+{
+    INFO(std::format("Test source location: {}:{}", location.file_name(), location.line()));
+
+    auto conn = SqlConnection {};
+    auto stmt = SqlStatement { conn };
+
+    if (info.prepare)
+    {
+        auto sqlPrepareStatements = info.prepare(conn.Migration()).ToSql();
+        for (auto const& sql: sqlPrepareStatements)
+            stmt.ExecuteDirect(sql);
+    }
+
+    auto sqlTestStatements = info.test(conn.Migration()).ToSql();
+    for (auto const& sql: sqlTestStatements)
+        stmt.ExecuteDirect(sql);
+
+    if (info.post)
+    {
+        info.post(stmt);
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Count", "[SqlQueryBuilder]")
 {
     checkSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("Table").Select().Count(); },
@@ -579,8 +618,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Use SqlQueryBuilder for SqlStatement.Prepare: 
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: sub select with Where", "[SqlQueryBuilder]")
 {
-    auto sharedConnection = SqlConnection {};
-    auto stmt = SqlStatement { sharedConnection };
+    auto stmt = SqlStatement {};
 
     stmt.ExecuteDirect(R"SQL(DROP TABLE IF EXISTS "Test")SQL");
     stmt.ExecuteDirect(R"SQL(
@@ -907,6 +945,25 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddColumn", "[SqlQueryBuilder][Migr
             .sqlServer = R"sql(ALTER TABLE "Table" ADD "column" BIGINT NOT NULL;)sql",
             .oracle = R"sql(ALTER TABLE "Table" ADD COLUMN "column" NUMBER NOT NULL;)sql",
         });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "AlterTable AlterColumnType", "[SqlQueryBuilder][Migration]")
+{
+    // SQLite does not support chaning the column type: https://www.sqlite.org/lang_altertable.html
+    UNSUPPORTED_DATABASE(SqlStatement(), SqlServerType::SQLITE);
+
+    using namespace SqlColumnTypeDefinitions;
+
+    runSqlQueryBuilder(QueryBuilderCheck {
+        .prepare = [](SqlMigrationQueryBuilder migration) -> SqlMigrationPlan {
+            migration.CreateTable("Table").Column("column", Char { 10 });
+            return migration.GetPlan();
+        },
+        .test = [](SqlMigrationQueryBuilder migration) -> SqlMigrationPlan {
+            migration.AlterTable("Table").AlterColumnType("column", Char { 20 });
+            return migration.GetPlan();
+        },
+    });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable multiple AddColumn calls", "[SqlQueryBuilder][Migration]")

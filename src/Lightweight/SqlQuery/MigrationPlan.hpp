@@ -193,6 +193,12 @@ struct AddColumn
     bool nullable = true;
 };
 
+struct AlterColumnType
+{
+    std::string columnName;
+    SqlColumnTypeDefinition columnType;
+};
+
 struct AddIndex
 {
     std::string_view columnName;
@@ -229,6 +235,7 @@ struct DropForeignKey
 
 using SqlAlterTableCommand = std::variant<SqlAlterTableCommands::RenameTable,
                                           SqlAlterTableCommands::AddColumn,
+                                          SqlAlterTableCommands::AlterColumnType,
                                           SqlAlterTableCommands::AddIndex,
                                           SqlAlterTableCommands::RenameColumn,
                                           SqlAlterTableCommands::DropColumn,
