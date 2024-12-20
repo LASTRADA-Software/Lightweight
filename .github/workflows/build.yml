@@ -237,11 +237,12 @@ jobs:
       - name: "Setup ${{ matrix.database }}"
         id: setup
         run: bash ./.github/prepare-test-run.sh "${{ matrix.database }}"
-      - name: "Enable ODBC tracing"
-        run: |
-          echo "[ODBC]" | sudo tee -a /etc/odbcinst.ini
-          echo "Trace=Yes" | sudo tee -a /etc/odbcinst.ini
-          echo "TraceFile=/dev/stdout" | sudo tee -a /etc/odbcinst.ini
+      # Don't do ODBC tracing for now
+      # - name: "Enable ODBC tracing"
+      #   run: |
+      #     echo "[ODBC]" | sudo tee -a /etc/odbcinst.ini
+      #     echo "Trace=Yes" | sudo tee -a /etc/odbcinst.ini
+      #     echo "TraceFile=/dev/stdout" | sudo tee -a /etc/odbcinst.ini
       - name: "~/.odbc.ini: set ServerName"
         if: ${{ matrix.database == 'Oracle' }}
         run: |
