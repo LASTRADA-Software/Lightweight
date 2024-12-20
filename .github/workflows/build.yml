@@ -178,8 +178,9 @@ jobs:
               --preset linux-gcc-release
       - name: "build"
         run: cmake --build --preset linux-gcc-release -- -j3
-      - name: "tests"
-        run: ctest --preset linux-gcc-release
+      # NB: Don't run the tests here, as we want to run them later for each individual database
+      # - name: "tests"
+      #   run: ctest --preset linux-gcc-release
       - name: "package tar.gz"
         run: |
           cpack --preset linux-gcc-release
