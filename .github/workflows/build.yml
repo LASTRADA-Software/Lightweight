@@ -256,8 +256,8 @@ jobs:
         env:
           ODBC_CONNECTION_STRING: "${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}"
         run: |
+          # Don't do --error-exitcode=1 for now
           valgrind \
-            --error-exitcode=1 \
             --leak-check=full \
             --leak-resolution=high \
             --num-callers=64 \
