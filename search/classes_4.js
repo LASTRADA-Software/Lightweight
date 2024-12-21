@@ -30,5 +30,9 @@ var searchData=
   ['sqltime_27',['SqlTime',['../d5/d6d/structSqlTime.html',1,'']]],
   ['sqlupdatequerybuilder_28',['SqlUpdateQueryBuilder',['../db/d2a/classSqlUpdateQueryBuilder.html',1,'']]],
   ['sqlvariant_29',['SqlVariant',['../d0/df8/structSqlVariant.html',1,'']]],
-  ['sqlwildcardtype_30',['SqlWildcardType',['../da/dbf/structSqlWildcardType.html',1,'']]]
+  ['sqlwhereclausebuilder_30',['SqlWhereClauseBuilder',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
+  ['sqlwhereclausebuilder_3c_20sqldeletequerybuilder_20_3e_31',['SqlWhereClauseBuilder&lt; SqlDeleteQueryBuilder &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
+  ['sqlwhereclausebuilder_3c_20sqlselectquerybuilder_20_3e_32',['SqlWhereClauseBuilder&lt; SqlSelectQueryBuilder &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
+  ['sqlwhereclausebuilder_3c_20sqlupdatequerybuilder_20_3e_33',['SqlWhereClauseBuilder&lt; SqlUpdateQueryBuilder &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
+  ['sqlwildcardtype_34',['SqlWildcardType',['../da/dbf/structSqlWildcardType.html',1,'']]]
 ];

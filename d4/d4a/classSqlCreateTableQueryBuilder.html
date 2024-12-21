@@ -108,18 +108,21 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a0460d5dd656a613e01f5c919a649f68d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a543f957a1a122b0f5f0dae83315da102" id="r_a543f957a1a122b0f5f0dae83315da102"><td class="memItemLeft" align="right" valign="top"><a id="a543f957a1a122b0f5f0dae83315da102" name="a543f957a1a122b0f5f0dae83315da102"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>Column</b> (SqlColumnDeclaration column)</td></tr>
+<tr class="memdesc:a543f957a1a122b0f5f0dae83315da102"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a new column to the table. <br /></td></tr>
 <tr class="separator:a543f957a1a122b0f5f0dae83315da102"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9602aac8e470322ff8dabd6d428332f5" id="r_a9602aac8e470322ff8dabd6d428332f5"><td class="memItemLeft" align="right" valign="top"><a id="a9602aac8e470322ff8dabd6d428332f5" name="a9602aac8e470322ff8dabd6d428332f5"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>Column</b> (std::string columnName, SqlColumnTypeDefinition columnType)</td></tr>
+<tr class="memdesc:a9602aac8e470322ff8dabd6d428332f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new nullable column. <br /></td></tr>
 <tr class="separator:a9602aac8e470322ff8dabd6d428332f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab420789b39bcca68c90a572fbd6102d6" id="r_ab420789b39bcca68c90a572fbd6102d6"><td class="memItemLeft" align="right" valign="top"><a id="ab420789b39bcca68c90a572fbd6102d6" name="ab420789b39bcca68c90a572fbd6102d6"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>RequiredColumn</b> (std::string columnName, SqlColumnTypeDefinition columnType)</td></tr>
+<tr class="memdesc:ab420789b39bcca68c90a572fbd6102d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new column that is non-nullable. <br /></td></tr>
 <tr class="separator:ab420789b39bcca68c90a572fbd6102d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaccedfc6fdc80410df1be2458c67bda6" id="r_aaccedfc6fdc80410df1be2458c67bda6"><td class="memItemLeft" align="right" valign="top"><a id="aaccedfc6fdc80410df1be2458c67bda6" name="aaccedfc6fdc80410df1be2458c67bda6"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>Timestamps</b> ()</td></tr>
+<tr class="memdesc:aaccedfc6fdc80410df1be2458c67bda6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds the created_at and updated_at columns to the table. <br /></td></tr>
 <tr class="separator:aaccedfc6fdc80410df1be2458c67bda6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a38f41fcfaf4be0bf4f349c8be5bbeca8" id="r_a38f41fcfaf4be0bf4f349c8be5bbeca8"><td class="memItemLeft" align="right" valign="top"><a id="a38f41fcfaf4be0bf4f349c8be5bbeca8" name="a38f41fcfaf4be0bf4f349c8be5bbeca8"></a>
-LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>PrimaryKey</b> (std::string columnName, SqlColumnTypeDefinition columnType)</td></tr>
+<tr class="memitem:a38f41fcfaf4be0bf4f349c8be5bbeca8" id="r_a38f41fcfaf4be0bf4f349c8be5bbeca8"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html#a38f41fcfaf4be0bf4f349c8be5bbeca8">PrimaryKey</a> (std::string columnName, SqlColumnTypeDefinition columnType)</td></tr>
 <tr class="separator:a38f41fcfaf4be0bf4f349c8be5bbeca8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0f4dab72eaa3d6de2705f99f95fecade" id="r_a0f4dab72eaa3d6de2705f99f95fecade"><td class="memItemLeft" align="right" valign="top"><a id="a0f4dab72eaa3d6de2705f99f95fecade" name="a0f4dab72eaa3d6de2705f99f95fecade"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>PrimaryKeyWithAutoIncrement</b> (std::string columnName, SqlColumnTypeDefinition columnType=SqlColumnTypeDefinitions::Bigint {})</td></tr>
@@ -134,19 +137,22 @@ LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder
 <tr class="separator:ac53b30a0e5df011418f0264090ce49c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a18f1d76e76923048c1d4a2a8e1e4157a" id="r_a18f1d76e76923048c1d4a2a8e1e4157a"><td class="memItemLeft" align="right" valign="top"><a id="a18f1d76e76923048c1d4a2a8e1e4157a" name="a18f1d76e76923048c1d4a2a8e1e4157a"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>Unique</b> ()</td></tr>
+<tr class="memdesc:a18f1d76e76923048c1d4a2a8e1e4157a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enables the UNIQUE constraint on the last declared column. <br /></td></tr>
 <tr class="separator:a18f1d76e76923048c1d4a2a8e1e4157a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a432d2469420055cfbdbaaa4c67e9b25c" id="r_a432d2469420055cfbdbaaa4c67e9b25c"><td class="memItemLeft" align="right" valign="top"><a id="a432d2469420055cfbdbaaa4c67e9b25c" name="a432d2469420055cfbdbaaa4c67e9b25c"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>Index</b> ()</td></tr>
+<tr class="memdesc:a432d2469420055cfbdbaaa4c67e9b25c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enables the INDEX constraint on the last declared column. <br /></td></tr>
 <tr class="separator:a432d2469420055cfbdbaaa4c67e9b25c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ade1e13201cafcf0642277eea30888a3f" id="r_ade1e13201cafcf0642277eea30888a3f"><td class="memItemLeft" align="right" valign="top"><a id="ade1e13201cafcf0642277eea30888a3f" name="ade1e13201cafcf0642277eea30888a3f"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>UniqueIndex</b> ()</td></tr>
+<tr class="memdesc:ade1e13201cafcf0642277eea30888a3f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Enables the UNIQUE and INDEX constraint on the last declared column and makes it an index. <br /></td></tr>
 <tr class="separator:ade1e13201cafcf0642277eea30888a3f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Query builder for building CREATE TABLE queries. </p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../d0/d78/classSqlQueryBuilder.html" title="API Entry point for building SQL queries.">SqlQueryBuilder</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00016">16</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00014">14</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a0460d5dd656a613e01f5c919a649f68d" name="a0460d5dd656a613e01f5c919a649f68d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0460d5dd656a613e01f5c919a649f68d">&#9670;&#160;</a></span>SqlCreateTableQueryBuilder()</h2>
@@ -172,7 +178,37 @@ LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00019">19</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00017">17</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+
+</div>
+</div>
+<h2 class="groupheader">Member Function Documentation</h2>
+<a id="a38f41fcfaf4be0bf4f349c8be5bbeca8" name="a38f41fcfaf4be0bf4f349c8be5bbeca8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a38f41fcfaf4be0bf4f349c8be5bbeca8">&#9670;&#160;</a></span>PrimaryKey()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a> &amp; SqlCreateTableQueryBuilder::PrimaryKey </td>
+          <td>(</td>
+          <td class="paramtype">std::string&#160;</td>
+          <td class="paramname"><em>columnName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">SqlColumnTypeDefinition&#160;</td>
+          <td class="paramname"><em>columnType</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Creates a new primary key column. Primary keys are always required, unique, have an index, and are non-nullable. </p>
 
 </div>
 </div>

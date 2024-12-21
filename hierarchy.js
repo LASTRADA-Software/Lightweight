@@ -32,13 +32,14 @@ var hierarchy =
     [ "SqlStatement", "df/d17/classSqlStatement.html", null ],
     [ "SqlTime", "d5/d6d/structSqlTime.html", null ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html", null ],
-    [ "detail::SqlWhereClauseBuilder< SqlDeleteQueryBuilder >", null, [
+    [ "SqlWhereClauseBuilder< Derived >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
+    [ "SqlWhereClauseBuilder< SqlDeleteQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", [
       [ "SqlDeleteQueryBuilder", "d8/d88/classSqlDeleteQueryBuilder.html", null ]
     ] ],
-    [ "detail::SqlWhereClauseBuilder< SqlSelectQueryBuilder >", null, [
+    [ "SqlWhereClauseBuilder< SqlSelectQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", [
       [ "SqlSelectQueryBuilder", "d1/d91/classSqlSelectQueryBuilder.html", null ]
     ] ],
-    [ "detail::SqlWhereClauseBuilder< SqlUpdateQueryBuilder >", null, [
+    [ "SqlWhereClauseBuilder< SqlUpdateQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", [
       [ "SqlUpdateQueryBuilder", "db/d2a/classSqlUpdateQueryBuilder.html", null ]
     ] ],
     [ "SqlWildcardType", "da/dbf/structSqlWildcardType.html", null ],
