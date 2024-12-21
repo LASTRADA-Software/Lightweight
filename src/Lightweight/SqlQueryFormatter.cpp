@@ -342,42 +342,25 @@ class BasicSqlQueryFormatter: public SqlQueryFormatter
     {
         using namespace SqlColumnTypeDefinitions;
         return std::visit(
-            [](auto const& actualType) -> std::string {
-                using Type = std::decay_t<decltype(actualType)>;
-                if constexpr (std::same_as<Type, Bigint>)
-                    return "BIGINT";
-                else if constexpr (std::same_as<Type, Bool>)
-                    return "BOOLEAN";
-                else if constexpr (std::same_as<Type, Char>)
-                    return std::format("CHAR({})", actualType.size);
-                else if constexpr (std::same_as<Type, Date>)
-                    return "DATE";
-                else if constexpr (std::same_as<Type, DateTime>)
-                    return "DATETIME";
-                else if constexpr (std::same_as<Type, Decimal>)
-                    return std::format("DECIMAL({}, {})", actualType.precision, actualType.scale);
-                else if constexpr (std::same_as<Type, Guid>)
-                    return "GUID";
-                else if constexpr (std::same_as<Type, Integer>)
-                    return "INTEGER";
-                else if constexpr (std::same_as<Type, NChar>)
-                    return std::format("NCHAR({})", actualType.size);
-                else if constexpr (std::same_as<Type, NVarchar>)
-                    return std::format("NVARCHAR({})", actualType.size);
-                else if constexpr (std::same_as<Type, Real>)
-                    return "REAL";
-                else if constexpr (std::same_as<Type, Smallint>)
-                    return "SMALLINT";
-                else if constexpr (std::same_as<Type, Text>)
-                    return "TEXT";
-                else if constexpr (std::same_as<Type, Time>)
-                    return "TIME";
-                else if constexpr (std::same_as<Type, Timestamp>)
-                    return "TIMESTAMP";
-                else if constexpr (std::same_as<Type, Varchar>)
-                    return std::format("VARCHAR({})", actualType.size);
-                else
-                    throw std::runtime_error(std::format("Unknown column type: {}", Reflection::TypeName<Type>));
+            detail::overloaded {
+                [](Bigint const&) -> std::string { return "BIGINT"; },
+                [](Bool const&) -> std::string { return "BOOLEAN"; },
+                [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
+                [](Date const&) -> std::string { return "DATE"; },
+                [](DateTime const&) -> std::string { return "DATETIME"; },
+                [](Decimal const& type) -> std::string {
+                    return std::format("DECIMAL({}, {})", type.precision, type.scale);
+                },
+                [](Guid const&) -> std::string { return "GUID"; },
+                [](Integer const&) -> std::string { return "INTEGER"; },
+                [](NChar const& type) -> std::string { return std::format("NCHAR({})", type.size); },
+                [](NVarchar const& type) -> std::string { return std::format("NVARCHAR({})", type.size); },
+                [](Real const&) -> std::string { return "REAL"; },
+                [](Smallint const&) -> std::string { return "SMALLINT"; },
+                [](Text const&) -> std::string { return "TEXT"; },
+                [](Time const&) -> std::string { return "TIME"; },
+                [](Timestamp const&) -> std::string { return "TIMESTAMP"; },
+                [](Varchar const& type) -> std::string { return std::format("VARCHAR({})", type.size); },
             },
             type);
     }
@@ -458,16 +441,25 @@ class SqlServerQueryFormatter final: public BasicSqlQueryFormatter
     {
         using namespace SqlColumnTypeDefinitions;
         return std::visit(
-            [this, type](auto const& actualType) -> std::string {
-                using Type = std::decay_t<decltype(actualType)>;
-                if constexpr (std::same_as<Type, Bool>)
-                    return "BIT";
-                else if constexpr (std::same_as<Type, Guid>)
-                    return "UNIQUEIDENTIFIER";
-                else if constexpr (std::same_as<Type, Text>)
-                    return "VARCHAR(MAX)";
-                else
-                    return BasicSqlQueryFormatter::ColumnType(type);
+            detail::overloaded {
+                [](Bigint const&) -> std::string { return "BIGINT"; },
+                [](Bool const&) -> std::string { return "BIT"; },
+                [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
+                [](Date const&) -> std::string { return "DATE"; },
+                [](DateTime const&) -> std::string { return "DATETIME"; },
+                [](Decimal const& type) -> std::string {
+                    return std::format("DECIMAL({}, {})", type.precision, type.scale);
+                },
+                [](Guid const&) -> std::string { return "UNIQUEIDENTIFIER"; },
+                [](Integer const&) -> std::string { return "INTEGER"; },
+                [](NChar const& type) -> std::string { return std::format("NCHAR({})", type.size); },
+                [](NVarchar const& type) -> std::string { return std::format("NVARCHAR({})", type.size); },
+                [](Real const&) -> std::string { return "REAL"; },
+                [](Smallint const&) -> std::string { return "SMALLINT"; },
+                [](Text const&) -> std::string { return "VARCHAR(MAX)"; },
+                [](Time const&) -> std::string { return "TIME"; },
+                [](Timestamp const&) -> std::string { return "TIMESTAMP"; },
+                [](Varchar const& type) -> std::string { return std::format("VARCHAR({})", type.size); },
             },
             type);
     }
@@ -630,29 +622,30 @@ class OracleSqlQueryFormatter final: public BasicSqlQueryFormatter
     {
         using namespace SqlColumnTypeDefinitions;
         return std::visit(
-            [this, type](auto const& actualType) -> std::string {
-                using Type = std::decay_t<decltype(actualType)>;
-                if constexpr (std::same_as<Type, Bool>)
-                    return "BIT";
-                else if constexpr (std::same_as<Type, Bigint>)
-                    return "NUMBER(19, 0)";
-                else if constexpr (std::same_as<Type, DateTime>)
-                    return "TIMESTAMP";
-                else if constexpr (std::same_as<Type, Time>)
-                    return "TIMESTAMP";
-                else if constexpr (std::same_as<Type, Guid>)
-                    return "RAW(16)";
-                else if constexpr (std::same_as<Type, NVarchar>)
-                    return std::format("NVARCHAR2({})", actualType.size);
-                else if constexpr (std::same_as<Type, Text>)
-                {
-                    if (actualType.size <= 4000)
-                        return std::format("VARCHAR2({})", actualType.size);
+            detail::overloaded {
+                [](Bigint const&) -> std::string { return "NUMBER(19, 0)"; },
+                [](Bool const&) -> std::string { return "BIT"; },
+                [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
+                [](Date const&) -> std::string { return "DATE"; },
+                [](DateTime const&) -> std::string { return "TIMESTAMP"; },
+                [](Decimal const& type) -> std::string {
+                    return std::format("DECIMAL({}, {})", type.precision, type.scale);
+                },
+                [](Guid const&) -> std::string { return "RAW(16)"; },
+                [](Integer const&) -> std::string { return "INTEGER"; },
+                [](NChar const& type) -> std::string { return std::format("NCHAR({})", type.size); },
+                [](NVarchar const& type) -> std::string { return std::format("NVARCHAR2({})", type.size); },
+                [](Real const&) -> std::string { return "REAL"; },
+                [](Smallint const&) -> std::string { return "SMALLINT"; },
+                [](Text const& type) -> std::string {
+                    if (type.size <= 4000)
+                        return std::format("VARCHAR2({})", type.size);
                     else
                         return "CLOB";
-                }
-                else
-                    return BasicSqlQueryFormatter::ColumnType(type);
+                },
+                [](Time const&) -> std::string { return "TIMESTAMP"; },
+                [](Timestamp const&) -> std::string { return "TIMESTAMP"; },
+                [](Varchar const& type) -> std::string { return std::format("VARCHAR({})", type.size); },
             },
             type);
     }
@@ -715,23 +708,29 @@ class PostgreSqlFormatter final: public BasicSqlQueryFormatter
     [[nodiscard]] std::string ColumnType(SqlColumnTypeDefinition const& type) const override
     {
         using namespace SqlColumnTypeDefinitions;
-        return std::visit(
-            [this, type](auto const& actualType) -> std::string {
-                using Type = std::decay_t<decltype(actualType)>;
-                if constexpr (std::same_as<Type, NChar>)
-                    // PostgreSQL stores all strings as UTF-8
-                    return std::format("CHAR({})", actualType.size);
-                else if constexpr (std::same_as<Type, NVarchar>)
-                    // PostgreSQL stores all strings as UTF-8
-                    return std::format("VARCHAR({})", actualType.size);
-                else if constexpr (std::same_as<Type, Guid>)
-                    return "UUID";
-                else if constexpr (std::same_as<Type, DateTime>)
-                    return "TIMESTAMP";
-                else
-                    return BasicSqlQueryFormatter::ColumnType(type);
-            },
-            type);
+
+        // PostgreSQL stores all strings as UTF-8
+        return std::visit(detail::overloaded {
+                              [](Bigint const&) -> std::string { return "BIGINT"; },
+                              [](Bool const&) -> std::string { return "BOOLEAN"; },
+                              [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
+                              [](Date const&) -> std::string { return "DATE"; },
+                              [](DateTime const&) -> std::string { return "TIMESTAMP"; },
+                              [](Decimal const& type) -> std::string {
+                                  return std::format("DECIMAL({}, {})", type.precision, type.scale);
+                              },
+                              [](Guid const&) -> std::string { return "UUID"; },
+                              [](Integer const&) -> std::string { return "INTEGER"; },
+                              [](NChar const& type) -> std::string { return std::format("CHAR({})", type.size); },
+                              [](NVarchar const& type) -> std::string { return std::format("VARCHAR({})", type.size); },
+                              [](Real const&) -> std::string { return "REAL"; },
+                              [](Smallint const&) -> std::string { return "SMALLINT"; },
+                              [](Text const&) -> std::string { return "TEXT"; },
+                              [](Time const&) -> std::string { return "TIME"; },
+                              [](Timestamp const&) -> std::string { return "TIMESTAMP"; },
+                              [](Varchar const& type) -> std::string { return std::format("VARCHAR({})", type.size); },
+                          },
+                          type);
     }
 
     [[nodiscard]] StringList AlterTable(std::string_view tableName,
