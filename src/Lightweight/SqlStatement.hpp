@@ -348,7 +348,25 @@ class [[nodiscard]] SqlResultCursor
     SqlStatement* m_stmt;
 };
 
-/// SQL query result row iterator
+/// @brief SQL query result row iterator
+///
+/// Can be used to iterate over rows of the database and fetch them into a record type.
+/// @tparam T The record type to fetch the rows into.
+/// @code
+///
+/// struct MyRecord
+/// {
+///    Field<SqlGuid, PrimaryKey::AutoAssign> field1;
+///    Field<int> field2;
+///    Field<double> field3;
+/// };
+///
+/// for (auto const& row : SqlRowIterator<MyRecord>(stmt))
+/// {
+///    // row is of type MyRecord
+///    // row.field1, row.field2, row.field3 are accessible
+/// }
+/// @endcode
 template <typename T>
 class SqlRowIterator
 {

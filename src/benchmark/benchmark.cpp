@@ -212,7 +212,7 @@ void iterate()
     auto dm = DataMapper();
     auto stmt = SqlStatement { dm.Connection() };
     int count = 0;
-    for (auto&& person: SqlRowIterator<movies>(stmt))
+    for (const auto& movie: SqlRowIterator<movies>(stmt))
     {
         ++count;
     }

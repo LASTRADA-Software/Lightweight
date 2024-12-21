@@ -19,7 +19,9 @@ struct [[nodiscard]] SqlLastInsertIdQuery
     }
 };
 
-/// API Entry point for building SQL queries.
+/// @brief API Entry point for building SQL queries.
+///
+/// @ingroup QueryBuilder
 class [[nodiscard]] SqlQueryBuilder final
 {
   public:

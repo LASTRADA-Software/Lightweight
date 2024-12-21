@@ -11,14 +11,21 @@
 /// @brief Query builder for building UPDATE ... queries.
 ///
 /// @ingroup QueryBuilder
-class [[nodiscard]] SqlUpdateQueryBuilder final: public detail::SqlWhereClauseBuilder<SqlUpdateQueryBuilder>
+class [[nodiscard]] SqlUpdateQueryBuilder final: public SqlWhereClauseBuilder<SqlUpdateQueryBuilder>
 {
   public:
+    /// Constructs a new SqlUpdateQueryBuilder object.
+    ///
+    /// @param formatter The SQL query formatter to use. One of SqlServerQueryFormatter, OracleSqlQueryFormatter,
+    /// PostgreSqlFormatter
+    /// @param table The name of the table to update.
+    /// @param tableAlias The alias of the table to update.
+    /// @param inputBindings The input bindings to use for the query.
     SqlUpdateQueryBuilder(SqlQueryFormatter const& formatter,
                           std::string table,
                           std::string tableAlias,
                           std::vector<SqlVariant>* inputBindings) noexcept:
-        detail::SqlWhereClauseBuilder<SqlUpdateQueryBuilder> {},
+        SqlWhereClauseBuilder<SqlUpdateQueryBuilder> {},
         m_formatter { formatter }
     {
         m_searchCondition.tableName = std::move(table);
@@ -31,23 +38,24 @@ class [[nodiscard]] SqlUpdateQueryBuilder final: public detail::SqlWhereClauseBu
         return m_searchCondition;
     }
 
+    /// @brief Returns the SQL query formatter.
     [[nodiscard]] SqlQueryFormatter const& Formatter() const noexcept
     {
         return m_formatter;
     }
 
-    // Adds a single column to the SET clause.
+    /// Adds a single column to the SET clause.
     template <typename ColumnValue>
     SqlUpdateQueryBuilder& Set(std::string_view columnName, ColumnValue const& value);
 
-    // Adds a single column to the SET clause with the value being a string literal.
+    /// Adds a single column to the SET clause with the value being a string literal.
     template <std::size_t N>
     SqlUpdateQueryBuilder& Set(std::string_view columnName, char const (&value)[N]);
 
-    // Adds a single column to the SET clause with the value being a MFC like CString.
+    /// Adds a single column to the SET clause with the value being a MFC like CString.
     SqlUpdateQueryBuilder& Set(std::string_view columnName, MFCStringLike auto const* value);
 
-    // Finalizes building the query as UPDATE ... query.
+    /// Finalizes building the query as UPDATE ... query.
     [[nodiscard]] std::string ToSql() const;
 
   private:
@@ -81,7 +89,7 @@ SqlUpdateQueryBuilder& SqlUpdateQueryBuilder::Set(std::string_view columnName, C
         m_values += m_formatter.StringLiteral(value);
     else if constexpr (std::is_arithmetic_v<ColumnValue>)
         m_values += std::format("{}", value);
-    else if constexpr (!detail::WhereConditionLiteralType<ColumnValue>::needsQuotes)
+    else if constexpr (!WhereConditionLiteralType<ColumnValue>::needsQuotes)
         m_values += std::format("{}", value);
     else
     {
