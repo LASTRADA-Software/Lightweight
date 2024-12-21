@@ -228,7 +228,7 @@ struct AddForeignKey
 };
 struct DropForeignKey
 {
-    std::string_view columnName;
+    std::string columnName;
 };
 
 } // namespace SqlAlterTableCommands
