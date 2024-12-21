@@ -83,10 +83,11 @@ var NAVTREEINDEX0 =
 "d3/d0e/structSqlDate.html#aba600d601283d6bbc335d4ded73a796a":[5,0,11,0],
 "d3/d15/classSqlMigrationQueryBuilder.html":[5,0,20],
 "d3/d3f/classSqlAlterTableQueryBuilder.html":[5,0,6],
-"d3/d3f/classSqlAlterTableQueryBuilder.html#a8da134787b17104640783f42fe08a517":[5,0,6,0],
-"d3/d3f/classSqlAlterTableQueryBuilder.html#abc19754ad52e4ee224138f75139061b2":[5,0,6,3],
-"d3/d3f/classSqlAlterTableQueryBuilder.html#aca7254c86e2361c1e8744e1d02b8e16b":[5,0,6,2],
-"d3/d3f/classSqlAlterTableQueryBuilder.html#ad372d4cae924471b4e5c8e8dedd2aeba":[5,0,6,1],
+"d3/d3f/classSqlAlterTableQueryBuilder.html#a8da134787b17104640783f42fe08a517":[5,0,6,1],
+"d3/d3f/classSqlAlterTableQueryBuilder.html#abc19754ad52e4ee224138f75139061b2":[5,0,6,4],
+"d3/d3f/classSqlAlterTableQueryBuilder.html#aca7254c86e2361c1e8744e1d02b8e16b":[5,0,6,3],
+"d3/d3f/classSqlAlterTableQueryBuilder.html#ad372d4cae924471b4e5c8e8dedd2aeba":[5,0,6,2],
+"d3/d3f/classSqlAlterTableQueryBuilder.html#ad87a233533dd0bba411b8483e2f17ef7":[5,0,6,0],
 "d3/d6b/Record_8hpp_source.html":[6,0,1,1,7],
 "d3/dbc/structSqlErrorInfo.html":[5,0,14],
 "d3/de6/SqlNullValue_8hpp_source.html":[6,0,1,0,8],
@@ -248,6 +249,5 @@ var NAVTREEINDEX0 =
 "db/d2a/tests_2Utils_8hpp_source.html":[6,0,2,0],
 "db/d47/MigrationPlan_8hpp_source.html":[6,0,1,2,4],
 "db/d83/SqlQuery_2Core_8hpp_source.html":[6,0,1,2,0],
-"dc/dc7/classDataMapper.html":[3,0,2],
-"dc/dc7/classDataMapper.html#a02eb0501dadc42e84041be41e2ca9022":[3,0,2,24]
+"dc/dc7/classDataMapper.html":[3,0,2]
 };

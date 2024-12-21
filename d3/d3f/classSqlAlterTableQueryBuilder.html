@@ -115,12 +115,12 @@ LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.
 <tr class="memitem:a760f0371d3c8de1100ba10fd0d3efca6" id="r_a760f0371d3c8de1100ba10fd0d3efca6"><td class="memItemLeft" align="right" valign="top"><a id="a760f0371d3c8de1100ba10fd0d3efca6" name="a760f0371d3c8de1100ba10fd0d3efca6"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>AddColumnAsNullable</b> (std::string columnName, SqlColumnTypeDefinition columnType)</td></tr>
 <tr class="separator:a760f0371d3c8de1100ba10fd0d3efca6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acc506d10bfe7e994278b46ede531540e" id="r_acc506d10bfe7e994278b46ede531540e"><td class="memItemLeft" align="right" valign="top"><a id="acc506d10bfe7e994278b46ede531540e" name="acc506d10bfe7e994278b46ede531540e"></a>
-LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>AlterColumn</b> (std::string_view columnName, SqlColumnTypeDefinition columnType)</td></tr>
-<tr class="separator:acc506d10bfe7e994278b46ede531540e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2519c21313c0eeb4b9a63b8e2ea09d1d" id="r_a2519c21313c0eeb4b9a63b8e2ea09d1d"><td class="memItemLeft" align="right" valign="top"><a id="a2519c21313c0eeb4b9a63b8e2ea09d1d" name="a2519c21313c0eeb4b9a63b8e2ea09d1d"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>AlterColumnAsNullable</b> (std::string_view columnName, SqlColumnTypeDefinition columnType)</td></tr>
 <tr class="separator:a2519c21313c0eeb4b9a63b8e2ea09d1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad87a233533dd0bba411b8483e2f17ef7" id="r_ad87a233533dd0bba411b8483e2f17ef7"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html#ad87a233533dd0bba411b8483e2f17ef7">AlterColumnType</a> (std::string columnName, SqlColumnTypeDefinition columnType)</td></tr>
+<tr class="memdesc:ad87a233533dd0bba411b8483e2f17ef7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alters the column to have a new non-nullable type.  <br /></td></tr>
+<tr class="separator:ad87a233533dd0bba411b8483e2f17ef7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aca0ad1e7dc3fc1f17a39246512428dff" id="r_aca0ad1e7dc3fc1f17a39246512428dff"><td class="memItemLeft" align="right" valign="top"><a id="aca0ad1e7dc3fc1f17a39246512428dff" name="aca0ad1e7dc3fc1f17a39246512428dff"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>RenameColumn</b> (std::string_view oldColumnName, std::string_view newColumnName)</td></tr>
 <tr class="separator:aca0ad1e7dc3fc1f17a39246512428dff"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -151,7 +151,7 @@ LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.
 <div class="textblock"><p>Query builder for building ALTER TABLE queries. </p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../d0/d78/classSqlQueryBuilder.html" title="API Entry point for building SQL queries.">SqlQueryBuilder</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00066">66</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a82155982780f056535a8226cbdf08ffc" name="a82155982780f056535a8226cbdf08ffc"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a82155982780f056535a8226cbdf08ffc">&#9670;&#160;</a></span>SqlAlterTableQueryBuilder()</h2>
@@ -177,11 +177,58 @@ LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00069">69</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00073">73</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="ad87a233533dd0bba411b8483e2f17ef7" name="ad87a233533dd0bba411b8483e2f17ef7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad87a233533dd0bba411b8483e2f17ef7">&#9670;&#160;</a></span>AlterColumnType()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp; SqlAlterTableQueryBuilder::AlterColumnType </td>
+          <td>(</td>
+          <td class="paramtype">std::string&#160;</td>
+          <td class="paramname"><em>columnName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">SqlColumnTypeDefinition&#160;</td>
+          <td class="paramname"><em>columnType</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Alters the column to have a new non-nullable type. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">columnName</td><td>The name of the column to alter. </td></tr>
+    <tr><td class="paramname">columnType</td><td>The new type of the column. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The current query builder for chaining.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd>SqlColumnTypeDefinition</dd></dl>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = <a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a>();</div>
+<div class="line"><span class="keyword">auto</span> sqlMigration = stmt.Migration()</div>
+<div class="line">                        .AlterTable(<span class="stringliteral">&quot;Table&quot;</span>)</div>
+<div class="line">                        .AlterColumnType(<span class="stringliteral">&quot;column&quot;</span>, Integer {})</div>
+<div class="line">                        .GetPlan().ToSql();</div>
+<div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; sql: sqlMigration)</div>
+<div class="line">    stmt.ExecuteDirect(sql);</div>
+<div class="ttc" id="aclassSqlStatement_html"><div class="ttname"><a href="../../df/d17/classSqlStatement.html">SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00045">SqlStatement.hpp:46</a></div></div>
+</div><!-- fragment --> 
+</div>
+</div>
 <a id="a8da134787b17104640783f42fe08a517" name="a8da134787b17104640783f42fe08a517"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a8da134787b17104640783f42fe08a517">&#9670;&#160;</a></span>AddForeignKey()</h2>
 
