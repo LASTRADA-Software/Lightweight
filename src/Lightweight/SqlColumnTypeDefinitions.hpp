@@ -8,6 +8,7 @@ namespace SqlColumnTypeDefinitions
 {
 
 // clang-format off
+struct Binary { std::size_t size = 255; };
 struct Bool {};
 struct Char { std::size_t size = 1; };
 struct NChar { std::size_t size = 1; };
@@ -29,6 +30,7 @@ struct Guid {};
 } // namespace SqlColumnTypeDefinitions
 
 using SqlColumnTypeDefinition = std::variant<SqlColumnTypeDefinitions::Bigint,
+                                             SqlColumnTypeDefinitions::Binary,
                                              SqlColumnTypeDefinitions::Bool,
                                              SqlColumnTypeDefinitions::Char,
                                              SqlColumnTypeDefinitions::Date,

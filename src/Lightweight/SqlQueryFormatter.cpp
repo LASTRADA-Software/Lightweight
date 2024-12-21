@@ -344,6 +344,7 @@ class BasicSqlQueryFormatter: public SqlQueryFormatter
         return std::visit(
             detail::overloaded {
                 [](Bigint const&) -> std::string { return "BIGINT"; },
+                [](Binary const&) -> std::string { return "BLOB"; },
                 [](Bool const&) -> std::string { return "BOOLEAN"; },
                 [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
                 [](Date const&) -> std::string { return "DATE"; },
@@ -443,6 +444,7 @@ class SqlServerQueryFormatter final: public BasicSqlQueryFormatter
         return std::visit(
             detail::overloaded {
                 [](Bigint const&) -> std::string { return "BIGINT"; },
+                [](Binary const& type) -> std::string { return std::format("VARBINARY({})", type.size); },
                 [](Bool const&) -> std::string { return "BIT"; },
                 [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
                 [](Date const&) -> std::string { return "DATE"; },
@@ -624,6 +626,12 @@ class OracleSqlQueryFormatter final: public BasicSqlQueryFormatter
         return std::visit(
             detail::overloaded {
                 [](Bigint const&) -> std::string { return "NUMBER(19, 0)"; },
+                [](Binary const& type) -> std::string {
+                    if (type.size)
+                        return std::format("BLOB({})", type.size);
+                    else
+                        return "BLOB";
+                },
                 [](Bool const&) -> std::string { return "BIT"; },
                 [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
                 [](Date const&) -> std::string { return "DATE"; },
@@ -712,6 +720,7 @@ class PostgreSqlFormatter final: public BasicSqlQueryFormatter
         // PostgreSQL stores all strings as UTF-8
         return std::visit(detail::overloaded {
                               [](Bigint const&) -> std::string { return "BIGINT"; },
+                              [](Binary const& type) -> std::string { return std::format("BYTEA", type.size); },
                               [](Bool const&) -> std::string { return "BOOLEAN"; },
                               [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
                               [](Date const&) -> std::string { return "DATE"; },

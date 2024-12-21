@@ -12,20 +12,10 @@
 namespace detail
 {
 
-template <typename Utf16StringType>
-SQLRETURN GetColumnUtf16(SQLHSTMT stmt,
-                         SQLUSMALLINT column,
-                         Utf16StringType* result,
-                         SQLLEN* indicator,
-                         SqlDataBinderCallback const& /*cb*/) noexcept
+template <auto CType, typename ArrayType>
+static SQLRETURN GetArrayData(SQLHSTMT stmt, SQLUSMALLINT column, ArrayType* result, SQLLEN* indicator) noexcept
 {
-    using CharType = char16_t;
-    constexpr auto CType = SQL_C_WCHAR;
-
-    if constexpr (requires { Utf16StringType::Capacity; })
-        result->resize(Utf16StringType::Capacity);
-    else
-        result->resize(255);
+    using CharType = typename ArrayType::value_type;
 
     *indicator = 0;
 
@@ -69,6 +59,21 @@ SQLRETURN GetColumnUtf16(SQLHSTMT stmt,
         sqlResult = SQLGetData(stmt, column, CType, bufferStart, bufferCharsAvailable, indicator);
     }
     return sqlResult;
+}
+
+template <typename Utf16StringType>
+SQLRETURN GetColumnUtf16(SQLHSTMT stmt,
+                         SQLUSMALLINT column,
+                         Utf16StringType* result,
+                         SQLLEN* indicator,
+                         SqlDataBinderCallback const& /*cb*/) noexcept
+{
+    if constexpr (requires { Utf16StringType::Capacity; })
+        result->resize(Utf16StringType::Capacity);
+    else
+        result->resize(255);
+
+    return GetArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
 }
 
 } // namespace detail
