@@ -118,9 +118,9 @@ LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.
 LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>AddColumnAsNullable</b> (std::string columnName, SqlColumnTypeDefinition columnType)</td></tr>
 <tr class="memdesc:a760f0371d3c8de1100ba10fd0d3efca6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a new column to the table that is nullable. <br /></td></tr>
 <tr class="separator:a760f0371d3c8de1100ba10fd0d3efca6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad87a233533dd0bba411b8483e2f17ef7" id="r_ad87a233533dd0bba411b8483e2f17ef7"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html#ad87a233533dd0bba411b8483e2f17ef7">AlterColumnType</a> (std::string columnName, SqlColumnTypeDefinition columnType)</td></tr>
-<tr class="memdesc:ad87a233533dd0bba411b8483e2f17ef7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alters the column to have a new non-nullable type.  <br /></td></tr>
-<tr class="separator:ad87a233533dd0bba411b8483e2f17ef7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa2baccd183036dd059fffa77520916fe" id="r_aa2baccd183036dd059fffa77520916fe"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html#aa2baccd183036dd059fffa77520916fe">AlterColumn</a> (std::string columnName, SqlColumnTypeDefinition columnType, SqlNullable nullable)</td></tr>
+<tr class="memdesc:aa2baccd183036dd059fffa77520916fe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alters the column to have a new non-nullable type.  <br /></td></tr>
+<tr class="separator:aa2baccd183036dd059fffa77520916fe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aca0ad1e7dc3fc1f17a39246512428dff" id="r_aca0ad1e7dc3fc1f17a39246512428dff"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html#aca0ad1e7dc3fc1f17a39246512428dff">RenameColumn</a> (std::string_view oldColumnName, std::string_view newColumnName)</td></tr>
 <tr class="separator:aca0ad1e7dc3fc1f17a39246512428dff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0bd2dc01e143714dcf52c14210736cde" id="r_a0bd2dc01e143714dcf52c14210736cde"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html#a0bd2dc01e143714dcf52c14210736cde">DropColumn</a> (std::string_view columnName)</td></tr>
@@ -177,14 +177,14 @@ LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="ad87a233533dd0bba411b8483e2f17ef7" name="ad87a233533dd0bba411b8483e2f17ef7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad87a233533dd0bba411b8483e2f17ef7">&#9670;&#160;</a></span>AlterColumnType()</h2>
+<a id="aa2baccd183036dd059fffa77520916fe" name="aa2baccd183036dd059fffa77520916fe"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa2baccd183036dd059fffa77520916fe">&#9670;&#160;</a></span>AlterColumn()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp; SqlAlterTableQueryBuilder::AlterColumnType </td>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp; SqlAlterTableQueryBuilder::AlterColumn </td>
           <td>(</td>
           <td class="paramtype">std::string&#160;</td>
           <td class="paramname"><em>columnName</em>, </td>
@@ -193,7 +193,13 @@ LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">SqlColumnTypeDefinition&#160;</td>
-          <td class="paramname"><em>columnType</em>&#160;</td>
+          <td class="paramname"><em>columnType</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">SqlNullable&#160;</td>
+          <td class="paramname"><em>nullable</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -216,7 +222,7 @@ LIGHTWEIGHT_API <a class="el" href="../../d3/d3f/classSqlAlterTableQueryBuilder.
 <div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = <a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a>();</div>
 <div class="line"><span class="keyword">auto</span> sqlMigration = stmt.Migration()</div>
 <div class="line">                        .AlterTable(<span class="stringliteral">&quot;Table&quot;</span>)</div>
-<div class="line">                        .AlterColumnType(<span class="stringliteral">&quot;column&quot;</span>, Integer {})</div>
+<div class="line">                        .AlterColumn(<span class="stringliteral">&quot;column&quot;</span>, Integer {}, SqlNullable::NotNull)</div>
 <div class="line">                        .GetPlan().ToSql();</div>
 <div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; sql: sqlMigration)</div>
 <div class="line">    stmt.ExecuteDirect(sql);</div>
