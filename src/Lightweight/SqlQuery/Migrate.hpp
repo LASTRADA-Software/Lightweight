@@ -78,8 +78,7 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& RenameTo(std::string_view newTableName);
 
     /// Adds a new column to the table that is non-nullable.
-    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumn(std::string columnName,
-                                                         SqlColumnTypeDefinition columnType);
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumn(std::string columnName, SqlColumnTypeDefinition columnType);
 
     /// Adds a new column to the table that is nullable.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumnAsNullable(std::string columnName,
@@ -97,13 +96,14 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// auto stmt = SqlStatement();
     /// auto sqlMigration = stmt.Migration()
     ///                         .AlterTable("Table")
-    ///                         .AlterColumnType("column", Integer {})
+    ///                         .AlterColumn("column", Integer {}, SqlNullable::NotNull)
     ///                         .GetPlan().ToSql();
     /// for (auto const& sql: sqlMigration)
     ///     stmt.ExecuteDirect(sql);
     /// @endcode
-    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AlterColumnType(std::string columnName,
-                                                               SqlColumnTypeDefinition columnType);
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AlterColumn(std::string columnName,
+                                                           SqlColumnTypeDefinition columnType,
+                                                           SqlNullable nullable);
 
     /// Renames a column.
     /// @param oldColumnName The old column name.

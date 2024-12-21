@@ -291,13 +291,14 @@ class BasicSqlQueryFormatter: public SqlQueryFormatter
                                            tableName,
                                            actualCommand.columnName,
                                            ColumnType(actualCommand.columnType),
-                                           actualCommand.nullable ? "NULL" : "NOT NULL");
+                                           actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                     },
-                    [tableName, this](AlterColumnType const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE "{}" ALTER COLUMN "{}" {};)",
+                    [tableName, this](AlterColumn const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE "{}" ALTER COLUMN "{}" {} {};)",
                                            tableName,
                                            actualCommand.columnName,
-                                           ColumnType(actualCommand.columnType));
+                                           ColumnType(actualCommand.columnType),
+                                           actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                     },
                     [tableName](RenameColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE "{}" RENAME COLUMN "{}" TO "{}";)",
@@ -326,8 +327,9 @@ class BasicSqlQueryFormatter: public SqlQueryFormatter
                             BuildForeignKeyConstraint(actualCommand.columnName, actualCommand.referencedColumn));
                     },
                     [tableName](DropForeignKey const& actualCommand) -> std::string {
-                        return std::format(
-                            R"(ALTER TABLE "{}" DROP CONSTRAINT "{}";)", tableName, std::format("FK_{}", actualCommand.columnName));
+                        return std::format(R"(ALTER TABLE "{}" DROP CONSTRAINT "{}";)",
+                                           tableName,
+                                           std::format("FK_{}", actualCommand.columnName));
                     },
                 },
                 command);
@@ -511,13 +513,14 @@ class SqlServerQueryFormatter final: public BasicSqlQueryFormatter
                                            tableName,
                                            actualCommand.columnName,
                                            ColumnType(actualCommand.columnType),
-                                           actualCommand.nullable ? "NULL" : "NOT NULL");
+                                           actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                     },
-                    [tableName, this](AlterColumnType const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE "{}" ALTER COLUMN "{}" {};)",
+                    [tableName, this](AlterColumn const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE "{}" ALTER COLUMN "{}" {} {};)",
                                            tableName,
                                            actualCommand.columnName,
-                                           ColumnType(actualCommand.columnType));
+                                           ColumnType(actualCommand.columnType),
+                                           actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                     },
                     [tableName](RenameColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE "{}" RENAME COLUMN "{}" TO "{}";)",
@@ -546,8 +549,9 @@ class SqlServerQueryFormatter final: public BasicSqlQueryFormatter
                             BuildForeignKeyConstraint(actualCommand.columnName, actualCommand.referencedColumn));
                     },
                     [tableName](DropForeignKey const& actualCommand) -> std::string {
-                        return std::format(
-                            R"(ALTER TABLE "{}" DROP CONSTRAINT "{}";)", tableName, std::format("FK_{}", actualCommand.columnName));
+                        return std::format(R"(ALTER TABLE "{}" DROP CONSTRAINT "{}";)",
+                                           tableName,
+                                           std::format("FK_{}", actualCommand.columnName));
                     },
                 },
                 command);
@@ -754,13 +758,15 @@ class PostgreSqlFormatter final: public BasicSqlQueryFormatter
                                            tableName,
                                            actualCommand.columnName,
                                            ColumnType(actualCommand.columnType),
-                                           actualCommand.nullable ? "NULL" : "NOT NULL");
+                                           actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                     },
-                    [tableName, this](AlterColumnType const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE "{}" ALTER COLUMN "{}" TYPE {};)",
-                                           tableName,
-                                           actualCommand.columnName,
-                                           ColumnType(actualCommand.columnType));
+                    [tableName, this](AlterColumn const& actualCommand) -> std::string {
+                        return std::format(
+                            R"(ALTER TABLE "{0}" ALTER COLUMN "{1}" TYPE {2}, ALTER COLUMN "{1}" {3} NOT NULL;)",
+                            tableName,
+                            actualCommand.columnName,
+                            ColumnType(actualCommand.columnType),
+                            actualCommand.nullable == SqlNullable::NotNull ? "SET" : "DROP");
                     },
                     [tableName](RenameColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE "{}" RENAME COLUMN "{}" TO "{}";)",
@@ -789,8 +795,9 @@ class PostgreSqlFormatter final: public BasicSqlQueryFormatter
                             BuildForeignKeyConstraint(actualCommand.columnName, actualCommand.referencedColumn));
                     },
                     [tableName](DropForeignKey const& actualCommand) -> std::string {
-                        return std::format(
-                            R"(ALTER TABLE "{}" DROP CONSTRAINT "{}";)", tableName, std::format("FK_{}", actualCommand.columnName));
+                        return std::format(R"(ALTER TABLE "{}" DROP CONSTRAINT "{}";)",
+                                           tableName,
+                                           std::format("FK_{}", actualCommand.columnName));
                     },
                 },
                 command);

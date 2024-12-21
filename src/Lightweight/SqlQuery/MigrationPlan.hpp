@@ -178,6 +178,12 @@ struct SqlCreateTablePlan
     std::vector<SqlColumnDeclaration> columns;
 };
 
+enum class SqlNullable : uint8_t
+{
+    NotNull,
+    Null,
+};
+
 namespace SqlAlterTableCommands
 {
 
@@ -190,13 +196,14 @@ struct AddColumn
 {
     std::string columnName;
     SqlColumnTypeDefinition columnType;
-    bool nullable = true;
+    SqlNullable nullable = SqlNullable::Null;
 };
 
-struct AlterColumnType
+struct AlterColumn
 {
     std::string columnName;
     SqlColumnTypeDefinition columnType;
+    SqlNullable nullable = SqlNullable::Null;
 };
 
 struct AddIndex
@@ -235,7 +242,7 @@ struct DropForeignKey
 
 using SqlAlterTableCommand = std::variant<SqlAlterTableCommands::RenameTable,
                                           SqlAlterTableCommands::AddColumn,
-                                          SqlAlterTableCommands::AlterColumnType,
+                                          SqlAlterTableCommands::AlterColumn,
                                           SqlAlterTableCommands::AddIndex,
                                           SqlAlterTableCommands::RenameColumn,
                                           SqlAlterTableCommands::DropColumn,
