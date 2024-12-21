@@ -947,23 +947,41 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddColumn", "[SqlQueryBuilder][Migr
         });
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "AlterTable AlterColumnType", "[SqlQueryBuilder][Migration]")
+TEST_CASE_METHOD(SqlTestFixture, "AlterTable AlterColumn", "[SqlQueryBuilder][Migration]")
 {
     // SQLite does not support chaning the column type: https://www.sqlite.org/lang_altertable.html
     UNSUPPORTED_DATABASE(SqlStatement(), SqlServerType::SQLITE);
 
     using namespace SqlColumnTypeDefinitions;
 
-    runSqlQueryBuilder(QueryBuilderCheck {
-        .prepare = [](SqlMigrationQueryBuilder migration) -> SqlMigrationPlan {
-            migration.CreateTable("Table").Column("column", Char { 10 });
-            return migration.GetPlan();
-        },
-        .test = [](SqlMigrationQueryBuilder migration) -> SqlMigrationPlan {
-            migration.AlterTable("Table").AlterColumnType("column", Char { 20 });
-            return migration.GetPlan();
-        },
-    });
+    SECTION("change type")
+    {
+        runSqlQueryBuilder(QueryBuilderCheck {
+            .prepare = [](SqlMigrationQueryBuilder migration) -> SqlMigrationPlan {
+                migration.CreateTable("Table").Column("column", Char { 10 });
+                return migration.GetPlan();
+            },
+            .test = [](SqlMigrationQueryBuilder migration) -> SqlMigrationPlan {
+                migration.AlterTable("Table").AlterColumn("column", Char { 20 }, SqlNullable::Null);
+                return migration.GetPlan();
+            },
+        });
+    }
+
+    SECTION("change nullability")
+    {
+        runSqlQueryBuilder(QueryBuilderCheck {
+            .prepare = [](SqlMigrationQueryBuilder migration) -> SqlMigrationPlan {
+                migration.CreateTable("Table").Column("column", Char { 10 });
+                return migration.GetPlan();
+            },
+            .test = [](SqlMigrationQueryBuilder migration) -> SqlMigrationPlan {
+                migration.AlterTable("Table").AlterColumn("column", Char { 10 }, SqlNullable::NotNull);
+                migration.AlterTable("Table").AlterColumn("column", Char { 10 }, SqlNullable::Null);
+                return migration.GetPlan();
+            },
+        });
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable multiple AddColumn calls", "[SqlQueryBuilder][Migration]")

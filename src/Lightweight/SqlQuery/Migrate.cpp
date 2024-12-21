@@ -48,7 +48,7 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddColumn(std::string colu
     _plan.commands.emplace_back(SqlAlterTableCommands::AddColumn {
         .columnName = std::move(columnName),
         .columnType = columnType,
-        .nullable = false,
+        .nullable = SqlNullable::NotNull,
     });
     return *this;
 }
@@ -59,17 +59,19 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddColumnAsNullable(std::s
     _plan.commands.emplace_back(SqlAlterTableCommands::AddColumn {
         .columnName = std::move(columnName),
         .columnType = columnType,
-        .nullable = true,
+        .nullable = SqlNullable::Null,
     });
     return *this;
 }
 
-SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AlterColumnType(std::string columnName,
-                                                                      SqlColumnTypeDefinition columnType)
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AlterColumn(std::string columnName,
+                                                                  SqlColumnTypeDefinition columnType,
+                                                                  SqlNullable nullable)
 {
-    _plan.commands.emplace_back(SqlAlterTableCommands::AlterColumnType {
+    _plan.commands.emplace_back(SqlAlterTableCommands::AlterColumn {
         .columnName = std::move(columnName),
         .columnType = columnType,
+        .nullable = nullable,
     });
     return *this;
 }
