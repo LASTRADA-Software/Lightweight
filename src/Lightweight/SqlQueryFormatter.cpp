@@ -293,6 +293,12 @@ class BasicSqlQueryFormatter: public SqlQueryFormatter
                                            ColumnType(actualCommand.columnType),
                                            actualCommand.nullable ? "NULL" : "NOT NULL");
                     },
+                    [tableName, this](AlterColumnType const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE "{}" ALTER COLUMN "{}" {};)",
+                                           tableName,
+                                           actualCommand.columnName,
+                                           ColumnType(actualCommand.columnType));
+                    },
                     [tableName](RenameColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE "{}" RENAME COLUMN "{}" TO "{}";)",
                                            tableName,
@@ -507,6 +513,12 @@ class SqlServerQueryFormatter final: public BasicSqlQueryFormatter
                                            ColumnType(actualCommand.columnType),
                                            actualCommand.nullable ? "NULL" : "NOT NULL");
                     },
+                    [tableName, this](AlterColumnType const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE "{}" ALTER COLUMN "{}" {};)",
+                                           tableName,
+                                           actualCommand.columnName,
+                                           ColumnType(actualCommand.columnType));
+                    },
                     [tableName](RenameColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE "{}" RENAME COLUMN "{}" TO "{}";)",
                                            tableName,
@@ -716,6 +728,75 @@ class PostgreSqlFormatter final: public BasicSqlQueryFormatter
                     return BasicSqlQueryFormatter::ColumnType(type);
             },
             type);
+    }
+
+    [[nodiscard]] StringList AlterTable(std::string_view tableName,
+                                        std::vector<SqlAlterTableCommand> const& commands) const override
+    {
+        std::stringstream sqlQueryString;
+
+        int currentCommand = 0;
+        for (SqlAlterTableCommand const& command: commands)
+        {
+            if (currentCommand > 0)
+                sqlQueryString << '\n';
+            ++currentCommand;
+
+            using namespace SqlAlterTableCommands;
+            sqlQueryString << std::visit(
+                detail::overloaded {
+                    [tableName](RenameTable const& actualCommand) -> std::string {
+                        return std::format(
+                            R"(ALTER TABLE "{}" RENAME TO "{}";)", tableName, actualCommand.newTableName);
+                    },
+                    [tableName, this](AddColumn const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE "{}" ADD COLUMN "{}" {} {};)",
+                                           tableName,
+                                           actualCommand.columnName,
+                                           ColumnType(actualCommand.columnType),
+                                           actualCommand.nullable ? "NULL" : "NOT NULL");
+                    },
+                    [tableName, this](AlterColumnType const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE "{}" ALTER COLUMN "{}" TYPE {};)",
+                                           tableName,
+                                           actualCommand.columnName,
+                                           ColumnType(actualCommand.columnType));
+                    },
+                    [tableName](RenameColumn const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE "{}" RENAME COLUMN "{}" TO "{}";)",
+                                           tableName,
+                                           actualCommand.oldColumnName,
+                                           actualCommand.newColumnName);
+                    },
+                    [tableName](DropColumn const& actualCommand) -> std::string {
+                        return std::format(
+                            R"(ALTER TABLE "{}" DROP COLUMN "{}";)", tableName, actualCommand.columnName);
+                    },
+                    [tableName](AddIndex const& actualCommand) -> std::string {
+                        auto const uniqueStr = actualCommand.unique ? "UNIQUE "sv : ""sv;
+                        return std::format(R"(CREATE {2}INDEX "{0}_{1}_index" ON "{0}"("{1}");)",
+                                           tableName,
+                                           actualCommand.columnName,
+                                           uniqueStr);
+                    },
+                    [tableName](DropIndex const& actualCommand) -> std::string {
+                        return std::format(R"(DROP INDEX "{0}_{1}_index";)", tableName, actualCommand.columnName);
+                    },
+                    [tableName](AddForeignKey const& actualCommand) -> std::string {
+                        return std::format(
+                            R"(ALTER TABLE "{}" ADD {};)",
+                            tableName,
+                            BuildForeignKeyConstraint(actualCommand.columnName, actualCommand.referencedColumn));
+                    },
+                    [tableName](DropForeignKey const& actualCommand) -> std::string {
+                        return std::format(
+                            R"(ALTER TABLE "{}" DROP CONSTRAINT "{}";)", tableName, std::format("FK_{}", actualCommand.columnName));
+                    },
+                },
+                command);
+        }
+
+        return { sqlQueryString.str() };
     }
 };
 
