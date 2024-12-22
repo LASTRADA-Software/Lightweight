@@ -19,8 +19,11 @@ ddl2cpp:
     - src/Lightweight/DataBinder/**
 "Data Mapper":
     - src/Lightweight/DataMapper/**
+"Query Formatter":
+    - src/Lightweight/QueryFormatter/**
+    - src/Lightweight/SqlQueryFormatter.*
 "Query Builder":
     - src/Lightweight/SqlQuery/**
-    - src/Lightweight/SqlQuery*
+    - src/Lightweight/SqlQuery.*
 "CLI":
     - src/tools/**
