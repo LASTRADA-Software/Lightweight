@@ -5,6 +5,7 @@
 #include "DataBinder/BasicStringBinder.hpp"
 #include "DataBinder/MFCStringLike.hpp"
 #include "DataBinder/Primitives.hpp"
+#include "DataBinder/SqlBinary.hpp"
 #include "DataBinder/SqlDate.hpp"
 #include "DataBinder/SqlDateTime.hpp"
 #include "DataBinder/SqlFixedString.hpp"
