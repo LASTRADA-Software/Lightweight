@@ -72,7 +72,7 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d8/d7e/classSqlLogger.html#ac85b570b6db926ce202d178838bba2e9",
-"functions_func_t.html"
+"functions_func_r.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

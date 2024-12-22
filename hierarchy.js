@@ -47,5 +47,8 @@ var hierarchy =
       [ "std::runtime_error", null, [
         [ "SqlRequireLoadedError", "d5/d6a/classSqlRequireLoadedError.html", null ]
       ] ]
+    ] ],
+    [ "std::vector< uint8_t >", null, [
+      [ "SqlBinary", "df/d29/classSqlBinary.html", null ]
     ] ]
 ];
