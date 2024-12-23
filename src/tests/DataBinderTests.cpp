@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <format>
+#include <locale>
 #include <numbers>
 #include <ranges>
 #include <type_traits>
@@ -344,13 +345,11 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode", "[SqlDataBinder],[Uni
         stmt.ExecuteDirect("PRAGMA encoding = 'UTF-16'");
 
     // Create table with Unicode column.
-    // Mind, for PostgreSQL, we need to use VARCHAR instead of NVARCHAR,
-    // because supports Unicode only via UTF-8.
-    stmt.ExecuteDirect(
-        std::format("CREATE TABLE Test (Value {}(50) NULL)",
-                    stmt.Connection().ServerType() == SqlServerType::POSTGRESQL ? "VARCHAR" : "NVARCHAR"));
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::NVarchar(50));
+    });
 
-    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
 
     // Insert via wide string literal
     stmt.Execute(WTEXT("Wide string literal \U0001F600"));
@@ -362,7 +361,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode", "[SqlDataBinder],[Uni
     WideString const inputValue = WTEXT("Wide string literal \U0001F600");
     stmt.Execute(inputValue);
 
-    stmt.ExecuteDirect("SELECT Value FROM Test");
+    stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
     {
         auto reader = stmt.GetResultCursor();
 
@@ -380,11 +379,36 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode", "[SqlDataBinder],[Uni
 
     SECTION("Test for inserting/getting NULL VALUES")
     {
-        stmt.ExecuteDirect("DELETE FROM Test");
-        stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+        stmt.ExecuteDirect(stmt.Query("Test").Delete());
+        stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
         stmt.Execute(SqlNullValue);
-        auto const result = stmt.ExecuteDirectScalar<WideString>("SELECT Value FROM Test");
+        auto const result = stmt.ExecuteDirectScalar<WideString>(stmt.Query("Test").Select().Field("Value").First());
         CHECK(!result.has_value());
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode mixed", "[SqlDataBinder],[Unicode]")
+{
+    auto stmt = SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::ORACLE);
+
+    if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
+        // SQLite does UTF-8 by default, so we need to switch to UTF-16
+        stmt.ExecuteDirect("PRAGMA encoding = 'UTF-16'");
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::NVarchar(10));
+    });
+
+    {
+        // Write value: UTF-8 encoded
+        stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+        stmt.Execute("The \xc3\xb6");
+
+        // Read value: UTF-16 encoded
+        auto actualValue = stmt.ExecuteDirectScalar<WideString>(stmt.Query("Test").Select().Field("Value").First());
+        REQUIRE(actualValue.has_value());
+        CHECK(*actualValue == WideString(WTEXT("The ö")));
     }
 }
 
