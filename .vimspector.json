@@ -55,7 +55,7 @@
                 "environment": [
                     {
                         "name": "ODBC_CONNECTION_STRING",
-                        "value": "DRIVER=Oracle 21 ODBC driver;SERVER=localhost;PORT=1521;UID=system;PWD=Super1Secret.;DBA=W"
+                        "value": "DRIVER=Oracle 21 ODBC driver;SERVER=localhost;PORT=1521;UID=system;PWD=Super1Secret.;DBA=W;Database=FREEPDB1"
                     }
                 ],
                 "cwd": "${workspaceRoot}",
