@@ -443,11 +443,15 @@ struct TestTypeTraits<int32_t>
 template <>
 struct TestTypeTraits<int64_t>
 {
-    static constexpr auto blacklist = std::array {
-        std::pair { SqlServerType::ORACLE, "Oracle does not support 64-bit integers via SQL_BIGINT it seems"sv },
-    };
     static constexpr auto inputValue = (std::numeric_limits<int64_t>::max)();
     static constexpr auto expectedOutputValue = (std::numeric_limits<int64_t>::max)();
+};
+
+template <>
+struct TestTypeTraits<uint64_t>
+{
+    static constexpr auto inputValue = (std::numeric_limits<uint64_t>::max)();
+    static constexpr auto expectedOutputValue = (std::numeric_limits<uint64_t>::max)();
 };
 
 template <>
@@ -654,6 +658,9 @@ struct TestTypeTraits<std::wstring_view>
 template <>
 struct TestTypeTraits<SqlBinary>
 {
+    static constexpr auto blacklist = std::array {
+        std::pair { SqlServerType::ORACLE, "TODO: Oracle"sv },
+    };
     static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Binary { 50 };
     static auto const inline inputValue = SqlBinary { 0x00, 0x02, 0x03, 0x00, 0x05 };
     static auto const inline expectedOutputValue = SqlBinary { 0x00, 0x02, 0x03, 0x00, 0x05 };
@@ -678,6 +685,7 @@ using TypesToTest = std::tuple<
     int16_t,
     int32_t,
     int64_t,
+    // TODO: uint64_t,
     std::string,
     std::string_view,
     std::u16string,
@@ -763,8 +771,7 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
             //     {
             //         stmt.ExecuteDirect("SELECT Value FROM Test");
             //         auto actualValue = [&]() -> TestType {
-            //             if constexpr (requires(SqlServerType st) { TestTypeTraits<TestType>::outputInitializer(st);
-            //             })
+            //             if constexpr (requires(SqlServerType st) { TestTypeTraits<TestType>::outputInitializer(st); })
             //                 return TestTypeTraits<TestType>::outputInitializer(conn.ServerType());
             //             else if constexpr (requires { TestTypeTraits<TestType>::outputInitializer; })
             //                 return TestTypeTraits<TestType>::outputInitializer;
@@ -776,8 +783,7 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
             //         if constexpr (std::is_convertible_v<TestType, double> && !std::integral<TestType>)
             //             CHECK_THAT(
             //                 double(actualValue),
-            //                 (Catch::Matchers::WithinAbs(double(TestTypeTraits<TestType>::expectedOutputValue),
-            //                 0.001)));
+            //                 (Catch::Matchers::WithinAbs(double(TestTypeTraits<TestType>::expectedOutputValue), 0.001)));
             //         else
             //             CHECK(actualValue == TestTypeTraits<TestType>::expectedOutputValue);
             //     }

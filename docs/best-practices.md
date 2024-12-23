@@ -50,3 +50,10 @@ of parsing, analyzing, and compiling the SQL queries.
 
 When querying large result sets, use pagination to limit the number of results returned in a single response.
 This will help to reduce the response time and the load on the server.
+
+## SQL server variation challenges
+
+### 64-bit integer handling in Oracle database
+
+Oracle database does not support 64-bit integers natively.
+When working with 64-bit integers in Oracle database, you need to use the `SqlNumeric` column types.

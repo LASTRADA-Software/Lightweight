@@ -728,10 +728,10 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with aliased column names", "[DataMapper
 
 struct PersonDifferenceView
 {
-    Field<SqlGuid, PrimaryKey::AutoAssign> id;
-    Field<SqlAnsiString<25>> name;
+    Field<SqlGuid, PrimaryKey::AutoAssign> id {};
+    Field<SqlAnsiString<25>> name {};
     Field<bool> is_active { true };
-    Field<int> age;
+    Field<int> age {};
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "Test DifferenceView", "[DataMapper]")

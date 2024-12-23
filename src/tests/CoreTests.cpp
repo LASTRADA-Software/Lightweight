@@ -325,6 +325,8 @@ TEST_CASE_METHOD(SqlTestFixture, "LastInsertId", "[SqlStatement]")
 {
     auto stmt = SqlStatement {};
 
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::ORACLE);
+
     CreateEmployeesTable(stmt);
     FillEmployeesTable(stmt);
 

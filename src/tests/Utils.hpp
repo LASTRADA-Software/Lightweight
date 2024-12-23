@@ -246,7 +246,7 @@ constexpr void FixedPointIterate(Getter const& getter, Callable const& callable)
 class SqlTestFixture
 {
   public:
-    static inline std::string_view const testDatabaseName = "LightweightTest";
+    static inline std::string testDatabaseName = "LightweightTest";
     static inline bool odbcTrace = false;
 
     using MainProgramArgs = std::tuple<int, char**>;
@@ -349,6 +349,16 @@ class SqlTestFixture
     {
         auto stmt = SqlStatement();
         REQUIRE(stmt.IsAlive());
+
+        // On Github CI, we use the pre-created database "FREEPDB1" for Oracle
+        char dbName[100]; // Buffer to store the database name
+        SQLSMALLINT dbNameLen {};
+        SQLGetInfo(stmt.Connection().NativeHandle(), SQL_DATABASE_NAME, dbName, sizeof(dbName), &dbNameLen);
+        if (dbNameLen > 0)
+            testDatabaseName = dbName;
+        else if (stmt.Connection().ServerType() == SqlServerType::ORACLE)
+            testDatabaseName = "FREEPDB1";
+
         DropAllTablesInDatabase(stmt);
     }
 
@@ -383,6 +393,7 @@ class SqlTestFixture
                 stmt.ExecuteDirect(std::format("USE \"{}\"", testDatabaseName));
                 [[fallthrough]];
             case SqlServerType::SQLITE:
+            case SqlServerType::ORACLE:
             case SqlServerType::UNKNOWN: {
                 auto const tableNames = GetAllTableNames(stmt);
                 for (auto const& tableName: tableNames)
@@ -400,30 +411,43 @@ class SqlTestFixture
                 for (auto& createdTable: std::views::reverse(m_createdTables))
                     stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS \"{}\" CASCADE", createdTable));
                 break;
-            case SqlServerType::ORACLE: {
-                // Drop user-created tables
-                stmt.ExecuteDirect(R"SQL(
-                    SELECT user_tables.table_name FROM user_tables
-                    LEFT JOIN sys.user_objects ON user_objects.object_type = 'TABLE' AND user_objects.object_name = user_tables.table_name
-                    WHERE user_objects.oracle_maintained != 'Y'
-                )SQL");
-                std::vector<std::string> tableNames;
-                while (stmt.FetchRow())
-                    tableNames.emplace_back(stmt.GetColumn<std::string>(1));
-                for (auto const& tableName: tableNames)
-                    stmt.ExecuteDirect(std::format("DROP TABLE \"{}\"", tableName));
-                break;
-            }
         }
         m_createdTables.clear();
     }
 
   private:
+    static std::vector<std::string> GetAllTableNamesForOracle(SqlStatement& stmt)
+    {
+        auto result = std::vector<std::string> {};
+        stmt.Prepare(R"SQL(SELECT table_name
+                           FROM user_tables
+                           WHERE table_name NOT LIKE '%$%'
+                             AND table_name NOT IN ('SCHEDULER_JOB_ARGS_TBL', 'SCHEDULER_PROGRAM_ARGS_TBL', 'SQLPLUS_PRODUCT_PROFILE')
+                           ORDER BY table_name)SQL");
+        stmt.Execute();
+        while (stmt.FetchRow())
+        {
+            result.emplace_back(stmt.GetColumn<std::string>(1));
+        }
+        return result;
+    }
+
     static std::vector<std::string> GetAllTableNames(SqlStatement& stmt)
     {
-        using namespace std::string_view_literals;
+        if (stmt.Connection().ServerType() == SqlServerType::ORACLE)
+            return GetAllTableNamesForOracle(stmt);
+
+        using namespace std::string_literals;
         auto result = std::vector<std::string>();
-        auto const schemaName = stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL ? "dbo"sv : ""sv;
+        auto const schemaName = [&] {
+            switch (stmt.Connection().ServerType())
+            {
+                case SqlServerType::MICROSOFT_SQL:
+                    return "dbo"s;
+                default:
+                    return ""s;
+            }
+        }();
         auto const sqlResult = SQLTables(stmt.NativeHandle(),
                                          (SQLCHAR*) testDatabaseName.data(),
                                          (SQLSMALLINT) testDatabaseName.size(),
@@ -578,4 +602,3 @@ inline void FillEmployeesTable(SqlStatement& stmt)
     stmt.Execute("Bob", "Johnson", 60'000);
     stmt.Execute("Charlie", "Brown", 70'000);
 }
-
