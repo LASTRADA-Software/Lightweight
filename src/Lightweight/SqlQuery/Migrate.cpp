@@ -53,8 +53,8 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddColumn(std::string colu
     return *this;
 }
 
-SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddColumnAsNullable(std::string columnName,
-                                                                          SqlColumnTypeDefinition columnType)
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddNotRequiredColumn(std::string columnName,
+                                                                           SqlColumnTypeDefinition columnType)
 {
     _plan.commands.emplace_back(SqlAlterTableCommands::AddColumn {
         .columnName = std::move(columnName),
@@ -136,10 +136,10 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddForeignKeyColumn(
     return AddColumn(columnName, columnType).AddForeignKey(std::move(columnName), std::move(referencedColumn));
 }
 
-SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddForeignKeyColumnAsNullable(
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddNotRequiredForeignKeyColumn(
     std::string columnName, SqlColumnTypeDefinition columnType, SqlForeignKeyReferenceDefinition referencedColumn)
 {
-    AddColumnAsNullable(columnName, columnType);
+    AddNotRequiredColumn(columnName, columnType);
     AddForeignKey(std::move(columnName), std::move(referencedColumn));
     return *this;
 }
