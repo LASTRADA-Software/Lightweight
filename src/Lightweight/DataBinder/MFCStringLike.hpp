@@ -67,14 +67,12 @@ struct LIGHTWEIGHT_API SqlDataBinder<T>
 //
 //     static void Reserve(MFCStringLike auto* str, size_t capacity) noexcept
 //     {
-//         // TODO(pr)
 //         // str->reserve(capacity);
 //         // str->resize(str->capacity());
 //     }
 //
 //     static void Resize(MFCStringLike auto* str, SQLLEN indicator) noexcept
 //     {
-//         // TODO(pr)
 //         // if (indicator > 0)
 //         //     str->resize(indicator);
 //     }

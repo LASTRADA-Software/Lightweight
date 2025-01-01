@@ -94,7 +94,7 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlBinary>
         return detail::GetArrayData<SQL_C_BINARY>(stmt, column, result, indicator);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(SqlBinary const& value) // TODO(pr)
+    static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(SqlBinary const& value)
     {
         return std::format("SqlBinary(size={})", value.size());
     }

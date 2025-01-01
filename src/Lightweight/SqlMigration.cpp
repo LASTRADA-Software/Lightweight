@@ -53,7 +53,6 @@ void MigrationManager::CloseDataMapper()
 
 void MigrationManager::CreateMigrationHistory()
 {
-    // TODO(pr): Only create if not exists
     GetDataMapper().CreateTable<SchemaMigration>();
 }
 
