@@ -11,6 +11,7 @@
 #include "HasOneThrough.hpp"
 #include "Record.hpp"
 #include "RecordId.hpp"
+#include "CollectDifferences.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 

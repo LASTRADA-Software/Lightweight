@@ -724,3 +724,31 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with aliased column names", "[DataMapper
                                     );)"));
     }
 }
+
+
+struct PersonDifferenceView
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign> id;
+    Field<SqlAnsiString<25>> name;
+    Field<bool> is_active { true };
+    Field<int> age;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "Test DifferenceView", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    dm.CreateTable<PersonDifferenceView>();
+    auto first = PersonDifferenceView{ .name = "Jahn Doe" , .age = 10};
+    dm.Create(first);
+    auto second = PersonDifferenceView{ .name = "John Doe" , .age = 19 };
+    dm.Create(second);
+
+    auto persons = dm.Query<PersonDifferenceView>(dm.FromTable(RecordTableName<PersonDifferenceView>).Select().Fields<PersonDifferenceView>().All());
+    auto difference = CollectDifferences(persons[0], persons[1]);
+
+    difference.iterate([](auto& lhs, auto& rhs){
+        std::println("{}!={}", lhs.Value() ,rhs.Value());
+    });
+
+}
