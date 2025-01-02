@@ -81,8 +81,8 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumn(std::string columnName, SqlColumnTypeDefinition columnType);
 
     /// Adds a new column to the table that is nullable.
-    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumnAsNullable(std::string columnName,
-                                                                   SqlColumnTypeDefinition columnType);
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddNotRequiredColumn(std::string columnName,
+                                                                    SqlColumnTypeDefinition columnType);
 
     /// @brief Alters the column to have a new non-nullable type.
     ///
@@ -166,7 +166,7 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// @param columnName The name of the column to add.
     /// @param columnType The type of the column to add.
     /// @param referencedColumn The column to reference.
-    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddForeignKeyColumnAsNullable(
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddNotRequiredForeignKeyColumn(
         std::string columnName, SqlColumnTypeDefinition columnType, SqlForeignKeyReferenceDefinition referencedColumn);
 
     /// Drops a foreign key for the column @p columnName from the table.

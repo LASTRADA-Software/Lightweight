@@ -85,7 +85,7 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlWhereClauseBuilder<Sq
     /// Adds a single column to the SELECT clause.
     LIGHTWEIGHT_API SqlSelectQueryBuilder& Field(SqlQualifiedTableColumnName const& fieldName);
 
-    /// Adds a single column to the SELECT clause.
+    /// Adds a sequence of columns to the SELECT clause.
     LIGHTWEIGHT_API SqlSelectQueryBuilder& Fields(std::vector<std::string_view> const& fieldNames);
 
     /// Adds a sequence of columns from the given table to the SELECT clause.

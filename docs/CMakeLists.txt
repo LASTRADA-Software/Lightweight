@@ -49,6 +49,7 @@ if(DOXYGEN_FOUND)
     "${PROJECT_SOURCE_DIR}/src";
     "${PROJECT_SOURCE_DIR}/README.md";
     "${PROJECT_SOURCE_DIR}/docs/usage.md";
+    "${PROJECT_SOURCE_DIR}/docs/sqlquery.md";
     "${PROJECT_SOURCE_DIR}/docs/best-practices.md";
   )
   doxygen_add_docs(doc
