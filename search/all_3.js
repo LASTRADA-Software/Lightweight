@@ -22,10 +22,11 @@ var searchData=
   ['const_5fiterator_19',['const_iterator',['../d3/d09/classHasMany.html#a87328f4569988e57a6b6228d637885bc',1,'HasMany']]],
   ['count_20',['count',['../d1/d91/classSqlSelectQueryBuilder.html#a4cb95d2b6c32e248289b8f16794da86c',1,'SqlSelectQueryBuilder::Count()'],['../df/dd6/classHasManyThrough.html#a21529e666f46d27a466d6cffc9367a67',1,'HasManyThrough::Count()'],['../d3/d09/classHasMany.html#a612cdb324e204923c2693bd2e53e49fc',1,'HasMany::Count()'],['../dc/dc7/classDataMapper.html#a3c208d9e2342547997d2c40f1b7d5bac',1,'DataMapper::Count()']]],
   ['create_21',['create',['../dc/dc7/classDataMapper.html#a12e76849c4b2f5b2f558c546f9c4b62f',1,'DataMapper::Create()'],['../d2/d62/structSqlGuid.html#a613b5dc1dcdaca783c74fcced32091ba',1,'SqlGuid::Create()']]],
-  ['createexplicit_22',['CreateExplicit',['../dc/dc7/classDataMapper.html#a7987f75a14a69b7360b995ee54534299',1,'DataMapper']]],
-  ['createtable_23',['createtable',['../dc/dc7/classDataMapper.html#a6a2df09ef7735f0d0e07886ef1b27457',1,'DataMapper::CreateTable()'],['../dc/df2/classSqlQueryFormatter.html#a7c9701272fc9bf551bf03e3d1d5b906b',1,'SqlQueryFormatter::CreateTable()']]],
-  ['createtables_24',['CreateTables',['../dc/dc7/classDataMapper.html#a65a471372c998066cde5dc246f8577e5',1,'DataMapper']]],
-  ['createtablesstring_25',['CreateTablesString',['../dc/dc7/classDataMapper.html#a4959a7ee7cd77fd0f2c8d9423478e788',1,'DataMapper']]],
-  ['createtablestring_26',['CreateTableString',['../dc/dc7/classDataMapper.html#a81f985f78813f21e5d968c55ba68eb53',1,'DataMapper']]],
-  ['crud_20style_20high_20level_20data_20mapping_27',['Example: CRUD-style High level Data Mapping',['../index.html#example-crud-style-high-level-data-mapping',1,'']]]
+  ['create_20or_20modife_20database_20schema_22',['Create or Modife database schema',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modife-database-schema',1,'']]],
+  ['createexplicit_23',['CreateExplicit',['../dc/dc7/classDataMapper.html#a7987f75a14a69b7360b995ee54534299',1,'DataMapper']]],
+  ['createtable_24',['createtable',['../dc/dc7/classDataMapper.html#a6a2df09ef7735f0d0e07886ef1b27457',1,'DataMapper::CreateTable()'],['../dc/df2/classSqlQueryFormatter.html#a7c9701272fc9bf551bf03e3d1d5b906b',1,'SqlQueryFormatter::CreateTable()']]],
+  ['createtables_25',['CreateTables',['../dc/dc7/classDataMapper.html#a65a471372c998066cde5dc246f8577e5',1,'DataMapper']]],
+  ['createtablesstring_26',['CreateTablesString',['../dc/dc7/classDataMapper.html#a4959a7ee7cd77fd0f2c8d9423478e788',1,'DataMapper']]],
+  ['createtablestring_27',['CreateTableString',['../dc/dc7/classDataMapper.html#a81f985f78813f21e5d968c55ba68eb53',1,'DataMapper']]],
+  ['crud_20style_20high_20level_20data_20mapping_28',['Example: CRUD-style High level Data Mapping',['../index.html#example-crud-style-high-level-data-mapping',1,'']]]
 ];
