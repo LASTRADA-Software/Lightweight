@@ -325,6 +325,8 @@ TEST_CASE_METHOD(SqlTestFixture, "LastInsertId", "[SqlStatement]")
 {
     auto stmt = SqlStatement {};
 
+    UNSUPPORTED_DATABASE(stmt, SqlServerType::ORACLE);
+
     CreateEmployeesTable(stmt);
     FillEmployeesTable(stmt);
 
@@ -396,14 +398,14 @@ TEST_CASE_METHOD(SqlTestFixture, "Prepare and move", "[SqlStatement]")
 
 struct Simple1
 {
-    uint64_t pk;
+    uint32_t pk;
     SqlAnsiString<30> c1;
     SqlAnsiString<30> c2;
 };
 
 struct Simple2
 {
-    uint64_t pk;
+    uint32_t pk;
     SqlAnsiString<30> c1;
     SqlAnsiString<30> c2;
 };
