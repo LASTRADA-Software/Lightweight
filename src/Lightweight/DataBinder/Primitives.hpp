@@ -37,6 +37,31 @@ struct SqlSimpleDataBinder
     }
 };
 
+template <typename Int64Type, SQLSMALLINT TheCType>
+struct Int64DataBinderHelper
+{
+    static constexpr SqlColumnTypeDefinition ColumnType = SqlColumnTypeDefinitions::Bigint {};
+
+    static LIGHTWEIGHT_API SQLRETURN InputParameter(SQLHSTMT stmt,
+                                                    SQLUSMALLINT column,
+                                                    Int64Type const& value,
+                                                    SqlDataBinderCallback& cb) noexcept;
+
+    static LIGHTWEIGHT_API SQLRETURN OutputColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, Int64Type* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept;
+
+    static LIGHTWEIGHT_API SQLRETURN GetColumn(SQLHSTMT stmt,
+                                               SQLUSMALLINT column,
+                                               Int64Type* result,
+                                               SQLLEN* indicator,
+                                               SqlDataBinderCallback const& cb) noexcept;
+
+    static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(Int64Type value)
+    {
+        return std::to_string(value);
+    }
+};
+
 // clang-format off
 template <> struct SqlDataBinder<bool>: SqlSimpleDataBinder<bool, SQL_BIT, SQL_BIT, SqlColumnTypeDefinitions::Bool {}> {};
 template <> struct SqlDataBinder<char>: SqlSimpleDataBinder<char, SQL_C_CHAR, SQL_CHAR, SqlColumnTypeDefinitions::Char {}> {};
@@ -44,13 +69,14 @@ template <> struct SqlDataBinder<int16_t>: SqlSimpleDataBinder<int16_t, SQL_C_SS
 template <> struct SqlDataBinder<uint16_t>: SqlSimpleDataBinder<uint16_t, SQL_C_USHORT, SQL_SMALLINT, SqlColumnTypeDefinitions::Smallint {}> {};
 template <> struct SqlDataBinder<int32_t>: SqlSimpleDataBinder<int32_t, SQL_C_SLONG, SQL_INTEGER, SqlColumnTypeDefinitions::Integer {}> {};
 template <> struct SqlDataBinder<uint32_t>: SqlSimpleDataBinder<uint32_t, SQL_C_ULONG, SQL_INTEGER, SqlColumnTypeDefinitions::Integer {}> {};
-template <> struct SqlDataBinder<int64_t>: SqlSimpleDataBinder<int64_t, SQL_C_SBIGINT, SQL_BIGINT, SqlColumnTypeDefinitions::Bigint {}> {};
-template <> struct SqlDataBinder<uint64_t>: SqlSimpleDataBinder<uint64_t, SQL_C_UBIGINT, SQL_BIGINT, SqlColumnTypeDefinitions::Bigint {}> {};
+template <> struct SqlDataBinder<int64_t>: Int64DataBinderHelper<int64_t, SQL_C_SBIGINT> {};
+template <> struct SqlDataBinder<uint64_t>: Int64DataBinderHelper<uint64_t, SQL_C_UBIGINT> {};
+//template <> struct SqlDataBinder<uint64_t>: Int64DataBinderHelper<uint64_t, SQL_C_UBIGINT> {};
 template <> struct SqlDataBinder<float>: SqlSimpleDataBinder<float, SQL_C_FLOAT, SQL_REAL, SqlColumnTypeDefinitions::Real {}> {};
 template <> struct SqlDataBinder<double>: SqlSimpleDataBinder<double, SQL_C_DOUBLE, SQL_DOUBLE, SqlColumnTypeDefinitions::Real {}> {};
 #if !defined(_WIN32) && !defined(__APPLE__)
-template <> struct SqlDataBinder<long long>: SqlSimpleDataBinder<long long, SQL_C_SBIGINT, SQL_BIGINT, SqlColumnTypeDefinitions::Bigint {}> {};
-template <> struct SqlDataBinder<unsigned long long>: SqlSimpleDataBinder<unsigned long long, SQL_C_UBIGINT, SQL_BIGINT, SqlColumnTypeDefinitions::Bigint {}> {};
+template <> struct SqlDataBinder<long long>: Int64DataBinderHelper<long long, SQL_C_SBIGINT> {};
+template <> struct SqlDataBinder<unsigned long long>: Int64DataBinderHelper<unsigned long long, SQL_C_UBIGINT> {};
 #endif
 #if defined(__APPLE__) // size_t is a different type on macOS
 template <> struct SqlDataBinder<std::size_t>: SqlSimpleDataBinder<std::size_t, SQL_C_SBIGINT, SqlColumnTypeDefinitions::Bigint {}> {};

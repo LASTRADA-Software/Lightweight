@@ -144,6 +144,12 @@ setup_oracle() {
     local DB_USER=$USER
     local target_dir="$HOME/oracle"
 
+    # Override DB_NAME to FREEPDB1, as this is already created in the Oracle Docker image
+    # and it helps avoiding unnecessary database creation time.
+    DB_NAME="FREEPDB1"
+
+    set -ex
+
     # References
     # - https://github.com/gvenzl/oci-oracle-free
 
@@ -151,7 +157,6 @@ setup_oracle() {
     docker pull gvenzl/oracle-free:$ORACLE_VERSION
     docker run -d -p 1521:1521 \
                -e ORACLE_PASSWORD="$DB_PASSWORD" \
-               -e ORACLE_DATABASE="$DB_NAME" \
                -e APP_USER="$DB_USER" \
                -e APP_USER_PASSWORD="$DB_PASSWORD" \
                gvenzl/oracle-free:$ORACLE_VERSION
@@ -176,8 +181,8 @@ setup_oracle() {
     sudo cp -v etc/odbcinst.ini /etc/
 
     sudo apt install -y libaio-dev
-    sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/local/lib/libaio.so.1
-    ldconfig
+    sudo ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
+    sudo ldconfig
 
     sudo odbcinst -q -d
     sudo odbcinst -q -d -n "Oracle ${oracle_odbc_ver_major} ODBC driver"
@@ -185,14 +190,14 @@ setup_oracle() {
 
     # test connection with:
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${target_dir}/instantclient_21_3
-    ${target_dir}/instantclient_21_3/sqlplus $DB_USER/$DB_PASSWORD@localhost:1521/$DB_NAME <<EOF
-    SELECT table_name FROM user_tables WHERE ROWNUM <= 5;
-EOF
+    ldd ${target_dir}/instantclient_21_3/sqlplus
+    DB_USER=system
+    echo "SELECT table_name FROM user_tables WHERE ROWNUM <= 5;" \
+        | ${target_dir}/instantclient_21_3/sqlplus -S "$DB_USER/$DB_PASSWORD@localhost:1521/$DB_NAME"
 
     echo "Exporting ODBC_CONNECTION_INFO..."
     # expose the ODBC connection string to connect to the database
-    # echo "ODBC_CONNECTION_STRING=DRIVER=Oracle ${oracle_odbc_ver_major} ODBC driver;SERVER=localhost;PORT=1521;UID=$DB_USER;PWD=$DB_PASSWORD;DBQ=$DB_NAME" >> "${GITHUB_OUTPUT}"
-    echo "ODBC_CONNECTION_STRING=DRIVER=Oracle ${oracle_odbc_ver_major} ODBC driver;SERVER=localhost;PORT=1521;UID=system;PWD=$DB_PASSWORD;DBA=W" >> "${GITHUB_OUTPUT}"
+    echo "ODBC_CONNECTION_STRING=DRIVER=Oracle ${oracle_odbc_ver_major} ODBC driver;SERVER=localhost;PORT=1521;UID=$DB_USER;PWD=$DB_PASSWORD;DBQ=$DB_NAME;DBA=W" >> "${GITHUB_OUTPUT}"
 }
 
 setup_mysql() {

@@ -79,13 +79,8 @@ class OracleSqlQueryFormatter final: public SQLiteQueryFormatter
         using namespace SqlColumnTypeDefinitions;
         return std::visit(
             detail::overloaded {
-                [](Bigint const&) -> std::string { return "NUMBER(19, 0)"; },
-                [](Binary const& type) -> std::string {
-                    if (type.size)
-                        return std::format("BLOB({})", type.size);
-                    else
-                        return "BLOB";
-                },
+                [](Bigint const&) -> std::string { return "NUMBER(21, 0)"; },
+                [](Binary const&) -> std::string { return "BLOB"; },
                 [](Bool const&) -> std::string { return "BIT"; },
                 [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
                 [](Date const&) -> std::string { return "DATE"; },

@@ -67,6 +67,7 @@ set(HEADER_FILES
 )
 
 set(SOURCE_FILES
+    DataBinder/Primitives.cpp
     DataBinder/SqlGuid.cpp
     DataBinder/SqlVariant.cpp
     DataBinder/UnicodeConverter.cpp

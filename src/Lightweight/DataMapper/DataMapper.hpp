@@ -5,13 +5,13 @@
 #include "../SqlDataBinder.hpp"
 #include "../SqlStatement.hpp"
 #include "BelongsTo.hpp"
+#include "CollectDifferences.hpp"
 #include "Field.hpp"
 #include "HasMany.hpp"
 #include "HasManyThrough.hpp"
 #include "HasOneThrough.hpp"
 #include "Record.hpp"
 #include "RecordId.hpp"
-#include "CollectDifferences.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -306,7 +306,7 @@ consteval std::string_view FieldNameOf()
     }
     else
         return Reflection::MemberNameOf<I, Record>;
-};
+}
 } // namespace detail
 
 /// @brief Returns the SQL field name of the given field index in the record.
@@ -989,7 +989,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
             using ReferencedRecord = typename FieldType::ReferencedRecord;
             HasMany<ReferencedRecord>& hasMany = field;
             hasMany.SetAutoLoader(typename FieldType::Loader {
-                .count = [this, &record, &hasMany]() -> size_t {
+                .count = [this, &record]() -> size_t {
                     size_t count = 0;
                     CallOnHasMany<FieldIndex, Record, ReferencedRecord>(
                         record, [&](SqlSelectQueryBuilder selectQuery, auto const& primaryKeyField) {
@@ -1003,7 +1003,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                 },
                 .all = [this, &record, &hasMany]() { LoadHasMany<FieldIndex>(record, hasMany); },
                 .each =
-                    [this, &record, &hasMany](auto const& each) {
+                    [this, &record](auto const& each) {
                         CallOnHasMany<FieldIndex, Record, ReferencedRecord>(
                             record, [&](SqlSelectQueryBuilder selectQuery, auto const& primaryKeyField) {
                                 auto stmt = SqlStatement { _connection };
@@ -1041,7 +1041,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
             using ThroughRecord = typename FieldType::ThroughRecord;
             HasManyThrough<ReferencedRecord, ThroughRecord>& hasManyThrough = field;
             hasManyThrough.SetAutoLoader(typename FieldType::Loader {
-                .count = [this, &record, &hasManyThrough]() -> size_t {
+                .count = [this, &record]() -> size_t {
                     // Load result for Count()
                     size_t count = 0;
                     CallOnHasManyThrough<ReferencedRecord, ThroughRecord>(
@@ -1060,7 +1060,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                         LoadHasManyThrough(record, hasManyThrough);
                     },
                 .each =
-                    [this, &record, &hasManyThrough](auto const& each) {
+                    [this, &record](auto const& each) {
                         // Load result for Each()
                         CallOnHasManyThrough<ReferencedRecord, ThroughRecord>(
                             record, [&](SqlSelectQueryBuilder& selectQuery, auto& primaryKeyField) {
