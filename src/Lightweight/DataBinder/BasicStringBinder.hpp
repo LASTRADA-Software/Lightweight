@@ -424,7 +424,7 @@ struct LIGHTWEIGHT_API SqlDataBinder<Utf32StringType>
         else
             u16String->resize(255);
 
-        cb.PlanPostProcessOutputColumn([stmt, column, result, indicator, u16String = u16String]() {
+        cb.PlanPostProcessOutputColumn([result, indicator, u16String = u16String]() {
             switch (*indicator)
             {
                 case SQL_NULL_DATA:

@@ -30,7 +30,7 @@ class SqlMigrationTestFixture: public SqlTestFixture
         SqlMigration::MigrationManager::GetInstance().RemoveAllMigrations();
     }
 
-    ~SqlMigrationTestFixture()
+    ~SqlMigrationTestFixture() override
     {
         SqlMigration::MigrationManager::GetInstance().CloseDataMapper();
     }
