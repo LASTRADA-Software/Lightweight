@@ -56,6 +56,9 @@ var NAVTREE =
         [ "Use native column types", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types", null ],
         [ "Use prepared statements", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements", null ],
         [ "Use pagination", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination", null ]
+      ] ],
+      [ "SQL server variation challenges", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges", [
+        [ "64-bit integer handling in Oracle database", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database", null ]
       ] ]
     ] ],
     [ "Topics", "topics.html", "topics" ],
@@ -80,8 +83,8 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d8/d7e/classSqlLogger.html#a8aa70a4d9069cb6ebc226621c2352d4ca93cba07454f06a4a960172bbd6e2a435",
-"functions_func_c.html"
+"d8/d7e/classSqlLogger.html#a7dcbfe266089e3f7d046658bb62b3853",
+"functions_func.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

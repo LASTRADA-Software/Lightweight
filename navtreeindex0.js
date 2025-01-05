@@ -78,12 +78,14 @@ var NAVTREEINDEX0 =
 "d1/de4/structSqlQualifiedTableColumnName.html":[4,1,2],
 "d1/dfb/SqlFixedString_8hpp_source.html":[7,0,1,0,7],
 "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html":[3],
+"d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database":[3,4,0],
 "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#common-best-practices":[3,1],
 "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#introduction":[3,0],
 "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate":[3,1,1],
 "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#performance-is-key":[3,3],
 "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order":[3,2,0],
 "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-driver-related-best-practices":[3,2],
+"d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges":[3,4],
 "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types":[3,3,0],
 "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination":[3,3,2],
 "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements":[3,3,1],
@@ -247,7 +249,5 @@ var NAVTREEINDEX0 =
 "d8/d7e/classSqlLogger.html#a6467d528f2d30af9076b94fe19d58a99":[6,0,20,3],
 "d8/d7e/classSqlLogger.html#a6ea41f1d149d5a95c3605af746b5bb98":[6,0,20,11],
 "d8/d7e/classSqlLogger.html#a75ada11929b20fb16f4c895ec2ae142e":[6,0,20,4],
-"d8/d7e/classSqlLogger.html#a7b8b64d2788c914a9e9b342a8b447c86":[6,0,20,12],
-"d8/d7e/classSqlLogger.html#a7dcbfe266089e3f7d046658bb62b3853":[6,0,20,7],
-"d8/d7e/classSqlLogger.html#a8aa70a4d9069cb6ebc226621c2352d4c":[6,0,20,0]
+"d8/d7e/classSqlLogger.html#a7b8b64d2788c914a9e9b342a8b447c86":[6,0,20,12]
 };

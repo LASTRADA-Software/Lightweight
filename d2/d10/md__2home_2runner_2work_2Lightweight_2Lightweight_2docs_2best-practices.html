@@ -123,7 +123,12 @@ Use prepared statements</h2>
 <p>Prepared statements are precompiled SQL statements that can be executed multiple times with different parameters. Using prepared statements can improve the performance of your application by reducing the overhead of parsing, analyzing, and compiling the SQL queries.</p>
 <h2><a class="anchor" id="use-pagination"></a>
 Use pagination</h2>
-<p>When querying large result sets, use pagination to limit the number of results returned in a single response. This will help to reduce the response time and the load on the server. </p>
+<p>When querying large result sets, use pagination to limit the number of results returned in a single response. This will help to reduce the response time and the load on the server.</p>
+<h1><a class="anchor" id="sql-server-variation-challenges"></a>
+SQL server variation challenges</h1>
+<h2><a class="anchor" id="autotoc_md64-bit-integer-handling-in-oracle-database"></a>
+64-bit integer handling in Oracle database</h2>
+<p>Oracle database does not support 64-bit integers natively. When working with 64-bit integers in Oracle database, you need to use the <code><a class="el" href="../../da/d72/structSqlNumeric.html">SqlNumeric</a></code> column types. </p>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->

@@ -1,13 +1,10 @@
 var searchData=
 [
-  ['where_0',['where',['../d2/dca/classSqlWhereClauseBuilder.html#a01cd2ae1ca82d7d65fa09e179bde986f',1,'SqlWhereClauseBuilder::Where(ColumnName const &amp;columnName, std::string_view binaryOp, T const &amp;value)'],['../d2/dca/classSqlWhereClauseBuilder.html#abd4a3fc0965514533bf2ee86a9910545',1,'SqlWhereClauseBuilder::Where(ColumnName const &amp;columnName, std::string_view binaryOp, SubSelectQuery const &amp;value)'],['../d2/dca/classSqlWhereClauseBuilder.html#a5a894f7ac85f89bff2f8d88c365eced6',1,'SqlWhereClauseBuilder::Where(ColumnName const &amp;columnName, std::string_view binaryOp, char const (&amp;value)[N])'],['../d2/dca/classSqlWhereClauseBuilder.html#aaf6e2b6986a5d012642b0c826116e1b9',1,'SqlWhereClauseBuilder::Where(ColumnName const &amp;columnName, T const &amp;value)'],['../d2/dca/classSqlWhereClauseBuilder.html#a063cafa05d8b14532ba24532737f9692',1,'SqlWhereClauseBuilder::Where(Callable const &amp;callable)']]],
-  ['wherecolumn_1',['WhereColumn',['../d2/dca/classSqlWhereClauseBuilder.html#ad70e265dd3e49f5df4b6ef52a6313334',1,'SqlWhereClauseBuilder']]],
-  ['wherefalse_2',['WhereFalse',['../d2/dca/classSqlWhereClauseBuilder.html#a78b6370bab5eda99a2efdc8cebaa85d7',1,'SqlWhereClauseBuilder']]],
-  ['wherein_3',['wherein',['../d2/dca/classSqlWhereClauseBuilder.html#a7fb7bf4ed16e5c3acf8c2891d884f476',1,'SqlWhereClauseBuilder::WhereIn(ColumnName const &amp;columnName, InputRange const &amp;values)'],['../d2/dca/classSqlWhereClauseBuilder.html#aaacc1d0ae1ae670baef546842369c0cd',1,'SqlWhereClauseBuilder::WhereIn(ColumnName const &amp;columnName, std::initializer_list&lt; T &gt; const &amp;values)'],['../d2/dca/classSqlWhereClauseBuilder.html#aea4e7833fce07692e6035f8154b28d2c',1,'SqlWhereClauseBuilder::WhereIn(ColumnName const &amp;columnName, SubSelectQuery const &amp;subSelectQuery)']]],
-  ['wherenotequal_4',['WhereNotEqual',['../d2/dca/classSqlWhereClauseBuilder.html#ae7762b70bfb3f406260fbe3be26d5033',1,'SqlWhereClauseBuilder']]],
-  ['wherenotnull_5',['WhereNotNull',['../d2/dca/classSqlWhereClauseBuilder.html#a7421828739d74983088310e218dafedc',1,'SqlWhereClauseBuilder']]],
-  ['wherenull_6',['WhereNull',['../d2/dca/classSqlWhereClauseBuilder.html#a5d9c12081762953f84cb820dfbd2942f',1,'SqlWhereClauseBuilder']]],
-  ['whereraw_7',['WhereRaw',['../d2/dca/classSqlWhereClauseBuilder.html#ae3964f22827e30d7a5270ade601d0940',1,'SqlWhereClauseBuilder']]],
-  ['wheretrue_8',['WhereTrue',['../d2/dca/classSqlWhereClauseBuilder.html#a7207f9ea5cddd81df89f0369528a40ab',1,'SqlWhereClauseBuilder']]],
-  ['windows_20operating_20system_9',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]]
+  ['value_0',['value',['../df/d1a/classBelongsTo.html#a94d93fc122c629feb1064fca89cc23a0',1,'BelongsTo::Value()'],['../df/d27/structField.html#a2cc8ce7f24bceff610bfcab34c041562',1,'Field::Value()'],['../d3/d0e/structSqlDate.html#a2a4b62af76e3690d4137bb36b03f4e04',1,'SqlDate::value()'],['../da/dd7/structSqlDateTime.html#a8439a534d6557b98d6e4d506af070d35',1,'SqlDateTime::value()']]],
+  ['value_5ftype_1',['value_type',['../d3/d09/classHasMany.html#a5208639efe3028064f337811b6bc1bcf',1,'HasMany']]],
+  ['valueor_2',['ValueOr',['../d0/df8/structSqlVariant.html#a7385d14562482b5052984d8a7ef2618a',1,'SqlVariant']]],
+  ['valuetype_3',['ValueType',['../df/d1a/classBelongsTo.html#ab0544087140dd09c3d4ccfc0b762cc26',1,'BelongsTo']]],
+  ['variation_20challenges_4',['SQL server variation challenges',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges',1,'']]],
+  ['varying_5',['Varying',['../d1/d91/classSqlSelectQueryBuilder.html#aac98428d3a591ed18854c36b76489b7c',1,'SqlSelectQueryBuilder']]],
+  ['via_20structs_6',['via structs',['../index.html#example-simple-row-retrieval-via-structs',1,'Example: Simple row retrieval via structs'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'Simple row retrieval via structs']]]
 ];

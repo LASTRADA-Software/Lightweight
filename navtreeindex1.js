@@ -1,5 +1,7 @@
 var NAVTREEINDEX1 =
 {
+"d8/d7e/classSqlLogger.html#a7dcbfe266089e3f7d046658bb62b3853":[6,0,20,7],
+"d8/d7e/classSqlLogger.html#a8aa70a4d9069cb6ebc226621c2352d4c":[6,0,20,0],
 "d8/d7e/classSqlLogger.html#a8aa70a4d9069cb6ebc226621c2352d4ca93cba07454f06a4a960172bbd6e2a435":[6,0,20,0,1],
 "d8/d7e/classSqlLogger.html#a8aa70a4d9069cb6ebc226621c2352d4cabafd7322c6e97d25b6299b5d6fe8920b":[6,0,20,0,0],
 "d8/d7e/classSqlLogger.html#ac720982980acdea160239738c1fe9af5":[6,0,20,16],
@@ -247,7 +249,5 @@ var NAVTREEINDEX1 =
 "functions_e.html":[6,2,0,4],
 "functions_enum.html":[6,2,4],
 "functions_f.html":[6,2,0,5],
-"functions_func.html":[6,2,1],
-"functions_func.html":[6,2,1,0],
-"functions_func_b.html":[6,2,1,1]
+"functions_func.html":[6,2,1]
 };

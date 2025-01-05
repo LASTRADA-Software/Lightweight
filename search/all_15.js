@@ -1,9 +1,15 @@
 var searchData=
 [
-  ['value_0',['value',['../df/d1a/classBelongsTo.html#a94d93fc122c629feb1064fca89cc23a0',1,'BelongsTo::Value()'],['../df/d27/structField.html#a2cc8ce7f24bceff610bfcab34c041562',1,'Field::Value()'],['../d3/d0e/structSqlDate.html#a2a4b62af76e3690d4137bb36b03f4e04',1,'SqlDate::value()'],['../da/dd7/structSqlDateTime.html#a8439a534d6557b98d6e4d506af070d35',1,'SqlDateTime::value()']]],
-  ['value_5ftype_1',['value_type',['../d3/d09/classHasMany.html#a5208639efe3028064f337811b6bc1bcf',1,'HasMany']]],
-  ['valueor_2',['ValueOr',['../d0/df8/structSqlVariant.html#a7385d14562482b5052984d8a7ef2618a',1,'SqlVariant']]],
-  ['valuetype_3',['ValueType',['../df/d1a/classBelongsTo.html#ab0544087140dd09c3d4ccfc0b762cc26',1,'BelongsTo']]],
-  ['varying_4',['Varying',['../d1/d91/classSqlSelectQueryBuilder.html#aac98428d3a591ed18854c36b76489b7c',1,'SqlSelectQueryBuilder']]],
-  ['via_20structs_5',['via structs',['../index.html#example-simple-row-retrieval-via-structs',1,'Example: Simple row retrieval via structs'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'Simple row retrieval via structs']]]
+  ['unique_0',['Unique',['../d4/d4a/classSqlCreateTableQueryBuilder.html#a18f1d76e76923048c1d4a2a8e1e4157a',1,'SqlCreateTableQueryBuilder']]],
+  ['uniqueindex_1',['UniqueIndex',['../d4/d4a/classSqlCreateTableQueryBuilder.html#ade1e13201cafcf0642277eea30888a3f',1,'SqlCreateTableQueryBuilder']]],
+  ['unload_2',['unload',['../df/d1a/classBelongsTo.html#a83ec5bd75e4d193746869a315ff05389',1,'BelongsTo::Unload()'],['../da/d9d/classHasOneThrough.html#a870fa4d80433debd82a2d8d4ac40acd2',1,'HasOneThrough::Unload()']]],
+  ['unsafeparse_3',['UnsafeParse',['../d2/d62/structSqlGuid.html#a10990592c316bd8bef182121614d0ff4',1,'SqlGuid']]],
+  ['update_4',['update',['../dc/dc7/classDataMapper.html#acb83d80931e5cd6259290bc795e362f7',1,'DataMapper::Update()'],['../d0/d78/classSqlQueryBuilder.html#a7ba41a3e575f9edd7254ff1f002ff789',1,'SqlQueryBuilder::Update()'],['../dc/df2/classSqlQueryFormatter.html#a95f1534a613e63ad1f554317c9733ece',1,'SqlQueryFormatter::Update()']]],
+  ['usage_20examples_5',['Usage Examples',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html',1,'']]],
+  ['use_20native_20column_20types_6',['Use native column types',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types',1,'']]],
+  ['use_20pagination_7',['Use pagination',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination',1,'']]],
+  ['use_20prepared_20statements_8',['Use prepared statements',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements',1,'']]],
+  ['use_20the_20tt_20datamapper_20tt_20api_9',['Use the &lt;tt&gt;DataMapper&lt;/tt&gt; API',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-the-datamapper-api',1,'']]],
+  ['username_10',['UserName',['../d7/d7b/classSqlConnection.html#a4ee1f952a185fbf4bcd6666c3ed2f746',1,'SqlConnection']]],
+  ['using_20sqlite_20for_20testing_20on_20windows_20operating_20system_11',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]]
 ];
