@@ -40,7 +40,7 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlBinary>
                                 column,
                                 SQL_PARAM_INPUT,
                                 SQL_C_BINARY,
-                                SQL_BINARY,
+                                SQL_LONGVARBINARY,
                                 value.size(),
                                 0,
                                 (SQLPOINTER) value.data(),
