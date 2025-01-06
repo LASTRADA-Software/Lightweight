@@ -1,6 +1,8 @@
 find_package(Doxygen)
 
-if(DOXYGEN_FOUND)
+option(LIGHTWEIGHT_BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" ${DOXYGEN_FOUND})
+
+if(LIGHTWEIGHT_BUILD_DOCUMENTATION)
   message(STATUS "Doxygen found: ${DOXYGEN_EXECUTABLE}")
 
   FetchContent_Declare(
