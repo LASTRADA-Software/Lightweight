@@ -142,7 +142,7 @@ $(document).ready(function(){initNavTree('dd/d94/SqlBinary_8hpp_source.html','..
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>                                column,</div>
 <div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>                                SQL_PARAM_INPUT,</div>
 <div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>                                SQL_C_BINARY,</div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>                                SQL_BINARY,</div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>                                SQL_LONGVARBINARY,</div>
 <div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>                                value.size(),</div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>                                0,</div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>                                (SQLPOINTER) value.data(),</div>
@@ -181,7 +181,7 @@ $(document).ready(function(){initNavTree('dd/d94/SqlBinary_8hpp_source.html','..
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>            }</div>
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>        });</div>
 <div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span> </div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>        <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_BINARY, result, 0, indicator);</div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>        <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_BINARY, (SQLPOINTER) result-&gt;data(), 255, indicator);</div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>    }</div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,</div>
