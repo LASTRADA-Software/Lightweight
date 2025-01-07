@@ -34,7 +34,7 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlBinary>
                                                              SqlBinary const& value,
                                                              SqlDataBinderCallback& /*cb*/) noexcept
     {
-        assert(value.size() <= std::numeric_limits<SQLLEN>::max());
+        assert(value.size() <= (std::numeric_limits<SQLLEN>::max)());
         value._indicator = static_cast<SQLLEN>(value.size());
         return SQLBindParameter(stmt,
                                 column,
