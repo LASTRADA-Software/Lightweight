@@ -40,7 +40,7 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlBinary>
                                 column,
                                 SQL_PARAM_INPUT,
                                 SQL_C_BINARY,
-                                SQL_BINARY,
+                                SQL_LONGVARBINARY,
                                 value.size(),
                                 0,
                                 (SQLPOINTER) value.data(),
@@ -79,7 +79,7 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlBinary>
             }
         });
 
-        return SQLBindCol(stmt, column, SQL_C_BINARY, result, 0, indicator);
+        return SQLBindCol(stmt, column, SQL_C_BINARY, (SQLPOINTER) result->data(), 255, indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,

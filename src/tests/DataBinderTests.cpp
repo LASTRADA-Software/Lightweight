@@ -765,63 +765,63 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
                 }
             }
 
-            // if constexpr (!requires { typename TestTypeTraits<TestType>::GetColumnTypeOverride; })
-            // {
-            //     THEN("Retrieve value via BindOutputColumns()")
-            //     {
-            //         stmt.ExecuteDirect("SELECT Value FROM Test");
-            //         auto actualValue = [&]() -> TestType {
-            //             if constexpr (requires(SqlServerType st) { TestTypeTraits<TestType>::outputInitializer(st); })
-            //                 return TestTypeTraits<TestType>::outputInitializer(conn.ServerType());
-            //             else if constexpr (requires { TestTypeTraits<TestType>::outputInitializer; })
-            //                 return TestTypeTraits<TestType>::outputInitializer;
-            //             else
-            //                 return TestType {};
-            //         }();
-            //         stmt.BindOutputColumns(&actualValue);
-            //         (void) stmt.FetchRow();
-            //         if constexpr (std::is_convertible_v<TestType, double> && !std::integral<TestType>)
-            //             CHECK_THAT(
-            //                 double(actualValue),
-            //                 (Catch::Matchers::WithinAbs(double(TestTypeTraits<TestType>::expectedOutputValue), 0.001)));
-            //         else
-            //             CHECK(actualValue == TestTypeTraits<TestType>::expectedOutputValue);
-            //     }
-            // }
+            if constexpr (!requires { typename TestTypeTraits<TestType>::GetColumnTypeOverride; })
+            {
+                THEN("Retrieve value via BindOutputColumns()")
+                {
+                    stmt.ExecuteDirect("SELECT Value FROM Test");
+                    auto actualValue = [&]() -> TestType {
+                        if constexpr (requires(SqlServerType st) { TestTypeTraits<TestType>::outputInitializer(st); })
+                            return TestTypeTraits<TestType>::outputInitializer(conn.ServerType());
+                        else if constexpr (requires { TestTypeTraits<TestType>::outputInitializer; })
+                            return TestTypeTraits<TestType>::outputInitializer;
+                        else
+                            return TestType {};
+                    }();
+                    stmt.BindOutputColumns(&actualValue);
+                    (void) stmt.FetchRow();
+                    if constexpr (std::is_convertible_v<TestType, double> && !std::integral<TestType>)
+                        CHECK_THAT(
+                            double(actualValue),
+                            (Catch::Matchers::WithinAbs(double(TestTypeTraits<TestType>::expectedOutputValue), 0.001)));
+                    else
+                        CHECK(actualValue == TestTypeTraits<TestType>::expectedOutputValue);
+                }
+            }
         }
 
-        // if constexpr (!requires { typename TestTypeTraits<TestType>::GetColumnTypeOverride; })
-        // {
-        //     WHEN("Inserting a NULL value")
-        //     {
-        //         stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
-        //         stmt.Execute(SqlNullValue);
-        //
-        //         THEN("Retrieve value via GetNullableColumn()")
-        //         {
-        //             stmt.ExecuteDirect("SELECT Value FROM Test");
-        //             (void) stmt.FetchRow();
-        //             CHECK(!stmt.GetNullableColumn<TestType>(1).has_value());
-        //         }
-        //
-        //         THEN("Retrieve value via GetColumn()")
-        //         {
-        //             stmt.ExecuteDirect("SELECT Value FROM Test");
-        //             (void) stmt.FetchRow();
-        //             CHECK_THROWS_AS(stmt.GetColumn<TestType>(1), std::runtime_error);
-        //         }
-        //
-        //         THEN("Retrieve value via BindOutputColumns()")
-        //         {
-        //             stmt.Prepare("SELECT Value FROM Test");
-        //             stmt.Execute();
-        //             auto actualValue = std::optional<TestType> {};
-        //             stmt.BindOutputColumns(&actualValue);
-        //             (void) stmt.FetchRow();
-        //             CHECK(!actualValue.has_value());
-        //         }
-        //     }
-        // }
+        if constexpr (!requires { typename TestTypeTraits<TestType>::GetColumnTypeOverride; })
+        {
+            WHEN("Inserting a NULL value")
+            {
+                stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+                stmt.Execute(SqlNullValue);
+
+                THEN("Retrieve value via GetNullableColumn()")
+                {
+                    stmt.ExecuteDirect("SELECT Value FROM Test");
+                    (void) stmt.FetchRow();
+                    CHECK(!stmt.GetNullableColumn<TestType>(1).has_value());
+                }
+
+                THEN("Retrieve value via GetColumn()")
+                {
+                    stmt.ExecuteDirect("SELECT Value FROM Test");
+                    (void) stmt.FetchRow();
+                    CHECK_THROWS_AS(stmt.GetColumn<TestType>(1), std::runtime_error);
+                }
+
+                THEN("Retrieve value via BindOutputColumns()")
+                {
+                    stmt.Prepare("SELECT Value FROM Test");
+                    stmt.Execute();
+                    auto actualValue = std::optional<TestType> {};
+                    stmt.BindOutputColumns(&actualValue);
+                    (void) stmt.FetchRow();
+                    CHECK(!actualValue.has_value());
+                }
+            }
+        }
     }
 }
 
