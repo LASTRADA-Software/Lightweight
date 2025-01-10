@@ -401,14 +401,17 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode mixed", "[SqlDataBinder
     });
 
     {
+        auto constexpr inputValue = "The \xc3\xb6"sv;
+        auto constexpr expectedWideValue = WTEXT("The \u00f6");
+
         // Write value: UTF-8 encoded
         stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
-        stmt.Execute("The \xc3\xb6");
+        stmt.Execute(inputValue);
 
         // Read value: UTF-16 encoded
         auto actualValue = stmt.ExecuteDirectScalar<WideString>(stmt.Query("Test").Select().Field("Value").First());
         REQUIRE(actualValue.has_value());
-        CHECK(*actualValue == WideString(WTEXT("The ö")));
+        CHECK(*actualValue == expectedWideValue);
     }
 }
 
