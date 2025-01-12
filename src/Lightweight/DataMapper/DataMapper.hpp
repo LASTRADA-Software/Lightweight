@@ -335,7 +335,7 @@ std::vector<std::string> DataMapper::CreateTableString(SqlServerType serverType)
             else if constexpr (IsBelongsTo<FieldType>)
             {
                 constexpr size_t referencedFieldIndex = []() constexpr -> size_t {
-                    size_t index = -1;
+                    auto index = size_t(-1);
                     Reflection::EnumerateMembers<typename FieldType::ReferencedRecord>(
                         [&index]<size_t J, typename ReferencedFieldType>() constexpr -> void {
                             if constexpr (IsField<ReferencedFieldType>)
