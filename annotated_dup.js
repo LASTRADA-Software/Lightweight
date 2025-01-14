@@ -35,6 +35,7 @@ var annotated_dup =
     [ "SqlSelectQueryBuilder", "d1/d91/classSqlSelectQueryBuilder.html", "d1/d91/classSqlSelectQueryBuilder" ],
     [ "SqlStatement", "df/d17/classSqlStatement.html", "df/d17/classSqlStatement" ],
     [ "SqlTime", "d5/d6d/structSqlTime.html", null ],
+    [ "SqlTransaction", "d1/dc2/classSqlTransaction.html", "d1/dc2/classSqlTransaction" ],
     [ "SqlUpdateQueryBuilder", "db/d2a/classSqlUpdateQueryBuilder.html", "db/d2a/classSqlUpdateQueryBuilder" ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html", "d0/df8/structSqlVariant" ],
     [ "SqlWhereClauseBuilder", "d2/dca/classSqlWhereClauseBuilder.html", "d2/dca/classSqlWhereClauseBuilder" ],

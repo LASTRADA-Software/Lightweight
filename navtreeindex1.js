@@ -1,5 +1,13 @@
 var NAVTREEINDEX1 =
 {
+"d8/d7e/classSqlLogger.html#a13d2224bfd4f6dc2411046a0275d46cc":[6,0,20,1],
+"d8/d7e/classSqlLogger.html#a237e38a07eaab11e8f20e0afd1440b5b":[6,0,20,15],
+"d8/d7e/classSqlLogger.html#a34067c0bc7798ce1e59466210bd6bf0c":[6,0,20,13],
+"d8/d7e/classSqlLogger.html#a53976cbc87b3c4b1742bb6ad95eab877":[6,0,20,10],
+"d8/d7e/classSqlLogger.html#a6467d528f2d30af9076b94fe19d58a99":[6,0,20,3],
+"d8/d7e/classSqlLogger.html#a6ea41f1d149d5a95c3605af746b5bb98":[6,0,20,11],
+"d8/d7e/classSqlLogger.html#a75ada11929b20fb16f4c895ec2ae142e":[6,0,20,4],
+"d8/d7e/classSqlLogger.html#a7b8b64d2788c914a9e9b342a8b447c86":[6,0,20,12],
 "d8/d7e/classSqlLogger.html#a7dcbfe266089e3f7d046658bb62b3853":[6,0,20,7],
 "d8/d7e/classSqlLogger.html#a8aa70a4d9069cb6ebc226621c2352d4c":[6,0,20,0],
 "d8/d7e/classSqlLogger.html#a8aa70a4d9069cb6ebc226621c2352d4ca93cba07454f06a4a960172bbd6e2a435":[6,0,20,0,1],
@@ -241,13 +249,5 @@ var NAVTREEINDEX1 =
 "dir_d93a1d4020dea85bb71b237545b5e722.html":[7,0,2],
 "dir_e7ebcb9b067f42e96b6aa92c053707aa.html":[7,0,0],
 "files.html":[7,0],
-"functions.html":[6,2,0],
-"functions.html":[6,2,0,0],
-"functions_b.html":[6,2,0,1],
-"functions_c.html":[6,2,0,2],
-"functions_d.html":[6,2,0,3],
-"functions_e.html":[6,2,0,4],
-"functions_enum.html":[6,2,4],
-"functions_f.html":[6,2,0,5],
-"functions_func.html":[6,2,1]
+"functions.html":[6,2,0,0]
 };

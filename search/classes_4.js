@@ -29,11 +29,12 @@ var searchData=
   ['sqlselectquerybuilder_26',['SqlSelectQueryBuilder',['../d1/d91/classSqlSelectQueryBuilder.html',1,'']]],
   ['sqlstatement_27',['SqlStatement',['../df/d17/classSqlStatement.html',1,'']]],
   ['sqltime_28',['SqlTime',['../d5/d6d/structSqlTime.html',1,'']]],
-  ['sqlupdatequerybuilder_29',['SqlUpdateQueryBuilder',['../db/d2a/classSqlUpdateQueryBuilder.html',1,'']]],
-  ['sqlvariant_30',['SqlVariant',['../d0/df8/structSqlVariant.html',1,'']]],
-  ['sqlwhereclausebuilder_31',['SqlWhereClauseBuilder',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
-  ['sqlwhereclausebuilder_3c_20sqldeletequerybuilder_20_3e_32',['SqlWhereClauseBuilder&lt; SqlDeleteQueryBuilder &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
-  ['sqlwhereclausebuilder_3c_20sqlselectquerybuilder_20_3e_33',['SqlWhereClauseBuilder&lt; SqlSelectQueryBuilder &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
-  ['sqlwhereclausebuilder_3c_20sqlupdatequerybuilder_20_3e_34',['SqlWhereClauseBuilder&lt; SqlUpdateQueryBuilder &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
-  ['sqlwildcardtype_35',['SqlWildcardType',['../da/dbf/structSqlWildcardType.html',1,'']]]
+  ['sqltransaction_29',['SqlTransaction',['../d1/dc2/classSqlTransaction.html',1,'']]],
+  ['sqlupdatequerybuilder_30',['SqlUpdateQueryBuilder',['../db/d2a/classSqlUpdateQueryBuilder.html',1,'']]],
+  ['sqlvariant_31',['SqlVariant',['../d0/df8/structSqlVariant.html',1,'']]],
+  ['sqlwhereclausebuilder_32',['SqlWhereClauseBuilder',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
+  ['sqlwhereclausebuilder_3c_20sqldeletequerybuilder_20_3e_33',['SqlWhereClauseBuilder&lt; SqlDeleteQueryBuilder &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
+  ['sqlwhereclausebuilder_3c_20sqlselectquerybuilder_20_3e_34',['SqlWhereClauseBuilder&lt; SqlSelectQueryBuilder &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
+  ['sqlwhereclausebuilder_3c_20sqlupdatequerybuilder_20_3e_35',['SqlWhereClauseBuilder&lt; SqlUpdateQueryBuilder &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
+  ['sqlwildcardtype_36',['SqlWildcardType',['../da/dbf/structSqlWildcardType.html',1,'']]]
 ];

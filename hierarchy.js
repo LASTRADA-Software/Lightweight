@@ -31,6 +31,7 @@ var hierarchy =
     [ "SqlScopedTraceLogger", "d5/d21/classSqlScopedTraceLogger.html", null ],
     [ "SqlStatement", "df/d17/classSqlStatement.html", null ],
     [ "SqlTime", "d5/d6d/structSqlTime.html", null ],
+    [ "SqlTransaction", "d1/dc2/classSqlTransaction.html", null ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html", null ],
     [ "SqlWhereClauseBuilder< Derived >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
     [ "SqlWhereClauseBuilder< SqlDeleteQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", [
