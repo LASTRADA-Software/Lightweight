@@ -6,12 +6,13 @@
 SqlTransaction::SqlTransaction(SqlConnection& connection,
                                SqlTransactionMode defaultMode,
                                std::source_location location):
-    m_hDbc { connection.NativeHandle() },
+    m_connection { &connection },
     m_defaultMode { defaultMode },
     m_location { location }
 {
     connection.RequireSuccess(
-        SQLSetConnectAttr(m_hDbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_OFF, SQL_IS_UINTEGER), m_location);
+        SQLSetConnectAttr(NativeHandle(), SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_OFF, SQL_IS_UINTEGER),
+        m_location);
 }
 
 SqlTransaction::~SqlTransaction() noexcept
@@ -31,17 +32,17 @@ SqlTransaction::~SqlTransaction() noexcept
 
 bool SqlTransaction::TryRollback() noexcept
 {
-    SQLRETURN sqlReturn = SQLEndTran(SQL_HANDLE_DBC, m_hDbc, SQL_ROLLBACK);
+    SQLRETURN sqlReturn = SQLEndTran(SQL_HANDLE_DBC, NativeHandle(), SQL_ROLLBACK);
     if (sqlReturn != SQL_SUCCESS && sqlReturn != SQL_SUCCESS_WITH_INFO)
     {
-        SqlLogger::GetLogger().OnError(SqlErrorInfo::fromConnectionHandle(m_hDbc), m_location);
+        SqlLogger::GetLogger().OnError(SqlErrorInfo::fromConnectionHandle(NativeHandle()), m_location);
         return false;
     }
 
-    sqlReturn = SQLSetConnectAttr(m_hDbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
+    sqlReturn = SQLSetConnectAttr(NativeHandle(), SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
     if (sqlReturn != SQL_SUCCESS && sqlReturn != SQL_SUCCESS_WITH_INFO)
     {
-        SqlLogger::GetLogger().OnError(SqlErrorInfo::fromConnectionHandle(m_hDbc), m_location);
+        SqlLogger::GetLogger().OnError(SqlErrorInfo::fromConnectionHandle(NativeHandle()), m_location);
         return false;
     }
 
@@ -52,17 +53,17 @@ bool SqlTransaction::TryRollback() noexcept
 // Commit the transaction
 bool SqlTransaction::TryCommit() noexcept
 {
-    SQLRETURN sqlReturn = SQLEndTran(SQL_HANDLE_DBC, m_hDbc, SQL_COMMIT);
+    SQLRETURN sqlReturn = SQLEndTran(SQL_HANDLE_DBC, NativeHandle(), SQL_COMMIT);
     if (sqlReturn != SQL_SUCCESS && sqlReturn != SQL_SUCCESS_WITH_INFO)
     {
-        SqlLogger::GetLogger().OnError(SqlErrorInfo::fromConnectionHandle(m_hDbc), m_location);
+        SqlLogger::GetLogger().OnError(SqlErrorInfo::fromConnectionHandle(NativeHandle()), m_location);
         return false;
     }
 
-    sqlReturn = SQLSetConnectAttr(m_hDbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
+    sqlReturn = SQLSetConnectAttr(NativeHandle(), SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
     if (sqlReturn != SQL_SUCCESS && sqlReturn != SQL_SUCCESS_WITH_INFO)
     {
-        SqlLogger::GetLogger().OnError(SqlErrorInfo::fromConnectionHandle(m_hDbc), m_location);
+        SqlLogger::GetLogger().OnError(SqlErrorInfo::fromConnectionHandle(NativeHandle()), m_location);
         return false;
     }
 
