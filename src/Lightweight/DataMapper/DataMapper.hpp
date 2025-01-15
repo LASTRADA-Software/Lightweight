@@ -267,8 +267,11 @@ std::string DataMapper::Inspect(Record const& record)
 
         if constexpr (FieldWithStorage<Value>)
             str += std::format("{} {} := {}", Reflection::TypeName<Value>, name, value.Value());
+        else if constexpr (!IsHasMany<Value> && !IsHasManyThrough<Value> && !IsHasOneThrough<Value>
+                           && !IsBelongsTo<Value>)
+            str += std::format("{} {} := {}", Reflection::TypeName<Value>, name, value);
     });
-    return str;
+    return "{" + std::move(str) + "}";
 }
 
 namespace detail
@@ -288,6 +291,14 @@ struct BelongsToNameImpl
     static constexpr auto name = std::string_view(storage.data(), storage.size());
 };
 
+template <typename FieldType>
+constexpr auto ColumnNameOverride = []() consteval {
+    if constexpr (requires { FieldType::ColumnNameOverride; })
+        return FieldType::ColumnNameOverride;
+    else
+        return std::string_view {};
+}();
+
 template <std::size_t I, typename Record>
 consteval std::string_view FieldNameOf()
 {
@@ -295,8 +306,7 @@ consteval std::string_view FieldNameOf()
 
     using FieldType = Reflection::MemberTypeOf<I, Record>;
 
-    if constexpr (requires { FieldType::ColumnNameOverride; }
-                  && !std::string_view(FieldType::ColumnNameOverride).empty())
+    if constexpr (!std::string_view(ColumnNameOverride<FieldType>).empty())
     {
         return FieldType::ColumnNameOverride;
     }
@@ -410,18 +420,19 @@ RecordId DataMapper::CreateExplicit(Record const& record)
     auto query = _connection.Query(RecordTableName<Record>).Insert(nullptr);
 
     Reflection::EnumerateMembers(record, [&query]<auto I, typename FieldType>(FieldType const& /*field*/) {
-        if constexpr (FieldWithStorage<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
+        if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
             query.Set(FieldNameOf<I, Record>, SqlWildcard);
     });
 
     _stmt.Prepare(query);
 
-    Reflection::CallOnMembers(record,
-                              [this, i = SQLSMALLINT { 1 }]<typename Name, typename FieldType>(
-                                  Name const& name, FieldType const& field) mutable {
-                                  if constexpr (FieldWithStorage<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
-                                      _stmt.BindInputParameter(i++, field.Value(), name);
-                              });
+    Reflection::CallOnMembers(
+        record,
+        [this, i = SQLSMALLINT { 1 }]<typename Name, typename FieldType>(Name const& name,
+                                                                         FieldType const& field) mutable {
+            if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
+                _stmt.BindInputParameter(i++, field, name);
+        });
 
     _stmt.Execute();
 

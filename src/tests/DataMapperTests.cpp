@@ -633,6 +633,38 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: SELECT into simple struct", "[DataMappe
     CHECK(record.c2FromB == "c");
 }
 
+struct SimpleStruct2
+{
+    std::string name;
+    int age;
+};
+
+std::ostream& operator<<(std::ostream& os, SimpleStruct2 const& record)
+{
+    return os << DataMapper::Inspect(record);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    SqlStatement(dm.Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        using namespace SqlColumnTypeDefinitions;
+        migration.CreateTable(RecordTableName<SimpleStruct2>).Column("name", NVarchar { 30 }).Column("age", Integer {});
+    });
+
+    dm.CreateExplicit(SimpleStruct2 { .name = "John", .age = 42 });
+
+    auto result = dm.QuerySingle<SimpleStruct2>(
+        dm.FromTable(RecordTableName<SimpleStruct2>).Select().Fields({ "name"sv, "age"sv }));
+
+    REQUIRE(result.has_value());
+    auto const& record = result.value();
+    CAPTURE(record);
+    CHECK(record.name == "John");
+    CHECK(record.age == 42);
+}
+
 struct MultiPkRecord
 {
     Field<SqlAnsiString<32>, PrimaryKey::AutoAssign> firstName;
@@ -725,7 +757,6 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with aliased column names", "[DataMapper
     }
 }
 
-
 struct PersonDifferenceView
 {
     Field<SqlGuid, PrimaryKey::AutoAssign> id {};
@@ -739,16 +770,14 @@ TEST_CASE_METHOD(SqlTestFixture, "Test DifferenceView", "[DataMapper]")
     auto dm = DataMapper {};
 
     dm.CreateTable<PersonDifferenceView>();
-    auto first = PersonDifferenceView{ .name = "Jahn Doe" , .age = 10};
+    auto first = PersonDifferenceView { .name = "Jahn Doe", .age = 10 };
     dm.Create(first);
-    auto second = PersonDifferenceView{ .name = "John Doe" , .age = 19 };
+    auto second = PersonDifferenceView { .name = "John Doe", .age = 19 };
     dm.Create(second);
 
-    auto persons = dm.Query<PersonDifferenceView>(dm.FromTable(RecordTableName<PersonDifferenceView>).Select().Fields<PersonDifferenceView>().All());
+    auto persons = dm.Query<PersonDifferenceView>(
+        dm.FromTable(RecordTableName<PersonDifferenceView>).Select().Fields<PersonDifferenceView>().All());
     auto difference = CollectDifferences(persons[0], persons[1]);
 
-    difference.iterate([](auto& lhs, auto& rhs){
-        std::println("{}!={}", lhs.Value() ,rhs.Value());
-    });
-
+    difference.iterate([](auto& lhs, auto& rhs) { std::println("{}!={}", lhs.Value(), rhs.Value()); });
 }
