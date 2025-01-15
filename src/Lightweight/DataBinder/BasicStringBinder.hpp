@@ -114,6 +114,8 @@ struct LIGHTWEIGHT_API SqlDataBinder<AnsiStringType>
     {
         if constexpr (requires { AnsiStringType::Capacity; })
             StringTraits::Resize(result, AnsiStringType::Capacity);
+        else
+            StringTraits::Reserve(result, 255);
 
         if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
             cb.PlanPostProcessOutputColumn(
