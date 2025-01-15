@@ -279,6 +279,36 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.ComplexOR", "[SqlQueryBuilder]
                                  RIGHT OUTER JOIN "Table3" ON "Table3"."id" = "Table1"."column1" OR "Table3"."id" = "Table1"."column2" OR "Table3"."id" = "Table1"."column3" OR "Table3"."id" = "Table1"."column4")"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.WhereNotNull", "[SqlQueryBuilder]")
+{
+    checkSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            // clang-format off
+            return q.FromTable("Table")
+                .Select()
+                .WhereNotNull("Column1")
+                .Count();
+            // clang-format on
+        },
+        QueryExpectations::All(R"SQL(SELECT COUNT(*) FROM "Table"
+                                     WHERE "Column1" IS NOT NULL)SQL"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.WhereNull", "[SqlQueryBuilder]")
+{
+    checkSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            // clang-format off
+            return q.FromTable("Table")
+                .Select()
+                .WhereNull("Column1")
+                .Count();
+            // clang-format on
+        },
+        QueryExpectations::All(R"SQL(SELECT COUNT(*) FROM "Table"
+                                     WHERE "Column1" IS NULL)SQL"));
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.Junctors", "[SqlQueryBuilder]")
 {
     checkSqlQueryBuilder(
