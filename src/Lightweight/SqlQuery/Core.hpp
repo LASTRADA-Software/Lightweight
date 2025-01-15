@@ -130,7 +130,6 @@ class SqlJoinConditionBuilder
     bool _firstCall = true;
 };
 
-
 /// Helper CRTP-based class for building WHERE clauses.
 ///
 /// This class is inherited by the SqlSelectQueryBuilder, SqlUpdateQueryBuilder, and SqlDeleteQueryBuilder
@@ -412,7 +411,8 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(C
     return static_cast<Derived&>(*this);
 }
 
-namespace detail {
+namespace detail
+{
 
 inline LIGHTWEIGHT_FORCE_INLINE RawSqlCondition PopulateSqlSetExpression(auto const& values)
 {
@@ -460,14 +460,14 @@ template <typename Derived>
 template <typename ColumnName>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereNotNull(ColumnName const& columnName)
 {
-    return Where(columnName, "IS NOT", "NULL");
+    return Where(columnName, "IS NOT", detail::RawSqlCondition { "NULL" });
 }
 
 template <typename Derived>
 template <typename ColumnName>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereNull(ColumnName const& columnName)
 {
-    return Where(columnName, "IS", "NULL");
+    return Where(columnName, "IS", detail::RawSqlCondition { "NULL" });
 }
 
 template <typename Derived>
