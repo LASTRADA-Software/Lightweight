@@ -226,6 +226,13 @@ inline LIGHTWEIGHT_FORCE_INLINE std::string Field<T, P1, P2>::InspectValue() con
         return std::format("\'{}\'", _value.value);
     else if constexpr (std::is_same_v<T, SqlDateTime>)
         return std::format("\'{}\'", _value.value());
+    else if constexpr (requires { _value.has_value(); })
+    {
+        if (_value.has_value())
+            return std::format("{}", _value.value());
+        else
+            return "NULL";
+    }
     else
         return std::format("{}", _value);
 }
