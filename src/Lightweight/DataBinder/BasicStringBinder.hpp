@@ -70,7 +70,7 @@ SQLRETURN GetColumnUtf16(SQLHSTMT stmt,
 {
     if constexpr (requires { Utf16StringType::Capacity; })
         result->resize(Utf16StringType::Capacity);
-    else
+    else if (result->size() == 0)
         result->resize(255);
 
     return GetArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
@@ -114,8 +114,8 @@ struct LIGHTWEIGHT_API SqlDataBinder<AnsiStringType>
     {
         if constexpr (requires { AnsiStringType::Capacity; })
             StringTraits::Resize(result, AnsiStringType::Capacity);
-        else
-            StringTraits::Reserve(result, 255);
+        else if (StringTraits::Size(result) == 0)
+            StringTraits::Resize(result, 255);
 
         if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
             cb.PlanPostProcessOutputColumn(
@@ -308,8 +308,8 @@ struct LIGHTWEIGHT_API SqlDataBinder<Utf16StringType>
     {
         if constexpr (requires { Utf16StringType::Capacity; })
             StringTraits::Resize(result, Utf16StringType::Capacity);
-        else
-            StringTraits::Reserve(result, 255);
+        else if (StringTraits::Size(result) == 0)
+            StringTraits::Resize(result, 255);
 
         if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
         {
