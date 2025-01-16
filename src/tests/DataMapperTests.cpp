@@ -678,7 +678,11 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct with extra ele
 
     SqlStatement(dm.Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
         using namespace SqlColumnTypeDefinitions;
-        migration.CreateTable(RecordTableName<SimpleStruct3>).Column("name", NVarchar { 30 }).Column("age", Integer {});
+        // clang-format off
+        migration.CreateTable(RecordTableName<SimpleStruct3>)
+                 .Column("name", NVarchar { 30 })
+                 .Column("age", Integer {});
+        // clang-format on
     });
 
     auto stmt = SqlStatement(dm.Connection());
