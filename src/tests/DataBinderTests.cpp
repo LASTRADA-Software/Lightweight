@@ -51,6 +51,21 @@ std::ostream& operator<<(std::ostream& os, CustomType const& value)
     return os << std::format("CustomType({})", value.value);
 }
 
+namespace std
+{
+
+std::ostream& operator<<(std::ostream& os, std::u8string const& value)
+{
+    return os << std::format("\"{}\"", (char const*) value.c_str());
+}
+
+std::ostream& operator<<(std::ostream& os, std::u8string_view value)
+{
+    return os << std::format("\"{}\"", (char const*) value.data());
+}
+
+} // namespace std
+
 template <>
 struct SqlDataBinder<CustomType>
 {
@@ -602,6 +617,25 @@ struct TestTypeTraits<std::string_view>
 };
 
 template <>
+struct TestTypeTraits<std::u8string>
+{
+    static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
+    static auto const inline inputValue = u8"Hell\xc3\xb6"s;
+    static auto const inline expectedOutputValue = u8"Hell\xc3\xb6"s;
+    static auto const inline outputInitializer = &MakeStringOuputInitializer<std::u8string>;
+};
+
+template <>
+struct TestTypeTraits<std::u8string_view>
+{
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
+    static auto const inline inputValue = std::u8string_view { u8"Hell\xc3\xb6" };
+    static auto const inline expectedOutputValue = std::u8string_view { u8"Hell\xc3\xb6" };
+    static auto const inline outputInitializer = &MakeStringOuputInitializer<std::u8string>;
+    using GetColumnTypeOverride = std::u8string;
+};
+
+template <>
 struct TestTypeTraits<std::u16string>
 {
     static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
@@ -691,6 +725,8 @@ using TypesToTest = std::tuple<
     // TODO: uint64_t,
     std::string,
     std::string_view,
+    std::u8string,
+    std::u8string_view,
     std::u16string,
     std::u16string_view,
     std::u32string,
