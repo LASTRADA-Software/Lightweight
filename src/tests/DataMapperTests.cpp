@@ -665,6 +665,59 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct", "[DataMapper
     CHECK(record.age == 42);
 }
 
+struct SimpleStruct3
+{
+    std::string name;
+    int age;
+    int notAge;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct with extra element", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    SqlStatement(dm.Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        using namespace SqlColumnTypeDefinitions;
+        migration.CreateTable(RecordTableName<SimpleStruct3>).Column("name", NVarchar { 30 }).Column("age", Integer {});
+    });
+
+    auto stmt = SqlStatement(dm.Connection());
+    stmt.ExecuteDirect(R"(INSERT INTO "SimpleStruct3" ("name", "age") VALUES ('John', 42))");
+
+    auto result = dm.QuerySingle<SimpleStruct3>(
+        dm.FromTable(RecordTableName<SimpleStruct3>).Select().Fields({ "name"sv, "age"sv }));
+
+    REQUIRE(result.has_value());
+    auto const& record = result.value();
+    CAPTURE(record);
+    CHECK(record.name == "John");
+    CHECK(record.age == 42);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct with less elements", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    SqlStatement(dm.Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        using namespace SqlColumnTypeDefinitions;
+        migration.CreateTable(RecordTableName<SimpleStruct3>)
+            .Column("name", NVarchar { 30 })
+            .Column("age", Integer {})
+            .Column("notAge", Integer {});
+    });
+
+    dm.CreateExplicit(SimpleStruct3 { .name = "John", .age = 42, .notAge = 0 });
+
+    auto result = dm.QuerySingle<SimpleStruct2>(
+        dm.FromTable(RecordTableName<SimpleStruct3>).Select().Fields({ "name"sv, "age"sv }));
+
+    REQUIRE(result.has_value());
+    auto const& record = result.value();
+    CAPTURE(record);
+    CHECK(record.name == "John");
+    CHECK(record.age == 42);
+}
+
 struct MultiPkRecord
 {
     Field<SqlAnsiString<32>, PrimaryKey::AutoAssign> firstName;
