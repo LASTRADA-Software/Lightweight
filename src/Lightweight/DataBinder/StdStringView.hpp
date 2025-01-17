@@ -79,3 +79,29 @@ struct SqlDataBinder<std::basic_string_view<Char32Type>>
         return std::string((char const*) u8String.data(), u8String.size());
     }
 };
+
+template <>
+struct SqlDataBinder<std::u8string_view>
+{
+    static constexpr SQLSMALLINT CType = SQL_C_WCHAR;
+    static constexpr SQLSMALLINT SqlType = SQL_WVARCHAR;
+
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
+                                                             SQLUSMALLINT column,
+                                                             std::u8string_view value,
+                                                             SqlDataBinderCallback& cb) noexcept
+    {
+        auto u16String = std::make_shared<std::u16string>(ToUtf16(value));
+        cb.PlanPostExecuteCallback([u16String = u16String]() {}); // Keep the string alive
+        auto const* data = u16String->data();
+        auto const sizeInBytes = u16String->size() * sizeof(char8_t);
+        return SQLBindParameter(
+            stmt, column, SQL_PARAM_INPUT, CType, SqlType, sizeInBytes, 0, (SQLPOINTER) data, 0, nullptr);
+    }
+
+    static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(std::basic_string_view<char8_t> value) noexcept
+    {
+        return std::string { (char const*) value.data(), value.size() };
+    }
+};
+

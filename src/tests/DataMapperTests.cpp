@@ -635,7 +635,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: SELECT into simple struct", "[DataMappe
 
 struct SimpleStruct2
 {
-    std::string name;
+    std::u8string name;
     int age;
 };
 
@@ -653,7 +653,7 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct", "[DataMapper
         migration.CreateTable(RecordTableName<SimpleStruct2>).Column("name", NVarchar { 30 }).Column("age", Integer {});
     });
 
-    dm.CreateExplicit(SimpleStruct2 { .name = "John", .age = 42 });
+    dm.CreateExplicit(SimpleStruct2 { .name = u8"John", .age = 42 });
 
     auto result = dm.QuerySingle<SimpleStruct2>(
         dm.FromTable(RecordTableName<SimpleStruct2>).Select().Fields({ "name"sv, "age"sv }));
@@ -661,7 +661,7 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct", "[DataMapper
     REQUIRE(result.has_value());
     auto const& record = result.value();
     CAPTURE(record);
-    CHECK(record.name == "John");
+    CHECK(record.name == u8"John");
     CHECK(record.age == 42);
 }
 
@@ -718,7 +718,7 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct with less elem
     REQUIRE(result.has_value());
     auto const& record = result.value();
     CAPTURE(record);
-    CHECK(record.name == "John");
+    CHECK(record.name == u8"John");
     CHECK(record.age == 42);
 }
 

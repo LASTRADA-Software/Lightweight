@@ -76,6 +76,59 @@ SQLRETURN GetColumnUtf16(SQLHSTMT stmt,
     return GetArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
 }
 
+template <typename StringType>
+SQLRETURN OutputColumnNonUtf16Unicode(
+    SQLHSTMT stmt, SQLUSMALLINT column, StringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
+{
+    using CharType = typename StringType::value_type;
+
+    auto u16String = std::make_shared<std::u16string>();
+    if (!result->empty())
+        u16String->resize(result->size());
+    else
+        u16String->resize(255);
+
+    cb.PlanPostProcessOutputColumn([result, indicator, u16String = u16String]() {
+        switch (*indicator)
+        {
+            case SQL_NULL_DATA:
+                u16String->clear();
+                break;
+            case SQL_NO_TOTAL:
+                break;
+            default:
+                // NOLINTNEXTLINE(readability-use-std-min-max)
+                if (*indicator > static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)))
+                {
+                    // We have a truncation and the server knows how much data is left.
+                    *indicator = static_cast<SQLLEN>(u16String->size() * sizeof(char16_t));
+                    // TODO: call SQLGetData() to get the rest of the data
+                }
+                u16String->resize(*indicator / sizeof(char16_t));
+                break;
+        }
+
+        if constexpr (sizeof(typename StringType::value_type) == 1)
+            *result = ToUtf8(*u16String);
+        else if constexpr (sizeof(typename StringType::value_type) == 4)
+        {
+            // *result = ToUtf32(*u16String);
+            auto const u32String = ToUtf32(*u16String);
+            *result = StringType {
+                (CharType const*) u32String.data(),
+                (CharType const*) u32String.data() + u32String.size(),
+            };
+        }
+    });
+
+    return SQLBindCol(stmt,
+                      column,
+                      SQL_C_WCHAR,
+                      static_cast<SQLPOINTER>(u16String->data()),
+                      static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)),
+                      indicator);
+}
+
 } // namespace detail
 
 // SqlDataBinder<> specialization for ANSI character strings
@@ -420,41 +473,7 @@ struct LIGHTWEIGHT_API SqlDataBinder<Utf32StringType>
                                   SQLLEN* indicator,
                                   SqlDataBinderCallback& cb) noexcept
     {
-        auto u16String = std::make_shared<std::u16string>();
-        if constexpr (requires { Utf32StringType::Capacity; })
-            u16String->resize(Utf32StringType::Capacity);
-        else
-            u16String->resize(255);
-
-        cb.PlanPostProcessOutputColumn([result, indicator, u16String = u16String]() {
-            switch (*indicator)
-            {
-                case SQL_NULL_DATA:
-                    u16String->clear();
-                    break;
-                case SQL_NO_TOTAL:
-                    break;
-                default:
-                    // NOLINTNEXTLINE(readability-use-std-min-max)
-                    if (*indicator > static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)))
-                    {
-                        // We have a truncation and the server knows how much data is left.
-                        *indicator = static_cast<SQLLEN>(u16String->size() * sizeof(char16_t));
-                        // TODO: call SQLGetData() to get the rest of the data
-                    }
-                    u16String->resize(*indicator / sizeof(char16_t));
-                    break;
-            }
-            auto const u32String = ToUtf32(*u16String);
-            *result = { (CharType const*) u32String.data(), (CharType const*) u32String.data() + u32String.size() };
-        });
-
-        return SQLBindCol(stmt,
-                          column,
-                          CType,
-                          static_cast<SQLPOINTER>(u16String->data()),
-                          static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)),
-                          indicator);
+        return detail::OutputColumnNonUtf16Unicode<Utf32StringType>(stmt, column, result, indicator, cb);
     }
 
     static SQLRETURN GetColumn(SQLHSTMT stmt,
@@ -479,5 +498,93 @@ struct LIGHTWEIGHT_API SqlDataBinder<Utf32StringType>
     {
         auto u8String = ToUtf8(detail::SqlViewHelper<Utf32StringType>::View(value));
         return std::string(reinterpret_cast<char const*>(u8String.data()), u8String.size());
+    }
+};
+
+// SqlDataBinder<> specialization for UTF-8 strings
+template <typename Utf8StringType>
+    requires SqlBasicStringBinderConcept<Utf8StringType, char8_t>
+struct LIGHTWEIGHT_API SqlDataBinder<Utf8StringType>
+{
+    using ValueType = Utf8StringType;
+    using CharType = char8_t;
+    using StringTraits = SqlBasicStringOperations<Utf8StringType>;
+
+    static constexpr auto ColumnType = StringTraits::ColumnType;
+
+    static constexpr auto CType = SQL_C_WCHAR;
+    static constexpr auto SqlType = SQL_WVARCHAR;
+
+    static SQLRETURN InputParameter(SQLHSTMT stmt,
+                                    SQLUSMALLINT column,
+                                    Utf8StringType const& value,
+                                    SqlDataBinderCallback& cb) noexcept
+    {
+        switch (cb.ServerType())
+        {
+            case SqlServerType::POSTGRESQL: {
+                // PostgreSQL only supports UTF-8 as Unicode encoding
+                return SQLBindParameter(stmt,
+                                        column,
+                                        SQL_PARAM_INPUT,
+                                        SQL_C_CHAR,
+                                        SQL_VARCHAR,
+                                        value.size(),
+                                        0,
+                                        (SQLPOINTER) value.data(),
+                                        0,
+                                        nullptr);
+            }
+            case SqlServerType::ORACLE:
+            case SqlServerType::MYSQL:
+            case SqlServerType::SQLITE: // We assume UTF-16 for SQLite
+            case SqlServerType::MICROSOFT_SQL:
+            case SqlServerType::UNKNOWN: {
+                auto u16String =
+                    std::make_shared<std::u16string>(ToUtf16(detail::SqlViewHelper<Utf8StringType>::View(value)));
+                cb.PlanPostExecuteCallback([u16String = u16String]() {}); // Keep the string alive
+
+                return SQLBindParameter(stmt,
+                                        column,
+                                        SQL_PARAM_INPUT,
+                                        CType,
+                                        SqlType,
+                                        u16String->size() * sizeof(char16_t),
+                                        0,
+                                        (SQLPOINTER) u16String->data(),
+                                        0,
+                                        nullptr);
+            }
+        }
+        std::unreachable();
+    }
+
+    static SQLRETURN OutputColumn(SQLHSTMT stmt,
+                                  SQLUSMALLINT column,
+                                  Utf8StringType* result,
+                                  SQLLEN* indicator,
+                                  SqlDataBinderCallback& cb) noexcept
+    {
+        return detail::OutputColumnNonUtf16Unicode<Utf8StringType>(stmt, column, result, indicator, cb);
+    }
+
+    static SQLRETURN GetColumn(SQLHSTMT stmt,
+                               SQLUSMALLINT column,
+                               Utf8StringType* result,
+                               SQLLEN* indicator,
+                               SqlDataBinderCallback const& cb) noexcept
+    {
+        auto u16String = std::u16string {};
+        u16String.resize(result->size());
+        auto const sqlReturn = detail::GetColumnUtf16(stmt, column, &u16String, indicator, cb);
+        if (SQL_SUCCEEDED(sqlReturn))
+            *result = ToUtf8(u16String);
+        return sqlReturn;
+    }
+
+    static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(Utf8StringType const& value) noexcept
+    {
+        // Pass data as-is
+        return std::string(reinterpret_cast<char const*>(value.data()), value.size());
     }
 };

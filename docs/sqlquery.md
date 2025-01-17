@@ -9,7 +9,7 @@ To create a database you need to use `Migration()` function provided by the `Sql
 Following calls can be chained, for example `CreateTable("test").Column(first).Column(second)...`
 Available functions:
   - `PrimaryKey(std::string columnName, SqlColumnTypeDefinition columnType)`
-    + create primary key colunm in the database, defined by name and type. 
+    + create primary key column in the database, defined by name and type. 
   - `PrimaryKeyWithAutoIncrement( std::string columnName, SqlColumnTypeDefinition columnType )`
     + create primary key column in the database with automatic indexing 
     + Second parameter has a default value `SqlColumnTypeDefinitions::Bigint`
