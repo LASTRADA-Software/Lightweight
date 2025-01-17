@@ -56,6 +56,15 @@ using WideStringView = std::basic_string_view<WideChar>;
         return;                                                                                      \
     }
 
+template <>
+struct std::formatter<std::u8string>: std::formatter<std::string>
+{
+    auto format(std::u8string const& value, std::format_context& ctx) const -> std::format_context::iterator
+    {
+        return std::formatter<std::string>::format(std::format("{}", (char const*) value.c_str()), ctx);
+    }
+};
+
 namespace std
 {
 
