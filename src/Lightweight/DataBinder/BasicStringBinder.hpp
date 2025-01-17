@@ -76,6 +76,59 @@ SQLRETURN GetColumnUtf16(SQLHSTMT stmt,
     return GetArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
 }
 
+template <typename StringType>
+SQLRETURN OutputColumnNonUtf16Unicode(
+    SQLHSTMT stmt, SQLUSMALLINT column, StringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
+{
+    using CharType = typename StringType::value_type;
+
+    auto u16String = std::make_shared<std::u16string>();
+    if (!result->empty())
+        u16String->resize(result->size());
+    else
+        u16String->resize(255);
+
+    cb.PlanPostProcessOutputColumn([result, indicator, u16String = u16String]() {
+        switch (*indicator)
+        {
+            case SQL_NULL_DATA:
+                u16String->clear();
+                break;
+            case SQL_NO_TOTAL:
+                break;
+            default:
+                // NOLINTNEXTLINE(readability-use-std-min-max)
+                if (*indicator > static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)))
+                {
+                    // We have a truncation and the server knows how much data is left.
+                    *indicator = static_cast<SQLLEN>(u16String->size() * sizeof(char16_t));
+                    // TODO: call SQLGetData() to get the rest of the data
+                }
+                u16String->resize(*indicator / sizeof(char16_t));
+                break;
+        }
+
+        if constexpr (sizeof(typename StringType::value_type) == 1)
+            *result = ToUtf8(*u16String);
+        else if constexpr (sizeof(typename StringType::value_type) == 4)
+        {
+            // *result = ToUtf32(*u16String);
+            auto const u32String = ToUtf32(*u16String);
+            *result = StringType {
+                (CharType const*) u32String.data(),
+                (CharType const*) u32String.data() + u32String.size(),
+            };
+        }
+    });
+
+    return SQLBindCol(stmt,
+                      column,
+                      SQL_C_WCHAR,
+                      static_cast<SQLPOINTER>(u16String->data()),
+                      static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)),
+                      indicator);
+}
+
 } // namespace detail
 
 // SqlDataBinder<> specialization for ANSI character strings
@@ -420,41 +473,7 @@ struct LIGHTWEIGHT_API SqlDataBinder<Utf32StringType>
                                   SQLLEN* indicator,
                                   SqlDataBinderCallback& cb) noexcept
     {
-        auto u16String = std::make_shared<std::u16string>();
-        if constexpr (requires { Utf32StringType::Capacity; })
-            u16String->resize(Utf32StringType::Capacity);
-        else
-            u16String->resize(255);
-
-        cb.PlanPostProcessOutputColumn([result, indicator, u16String = u16String]() {
-            switch (*indicator)
-            {
-                case SQL_NULL_DATA:
-                    u16String->clear();
-                    break;
-                case SQL_NO_TOTAL:
-                    break;
-                default:
-                    // NOLINTNEXTLINE(readability-use-std-min-max)
-                    if (*indicator > static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)))
-                    {
-                        // We have a truncation and the server knows how much data is left.
-                        *indicator = static_cast<SQLLEN>(u16String->size() * sizeof(char16_t));
-                        // TODO: call SQLGetData() to get the rest of the data
-                    }
-                    u16String->resize(*indicator / sizeof(char16_t));
-                    break;
-            }
-            auto const u32String = ToUtf32(*u16String);
-            *result = { (CharType const*) u32String.data(), (CharType const*) u32String.data() + u32String.size() };
-        });
-
-        return SQLBindCol(stmt,
-                          column,
-                          CType,
-                          static_cast<SQLPOINTER>(u16String->data()),
-                          static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)),
-                          indicator);
+        return detail::OutputColumnNonUtf16Unicode<Utf32StringType>(stmt, column, result, indicator, cb);
     }
 
     static SQLRETURN GetColumn(SQLHSTMT stmt,
@@ -546,41 +565,7 @@ struct LIGHTWEIGHT_API SqlDataBinder<Utf8StringType>
                                   SQLLEN* indicator,
                                   SqlDataBinderCallback& cb) noexcept
     {
-        auto u16String = std::make_shared<std::u16string>();
-        if (!result->empty())
-            u16String->resize(result->size());
-        else
-            u16String->resize(255);
-
-        cb.PlanPostProcessOutputColumn([result, indicator, u16String = u16String]() {
-            switch (*indicator)
-            {
-                case SQL_NULL_DATA:
-                    u16String->clear();
-                    break;
-                case SQL_NO_TOTAL:
-                    break;
-                default:
-                    // NOLINTNEXTLINE(readability-use-std-min-max)
-                    if (*indicator > static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)))
-                    {
-                        // We have a truncation and the server knows how much data is left.
-                        *indicator = static_cast<SQLLEN>(u16String->size() * sizeof(char16_t));
-                        // TODO: call SQLGetData() to get the rest of the data
-                    }
-                    u16String->resize(*indicator / sizeof(char16_t));
-                    break;
-            }
-            *result = ToUtf8(*u16String);
-        });
-
-        return SQLBindCol(stmt,
-                          column,
-                          CType,
-                          static_cast<SQLPOINTER>(u16String->data()),
-                          static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)),
-                          indicator);
-
+        return detail::OutputColumnNonUtf16Unicode<Utf8StringType>(stmt, column, result, indicator, cb);
     }
 
     static SQLRETURN GetColumn(SQLHSTMT stmt,
