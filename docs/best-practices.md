@@ -18,7 +18,7 @@ while retaining performance and flexibility.
 
 Keep the data model and business logic separate to improve the maintainability and scalability of your application.
 
-Remmber to also keep frontend (e.g. GUI) and backend (e.g. API) separate.
+Remember to also keep frontend (e.g. GUI) and backend (e.g. API) separate.
 
 ## SQL driver related best practices
 

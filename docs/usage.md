@@ -52,7 +52,7 @@ while (cursor.FetchRow())
 
 ## SQL Query Builder
 
-Or constuct statement using `SqlQueryBuilder`
+Or construct statement using `SqlQueryBuilder`
 ```cpp
 
 auto stmt = SqlStatement { };
@@ -129,9 +129,9 @@ void CRUD(DataMapper& dm)
 
 ## Simple row retrieval via structs
 
-When only read access is needed, you can use a simple struct to represent the row,
+When only read access is needed, you can use a simple `struct` to represent the row,
 and also do not need to wrap the fields into `Field<>` template.
-The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.
+The `struct` must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.
 
 ```cpp
 struct SimpleStruct
