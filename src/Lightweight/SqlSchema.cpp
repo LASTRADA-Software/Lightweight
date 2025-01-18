@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "SqlConnection.hpp"
+#include "SqlError.hpp"
 #include "SqlSchema.hpp"
 #include "SqlStatement.hpp"
 
 #include <algorithm>
+#include <cassert>
 
 #include <sql.h>
 #include <sqlext.h>
@@ -26,47 +28,46 @@ bool operator<(KeyPair const& a, KeyPair const& b)
 
 namespace
 {
-    SqlColumnType FromNativeDataType(int value)
+    SqlColumnTypeDefinition FromNativeDataType(int value, size_t size, size_t precision)
     {
+        // Maps ODBC data types to SqlColumnTypeDefinition
+        // See: https://learn.microsoft.com/en-us/sql/odbc/reference/appendixes/sql-data-types?view=sql-server-ver16
+        using namespace SqlColumnTypeDefinitions;
+        // clang-format off
         switch (value)
         {
-            case SQL_UNKNOWN_TYPE:
-                return SqlColumnType::UNKNOWN;
-            case SQL_CHAR:
-            case SQL_WCHAR:
-                return SqlColumnType::CHAR;
-            case SQL_VARCHAR:
-            case SQL_WVARCHAR:
-                return SqlColumnType::STRING;
-            case SQL_LONGVARCHAR:
-            case SQL_WLONGVARCHAR:
-                return SqlColumnType::TEXT;
-            case SQL_BIT:
-                return SqlColumnType::BOOLEAN;
-            case SQL_TINYINT:
-                return SqlColumnType::INTEGER;
-            case SQL_SMALLINT:
-                return SqlColumnType::INTEGER;
-            case SQL_INTEGER:
-                return SqlColumnType::INTEGER;
-            case SQL_BIGINT:
-                return SqlColumnType::INTEGER;
-            case SQL_REAL:
-                return SqlColumnType::REAL;
-            case SQL_FLOAT:
-                return SqlColumnType::REAL;
-            case SQL_DOUBLE:
-                return SqlColumnType::REAL;
-            case SQL_TYPE_DATE:
-                return SqlColumnType::DATE;
-            case SQL_TYPE_TIME:
-                return SqlColumnType::TIME;
-            case SQL_TYPE_TIMESTAMP:
-                return SqlColumnType::DATETIME;
-            default:
-                std::println("Unknown SQL type {}", value);
-                return SqlColumnType::UNKNOWN;
+            case SQL_BIGINT: return Bigint {};
+            case SQL_BINARY: return Binary { size };
+            case SQL_BIT: return Bool {};
+            case SQL_CHAR: return Char { size };
+            case SQL_DATE: return Date {};
+            case SQL_DECIMAL: assert(size <= precision); return Decimal { .precision = precision, .scale = size };
+            case SQL_DOUBLE: return Real {};
+            case SQL_FLOAT: return Real {};
+            case SQL_GUID: return Guid {};
+            case SQL_INTEGER: return Integer {};
+            case SQL_LONGVARBINARY: return VarBinary { size };
+            case SQL_LONGVARCHAR: return Varchar { size };
+            case SQL_NUMERIC: assert(size <= precision); return Decimal { .precision = precision, .scale = size };
+            case SQL_REAL: return Real {};
+            case SQL_SMALLINT: return Smallint {};
+            case SQL_TIME: return Time {};
+            case SQL_TIMESTAMP: return DateTime {};
+            case SQL_TINYINT: return Tinyint {};
+            case SQL_TYPE_DATE: return Date {};
+            case SQL_TYPE_TIME: return Time {};
+            case SQL_TYPE_TIMESTAMP: return DateTime {};
+            case SQL_VARBINARY: return Binary { size };
+            case SQL_VARCHAR: return Varchar { size };
+            case SQL_WCHAR: return NChar { size };
+            case SQL_WLONGVARCHAR: return NVarchar { size };
+            case SQL_WVARCHAR: return NVarchar { size };
+            // case SQL_UNKNOWN_TYPE:
+            default: 
+                SqlLogger::GetLogger().OnError(SqlError::UNSUPPORTED_TYPE);
+                throw std::runtime_error(std::format("Unsupported data type: {}", value));
         }
+        // clang-format on
     }
 
     std::vector<std::string> AllTables(std::string_view database, std::string_view schema)
@@ -241,7 +242,7 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
         while (columnStmt.FetchRow())
         {
             column.name = columnStmt.GetColumn<std::string>(4);
-            column.type = FromNativeDataType(columnStmt.GetColumn<int>(5));
+            auto const type = columnStmt.GetColumn<int>(5);
             column.dialectDependantTypeString = columnStmt.GetColumn<std::string>(6);
             column.size = columnStmt.GetColumn<int>(7);
             // 8 - bufferLength
@@ -250,6 +251,8 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
             column.isNullable = columnStmt.GetColumn<bool>(11);
             // 12 - remarks
             column.defaultValue = columnStmt.GetColumn<std::string>(13);
+
+            column.type = FromNativeDataType(type, column.size, column.decimalDigits);
 
             // accumulated properties
             column.isPrimaryKey = std::ranges::contains(primaryKeys, column.name);

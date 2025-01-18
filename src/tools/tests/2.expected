@@ -15,21 +15,21 @@ struct Suppliers;
 
 struct Suppliers final
 {
-    Field<int, PrimaryKey::ServerSideAutoIncrement> id;
-    Field<std::string> name;
-    HasOneThrough<AccountHistory, Account> accountHistory;
-}
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<SqlAnsiString<30>> name;
+};
 
 struct Account final
 {
-    Field<int, PrimaryKey::ServerSideAutoIncrement> id;
-    Field<std::string> iban;
-    BelongsTo<&Suppliers::id> supplier;
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<SqlAnsiString<30>> iban;
+    Field<std::optional<int64_t>> supplier_id;
 };
 
 struct AccountHistory final
 {
-    Field<int, PrimaryKey::ServerSideAutoIncrement> id;
-    Field<int> credit_rating;
-    BelongsTo<&Account::id> account;
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<int32_t> credit_rating;
+    Field<std::optional<int64_t>> account_id;
 };
+

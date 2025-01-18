@@ -13,8 +13,9 @@ struct Person;
 
 struct Person final
 {
-    Field<int, PrimaryKey::ServerSideAutoIncrement> id;
-    Field<std::string> name;
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<SqlAnsiString<25>> name;
     Field<bool> is_active;
-    Field<std::optional<int>> age;
+    Field<std::optional<int32_t>> age;
 };
+

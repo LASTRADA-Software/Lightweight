@@ -33,54 +33,48 @@ constexpr auto finally(auto&& cleanupRoutine) noexcept
 
 std::string MakeType(SqlSchema::Column const& column)
 {
-    using ColumnType = SqlColumnType;
-
     auto optional = [&](auto const& type) {
         if (column.isNullable)
             return std::format("std::optional<{}>", type);
         return std::string { type };
     };
 
-    switch (column.type)
-    {
-        case ColumnType::CHAR:
-            if (column.size == 1)
-                return optional("char");
-            else
-                return std::format("SqlTrimmedFixedString<{}>", column.size);
-        case ColumnType::STRING:
-            if (column.size == 1)
-                return optional("char");
-            else
-                return std::format("std::string", column.size);
-        case ColumnType::TEXT:
-            return optional("SqlText");
-        case ColumnType::BOOLEAN:
-            return optional("bool");
-        case ColumnType::SMALLINT:
-            return optional("short");
-        case ColumnType::INTEGER:
-            return optional("int");
-        case ColumnType::BIGINT:
-            return optional("int64_t");
-        case ColumnType::NUMERIC:
-            return std::format("SqlNumeric<{}, {}>", column.size, column.decimalDigits);
-        case ColumnType::REAL:
-            return optional("double");
-        case ColumnType::BLOB:
-            return "std::vector<std::byte>";
-        case ColumnType::DATE:
-            return optional("SqlDate");
-        case ColumnType::TIME:
-            return optional("SqlTime");
-        case ColumnType::DATETIME:
-            return optional("SqlDateTime");
-        case ColumnType::GUID:
-            return optional("SqlGuid");
-        case ColumnType::UNKNOWN:
-            break;
-    }
-    return "void";
+    using namespace SqlColumnTypeDefinitions;
+    return optional(
+        std::visit(detail::overloaded {
+                       [](Bigint const&) -> std::string { return "int64_t"; },
+                       [](Binary const& type) -> std::string { return std::format("SqlBinary<{}>", type.size); },
+                       [](Bool const&) -> std::string { return "bool"; },
+                       [](Char const& type) -> std::string {
+                           if (type.size == 1)
+                               return "char";
+                           return std::format("SqlAnsiString<{}>", type.size);
+                       },
+                       [](Date const&) -> std::string { return "SqlDate"; },
+                       [](DateTime const&) -> std::string { return "SqlDateTime"; },
+                       [](Decimal const& type) -> std::string {
+                           return std::format("SqlNumeric<{}, {}>", type.precision, type.scale);
+                       },
+                       [](Guid const&) -> std::string { return "SqlGuid"; },
+                       [](Integer const&) -> std::string { return "int32_t"; },
+                       [](NChar const& type) -> std::string {
+                           if (type.size == 1)
+                               return "char16_t";
+                           return std::format("SqlUtf16String<{}>", type.size);
+                       },
+                       [](NVarchar const& type) -> std::string { return std::format("SqlUtf16String<{}>", type.size); },
+                       [](Real const&) -> std::string { return "float"; },
+                       [](Smallint const&) -> std::string { return "int16_t"; },
+                       [](Text const& type) -> std::string { return std::format("SqlAnsiString<{}>", type.size); },
+                       [](Time const&) -> std::string { return "SqlTime"; },
+                       [](Timestamp const&) -> std::string { return "SqlDateTime"; },
+                       [](Tinyint const&) -> std::string { return "uint8_t"; },
+                       // TODO distinguish between BINARY and VARBINARY
+                       // (https://github.com/LASTRADA-Software/Lightweight/issues/182)
+                       [](VarBinary const& type) -> std::string { return std::format("SqlBinary<{}>", type.size); },
+                       [](Varchar const& type) -> std::string { return std::format("SqlAnsiString<{}>", type.size); },
+                   },
+                   column.type));
 }
 
 std::string MakeVariableName(SqlSchema::FullyQualifiedTableName const& table)
@@ -165,7 +159,8 @@ class CxxModelPrinter
             std::string type = MakeType(column);
             if (column.isPrimaryKey)
             {
-                m_definitions << std::format("    Field<{}, PrimaryKey::ServerSideAutoIncrement> {};\n", type, column.name);
+                m_definitions << std::format(
+                    "    Field<{}, PrimaryKey::ServerSideAutoIncrement> {};\n", type, column.name);
                 continue;
             }
             if (column.isForeignKey)

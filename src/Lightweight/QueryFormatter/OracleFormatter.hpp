@@ -102,6 +102,8 @@ class OracleSqlQueryFormatter final: public SQLiteQueryFormatter
                 },
                 [](Time const&) -> std::string { return "TIMESTAMP"; },
                 [](Timestamp const&) -> std::string { return "TIMESTAMP"; },
+                [](Tinyint const&) -> std::string { return "TINYINT"; },
+                [](VarBinary const& type) -> std::string { return std::format("VARBINARY({})", type.size); },
                 [](Varchar const& type) -> std::string { return std::format("VARCHAR({})", type.size); },
             },
             type);
