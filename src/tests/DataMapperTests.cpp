@@ -836,5 +836,11 @@ TEST_CASE_METHOD(SqlTestFixture, "Test DifferenceView", "[DataMapper]")
         dm.FromTable(RecordTableName<PersonDifferenceView>).Select().Fields<PersonDifferenceView>().All());
     auto difference = CollectDifferences(persons[0], persons[1]);
 
-    difference.iterate([](auto& lhs, auto& rhs) { std::println("{}!={}", lhs.Value(), rhs.Value()); });
+    auto differenceCount = 0;
+    difference.iterate([&](auto& lhs, auto& rhs) {
+        CHECK(lhs.Value() != rhs.Value());
+        ++differenceCount;
+    });
+    // 3 because of the auto-assigned GUID on top of name and age
+    CHECK(differenceCount == 3);
 }
