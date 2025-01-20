@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['datamapper_0',['DataMapper',['../dc/dc7/classDataMapper.html',1,'']]]
+  ['column_0',['Column',['../da/dab/structSqlSchema_1_1Column.html',1,'SqlSchema']]]
 ];

@@ -1,5 +1,10 @@
 var annotated_dup =
 [
+    [ "SqlSchema", null, [
+      [ "Column", "da/dab/structSqlSchema_1_1Column.html", null ],
+      [ "EventHandler", "d3/df5/classSqlSchema_1_1EventHandler.html", null ],
+      [ "Table", "d0/d20/structSqlSchema_1_1Table.html", "d0/d20/structSqlSchema_1_1Table" ]
+    ] ],
     [ "BelongsTo", "df/d1a/classBelongsTo.html", "df/d1a/classBelongsTo" ],
     [ "DataMapper", "dc/dc7/classDataMapper.html", "dc/dc7/classDataMapper" ],
     [ "Field", "df/d27/structField.html", "df/d27/structField" ],

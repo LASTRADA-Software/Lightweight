@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['scale_0',['Scale',['../da/d72/structSqlNumeric.html#a3dd1e2448e9de58a93290ae3c25f07d4',1,'SqlNumeric']]],
-  ['sqlvalue_1',['sqlValue',['../da/d72/structSqlNumeric.html#a05521002d304a11855fc72934431c1a8',1,'SqlNumeric']]]
+  ['precision_0',['Precision',['../da/d72/structSqlNumeric.html#a1fd3d0e31008e83ced4422a52fec4859',1,'SqlNumeric']]],
+  ['primarykeys_1',['primaryKeys',['../d0/d20/structSqlSchema_1_1Table.html#a61cf4522464775c477a3ec6b5a155d5d',1,'SqlSchema::Table']]]
 ];
