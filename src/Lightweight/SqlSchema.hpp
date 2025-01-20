@@ -7,6 +7,7 @@
 #endif
 
 #include "Api.hpp"
+#include "SqlQuery/MigrationPlan.hpp"
 #include "SqlTraits.hpp"
 
 #include <format>
@@ -84,10 +85,11 @@ struct ForeignKeyConstraint
     FullyQualifiedTableColumnSequence primaryKey;
 };
 
+/// Holds the definition of a column in a SQL table as read from the database schema.
 struct Column
 {
     std::string name = {};
-    SqlColumnType type = SqlColumnType::UNKNOWN;
+    SqlColumnTypeDefinition type = {};
     std::string dialectDependantTypeString = {};
     bool isNullable = true;
     bool isUnique = false;
@@ -100,6 +102,7 @@ struct Column
     std::string defaultValue = {};
 };
 
+/// Callback interface for handling events while reading a database schema.
 class EventHandler
 {
   public:
@@ -118,20 +121,34 @@ class EventHandler
     virtual void OnTableEnd() = 0;
 };
 
+/// Reads all tables in the given database and schema and calls the event handler for each table.
 LIGHTWEIGHT_API void ReadAllTables(std::string_view database, std::string_view schema, EventHandler& eventHandler);
 
+/// Holds the definition of a table in a SQL database as read from the database schema.
 struct Table
 {
     // FullyQualifiedTableName name;
+
+    /// The name of the table.
     std::string name;
+
+    /// The columns of the table.
     std::vector<Column> columns {};
+
+    /// The foreign keys of the table.
     std::vector<ForeignKeyConstraint> foreignKeys {};
+
+    /// The foreign keys of other tables that reference this table.
     std::vector<ForeignKeyConstraint> externalForeignKeys {};
+
+    /// The primary keys of the table.
     std::vector<std::string> primaryKeys {};
 };
 
+/// A list of tables.
 using TableList = std::vector<Table>;
 
+/// Retrieves all tables in the given @p database and @p schema.
 LIGHTWEIGHT_API TableList ReadAllTables(std::string_view database, std::string_view schema = {});
 
 /// Retrieves all tables in the given database and schema that have a foreign key to the given table.

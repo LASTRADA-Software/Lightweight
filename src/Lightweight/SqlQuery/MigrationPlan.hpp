@@ -3,7 +3,7 @@
 #pragma once
 
 #include "../Api.hpp"
-#include "../DataBinder/SqlFixedString.hpp"
+#include "../SqlDataBinder.hpp"
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "../Utils.hpp"
 

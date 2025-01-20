@@ -15,21 +15,22 @@ struct User;
 
 struct User final
 {
-    Field<int, PrimaryKey::ServerSideAutoIncrement> id;
-    Field<std::string> fullname;
-    Field<std::string> email;
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<SqlAnsiString<128>> fullname;
+    Field<SqlAnsiString<60>> email;
 };
 
 struct TaskList final
 {
-    Field<int, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement> id;
     BelongsTo<&User::id> user;
 };
 
 struct TaskListEntry final
 {
-    Field<int, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement> id;
     Field<std::optional<SqlDateTime>> completed;
-    Field<std::string> task;
+    Field<SqlAnsiString<255>> task;
     BelongsTo<&TaskList::id> taskList;
 };
+

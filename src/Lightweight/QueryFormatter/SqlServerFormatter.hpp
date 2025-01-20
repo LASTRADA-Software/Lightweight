@@ -98,6 +98,8 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
                 [](Text const&) -> std::string { return "VARCHAR(MAX)"; },
                 [](Time const&) -> std::string { return "TIME"; },
                 [](Timestamp const&) -> std::string { return "TIMESTAMP"; },
+                [](Tinyint const&) -> std::string { return "TINYINT"; },
+                [](VarBinary const& type) -> std::string { return std::format("VARBINARY({})", type.size); },
                 [](Varchar const& type) -> std::string { return std::format("VARCHAR({})", type.size); },
             },
             type);

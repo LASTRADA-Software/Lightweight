@@ -66,6 +66,9 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
                               [](Text const&) -> std::string { return "TEXT"; },
                               [](Time const&) -> std::string { return "TIME"; },
                               [](Timestamp const&) -> std::string { return "TIMESTAMP"; },
+                              // NB: PostgreSQL doesn't have a TINYINT type, but it does have a SMALLINT type.
+                              [](Tinyint const&) -> std::string { return "SMALLINT"; },
+                              [](VarBinary const& type) -> std::string { return std::format("BYTEA({})", type.size); },
                               [](Varchar const& type) -> std::string { return std::format("VARCHAR({})", type.size); },
                           },
                           type);
