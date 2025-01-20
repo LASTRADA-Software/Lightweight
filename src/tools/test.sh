@@ -5,7 +5,7 @@ set -e
 LS_EXE="$(which ls)"
 PROJECT_ROOT="$(realpath $(dirname "$0")/../..)"
 BUILD_DIR="${1:-${PROJECT_ROOT}/out/build/linux-clang-debug}"
-DDL2CPP="${BUILD_DIR}/src/tools/ddl2cpp"
+DDL2CPP="${DDL2CPP:-${BUILD_DIR}/src/tools/ddl2cpp}"
 
 SQLITE_TESTDB_FILE="${PROJECT_ROOT}/test.db"
 ODBC_CONNECTION_STRING="DRIVER=SQLite3;Database=${SQLITE_TESTDB_FILE}"
