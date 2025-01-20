@@ -3,9 +3,14 @@
 #include "../SqlQueryFormatter.hpp"
 #include "Migrate.hpp"
 
-SqlMigrationPlan SqlMigrationQueryBuilder::GetPlan()
+SqlMigrationPlan const& SqlMigrationQueryBuilder::GetPlan() const &
 {
     return _migrationPlan;
+}
+
+SqlMigrationPlan SqlMigrationQueryBuilder::GetPlan() &&
+{
+    return std::move(_migrationPlan);
 }
 
 SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::DropTable(std::string_view tableName)

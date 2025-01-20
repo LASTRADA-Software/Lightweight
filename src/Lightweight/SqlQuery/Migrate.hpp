@@ -200,7 +200,8 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& BeginTransaction();
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& CommitTransaction();
 
-    LIGHTWEIGHT_API SqlMigrationPlan GetPlan();
+    LIGHTWEIGHT_API SqlMigrationPlan const& GetPlan() const &;
+    LIGHTWEIGHT_API SqlMigrationPlan GetPlan() &&;
 
   private:
     SqlQueryFormatter const& _formatter;
