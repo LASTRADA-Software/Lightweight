@@ -85,21 +85,6 @@ std::string MakeVariableName(SqlSchema::FullyQualifiedTableName const& table)
     return name;
 }
 
-constexpr bool isVowel(char c) noexcept
-{
-    switch (c)
-    {
-        case 'a':
-        case 'e':
-        case 'i':
-        case 'o':
-        case 'u':
-            return true;
-        default:
-            return false;
-    }
-}
-
 class CxxModelPrinter
 {
   private:
@@ -152,10 +137,8 @@ class CxxModelPrinter
         m_definitions << std::format("struct {} final\n", table.name);
         m_definitions << std::format("{{\n");
 
-        int columnPosition = 0;
         for (auto const& column: table.columns)
         {
-            ++columnPosition;
             std::string type = MakeType(column);
             if (column.isPrimaryKey)
             {
@@ -168,10 +151,8 @@ class CxxModelPrinter
             m_definitions << std::format("    Field<{}> {};\n", type, column.name);
         }
 
-        columnPosition = 0;
         for (auto const& foreignKey: table.foreignKeys)
         {
-            ++columnPosition;
             m_definitions << std::format(
                 "    BelongsTo<&{}> {};\n",
                 [&]() {
