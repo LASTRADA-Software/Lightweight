@@ -172,9 +172,6 @@ std::string&#160;</td><td class="memItemRight" valign="bottom"><b>ServerVersion<
 <a class="el" href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Migration</b> () const</td></tr>
 <tr class="memdesc:ad40c250ff1be7868511131c9d8d3656d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new migration query builder, compatible the current connection. <br /></td></tr>
 <tr class="separator:ad40c250ff1be7868511131c9d8d3656d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac2cea0bdd7ba96e98acc1669a82dbd17" id="r_ac2cea0bdd7ba96e98acc1669a82dbd17"><td class="memItemLeft" align="right" valign="top">SqlTraits const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d7b/classSqlConnection.html#ac2cea0bdd7ba96e98acc1669a82dbd17">Traits</a> () const noexcept</td></tr>
-<tr class="memdesc:ac2cea0bdd7ba96e98acc1669a82dbd17"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the SQL traits for the server.  <br /></td></tr>
-<tr class="separator:ac2cea0bdd7ba96e98acc1669a82dbd17"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6ae1295e5d7226d13787e9ab663652d1" id="r_a6ae1295e5d7226d13787e9ab663652d1"><td class="memItemLeft" align="right" valign="top"><a id="a6ae1295e5d7226d13787e9ab663652d1" name="a6ae1295e5d7226d13787e9ab663652d1"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>TransactionActive</b> () const noexcept</td></tr>
 <tr class="memdesc:a6ae1295e5d7226d13787e9ab663652d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Tests if a transaction is active. <br /></td></tr>
@@ -444,7 +441,7 @@ static void&#160;</td><td class="memItemRight" valign="bottom"><b>ResetPostConne
 
 <p>Retrieves the type of the server. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00185">185</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00179">179</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00390">DataMapper::CreateTable()</a>.</p>
 
@@ -475,9 +472,9 @@ static void&#160;</td><td class="memItemRight" valign="bottom"><b>ResetPostConne
 
 <p>Retrieves a query formatter suitable for the SQL server being connected. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00190">190</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00184">184</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00700">SqlStatement::MigrateDirect()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00701">SqlStatement::MigrateDirect()</a>.</p>
 
 </div>
 </div>
@@ -544,35 +541,6 @@ static void&#160;</td><td class="memItemRight" valign="bottom"><b>ResetPostConne
 
 </div>
 </div>
-<a id="ac2cea0bdd7ba96e98acc1669a82dbd17" name="ac2cea0bdd7ba96e98acc1669a82dbd17"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac2cea0bdd7ba96e98acc1669a82dbd17">&#9670;&#160;</a></span>Traits()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">SqlTraits const  &amp; SqlConnection::Traits </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Retrieves the SQL traits for the server. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00138">138</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
-
-</div>
-</div>
 <a id="a431d3c5f9fa65867b64f825b01735642" name="a431d3c5f9fa65867b64f825b01735642"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a431d3c5f9fa65867b64f825b01735642">&#9670;&#160;</a></span>NativeHandle()</h2>
 
@@ -598,7 +566,7 @@ static void&#160;</td><td class="memItemRight" valign="bottom"><b>ResetPostConne
 
 <p>Retrieves the native handle. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00156">156</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00150">150</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../d1/dc2/classSqlTransaction.html#a8d063f24728c22d9586b0c7c5155b327">SqlTransaction::TryCommit()</a>.</p>
 

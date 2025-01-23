@@ -1,8 +1,8 @@
 var NAVTREEINDEX1 =
 {
 "d7/d7b/classSqlConnection.html#aea37a1f42d804e2310cc12ada35e78dd":[6,0,9,4],
-"d7/d7b/classSqlConnection.html#aeaa239269993596de12bdb0edac0c7fc":[6,0,9,19],
-"d7/d7b/classSqlConnection.html#aef6cca4aa9eda1d8a999ca681c3a1987":[6,0,9,21],
+"d7/d7b/classSqlConnection.html#aeaa239269993596de12bdb0edac0c7fc":[6,0,9,18],
+"d7/d7b/classSqlConnection.html#aef6cca4aa9eda1d8a999ca681c3a1987":[6,0,9,20],
 "d7/d7b/classSqlConnection.html#afe8d59e4a7c36314e15ee135b51e5ebc":[6,0,9,6],
 "d7/db1/classSqlRowIterator.html":[6,0,31],
 "d7/de7/RecordId_8hpp_source.html":[7,0,1,1,9],
@@ -48,7 +48,7 @@ var NAVTREEINDEX1 =
 "d8/dec/Delete_8hpp_source.html":[7,0,1,3,1],
 "d9/d02/SqlError_8hpp_source.html":[7,0,1,9],
 "d9/d6b/Migrate_8hpp_source.html":[7,0,1,3,3],
-"d9/d6e/SqlStatement_8hpp_source.html":[7,0,1,16],
+"d9/d6e/SqlStatement_8hpp_source.html":[7,0,1,17],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html":[1],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database":[1,0],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping":[1,4],
@@ -230,7 +230,6 @@ var NAVTREEINDEX1 =
 "df/d27/structField.html#aa8080d19388999c10fbeadd11547026d":[4,0,4,4],
 "df/d29/classSqlBinary.html":[6,0,8],
 "df/d4f/DataMapper_8hpp_source.html":[7,0,1,1,2],
-"df/d93/SqlTraits_8hpp_source.html":[7,0,1,17],
 "df/dcd/UnicodeConverter_8hpp_source.html":[7,0,1,0,18],
 "df/dd6/classHasManyThrough.html":[4,0,6],
 "df/dd6/classHasManyThrough.html#a0dd54929e7942a919ce0ec5d5890b03f":[4,0,6,3],
@@ -249,5 +248,6 @@ var NAVTREEINDEX1 =
 "df/dd6/classHasManyThrough.html#af01e87a889bb14b2aa93401cb013004a":[4,0,6,13],
 "df/dd6/classHasManyThrough.html#af53f24e8136d20febd9631228457216d":[4,0,6,12],
 "df/dde/structSqlConnectionDataSource.html":[6,0,10],
-"dir_07cc544e6394bf3dfdd028b8dfeac742.html":[7,0,1]
+"dir_07cc544e6394bf3dfdd028b8dfeac742.html":[7,0,1],
+"dir_20a36fc8a4949d7efb0c8c5bf02352ee.html":[7,0,1,2]
 };

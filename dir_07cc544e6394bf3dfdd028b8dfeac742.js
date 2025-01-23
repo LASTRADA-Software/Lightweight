@@ -16,8 +16,8 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "SqlQueryFormatter.hpp", "df/d13/SqlQueryFormatter_8hpp_source.html", null ],
     [ "SqlSchema.hpp", "db/d1c/SqlSchema_8hpp_source.html", null ],
     [ "SqlScopedTraceLogger.hpp", "d6/d4a/SqlScopedTraceLogger_8hpp_source.html", null ],
+    [ "SqlServerType.hpp", "d1/d42/SqlServerType_8hpp_source.html", null ],
     [ "SqlStatement.hpp", "d9/d6e/SqlStatement_8hpp_source.html", null ],
-    [ "SqlTraits.hpp", "df/d93/SqlTraits_8hpp_source.html", null ],
     [ "SqlTransaction.hpp", "d9/da6/SqlTransaction_8hpp_source.html", null ],
     [ "Utils.hpp", "d7/d04/Lightweight_2Utils_8hpp_source.html", null ]
 ];

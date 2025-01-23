@@ -110,7 +110,7 @@ $(document).ready(function(){initNavTree('d5/df9/SqlConnection_8hpp_source.html'
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#include &quot;SqlConnectInfo.hpp&quot;</span></div>
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &quot;SqlError.hpp&quot;</span></div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="preprocessor">#include &quot;SqlLogger.hpp&quot;</span></div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="preprocessor">#include &quot;SqlTraits.hpp&quot;</span></div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="preprocessor">#include &quot;SqlServerType.hpp&quot;</span></div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span> </div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="preprocessor">#include &lt;atomic&gt;</span></div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="preprocessor">#include &lt;chrono&gt;</span></div>
@@ -237,86 +237,77 @@ $(document).ready(function(){initNavTree('d5/df9/SqlConnection_8hpp_source.html'
 <div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span><span class="comment">    /// Creates a new migration query builder, compatible the current connection.</span></div>
 <div class="line"><a id="l00135" name="l00135"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#ad40c250ff1be7868511131c9d8d3656d">  135</a></span><span class="comment"></span>    [[nodiscard]] <a class="code hl_class" href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a> <a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#ad40c250ff1be7868511131c9d8d3656d">Migration</a>() <span class="keyword">const</span>;</div>
 <div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span><span class="comment"></span> </div>
-<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span><span class="comment">    /// Retrieves the SQL traits for the server.</span></div>
-<div class="foldopen" id="foldopen00138" data-start="{" data-end="}">
-<div class="line"><a id="l00138" name="l00138"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#ac2cea0bdd7ba96e98acc1669a82dbd17">  138</a></span><span class="comment"></span>    [[nodiscard]] SqlTraits <span class="keyword">const</span>&amp; <a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#ac2cea0bdd7ba96e98acc1669a82dbd17">Traits</a>() const noexcept</div>
-<div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span>    {</div>
-<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span>        <span class="keywordflow">return</span> GetSqlTraits(ServerType());</div>
-<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span>    }</div>
-</div>
+<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span><span class="comment">    /// Tests if a transaction is active.</span></div>
+<div class="line"><a id="l00138" name="l00138"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#a6ae1295e5d7226d13787e9ab663652d1">  138</a></span><span class="comment"></span>    [[nodiscard]] <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#a6ae1295e5d7226d13787e9ab663652d1">TransactionActive</a>() const noexcept;</div>
+<div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span><span class="comment"></span> </div>
+<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span><span class="comment">    /// Tests if transactions are allowed.</span></div>
+<div class="line"><a id="l00141" name="l00141"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#aeaa239269993596de12bdb0edac0c7fc">  141</a></span><span class="comment"></span>    [[nodiscard]] <span class="keywordtype">bool</span> TransactionsAllowed() const noexcept;</div>
 <div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span><span class="comment"></span> </div>
-<div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span><span class="comment">    /// Tests if a transaction is active.</span></div>
-<div class="line"><a id="l00144" name="l00144"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#a6ae1295e5d7226d13787e9ab663652d1">  144</a></span><span class="comment"></span>    [[nodiscard]] <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#a6ae1295e5d7226d13787e9ab663652d1">TransactionActive</a>() const noexcept;</div>
+<div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span><span class="comment">    /// Tests if the connection is still active.</span></div>
+<div class="line"><a id="l00144" name="l00144"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#ab0ffa86b235846196d55554a005ba05f">  144</a></span><span class="comment"></span>    [[nodiscard]] <span class="keywordtype">bool</span> IsAlive() const noexcept;</div>
 <div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span><span class="comment"></span> </div>
-<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span><span class="comment">    /// Tests if transactions are allowed.</span></div>
-<div class="line"><a id="l00147" name="l00147"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#aeaa239269993596de12bdb0edac0c7fc">  147</a></span><span class="comment"></span>    [[nodiscard]] <span class="keywordtype">bool</span> TransactionsAllowed() const noexcept;</div>
+<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span><span class="comment">    /// Retrieves the connection information.</span></div>
+<div class="line"><a id="l00147" name="l00147"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#aef6cca4aa9eda1d8a999ca681c3a1987">  147</a></span><span class="comment"></span>    [[nodiscard]] <a class="code hl_struct" href="../../d0/d8e/structSqlConnectionString.html">SqlConnectionString</a> const&amp; ConnectionString() const noexcept;</div>
 <div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span><span class="comment"></span> </div>
-<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span><span class="comment">    /// Tests if the connection is still active.</span></div>
-<div class="line"><a id="l00150" name="l00150"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#ab0ffa86b235846196d55554a005ba05f">  150</a></span><span class="comment"></span>    [[nodiscard]] <span class="keywordtype">bool</span> IsAlive() const noexcept;</div>
-<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span><span class="comment"></span> </div>
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span><span class="comment">    /// Retrieves the connection information.</span></div>
-<div class="line"><a id="l00153" name="l00153"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#aef6cca4aa9eda1d8a999ca681c3a1987">  153</a></span><span class="comment"></span>    [[nodiscard]] <a class="code hl_struct" href="../../d0/d8e/structSqlConnectionString.html">SqlConnectionString</a> const&amp; ConnectionString() const noexcept;</div>
+<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span><span class="comment">    /// Retrieves the native handle.</span></div>
+<div class="foldopen" id="foldopen00150" data-start="{" data-end="}">
+<div class="line"><a id="l00150" name="l00150"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#a431d3c5f9fa65867b64f825b01735642">  150</a></span><span class="comment"></span>    [[nodiscard]] SQLHDBC NativeHandle() const noexcept</div>
+<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>    {</div>
+<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>        <span class="keywordflow">return</span> m_hDbc;</div>
+<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>    }</div>
+</div>
 <div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span><span class="comment"></span> </div>
-<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span><span class="comment">    /// Retrieves the native handle.</span></div>
-<div class="foldopen" id="foldopen00156" data-start="{" data-end="}">
-<div class="line"><a id="l00156" name="l00156"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#a431d3c5f9fa65867b64f825b01735642">  156</a></span><span class="comment"></span>    [[nodiscard]] SQLHDBC NativeHandle() const noexcept</div>
-<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span>    {</div>
-<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span>        <span class="keywordflow">return</span> m_hDbc;</div>
-<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span>    }</div>
-</div>
+<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span><span class="comment">    /// Retrieves the last time the connection was used.</span></div>
+<div class="line"><a id="l00156" name="l00156"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#a8dfe6bf0a1833ed2aed719666e8d67ec">  156</a></span><span class="comment"></span>    [[nodiscard]] std::chrono::steady_clock::time_point <a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#a8dfe6bf0a1833ed2aed719666e8d67ec">LastUsed</a>() const noexcept;</div>
+<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span><span class="comment"></span> </div>
+<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span><span class="comment">    /// Sets the last time the connection was used.</span></div>
+<div class="line"><a id="l00159" name="l00159"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#a5d4b9a6597703cb0b9bb2b2199fbdea3">  159</a></span><span class="comment"></span>    <span class="keywordtype">void</span> SetLastUsed(std::chrono::steady_clock::time_point lastUsed) noexcept;</div>
 <div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span><span class="comment"></span> </div>
-<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span><span class="comment">    /// Retrieves the last time the connection was used.</span></div>
-<div class="line"><a id="l00162" name="l00162"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#a8dfe6bf0a1833ed2aed719666e8d67ec">  162</a></span><span class="comment"></span>    [[nodiscard]] std::chrono::steady_clock::time_point <a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#a8dfe6bf0a1833ed2aed719666e8d67ec">LastUsed</a>() const noexcept;</div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span><span class="comment"></span> </div>
-<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span><span class="comment">    /// Sets the last time the connection was used.</span></div>
-<div class="line"><a id="l00165" name="l00165"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#a5d4b9a6597703cb0b9bb2b2199fbdea3">  165</a></span><span class="comment"></span>    <span class="keywordtype">void</span> SetLastUsed(std::chrono::steady_clock::time_point lastUsed) noexcept;</div>
-<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span><span class="comment"></span> </div>
-<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span><span class="comment">    /// Checks the result of an SQL operation, and throws an exception if it is not successful.</span></div>
-<div class="line"><a id="l00168" name="l00168"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#a40df02eaa4dc4a3fb5e646dc6db3c26f">  168</a></span><span class="comment"></span>    <span class="keywordtype">void</span> RequireSuccess(SQLRETURN sqlResult,</div>
-<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>                        std::source_location sourceLocation = std::source_location::current()) const;</div>
-<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span> </div>
-<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>  private:</div>
-<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>    <span class="keywordtype">void</span> PostConnect();</div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span> </div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>    <span class="comment">// Private data members</span></div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>    SQLHENV m_hEnv {};</div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>    SQLHDBC m_hDbc {};</div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>    uint64_t m_connectionId;</div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>    SqlServerType m_serverType = SqlServerType::UNKNOWN;</div>
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>    <a class="code hl_class" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>* m_queryFormatter {};</div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span> </div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>    <span class="keyword">struct </span>Data;</div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>    Data* m_data {};</div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>};</div>
+<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span><span class="comment">    /// Checks the result of an SQL operation, and throws an exception if it is not successful.</span></div>
+<div class="line"><a id="l00162" name="l00162"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#a40df02eaa4dc4a3fb5e646dc6db3c26f">  162</a></span><span class="comment"></span>    <span class="keywordtype">void</span> RequireSuccess(SQLRETURN sqlResult,</div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>                        std::source_location sourceLocation = std::source_location::current()) const;</div>
+<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span> </div>
+<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>  private:</div>
+<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    <span class="keywordtype">void</span> PostConnect();</div>
+<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span> </div>
+<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>    <span class="comment">// Private data members</span></div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>    SQLHENV m_hEnv {};</div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>    SQLHDBC m_hDbc {};</div>
+<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>    uint64_t m_connectionId;</div>
+<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>    SqlServerType m_serverType = SqlServerType::UNKNOWN;</div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>    <a class="code hl_class" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>* m_queryFormatter {};</div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span> </div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>    <span class="keyword">struct </span>Data;</div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>    Data* m_data {};</div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>};</div>
 </div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span> </div>
-<div class="foldopen" id="foldopen00185" data-start="{" data-end="}">
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#a0dbada057b48928c5ac60f01687a58c0">  185</a></span><span class="keyword">inline</span> SqlServerType <a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#a0dbada057b48928c5ac60f01687a58c0">SqlConnection::ServerType</a>() const noexcept</div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>{</div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>    <span class="keywordflow">return</span> m_serverType;</div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>}</div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span> </div>
+<div class="foldopen" id="foldopen00179" data-start="{" data-end="}">
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#a0dbada057b48928c5ac60f01687a58c0">  179</a></span><span class="keyword">inline</span> SqlServerType <a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#a0dbada057b48928c5ac60f01687a58c0">SqlConnection::ServerType</a>() const noexcept</div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>{</div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>    <span class="keywordflow">return</span> m_serverType;</div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>}</div>
 </div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span> </div>
-<div class="foldopen" id="foldopen00190" data-start="{" data-end="}">
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#adcaa93ca1d83786875e6df3bea261bef">  190</a></span><span class="keyword">inline</span> <a class="code hl_class" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; <a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#adcaa93ca1d83786875e6df3bea261bef">SqlConnection::QueryFormatter</a>() const noexcept</div>
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>{</div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>    <span class="keywordflow">return</span> *m_queryFormatter;</div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>}</div>
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span> </div>
+<div class="foldopen" id="foldopen00184" data-start="{" data-end="}">
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno"><a class="line" href="../../d7/d7b/classSqlConnection.html#adcaa93ca1d83786875e6df3bea261bef">  184</a></span><span class="keyword">inline</span> <a class="code hl_class" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; <a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#adcaa93ca1d83786875e6df3bea261bef">SqlConnection::QueryFormatter</a>() const noexcept</div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>{</div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>    <span class="keywordflow">return</span> *m_queryFormatter;</div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>}</div>
 </div>
 <div class="ttc" id="aclassSqlConnection_html"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html">SqlConnection</a></div><div class="ttdoc">Represents a connection to a SQL database.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00036">SqlConnection.hpp:37</a></div></div>
 <div class="ttc" id="aclassSqlConnection_html_a028de5cb7c541ac5d123ca73554f582c"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#a028de5cb7c541ac5d123ca73554f582c">SqlConnection::SqlConnection</a></div><div class="ttdeci">SqlConnection()</div><div class="ttdoc">Constructs a new SQL connection to the default connection.</div></div>
-<div class="ttc" id="aclassSqlConnection_html_a0dbada057b48928c5ac60f01687a58c0"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#a0dbada057b48928c5ac60f01687a58c0">SqlConnection::ServerType</a></div><div class="ttdeci">SqlServerType ServerType() const noexcept</div><div class="ttdoc">Retrieves the type of the server.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00185">SqlConnection.hpp:185</a></div></div>
+<div class="ttc" id="aclassSqlConnection_html_a0dbada057b48928c5ac60f01687a58c0"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#a0dbada057b48928c5ac60f01687a58c0">SqlConnection::ServerType</a></div><div class="ttdeci">SqlServerType ServerType() const noexcept</div><div class="ttdoc">Retrieves the type of the server.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00179">SqlConnection.hpp:179</a></div></div>
 <div class="ttc" id="aclassSqlConnection_html_a311848ca83901b216a4f4b66ba208b23"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#a311848ca83901b216a4f4b66ba208b23">SqlConnection::SqlConnection</a></div><div class="ttdeci">SqlConnection(std::optional&lt; SqlConnectionString &gt; connectInfo)</div><div class="ttdoc">Constructs a new SQL connection to the given connect informaton.</div></div>
 <div class="ttc" id="aclassSqlConnection_html_a48f9b48947217c890754f0645716eff8"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#a48f9b48947217c890754f0645716eff8">SqlConnection::QueryAs</a></div><div class="ttdeci">SqlQueryBuilder QueryAs(std::string_view const &amp;table, std::string_view const &amp;tableAlias) const</div></div>
 <div class="ttc" id="aclassSqlConnection_html_a6ae1295e5d7226d13787e9ab663652d1"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#a6ae1295e5d7226d13787e9ab663652d1">SqlConnection::TransactionActive</a></div><div class="ttdeci">bool TransactionActive() const noexcept</div><div class="ttdoc">Tests if a transaction is active.</div></div>
 <div class="ttc" id="aclassSqlConnection_html_a8dfe6bf0a1833ed2aed719666e8d67ec"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#a8dfe6bf0a1833ed2aed719666e8d67ec">SqlConnection::LastUsed</a></div><div class="ttdeci">std::chrono::steady_clock::time_point LastUsed() const noexcept</div><div class="ttdoc">Retrieves the last time the connection was used.</div></div>
-<div class="ttc" id="aclassSqlConnection_html_ac2cea0bdd7ba96e98acc1669a82dbd17"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#ac2cea0bdd7ba96e98acc1669a82dbd17">SqlConnection::Traits</a></div><div class="ttdeci">SqlTraits const &amp; Traits() const noexcept</div><div class="ttdoc">Retrieves the SQL traits for the server.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00138">SqlConnection.hpp:138</a></div></div>
 <div class="ttc" id="aclassSqlConnection_html_ad40c250ff1be7868511131c9d8d3656d"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#ad40c250ff1be7868511131c9d8d3656d">SqlConnection::Migration</a></div><div class="ttdeci">SqlMigrationQueryBuilder Migration() const</div><div class="ttdoc">Creates a new migration query builder, compatible the current connection.</div></div>
-<div class="ttc" id="aclassSqlConnection_html_adcaa93ca1d83786875e6df3bea261bef"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#adcaa93ca1d83786875e6df3bea261bef">SqlConnection::QueryFormatter</a></div><div class="ttdeci">SqlQueryFormatter const &amp; QueryFormatter() const noexcept</div><div class="ttdoc">Retrieves a query formatter suitable for the SQL server being connected.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00190">SqlConnection.hpp:190</a></div></div>
+<div class="ttc" id="aclassSqlConnection_html_adcaa93ca1d83786875e6df3bea261bef"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#adcaa93ca1d83786875e6df3bea261bef">SqlConnection::QueryFormatter</a></div><div class="ttdeci">SqlQueryFormatter const &amp; QueryFormatter() const noexcept</div><div class="ttdoc">Retrieves a query formatter suitable for the SQL server being connected.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00184">SqlConnection.hpp:184</a></div></div>
 <div class="ttc" id="aclassSqlConnection_html_aea37a1f42d804e2310cc12ada35e78dd"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#aea37a1f42d804e2310cc12ada35e78dd">SqlConnection::Close</a></div><div class="ttdeci">void Close() noexcept</div><div class="ttdoc">Closes the connection (attempting to put it back into the connect[[ion pool).</div></div>
 <div class="ttc" id="aclassSqlMigrationQueryBuilder_html"><div class="ttname"><a href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a></div><div class="ttdoc">Query builder for building SQL migration queries.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6b/Migrate_8hpp_source.html#l00181">Migrate.hpp:182</a></div></div>
 <div class="ttc" id="aclassSqlQueryBuilder_html"><div class="ttname"><a href="../../d0/d78/classSqlQueryBuilder.html">SqlQueryBuilder</a></div><div class="ttdoc">API Entry point for building SQL queries.</div><div class="ttdef"><b>Definition</b> <a href="../../dc/dcc/SqlQuery_8hpp_source.html#l00025">SqlQuery.hpp:26</a></div></div>
-<div class="ttc" id="aclassSqlQueryFormatter_html"><div class="ttname"><a href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a></div><div class="ttdoc">API to format SQL queries for different SQL dialects.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00015">SqlQueryFormatter.hpp:16</a></div></div>
+<div class="ttc" id="aclassSqlQueryFormatter_html"><div class="ttname"><a href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a></div><div class="ttdoc">API to format SQL queries for different SQL dialects.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00016">SqlQueryFormatter.hpp:17</a></div></div>
 <div class="ttc" id="astructSqlConnectionDataSource_html"><div class="ttname"><a href="../../df/dde/structSqlConnectionDataSource.html">SqlConnectionDataSource</a></div><div class="ttdoc">Represents a connection data source as a DSN, username, password, and timeout.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00034">SqlConnectInfo.hpp:35</a></div></div>
 <div class="ttc" id="astructSqlConnectionString_html"><div class="ttname"><a href="../../d0/d8e/structSqlConnectionString.html">SqlConnectionString</a></div><div class="ttdoc">Represents an ODBC connection string.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00014">SqlConnectInfo.hpp:15</a></div></div>
 <div class="ttc" id="astructSqlErrorInfo_html"><div class="ttname"><a href="../../d3/dbc/structSqlErrorInfo.html">SqlErrorInfo</a></div><div class="ttdoc">Represents an ODBC SQL error.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d02/SqlError_8hpp_source.html#l00028">SqlError.hpp:29</a></div></div>

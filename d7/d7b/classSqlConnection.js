@@ -17,7 +17,6 @@ var classSqlConnection =
     [ "Query", "d7/d7b/classSqlConnection.html#a12d862df9a05ab9511730e6ae7355428", null ],
     [ "QueryAs", "d7/d7b/classSqlConnection.html#a48f9b48947217c890754f0645716eff8", null ],
     [ "Migration", "d7/d7b/classSqlConnection.html#ad40c250ff1be7868511131c9d8d3656d", null ],
-    [ "Traits", "d7/d7b/classSqlConnection.html#ac2cea0bdd7ba96e98acc1669a82dbd17", null ],
     [ "TransactionActive", "d7/d7b/classSqlConnection.html#a6ae1295e5d7226d13787e9ab663652d1", null ],
     [ "TransactionsAllowed", "d7/d7b/classSqlConnection.html#aeaa239269993596de12bdb0edac0c7fc", null ],
     [ "IsAlive", "d7/d7b/classSqlConnection.html#ab0ffa86b235846196d55554a005ba05f", null ],

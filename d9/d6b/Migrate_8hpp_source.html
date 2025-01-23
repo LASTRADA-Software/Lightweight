@@ -305,12 +305,13 @@ $(document).ready(function(){initNavTree('d9/d6b/Migrate_8hpp_source.html','../.
 <div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>    LIGHTWEIGHT_API <a class="code hl_class" href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a>&amp; BeginTransaction();</div>
 <div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>    LIGHTWEIGHT_API <a class="code hl_class" href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a>&amp; CommitTransaction();</div>
 <div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span> </div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>    LIGHTWEIGHT_API SqlMigrationPlan GetPlan();</div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span> </div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>    <a class="code hl_class" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; _formatter;</div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>    SqlMigrationPlan _migrationPlan;</div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>};</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>    LIGHTWEIGHT_API SqlMigrationPlan <span class="keyword">const</span>&amp; GetPlan() <span class="keyword">const</span> &amp;;</div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>    LIGHTWEIGHT_API SqlMigrationPlan GetPlan() &amp;&amp;;</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span> </div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>    <a class="code hl_class" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; _formatter;</div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>    SqlMigrationPlan _migrationPlan;</div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>};</div>
 </div>
 <div class="ttc" id="aclassSqlAlterTableQueryBuilder_html"><div class="ttname"><a href="../../d3/d3f/classSqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a></div><div class="ttdoc">Query builder for building ALTER TABLE queries.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6b/Migrate_8hpp_source.html#l00069">Migrate.hpp:70</a></div></div>
 <div class="ttc" id="aclassSqlAlterTableQueryBuilder_html_a0bd2dc01e143714dcf52c14210736cde"><div class="ttname"><a href="../../d3/d3f/classSqlAlterTableQueryBuilder.html#a0bd2dc01e143714dcf52c14210736cde">SqlAlterTableQueryBuilder::DropColumn</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlAlterTableQueryBuilder &amp; DropColumn(std::string_view columnName)</div></div>
@@ -339,7 +340,7 @@ $(document).ready(function(){initNavTree('d9/d6b/Migrate_8hpp_source.html','../.
 <div class="ttc" id="aclassSqlCreateTableQueryBuilder_html_ac53b30a0e5df011418f0264090ce49c5"><div class="ttname"><a href="../../d4/d4a/classSqlCreateTableQueryBuilder.html#ac53b30a0e5df011418f0264090ce49c5">SqlCreateTableQueryBuilder::RequiredForeignKey</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlCreateTableQueryBuilder &amp; RequiredForeignKey(std::string columnName, SqlColumnTypeDefinition columnType, SqlForeignKeyReferenceDefinition foreignKey)</div><div class="ttdoc">Creates a new non-nullable foreign key column.</div></div>
 <div class="ttc" id="aclassSqlCreateTableQueryBuilder_html_ade1e13201cafcf0642277eea30888a3f"><div class="ttname"><a href="../../d4/d4a/classSqlCreateTableQueryBuilder.html#ade1e13201cafcf0642277eea30888a3f">SqlCreateTableQueryBuilder::UniqueIndex</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlCreateTableQueryBuilder &amp; UniqueIndex()</div><div class="ttdoc">Enables the UNIQUE and INDEX constraint on the last declared column and makes it an index.</div></div>
 <div class="ttc" id="aclassSqlMigrationQueryBuilder_html"><div class="ttname"><a href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a></div><div class="ttdoc">Query builder for building SQL migration queries.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6b/Migrate_8hpp_source.html#l00181">Migrate.hpp:182</a></div></div>
-<div class="ttc" id="aclassSqlQueryFormatter_html"><div class="ttname"><a href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a></div><div class="ttdoc">API to format SQL queries for different SQL dialects.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00015">SqlQueryFormatter.hpp:16</a></div></div>
+<div class="ttc" id="aclassSqlQueryFormatter_html"><div class="ttname"><a href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a></div><div class="ttdoc">API to format SQL queries for different SQL dialects.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00016">SqlQueryFormatter.hpp:17</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
