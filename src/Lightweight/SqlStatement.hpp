@@ -11,6 +11,7 @@
 #include "SqlConnection.hpp"
 #include "SqlDataBinder.hpp"
 #include "SqlQuery.hpp"
+#include "SqlServerType.hpp"
 #include "Utils.hpp"
 
 #include <cstring>

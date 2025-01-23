@@ -5,6 +5,7 @@
 #include "Api.hpp"
 #include "SqlConnection.hpp"
 #include "SqlQuery/MigrationPlan.hpp"
+#include "SqlServerType.hpp"
 
 #include <string>
 #include <string_view>
@@ -102,10 +103,12 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     [[nodiscard]] virtual std::string ColumnType(SqlColumnTypeDefinition const& type) const = 0;
 
     /// Constructs an SQL CREATE TABLE query.
-    [[nodiscard]] virtual StringList CreateTable(std::string_view tableName, std::vector<SqlColumnDeclaration> const& columns) const = 0;
+    [[nodiscard]] virtual StringList CreateTable(std::string_view tableName,
+                                                 std::vector<SqlColumnDeclaration> const& columns) const = 0;
 
     /// Constructs an SQL ALTER TABLE query.
-    [[nodiscard]] virtual StringList AlterTable(std::string_view tableName, std::vector<SqlAlterTableCommand> const& commands) const = 0;
+    [[nodiscard]] virtual StringList AlterTable(std::string_view tableName,
+                                                std::vector<SqlAlterTableCommand> const& commands) const = 0;
 
     /// Constructs an SQL DROP TABLE query.
     [[nodiscard]] virtual StringList DropTable(std::string_view const& tableName) const = 0;

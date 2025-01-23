@@ -63,6 +63,7 @@ set(HEADER_FILES
     SqlQueryFormatter.hpp
     SqlSchema.hpp
     SqlScopedTraceLogger.hpp
+    SqlServerType.hpp
     SqlStatement.hpp
 )
 

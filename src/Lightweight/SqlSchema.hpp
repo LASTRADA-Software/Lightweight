@@ -8,7 +8,6 @@
 
 #include "Api.hpp"
 #include "SqlQuery/MigrationPlan.hpp"
-#include "SqlTraits.hpp"
 
 #include <format>
 #include <string_view>
