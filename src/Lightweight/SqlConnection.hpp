@@ -10,7 +10,7 @@
 #include "SqlConnectInfo.hpp"
 #include "SqlError.hpp"
 #include "SqlLogger.hpp"
-#include "SqlTraits.hpp"
+#include "SqlServerType.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -133,12 +133,6 @@ class LIGHTWEIGHT_API SqlConnection final
 
     /// Creates a new migration query builder, compatible the current connection.
     [[nodiscard]] SqlMigrationQueryBuilder Migration() const;
-
-    /// Retrieves the SQL traits for the server.
-    [[nodiscard]] SqlTraits const& Traits() const noexcept
-    {
-        return GetSqlTraits(ServerType());
-    }
 
     /// Tests if a transaction is active.
     [[nodiscard]] bool TransactionActive() const noexcept;

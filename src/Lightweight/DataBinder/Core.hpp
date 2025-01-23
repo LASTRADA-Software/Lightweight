@@ -7,7 +7,7 @@
 #endif
 
 #include "../Api.hpp"
-#include "../SqlTraits.hpp"
+#include "../SqlServerType.hpp"
 
 #include <concepts>
 #include <functional>

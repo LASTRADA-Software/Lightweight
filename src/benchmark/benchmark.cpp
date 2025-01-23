@@ -6,7 +6,6 @@
 #include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlSchema.hpp>
 #include <Lightweight/SqlStatement.hpp>
-#include <Lightweight/SqlTraits.hpp>
 
 #include <print>
 #include <regex>
