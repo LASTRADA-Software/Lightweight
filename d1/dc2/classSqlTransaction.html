@@ -119,10 +119,9 @@ LIGHTWEIGHT_API <a class="el" href="../../d1/dc2/classSqlTransaction.html">SqlTr
 LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><b>~SqlTransaction</b> () noexcept</td></tr>
 <tr class="memdesc:ad67f57d0d3a27e4d4f26a15d61c0db5d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Automatically commit the transaction if not done so. <br /></td></tr>
 <tr class="separator:ad67f57d0d3a27e4d4f26a15d61c0db5d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab7c6bd9f18f9e020f3706a3b51929d1a" id="r_ab7c6bd9f18f9e020f3706a3b51929d1a"><td class="memItemLeft" align="right" valign="top"><a id="ab7c6bd9f18f9e020f3706a3b51929d1a" name="ab7c6bd9f18f9e020f3706a3b51929d1a"></a>
-LIGHTWEIGHT_API <a class="el" href="../../d7/d7b/classSqlConnection.html">SqlConnection</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>Connection</b> () noexcept</td></tr>
-<tr class="memdesc:ab7c6bd9f18f9e020f3706a3b51929d1a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the connection object associated with this transaction. <br /></td></tr>
-<tr class="separator:ab7c6bd9f18f9e020f3706a3b51929d1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac1adb210b5d6596493e20a9cb41e28d0" id="r_ac1adb210b5d6596493e20a9cb41e28d0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d7/d7b/classSqlConnection.html">SqlConnection</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/dc2/classSqlTransaction.html#ac1adb210b5d6596493e20a9cb41e28d0">Connection</a> () noexcept</td></tr>
+<tr class="memdesc:ac1adb210b5d6596493e20a9cb41e28d0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the connection object associated with this transaction.  <br /></td></tr>
+<tr class="separator:ac1adb210b5d6596493e20a9cb41e28d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1228dcf6a3e6692465a6296702b2d917" id="r_a1228dcf6a3e6692465a6296702b2d917"><td class="memItemLeft" align="right" valign="top"><a id="a1228dcf6a3e6692465a6296702b2d917" name="a1228dcf6a3e6692465a6296702b2d917"></a>
 LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>Rollback</b> ()</td></tr>
 <tr class="memdesc:a1228dcf6a3e6692465a6296702b2d917"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rollback the transaction. Throws an exception if the transaction cannot be rolled back. <br /></td></tr>
@@ -146,7 +145,7 @@ LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><b>TryCo
 <p>This class is designed with RAII in mind, so that the transaction is automatically committed or rolled back when the object goes out of scope.</p>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> doSomeWork(<a class="code hl_class" href="../../d1/dc2/classSqlTransaction.html">SqlTransaction</a>&amp; transaction)</div>
 <div class="line">{</div>
-<div class="line">   <span class="keyword">auto</span> stmt = <a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a> { transaction.<a class="code hl_function" href="../../d1/dc2/classSqlTransaction.html#ab7c6bd9f18f9e020f3706a3b51929d1a">Connection</a>() };</div>
+<div class="line">   <span class="keyword">auto</span> stmt = <a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a> { transaction.<a class="code hl_function" href="../../d1/dc2/classSqlTransaction.html#ac1adb210b5d6596493e20a9cb41e28d0">Connection</a>() };</div>
 <div class="line">   stmt.ExecuteDirect(<span class="stringliteral">&quot;INSERT INTO table (column) VALUES (42)&quot;</span>); <span class="comment">// Do some work</span></div>
 <div class="line">}</div>
 <div class="line"> </div>
@@ -162,7 +161,7 @@ LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><b>TryCo
 <div class="ttc" id="aclassSqlConnection_html"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html">SqlConnection</a></div><div class="ttdoc">Represents a connection to a SQL database.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00036">SqlConnection.hpp:37</a></div></div>
 <div class="ttc" id="aclassSqlStatement_html"><div class="ttname"><a href="../../df/d17/classSqlStatement.html">SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00046">SqlStatement.hpp:47</a></div></div>
 <div class="ttc" id="aclassSqlTransaction_html"><div class="ttname"><a href="../../d1/dc2/classSqlTransaction.html">SqlTransaction</a></div><div class="ttdef"><b>Definition</b> <a href="../../d9/da6/SqlTransaction_8hpp_source.html#l00063">SqlTransaction.hpp:64</a></div></div>
-<div class="ttc" id="aclassSqlTransaction_html_ab7c6bd9f18f9e020f3706a3b51929d1a"><div class="ttname"><a href="../../d1/dc2/classSqlTransaction.html#ab7c6bd9f18f9e020f3706a3b51929d1a">SqlTransaction::Connection</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlConnection &amp; Connection() noexcept</div><div class="ttdoc">Get the connection object associated with this transaction.</div></div>
+<div class="ttc" id="aclassSqlTransaction_html_ac1adb210b5d6596493e20a9cb41e28d0"><div class="ttname"><a href="../../d1/dc2/classSqlTransaction.html#ac1adb210b5d6596493e20a9cb41e28d0">SqlTransaction::Connection</a></div><div class="ttdeci">SqlConnection &amp; Connection() noexcept</div><div class="ttdoc">Get the connection object associated with this transaction.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/da6/SqlTransaction_8hpp_source.html#l00110">SqlTransaction.hpp:110</a></div></div>
 <div class="ttc" id="aclassSqlTransaction_html_aebe216b9773d9048092beffb3134ba60"><div class="ttname"><a href="../../d1/dc2/classSqlTransaction.html#aebe216b9773d9048092beffb3134ba60">SqlTransaction::Commit</a></div><div class="ttdeci">LIGHTWEIGHT_API void Commit()</div><div class="ttdoc">Commit the transaction. Throws an exception if the transaction cannot be committed.</div></div>
 </div><!-- fragment --> 
 <p class="definition">Definition at line <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html#l00063">63</a> of file <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html">SqlTransaction.hpp</a>.</p>
@@ -207,6 +206,36 @@ LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><b>TryCo
 </table>
 </div><div class="memdoc">
 <p>Construct a new <a class="el" href="../../d1/dc2/classSqlTransaction.html">SqlTransaction</a> object, and disable the auto-commit mode, so that the transaction can be controlled manually. </p>
+
+</div>
+</div>
+<h2 class="groupheader">Member Function Documentation</h2>
+<a id="ac1adb210b5d6596493e20a9cb41e28d0" name="ac1adb210b5d6596493e20a9cb41e28d0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac1adb210b5d6596493e20a9cb41e28d0">&#9670;&#160;</a></span>Connection()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../d7/d7b/classSqlConnection.html">SqlConnection</a> &amp; SqlTransaction::Connection </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Get the connection object associated with this transaction. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html#l00110">110</a> of file <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html">SqlTransaction.hpp</a>.</p>
 
 </div>
 </div>
