@@ -80,7 +80,7 @@ class SqlTransaction
     LIGHTWEIGHT_API ~SqlTransaction() noexcept;
 
     /// Get the connection object associated with this transaction.
-    LIGHTWEIGHT_API SqlConnection& Connection() noexcept;
+    SqlConnection& Connection() noexcept;
 
     /// Rollback the transaction. Throws an exception if the transaction cannot be rolled back.
     LIGHTWEIGHT_API void Rollback();
@@ -106,3 +106,8 @@ class SqlTransaction
     SqlTransactionMode m_defaultMode {};
     std::source_location m_location {};
 };
+
+inline SqlConnection& SqlTransaction::Connection() noexcept
+{
+    return *m_connection;
+}
