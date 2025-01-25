@@ -1,5 +1,7 @@
 var NAVTREEINDEX1 =
 {
+"d7/d7b/classSqlConnection.html#adcaa93ca1d83786875e6df3bea261bef":[6,0,9,13],
+"d7/d7b/classSqlConnection.html#ae3cce0a5866a68b03d2427df753e8fcc":[6,0,9,7],
 "d7/d7b/classSqlConnection.html#aea37a1f42d804e2310cc12ada35e78dd":[6,0,9,4],
 "d7/d7b/classSqlConnection.html#aeaa239269993596de12bdb0edac0c7fc":[6,0,9,18],
 "d7/d7b/classSqlConnection.html#aef6cca4aa9eda1d8a999ca681c3a1987":[6,0,9,20],
@@ -247,7 +249,5 @@ var NAVTREEINDEX1 =
 "df/dd6/classHasManyThrough.html#ae11ff20cf335b54d17c999a48598ecb3":[4,0,6,10],
 "df/dd6/classHasManyThrough.html#af01e87a889bb14b2aa93401cb013004a":[4,0,6,13],
 "df/dd6/classHasManyThrough.html#af53f24e8136d20febd9631228457216d":[4,0,6,12],
-"df/dde/structSqlConnectionDataSource.html":[6,0,10],
-"dir_07cc544e6394bf3dfdd028b8dfeac742.html":[7,0,1],
-"dir_20a36fc8a4949d7efb0c8c5bf02352ee.html":[7,0,1,2]
+"df/dde/structSqlConnectionDataSource.html":[6,0,10]
 };

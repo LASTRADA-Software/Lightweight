@@ -5,6 +5,8 @@ var classSqlSelectQueryBuilder =
     [ "Fields", "d1/d91/classSqlSelectQueryBuilder.html#aa58e6a65bcca55afe0316bcfa1dd60bd", null ],
     [ "Field", "d1/d91/classSqlSelectQueryBuilder.html#acd9a64863ff8499b7d762f3ced2d3be1", null ],
     [ "Field", "d1/d91/classSqlSelectQueryBuilder.html#a814cde936a9c869bf64b5a19252562ed", null ],
+    [ "Field", "d1/d91/classSqlSelectQueryBuilder.html#adfb1778f28cdcf357560ee572f68f97b", null ],
+    [ "As", "d1/d91/classSqlSelectQueryBuilder.html#a4e0a79bcab97428d4fa74218eacb2127", null ],
     [ "Fields", "d1/d91/classSqlSelectQueryBuilder.html#a7f7a3b47e25e560b071d8cd6f8df36d4", null ],
     [ "Fields", "d1/d91/classSqlSelectQueryBuilder.html#a0e07f77dc0a48efcd3e18452ebf02ac8", null ],
     [ "Fields", "d1/d91/classSqlSelectQueryBuilder.html#ae3248430e23718b805abd386a679ccce", null ],
