@@ -166,9 +166,11 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlWhereClauseBuilder<Sq
     SqlSelectQueryBuilder& Fields();
 
     /// Adds a single column with an alias to the SELECT clause.
+    [[deprecated("Use Field(...).As(\"alias\") instead.")]]
     LIGHTWEIGHT_API SqlSelectQueryBuilder& FieldAs(std::string_view const& fieldName, std::string_view const& alias);
 
     /// Adds a single column with an alias to the SELECT clause.
+    [[deprecated("Use Field(...).As(\"alias\") instead.")]]
     LIGHTWEIGHT_API SqlSelectQueryBuilder& FieldAs(SqlQualifiedTableColumnName const& fieldName,
                                                    std::string_view const& alias);
 

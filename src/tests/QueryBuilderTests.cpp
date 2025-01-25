@@ -64,9 +64,9 @@ void checkSqlQueryBuilder(TheSqlQuery const& sqlQueryBuilder,
 
 struct QueryBuilderCheck
 {
-    std::function<SqlMigrationPlan(SqlMigrationQueryBuilder)> prepare = [](SqlMigrationQueryBuilder b) {
+    std::function<SqlMigrationPlan(SqlMigrationQueryBuilder)> prepare = [](SqlMigrationQueryBuilder&& b) {
         // Do nothing by default
-        return b.GetPlan();
+        return std::move(b).GetPlan();
     };
 
     std::function<SqlMigrationPlan(SqlMigrationQueryBuilder)> test {};
@@ -199,7 +199,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Aggregate", "[SqlQueryB
         [](SqlQueryBuilder& q) {
             return q.FromTable("Table")
                 .Select()
-                .Field(Aggregate::Max({ .tableName = "Table", .columnName = "field1" })).As("aggregateValue")
+                .Field(Aggregate::Max({ .tableName = "Table", .columnName = "field1" }))
+                .As("aggregateValue")
                 .All();
         },
         QueryExpectations::All(R"(SELECT MAX("Table"."field1") AS "aggregateValue" FROM "Table")"));
@@ -454,7 +455,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Join", "[SqlQueryBuilder]")
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.SelectAs", "[SqlQueryBuilder]")
 {
     checkSqlQueryBuilder(
-        [](SqlQueryBuilder& q) { return q.FromTable("That").Select().FieldAs("foo", "F").FieldAs("bar", "B").All(); },
+        [](SqlQueryBuilder& q) { return q.FromTable("That").Select().Field("foo").As("F").Field("bar").As("B").All(); },
         QueryExpectations::All(R"(SELECT "foo" AS "F", "bar" AS "B" FROM "That")"));
 }
 
@@ -464,8 +465,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FromTableAs", "[SqlQueryBuilde
         [](SqlQueryBuilder& q) {
             return q.FromTableAs("Other", "O")
                 .Select()
-                .Field(SqlQualifiedTableColumnName { "O", "foo" })
-                .Field(SqlQualifiedTableColumnName { "O", "bar" })
+                .Field(SqlQualifiedTableColumnName { .tableName = "O", .columnName = "foo" })
+                .Field({ .tableName = "O", .columnName = "bar" })
                 .All();
         },
         QueryExpectations::All(R"(SELECT "O"."foo", "O"."bar" FROM "Other" AS "O")"));
