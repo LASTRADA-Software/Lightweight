@@ -19,6 +19,66 @@ enum class SqlQueryBuilderMode : uint8_t
     Varying
 };
 
+struct [[nodiscard]] SqlFieldExpression final
+{
+    std::string expression;
+};
+
+namespace Aggregate
+{
+
+inline SqlFieldExpression Count(std::string const& field = "*") noexcept
+{
+    return SqlFieldExpression { .expression = std::format("COUNT(\"{}\")", field) };
+}
+
+inline SqlFieldExpression Count(SqlQualifiedTableColumnName const& field) noexcept
+{
+    return SqlFieldExpression { .expression = std::format(R"(COUNT("{}"."{}"))", field.tableName, field.columnName) };
+}
+
+inline SqlFieldExpression Sum(std::string const& field) noexcept
+{
+    return SqlFieldExpression { .expression = std::format("SUM(\"{}\")", field) };
+}
+
+inline SqlFieldExpression Sum(SqlQualifiedTableColumnName const& field) noexcept
+{
+    return SqlFieldExpression { .expression = std::format(R"(SUM("{}"."{}"))", field.tableName, field.columnName) };
+}
+
+inline SqlFieldExpression Avg(std::string const& field) noexcept
+{
+    return SqlFieldExpression { .expression = std::format("AVG(\"{}\")", field) };
+}
+
+inline SqlFieldExpression Avg(SqlQualifiedTableColumnName const& field) noexcept
+{
+    return SqlFieldExpression { .expression = std::format(R"(AVG("{}"."{}"))", field.tableName, field.columnName) };
+}
+
+inline SqlFieldExpression Min(std::string const& field) noexcept
+{
+    return SqlFieldExpression { .expression = std::format("MIN(\"{}\")", field) };
+}
+
+inline SqlFieldExpression Min(SqlQualifiedTableColumnName const& field) noexcept
+{
+    return SqlFieldExpression { .expression = std::format(R"(MIN("{}"."{}"))", field.tableName, field.columnName) };
+}
+
+inline SqlFieldExpression Max(std::string const& field) noexcept
+{
+    return SqlFieldExpression { .expression = std::format("MAX(\"{}\")", field) };
+}
+
+inline SqlFieldExpression Max(SqlQualifiedTableColumnName const& field) noexcept
+{
+    return SqlFieldExpression { .expression = std::format(R"(MAX("{}"."{}"))", field.tableName, field.columnName) };
+}
+
+} // namespace Aggregate
+
 /// @brief Query builder for building SELECT ... queries.
 ///
 /// @see SqlQueryBuilder
@@ -85,6 +145,12 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlWhereClauseBuilder<Sq
     /// Adds a single column to the SELECT clause.
     LIGHTWEIGHT_API SqlSelectQueryBuilder& Field(SqlQualifiedTableColumnName const& fieldName);
 
+    /// Adds an aggregate function call to the SELECT clause.
+    LIGHTWEIGHT_API SqlSelectQueryBuilder& Field(SqlFieldExpression const& fieldExpression);
+
+    /// Aliases the last added field (a column or an aggregate call) in the SELECT clause.
+    LIGHTWEIGHT_API SqlSelectQueryBuilder& As(std::string_view alias);
+
     /// Adds a sequence of columns to the SELECT clause.
     LIGHTWEIGHT_API SqlSelectQueryBuilder& Fields(std::vector<std::string_view> const& fieldNames);
 
@@ -100,9 +166,11 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlWhereClauseBuilder<Sq
     SqlSelectQueryBuilder& Fields();
 
     /// Adds a single column with an alias to the SELECT clause.
+    [[deprecated("Use Field(...).As(\"alias\") instead.")]]
     LIGHTWEIGHT_API SqlSelectQueryBuilder& FieldAs(std::string_view const& fieldName, std::string_view const& alias);
 
     /// Adds a single column with an alias to the SELECT clause.
+    [[deprecated("Use Field(...).As(\"alias\") instead.")]]
     LIGHTWEIGHT_API SqlSelectQueryBuilder& FieldAs(SqlQualifiedTableColumnName const& fieldName,
                                                    std::string_view const& alias);
 
@@ -146,6 +214,7 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlWhereClauseBuilder<Sq
     SqlQueryFormatter const& m_formatter;
     ComposedQuery m_query;
     SqlQueryBuilderMode m_mode = SqlQueryBuilderMode::Fluent;
+    bool m_aliasAllowed = false;
 };
 
 template <typename... MoreFields>

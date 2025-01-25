@@ -16,6 +16,7 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Field(std::string_view const& fiel
     m_query.fields += '"';
     m_query.fields += fieldName;
     m_query.fields += '"';
+    m_aliasAllowed = true;
 
     return *this;
 }
@@ -30,6 +31,30 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Field(SqlQualifiedTableColumnName 
     m_query.fields += "\".\"";
     m_query.fields += fieldName.columnName;
     m_query.fields += '"';
+    m_aliasAllowed = true;
+
+    return *this;
+}
+
+SqlSelectQueryBuilder& SqlSelectQueryBuilder::Field(SqlFieldExpression const& fieldExpression)
+{
+    if (!m_query.fields.empty())
+        m_query.fields += ", ";
+
+    m_query.fields += fieldExpression.expression;
+    m_aliasAllowed = true;
+
+    return *this;
+}
+
+SqlSelectQueryBuilder& SqlSelectQueryBuilder::As(std::string_view alias)
+{
+    assert(m_aliasAllowed);
+
+    m_aliasAllowed = false;
+    m_query.fields += " AS \"";
+    m_query.fields += alias;
+    m_query.fields += "\"";
 
     return *this;
 }
@@ -131,7 +156,8 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::OrderBy(std::string_view columnNam
     return *this;
 }
 
-SqlSelectQueryBuilder& SqlSelectQueryBuilder::OrderBy(SqlQualifiedTableColumnName const& columnName, SqlResultOrdering ordering)
+SqlSelectQueryBuilder& SqlSelectQueryBuilder::OrderBy(SqlQualifiedTableColumnName const& columnName,
+                                                      SqlResultOrdering ordering)
 {
     if (m_query.orderBy.empty())
         m_query.orderBy += "\n ORDER BY ";
