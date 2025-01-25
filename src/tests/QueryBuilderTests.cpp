@@ -182,6 +182,29 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Range", "[SqlQueryBuild
         });
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Aggregate", "[SqlQueryBuilder]")
+{
+    checkSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            // clang-format off
+            return q.FromTable("Table")
+                    .Select()
+                    .Field(Aggregate::Min("field1")).As("aggregateValue")
+                    .All();
+            // clang-format on
+        },
+        QueryExpectations::All(R"(SELECT MIN("field1") AS "aggregateValue" FROM "Table")"));
+
+    checkSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("Table")
+                .Select()
+                .Field(Aggregate::Max({ .tableName = "Table", .columnName = "field1" })).As("aggregateValue")
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT MAX("Table"."field1") AS "aggregateValue" FROM "Table")"));
+}
+
 struct Users
 {
     int id;
