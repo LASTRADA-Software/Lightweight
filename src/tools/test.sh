@@ -22,7 +22,7 @@ run_test() {
     echo "Running test $1"
 
     local actual_result_file="${PROJECT_ROOT}/src/tools/tests/$1.result"
-    local expect_result_file="${PROJECT_ROOT}/src/tools/tests/$1.expected"
+    local expect_result_file="${PROJECT_ROOT}/src/tools/tests/$1.expected.cpp"
 
     sqlite3 "${SQLITE_TESTDB_FILE}" < ./src/tools/tests/$1.sql
     ${DDL2CPP} --connection-string "${ODBC_CONNECTION_STRING}" --output "${actual_result_file}" 1> /dev/null
