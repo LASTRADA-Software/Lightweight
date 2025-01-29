@@ -65,6 +65,8 @@ struct Int64DataBinderHelper
 // clang-format off
 template <> struct SqlDataBinder<bool>: SqlSimpleDataBinder<bool, SQL_BIT, SQL_BIT, SqlColumnTypeDefinitions::Bool {}> {};
 template <> struct SqlDataBinder<char>: SqlSimpleDataBinder<char, SQL_C_CHAR, SQL_CHAR, SqlColumnTypeDefinitions::Char {}> {};
+template <> struct SqlDataBinder<int8_t>: SqlSimpleDataBinder<int8_t, SQL_C_STINYINT, SQL_TINYINT, SqlColumnTypeDefinitions::Tinyint {}> {};
+template <> struct SqlDataBinder<uint8_t>: SqlSimpleDataBinder<uint8_t, SQL_C_UTINYINT, SQL_TINYINT, SqlColumnTypeDefinitions::Tinyint {}> {};
 template <> struct SqlDataBinder<int16_t>: SqlSimpleDataBinder<int16_t, SQL_C_SSHORT, SQL_SMALLINT, SqlColumnTypeDefinitions::Smallint {}> {};
 template <> struct SqlDataBinder<uint16_t>: SqlSimpleDataBinder<uint16_t, SQL_C_USHORT, SQL_SMALLINT, SqlColumnTypeDefinitions::Smallint {}> {};
 template <> struct SqlDataBinder<int32_t>: SqlSimpleDataBinder<int32_t, SQL_C_SLONG, SQL_INTEGER, SqlColumnTypeDefinitions::Integer {}> {};
