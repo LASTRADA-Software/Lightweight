@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 #include <Lightweight/DataMapper/DataMapper.hpp>
-#include <Lightweight/SqlConnection.hpp>
-#include <Lightweight/SqlDataBinder.hpp>
-#include <Lightweight/SqlQuery.hpp>
-#include <Lightweight/SqlQueryFormatter.hpp>
-#include <Lightweight/SqlScopedTraceLogger.hpp>
-#include <Lightweight/SqlStatement.hpp>
-#include <Lightweight/SqlTransaction.hpp>
 
 struct Account;
 struct AccountHistory;

@@ -87,33 +87,36 @@ std::string MakeVariableName(SqlSchema::FullyQualifiedTableName const& table)
 class CxxModelPrinter
 {
   private:
-    mutable std::vector<std::string> m_forwwardDeclarations;
-    std::stringstream m_definitions;
+    mutable std::vector<std::string> _forwardDeclarations;
+    std::stringstream _definitions;
+
+    struct Config
+    {
+        bool useAliases = false;
+    } _config;
 
   public:
+    auto& Config() noexcept
+    {
+        return _config;
+    }
+
     std::string str(std::string_view modelNamespace) const
     {
-        std::ranges::sort(m_forwwardDeclarations);
+        std::ranges::sort(_forwardDeclarations);
 
         std::stringstream output;
         output << "// SPDX-License-Identifier: Apache-2.0\n";
         output << "#pragma once\n";
         output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
-        output << "#include <Lightweight/SqlConnection.hpp>\n";
-        output << "#include <Lightweight/SqlDataBinder.hpp>\n";
-        output << "#include <Lightweight/SqlQuery.hpp>\n";
-        output << "#include <Lightweight/SqlQueryFormatter.hpp>\n";
-        output << "#include <Lightweight/SqlScopedTraceLogger.hpp>\n";
-        output << "#include <Lightweight/SqlStatement.hpp>\n";
-        output << "#include <Lightweight/SqlTransaction.hpp>\n";
         output << "\n";
 
         if (!modelNamespace.empty())
             output << std::format("namespace {}\n{{\n\n", modelNamespace);
-        for (auto const& name: m_forwwardDeclarations)
+        for (auto const& name: _forwardDeclarations)
             output << std::format("struct {};\n", name);
         output << "\n";
-        output << m_definitions.str();
+        output << _definitions.str();
         if (!modelNamespace.empty())
             output << std::format("}} // end namespace {}\n", modelNamespace);
 
@@ -123,7 +126,6 @@ class CxxModelPrinter
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void PrintTable(SqlSchema::Table const& table)
     {
-        m_forwwardDeclarations.push_back(table.name);
 
         std::string cxxPrimaryKeys;
         for (auto const& key: table.primaryKeys)
@@ -133,29 +135,60 @@ class CxxModelPrinter
             cxxPrimaryKeys += '"' + key + '"';
         }
 
-        m_definitions << std::format("struct {} final\n", table.name);
-        m_definitions << std::format("{{\n");
+        auto aliasName = [&](std::string_view name) {
+            if (_config.useAliases)
+            {
+                return std::format(", SqlRealName{{\"{}\"}}", name);
+            }
+            return std::string {};
+        };
+
+        auto aliasTableName = [&](std::string_view name) {
+            if (_config.useAliases)
+            {
+                return std::format("{}", [](std::string name) {
+                    std::ranges::transform(name, name.begin(), [](unsigned char c) { return std::tolower(c); });
+                    return name;
+                }(std::string { name }));
+            }
+            return std::string { name };
+        };
+
+        auto aliasRealTableName = [&](std::string_view name) {
+            if (_config.useAliases)
+            {
+                return std::format("    static constexpr std::string_view TableName = \"{}\"sv;\n", name);
+            }
+            return std::string {};
+        };
+
+        _forwardDeclarations.push_back(aliasTableName(table.name));
+        _definitions << std::format("struct {} final\n", aliasTableName(table.name));
+        _definitions << std::format("{{\n");
+        _definitions << aliasRealTableName(table.name);
 
         for (auto const& column: table.columns)
         {
             std::string type = MakeType(column);
             if (column.isPrimaryKey)
             {
-                m_definitions << std::format(
-                    "    Field<{}, PrimaryKey::ServerSideAutoIncrement> {};\n", type, column.name);
+                _definitions << std::format("    Field<{}, PrimaryKey::ServerSideAutoIncrement{}> {};\n",
+                                            type,
+                                            aliasName(column.name),
+                                            column.name);
                 continue;
             }
             if (column.isForeignKey)
                 continue;
-            m_definitions << std::format("    Field<{}> {};\n", type, column.name);
+            _definitions << std::format("    Field<{}{}> {};\n", type, aliasName(column.name), column.name);
         }
 
         for (auto const& foreignKey: table.foreignKeys)
         {
-            m_definitions << std::format(
+            _definitions << std::format(
                 "    BelongsTo<&{}> {};\n",
                 [&]() {
-                    return std::format("{}::{}", foreignKey.primaryKey.table, "id"); // TODO
+                    return std::format("{}::{}", foreignKey.primaryKey.table, foreignKey.primaryKey.columns[0]); // TODO
                 }(),
                 MakeVariableName(foreignKey.primaryKey.table));
         }
@@ -170,7 +203,7 @@ class CxxModelPrinter
             if (!column.isPrimaryKey && !column.isForeignKey)
                 fieldNames.push_back(column.name);
 
-        m_definitions << "};\n\n";
+        _definitions << "};\n\n";
     }
 };
 
@@ -259,6 +292,7 @@ struct Configuration
     std::string_view modelNamespace;
     std::string_view outputFileName;
     bool createTestTables = false;
+    bool useAliases = false;
 };
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -271,6 +305,7 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
 
     for (; i < argc; ++i)
     {
+        std::println("ARGS: {}", argv[i]);
         if (argv[i] == "--trace-sql"sv)
             SqlLogger::SetLogger(SqlLogger::TraceLogger());
         else if (argv[i] == "--connection-string"sv)
@@ -304,6 +339,11 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
             if (++i >= argc)
                 return { EXIT_FAILURE };
             config.outputFileName = argv[i];
+            std::println("Output file name: {}", config.outputFileName);
+        }
+        else if (argv[i] == "--make-aliases"sv)
+        {
+            config.useAliases = true;
         }
         else if (argv[i] == "--help"sv || argv[i] == "-h"sv)
         {
@@ -315,6 +355,7 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
             std::println("  --schema STR            Schema name");
             std::println("  --create-test-tables    Create test tables");
             std::println("  --output STR            Output file name");
+            std::println("  --make-aliases          Create aliases for the tables and members");
             std::println("  --help, -h              Display this information");
             std::println("");
             return { EXIT_SUCCESS };
@@ -354,9 +395,12 @@ int main(int argc, char const* argv[])
 
     std::vector<SqlSchema::Table> tables = SqlSchema::ReadAllTables(config.database, config.schema);
     CxxModelPrinter printer;
+    printer.Config().useAliases = config.useAliases;
 
     for (auto const& table: tables)
+    {
         printer.PrintTable(table);
+    }
 
     if (config.outputFileName.empty() || config.outputFileName == "-")
         std::println("{}", printer.str(config.modelNamespace));
@@ -364,6 +408,7 @@ int main(int argc, char const* argv[])
     {
         auto file = std::ofstream(config.outputFileName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage)
         file << printer.str(config.modelNamespace);
+        std::println("Wrote to file : {}", config.outputFileName);
     }
 
     return EXIT_SUCCESS;
