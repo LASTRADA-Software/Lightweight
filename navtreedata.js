@@ -84,7 +84,7 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d7/d7b/classSqlConnection.html#adcaa93ca1d83786875e6df3bea261bef",
-"dir_07cc544e6394bf3dfdd028b8dfeac742.html"
+"df/dde/structSqlConnectionDataSource.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

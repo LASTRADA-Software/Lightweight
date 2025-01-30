@@ -7,7 +7,7 @@ var searchData=
   ['database_20schema_4',['Create or Modife database schema',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modife-database-schema',1,'']]],
   ['databasename_5',['DatabaseName',['../d7/d7b/classSqlConnection.html#a0768f862eddb23291e0b6140af9afcc6',1,'SqlConnection']]],
   ['databases_6',['Supported databases',['../index.html#supported-databases',1,'']]],
-  ['datamapper_7',['datamapper',['../dc/dc7/classDataMapper.html',1,'DataMapper'],['../dc/dc7/classDataMapper.html#aeca0c52b22597fb398863360dd125c56',1,'DataMapper::DataMapper()'],['../dc/dc7/classDataMapper.html#a0f57f1c5152a4924e7a9373f0ea9d366',1,'DataMapper::DataMapper(SqlConnection &amp;&amp;connection)']]],
+  ['datamapper_7',['datamapper',['../dc/dc7/classDataMapper.html',1,'DataMapper'],['../dc/dc7/classDataMapper.html#aeca0c52b22597fb398863360dd125c56',1,'DataMapper::DataMapper()'],['../dc/dc7/classDataMapper.html#a0f57f1c5152a4924e7a9373f0ea9d366',1,'DataMapper::DataMapper(SqlConnection &amp;&amp;connection)'],['../dc/dc7/classDataMapper.html#a4bf788e5441855943cd9e6ba9b22c357',1,'DataMapper::DataMapper(SqlConnectionString connectionString)']]],
   ['datamapper_20tt_20api_8',['Use the &lt;tt&gt;DataMapper&lt;/tt&gt; API',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-the-datamapper-api',1,'']]],
   ['datamapperrecord_9',['DataMapperRecord',['../d2/db8/conceptDataMapperRecord.html',1,'']]],
   ['default_20connection_20information_20to_20the_20database_10',['Configure default connection information to the database',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database',1,'']]],

@@ -2,6 +2,7 @@ var classDataMapper =
 [
     [ "DataMapper", "dc/dc7/classDataMapper.html#aeca0c52b22597fb398863360dd125c56", null ],
     [ "DataMapper", "dc/dc7/classDataMapper.html#a0f57f1c5152a4924e7a9373f0ea9d366", null ],
+    [ "DataMapper", "dc/dc7/classDataMapper.html#a4bf788e5441855943cd9e6ba9b22c357", null ],
     [ "Connection", "dc/dc7/classDataMapper.html#a4401e6c9bf930091061e7e43f798686d", null ],
     [ "Connection", "dc/dc7/classDataMapper.html#ad765981326b51bb3865a2d01c314ecd2", null ],
     [ "CreateTableString", "dc/dc7/classDataMapper.html#a81f985f78813f21e5d968c55ba68eb53", null ],
