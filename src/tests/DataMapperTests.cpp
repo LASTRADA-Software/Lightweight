@@ -64,6 +64,36 @@ TEST_CASE_METHOD(SqlTestFixture, "SQL entity naming", "[DataMapper]")
     CHECK(RecordTableName<NamingTest2> == "NamingTest2_aliased"sv);
 }
 
+namespace Models
+{
+
+struct NamingTest1
+{
+    Field<int> normal;
+    Field<int, SqlRealName { "c1" }> name;
+};
+
+struct NamingTest2
+{
+    Field<int, PrimaryKey::AutoAssign, SqlRealName { "First_PK" }> pk1;
+    Field<int, SqlRealName { "Second_PK" }, PrimaryKey::AutoAssign> pk2;
+
+    static constexpr std::string_view TableName = "NamingTest2_aliased"sv;
+};
+
+} // namespace Models
+
+TEST_CASE_METHOD(SqlTestFixture, "SQL entity naming (namespace)", "[DataMapper]")
+{
+    CHECK(FieldNameOf<0, Models::NamingTest1> == "normal"sv);
+    CHECK(FieldNameOf<1, Models::NamingTest1> == "c1"sv);
+    CHECK(RecordTableName<Models::NamingTest1> == "NamingTest1"sv);
+
+    CHECK(FieldNameOf<0, Models::NamingTest2> == "First_PK"sv);
+    CHECK(FieldNameOf<1, Models::NamingTest2> == "Second_PK"sv);
+    CHECK(RecordTableName<Models::NamingTest2> == "NamingTest2_aliased"sv);
+}
+
 struct Person
 {
     Field<SqlGuid, PrimaryKey::AutoAssign> id;

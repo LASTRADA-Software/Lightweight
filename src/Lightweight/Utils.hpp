@@ -56,8 +56,13 @@ struct RecordTableName
         if constexpr (requires { Record::TableName; })
             return Record::TableName;
         else
-            // TODO: Build plural
-            return Reflection::TypeName<Record>;
+            return []() {
+                // TODO: Build plural
+                auto const typeName = Reflection::TypeName<Record>;
+                if (auto const i = typeName.rfind(':'); i != std::string_view::npos)
+                    return typeName.substr(i + 1);
+                return typeName;
+            }();
     }();
 };
 
