@@ -63,6 +63,9 @@ auto ToSharedPtrList(Container<Object, Allocator<Object>> container)
 
 /// @brief Main API for mapping records to and from the database using high level C++ syntax.
 ///
+/// A DataMapper instances operates on a single SQL connection and provides methods to
+/// create, read, update and delete records in the database.
+///
 /// @see Field, BelongsTo, HasMany, HasManyThrough, HasOneThrough
 /// @ingroup DataMapper
 class DataMapper
@@ -78,6 +81,13 @@ class DataMapper
     /// Constructs a new data mapper, using the given connection.
     explicit DataMapper(SqlConnection&& connection):
         _connection { std::move(connection) },
+        _stmt { _connection }
+    {
+    }
+
+    /// Constructs a new data mapper, using the given connection string.
+    explicit DataMapper(SqlConnectionString connectionString):
+        _connection { std::move(connectionString) },
         _stmt { _connection }
     {
     }

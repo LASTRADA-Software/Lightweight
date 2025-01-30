@@ -111,6 +111,12 @@ struct PersonName
     static constexpr std::string_view TableName = RecordTableName<Person>;
 };
 
+TEST_CASE_METHOD(SqlTestFixture, "Constructor with connection string", "[DataMapper]")
+{
+    auto dm = DataMapper(SqlConnection::DefaultConnectionString());
+    dm.CreateTable<Person>();
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
 {
     auto dm = DataMapper();
