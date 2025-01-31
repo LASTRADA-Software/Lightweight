@@ -440,6 +440,75 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric", "[SqlDataBinder],[SqlNumeric]")
     CHECK(expectedValue.ToString() == "123.45");
 }
 
+TEST_CASE("SqlDateTime construction", "[SqlDataBinder],[SqlDateTime]")
+{
+    namespace chrono = std::chrono;
+    auto const baseDateTime = SqlDateTime(chrono::year(2025),
+                                          chrono::January,
+                                          chrono::day(2),
+                                          chrono::hours(12),
+                                          chrono::minutes(34),
+                                          chrono::seconds(56),
+                                          chrono::nanoseconds(123'456'700));
+    CHECK(baseDateTime.sqlValue.year == 2025);
+    CHECK(baseDateTime.sqlValue.month == 1);
+    CHECK(baseDateTime.sqlValue.day == 2);
+    CHECK(baseDateTime.sqlValue.hour == 12);
+    CHECK(baseDateTime.sqlValue.minute == 34);
+    CHECK(baseDateTime.sqlValue.second == 56);
+    CHECK(baseDateTime.sqlValue.fraction == 123'456'700);
+}
+
+TEST_CASE("SqlDateTime operations", "[SqlDataBinder],[SqlDateTime]")
+{
+    namespace chrono = std::chrono;
+    auto const baseDateTime = SqlDateTime(chrono::year(2025),
+                                          chrono::January,
+                                          chrono::day(2),
+                                          chrono::hours(12),
+                                          chrono::minutes(34),
+                                          chrono::seconds(56),
+                                          chrono::nanoseconds(123'456'700));
+    SECTION("plus")
+    {
+        auto const outputValue = SqlDateTime(chrono::year(2025),
+                                             chrono::January,
+                                             chrono::day(2),
+                                             chrono::hours(13),
+                                             chrono::minutes(4),
+                                             chrono::seconds(56),
+                                             chrono::nanoseconds(123'456'700));
+        auto actualValue = baseDateTime + chrono::minutes(30);
+        CHECK(actualValue == outputValue);
+    }
+
+    SECTION("minus minutes")
+    {
+        auto const outputValue = SqlDateTime(chrono::year(2025),
+                                             chrono::January,
+                                             chrono::day(2),
+                                             chrono::hours(12),
+                                             chrono::minutes(4),
+                                             chrono::seconds(56),
+                                             chrono::nanoseconds(123'456'700));
+        auto actualValue = baseDateTime - chrono::minutes(30);
+        CHECK(actualValue == outputValue);
+    }
+
+    SECTION("minus seconds")
+    {
+        auto const outputValue = SqlDateTime(chrono::year(2025),
+                                             chrono::January,
+                                             chrono::day(2),
+                                             chrono::hours(12),
+                                             chrono::minutes(33),
+                                             chrono::seconds(56),
+                                             chrono::nanoseconds(123'456'700));
+        auto actualValue = baseDateTime - chrono::seconds(60);
+        CHECK(actualValue == outputValue);
+    }
+}
+
 // clang-format off
 template <typename T>
 struct TestTypeTraits;
