@@ -108,6 +108,11 @@ class SqlTestFixture
         DropAllTablesInDatabase();
     }
 
+    SqlTestFixture(SqlTestFixture&&) = delete;
+    SqlTestFixture(SqlTestFixture const&) = delete;
+    SqlTestFixture& operator=(SqlTestFixture&&) = delete;
+    SqlTestFixture& operator=(SqlTestFixture const&) = delete;
+
     virtual ~SqlTestFixture() = default;
 
   private:

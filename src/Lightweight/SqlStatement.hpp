@@ -43,7 +43,7 @@ class SqlResultCursor;
 /// 3. Execute the statement (optionally with input parameters)
 /// 4. Fetch rows (if any)
 /// 5. Repeat steps 3 and 4 as needed
-class SqlStatement final: public SqlDataBinderCallback
+class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 {
   public:
     /// Construct a new SqlStatement object, using a new connection, and connect to the default database.
@@ -102,7 +102,7 @@ class SqlStatement final: public SqlDataBinderCallback
 
     SqlStatement Prepare(SqlQueryObject auto const& queryObject) &&;
 
-    std::string const& PreparedQuery() const noexcept;
+    [[nodiscard]] std::string const& PreparedQuery() const noexcept;
 
     template <SqlInputParameterBinder Arg>
     void BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg);

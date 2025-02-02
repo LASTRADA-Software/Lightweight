@@ -29,6 +29,10 @@ class SqlMigrationTestFixture: public SqlTestFixture
     {
         SqlMigration::MigrationManager::GetInstance().RemoveAllMigrations();
     }
+    SqlMigrationTestFixture(SqlMigrationTestFixture&&) = delete;
+    SqlMigrationTestFixture(SqlMigrationTestFixture const&) = delete;
+    SqlMigrationTestFixture& operator=(SqlMigrationTestFixture&&) = delete;
+    SqlMigrationTestFixture& operator=(SqlMigrationTestFixture const&) = delete;
 
     ~SqlMigrationTestFixture() override
     {

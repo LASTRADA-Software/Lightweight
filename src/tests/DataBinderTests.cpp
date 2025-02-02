@@ -56,7 +56,7 @@ namespace std
 
 std::ostream& operator<<(std::ostream& os, std::u8string const& value)
 {
-    return os << std::format("\"{}\"", (char const*) value.c_str());
+    return os << std::format("\"{}\"", value);
 }
 
 std::ostream& operator<<(std::ostream& os, std::u8string_view value)
@@ -242,6 +242,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlDate", "[SqlDataBinder],[SqlVar
 
     using namespace std::chrono_literals;
     auto const expected = SqlVariant { SqlDate { 2017y, std::chrono::August, 16d } };
+    auto const& expectedDateTime = std::get<SqlDate>(expected.value);
 
     stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
     stmt.Execute(expected);
@@ -251,7 +252,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlDate", "[SqlDataBinder],[SqlVar
         auto reader = stmt.GetResultCursor();
         (void) stmt.FetchRow();
         auto const actual = reader.GetColumn<SqlVariant>(1);
-        CHECK(actual.TryGetDate().value() == std::get<SqlDate>(expected.value));
+        CHECK(actual.TryGetDate().value_or(SqlDate {}) == expectedDateTime);
     }
 
     // Test for inserting/getting NULL values

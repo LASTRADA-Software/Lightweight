@@ -302,9 +302,9 @@ bool SqlConnection::IsAlive() const noexcept
     return SQL_SUCCEEDED(sqlResult) && state == SQL_CD_FALSE;
 }
 
-void SqlConnection::RequireSuccess(SQLRETURN error, std::source_location sourceLocation) const
+void SqlConnection::RequireSuccess(SQLRETURN sqlResult, std::source_location sourceLocation) const
 {
-    if (SQL_SUCCEEDED(error))
+    if (SQL_SUCCEEDED(sqlResult))
         return;
 
     auto errorInfo = LastError();

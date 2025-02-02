@@ -63,7 +63,7 @@ namespace
             case SQL_WLONGVARCHAR: return NVarchar { size };
             case SQL_WVARCHAR: return NVarchar { size };
             // case SQL_UNKNOWN_TYPE:
-            default: 
+            default:
                 SqlLogger::GetLogger().OnError(SqlError::UNSUPPORTED_TYPE);
                 throw std::runtime_error(std::format("Unsupported data type: {}", value));
         }
@@ -276,8 +276,7 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
 std::string ToLowerCase(std::string_view str)
 {
     std::string result(str);
-    std::transform(
-        result.begin(), result.end(), result.begin(), [](char c) { return static_cast<char>(std::tolower(c)); });
+    std::ranges::transform(result, result.begin(), [](char c) { return static_cast<char>(std::tolower(c)); });
     return result;
 }
 

@@ -55,7 +55,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement: ctor std::nullopt")
     // Get `stmt` valid by assigning it a valid SqlStatement
     stmt = SqlStatement {};
     REQUIRE(stmt.IsAlive());
-    CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42").value() == 42);
+    CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42").value_or(-1) == 42);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "select: get columns")
@@ -69,6 +69,8 @@ TEST_CASE_METHOD(SqlTestFixture, "select: get columns")
 
 TEST_CASE_METHOD(SqlTestFixture, "move semantics", "[SqlConnection]")
 {
+    // NOLINTBEGIN(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
+
     auto a = SqlConnection {};
     CHECK(a.IsAlive());
 
@@ -80,10 +82,14 @@ TEST_CASE_METHOD(SqlTestFixture, "move semantics", "[SqlConnection]")
     CHECK(!a.IsAlive());
     CHECK(!b.IsAlive());
     CHECK(c.IsAlive());
+
+    // NOLINTEND(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "move semantics", "[SqlStatement]")
 {
+    // NOLINTBEGIN(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
+
     auto conn = SqlConnection {};
 
     auto const TestRun = [](SqlStatement& stmt) {
@@ -107,6 +113,8 @@ TEST_CASE_METHOD(SqlTestFixture, "move semantics", "[SqlStatement]")
     CHECK(!b.IsAlive());
     CHECK(c.IsAlive());
     TestRun(c);
+
+    // NOLINTEND(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "select: get column (invalid index)")

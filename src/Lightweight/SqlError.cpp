@@ -7,7 +7,7 @@ SqlException::SqlException(SqlErrorInfo info, std::source_location sourceLocatio
     std::runtime_error(std::format("{}", info)),
     _info { std::move(info) }
 {
-    SqlLogger::GetLogger().OnError(info, sourceLocation);
+    SqlLogger::GetLogger().OnError(_info, sourceLocation);
 }
 
 void SqlErrorInfo::RequireStatementSuccess(SQLRETURN result, SQLHSTMT hStmt, std::string_view message)
