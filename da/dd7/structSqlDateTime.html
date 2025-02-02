@@ -104,8 +104,10 @@ $(document).ready(function(){initNavTree('da/dd7/structSqlDateTime.html','../../
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a16110194866ff82b232dc4bc65e3cc0d" id="r_a16110194866ff82b232dc4bc65e3cc0d"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a16110194866ff82b232dc4bc65e3cc0d">native_type</a> = std::chrono::time_point&lt; std::chrono::system_clock, std::chrono::nanoseconds &gt;</td></tr>
-<tr class="separator:a16110194866ff82b232dc4bc65e3cc0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad8151cf90f918eda7f3af65bb74adca7" id="r_ad8151cf90f918eda7f3af65bb74adca7"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#ad8151cf90f918eda7f3af65bb74adca7">native_type</a> = std::chrono::system_clock::time_point</td></tr>
+<tr class="separator:ad8151cf90f918eda7f3af65bb74adca7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac9384de5099012f1f21281e39b5d5bbe" id="r_ac9384de5099012f1f21281e39b5d5bbe"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#ac9384de5099012f1f21281e39b5d5bbe">duration_type</a> = std::chrono::system_clock::duration</td></tr>
+<tr class="separator:ac9384de5099012f1f21281e39b5d5bbe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -125,28 +127,34 @@ constexpr <a class="el" href="../../da/dd7/structSqlDateTime.html">SqlDateTime</
 <tr class="separator:a0f85df52dcab1fdaa985f9bb187be8bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a26db23d9bf48d0b6870815ac384eaf7f" id="r_a26db23d9bf48d0b6870815ac384eaf7f"><td class="memItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a26db23d9bf48d0b6870815ac384eaf7f">operator!=</a> (<a class="el" href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a> const &amp;other) const noexcept</td></tr>
 <tr class="separator:a26db23d9bf48d0b6870815ac384eaf7f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab956a088dcc879229d7fd41376a80d3a" id="r_ab956a088dcc879229d7fd41376a80d3a"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#ab956a088dcc879229d7fd41376a80d3a">SqlDateTime</a> (std::chrono::year_month_day ymd, std::chrono::hh_mm_ss&lt; std::chrono::nanoseconds &gt; time) noexcept</td></tr>
-<tr class="memdesc:ab956a088dcc879229d7fd41376a80d3a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a date and time from individual components.  <br /></td></tr>
-<tr class="separator:ab956a088dcc879229d7fd41376a80d3a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8ba281398814e2747b672171a4e0b1e7" id="r_a8ba281398814e2747b672171a4e0b1e7"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a8ba281398814e2747b672171a4e0b1e7">SqlDateTime</a> (std::chrono::year year, std::chrono::month month, std::chrono::day day, std::chrono::hours hour, std::chrono::minutes minute, std::chrono::seconds second, std::chrono::nanoseconds nanosecond=std::chrono::nanoseconds { 0 }) noexcept</td></tr>
-<tr class="memdesc:a8ba281398814e2747b672171a4e0b1e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a date and time from individual components.  <br /></td></tr>
-<tr class="separator:a8ba281398814e2747b672171a4e0b1e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1962f1f7376072739b6ce9e1de0bcb8b" id="r_a1962f1f7376072739b6ce9e1de0bcb8b"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a1962f1f7376072739b6ce9e1de0bcb8b">SqlDateTime</a> (std::chrono::system_clock::time_point <a class="el" href="../../da/dd7/structSqlDateTime.html#a8439a534d6557b98d6e4d506af070d35">value</a>) noexcept</td></tr>
-<tr class="memdesc:a1962f1f7376072739b6ce9e1de0bcb8b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a date and time from a time point.  <br /></td></tr>
-<tr class="separator:a1962f1f7376072739b6ce9e1de0bcb8b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab5c5a4a4be05bb6efe71cc70335c0c94" id="r_ab5c5a4a4be05bb6efe71cc70335c0c94"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#ab5c5a4a4be05bb6efe71cc70335c0c94">operator native_type</a> () const noexcept</td></tr>
-<tr class="separator:ab5c5a4a4be05bb6efe71cc70335c0c94"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8501f30e92abdc5c648e090c17d3a276" id="r_a8501f30e92abdc5c648e090c17d3a276"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a8501f30e92abdc5c648e090c17d3a276">SqlDateTime</a> (std::chrono::year_month_day ymd, std::chrono::hh_mm_ss&lt; duration_type &gt; time) noexcept</td></tr>
+<tr class="memdesc:a8501f30e92abdc5c648e090c17d3a276"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a date and time from individual components.  <br /></td></tr>
+<tr class="separator:a8501f30e92abdc5c648e090c17d3a276"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5d75eeeb1ab6a78c8e40f913e7f46fd9" id="r_a5d75eeeb1ab6a78c8e40f913e7f46fd9"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a5d75eeeb1ab6a78c8e40f913e7f46fd9">SqlDateTime</a> (std::chrono::year year, std::chrono::month month, std::chrono::day day, std::chrono::hours hour, std::chrono::minutes minute, std::chrono::seconds second, std::chrono::nanoseconds nanosecond=std::chrono::nanoseconds(0)) noexcept</td></tr>
+<tr class="memdesc:a5d75eeeb1ab6a78c8e40f913e7f46fd9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a date and time from individual components.  <br /></td></tr>
+<tr class="separator:a5d75eeeb1ab6a78c8e40f913e7f46fd9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a248937ff221f05628dd0f73de36c86b8" id="r_a248937ff221f05628dd0f73de36c86b8"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a248937ff221f05628dd0f73de36c86b8">SqlDateTime</a> (std::chrono::system_clock::time_point <a class="el" href="../../da/dd7/structSqlDateTime.html#a8439a534d6557b98d6e4d506af070d35">value</a>) noexcept</td></tr>
+<tr class="memdesc:a248937ff221f05628dd0f73de36c86b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a date and time from a time point.  <br /></td></tr>
+<tr class="separator:a248937ff221f05628dd0f73de36c86b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7c9a92929b71825691350a9a90bd0d12" id="r_a7c9a92929b71825691350a9a90bd0d12"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a7c9a92929b71825691350a9a90bd0d12">operator native_type</a> () const noexcept</td></tr>
+<tr class="separator:a7c9a92929b71825691350a9a90bd0d12"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8439a534d6557b98d6e4d506af070d35" id="r_a8439a534d6557b98d6e4d506af070d35"><td class="memItemLeft" align="right" valign="top">constexpr native_type&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a8439a534d6557b98d6e4d506af070d35">value</a> () const noexcept</td></tr>
 <tr class="memdesc:a8439a534d6557b98d6e4d506af070d35"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the current date and time.  <br /></td></tr>
 <tr class="separator:a8439a534d6557b98d6e4d506af070d35"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8cd3c4a93ef6689f430d46207673483c" id="r_a8cd3c4a93ef6689f430d46207673483c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a8cd3c4a93ef6689f430d46207673483c">operator+=</a> (duration_type duration) noexcept</td></tr>
+<tr class="separator:a8cd3c4a93ef6689f430d46207673483c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a14eaa695ec5562ce22557ecf33e90734" id="r_a14eaa695ec5562ce22557ecf33e90734"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a14eaa695ec5562ce22557ecf33e90734">operator-=</a> (duration_type duration) noexcept</td></tr>
+<tr class="separator:a14eaa695ec5562ce22557ecf33e90734"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:ad3937535acfba30e1cadf179b23b2b19" id="r_ad3937535acfba30e1cadf179b23b2b19"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#ad3937535acfba30e1cadf179b23b2b19">Now</a> () noexcept</td></tr>
-<tr class="memdesc:ad3937535acfba30e1cadf179b23b2b19"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the current date and time.  <br /></td></tr>
-<tr class="separator:ad3937535acfba30e1cadf179b23b2b19"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a83c5fa6ecfac492eaaa7350aaf543fe9" id="r_a83c5fa6ecfac492eaaa7350aaf543fe9"><td class="memItemLeft" align="right" valign="top">static SQL_TIMESTAMP_STRUCT constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a83c5fa6ecfac492eaaa7350aaf543fe9">ConvertToSqlValue</a> (native_type <a class="el" href="../../da/dd7/structSqlDateTime.html#a8439a534d6557b98d6e4d506af070d35">value</a>) noexcept</td></tr>
-<tr class="separator:a83c5fa6ecfac492eaaa7350aaf543fe9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afd6225eb14a6c3d7e0ab1e36f9629282" id="r_afd6225eb14a6c3d7e0ab1e36f9629282"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#afd6225eb14a6c3d7e0ab1e36f9629282">Now</a> () noexcept</td></tr>
+<tr class="memdesc:afd6225eb14a6c3d7e0ab1e36f9629282"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the current date and time.  <br /></td></tr>
+<tr class="separator:afd6225eb14a6c3d7e0ab1e36f9629282"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1c7ab5cae6a6c2a5ac8320b91d3a4a3f" id="r_a1c7ab5cae6a6c2a5ac8320b91d3a4a3f"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_FORCE_INLINE SQL_TIMESTAMP_STRUCT constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a1c7ab5cae6a6c2a5ac8320b91d3a4a3f">ConvertToSqlValue</a> (native_type <a class="el" href="../../da/dd7/structSqlDateTime.html#a8439a534d6557b98d6e4d506af070d35">value</a>) noexcept</td></tr>
+<tr class="separator:a1c7ab5cae6a6c2a5ac8320b91d3a4a3f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad9239f578455530a720c01b61007ac5a" id="r_ad9239f578455530a720c01b61007ac5a"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_FORCE_INLINE SQL_TIMESTAMP_STRUCT constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#ad9239f578455530a720c01b61007ac5a">ConvertToSqlValue</a> (std::chrono::year_month_day ymd, std::chrono::hh_mm_ss&lt; duration_type &gt; hms) noexcept</td></tr>
+<tr class="separator:ad9239f578455530a720c01b61007ac5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a77cd60bb5ab7edc9788971cc903624d1" id="r_a77cd60bb5ab7edc9788971cc903624d1"><td class="memItemLeft" align="right" valign="top">static native_type constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dd7/structSqlDateTime.html#a77cd60bb5ab7edc9788971cc903624d1">ConvertToNative</a> (SQL_TIMESTAMP_STRUCT const &amp;time) noexcept</td></tr>
 <tr class="separator:a77cd60bb5ab7edc9788971cc903624d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -161,14 +169,14 @@ Public Attributes</h2></td></tr>
 
 <p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00014">14</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
-<a id="a16110194866ff82b232dc4bc65e3cc0d" name="a16110194866ff82b232dc4bc65e3cc0d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a16110194866ff82b232dc4bc65e3cc0d">&#9670;&#160;</a></span>native_type</h2>
+<a id="ad8151cf90f918eda7f3af65bb74adca7" name="ad8151cf90f918eda7f3af65bb74adca7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad8151cf90f918eda7f3af65bb74adca7">&#9670;&#160;</a></span>native_type</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">using SqlDateTime::native_type =  std::chrono::time_point&lt;std::chrono::system_clock, std::chrono::nanoseconds&gt;</td>
+          <td class="memname">using SqlDateTime::native_type =  std::chrono::system_clock::time_point</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -177,9 +185,25 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="ac9384de5099012f1f21281e39b5d5bbe" name="ac9384de5099012f1f21281e39b5d5bbe"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac9384de5099012f1f21281e39b5d5bbe">&#9670;&#160;</a></span>duration_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using SqlDateTime::duration_type =  std::chrono::system_clock::duration</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00017">17</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+
+</div>
+</div>
 <h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="ab956a088dcc879229d7fd41376a80d3a" name="ab956a088dcc879229d7fd41376a80d3a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab956a088dcc879229d7fd41376a80d3a">&#9670;&#160;</a></span>SqlDateTime() <span class="overload">[1/3]</span></h2>
+<a id="a8501f30e92abdc5c648e090c17d3a276" name="a8501f30e92abdc5c648e090c17d3a276"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8501f30e92abdc5c648e090c17d3a276">&#9670;&#160;</a></span>SqlDateTime() <span class="overload">[1/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -188,7 +212,7 @@ Public Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr SqlDateTime::SqlDateTime </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime::SqlDateTime </td>
           <td>(</td>
           <td class="paramtype">std::chrono::year_month_day&#160;</td>
           <td class="paramname"><em>ymd</em>, </td>
@@ -196,7 +220,7 @@ Public Attributes</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">std::chrono::hh_mm_ss&lt; std::chrono::nanoseconds &gt;&#160;</td>
+          <td class="paramtype">std::chrono::hh_mm_ss&lt; duration_type &gt;&#160;</td>
           <td class="paramname"><em>time</em>&#160;</td>
         </tr>
         <tr>
@@ -214,12 +238,12 @@ Public Attributes</h2></td></tr>
 
 <p>Constructs a date and time from individual components. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00042">42</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00043">43</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a8ba281398814e2747b672171a4e0b1e7" name="a8ba281398814e2747b672171a4e0b1e7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8ba281398814e2747b672171a4e0b1e7">&#9670;&#160;</a></span>SqlDateTime() <span class="overload">[2/3]</span></h2>
+<a id="a5d75eeeb1ab6a78c8e40f913e7f46fd9" name="a5d75eeeb1ab6a78c8e40f913e7f46fd9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5d75eeeb1ab6a78c8e40f913e7f46fd9">&#9670;&#160;</a></span>SqlDateTime() <span class="overload">[2/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -228,7 +252,7 @@ Public Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr SqlDateTime::SqlDateTime </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime::SqlDateTime </td>
           <td>(</td>
           <td class="paramtype">std::chrono::year&#160;</td>
           <td class="paramname"><em>year</em>, </td>
@@ -267,7 +291,7 @@ Public Attributes</h2></td></tr>
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">std::chrono::nanoseconds&#160;</td>
-          <td class="paramname"><em>nanosecond</em> = <code>std::chrono::nanoseconds&#160;{&#160;0&#160;}</code>&#160;</td>
+          <td class="paramname"><em>nanosecond</em> = <code>std::chrono::nanoseconds(0)</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -284,12 +308,12 @@ Public Attributes</h2></td></tr>
 
 <p>Constructs a date and time from individual components. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00055">55</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00058">58</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a1962f1f7376072739b6ce9e1de0bcb8b" name="a1962f1f7376072739b6ce9e1de0bcb8b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1962f1f7376072739b6ce9e1de0bcb8b">&#9670;&#160;</a></span>SqlDateTime() <span class="overload">[3/3]</span></h2>
+<a id="a248937ff221f05628dd0f73de36c86b8" name="a248937ff221f05628dd0f73de36c86b8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a248937ff221f05628dd0f73de36c86b8">&#9670;&#160;</a></span>SqlDateTime() <span class="overload">[3/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -298,7 +322,7 @@ Public Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr SqlDateTime::SqlDateTime </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime::SqlDateTime </td>
           <td>(</td>
           <td class="paramtype">std::chrono::system_clock::time_point&#160;</td>
           <td class="paramname"><em>value</em></td><td>)</td>
@@ -314,13 +338,13 @@ Public Attributes</h2></td></tr>
 
 <p>Constructs a date and time from a time point. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00073">73</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00079">79</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="ad3937535acfba30e1cadf179b23b2b19" name="ad3937535acfba30e1cadf179b23b2b19"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad3937535acfba30e1cadf179b23b2b19">&#9670;&#160;</a></span>Now()</h2>
+<a id="afd6225eb14a6c3d7e0ab1e36f9629282" name="afd6225eb14a6c3d7e0ab1e36f9629282"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afd6225eb14a6c3d7e0ab1e36f9629282">&#9670;&#160;</a></span>Now()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -329,7 +353,7 @@ Public Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">static <a class="el" href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a> SqlDateTime::Now </td>
+          <td class="memname">static LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a> SqlDateTime::Now </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -344,7 +368,7 @@ Public Attributes</h2></td></tr>
 
 <p>Returns the current date and time. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00019">19</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00020">20</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -372,7 +396,7 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00031">31</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00032">32</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -400,12 +424,12 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00036">36</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
-<a id="ab5c5a4a4be05bb6efe71cc70335c0c94" name="ab5c5a4a4be05bb6efe71cc70335c0c94"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab5c5a4a4be05bb6efe71cc70335c0c94">&#9670;&#160;</a></span>operator native_type()</h2>
+<a id="a7c9a92929b71825691350a9a90bd0d12" name="a7c9a92929b71825691350a9a90bd0d12"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7c9a92929b71825691350a9a90bd0d12">&#9670;&#160;</a></span>operator native_type()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -414,7 +438,7 @@ Public Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr SqlDateTime::operator native_type </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime::operator native_type </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -427,12 +451,12 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00078">78</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00084">84</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a83c5fa6ecfac492eaaa7350aaf543fe9" name="a83c5fa6ecfac492eaaa7350aaf543fe9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a83c5fa6ecfac492eaaa7350aaf543fe9">&#9670;&#160;</a></span>ConvertToSqlValue()</h2>
+<a id="a1c7ab5cae6a6c2a5ac8320b91d3a4a3f" name="a1c7ab5cae6a6c2a5ac8320b91d3a4a3f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1c7ab5cae6a6c2a5ac8320b91d3a4a3f">&#9670;&#160;</a></span>ConvertToSqlValue() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -441,7 +465,7 @@ Public Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">static SQL_TIMESTAMP_STRUCT constexpr SqlDateTime::ConvertToSqlValue </td>
+          <td class="memname">static LIGHTWEIGHT_FORCE_INLINE SQL_TIMESTAMP_STRUCT constexpr SqlDateTime::ConvertToSqlValue </td>
           <td>(</td>
           <td class="paramtype">native_type&#160;</td>
           <td class="paramname"><em>value</em></td><td>)</td>
@@ -455,7 +479,45 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00083">83</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00089">89</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ad9239f578455530a720c01b61007ac5a" name="ad9239f578455530a720c01b61007ac5a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad9239f578455530a720c01b61007ac5a">&#9670;&#160;</a></span>ConvertToSqlValue() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static LIGHTWEIGHT_FORCE_INLINE SQL_TIMESTAMP_STRUCT constexpr SqlDateTime::ConvertToSqlValue </td>
+          <td>(</td>
+          <td class="paramtype">std::chrono::year_month_day&#160;</td>
+          <td class="paramname"><em>ymd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::chrono::hh_mm_ss&lt; duration_type &gt;&#160;</td>
+          <td class="paramname"><em>hms</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00099">99</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -483,7 +545,7 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00101">101</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00116">116</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -512,7 +574,63 @@ Public Attributes</h2></td></tr>
 
 <p>Returns the current date and time. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00115">115</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00134">134</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a8cd3c4a93ef6689f430d46207673483c" name="a8cd3c4a93ef6689f430d46207673483c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8cd3c4a93ef6689f430d46207673483c">&#9670;&#160;</a></span>operator+=()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a> &amp; SqlDateTime::operator+= </td>
+          <td>(</td>
+          <td class="paramtype">duration_type&#160;</td>
+          <td class="paramname"><em>duration</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00139">139</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a14eaa695ec5562ce22557ecf33e90734" name="a14eaa695ec5562ce22557ecf33e90734"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a14eaa695ec5562ce22557ecf33e90734">&#9670;&#160;</a></span>operator-=()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a> &amp; SqlDateTime::operator-= </td>
+          <td>(</td>
+          <td class="paramtype">duration_type&#160;</td>
+          <td class="paramname"><em>duration</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00145">145</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
@@ -529,7 +647,7 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00120">120</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html#l00163">163</a> of file <a class="el" href="../../d4/d52/SqlDateTime_8hpp_source.html">SqlDateTime.hpp</a>.</p>
 
 </div>
 </div>
