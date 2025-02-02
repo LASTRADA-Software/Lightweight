@@ -13,10 +13,11 @@
 /// @see SqlDate, SqlTime
 struct LIGHTWEIGHT_API SqlDateTime
 {
-    using native_type = std::chrono::time_point<std::chrono::system_clock, std::chrono::nanoseconds>;
+    using native_type = std::chrono::system_clock::time_point;
+    using duration_type = std::chrono::system_clock::duration;
 
     /// Returns the current date and time.
-    [[nodiscard]] static SqlDateTime Now() noexcept
+    [[nodiscard]] static LIGHTWEIGHT_FORCE_INLINE SqlDateTime Now() noexcept
     {
         return SqlDateTime { std::chrono::system_clock::now() };
     }
@@ -39,54 +40,67 @@ struct LIGHTWEIGHT_API SqlDateTime
     }
 
     /// Constructs a date and time from individual components.
-    constexpr SqlDateTime(std::chrono::year_month_day ymd,
-                          std::chrono::hh_mm_ss<std::chrono::nanoseconds> time) noexcept
+    LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime(std::chrono::year_month_day ymd,
+                                                   std::chrono::hh_mm_ss<duration_type> time) noexcept:
+        sqlValue {
+            .year = (SQLSMALLINT) (int) ymd.year(),
+            .month = (SQLUSMALLINT) (unsigned) ymd.month(),
+            .day = (SQLUSMALLINT) (unsigned) ymd.day(),
+            .hour = (SQLUSMALLINT) time.hours().count(),
+            .minute = (SQLUSMALLINT) time.minutes().count(),
+            .second = (SQLUSMALLINT) time.seconds().count(),
+            .fraction = (SQLUINTEGER) (std::chrono::duration_cast<std::chrono::nanoseconds>(time.to_duration()).count() / 100) * 100,
+        }
     {
-        sqlValue.year = (SQLSMALLINT) (int) ymd.year();
-        sqlValue.month = (SQLUSMALLINT) (unsigned) ymd.month();
-        sqlValue.day = (SQLUSMALLINT) (unsigned) ymd.day();
-        sqlValue.hour = (SQLUSMALLINT) time.hours().count();
-        sqlValue.minute = (SQLUSMALLINT) time.minutes().count();
-        sqlValue.second = (SQLUSMALLINT) time.seconds().count();
-        sqlValue.fraction = (SQLUINTEGER) (time.subseconds().count() / 100) * 100;
     }
 
     /// Constructs a date and time from individual components.
-    constexpr SqlDateTime(std::chrono::year year,
-                          std::chrono::month month,
-                          std::chrono::day day,
-                          std::chrono::hours hour,
-                          std::chrono::minutes minute,
-                          std::chrono::seconds second,
-                          std::chrono::nanoseconds nanosecond = std::chrono::nanoseconds { 0 }) noexcept
+    LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime(
+        std::chrono::year year,
+        std::chrono::month month,
+        std::chrono::day day,
+        std::chrono::hours hour,
+        std::chrono::minutes minute,
+        std::chrono::seconds second,
+        std::chrono::nanoseconds nanosecond = std::chrono::nanoseconds(0)) noexcept:
+        sqlValue {
+            .year = (SQLSMALLINT) (int) year,
+            .month = (SQLUSMALLINT) (unsigned) month,
+            .day = (SQLUSMALLINT) (unsigned) day,
+            .hour = (SQLUSMALLINT) hour.count(),
+            .minute = (SQLUSMALLINT) minute.count(),
+            .second = (SQLUSMALLINT) second.count(),
+            .fraction = (SQLUINTEGER) (nanosecond.count() / 100) * 100,
+        }
     {
-        sqlValue.year = (SQLSMALLINT) (int) year;
-        sqlValue.month = (SQLUSMALLINT) (unsigned) month;
-        sqlValue.day = (SQLUSMALLINT) (unsigned) day;
-        sqlValue.hour = (SQLUSMALLINT) hour.count();
-        sqlValue.minute = (SQLUSMALLINT) minute.count();
-        sqlValue.second = (SQLUSMALLINT) second.count();
-        sqlValue.fraction = (SQLUINTEGER) (nanosecond.count() / 100) * 100;
     }
 
     /// Constructs a date and time from a time point.
-    constexpr SqlDateTime(std::chrono::system_clock::time_point value) noexcept:
-        sqlValue { SqlDateTime::ConvertToSqlValue(value) }
+    LIGHTWEIGHT_FORCE_INLINE constexpr SqlDateTime(std::chrono::system_clock::time_point value) noexcept:
+        sqlValue { ConvertToSqlValue(value) }
     {
     }
 
-    constexpr operator native_type() const noexcept
+    LIGHTWEIGHT_FORCE_INLINE constexpr operator native_type() const noexcept
     {
         return value();
     }
 
-    static SQL_TIMESTAMP_STRUCT constexpr ConvertToSqlValue(native_type value) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQL_TIMESTAMP_STRUCT constexpr ConvertToSqlValue(native_type value) noexcept
     {
         using namespace std::chrono;
         auto const totalDays = floor<days>(value);
         auto const ymd = year_month_day { totalDays };
-        auto const hms = hh_mm_ss<nanoseconds> { floor<nanoseconds>(value - totalDays) };
+        auto const hms = hh_mm_ss<duration_type> {
+            std::chrono::duration_cast<duration_type>(floor<nanoseconds>(value - totalDays)) };
+        return ConvertToSqlValue(ymd, hms);
+    }
 
+    static LIGHTWEIGHT_FORCE_INLINE SQL_TIMESTAMP_STRUCT constexpr ConvertToSqlValue(
+        std::chrono::year_month_day ymd, std::chrono::hh_mm_ss<duration_type> hms) noexcept
+    {
+        // clang-format off
+        // NB: The fraction field is in 100ns units.
         return SQL_TIMESTAMP_STRUCT {
             .year = (SQLSMALLINT) (int) ymd.year(),
             .month = (SQLUSMALLINT) (unsigned) ymd.month(),
@@ -94,20 +108,25 @@ struct LIGHTWEIGHT_API SqlDateTime
             .hour = (SQLUSMALLINT) hms.hours().count(),
             .minute = (SQLUSMALLINT) hms.minutes().count(),
             .second = (SQLUSMALLINT) hms.seconds().count(),
-            .fraction = (SQLUINTEGER) (hms.subseconds().count() / 100) * 100,
+            .fraction = (SQLUINTEGER) (((std::chrono::duration_cast<std::chrono::nanoseconds>(hms.to_duration()).count() % 1'000'000'000llu) / 100) * 100)
         };
+        // clang-format on
     }
 
     static native_type constexpr ConvertToNative(SQL_TIMESTAMP_STRUCT const& time) noexcept
     {
         // clang-format off
         using namespace std::chrono;
-        auto timepoint = sys_days(year_month_day(year(time.year), month(time.month), day(time.day)))
-                       + hours(time.hour)
-                       + minutes(time.minute)
-                       + seconds(time.second)
-                       + nanoseconds(time.fraction);
-        return timepoint;
+        auto const ymd = year_month_day { year { time.year } / month { time.month } / day { time.day } };
+        auto const hms = hh_mm_ss<duration_type> {
+            duration_cast<duration_type>(
+                hours { time.hour }
+                + minutes { time.minute }
+                + seconds { time.second }
+                + nanoseconds { time.fraction }
+            )
+        };
+        return sys_days { ymd } + hms.to_duration();
         // clang-format on
     }
 
@@ -117,7 +136,48 @@ struct LIGHTWEIGHT_API SqlDateTime
         return ConvertToNative(sqlValue);
     }
 
+    SqlDateTime& operator+=(duration_type duration) noexcept
+    {
+        *this = SqlDateTime { value() + duration };
+        return *this;
+    }
+
+    SqlDateTime& operator-=(duration_type duration) noexcept
+    {
+        *this = SqlDateTime { value() - duration };
+        return *this;
+    }
+
+    friend SqlDateTime operator+(SqlDateTime dateTime, duration_type duration) noexcept
+    {
+        auto tmp = dateTime.value() + duration;
+        return SqlDateTime(tmp);
+        //return SqlDateTime { dateTime.value() + duration };
+    }
+
+    friend SqlDateTime operator-(SqlDateTime dateTime, duration_type duration) noexcept
+    {
+        return SqlDateTime { dateTime.value() - duration };
+    }
+
     SQL_TIMESTAMP_STRUCT sqlValue {};
+};
+
+template <>
+struct std::formatter<SqlDateTime>: std::formatter<std::string>
+{
+    auto format(SqlDateTime const& value, std::format_context& ctx) const -> std::format_context::iterator
+    {
+        return std::formatter<std::string>::format(std::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:09}",
+                                                               value.sqlValue.year,
+                                                               value.sqlValue.month,
+                                                               value.sqlValue.day,
+                                                               value.sqlValue.hour,
+                                                               value.sqlValue.minute,
+                                                               value.sqlValue.second,
+                                                               value.sqlValue.fraction),
+                                                   ctx);
+    }
 };
 
 template <>
@@ -181,28 +241,6 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(SqlDateTime const& value) noexcept
     {
-        return std::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-                           value.sqlValue.year,
-                           value.sqlValue.month,
-                           value.sqlValue.day,
-                           value.sqlValue.hour,
-                           value.sqlValue.minute,
-                           value.sqlValue.second);
-    }
-};
-
-template <>
-struct std::formatter<SqlDateTime>: std::formatter<std::string>
-{
-    auto format(SqlDateTime const& value, std::format_context& ctx) const -> std::format_context::iterator
-    {
-        return std::formatter<std::string>::format(std::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}",
-                                                               value.sqlValue.year,
-                                                               value.sqlValue.month,
-                                                               value.sqlValue.day,
-                                                               value.sqlValue.hour,
-                                                               value.sqlValue.minute,
-                                                               value.sqlValue.second),
-                                                   ctx);
+        return std::format("{}", value);
     }
 };
