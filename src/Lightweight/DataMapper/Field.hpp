@@ -159,8 +159,32 @@ struct IsFieldType: std::false_type {};
 template <typename T, auto P1, auto P2>
 struct IsFieldType<Field<T, P1, P2>>: std::true_type {};
 
+template <typename ReferencedFieldType, auto F>
+struct FieldNameOfImpl;
+
+template <typename T, auto F, typename R>
+struct FieldNameOfImpl<R T::*, F>
+{
+    static constexpr std::string_view value = []() constexpr -> std::string_view {
+        if constexpr (requires { R::ColumnNameOverride; })
+        {
+            if constexpr (!R::ColumnNameOverride.empty())
+                return R::ColumnNameOverride;
+        }
+        return Reflection::GetName<F>();
+    }();
+};
+
 } // namespace detail
 // clang-format on
+
+
+/// @brief Returns the name of the field referenced by the given pointer-to-member.
+///
+/// This also supports custom column name overrides.
+template <auto ReferencedField>
+constexpr inline std::string_view FieldNameOf =
+    detail::FieldNameOfImpl<decltype(ReferencedField), ReferencedField>::value;
 
 // Requires that T satisfies to be a field with storage and is considered a primary key.
 template <typename T>

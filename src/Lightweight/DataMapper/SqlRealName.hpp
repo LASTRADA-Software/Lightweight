@@ -31,10 +31,16 @@ struct SqlRealName
 
     char value[N] {};
 
+    [[nodiscard]] constexpr bool empty() const noexcept
+    {
+        return length == 0;
+    }
+
     [[nodiscard]] constexpr char const* begin() const noexcept
     {
         return value;
     }
+
     [[nodiscard]] constexpr char const* end() const noexcept
     {
         return value + length;
