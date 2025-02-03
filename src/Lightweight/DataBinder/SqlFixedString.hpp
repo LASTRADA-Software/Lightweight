@@ -62,6 +62,13 @@ class SqlFixedString
         std::copy_n(s.data(), _size, _data);
     }
 
+    /// Constructs a fixed-size string from a string.
+    LIGHTWEIGHT_FORCE_INLINE constexpr SqlFixedString(std::basic_string<T> const& s) noexcept:
+        _size { (std::min)(N, s.size()) }
+    {
+        std::copy_n(s.data(), _size, _data);
+    }
+
     /// Constructs a fixed-size string from a string pointer and length.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlFixedString(T const* s, std::size_t len) noexcept:
         _size { (std::min)(N, len) }
