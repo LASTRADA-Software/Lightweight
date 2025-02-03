@@ -576,6 +576,25 @@ std::size_t DataMapper::Delete(Record const& record)
     return _stmt.NumRowsAffected();
 }
 
+template <typename Record>
+size_t DataMapper::Count()
+{
+    _stmt.Prepare(_connection.Query(RecordTableName<Record>).Select().Count().ToSql());
+    _stmt.Execute();
+
+    auto result = size_t {};
+    _stmt.BindOutputColumns(&result);
+    std::ignore = _stmt.FetchRow();
+    _stmt.CloseCursor();
+    return result;
+}
+
+template <typename Record>
+std::vector<Record> DataMapper::All()
+{
+    return Query<Record>(_connection.Query(RecordTableName<Record>).Select().template Fields<Record>().All());
+}
+
 template <typename Record, typename... PrimaryKeyTypes>
 std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
 {
@@ -913,7 +932,7 @@ void DataMapper::LoadRelations(Record& record)
     static_assert(!std::is_const_v<Record>);
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
-    Reflection::EnumerateMembers<Record>(record, [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
+    Reflection::EnumerateMembers(record, [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
         if constexpr (IsBelongsTo<FieldType>)
         {
             LoadBelongsTo<FieldIndex>(record, field);

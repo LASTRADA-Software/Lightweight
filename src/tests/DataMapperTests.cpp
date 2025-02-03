@@ -164,6 +164,33 @@ TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
     CHECK(!dm.QuerySingle<Person>(person.id));
 }
 
+struct UserView
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<30>> name {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "All", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<UserView>();
+    dm.CreateExplicit(UserView { .name = "John Doe" });
+    dm.CreateExplicit(UserView { .name = "Jane Doe" });
+    dm.CreateExplicit(UserView { .name = "Jim Doe" });
+    CHECK(dm.All<UserView>().size() == 3);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Count", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<UserView>();
+    CHECK(dm.Count<UserView>() == 0);
+    dm.CreateExplicit(UserView { .name = "John Doe" });
+    dm.CreateExplicit(UserView { .name = "Jane Doe" });
+    dm.CreateExplicit(UserView { .name = "Jim Doe" });
+    CHECK(dm.Count<UserView>() == 3);
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "partial row retrieval", "[DataMapper]")
 {
     auto dm = DataMapper();
