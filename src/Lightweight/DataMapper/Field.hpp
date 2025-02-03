@@ -115,8 +115,13 @@ struct Field
     bool operator==(Field const& value) const noexcept = default;
     bool operator!=(Field const& value) const noexcept = default;
 
-    bool operator==(T const& value) const noexcept;
-    bool operator!=(T const& value) const noexcept;
+    template <typename S>
+        requires std::convertible_to<S, T>
+    bool operator==(S const& value) const noexcept;
+
+    template <typename S>
+        requires std::convertible_to<S, T>
+    bool operator!=(S const& value) const noexcept;
 
     /// Returns a string representation of the value, suitable for use in debugging and logging.
     [[nodiscard]] std::string InspectValue() const;
@@ -218,13 +223,17 @@ constexpr std::weak_ordering LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::operator
 }
 
 template <detail::FieldElementType T, auto P1, auto P2>
-inline LIGHTWEIGHT_FORCE_INLINE bool Field<T, P1, P2>::operator==(T const& value) const noexcept
+template <typename S>
+    requires std::convertible_to<S, T>
+inline LIGHTWEIGHT_FORCE_INLINE bool Field<T, P1, P2>::operator==(S const& value) const noexcept
 {
     return _value == value;
 }
 
 template <detail::FieldElementType T, auto P1, auto P2>
-inline LIGHTWEIGHT_FORCE_INLINE bool Field<T, P1, P2>::operator!=(T const& value) const noexcept
+template <typename S>
+    requires std::convertible_to<S, T>
+inline LIGHTWEIGHT_FORCE_INLINE bool Field<T, P1, P2>::operator!=(S const& value) const noexcept
 {
     return _value != value;
 }

@@ -12,8 +12,11 @@
 
 #include <iostream>
 #include <ostream>
+#include <string>
+#include <string_view>
 
 using namespace std::string_view_literals;
+using namespace std::string_literals;
 
 std::ostream& operator<<(std::ostream& os, RecordId const& id)
 {
@@ -68,6 +71,38 @@ TEST_CASE_METHOD(SqlTestFixture, "SQL entity naming", "[DataMapper]")
     CHECK(FieldNameOf<&NamingTest2::pk2> == "Second_PK"sv);
 
     CHECK(RecordTableName<NamingTest2> == "NamingTest2_aliased"sv);
+}
+
+TEST_CASE("Field: int", "[DataMapper],[Field]")
+{
+    Field<int> field;
+
+    field = 42;
+    CHECK(field == 42);
+    CHECK(field.Value() == 42);
+    CHECK(field.IsModified());
+}
+
+TEST_CASE("Field: SqlAnsiString", "[DataMapper],[Field]")
+{
+    Field<SqlAnsiString<25>> field;
+
+    field = "Hello";
+    CHECK(field == "Hello");
+    CHECK(field.Value() == "Hello");
+    CHECK(field.IsModified());
+
+    field.SetModified(false);
+    field = "World"sv;
+    CHECK(field == "World"sv);
+    CHECK(field.Value() == "World"sv);
+    CHECK(field.IsModified());
+
+    field.SetModified(false);
+    field = "Hello, World"s;
+    CHECK(field == "Hello, World"s);
+    CHECK(field.Value() == "Hello, World"s);
+    CHECK(field.IsModified());
 }
 
 namespace Models
