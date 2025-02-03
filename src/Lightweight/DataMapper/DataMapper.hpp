@@ -310,7 +310,7 @@ constexpr auto ColumnNameOverride = []() consteval {
 }();
 
 template <std::size_t I, typename Record>
-consteval std::string_view FieldNameOf()
+consteval std::string_view FieldNameAt()
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
@@ -333,7 +333,7 @@ consteval std::string_view FieldNameOf()
 ///
 /// @ingroup DataMapper
 template <std::size_t I, typename Record>
-constexpr inline std::string_view FieldNameOf = detail::FieldNameOf<I, Record>();
+constexpr inline std::string_view FieldNameAt = detail::FieldNameAt<I, Record>();
 
 template <typename Record>
 std::vector<std::string> DataMapper::CreateTableString(SqlServerType serverType)
@@ -347,10 +347,10 @@ std::vector<std::string> DataMapper::CreateTableString(SqlServerType serverType)
         if constexpr (FieldWithStorage<FieldType>)
         {
             if constexpr (IsAutoIncrementPrimaryKey<FieldType>)
-                createTable.PrimaryKeyWithAutoIncrement(std::string(FieldNameOf<I, Record>),
+                createTable.PrimaryKeyWithAutoIncrement(std::string(FieldNameAt<I, Record>),
                                                         SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
             else if constexpr (FieldType::IsPrimaryKey)
-                createTable.PrimaryKey(std::string(FieldNameOf<I, Record>),
+                createTable.PrimaryKey(std::string(FieldNameAt<I, Record>),
                                        SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
             else if constexpr (IsBelongsTo<FieldType>)
             {
@@ -365,18 +365,18 @@ std::vector<std::string> DataMapper::CreateTableString(SqlServerType serverType)
                     return index;
                 }();
                 createTable.ForeignKey(
-                    std::string(FieldNameOf<I, Record>),
+                    std::string(FieldNameAt<I, Record>),
                     SqlColumnTypeDefinitionOf<typename FieldType::ValueType>,
                     SqlForeignKeyReferenceDefinition {
                         .tableName = std::string { RecordTableName<typename FieldType::ReferencedRecord> },
                         .columnName =
-                            std::string { FieldNameOf<referencedFieldIndex, typename FieldType::ReferencedRecord> } });
+                            std::string { FieldNameAt<referencedFieldIndex, typename FieldType::ReferencedRecord> } });
             }
             else if constexpr (FieldType::IsMandatory)
-                createTable.RequiredColumn(std::string(FieldNameOf<I, Record>),
+                createTable.RequiredColumn(std::string(FieldNameAt<I, Record>),
                                            SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
             else
-                createTable.Column(std::string(FieldNameOf<I, Record>),
+                createTable.Column(std::string(FieldNameAt<I, Record>),
                                    SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
         }
     });
@@ -431,7 +431,7 @@ RecordId DataMapper::CreateExplicit(Record const& record)
 
     Reflection::EnumerateMembers(record, [&query]<auto I, typename FieldType>(FieldType const& /*field*/) {
         if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
-            query.Set(FieldNameOf<I, Record>, SqlWildcard);
+            query.Set(FieldNameAt<I, Record>, SqlWildcard);
     });
 
     _stmt.Prepare(query);
@@ -473,7 +473,7 @@ RecordId DataMapper::Create(Record& record)
                 {
                     auto maxId = SqlStatement { _connection }.ExecuteDirectScalar<ValueType>(
                         std::format(R"sql(SELECT MAX("{}") FROM "{}")sql",
-                                    FieldNameOf<PrimaryKeyIndex, Record>,
+                                    FieldNameAt<PrimaryKeyIndex, Record>,
                                     RecordTableName<Record>));
                     primaryKeyField = maxId.value_or(ValueType {}) + 1;
                 }
@@ -586,10 +586,10 @@ std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
     Reflection::EnumerateMembers<Record>([&]<size_t I, typename FieldType>() {
         if constexpr (FieldWithStorage<FieldType>)
         {
-            queryBuilder.Field(FieldNameOf<I, Record>);
+            queryBuilder.Field(FieldNameAt<I, Record>);
 
             if constexpr (FieldType::IsPrimaryKey)
-                std::ignore = queryBuilder.Where(FieldNameOf<I, Record>, SqlWildcard);
+                std::ignore = queryBuilder.Where(FieldNameAt<I, Record>, SqlWildcard);
         }
     });
 
@@ -616,7 +616,7 @@ std::optional<Record> DataMapper::QuerySingle(SqlSelectQueryBuilder selectQuery,
 
     Reflection::EnumerateMembers<Record>([&]<size_t I, typename FieldType>() {
         if constexpr (FieldWithStorage<FieldType>)
-            selectQuery.Field(SqlQualifiedTableColumnName { RecordTableName<Record>, FieldNameOf<I, Record> });
+            selectQuery.Field(SqlQualifiedTableColumnName { RecordTableName<Record>, FieldNameAt<I, Record> });
     });
     _stmt.Prepare(selectQuery.First().ToSql());
     _stmt.Execute(std::forward<Args>(args)...);
@@ -764,11 +764,11 @@ void DataMapper::CallOnHasMany(Record& record, Callable const& callback)
                                      [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
                                          if constexpr (FieldWithStorage<ReferencedFieldType>)
                                          {
-                                             query.Field(FieldNameOf<ReferencedFieldIndex, ReferencedRecord>);
+                                             query.Field(FieldNameAt<ReferencedFieldIndex, ReferencedRecord>);
                                          }
                                      });
                              })
-                             .Where(FieldNameOf<FieldIndex, ReferencedRecord>, SqlWildcard);
+                             .Where(FieldNameAt<FieldIndex, ReferencedRecord>, SqlWildcard);
             callback(query, primaryKeyField);
         });
 }
@@ -812,22 +812,22 @@ void DataMapper::LoadHasOneThrough(Record& record, HasOneThrough<ReferencedRecor
                                                      {
                                                          query.Field(SqlQualifiedTableColumnName {
                                                              RecordTableName<ReferencedRecord>,
-                                                             FieldNameOf<ReferencedFieldIndex, ReferencedRecord> });
+                                                             FieldNameAt<ReferencedFieldIndex, ReferencedRecord> });
                                                      }
                                                  });
                                          })
                                          .InnerJoin(RecordTableName<ThroughRecord>,
-                                                    FieldNameOf<ThroughPrimaryKeyIndex, ThroughRecord>,
-                                                    FieldNameOf<ReferencedKeyIndex, ReferencedRecord>)
+                                                    FieldNameAt<ThroughPrimaryKeyIndex, ThroughRecord>,
+                                                    FieldNameAt<ReferencedKeyIndex, ReferencedRecord>)
                                          .InnerJoin(RecordTableName<Record>,
-                                                    FieldNameOf<PrimaryKeyIndex, Record>,
+                                                    FieldNameAt<PrimaryKeyIndex, Record>,
                                                     SqlQualifiedTableColumnName {
                                                         RecordTableName<ThroughRecord>,
-                                                        FieldNameOf<ThroughBelongsToIndex, ThroughRecord> })
+                                                        FieldNameAt<ThroughBelongsToIndex, ThroughRecord> })
                                          .Where(
                                              SqlQualifiedTableColumnName {
                                                  RecordTableName<Record>,
-                                                 FieldNameOf<PrimaryKeyIndex, ThroughRecord>,
+                                                 FieldNameAt<PrimaryKeyIndex, ThroughRecord>,
                                              },
                                              SqlWildcard);
                         if (auto link = QuerySingle<ReferencedRecord>(std::move(query), primaryKeyField.Value()); link)
@@ -874,18 +874,18 @@ void DataMapper::CallOnHasManyThrough(Record& record, Callable const& callback)
                                                     {
                                                         query.Field(SqlQualifiedTableColumnName {
                                                             RecordTableName<ReferencedRecord>,
-                                                            FieldNameOf<ReferencedFieldIndex, ReferencedRecord> });
+                                                            FieldNameAt<ReferencedFieldIndex, ReferencedRecord> });
                                                     }
                                                 });
                                         })
                                         .InnerJoin(RecordTableName<ThroughRecord>,
-                                                   FieldNameOf<ThroughBelongsToReferenceRecordIndex, ThroughRecord>,
+                                                   FieldNameAt<ThroughBelongsToReferenceRecordIndex, ThroughRecord>,
                                                    SqlQualifiedTableColumnName { RecordTableName<ReferencedRecord>,
-                                                                                 FieldNameOf<PrimaryKeyIndex, Record> })
+                                                                                 FieldNameAt<PrimaryKeyIndex, Record> })
                                         .Where(
                                             SqlQualifiedTableColumnName {
                                                 RecordTableName<ThroughRecord>,
-                                                FieldNameOf<ThroughBelongsToRecordIndex, ThroughRecord>,
+                                                FieldNameAt<ThroughBelongsToRecordIndex, ThroughRecord>,
                                             },
                                             SqlWildcard);
                                 callback(query, primaryKeyField);
