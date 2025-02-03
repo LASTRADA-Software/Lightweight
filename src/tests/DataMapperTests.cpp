@@ -250,7 +250,7 @@ TEST_CASE_METHOD(SqlTestFixture, "iterate over database", "[SqlRowIterator]")
     for (int i = 40; i <= 50; ++i)
     {
         auto person = Person {};
-        person.name = SqlAnsiString<25>(std::format("John-{}", i));
+        person.name = std::format("John-{}", i);
         person.age = i;
         dm.Create(person);
     }
@@ -259,7 +259,7 @@ TEST_CASE_METHOD(SqlTestFixture, "iterate over database", "[SqlRowIterator]")
     int age = 40;
     for (auto&& person: SqlRowIterator<Person>(stmt))
     {
-        CHECK(person.name.Value() == SqlAnsiString<25>(std::format("John-{}", age)));
+        CHECK(person.name.Value() == std::format("John-{}", age));
         CHECK(person.age.Value() == age);
         CHECK(person.id.Value());
         ++age;
@@ -746,7 +746,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: Partial retriaval of the data", "[DataM
     for (int i = 20; i <= 50; ++i)
     {
         auto person = Person {};
-        person.name = SqlAnsiString<25>(std::format("John-{}", i));
+        person.name = std::format("John-{}", i);
         person.age = i;
         dm.Create(person);
     }
@@ -757,7 +757,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: Partial retriaval of the data", "[DataM
     for (int i = 20; i <= 50; ++i)
     {
         CAPTURE(i);
-        CHECK(result[i - 20].name.Value() == SqlAnsiString<25>(std::format("John-{}", i)));
+        CHECK(result[i - 20].name.Value() == std::format("John-{}", i));
         CHECK(result[i - 20].age.Value() == i);
     }
 }
