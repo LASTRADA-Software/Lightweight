@@ -17,6 +17,7 @@ var annotated_dup =
     [ "SqlConnectionDataSource", "df/dde/structSqlConnectionDataSource.html", null ],
     [ "SqlConnectionString", "d0/d8e/structSqlConnectionString.html", null ],
     [ "SqlCreateTableQueryBuilder", "d4/d4a/classSqlCreateTableQueryBuilder.html", "d4/d4a/classSqlCreateTableQueryBuilder" ],
+    [ "SqlDataBinderCallback", "d5/d40/classSqlDataBinderCallback.html", null ],
     [ "SqlDate", "d3/d0e/structSqlDate.html", "d3/d0e/structSqlDate" ],
     [ "SqlDateTime", "da/dd7/structSqlDateTime.html", "da/dd7/structSqlDateTime" ],
     [ "SqlDeleteQueryBuilder", "d8/d88/classSqlDeleteQueryBuilder.html", null ],

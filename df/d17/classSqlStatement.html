@@ -101,8 +101,15 @@ $(document).ready(function(){initNavTree('df/d17/classSqlStatement.html','../../
  <a href="../../df/d17/classSqlStatement.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>&gt;</code></p>
-
-<p>Inherits SqlDataBinderCallback.</p>
+<div class="dynheader">
+Inheritance diagram for SqlStatement:</div>
+<div class="dyncontent">
+ <div class="center">
+  <img src="../../df/d17/classSqlStatement.png" usemap="#SqlStatement_map" alt=""/>
+  <map id="SqlStatement_map" name="SqlStatement_map">
+<area href="../../d5/d40/classSqlDataBinderCallback.html" alt="SqlDataBinderCallback" shape="rect" coords="0,0,141,24"/>
+  </map>
+</div></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -276,6 +283,19 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d3/dbc/structS
 <tr class="memitem:a7c721d7515daf03d97a157fc60bbb7c4" id="r_a7c721d7515daf03d97a157fc60bbb7c4"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt; </td></tr>
 <tr class="memitem:a7c721d7515daf03d97a157fc60bbb7c4"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d17/classSqlStatement.html#a7c721d7515daf03d97a157fc60bbb7c4">ExecuteBatch</a> (FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</td></tr>
 <tr class="separator:a7c721d7515daf03d97a157fc60bbb7c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_methods_classSqlDataBinderCallback"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classSqlDataBinderCallback')"><img src="../../closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a></td></tr>
+<tr class="memitem:a006d469e90646cbcc703005d2b52d21e inherit pub_methods_classSqlDataBinderCallback" id="r_a006d469e90646cbcc703005d2b52d21e"><td class="memItemLeft" align="right" valign="top">
+&#160;</td><td class="memItemRight" valign="bottom"><b>SqlDataBinderCallback</b> (<a class="el" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> &amp;&amp;)=default</td></tr>
+<tr class="separator:a006d469e90646cbcc703005d2b52d21e inherit pub_methods_classSqlDataBinderCallback"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a481324fd71c657148c89435a2320939b inherit pub_methods_classSqlDataBinderCallback" id="r_a481324fd71c657148c89435a2320939b"><td class="memItemLeft" align="right" valign="top">
+&#160;</td><td class="memItemRight" valign="bottom"><b>SqlDataBinderCallback</b> (<a class="el" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> const &amp;)=default</td></tr>
+<tr class="separator:a481324fd71c657148c89435a2320939b inherit pub_methods_classSqlDataBinderCallback"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6ca26c8a725055f6e104828d09de247b inherit pub_methods_classSqlDataBinderCallback" id="r_a6ca26c8a725055f6e104828d09de247b"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> &amp;&amp;)=default</td></tr>
+<tr class="separator:a6ca26c8a725055f6e104828d09de247b inherit pub_methods_classSqlDataBinderCallback"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae482471a78cef6075d27d8c132fe4aa2 inherit pub_methods_classSqlDataBinderCallback" id="r_ae482471a78cef6075d27d8c132fe4aa2"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> const &amp;)=default</td></tr>
+<tr class="separator:ae482471a78cef6075d27d8c132fe4aa2 inherit pub_methods_classSqlDataBinderCallback"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>High level API for (prepared) raw SQL statements. </p>

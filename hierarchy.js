@@ -11,6 +11,9 @@ var hierarchy =
     [ "SqlConnectionDataSource", "df/dde/structSqlConnectionDataSource.html", null ],
     [ "SqlConnectionString", "d0/d8e/structSqlConnectionString.html", null ],
     [ "SqlCreateTableQueryBuilder", "d4/d4a/classSqlCreateTableQueryBuilder.html", null ],
+    [ "SqlDataBinderCallback", "d5/d40/classSqlDataBinderCallback.html", [
+      [ "SqlStatement", "df/d17/classSqlStatement.html", null ]
+    ] ],
     [ "SqlDate", "d3/d0e/structSqlDate.html", null ],
     [ "SqlDateTime", "da/dd7/structSqlDateTime.html", null ],
     [ "SqlErrorInfo", "d3/dbc/structSqlErrorInfo.html", null ],
@@ -32,7 +35,6 @@ var hierarchy =
     [ "SqlSchema::EventHandler", "d3/df5/classSqlSchema_1_1EventHandler.html", null ],
     [ "SqlSchema::Table", "d0/d20/structSqlSchema_1_1Table.html", null ],
     [ "SqlScopedTraceLogger", "d5/d21/classSqlScopedTraceLogger.html", null ],
-    [ "SqlStatement", "df/d17/classSqlStatement.html", null ],
     [ "SqlTime", "d5/d6d/structSqlTime.html", null ],
     [ "SqlTransaction", "d1/dc2/classSqlTransaction.html", null ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html", null ],
