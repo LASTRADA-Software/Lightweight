@@ -16,11 +16,11 @@
 #include <sqlext.h>
 #include <sqltypes.h>
 
-// Callback interface for SqlDataBinder to allow post-processing of output columns.
-//
-// This is needed because the SQLBindCol() function does not allow to specify a callback function to be called
-// after the data has been fetched from the database. This is needed to trim strings to the correct size, for
-// example.
+/// Callback interface for SqlDataBinder to allow post-processing of output columns.
+///
+/// This is needed because the SQLBindCol() function does not allow to specify a callback function to be called
+/// after the data has been fetched from the database. This is needed to trim strings to the correct size, for
+/// example.
 class LIGHTWEIGHT_API SqlDataBinderCallback
 {
   public:
