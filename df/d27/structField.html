@@ -143,10 +143,16 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator==</b> (<a cl
 <tr class="memitem:adaa7a1ba455edbca28c7ee3b3cb0f455" id="r_adaa7a1ba455edbca28c7ee3b3cb0f455"><td class="memItemLeft" align="right" valign="top"><a id="adaa7a1ba455edbca28c7ee3b3cb0f455" name="adaa7a1ba455edbca28c7ee3b3cb0f455"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator!=</b> (<a class="el" href="../../df/d27/structField.html">Field</a> const &amp;value) const noexcept=default</td></tr>
 <tr class="separator:adaa7a1ba455edbca28c7ee3b3cb0f455"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0c6e1831703aa0ee913ea859406c12f3" id="r_a0c6e1831703aa0ee913ea859406c12f3"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d27/structField.html#a0c6e1831703aa0ee913ea859406c12f3">operator==</a> (T const &amp;value) const noexcept</td></tr>
-<tr class="separator:a0c6e1831703aa0ee913ea859406c12f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad85ff5cc7e33daf685c9a32fc5f50493" id="r_ad85ff5cc7e33daf685c9a32fc5f50493"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d27/structField.html#ad85ff5cc7e33daf685c9a32fc5f50493">operator!=</a> (T const &amp;value) const noexcept</td></tr>
-<tr class="separator:ad85ff5cc7e33daf685c9a32fc5f50493"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3839297b89fcd782d351bf3946a7cf19" id="r_a3839297b89fcd782d351bf3946a7cf19"><td class="memTemplParams" colspan="2"><a id="a3839297b89fcd782d351bf3946a7cf19" name="a3839297b89fcd782d351bf3946a7cf19"></a>
+template&lt;typename S &gt; <br />
+requires std::convertible_to&lt;S, T&gt;</td></tr>
+<tr class="memitem:a3839297b89fcd782d351bf3946a7cf19"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><b>operator==</b> (S const &amp;value) const noexcept</td></tr>
+<tr class="separator:a3839297b89fcd782d351bf3946a7cf19"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3118ebf07af2b1260b9857f4464bca2d" id="r_a3118ebf07af2b1260b9857f4464bca2d"><td class="memTemplParams" colspan="2"><a id="a3118ebf07af2b1260b9857f4464bca2d" name="a3118ebf07af2b1260b9857f4464bca2d"></a>
+template&lt;typename S &gt; <br />
+requires std::convertible_to&lt;S, T&gt;</td></tr>
+<tr class="memitem:a3118ebf07af2b1260b9857f4464bca2d"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><b>operator!=</b> (S const &amp;value) const noexcept</td></tr>
+<tr class="separator:a3118ebf07af2b1260b9857f4464bca2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a09d24464919b54e0109a8340129a1d4e" id="r_a09d24464919b54e0109a8340129a1d4e"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d27/structField.html#a09d24464919b54e0109a8340129a1d4e">InspectValue</a> () const</td></tr>
 <tr class="memdesc:a09d24464919b54e0109a8340129a1d4e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a string representation of the value, suitable for use in debugging and logging.  <br /></td></tr>
 <tr class="separator:a09d24464919b54e0109a8340129a1d4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -169,6 +175,14 @@ requires std::constructible_from&lt;T, S...&gt;</td></tr>
 requires std::constructible_from&lt;T, S&gt;</td></tr>
 <tr class="memitem:a54576e159ba047015b1e250fa6d87c21"><td class="memTemplItemLeft" align="right" valign="top">constexpr LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, P1, P2 &gt; &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d27/structField.html#a54576e159ba047015b1e250fa6d87c21">operator=</a> (S &amp;&amp;value) noexcept</td></tr>
 <tr class="separator:a54576e159ba047015b1e250fa6d87c21"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9c7270abb93e17938da0e28fa837cdec" id="r_a9c7270abb93e17938da0e28fa837cdec"><td class="memTemplParams" colspan="2">template&lt;typename S &gt; <br />
+requires std::convertible_to&lt;S, T&gt;</td></tr>
+<tr class="memitem:a9c7270abb93e17938da0e28fa837cdec"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d27/structField.html#a9c7270abb93e17938da0e28fa837cdec">operator==</a> (S const &amp;value) const noexcept</td></tr>
+<tr class="separator:a9c7270abb93e17938da0e28fa837cdec"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1aa8c4e6da574be2693e5968f60dc819" id="r_a1aa8c4e6da574be2693e5968f60dc819"><td class="memTemplParams" colspan="2">template&lt;typename S &gt; <br />
+requires std::convertible_to&lt;S, T&gt;</td></tr>
+<tr class="memitem:a1aa8c4e6da574be2693e5968f60dc819"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d27/structField.html#a1aa8c4e6da574be2693e5968f60dc819">operator!=</a> (S const &amp;value) const noexcept</td></tr>
+<tr class="separator:a1aa8c4e6da574be2693e5968f60dc819"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
@@ -244,7 +258,7 @@ requires std::constructible_from&lt;T, S...&gt;</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00199">199</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00204">204</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -275,67 +289,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00215">215</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a0c6e1831703aa0ee913ea859406c12f3" name="a0c6e1831703aa0ee913ea859406c12f3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0c6e1831703aa0ee913ea859406c12f3">&#9670;&#160;</a></span>operator==()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE bool <a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, P1, P2 &gt;::operator== </td>
-          <td>(</td>
-          <td class="paramtype">T const &amp;&#160;</td>
-          <td class="paramname"><em>value</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00221">221</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ad85ff5cc7e33daf685c9a32fc5f50493" name="ad85ff5cc7e33daf685c9a32fc5f50493"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad85ff5cc7e33daf685c9a32fc5f50493">&#9670;&#160;</a></span>operator!=()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE bool <a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, P1, P2 &gt;::operator!= </td>
-          <td>(</td>
-          <td class="paramtype">T const &amp;&#160;</td>
-          <td class="paramname"><em>value</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00227">227</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00220">220</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -366,7 +320,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Returns a string representation of the value, suitable for use in debugging and logging. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00233">233</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00242">242</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -398,7 +352,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Sets the modified state of the field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00267">267</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00276">276</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -429,7 +383,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Checks if the field has been modified. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00273">273</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00282">282</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -460,7 +414,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Returns the value of the field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00279">279</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00288">288</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -491,7 +445,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 <p>Returns a mutable reference to the value of the field.</p>
 <dl class="section note"><dt>Note</dt><dd>If the field value is changed through this method, it will not be automatically marked as modified. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00285">285</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00294">294</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -524,7 +478,73 @@ requires std::constructible_from&lt;T, S&gt;</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00207">207</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00212">212</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a9c7270abb93e17938da0e28fa837cdec" name="a9c7270abb93e17938da0e28fa837cdec"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9c7270abb93e17938da0e28fa837cdec">&#9670;&#160;</a></span>operator==()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::nullopt&gt; </div>
+<div class="memtemplate">
+template&lt;typename S &gt; <br />
+requires std::convertible_to&lt;S, T&gt;</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE bool <a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, P1, P2 &gt;::operator== </td>
+          <td>(</td>
+          <td class="paramtype">S const &amp;&#160;</td>
+          <td class="paramname"><em>value</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00228">228</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a1aa8c4e6da574be2693e5968f60dc819" name="a1aa8c4e6da574be2693e5968f60dc819"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1aa8c4e6da574be2693e5968f60dc819">&#9670;&#160;</a></span>operator!=()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::nullopt&gt; </div>
+<div class="memtemplate">
+template&lt;typename S &gt; <br />
+requires std::convertible_to&lt;S, T&gt;</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE bool <a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, P1, P2 &gt;::operator!= </td>
+          <td>(</td>
+          <td class="paramtype">S const &amp;&#160;</td>
+          <td class="paramname"><em>value</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00236">236</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>

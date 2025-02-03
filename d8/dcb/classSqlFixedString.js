@@ -2,6 +2,7 @@ var classSqlFixedString =
 [
     [ "SqlFixedString", "d8/dcb/classSqlFixedString.html#a87bf4d9a01b8fb806dfa3ca49009aa03", null ],
     [ "SqlFixedString", "d8/dcb/classSqlFixedString.html#ac9db4689bbf39b3b4bdb569cef799fa6", null ],
+    [ "SqlFixedString", "d8/dcb/classSqlFixedString.html#acccb510cde46357c0b75778fa49581a2", null ],
     [ "SqlFixedString", "d8/dcb/classSqlFixedString.html#af7b17d6f55051ab12472a43851b1d93a", null ],
     [ "SqlFixedString", "d8/dcb/classSqlFixedString.html#abccdd325fca8451032bb7c080ec8a2c9", null ],
     [ "empty", "d8/dcb/classSqlFixedString.html#a5d554a3f55a4eb8f846fe652022f93d9", null ],
