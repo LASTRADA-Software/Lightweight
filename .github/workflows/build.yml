@@ -70,8 +70,8 @@ jobs:
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 20
-        sudo apt -qy install clang-tidy
+        sudo ./llvm.sh 19
+        sudo apt -qy install clang-tidy-19
     - name: "install dependencies"
       run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev
     - name: Install GCC
@@ -84,7 +84,7 @@ jobs:
       run: cmake --build build
     - name: "run clang-tidy"
       # TODO: Reenable Model directory once design is working with Clang/Clang-Tidy
-      run: find ./src/ -name "*.cpp" -o -name "*.h" | grep -v Model | xargs -n 1 -P $(nproc) clang-tidy -format-style=file -p build
+      run: find ./src/ -name "*.cpp" -o -name "*.h" | grep -v Model | xargs -n 1 -P $(nproc) clang-tidy-19 -format-style=file -p build
 
   # }}}
   # {{{ Windows
