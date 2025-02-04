@@ -362,7 +362,7 @@ int main(int argc, char const* argv[])
         std::println("{}", printer.str(config.modelNamespace));
     else
     {
-        auto file = std::ofstream(config.outputFileName.data());
+        auto file = std::ofstream(config.outputFileName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage)
         file << printer.str(config.modelNamespace);
     }
 

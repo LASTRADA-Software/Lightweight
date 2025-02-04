@@ -68,6 +68,8 @@ SqlConnection& SqlConnection::operator=(SqlConnection&& other) noexcept
     m_hEnv = other.m_hEnv;
     m_hDbc = other.m_hDbc;
     m_connectionId = other.m_connectionId;
+    m_serverType = other.m_serverType;
+    m_queryFormatter = other.m_queryFormatter;
     m_data = other.m_data;
 
     other.m_hEnv = {};
@@ -302,9 +304,9 @@ bool SqlConnection::IsAlive() const noexcept
     return SQL_SUCCEEDED(sqlResult) && state == SQL_CD_FALSE;
 }
 
-void SqlConnection::RequireSuccess(SQLRETURN error, std::source_location sourceLocation) const
+void SqlConnection::RequireSuccess(SQLRETURN sqlResult, std::source_location sourceLocation) const
 {
-    if (SQL_SUCCEEDED(error))
+    if (SQL_SUCCEEDED(sqlResult))
         return;
 
     auto errorInfo = LastError();

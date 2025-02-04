@@ -18,6 +18,8 @@
 using namespace std::string_view_literals;
 using namespace std::string_literals;
 
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
+
 std::ostream& operator<<(std::ostream& os, RecordId const& id)
 {
     return os << id.value;
@@ -973,3 +975,5 @@ TEST_CASE_METHOD(SqlTestFixture, "Test DifferenceView", "[DataMapper]")
     // 3 because of the auto-assigned GUID on top of name and age
     CHECK(differenceCount == 3);
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

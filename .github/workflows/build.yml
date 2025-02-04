@@ -72,19 +72,18 @@ jobs:
         chmod +x llvm.sh
         sudo ./llvm.sh 19
         sudo apt -qy install clang-tidy-19
+        which clang-tidy-19
     - name: "install dependencies"
-      run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev
-    - name: Install GCC
-      run: sudo apt install -y g++-14
+      run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev gcc-14
     - name: "cmake"
       run: |
-        cmake -S . -B build -G Ninja \
-        -D CMAKE_CXX_COMPILER="g++-14"
-    - name: "build"
-      run: cmake --build build
-    - name: "run clang-tidy"
-      # TODO: Reenable Model directory once design is working with Clang/Clang-Tidy
-      run: find ./src/ -name "*.cpp" -o -name "*.h" | grep -v Model | xargs -n 1 -P $(nproc) clang-tidy-19 -format-style=file -p build
+        cmake --preset linux-clang-debug \
+              -D ENABLE_TIDY=ON \
+              -D CMAKE_CXX_COMPILER=clang++-19 \
+              -D CMAKE_C_COMPILER=clang-19 \
+              -D CLANG_TIDY_EXE="/usr/bin/clang-tidy-19"
+    - name: "build with clang-tidy"
+      run: cmake --build --preset linux-clang-debug
 
   # }}}
   # {{{ Windows
