@@ -1,7 +1,5 @@
 #! /usr/bin/env bash
 
-set -x
-
 LS_EXE="$(which ls)"
 PROJECT_ROOT="$(realpath $(dirname "$0")/../..)"
 BUILD_DIR="${1:-${PROJECT_ROOT}/out/build/linux-clang-debug}"
@@ -26,8 +24,7 @@ run_test() {
 
     # check in the file for any additional commands to the ddl2cpp tool
     # commands starts with --
-    # example: -- --use-aliases
-    local ddl2cpp_args=$(grep -o -P -- '--\s+.*' ./src/tools/tests/$1.sql | sed 's/--//g')
+    ddl2cpp_args=$(grep -E '^--' ./src/tools/tests/$1.sql | cut -c 3- )
 
     sqlite3 "${SQLITE_TESTDB_FILE}" < ./src/tools/tests/$1.sql
     ${DDL2CPP} --connection-string "${ODBC_CONNECTION_STRING}" --output "${actual_result_file}" $ddl2cpp_args  1> /dev/null

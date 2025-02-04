@@ -92,7 +92,7 @@ class CxxModelPrinter
 
     struct Config
     {
-        bool useAliases = false;
+        bool makeAliases = false;
     } _config;
 
   public:
@@ -136,7 +136,7 @@ class CxxModelPrinter
         }
 
         auto aliasName = [&](std::string_view name) {
-            if (_config.useAliases)
+            if (_config.makeAliases)
             {
                 return std::format(", SqlRealName{{\"{}\"}}", name);
             }
@@ -144,7 +144,7 @@ class CxxModelPrinter
         };
 
         auto aliasTableName = [&](std::string_view name) {
-            if (_config.useAliases)
+            if (_config.makeAliases)
             {
                 return std::format("{}", [](std::string name) {
                     std::ranges::transform(name, name.begin(), [](unsigned char c) { return std::tolower(c); });
@@ -155,7 +155,7 @@ class CxxModelPrinter
         };
 
         auto aliasRealTableName = [&](std::string_view name) {
-            if (_config.useAliases)
+            if (_config.makeAliases)
             {
                 return std::format("    static constexpr std::string_view TableName = \"{}\"sv;\n", name);
             }
@@ -292,7 +292,7 @@ struct Configuration
     std::string_view modelNamespace;
     std::string_view outputFileName;
     bool createTestTables = false;
-    bool useAliases = false;
+    bool makeAliases = false;
 };
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -343,7 +343,7 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
         }
         else if (argv[i] == "--make-aliases"sv)
         {
-            config.useAliases = true;
+            config.makeAliases = true;
         }
         else if (argv[i] == "--help"sv || argv[i] == "-h"sv)
         {
@@ -395,7 +395,7 @@ int main(int argc, char const* argv[])
 
     std::vector<SqlSchema::Table> tables = SqlSchema::ReadAllTables(config.database, config.schema);
     CxxModelPrinter printer;
-    printer.Config().useAliases = config.useAliases;
+    printer.Config().makeAliases = config.makeAliases;
 
     for (auto const& table: tables)
     {
