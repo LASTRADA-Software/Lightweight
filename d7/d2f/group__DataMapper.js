@@ -38,6 +38,7 @@ var group__DataMapper =
       [ "QuerySingleBy", "dc/dc7/classDataMapper.html#a4087831801de0daa9add83cb4e0d7e78", null ],
       [ "Query", "dc/dc7/classDataMapper.html#a06b74e30cf38c79b44615e2fc31f7563", null ],
       [ "Query", "dc/dc7/classDataMapper.html#a87ab15ea0d93368898de6fa084b68c14", null ],
+      [ "Query", "dc/dc7/classDataMapper.html#a68a1d1cb3e017bae2ac784a6ed816136", null ],
       [ "IsModified", "dc/dc7/classDataMapper.html#a0cfde49ef08f08db4ae20518e30a6a0a", null ],
       [ "Update", "dc/dc7/classDataMapper.html#acb83d80931e5cd6259290bc795e362f7", null ],
       [ "Delete", "dc/dc7/classDataMapper.html#acfcb03b2a7b0534cfd27287b93e7b907", null ],
