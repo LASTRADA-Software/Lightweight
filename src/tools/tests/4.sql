@@ -1,4 +1,4 @@
--- --use-aliases
+-- --make-aliases
 CREATE TABLE IF NOT EXISTS User (
     PK              INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     NAME            VARCHAR(128) NOT NULL,

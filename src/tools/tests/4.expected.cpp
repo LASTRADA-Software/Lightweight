@@ -1,29 +1,31 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 #include <Lightweight/DataMapper/DataMapper.hpp>
-#include <Lightweight/SqlConnection.hpp>
 
-struct TaskList;
-struct TaskListEntry;
-struct User;
+struct tasklist;
+struct tasklistentry;
+struct user;
 
-struct User final
+struct user final
 {
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"PK"}> PK;
-    Field<SqlAnsiString<128>, SqlRealName{"NAME"}> NAME;
-    Field<SqlAnsiString<60>, SqlRealName{"MAIL"}> MAIL;
+    static constexpr std::string_view TableName = "User"sv;
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "PK" }> PK;
+    Field<SqlAnsiString<128>, SqlRealName { "NAME" }> NAME;
+    Field<SqlAnsiString<60>, SqlRealName { "MAIL" }> MAIL;
 };
 
-struct TaskList final
+struct tasklist final
 {
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"PK"}> PK;
-    BelongsTo<&User::id> user;
+    static constexpr std::string_view TableName = "TaskList"sv;
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "PK" }> PK;
+    BelongsTo<&User::PK> user;
 };
 
-struct TaskListEntry final
+struct tasklistentry final
 {
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"PK"}> PK;
-    Field<std::optional<SqlDateTime>, SqlRealName{"TIME"}> TIME;
-    Field<SqlAnsiString<255>, SqlRealName{"INFO"}> INFO;
-    BelongsTo<&TaskList::id> taskList;
+    static constexpr std::string_view TableName = "TaskListEntry"sv;
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "PK" }> PK;
+    Field<std::optional<SqlDateTime>, SqlRealName { "TIME" }> TIME;
+    Field<SqlAnsiString<255>, SqlRealName { "INFO" }> INFO;
+    BelongsTo<&TaskList::PK> taskList;
 };
