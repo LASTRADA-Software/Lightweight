@@ -269,16 +269,16 @@ class DataMapper
     void SetId(Record& record, ValueType&& id);
 
     template <typename Record>
-    void BindOutputColumns(Record& record);
+    Record& BindOutputColumns(Record& record);
 
     template <typename Record>
-    void BindOutputColumns(Record& record, SqlStatement* stmt);
+    Record& BindOutputColumns(Record& record, SqlStatement* stmt);
 
     template <typename ElementMask, typename Record>
-    void BindOutputColumns(Record& record);
+    Record& BindOutputColumns(Record& record);
 
     template <typename ElementMask, typename Record>
-    void BindOutputColumns(Record& record, SqlStatement* stmt);
+    Record& BindOutputColumns(Record& record, SqlStatement* stmt);
 
     template <size_t FieldIndex, auto ReferencedRecordField, typename Record>
     void LoadBelongsTo(Record& record, BelongsTo<ReferencedRecordField>& field);
@@ -739,16 +739,9 @@ std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const
 
     auto result = std::vector<Record> {};
 
-    auto& record = result.emplace_back();
-    BindOutputColumns<ElementMask>(record);
-    ConfigureRelationAutoLoading(record);
-
+    ConfigureRelationAutoLoading(BindOutputColumns<ElementMask>(result.emplace_back()));
     while (_stmt.FetchRow())
-    {
-        auto& record = result.emplace_back();
-        BindOutputColumns<ElementMask>(record);
-        ConfigureRelationAutoLoading(record);
-    }
+        ConfigureRelationAutoLoading(BindOutputColumns<ElementMask>(result.emplace_back()));
 
     return result;
 }
@@ -1050,27 +1043,28 @@ inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::SetId(Record& record, ValueType
 }
 
 template <typename Record>
-inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::BindOutputColumns(Record& record)
+inline LIGHTWEIGHT_FORCE_INLINE Record& DataMapper::BindOutputColumns(Record& record)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     BindOutputColumns(record, &_stmt);
+    return record;
 }
 
 template <typename Record>
-void DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
+Record& DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
 {
-    BindOutputColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>>(record, stmt);
+    return BindOutputColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>>(record, stmt);
 }
 
 template <typename ElementMask, typename Record>
-inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::BindOutputColumns(Record& record)
+inline LIGHTWEIGHT_FORCE_INLINE Record& DataMapper::BindOutputColumns(Record& record)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-    BindOutputColumns<ElementMask>(record, &_stmt);
+    return BindOutputColumns<ElementMask>(record, &_stmt);
 }
 
 template <typename ElementMask, typename Record>
-void DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
+Record& DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     static_assert(!std::is_const_v<Record>);
@@ -1087,6 +1081,8 @@ void DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
                 stmt->BindOutputColumn(i++, &field);
             }
         });
+
+    return record;
 }
 
 template <typename Record>
