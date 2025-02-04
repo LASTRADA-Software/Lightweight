@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <exception>
 
 #include <sql.h>
 #include <sqlext.h>
@@ -246,11 +247,32 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
             column.dialectDependantTypeString = columnStmt.GetColumn<std::string>(6);
             column.size = columnStmt.GetColumn<int>(7);
             // 8 - bufferLength
-            column.decimalDigits = columnStmt.GetColumn<uint16_t>(9);
+            try
+            {
+                column.decimalDigits = columnStmt.GetColumn<uint16_t>(9);
+            }
+            catch (std::exception&)
+            {
+                column.decimalDigits = static_cast<uint16_t>(column.size);
+            }
             // 10 - NUM_PREC_RADIX
-            column.isNullable = columnStmt.GetColumn<bool>(11);
+            try
+            {
+                column.isNullable = columnStmt.GetColumn<bool>(11);
+            }
+            catch (std::exception&)
+            {
+                column.isNullable = true;
+            }
             // 12 - remarks
-            column.defaultValue = columnStmt.GetColumn<std::string>(13);
+            try
+            {
+                column.defaultValue = columnStmt.GetColumn<std::string>(13);
+            }
+            catch (std::exception&)
+            {
+                column.defaultValue = {};
+            }
 
             column.type = FromNativeDataType(type, column.size, column.decimalDigits);
 
