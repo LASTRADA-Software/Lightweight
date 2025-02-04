@@ -250,7 +250,7 @@ TEST_CASE_METHOD(SqlTestFixture, "iterate over database", "[SqlRowIterator]")
     for (int i = 40; i <= 50; ++i)
     {
         auto person = Person {};
-        person.name = "John";
+        person.name = std::format("John-{}", i);
         person.age = i;
         dm.Create(person);
     }
@@ -259,7 +259,7 @@ TEST_CASE_METHOD(SqlTestFixture, "iterate over database", "[SqlRowIterator]")
     int age = 40;
     for (auto&& person: SqlRowIterator<Person>(stmt))
     {
-        CHECK(person.name.Value() == "John");
+        CHECK(person.name.Value() == std::format("John-{}", age));
         CHECK(person.age.Value() == age);
         CHECK(person.id.Value());
         ++age;
@@ -735,6 +735,31 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: SELECT into simple struct", "[DataMappe
     CHECK(record.c2FromA == "b");
     CHECK(record.c1FromB == "a");
     CHECK(record.c2FromB == "c");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Query: Partial retriaval of the data", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    dm.CreateTable<Person>();
+
+    for (int i = 20; i <= 50; ++i)
+    {
+        auto person = Person {};
+        person.name = std::format("John-{}", i);
+        person.age = i;
+        dm.Create(person);
+    }
+
+    auto result = dm.Query<SqlElements<1, 3>, Person>(
+        dm.FromTable(RecordTableName<Person>).Select().Fields({ "name"sv, "age"sv }).All());
+
+    for (int i = 20; i <= 50; ++i)
+    {
+        CAPTURE(i);
+        CHECK(result[i - 20].name.Value() == std::format("John-{}", i));
+        CHECK(result[i - 20].age.Value() == i);
+    }
 }
 
 struct SimpleStruct2

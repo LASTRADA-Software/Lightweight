@@ -18,6 +18,7 @@
 #include <cassert>
 #include <concepts>
 #include <type_traits>
+#include <utility>
 
 /// @defgroup DataMapper Data Mapper
 ///
@@ -45,6 +46,10 @@ constexpr size_t RecordStorageFieldCount =
 
 template <typename Record>
 concept RecordWithStorageFields = (RecordStorageFieldCount<Record> > 0);
+
+/// @brief Represents a sequence of indexes that can be used alongside Query() to retrieve only part of the record.
+template <size_t... Ints>
+using SqlElements = std::integer_sequence<size_t, Ints...>;
 
 namespace detail
 {
@@ -179,6 +184,34 @@ class DataMapper
     template <typename Record, typename... InputParameters>
     std::vector<Record> Query(std::string_view sqlQueryString, InputParameters&&... inputParameters);
 
+    /// Queries records from the database, based on the given query and can be used to retrieve only part of the record
+    /// by specifying the ElementMask.
+    ///
+    /// example:
+    /// @code
+    ///
+    /// struct Person
+    /// {
+    ///    int id;
+    ///    std::string name;
+    ///    std::string email;
+    ///    std::string phone;
+    ///    std::string address;
+    ///    std::string city;
+    ///    std::string country;
+    /// };
+    ///
+    /// auto infos = dm.Query<SqlElements<1,5>(RecordTableName<Person>.Fields({"name"sv, "city"sv}));
+    ///
+    /// for(auto const& info : infos)
+    /// {
+    ///    // only info.name and info.city are loaded
+    /// }
+    /// @endcode
+    template <typename ElementMask, typename Record, typename... InputParameters>
+    std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
+                              InputParameters&&... inputParameters);
+
     /// Checks if the record has any modified fields.
     template <typename Record>
     bool IsModified(Record const& record) const noexcept;
@@ -239,6 +272,12 @@ class DataMapper
     void BindOutputColumns(Record& record);
 
     template <typename Record>
+    void BindOutputColumns(Record& record, SqlStatement* stmt);
+
+    template <typename ElementMask, typename Record>
+    void BindOutputColumns(Record& record);
+
+    template <typename ElementMask, typename Record>
     void BindOutputColumns(Record& record, SqlStatement* stmt);
 
     template <size_t FieldIndex, auto ReferencedRecordField, typename Record>
@@ -689,6 +728,31 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
     return result;
 }
 
+template <typename ElementMask, typename Record, typename... InputParameters>
+std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
+                                      InputParameters&&... inputParameters)
+{
+    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+
+    _stmt.Prepare(selectQuery.ToSql());
+    _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
+
+    auto result = std::vector<Record> {};
+
+    auto& record = result.emplace_back();
+    BindOutputColumns<ElementMask>(record);
+    ConfigureRelationAutoLoading(record);
+
+    while (_stmt.FetchRow())
+    {
+        auto& record = result.emplace_back();
+        BindOutputColumns<ElementMask>(record);
+        ConfigureRelationAutoLoading(record);
+    }
+
+    return result;
+}
+
 template <typename Record>
 void DataMapper::ClearModifiedState(Record& record) noexcept
 {
@@ -995,20 +1059,34 @@ inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::BindOutputColumns(Record& recor
 template <typename Record>
 void DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
 {
+    BindOutputColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>>(record, stmt);
+}
+
+template <typename ElementMask, typename Record>
+inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::BindOutputColumns(Record& record)
+{
+    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+    BindOutputColumns<ElementMask>(record, &_stmt);
+}
+
+template <typename ElementMask, typename Record>
+void DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
+{
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     static_assert(!std::is_const_v<Record>);
     assert(stmt != nullptr);
 
-    Reflection::EnumerateMembers(record, [stmt, i = SQLSMALLINT { 1 }]<size_t I, typename Field>(Field& field) mutable {
-        if constexpr (IsField<Field>)
-        {
-            stmt->BindOutputColumn(i++, &field.MutableValue());
-        }
-        else if constexpr (SqlOutputColumnBinder<Field>)
-        {
-            stmt->BindOutputColumn(i++, &field);
-        }
-    });
+    Reflection::EnumerateMembers<ElementMask>(
+        record, [stmt, i = SQLSMALLINT { 1 }]<size_t I, typename Field>(Field& field) mutable {
+            if constexpr (IsField<Field>)
+            {
+                stmt->BindOutputColumn(i++, &field.MutableValue());
+            }
+            else if constexpr (SqlOutputColumnBinder<Field>)
+            {
+                stmt->BindOutputColumn(i++, &field);
+            }
+        });
 }
 
 template <typename Record>
