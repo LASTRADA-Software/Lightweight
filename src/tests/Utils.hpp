@@ -330,11 +330,17 @@ class SqlTestFixture
     {
         if (odbcTrace)
         {
+            auto const traceFile = []() -> std::string_view {
 #if !defined(_WIN32) && !defined(_WIN64)
-            SQLHDBC handle = connection.NativeHandle();
-            SQLSetConnectAttrA(handle, SQL_ATTR_TRACEFILE, (SQLPOINTER) "/dev/stdout", SQL_NTS);
-            SQLSetConnectAttrA(handle, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_ON, SQL_IS_UINTEGER);
+                return "/dev/stdout";
+#else
+                return "CONOUT$";
 #endif
+            }();
+
+            SQLHDBC handle = connection.NativeHandle();
+            SQLSetConnectAttrA(handle, SQL_ATTR_TRACEFILE, (SQLPOINTER) traceFile.data(), SQL_NTS);
+            SQLSetConnectAttrA(handle, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_ON, SQL_IS_UINTEGER);
         }
 
         switch (connection.ServerType())
