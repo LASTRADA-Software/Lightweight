@@ -270,10 +270,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsWithBelongsTo", "[SqlQue
             return q.FromTable("QueryBuilderTestEmail").Select().Fields<QueryBuilderTestEmail>().First();
         },
         QueryExpectations {
-            .sqlite = R"(SELECT "email", "user" FROM "QueryBuilderTestEmail" LIMIT 1)",
-            .postgres = R"(SELECT "email", "user" FROM "QueryBuilderTestEmail" LIMIT 1)",
-            .sqlServer = R"(SELECT TOP 1 "email", "user" FROM "QueryBuilderTestEmail")",
-            .oracle = R"(SELECT "email", "user" FROM "QueryBuilderTestEmail" FETCH FIRST 1 ROWS ONLY)",
+            .sqlite = R"(SELECT "email", "user_id" FROM "QueryBuilderTestEmail" LIMIT 1)",
+            .postgres = R"(SELECT "email", "user_id" FROM "QueryBuilderTestEmail" LIMIT 1)",
+            .sqlServer = R"(SELECT TOP 1 "email", "user_id" FROM "QueryBuilderTestEmail")",
+            .oracle = R"(SELECT "email", "user_id" FROM "QueryBuilderTestEmail" FETCH FIRST 1 ROWS ONLY)",
         });
 
 }

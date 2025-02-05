@@ -992,6 +992,13 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with aliased column names", "[DataMapper
                                     CONSTRAINT FK_record_id FOREIGN KEY ("record_id") REFERENCES "TheAliasedRecord"("pk")
                                     );)"));
     }
+
+    SECTION("All")
+    {
+        auto records = dm.All<AliasedRecord>();
+        CHECK(records.size() == 1);
+        CHECK(records.at(0) == record);
+    }
 }
 
 struct PersonDifferenceView
