@@ -95,7 +95,7 @@ bool parseCommandLineArguments(
                     }
                     else
                     {
-                        fail(std::format("Unsupported field type: {}", Reflection::TypeName<decltype(field)>));
+                        fail(std::format("Unsupported field type: {}", Reflection::TypeNameOf<decltype(field)>));
                     }
                 }
             });
