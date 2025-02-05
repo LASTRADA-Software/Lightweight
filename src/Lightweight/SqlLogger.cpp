@@ -88,6 +88,8 @@ class SqlStandardLogger: public SqlLogger
 #endif
     }
 
+    void OnScopedTimerStart(std::string const& /*tag*/) override {}
+    void OnScopedTimerStop(std::string const& /*tag*/) override {}
     void OnConnectionOpened(SqlConnection const& /*connection*/) override {}
     void OnConnectionClosed(SqlConnection const& /*connection*/) override {}
     void OnConnectionIdle(SqlConnection const& /*connection*/) override {}
@@ -121,6 +123,8 @@ class SqlTraceLogger: public SqlStandardLogger
     std::vector<std::pair<std::string_view, std::string>> _binds;
     size_t _fetchRowCount {};
 
+    std::unordered_map<std::string /*tag*/, std::chrono::steady_clock::time_point /*startTime*/> _scopedTimers;
+
   public:
     SqlTraceLogger(SupportBindLogging supportBindLogging = SupportBindLogging::Yes):
         SqlStandardLogger { supportBindLogging }
@@ -139,6 +143,26 @@ class SqlTraceLogger: public SqlStandardLogger
         _state = State::Error;
         SqlStandardLogger::OnError(errorInfo, sourceLocation);
         WriteDetails(sourceLocation);
+    }
+
+    void OnScopedTimerStart(std::string const& tag) override
+    {
+        _scopedTimers[tag] = std::chrono::steady_clock::now();
+
+        Tick();
+        WriteMessage("[{}] Scoped timer started", tag);
+    }
+
+    void OnScopedTimerStop(std::string const& tag) override
+    {
+        auto const start = _scopedTimers.at(tag);
+        auto const end = std::chrono::steady_clock::now();
+        _scopedTimers.erase(_scopedTimers.find(tag));
+
+        auto const duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+        Tick();
+        WriteMessage("[{}] Scoped timer finished: Took {}ms", tag, duration.count());
     }
 
     void OnConnectionOpened(SqlConnection const& connection) override
