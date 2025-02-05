@@ -150,6 +150,15 @@ namespace detail
 {
 
 template <typename T>
+struct IsAutoAssignPrimaryKeyField: std::false_type {};
+
+template <typename T, auto P>
+struct IsAutoAssignPrimaryKeyField<Field<T, PrimaryKey::AutoAssign, P>>: std::true_type {};
+
+template <typename T, auto P>
+struct IsAutoAssignPrimaryKeyField<Field<T, P, PrimaryKey::AutoAssign>>: std::true_type {};
+
+template <typename T>
 struct IsAutoIncrementPrimaryKeyField: std::false_type {};
 
 template <typename T, auto P>
@@ -183,6 +192,10 @@ struct FieldNameOfImpl<R T::*, F>
 } // namespace detail
 // clang-format on
 
+/// Tests if T is a Field<> that is a primary key.
+template <typename T>
+constexpr bool IsPrimaryKey =
+    detail::IsAutoAssignPrimaryKeyField<T>::value || detail::IsAutoIncrementPrimaryKeyField<T>::value;
 
 /// @brief Returns the name of the field referenced by the given pointer-to-member.
 ///
@@ -191,7 +204,7 @@ template <auto ReferencedField>
 constexpr inline std::string_view FieldNameOf =
     detail::FieldNameOfImpl<decltype(ReferencedField), ReferencedField>::value;
 
-// Requires that T satisfies to be a field with storage and is considered a primary key.
+/// Requires that T satisfies to be a field with storage and is considered a primary key.
 template <typename T>
 constexpr bool IsAutoIncrementPrimaryKey = detail::IsAutoIncrementPrimaryKeyField<T>::value;
 
