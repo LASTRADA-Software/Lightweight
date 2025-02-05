@@ -8,6 +8,8 @@ var classSqlLogger =
     [ "OnWarning", "d8/d7e/classSqlLogger.html#af8c543e3b315aa73d32707443c265dd2", null ],
     [ "OnError", "d8/d7e/classSqlLogger.html#a6467d528f2d30af9076b94fe19d58a99", null ],
     [ "OnError", "d8/d7e/classSqlLogger.html#a75ada11929b20fb16f4c895ec2ae142e", null ],
+    [ "OnScopedTimerStart", "d8/d7e/classSqlLogger.html#a1318b43b54ebf8b021dbb45e92737424", null ],
+    [ "OnScopedTimerStop", "d8/d7e/classSqlLogger.html#a2b6e92ec53246aafff5193a01b6f245f", null ],
     [ "OnConnectionOpened", "d8/d7e/classSqlLogger.html#ac85b570b6db926ce202d178838bba2e9", null ],
     [ "OnConnectionClosed", "d8/d7e/classSqlLogger.html#adced81db7a128ad6a4dd469db599f6c3", null ],
     [ "OnConnectionIdle", "d8/d7e/classSqlLogger.html#a7dcbfe266089e3f7d046658bb62b3853", null ],

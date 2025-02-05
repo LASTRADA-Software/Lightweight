@@ -142,6 +142,14 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnError</b> (
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnError</b> (<a class="el" href="../../d3/dbc/structSqlErrorInfo.html">SqlErrorInfo</a> const &amp;errorInfo, std::source_location sourceLocation=std::source_location::current())=0</td></tr>
 <tr class="memdesc:a75ada11929b20fb16f4c895ec2ae142e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked an ODBC SQL error occurred, with extended error information. <br /></td></tr>
 <tr class="separator:a75ada11929b20fb16f4c895ec2ae142e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1318b43b54ebf8b021dbb45e92737424" id="r_a1318b43b54ebf8b021dbb45e92737424"><td class="memItemLeft" align="right" valign="top"><a id="a1318b43b54ebf8b021dbb45e92737424" name="a1318b43b54ebf8b021dbb45e92737424"></a>
+virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnScopedTimerStart</b> (std::string const &amp;tag)=0</td></tr>
+<tr class="memdesc:a1318b43b54ebf8b021dbb45e92737424"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked when a scoped code region needs to be timed and logged. The region starts with this call. <br /></td></tr>
+<tr class="separator:a1318b43b54ebf8b021dbb45e92737424"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2b6e92ec53246aafff5193a01b6f245f" id="r_a2b6e92ec53246aafff5193a01b6f245f"><td class="memItemLeft" align="right" valign="top"><a id="a2b6e92ec53246aafff5193a01b6f245f" name="a2b6e92ec53246aafff5193a01b6f245f"></a>
+virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnScopedTimerStop</b> (std::string const &amp;tag)=0</td></tr>
+<tr class="memdesc:a2b6e92ec53246aafff5193a01b6f245f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked when a scoped code region needs to be timed and logged. The region ends with this call. <br /></td></tr>
+<tr class="separator:a2b6e92ec53246aafff5193a01b6f245f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac85b570b6db926ce202d178838bba2e9" id="r_ac85b570b6db926ce202d178838bba2e9"><td class="memItemLeft" align="right" valign="top"><a id="ac85b570b6db926ce202d178838bba2e9" name="ac85b570b6db926ce202d178838bba2e9"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnConnectionOpened</b> (<a class="el" href="../../d7/d7b/classSqlConnection.html">SqlConnection</a> const &amp;connection)=0</td></tr>
 <tr class="memdesc:ac85b570b6db926ce202d178838bba2e9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked when a connection is opened. <br /></td></tr>
@@ -318,7 +326,7 @@ template&lt;typename T &gt; </div>
 
 <p>Invoked when an input parameter is bound. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00072">72</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00078">78</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00526">SqlStatement::Execute()</a>.</p>
 

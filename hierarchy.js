@@ -34,6 +34,7 @@ var hierarchy =
     [ "SqlSchema::Column", "da/dab/structSqlSchema_1_1Column.html", null ],
     [ "SqlSchema::EventHandler", "d3/df5/classSqlSchema_1_1EventHandler.html", null ],
     [ "SqlSchema::Table", "d0/d20/structSqlSchema_1_1Table.html", null ],
+    [ "SqlScopedTimeLogger", "db/d67/classSqlScopedTimeLogger.html", null ],
     [ "SqlScopedTraceLogger", "d5/d21/classSqlScopedTraceLogger.html", null ],
     [ "SqlTime", "d5/d6d/structSqlTime.html", null ],
     [ "SqlTransaction", "d1/dc2/classSqlTransaction.html", null ],

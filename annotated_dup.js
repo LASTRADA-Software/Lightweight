@@ -37,6 +37,7 @@ var annotated_dup =
     [ "SqlRequireLoadedError", "d5/d6a/classSqlRequireLoadedError.html", null ],
     [ "SqlResultCursor", "d7/d13/classSqlResultCursor.html", "d7/d13/classSqlResultCursor" ],
     [ "SqlRowIterator", "d7/db1/classSqlRowIterator.html", null ],
+    [ "SqlScopedTimeLogger", "db/d67/classSqlScopedTimeLogger.html", null ],
     [ "SqlScopedTraceLogger", "d5/d21/classSqlScopedTraceLogger.html", null ],
     [ "SqlSelectQueryBuilder", "d1/d91/classSqlSelectQueryBuilder.html", "d1/d91/classSqlSelectQueryBuilder" ],
     [ "SqlStatement", "df/d17/classSqlStatement.html", "df/d17/classSqlStatement" ],
