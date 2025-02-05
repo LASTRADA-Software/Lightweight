@@ -49,6 +49,12 @@ class LIGHTWEIGHT_API SqlLogger
     virtual void OnError(SqlErrorInfo const& errorInfo,
                          std::source_location sourceLocation = std::source_location::current()) = 0;
 
+    /// Invoked when a scoped code region needs to be timed and logged. The region starts with this call.
+    virtual void OnScopedTimerStart(std::string const& tag) = 0;
+
+    /// Invoked when a scoped code region needs to be timed and logged. The region ends with this call.
+    virtual void OnScopedTimerStop(std::string const& tag) = 0;
+
     /// Invoked when a connection is opened.
     virtual void OnConnectionOpened(SqlConnection const& connection) = 0;
 
@@ -125,6 +131,8 @@ class SqlLogger::Null: public SqlLogger
     void OnWarning(std::string_view const& /*message*/) override {}
     void OnError(SqlError /*errorCode*/, std::source_location /*sourceLocation*/) override {}
     void OnError(SqlErrorInfo const& /*errorInfo*/, std::source_location /*sourceLocation*/) override {}
+    void OnScopedTimerStart(std::string const& /*tag*/) override {}
+    void OnScopedTimerStop(std::string const& /*tag*/) override {}
     void OnConnectionOpened(SqlConnection const& /*connection*/) override {}
     void OnConnectionClosed(SqlConnection const& /*connection*/) override {}
     void OnConnectionIdle(SqlConnection const& /*connection*/) override {}
@@ -136,4 +144,28 @@ class SqlLogger::Null: public SqlLogger
     void OnExecuteBatch() override {}
     void OnFetchRow() override {}
     void OnFetchEnd() override {}
+};
+
+/// A scoped timer for logging.
+///
+/// This class is used to measure the time spent in a code region and log it.
+/// This is typically useful for performance analysis, to identify bottlenecks.
+///
+/// @see SqlLogger
+class SqlScopedTimeLogger
+{
+  public:
+    explicit SqlScopedTimeLogger(std::string tag):
+        _tag { std::move(tag) }
+    {
+        SqlLogger::GetLogger().OnScopedTimerStart(_tag);
+    }
+
+    ~SqlScopedTimeLogger()
+    {
+        SqlLogger::GetLogger().OnScopedTimerStop(_tag);
+    }
+
+  private:
+    std::string _tag;
 };
