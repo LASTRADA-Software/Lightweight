@@ -515,6 +515,13 @@ template <typename T>
 struct TestTypeTraits;
 
 template <>
+struct TestTypeTraits<int8_t>
+{
+    static constexpr auto inputValue = (std::numeric_limits<int8_t>::max)();
+    static constexpr auto expectedOutputValue = (std::numeric_limits<int8_t>::max)();
+};
+
+template <>
 struct TestTypeTraits<int16_t>
 {
     static constexpr auto inputValue = (std::numeric_limits<int16_t>::max)();
@@ -533,6 +540,27 @@ struct TestTypeTraits<int64_t>
 {
     static constexpr auto inputValue = (std::numeric_limits<int64_t>::max)();
     static constexpr auto expectedOutputValue = (std::numeric_limits<int64_t>::max)();
+};
+
+template <>
+struct TestTypeTraits<uint8_t>
+{
+    static constexpr auto inputValue = (std::numeric_limits<uint8_t>::max)();
+    static constexpr auto expectedOutputValue = (std::numeric_limits<uint8_t>::max)();
+};
+
+template <>
+struct TestTypeTraits<uint16_t>
+{
+    static constexpr auto inputValue = (std::numeric_limits<uint16_t>::max)();
+    static constexpr auto expectedOutputValue = (std::numeric_limits<uint16_t>::max)();
+};
+
+template <>
+struct TestTypeTraits<uint32_t>
+{
+    static constexpr auto inputValue = (std::numeric_limits<uint32_t>::max)();
+    static constexpr auto expectedOutputValue = (std::numeric_limits<uint32_t>::max)();
 };
 
 template <>
@@ -789,9 +817,13 @@ using TypesToTest = std::tuple<
     SqlTrimmedFixedString<20, char>,
     double,
     float,
+    int8_t,
     int16_t,
     int32_t,
     int64_t,
+    uint8_t,
+    // uint16_t, // (not supported by MS-SQL)
+    // uint32_t, // (not supported by MS-SQL)
     // TODO: uint64_t,
     std::string,
     std::string_view,
