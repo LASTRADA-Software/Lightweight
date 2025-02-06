@@ -5,6 +5,7 @@
 #include "SqlQueryFormatter.hpp"
 
 #include <sql.h>
+#include <sqlext.h>
 
 using namespace std::chrono_literals;
 using namespace std::string_view_literals;
