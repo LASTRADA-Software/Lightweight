@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "Lightweight/Utils.hpp"
 #include "Utils.hpp"
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
+#include <Lightweight/Utils.hpp>
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -135,6 +135,55 @@ TEST_CASE_METHOD(SqlTestFixture, "SQL entity naming (namespace)", "[DataMapper]"
     CHECK(FieldNameAt<0, Models::NamingTest2> == "First_PK"sv);
     CHECK(FieldNameAt<1, Models::NamingTest2> == "Second_PK"sv);
     CHECK(RecordTableName<Models::NamingTest2> == "NamingTest2_aliased"sv);
+}
+
+struct PKTest0
+{
+    Field<int, PrimaryKey::AutoAssign> pk;
+    Field<char> field;
+};
+
+static_assert(IsPrimaryKey<Reflection::MemberTypeOf<0, PKTest0>>);
+static_assert(!IsPrimaryKey<Reflection::MemberTypeOf<1, PKTest0>>);
+static_assert(RecordPrimaryKeyIndex<PKTest0> == 0);
+static_assert(std::same_as<RecordPrimaryKeyType<PKTest0>, int>);
+
+struct PKTest1
+{
+    Field<int> field;
+    Field<SqlTrimmedFixedString<10>, PrimaryKey::AutoAssign> pk;
+};
+
+static_assert(!IsPrimaryKey<Reflection::MemberTypeOf<0, PKTest1>>);
+static_assert(IsPrimaryKey<Reflection::MemberTypeOf<1, PKTest1>>);
+static_assert(RecordPrimaryKeyIndex<PKTest1> == 1);
+static_assert(std::same_as<RecordPrimaryKeyType<PKTest1>, SqlTrimmedFixedString<10>>);
+
+struct PKTestMulti
+{
+    Field<int> fieldA;
+    Field<char> fieldB;
+    Field<SqlTrimmedFixedString<10>, PrimaryKey::AutoAssign> pk1;
+    Field<double, PrimaryKey::AutoAssign> pk2;
+};
+
+static_assert(RecordPrimaryKeyIndex<PKTestMulti> == 2,
+              "Primary key index should be the first primary key field in the record");
+static_assert(std::same_as<RecordPrimaryKeyType<PKTestMulti>, SqlTrimmedFixedString<10>>);
+
+TEST_CASE_METHOD(SqlTestFixture, "Primary key access", "[DataMapper]")
+{
+    PKTest0 pk0;
+    RecordPrimaryKeyOf(pk0) = 42;
+    CHECK(pk0.pk.Value() == 42);
+
+    PKTest1 pk1;
+    RecordPrimaryKeyOf(pk1) = "Hello";
+    CHECK(pk1.pk.Value() == "Hello");
+
+    PKTestMulti pkMulti;
+    RecordPrimaryKeyOf(pkMulti) = "World";
+    CHECK(pkMulti.pk1.Value() == "World");
 }
 
 struct Person
