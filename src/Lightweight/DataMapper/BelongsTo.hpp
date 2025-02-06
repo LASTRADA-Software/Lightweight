@@ -31,7 +31,7 @@ class BelongsTo
     /// If not an empty string, this value will be used as the column name in the database.
     static constexpr std::string_view ColumnNameOverride = []() consteval {
         if constexpr (!std::same_as<decltype(ColumnNameOverrideString), std::nullopt_t>)
-            return ColumnNameOverrideString;
+            return std::string_view{ColumnNameOverrideString};
         else
             return std::string_view {};
     }();
