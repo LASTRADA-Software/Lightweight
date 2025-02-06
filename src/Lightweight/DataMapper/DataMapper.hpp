@@ -4,6 +4,8 @@
 #include "../SqlConnection.hpp"
 #include "../SqlDataBinder.hpp"
 #include "../SqlStatement.hpp"
+#include "../SqlRealName.hpp"
+#include "../Utils.hpp"
 #include "BelongsTo.hpp"
 #include "CollectDifferences.hpp"
 #include "Field.hpp"
@@ -323,56 +325,6 @@ std::string DataMapper::Inspect(Record const& record)
     return "{" + std::move(str) + "}";
 }
 
-namespace detail
-{
-template <std::size_t I, typename Record>
-struct BelongsToNameImpl
-{
-    static constexpr auto baseName = Reflection::MemberNameOf<I, Record>;
-    static constexpr auto storage = []() -> std::array<char, baseName.size() + 3>
-    {
-        std::array<char, baseName.size() + 3> storage;
-        std::copy_n(baseName.begin(), baseName.size(), storage.begin());
-        std::copy_n("_id", 3, storage.begin() + baseName.size());
-        return storage;
-    }
-    ();
-    static constexpr auto name = std::string_view(storage.data(), storage.size());
-};
-
-template <typename FieldType>
-constexpr auto ColumnNameOverride = []() consteval {
-    if constexpr (requires { FieldType::ColumnNameOverride; })
-        return FieldType::ColumnNameOverride;
-    else
-        return std::string_view {};
-}();
-
-template <std::size_t I, typename Record>
-consteval std::string_view FieldNameAt()
-{
-    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-
-    using FieldType = Reflection::MemberTypeOf<I, Record>;
-
-    if constexpr (!std::string_view(ColumnNameOverride<FieldType>).empty())
-    {
-        return FieldType::ColumnNameOverride;
-    }
-    else if constexpr (IsBelongsTo<FieldType>())
-    {
-        return BelongsToNameImpl<I, Record>::name;
-    }
-    else
-        return Reflection::MemberNameOf<I, Record>;
-}
-} // namespace detail
-
-/// @brief Returns the SQL field name of the given field index in the record.
-///
-/// @ingroup DataMapper
-template <std::size_t I, typename Record>
-constexpr inline std::string_view FieldNameAt = detail::FieldNameAt<I, Record>();
 
 template <typename Record>
 std::vector<std::string> DataMapper::CreateTableString(SqlServerType serverType)
