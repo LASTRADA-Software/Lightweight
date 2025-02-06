@@ -355,21 +355,21 @@ $(document).ready(function(){initNavTree('d2/d51/Select_8hpp_source.html','../..
 <div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (<span class="keyword">sizeof</span>...(MoreRecords) == 0)</div>
 <div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>    {</div>
 <div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>        Reflection::EnumerateMembers&lt;FirstRecord&gt;(</div>
-<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>            [&amp;]&lt;<span class="keywordtype">size_t</span> FieldIndex, <span class="keyword">typename</span> FieldType&gt;() { <a class="code hl_struct" href="../../df/d27/structField.html">Field</a>(Reflection::MemberNameOf&lt;FieldIndex, FirstRecord&gt;); });</div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>            [&amp;]&lt;<span class="keywordtype">size_t</span> FieldIndex, <span class="keyword">typename</span> FieldType&gt;() { <a class="code hl_struct" href="../../df/d27/structField.html">Field</a>(FieldNameAt&lt;FieldIndex, FirstRecord&gt;); });</div>
 <div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>    }</div>
 <div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>    <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>    {</div>
 <div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>        Reflection::EnumerateMembers&lt;FirstRecord&gt;([&amp;]&lt;<span class="keywordtype">size_t</span> FieldIndex, <span class="keyword">typename</span> FieldType&gt;() {</div>
 <div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>            <a class="code hl_struct" href="../../df/d27/structField.html">Field</a>(<a class="code hl_struct" href="../../d1/de4/structSqlQualifiedTableColumnName.html">SqlQualifiedTableColumnName</a> {</div>
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span>                .tableName = RecordTableName&lt;FirstRecord&gt;,</div>
-<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>                .columnName = Reflection::MemberNameOf&lt;FieldIndex, FirstRecord&gt;,</div>
+<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>                .columnName = FieldNameAt&lt;FieldIndex, FirstRecord&gt;,</div>
 <div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>            });</div>
 <div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>        });</div>
 <div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span> </div>
 <div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>        (Reflection::EnumerateMembers&lt;MoreRecords&gt;([&amp;]&lt;<span class="keywordtype">size_t</span> FieldIndex, <span class="keyword">typename</span> FieldType&gt;() {</div>
 <div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>             <a class="code hl_struct" href="../../df/d27/structField.html">Field</a>(<a class="code hl_struct" href="../../d1/de4/structSqlQualifiedTableColumnName.html">SqlQualifiedTableColumnName</a> {</div>
 <div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>                 .tableName = RecordTableName&lt;MoreRecords&gt;,</div>
-<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>                 .columnName = Reflection::MemberNameOf&lt;FieldIndex, MoreRecords&gt;,</div>
+<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>                 .columnName = FieldNameAt&lt;FieldIndex, MoreRecords&gt;,</div>
 <div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>             });</div>
 <div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>         }),</div>
 <div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span>         ...);</div>
@@ -382,7 +382,7 @@ $(document).ready(function(){initNavTree('d2/d51/Select_8hpp_source.html','../..
 <div class="ttc" id="aclassSqlSelectQueryBuilder_html_aac98428d3a591ed18854c36b76489b7c"><div class="ttname"><a href="../../d1/d91/classSqlSelectQueryBuilder.html#aac98428d3a591ed18854c36b76489b7c">SqlSelectQueryBuilder::Varying</a></div><div class="ttdeci">constexpr LIGHTWEIGHT_FORCE_INLINE SqlSelectQueryBuilder &amp; Varying() noexcept</div><div class="ttdoc">Sets the builder mode to Varying, allowing varying final query types.</div><div class="ttdef"><b>Definition</b> <a href="../../d2/d51/Select_8hpp_source.html#l00129">Select.hpp:129</a></div></div>
 <div class="ttc" id="aclassSqlSelectQueryBuilder_html_ae3248430e23718b805abd386a679ccce"><div class="ttname"><a href="../../d1/d91/classSqlSelectQueryBuilder.html#ae3248430e23718b805abd386a679ccce">SqlSelectQueryBuilder::Fields</a></div><div class="ttdeci">SqlSelectQueryBuilder &amp; Fields()</div><div class="ttdoc">Adds a sequence of columns from the given tables to the SELECT clause.</div></div>
 <div class="ttc" id="aclassSqlWhereClauseBuilder_html"><div class="ttname"><a href="../../d2/dca/classSqlWhereClauseBuilder.html">SqlWhereClauseBuilder</a></div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00139">Core.hpp:140</a></div></div>
-<div class="ttc" id="astructField_html"><div class="ttname"><a href="../../df/d27/structField.html">Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00081">Field.hpp:82</a></div></div>
+<div class="ttc" id="astructField_html"><div class="ttname"><a href="../../df/d27/structField.html">Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00079">Field.hpp:80</a></div></div>
 <div class="ttc" id="astructSqlQualifiedTableColumnName_html"><div class="ttname"><a href="../../d1/de4/structSqlQualifiedTableColumnName.html">SqlQualifiedTableColumnName</a></div><div class="ttdoc">SqlQualifiedTableColumnName represents a column name qualified with a table name.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00040">Core.hpp:41</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
