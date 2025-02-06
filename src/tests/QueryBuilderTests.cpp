@@ -3,6 +3,7 @@
 #include "Utils.hpp"
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
+#include <Lightweight/SqlRealName.hpp>
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -274,6 +275,28 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsWithBelongsTo", "[SqlQue
             .postgres = R"(SELECT "email", "user_id" FROM "QueryBuilderTestEmail" LIMIT 1)",
             .sqlServer = R"(SELECT TOP 1 "email", "user_id" FROM "QueryBuilderTestEmail")",
             .oracle = R"(SELECT "email", "user_id" FROM "QueryBuilderTestEmail" FETCH FIRST 1 ROWS ONLY)",
+        });
+
+}
+
+
+struct QueryBuilderTestEmailWithAliases
+{
+    Field<std::string, SqlRealName { "FAX_ADRESS" }> email;
+    BelongsTo<&UsersFields::name, SqlRealName{ "USER_REC" }> user;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsWithBelongsToAndAliases", "[SqlQueryBuilder]")
+{
+    checkSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("QueryBuilderTestEmail").Select().Fields<QueryBuilderTestEmailWithAliases>().First();
+        },
+        QueryExpectations {
+            .sqlite = R"(SELECT "FAX_ADRESS", "USER_REC" FROM "QueryBuilderTestEmail" LIMIT 1)",
+            .postgres = R"(SELECT "FAX_ADRESS", "USER_REC" FROM "QueryBuilderTestEmail" LIMIT 1)",
+            .sqlServer = R"(SELECT TOP 1 "FAX_ADRESS", "USER_REC" FROM "QueryBuilderTestEmail")",
+            .oracle = R"(SELECT "FAX_ADRESS", "USER_REC" FROM "QueryBuilderTestEmail" FETCH FIRST 1 ROWS ONLY)",
         });
 
 }
