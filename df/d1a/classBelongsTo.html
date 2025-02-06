@@ -1167,7 +1167,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">= []() <span class="keyword">consteval</span> {</div>
 <div class="line">        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (!std::same_as&lt;<span class="keyword">decltype</span>(ColumnNameOverrideString), std::nullopt_t&gt;)</div>
-<div class="line">            <span class="keywordflow">return</span> ColumnNameOverrideString;</div>
+<div class="line">            <span class="keywordflow">return</span> std::string_view{ColumnNameOverrideString};</div>
 <div class="line">        <span class="keywordflow">else</span></div>
 <div class="line">            <span class="keywordflow">return</span> std::string_view {};</div>
 <div class="line">    }()</div>
