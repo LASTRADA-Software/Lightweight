@@ -5,15 +5,6 @@
 
 #include <reflection-cpp/reflection.hpp>
 
-enum class FieldValueRequirement : uint8_t
-{
-    NULLABLE,
-    NOT_NULL,
-};
-
-constexpr inline FieldValueRequirement SqlNullable = FieldValueRequirement::NULLABLE;
-constexpr inline FieldValueRequirement SqlNotNullable = FieldValueRequirement::NULLABLE;
-
 /// @brief Tells the data mapper that this field is a primary key with given semantics, or not a primary key.
 enum class PrimaryKey : uint8_t
 {
