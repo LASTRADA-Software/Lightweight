@@ -3,8 +3,8 @@
 
 #include "../SqlConnection.hpp"
 #include "../SqlDataBinder.hpp"
-#include "../SqlStatement.hpp"
 #include "../SqlRealName.hpp"
+#include "../SqlStatement.hpp"
 #include "../Utils.hpp"
 #include "BelongsTo.hpp"
 #include "CollectDifferences.hpp"
@@ -67,6 +67,239 @@ auto ToSharedPtrList(Container<Object, Allocator<Object>> container)
 }
 
 } // namespace detail
+
+/// Main API for mapping records to C++ from the database using high level C++ syntax.
+template <typename Record, typename Derived>
+class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlWhereClauseBuilder<Derived>
+{
+  private:
+    SqlStatement& _stmt;
+    SqlQueryFormatter const& _formatter;
+
+    std::string _fields;
+    SqlSearchCondition _searchCondition {};
+
+    friend class SqlWhereClauseBuilder<Derived>;
+
+    LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SearchCondition() noexcept
+    {
+        return _searchCondition;
+    }
+
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter const& Formatter() const noexcept
+    {
+        return _formatter;
+    }
+
+  protected:
+    LIGHTWEIGHT_FORCE_INLINE explicit SqlCoreDataMapperQueryBuilder(SqlStatement& stmt, std::string fields) noexcept:
+        _stmt { stmt },
+        _formatter { stmt.Connection().QueryFormatter() },
+        _fields { std::move(fields) }
+    {
+    }
+
+  public:
+    [[nodiscard]] std::vector<Record> All()
+    {
+        auto records = std::vector<Record> {};
+        auto constexpr distinct = false;
+        auto constexpr orderBy = std::string_view {};
+        auto constexpr groupBy = std::string_view {};
+        _stmt.ExecuteDirect(_formatter.SelectAll(distinct,
+                                                 _fields,
+                                                 RecordTableName<Record>,
+                                                 _searchCondition.tableAlias,
+                                                 _searchCondition.tableJoins,
+                                                 _searchCondition.condition,
+                                                 orderBy,
+                                                 groupBy));
+        Derived::ReadResults(_stmt.GetResultCursor(), &records);
+        return records;
+    }
+
+    [[nodiscard]] std::vector<Record> First(size_t n)
+    {
+        auto records = std::vector<Record> {};
+        records.reserve(n);
+        auto constexpr distinct = false;
+        auto constexpr orderBy = std::string_view {};
+        _stmt.ExecuteDirect(_formatter.SelectFirst(distinct,
+                                                   _fields,
+                                                   RecordTableName<Record>,
+                                                   _searchCondition.tableAlias,
+                                                   _searchCondition.tableJoins,
+                                                   _searchCondition.condition,
+                                                   orderBy,
+                                                   n));
+        Derived::ReadResults(_stmt.GetResultCursor(), &records);
+        return records;
+    }
+
+    [[nodiscard]] std::vector<Record> Range(size_t offset, size_t limit)
+    {
+        auto records = std::vector<Record> {};
+        records.reserve(limit);
+        auto constexpr distinct = false;
+        auto const orderBy = std::format(" ORDER BY \"{}\" ASC", FieldNameAt<RecordPrimaryKeyIndex<Record>, Record>);
+        auto constexpr groupBy = std::string_view {};
+        _stmt.ExecuteDirect(_formatter.SelectRange(distinct,
+                                                   _fields,
+                                                   RecordTableName<Record>,
+                                                   _searchCondition.tableAlias,
+                                                   _searchCondition.tableJoins,
+                                                   _searchCondition.condition,
+                                                   orderBy,
+                                                   groupBy,
+                                                   offset,
+                                                   limit));
+        Derived::ReadResults(_stmt.GetResultCursor(), &records);
+        return records;
+    }
+};
+
+template <typename Record, auto... ReferencedFields>
+class [[nodiscard]] SqlSparseFieldQueryBuilder final:
+    public SqlCoreDataMapperQueryBuilder<Record, SqlSparseFieldQueryBuilder<Record, ReferencedFields...>>
+{
+  private:
+    friend class DataMapper;
+    friend class SqlCoreDataMapperQueryBuilder<Record, SqlSparseFieldQueryBuilder<Record, ReferencedFields...>>;
+
+    LIGHTWEIGHT_FORCE_INLINE explicit SqlSparseFieldQueryBuilder(SqlStatement& stmt, std::string fields) noexcept:
+        SqlCoreDataMapperQueryBuilder<Record, SqlSparseFieldQueryBuilder<Record, ReferencedFields...>> {
+            stmt, std::move(fields)
+        }
+    {
+    }
+
+    // NB: Required yb SqlCoreDataMapperQueryBuilder
+    static void ReadResults(SqlResultCursor reader, std::vector<Record>* records)
+    {
+        while (true)
+        {
+            auto& record = records->emplace_back();
+            reader.BindOutputColumns(&(record.*ReferencedFields)...);
+            if (!reader.FetchRow())
+            {
+                records->pop_back();
+                break;
+            }
+        }
+    }
+};
+
+template <typename Record>
+class [[nodiscard]] SqlAllFieldsQueryBuilder final:
+    public SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record>>
+{
+  private:
+    friend class DataMapper;
+    friend class SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record>>;
+
+    LIGHTWEIGHT_FORCE_INLINE explicit SqlAllFieldsQueryBuilder(SqlStatement& stmt, std::string fields) noexcept:
+        SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record>> { stmt, std::move(fields) }
+    {
+    }
+
+    static void BindAllOutputColumns(SqlResultCursor& reader, Record& record)
+    {
+        Reflection::EnumerateMembers(
+            record, [reader = &reader, i = SQLSMALLINT { 1 }]<size_t I, typename Field>(Field& field) mutable {
+                if constexpr (IsField<Field>)
+                {
+                    reader->BindOutputColumn(i++, &field.MutableValue());
+                }
+                else if constexpr (SqlOutputColumnBinder<Field>)
+                {
+                    reader->BindOutputColumn(i++, &field);
+                }
+            });
+    }
+
+    static void ReadResults(SqlResultCursor reader, std::vector<Record>* records)
+    {
+        while (true)
+        {
+            BindAllOutputColumns(reader, records->emplace_back());
+            if (!reader.FetchRow())
+            {
+                records->pop_back();
+                break;
+            }
+        }
+    }
+};
+
+template <typename Record>
+class [[nodiscard]] SqlQuerySingleBuilder: public SqlWhereClauseBuilder<SqlQuerySingleBuilder<Record>>
+{
+  private:
+    SqlStatement& _stmt;
+    SqlQueryFormatter const& _formatter;
+
+    std::string _fields;
+    SqlSearchCondition _searchCondition {};
+
+    friend class DataMapper;
+    friend class SqlWhereClauseBuilder<SqlQuerySingleBuilder<Record>>;
+
+    LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SearchCondition() noexcept
+    {
+        return _searchCondition;
+    }
+
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter const& Formatter() const noexcept
+    {
+        return _formatter;
+    }
+
+    static void BindAllOutputColumns(SqlResultCursor& reader, Record& record)
+    {
+        Reflection::EnumerateMembers(
+            record, [reader = &reader, i = SQLSMALLINT { 1 }]<size_t I, typename Field>(Field& field) mutable {
+                if constexpr (IsField<Field>)
+                {
+                    reader->BindOutputColumn(i++, &field.MutableValue());
+                }
+                else if constexpr (SqlOutputColumnBinder<Field>)
+                {
+                    reader->BindOutputColumn(i++, &field);
+                }
+            });
+    }
+
+  protected:
+    LIGHTWEIGHT_FORCE_INLINE explicit SqlQuerySingleBuilder(SqlStatement& stmt, std::string fields) noexcept:
+        _stmt { stmt },
+        _formatter { stmt.Connection().QueryFormatter() },
+        _fields { std::move(fields) }
+    {
+    }
+
+  public:
+    /// @brief Executes the query and returns the first record found.
+    [[nodiscard]] std::optional<Record> Get()
+    {
+        auto constexpr count = 1;
+        auto constexpr distinct = false;
+        auto constexpr orderBy = std::string_view {};
+        _stmt.ExecuteDirect(_formatter.SelectFirst(distinct,
+                                                   _fields,
+                                                   RecordTableName<Record>,
+                                                   _searchCondition.tableAlias,
+                                                   _searchCondition.tableJoins,
+                                                   _searchCondition.condition,
+                                                   orderBy,
+                                                   count));
+        auto reader = _stmt.GetResultCursor();
+        auto record = Record {};
+        BindAllOutputColumns(reader, record);
+        if (!reader.FetchRow())
+            return std::nullopt;
+        return std::optional { std::move(record) };
+    }
+};
 
 /// @brief Main API for mapping records to and from the database using high level C++ syntax.
 ///
@@ -169,6 +402,34 @@ class DataMapper
     template <typename Record, typename... PrimaryKeyTypes>
     std::optional<Record> QuerySingle(PrimaryKeyTypes&&... primaryKeys);
 
+    /// @brief Queries a single record from the database.
+    ///
+    /// @return A query builder for the given Record type that will also allow executing the query.
+    ///
+    /// @code
+    /// auto const record = dm.QuerySingle<Person>(personId)
+    ///                       .Where(FieldNameOf<&Person::id>, "=", 42)
+    ///                       .Get();
+    /// if (record.has_value())
+    ///     std::println("Person: {}", DataMapper::Inspect(record.value()));
+    /// @endcode
+    template <typename Record>
+    SqlQuerySingleBuilder<Record> QuerySingle()
+    {
+        std::string fields;
+        Reflection::EnumerateMembers<Record>([&fields]<size_t I, typename Field>() {
+            if (!fields.empty())
+                fields += ", ";
+            fields += '"';
+            fields += RecordTableName<Record>;
+            fields += "\".\"";
+            fields += FieldNameAt<I, Record>;
+            fields += '"';
+        });
+
+        return SqlQuerySingleBuilder<Record>(_stmt, std::move(fields));
+    }
+
     /// @brief Queries a single record by the given column name and value.
     ///
     /// @param columnName The name of the column to search.
@@ -214,6 +475,64 @@ class DataMapper
     std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
                               InputParameters&&... inputParameters);
 
+    /// Queries records of given Record type.
+    ///
+    /// @returns A query builder for the given Record type. The query builder can be used to further refine the query.
+    ///          The query builder will execute the query when a method like All(), First(n), etc. is called.
+    ///
+    /// @code
+    /// auto const records = dm.Query<Person>()
+    ///                        .Where(FieldNameOf<&Person::is_active>, "=", true)
+    ///                        .All();
+    /// @endcode
+    template <typename Record>
+    SqlAllFieldsQueryBuilder<Record> Query()
+    {
+        std::string fields;
+        Reflection::EnumerateMembers<Record>([&fields]<size_t I, typename Field>() {
+            if (!fields.empty())
+                fields += ", ";
+            fields += '"';
+            fields += RecordTableName<Record>;
+            fields += "\".\"";
+            fields += FieldNameAt<I, Record>;
+            fields += '"';
+        });
+
+        return SqlAllFieldsQueryBuilder<Record>(_stmt, std::move(fields));
+    }
+
+    /// Queries select fields from the given Record type.
+    ///
+    /// The fields are given in form of &Record::field1, &Record::field2, ...
+    ///
+    /// @returns A query builder for the given Record type. The query builder can be used to further refine the query.
+    ///          The query builder will execute the query when a method like All(), First(n), etc. is called.
+    ///
+    /// @code
+    /// auto const records = dm.QuerySparse<Person, &Person::id, &Person::name, &Person::age>()
+    ///                        .Where(FieldNameOf<&Person::is_active>, "=", true)
+    ///                        .All();
+    /// @endcode
+    template <typename Record, auto... ReferencedFields>
+    SqlSparseFieldQueryBuilder<Record, ReferencedFields...> QuerySparse()
+    {
+        auto const appendFieldTo = []<auto ReferencedField>(std::string& fields) {
+            using ReferencedRecord = Reflection::MemberClassType<ReferencedField>;
+            if (!fields.empty())
+                fields += ", ";
+            fields += '"';
+            fields += RecordTableName<ReferencedRecord>;
+            fields += "\".\"";
+            fields += FieldNameOf<ReferencedField>;
+            fields += '"';
+        };
+        std::string fields;
+        (appendFieldTo.template operator()<ReferencedFields>(fields), ...);
+
+        return SqlSparseFieldQueryBuilder<Record, ReferencedFields...>(_stmt, std::move(fields));
+    }
+
     /// Checks if the record has any modified fields.
     template <typename Record>
     bool IsModified(Record const& record) const noexcept;
@@ -236,7 +555,7 @@ class DataMapper
 
     /// Constructs an SQL query builder for the given record type.
     template <typename Record>
-    auto Query() -> SqlQueryBuilder
+    auto BuildQuery() -> SqlQueryBuilder
     {
         return _connection.Query(RecordTableName<Record>);
     }
@@ -324,7 +643,6 @@ std::string DataMapper::Inspect(Record const& record)
     });
     return "{" + std::move(str) + "}";
 }
-
 
 template <typename Record>
 std::vector<std::string> DataMapper::CreateTableString(SqlServerType serverType)

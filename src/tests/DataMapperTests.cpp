@@ -192,7 +192,18 @@ struct Person
     Field<SqlAnsiString<25>> name;
     Field<bool> is_active { true };
     Field<std::optional<int>> age;
+
+    std::weak_ordering operator<=>(Person const& other) const = default;
 };
+
+std::ostream& operator<<(std::ostream& os, Person const& value)
+{
+    return os << std::format("Person {{ id: {}, name: {}, is_active: {}, age: {} }}",
+                             value.id.Value(),
+                             value.name.Value(),
+                             value.is_active.Value(),
+                             value.age.Value().value_or(-1));
+}
 
 // This is a test to only partially query a table row (a few columns)
 struct PersonName
@@ -202,6 +213,148 @@ struct PersonName
 
     static constexpr std::string_view TableName = RecordTableName<Person>;
 };
+
+TEST_CASE_METHOD(SqlTestFixture, "Query.All", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    auto expectedPersons = std::array {
+        Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 },
+        Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 },
+        Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 },
+        Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 },
+    };
+
+    dm.CreateTable<Person>();
+    for (auto& person: expectedPersons)
+        dm.Create(person);
+
+    auto const records = dm.Query<Person>().Where(FieldNameOf<&Person::is_active>, "=", true).All();
+
+    CHECK(records.size() == 2);
+    CHECK(records[0] == expectedPersons[0]);
+    CHECK(records[1] == expectedPersons[2]);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Query.First", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    auto expectedPersons = std::array {
+        Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 },
+        Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 },
+        Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 },
+        Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 },
+    };
+
+    dm.CreateTable<Person>();
+    for (auto& person: expectedPersons)
+        dm.Create(person);
+
+    auto const records = dm.Query<Person>().Where(FieldNameOf<&Person::age>, ">=", 30).First(2);
+
+    CHECK(records.size() == 2);
+    CHECK(records[0] == expectedPersons[0]);
+    CHECK(records[1] == expectedPersons[2]);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Query.Range", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    auto expectedPersons = std::array {
+        Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 },
+        Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 },
+        Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 },
+        Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 },
+    };
+
+    dm.CreateTable<Person>();
+    for (auto& person: expectedPersons)
+        dm.Create(person);
+
+    auto const records = dm.Query<Person>().Range(1, 2);
+
+    CHECK(records.size() == 2);
+    CHECK(records[0] == expectedPersons[1]);
+    CHECK(records[1] == expectedPersons[2]);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "QuerySingle.Get", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    auto expectedPersons = std::array {
+        Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 },
+        Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 },
+        Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 },
+        Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 },
+    };
+
+    dm.CreateTable<Person>();
+    for (auto& person: expectedPersons)
+        dm.Create(person);
+
+    auto const record = dm.QuerySingle<Person>().Where(FieldNameOf<&Person::age>, "=", 36).Get();
+
+    CHECK(record.has_value());
+    CHECK(record.value() == expectedPersons[2]);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.All", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    dm.CreateTable<Person>();
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 });
+
+    auto const records =
+        dm.QuerySparse<Person, &Person::name, &Person::age>().Where(FieldNameOf<&Person::is_active>, "=", true).All();
+
+    CHECK(records.size() == 1);
+    CHECK(records[0].name == "John Doe");
+    CHECK(records[0].age == 42);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.First", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    dm.CreateTable<Person>();
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 });
+
+    auto const records =
+        dm.QuerySparse<Person, &Person::name, &Person::age>().Where(FieldNameOf<&Person::age>, ">=", 30).First(2);
+
+    CHECK(records.size() == 2);
+    CHECK(records[0].name == "John Doe");
+    CHECK(records[0].age == 42);
+    CHECK(records[1].name == "Jane Doe");
+    CHECK(records[1].age == 36);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.Range", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    dm.CreateTable<Person>();
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 });
+
+    auto const records = dm.QuerySparse<Person, &Person::name, &Person::age>().Range(1, 2);
+
+    CHECK(records.size() == 2);
+    CHECK(records[0].name == "Jimmy John");
+    CHECK(records[0].age == 24);
+    CHECK(records[1].name == "Jane Doe");
+    CHECK(records[1].age == 36);
+}
 
 TEST_CASE_METHOD(SqlTestFixture, "Constructor with connection string", "[DataMapper]")
 {
@@ -835,8 +988,7 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct", "[DataMapper
 
     dm.CreateExplicit(SimpleStruct2 { .name = u8"John", .age = 42 });
 
-    auto result = dm.QuerySingle<SimpleStruct2>(
-        dm.FromTable(RecordTableName<SimpleStruct2>).Select().Fields({ "name"sv, "age"sv }));
+    auto result = dm.QuerySingle<SimpleStruct2>().Get();
 
     REQUIRE(result.has_value());
     auto const& record = result.value();
