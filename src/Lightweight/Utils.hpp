@@ -50,7 +50,7 @@ struct MemberClassTypeHelper<M T::*>
 };
 
 template <typename Record>
-struct RecordTableName
+struct RecordTableNameImpl
 {
     static constexpr std::string_view Value = []() {
         if constexpr (requires { Record::TableName; })
@@ -141,7 +141,7 @@ constexpr inline std::string_view FieldNameOf =
 ///
 /// @ingroup DataMapper
 template <typename Record>
-constexpr std::string_view RecordTableName = detail::RecordTableName<Record>::Value;
+constexpr std::string_view RecordTableName = detail::RecordTableNameImpl<Record>::Value;
 
 template <template <typename...> class S, class T>
 concept IsSpecializationOf = detail::is_specialization_of<S, T>::value;

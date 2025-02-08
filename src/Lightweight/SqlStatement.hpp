@@ -401,7 +401,7 @@ class SqlRowIterator
     SqlRowIterator begin()
     {
         auto query =
-            _stmt->Query(detail::RecordTableName<value_type>::Value).Select().template Fields<value_type>().All();
+            _stmt->Query(RecordTableName<value_type>).Select().template Fields<value_type>().All();
         _stmt->Prepare(query);
         _stmt->Execute();
         _is_end = _stmt->FetchRow();
