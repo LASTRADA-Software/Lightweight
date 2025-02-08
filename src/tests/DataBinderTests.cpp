@@ -842,7 +842,7 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
 {
     SqlLogger::SetLogger(TestSuiteSqlLogger::GetLogger());
 
-    GIVEN(Reflection::TypeName<TestType>)
+    GIVEN(Reflection::TypeNameOf<TestType>)
     {
         {
             auto stmt = SqlStatement {};
@@ -859,7 +859,7 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
             {
                 if (serverType == conn.ServerType())
                 {
-                    WARN("Skipping blacklisted test for " << Reflection::TypeName<TestType> << ": " << reason);
+                    WARN("Skipping blacklisted test for " << Reflection::TypeNameOf<TestType> << ": " << reason);
                     return;
                 }
             }

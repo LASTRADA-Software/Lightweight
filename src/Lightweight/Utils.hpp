@@ -58,7 +58,7 @@ struct RecordTableName
         else
             return []() {
                 // TODO: Build plural
-                auto const typeName = Reflection::TypeName<Record>;
+                auto const typeName = Reflection::TypeNameOf<Record>;
                 if (auto const i = typeName.rfind(':'); i != std::string_view::npos)
                     return typeName.substr(i + 1);
                 return typeName;
@@ -101,7 +101,7 @@ struct FieldNameOfImpl<R T::*, F>
             if constexpr (!R::ColumnNameOverride.empty())
                 return R::ColumnNameOverride;
         }
-        return Reflection::GetName<F>();
+        return Reflection::NameOf<F>;
     }();
 };
 

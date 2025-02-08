@@ -540,7 +540,7 @@ inline std::ostream& operator<<(std::ostream& os, SqlFixedString<N, T, Mode> con
             auto u8String = ToUtf8(std::basic_string_view<T>(value.data(), value.size()));
             return os << std::format("SqlVariableString<{}, {}> {{ size: {}, '{}' }}",
                                      N,
-                                     Reflection::TypeName<T>,
+                                     Reflection::TypeNameOf<T>,
                                      value.size(),
                                      (char const*) u8String.c_str());
         }

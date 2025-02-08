@@ -30,7 +30,7 @@ std::ostream& operator<<(std::ostream& os, Field<std::optional<T>, P1, P2> const
 {
     if (field.Value())
         return os << std::format("Field<{}> {{ {}, {} }}",
-                                 Reflection::TypeName<T>,
+                                 Reflection::TypeNameOf<T>,
                                  *field.Value(),
                                  field.IsModified() ? "modified" : "not modified");
     else
@@ -40,7 +40,7 @@ std::ostream& operator<<(std::ostream& os, Field<std::optional<T>, P1, P2> const
 template <typename T, auto P1, auto P2>
 std::ostream& operator<<(std::ostream& os, Field<T, P1, P2> const& field)
 {
-    return os << std::format("Field<{}> {{ ", Reflection::TypeName<T>) << "value: " << field.Value() << "; "
+    return os << std::format("Field<{}> {{ ", Reflection::TypeNameOf<T>) << "value: " << field.Value() << "; "
               << (field.IsModified() ? "modified" : "not modified") << " }";
 }
 

@@ -193,7 +193,7 @@ class BelongsTo
         _loader.loadReference();
 
         if (!_loaded)
-            throw SqlRequireLoadedError(Reflection::TypeName<std::remove_cvref_t<decltype(*this)>>);
+            throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>);
     }
 
     ValueType _referencedFieldValue {};

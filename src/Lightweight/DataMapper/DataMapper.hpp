@@ -317,10 +317,10 @@ std::string DataMapper::Inspect(Record const& record)
             str += '\n';
 
         if constexpr (FieldWithStorage<Value>)
-            str += std::format("{} {} := {}", Reflection::TypeName<Value>, name, value.Value());
+            str += std::format("{} {} := {}", Reflection::TypeNameOf<Value>, name, value.Value());
         else if constexpr (!IsHasMany<Value> && !IsHasManyThrough<Value> && !IsHasOneThrough<Value>
                            && !IsBelongsTo<Value>)
-            str += std::format("{} {} := {}", Reflection::TypeName<Value>, name, value);
+            str += std::format("{} {} := {}", Reflection::TypeNameOf<Value>, name, value);
     });
     return "{" + std::move(str) + "}";
 }
