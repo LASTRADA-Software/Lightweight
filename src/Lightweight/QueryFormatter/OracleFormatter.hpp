@@ -23,12 +23,12 @@ class OracleSqlQueryFormatter final: public SQLiteQueryFormatter
     }
 
     [[nodiscard]] std::string SelectFirst(bool distinct,
-                                          std::string const& fields,
-                                          std::string const& fromTable,
-                                          std::string const& fromTableAlias,
-                                          std::string const& tableJoins,
-                                          std::string const& whereCondition,
-                                          std::string const& orderBy,
+                                          std::string_view fields,
+                                          std::string_view fromTable,
+                                          std::string_view fromTableAlias,
+                                          std::string_view tableJoins,
+                                          std::string_view whereCondition,
+                                          std::string_view orderBy,
                                           size_t count) const override
     {
         std::stringstream sqlQueryString;
@@ -48,13 +48,13 @@ class OracleSqlQueryFormatter final: public SQLiteQueryFormatter
     }
 
     [[nodiscard]] std::string SelectRange(bool distinct,
-                                          std::string const& fields,
-                                          std::string const& fromTable,
-                                          std::string const& fromTableAlias,
-                                          std::string const& tableJoins,
-                                          std::string const& whereCondition,
-                                          std::string const& orderBy,
-                                          std::string const& groupBy,
+                                          std::string_view fields,
+                                          std::string_view fromTable,
+                                          std::string_view fromTableAlias,
+                                          std::string_view tableJoins,
+                                          std::string_view whereCondition,
+                                          std::string_view orderBy,
+                                          std::string_view groupBy,
                                           std::size_t offset,
                                           std::size_t limit) const override
     {

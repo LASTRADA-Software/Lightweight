@@ -10,9 +10,9 @@
 class SQLiteQueryFormatter: public SqlQueryFormatter
 {
   public:
-    [[nodiscard]] std::string Insert(std::string const& intoTable,
-                                     std::string const& fields,
-                                     std::string const& values) const override
+    [[nodiscard]] std::string Insert(std::string_view intoTable,
+                                     std::string_view fields,
+                                     std::string_view values) const override
     {
         return std::format(R"(INSERT INTO "{}" ({}) VALUES ({}))", intoTable, fields, values);
     }
@@ -41,10 +41,10 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
     [[nodiscard]] std::string SelectCount(bool distinct,
-                                          std::string const& fromTable,
-                                          std::string const& fromTableAlias,
-                                          std::string const& tableJoins,
-                                          std::string const& whereCondition) const override
+                                          std::string_view fromTable,
+                                          std::string_view fromTableAlias,
+                                          std::string_view tableJoins,
+                                          std::string_view whereCondition) const override
     {
         if (fromTableAlias.empty())
             return std::format(R"(SELECT{} COUNT(*) FROM "{}"{}{})",
@@ -62,13 +62,13 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
     [[nodiscard]] std::string SelectAll(bool distinct,
-                                        std::string const& fields,
-                                        std::string const& fromTable,
-                                        std::string const& fromTableAlias,
-                                        std::string const& tableJoins,
-                                        std::string const& whereCondition,
-                                        std::string const& orderBy,
-                                        std::string const& groupBy) const override
+                                        std::string_view fields,
+                                        std::string_view fromTable,
+                                        std::string_view fromTableAlias,
+                                        std::string_view tableJoins,
+                                        std::string_view whereCondition,
+                                        std::string_view orderBy,
+                                        std::string_view groupBy) const override
     {
         std::stringstream sqlQueryString;
         sqlQueryString << "SELECT ";
@@ -87,12 +87,12 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
     [[nodiscard]] std::string SelectFirst(bool distinct,
-                                          std::string const& fields,
-                                          std::string const& fromTable,
-                                          std::string const& fromTableAlias,
-                                          std::string const& tableJoins,
-                                          std::string const& whereCondition,
-                                          std::string const& orderBy,
+                                          std::string_view fields,
+                                          std::string_view fromTable,
+                                          std::string_view fromTableAlias,
+                                          std::string_view tableJoins,
+                                          std::string_view whereCondition,
+                                          std::string_view orderBy,
                                           size_t count) const override
     {
         std::stringstream sqlQueryString;
@@ -110,13 +110,13 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
     [[nodiscard]] std::string SelectRange(bool distinct,
-                                          std::string const& fields,
-                                          std::string const& fromTable,
-                                          std::string const& fromTableAlias,
-                                          std::string const& tableJoins,
-                                          std::string const& whereCondition,
-                                          std::string const& orderBy,
-                                          std::string const& groupBy,
+                                          std::string_view fields,
+                                          std::string_view fromTable,
+                                          std::string_view fromTableAlias,
+                                          std::string_view tableJoins,
+                                          std::string_view whereCondition,
+                                          std::string_view orderBy,
+                                          std::string_view groupBy,
                                           std::size_t offset,
                                           std::size_t limit) const override
     {
@@ -135,10 +135,10 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return sqlQueryString.str();
     }
 
-    [[nodiscard]] std::string Update(std::string const& table,
-                                     std::string const& tableAlias,
-                                     std::string const& setFields,
-                                     std::string const& whereCondition) const override
+    [[nodiscard]] std::string Update(std::string_view table,
+                                     std::string_view tableAlias,
+                                     std::string_view setFields,
+                                     std::string_view whereCondition) const override
     {
         if (tableAlias.empty())
             return std::format(R"(UPDATE "{}" SET {}{})", table, setFields, whereCondition);
@@ -146,10 +146,10 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
             return std::format(R"(UPDATE "{}" AS "{}" SET {}{})", table, tableAlias, setFields, whereCondition);
     }
 
-    [[nodiscard]] std::string Delete(std::string const& fromTable,
-                                     std::string const& fromTableAlias,
-                                     std::string const& tableJoins,
-                                     std::string const& whereCondition) const override
+    [[nodiscard]] std::string Delete(std::string_view fromTable,
+                                     std::string_view fromTableAlias,
+                                     std::string_view tableJoins,
+                                     std::string_view whereCondition) const override
     {
         if (fromTableAlias.empty())
             return std::format(R"(DELETE FROM "{}"{}{})", fromTable, tableJoins, whereCondition);
@@ -180,7 +180,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return sqlQueryString.str();
     }
 
-    [[nodiscard]] static std::string BuildForeignKeyConstraint(std::string const& columnName,
+    [[nodiscard]] static std::string BuildForeignKeyConstraint(std::string_view columnName,
                                                                SqlForeignKeyReferenceDefinition const& referencedColumn)
     {
         return std::format(R"(CONSTRAINT {} FOREIGN KEY ("{}") REFERENCES "{}"("{}"))",
