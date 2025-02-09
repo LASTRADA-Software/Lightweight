@@ -924,12 +924,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with multiple primary keys", "[DataMappe
         CHECK_THROWS_AS(dm.CreateExplicit(MultiPkRecord { .firstName = "John", .lastName = "Doe" }), SqlException);
     }
 
-    // clang-format off
-    auto queriedRecords = dm.Query<MultiPkRecord>(dm.FromTable(RecordTableName<MultiPkRecord>)
-                                                    .Select()
-                                                    .Fields<MultiPkRecord>()
-                                                    .All());
-    // clang-format on
+    auto queriedRecords = dm.Query<MultiPkRecord>().All();
 
     CHECK(queriedRecords.size() == 1);
     auto const& queriedRecord = queriedRecords.at(0);
@@ -971,8 +966,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with aliased column names", "[DataMapper
     auto const queriedRecord = dm.QuerySingle<AliasedRecord>(record.id).value();
     CHECK(queriedRecord == record);
 
-    auto const queriedRecords2 = dm.Query<AliasedRecord>(
-        dm.FromTable(AliasedRecord::TableName).Select().Fields({ "pk"sv, "c1"sv, "c2"sv }, "TheAliasedRecord").All());
+    auto const queriedRecords2 = dm.Query<AliasedRecord>().All();
     CHECK(queriedRecords2.size() == 1);
     auto const& queriedRecord2 = queriedRecords2.at(0);
     CHECK(queriedRecord2 == record);
@@ -1019,8 +1013,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Test DifferenceView", "[DataMapper]")
     auto second = PersonDifferenceView { .name = "John Doe", .age = 19 };
     dm.Create(second);
 
-    auto persons = dm.Query<PersonDifferenceView>(
-        dm.FromTable(RecordTableName<PersonDifferenceView>).Select().Fields<PersonDifferenceView>().All());
+    auto persons = dm.Query<PersonDifferenceView>().All();
     auto difference = CollectDifferences(persons[0], persons[1]);
 
     auto differenceCount = 0;
