@@ -39,13 +39,20 @@ var hierarchy =
     [ "SqlTime", "d5/d6d/structSqlTime.html", null ],
     [ "SqlTransaction", "d1/dc2/classSqlTransaction.html", null ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html", null ],
-    [ "SqlWhereClauseBuilder< Derived >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
+    [ "SqlWhereClauseBuilder< Derived >", "d2/dca/classSqlWhereClauseBuilder.html", [
+      [ "SqlCoreDataMapperQueryBuilder< Record, SqlAllFieldsQueryBuilder< Record > >", "d7/d28/classSqlCoreDataMapperQueryBuilder.html", null ],
+      [ "SqlCoreDataMapperQueryBuilder< Record, SqlSparseFieldQueryBuilder< Record, ReferencedFields... > >", "d7/d28/classSqlCoreDataMapperQueryBuilder.html", null ],
+      [ "SqlCoreDataMapperQueryBuilder< Record, Derived >", "d7/d28/classSqlCoreDataMapperQueryBuilder.html", null ]
+    ] ],
+    [ "SqlWhereClauseBuilder< SqlAllFieldsQueryBuilder< Record > >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
     [ "SqlWhereClauseBuilder< SqlDeleteQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", [
       [ "SqlDeleteQueryBuilder", "d8/d88/classSqlDeleteQueryBuilder.html", null ]
     ] ],
+    [ "SqlWhereClauseBuilder< SqlQuerySingleBuilder< Record > >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
     [ "SqlWhereClauseBuilder< SqlSelectQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", [
       [ "SqlSelectQueryBuilder", "d1/d91/classSqlSelectQueryBuilder.html", null ]
     ] ],
+    [ "SqlWhereClauseBuilder< SqlSparseFieldQueryBuilder< Record, ReferencedFields... > >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
     [ "SqlWhereClauseBuilder< SqlUpdateQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", [
       [ "SqlUpdateQueryBuilder", "db/d2a/classSqlUpdateQueryBuilder.html", null ]
     ] ],

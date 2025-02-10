@@ -1,5 +1,9 @@
 var NAVTREEINDEX2 =
 {
+"df/dd6/classHasManyThrough.html#a379b3afee3886e4166554b650ce0886b":[4,0,6,0],
+"df/dd6/classHasManyThrough.html#a56e2846ccbab38e110dc8933a803601f":[4,0,6,11],
+"df/dd6/classHasManyThrough.html#a75b212d9afc6f26766bb140dfc998dd5":[4,0,6,7],
+"df/dd6/classHasManyThrough.html#aa03ed517bdce05cd3d2ccd4f3a42110a":[4,0,6,14],
 "df/dd6/classHasManyThrough.html#aacf4f1b9fd8bfae73dce606bb7baf56e":[4,0,6,4],
 "df/dd6/classHasManyThrough.html#ac7febd9e38b439c6b0907e6dcf85f99c":[4,0,6,9],
 "df/dd6/classHasManyThrough.html#ad933650d8d25c20431da3672f81b7450":[4,0,6,2],
@@ -63,8 +67,8 @@ var NAVTREEINDEX2 =
 "functions_w.html":[6,2,0,19],
 "functions_~.html":[6,2,0,20],
 "hierarchy.html":[6,1],
-"index.html":[0],
 "index.html":[],
+"index.html":[0],
 "index.html#example-crud-style-high-level-data-mapping":[0,1],
 "index.html#example-simple-row-retrieval-via-structs":[0,2],
 "index.html#goals":[0,0],

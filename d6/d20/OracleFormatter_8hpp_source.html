@@ -123,12 +123,12 @@ $(document).ready(function(){initNavTree('d6/d20/OracleFormatter_8hpp_source.htm
 <div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>    }</div>
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span> </div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>    [[nodiscard]] std::string SelectFirst(<span class="keywordtype">bool</span> distinct,</div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>                                          std::string <span class="keyword">const</span>&amp; fields,</div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>                                          std::string <span class="keyword">const</span>&amp; fromTable,</div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>                                          std::string <span class="keyword">const</span>&amp; fromTableAlias,</div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>                                          std::string <span class="keyword">const</span>&amp; tableJoins,</div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>                                          std::string <span class="keyword">const</span>&amp; whereCondition,</div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>                                          std::string <span class="keyword">const</span>&amp; orderBy,</div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>                                          std::string_view fields,</div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>                                          std::string_view fromTable,</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>                                          std::string_view fromTableAlias,</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>                                          std::string_view tableJoins,</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>                                          std::string_view whereCondition,</div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>                                          std::string_view orderBy,</div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>                                          <span class="keywordtype">size_t</span> count)<span class="keyword"> const override</span></div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>        std::stringstream sqlQueryString;</div>
@@ -148,13 +148,13 @@ $(document).ready(function(){initNavTree('d6/d20/OracleFormatter_8hpp_source.htm
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>    }</div>
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span> </div>
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>    [[nodiscard]] std::string SelectRange(<span class="keywordtype">bool</span> distinct,</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>                                          std::string <span class="keyword">const</span>&amp; fields,</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>                                          std::string <span class="keyword">const</span>&amp; fromTable,</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>                                          std::string <span class="keyword">const</span>&amp; fromTableAlias,</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>                                          std::string <span class="keyword">const</span>&amp; tableJoins,</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>                                          std::string <span class="keyword">const</span>&amp; whereCondition,</div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>                                          std::string <span class="keyword">const</span>&amp; orderBy,</div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>                                          std::string <span class="keyword">const</span>&amp; groupBy,</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>                                          std::string_view fields,</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>                                          std::string_view fromTable,</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>                                          std::string_view fromTableAlias,</div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>                                          std::string_view tableJoins,</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>                                          std::string_view whereCondition,</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>                                          std::string_view orderBy,</div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>                                          std::string_view groupBy,</div>
 <div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>                                          std::size_t offset,</div>
 <div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>                                          std::size_t limit)<span class="keyword"> const override</span></div>
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span><span class="keyword">    </span>{</div>

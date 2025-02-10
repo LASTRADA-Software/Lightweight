@@ -12,7 +12,7 @@ var searchData=
   ['datamapperrecord_9',['DataMapperRecord',['../d2/db8/conceptDataMapperRecord.html',1,'']]],
   ['default_20connection_20information_20to_20the_20database_10',['Configure default connection information to the database',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database',1,'']]],
   ['defaultconnectionstring_11',['DefaultConnectionString',['../d7/d7b/classSqlConnection.html#a8989933c0a151abb0ef48fccd4a1b017',1,'SqlConnection']]],
-  ['delete_12',['delete',['../dc/df2/classSqlQueryFormatter.html#a6032809b345bec9d57919a8065cbd974',1,'SqlQueryFormatter::Delete()'],['../d0/d78/classSqlQueryBuilder.html#a4b67b677befdd73664827d292e2fac61',1,'SqlQueryBuilder::Delete()'],['../dc/dc7/classDataMapper.html#acfcb03b2a7b0534cfd27287b93e7b907',1,'DataMapper::Delete()']]],
+  ['delete_12',['delete',['../dc/df2/classSqlQueryFormatter.html#acb760d8f25e9e3f7a38036068c82b863',1,'SqlQueryFormatter::Delete()'],['../d0/d78/classSqlQueryBuilder.html#a4b67b677befdd73664827d292e2fac61',1,'SqlQueryBuilder::Delete()'],['../dc/dc7/classDataMapper.html#acfcb03b2a7b0534cfd27287b93e7b907',1,'DataMapper::Delete()']]],
   ['distinct_13',['Distinct',['../d1/d91/classSqlSelectQueryBuilder.html#a7d2ebe513cf4ba7bd27689a63be95e38',1,'SqlSelectQueryBuilder']]],
   ['driver_20installation_20on_20other_20operating_20systems_14',['SQLite ODBC driver installation on other operating systems',['../index.html#sqlite-odbc-driver-installation-on-other-operating-systems',1,'']]],
   ['driver_20related_20best_20practices_15',['SQL driver related best practices',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-driver-related-best-practices',1,'']]],

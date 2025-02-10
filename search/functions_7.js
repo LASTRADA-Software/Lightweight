@@ -2,7 +2,7 @@ var searchData=
 [
   ['index_0',['Index',['../d4/d4a/classSqlCreateTableQueryBuilder.html#a432d2469420055cfbdbaaa4c67e9b25c',1,'SqlCreateTableQueryBuilder']]],
   ['innerjoin_1',['innerjoin',['../d2/dca/classSqlWhereClauseBuilder.html#a19f7c5ceec9b60b4e01450a42838cd91',1,'SqlWhereClauseBuilder::InnerJoin(std::string_view joinTable, std::string_view joinColumnName, SqlQualifiedTableColumnName onOtherColumn)'],['../d2/dca/classSqlWhereClauseBuilder.html#a38231589341eb7afe07a043fb054298e',1,'SqlWhereClauseBuilder::InnerJoin(std::string_view joinTable, std::string_view joinColumnName, std::string_view onMainTableColumn)'],['../d2/dca/classSqlWhereClauseBuilder.html#aaa1c1d27823d863c6248bb7759ef6c12',1,'SqlWhereClauseBuilder::InnerJoin(std::string_view joinTable, OnChainCallable const &amp;onClauseBuilder)']]],
-  ['insert_2',['insert',['../d0/d78/classSqlQueryBuilder.html#a2752da20dcda5fc1527670062fb45bdf',1,'SqlQueryBuilder::Insert()'],['../dc/df2/classSqlQueryFormatter.html#ac4e10a48122871f2bf5797433626c309',1,'SqlQueryFormatter::Insert()']]],
+  ['insert_2',['insert',['../d0/d78/classSqlQueryBuilder.html#a2752da20dcda5fc1527670062fb45bdf',1,'SqlQueryBuilder::Insert()'],['../dc/df2/classSqlQueryFormatter.html#ad7b2761d14f9b93b5fad0c88d7dd10fb',1,'SqlQueryFormatter::Insert()']]],
   ['inspect_3',['Inspect',['../dc/dc7/classDataMapper.html#a4b974aa78414c5dec9a60c13a35516b0',1,'DataMapper']]],
   ['inspectvalue_4',['InspectValue',['../df/d27/structField.html#a09d24464919b54e0109a8340129a1d4e',1,'Field']]],
   ['is_5',['Is',['../d0/df8/structSqlVariant.html#a6a3a8acb604aac26eee474337475546b',1,'SqlVariant']]],

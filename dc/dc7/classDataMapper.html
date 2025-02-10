@@ -164,6 +164,10 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a9cd001a64226389a0803d76b499081e2"><td class="memTemplItemLeft" align="right" valign="top">std::optional&lt; Record &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dc/dc7/classDataMapper.html#a9cd001a64226389a0803d76b499081e2">QuerySingle</a> (PrimaryKeyTypes &amp;&amp;... primaryKeys)</td></tr>
 <tr class="memdesc:a9cd001a64226389a0803d76b499081e2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Queries a single record (based on primary key) from the database.  <br /></td></tr>
 <tr class="separator:a9cd001a64226389a0803d76b499081e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4f94e2f2ea26e48a64bb6a3c5ca18b53" id="r_a4f94e2f2ea26e48a64bb6a3c5ca18b53"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
+<tr class="memitem:a4f94e2f2ea26e48a64bb6a3c5ca18b53"><td class="memTemplItemLeft" align="right" valign="top">SqlQuerySingleBuilder&lt; Record &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dc/dc7/classDataMapper.html#a4f94e2f2ea26e48a64bb6a3c5ca18b53">QuerySingle</a> ()</td></tr>
+<tr class="memdesc:a4f94e2f2ea26e48a64bb6a3c5ca18b53"><td class="mdescLeft">&#160;</td><td class="mdescRight">Queries a single record from the database.  <br /></td></tr>
+<tr class="separator:a4f94e2f2ea26e48a64bb6a3c5ca18b53"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4087831801de0daa9add83cb4e0d7e78" id="r_a4087831801de0daa9add83cb4e0d7e78"><td class="memTemplParams" colspan="2">template&lt;typename Record , typename ColumnName , typename T &gt; </td></tr>
 <tr class="memitem:a4087831801de0daa9add83cb4e0d7e78"><td class="memTemplItemLeft" align="right" valign="top">std::optional&lt; Record &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dc/dc7/classDataMapper.html#a4087831801de0daa9add83cb4e0d7e78">QuerySingleBy</a> (ColumnName const &amp;columnName, T const &amp;value)</td></tr>
 <tr class="memdesc:a4087831801de0daa9add83cb4e0d7e78"><td class="mdescLeft">&#160;</td><td class="mdescRight">Queries a single record by the given column name and value.  <br /></td></tr>
@@ -180,6 +184,12 @@ template&lt;typename Record , typename... InputParameters&gt; </td></tr>
 <tr class="memitem:a68a1d1cb3e017bae2ac784a6ed816136" id="r_a68a1d1cb3e017bae2ac784a6ed816136"><td class="memTemplParams" colspan="2">template&lt;typename ElementMask , typename Record , typename... InputParameters&gt; </td></tr>
 <tr class="memitem:a68a1d1cb3e017bae2ac784a6ed816136"><td class="memTemplItemLeft" align="right" valign="top">std::vector&lt; Record &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dc/dc7/classDataMapper.html#a68a1d1cb3e017bae2ac784a6ed816136">Query</a> (SqlSelectQueryBuilder::ComposedQuery const &amp;selectQuery, InputParameters &amp;&amp;... inputParameters)</td></tr>
 <tr class="separator:a68a1d1cb3e017bae2ac784a6ed816136"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac89b1cb83d761f853f3db8744c0ce7f8" id="r_ac89b1cb83d761f853f3db8744c0ce7f8"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
+<tr class="memitem:ac89b1cb83d761f853f3db8744c0ce7f8"><td class="memTemplItemLeft" align="right" valign="top">SqlAllFieldsQueryBuilder&lt; Record &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dc/dc7/classDataMapper.html#ac89b1cb83d761f853f3db8744c0ce7f8">Query</a> ()</td></tr>
+<tr class="separator:ac89b1cb83d761f853f3db8744c0ce7f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a05e890e88fea5bc6b61ddecaa5278855" id="r_a05e890e88fea5bc6b61ddecaa5278855"><td class="memTemplParams" colspan="2">template&lt;typename Record , auto... ReferencedFields&gt; </td></tr>
+<tr class="memitem:a05e890e88fea5bc6b61ddecaa5278855"><td class="memTemplItemLeft" align="right" valign="top">SqlSparseFieldQueryBuilder&lt; Record, ReferencedFields... &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dc/dc7/classDataMapper.html#a05e890e88fea5bc6b61ddecaa5278855">QuerySparse</a> ()</td></tr>
+<tr class="separator:a05e890e88fea5bc6b61ddecaa5278855"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0cfde49ef08f08db4ae20518e30a6a0a" id="r_a0cfde49ef08f08db4ae20518e30a6a0a"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
 <tr class="memitem:a0cfde49ef08f08db4ae20518e30a6a0a"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dc/dc7/classDataMapper.html#a0cfde49ef08f08db4ae20518e30a6a0a">IsModified</a> (Record const &amp;record) const noexcept</td></tr>
 <tr class="memdesc:a0cfde49ef08f08db4ae20518e30a6a0a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if the record has any modified fields.  <br /></td></tr>
@@ -201,10 +211,10 @@ template&lt;typename Record &gt; </td></tr>
 <tr class="memitem:a3c24766350a44e5c1c59f9201bf2fcc4"><td class="memTemplItemLeft" align="right" valign="top">std::vector&lt; Record &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dc/dc7/classDataMapper.html#a3c24766350a44e5c1c59f9201bf2fcc4">All</a> ()</td></tr>
 <tr class="memdesc:a3c24766350a44e5c1c59f9201bf2fcc4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Loads all records from the database for the given record type.  <br /></td></tr>
 <tr class="separator:a3c24766350a44e5c1c59f9201bf2fcc4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a58a564dd09a3fb2386135032251ac4a6" id="r_a58a564dd09a3fb2386135032251ac4a6"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
-<tr class="memitem:a58a564dd09a3fb2386135032251ac4a6"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dc/dc7/classDataMapper.html#a58a564dd09a3fb2386135032251ac4a6">Query</a> () -&gt; <a class="el" href="../../d0/d78/classSqlQueryBuilder.html">SqlQueryBuilder</a></td></tr>
-<tr class="memdesc:a58a564dd09a3fb2386135032251ac4a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL query builder for the given record type.  <br /></td></tr>
-<tr class="separator:a58a564dd09a3fb2386135032251ac4a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acb0808f4b38ae0fbd9bef14f32697c22" id="r_acb0808f4b38ae0fbd9bef14f32697c22"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
+<tr class="memitem:acb0808f4b38ae0fbd9bef14f32697c22"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../dc/dc7/classDataMapper.html#acb0808f4b38ae0fbd9bef14f32697c22">BuildQuery</a> () -&gt; <a class="el" href="../../d0/d78/classSqlQueryBuilder.html">SqlQueryBuilder</a></td></tr>
+<tr class="memdesc:acb0808f4b38ae0fbd9bef14f32697c22"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL query builder for the given record type.  <br /></td></tr>
+<tr class="separator:acb0808f4b38ae0fbd9bef14f32697c22"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ab092be293cff17e7adb7c66d7bf6c0" id="r_a8ab092be293cff17e7adb7c66d7bf6c0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d0/d78/classSqlQueryBuilder.html">SqlQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/dc7/classDataMapper.html#a8ab092be293cff17e7adb7c66d7bf6c0">FromTable</a> (std::string_view tableName)</td></tr>
 <tr class="memdesc:a8ab092be293cff17e7adb7c66d7bf6c0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL query builder for the given table name.  <br /></td></tr>
 <tr class="separator:a8ab092be293cff17e7adb7c66d7bf6c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -255,7 +265,7 @@ Static Public Member Functions</h2></td></tr>
 <p>A <a class="el" href="../../dc/dc7/classDataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a> instances operates on a single SQL connection and provides methods to create, read, update and delete records in the database.</p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../df/d27/structField.html" title="Represents a single column in a table.">Field</a>, <a class="el" href="../../df/d1a/classBelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a>, <a class="el" href="../../d3/d09/classHasMany.html" title="This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.">HasMany</a>, <a class="el" href="../../df/dd6/classHasManyThrough.html" title="This API represents a many-to-many relationship between two records through a third record.">HasManyThrough</a>, <a class="el" href="../../da/d9d/classHasOneThrough.html" title="Represents a one-to-one relationship through a join table.">HasOneThrough</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00078">78</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00311">311</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="aeca0c52b22597fb398863360dd125c56" name="aeca0c52b22597fb398863360dd125c56"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aeca0c52b22597fb398863360dd125c56">&#9670;&#160;</a></span>DataMapper() <span class="overload">[1/3]</span></h2>
@@ -282,7 +292,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Constructs a new data mapper, using the default connection. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00082">82</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00315">315</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -312,7 +322,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Constructs a new data mapper, using the given connection. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00089">89</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00322">322</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -342,7 +352,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Constructs a new data mapper, using the given connection string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00096">96</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00329">329</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -372,7 +382,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Returns the connection reference used by this data mapper. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00109">109</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00342">342</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -401,7 +411,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Returns the mutable connection reference used by this data mapper. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00115">115</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00348">348</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -433,7 +443,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Constructs a human readable string representation of the given record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00310">310</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00629">629</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -457,7 +467,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Constructs a string list of SQL queries to create the table for the given record type. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00330">330</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00648">648</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../dc/df2/classSqlQueryFormatter.html#a44f9a346936459d5752962ea376ff330">SqlQueryFormatter::Get()</a>, and <a class="el" href="../../d0/d78/classSqlQueryBuilder.html#aef9b2b49b2ebde2e23fcdabd1d450eb2">SqlQueryBuilder::Migration()</a>.</p>
 
@@ -483,7 +493,7 @@ template&lt;typename FirstRecord , typename... MoreRecords&gt; </div>
 
 <p>Constructs a string list of SQL queries to create the tables for the given record types. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00379">379</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00697">697</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -506,7 +516,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Creates the table for the given record type. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00391">391</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00709">709</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../df/d17/classSqlStatement.html#a945c53d6f2882289703f9ac98f3f171c">SqlStatement::ExecuteDirect()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00179">SqlConnection::ServerType()</a>.</p>
 
@@ -531,7 +541,7 @@ template&lt;typename FirstRecord , typename... MoreRecords&gt; </div>
 
 <p>Creates the tables for the given record types. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00401">401</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00719">719</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -557,9 +567,9 @@ template&lt;typename Record &gt; </div>
 <p>The record is inserted into the database and the primary key is set on this record.</p>
 <dl class="section return"><dt>Returns</dt><dd>The primary key of the newly created record. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00447">447</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00765">765</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00702">ClearModifiedState()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01041">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../d2/d62/structSqlGuid.html#a613b5dc1dcdaca783c74fcced32091ba">SqlGuid::Create()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00417">CreateExplicit()</a>.</p>
+<p class="reference">References <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01020">ClearModifiedState()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01359">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../d2/d62/structSqlGuid.html#a613b5dc1dcdaca783c74fcced32091ba">SqlGuid::Create()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00735">CreateExplicit()</a>.</p>
 
 </div>
 </div>
@@ -585,16 +595,16 @@ template&lt;typename Record &gt; </div>
 <dl class="section note"><dt>Note</dt><dd>This is a variation of the <a class="el" href="../../dc/dc7/classDataMapper.html#a12e76849c4b2f5b2f558c546f9c4b62f" title="Creates a new record in the database.">Create()</a> method and does not update the record's primary key.</dd></dl>
 <dl class="section return"><dt>Returns</dt><dd>The primary key of the newly created record. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00417">417</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00735">735</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00526">SqlStatement::Execute()</a>, <a class="el" href="../../d0/d78/classSqlQueryBuilder.html#a2752da20dcda5fc1527670062fb45bdf">SqlQueryBuilder::Insert()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#ac7300b4d29568ae83bb7cc4f01fa8051">SqlStatement::LastInsertId()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>, and <a class="el" href="../../d7/d7b/classSqlConnection.html#a12d862df9a05ab9511730e6ae7355428">SqlConnection::Query()</a>.</p>
+<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00539">SqlStatement::Execute()</a>, <a class="el" href="../../d0/d78/classSqlQueryBuilder.html#a2752da20dcda5fc1527670062fb45bdf">SqlQueryBuilder::Insert()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#ac7300b4d29568ae83bb7cc4f01fa8051">SqlStatement::LastInsertId()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>, and <a class="el" href="../../d7/d7b/classSqlConnection.html#a12d862df9a05ab9511730e6ae7355428">SqlConnection::Query()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00447">Create()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00765">Create()</a>.</p>
 
 </div>
 </div>
 <a id="abc5831d373b3818e7b0dd856e5998209" name="abc5831d373b3818e7b0dd856e5998209"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abc5831d373b3818e7b0dd856e5998209">&#9670;&#160;</a></span>QuerySingle() <span class="overload">[1/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#abc5831d373b3818e7b0dd856e5998209">&#9670;&#160;</a></span>QuerySingle() <span class="overload">[1/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -631,14 +641,14 @@ template&lt;typename Record , typename... Args&gt; </div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The record if found, otherwise std::nullopt. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00623">623</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00941">941</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00747">SqlStatement::CloseCursor()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01041">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00526">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a>, <a class="el" href="../../d1/d91/classSqlSelectQueryBuilder.html#acd9a64863ff8499b7d762f3ced2d3be1">SqlSelectQueryBuilder::Field()</a>, <a class="el" href="../../d1/d91/classSqlSelectQueryBuilder.html#ae3645baf1d575e42c553f28db319c85a">SqlSelectQueryBuilder::First()</a>, and <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>.</p>
+<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00760">SqlStatement::CloseCursor()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01359">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00539">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a>, <a class="el" href="../../d1/d91/classSqlSelectQueryBuilder.html#acd9a64863ff8499b7d762f3ced2d3be1">SqlSelectQueryBuilder::Field()</a>, <a class="el" href="../../d1/d91/classSqlSelectQueryBuilder.html#ae3645baf1d575e42c553f28db319c85a">SqlSelectQueryBuilder::First()</a>, and <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>.</p>
 
 </div>
 </div>
 <a id="a9cd001a64226389a0803d76b499081e2" name="a9cd001a64226389a0803d76b499081e2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9cd001a64226389a0803d76b499081e2">&#9670;&#160;</a></span>QuerySingle() <span class="overload">[2/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a9cd001a64226389a0803d76b499081e2">&#9670;&#160;</a></span>QuerySingle() <span class="overload">[2/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -658,9 +668,47 @@ template&lt;typename Record , typename... PrimaryKeyTypes&gt; </div>
 <p>Queries a single record (based on primary key) from the database. </p>
 <p>The primary key(s) are used to identify the record to load. If the record is not found, std::nullopt is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00590">590</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00908">908</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00747">SqlStatement::CloseCursor()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01041">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00526">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>, <a class="el" href="../../d7/d7b/classSqlConnection.html#a12d862df9a05ab9511730e6ae7355428">SqlConnection::Query()</a>, and <a class="el" href="../../d0/d78/classSqlQueryBuilder.html#a540942748905edd6045fe8c3fb16a124">SqlQueryBuilder::Select()</a>.</p>
+<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00760">SqlStatement::CloseCursor()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01359">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00539">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>, <a class="el" href="../../d7/d7b/classSqlConnection.html#a12d862df9a05ab9511730e6ae7355428">SqlConnection::Query()</a>, and <a class="el" href="../../d0/d78/classSqlQueryBuilder.html#a540942748905edd6045fe8c3fb16a124">SqlQueryBuilder::Select()</a>.</p>
+
+</div>
+</div>
+<a id="a4f94e2f2ea26e48a64bb6a3c5ca18b53" name="a4f94e2f2ea26e48a64bb6a3c5ca18b53"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4f94e2f2ea26e48a64bb6a3c5ca18b53">&#9670;&#160;</a></span>QuerySingle() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">SqlQuerySingleBuilder&lt; Record &gt; DataMapper::QuerySingle </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Queries a single record from the database. </p>
+<dl class="section return"><dt>Returns</dt><dd>A query builder for the given Record type that will also allow executing the query.</dd></dl>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> record = dm.QuerySingle&lt;Person&gt;(personId)</div>
+<div class="line">                      .Where(FieldNameOf&lt;&amp;Person::id&gt;, <span class="stringliteral">&quot;=&quot;</span>, 42)</div>
+<div class="line">                      .Get();</div>
+<div class="line"><span class="keywordflow">if</span> (record.has_value())</div>
+<div class="line">    std::println(<span class="stringliteral">&quot;Person: {}&quot;</span>, <a class="code hl_function" href="../../dc/dc7/classDataMapper.html#a4b974aa78414c5dec9a60c13a35516b0">DataMapper::Inspect</a>(record.value()));</div>
+<div class="ttc" id="aclassDataMapper_html_a4b974aa78414c5dec9a60c13a35516b0"><div class="ttname"><a href="../../dc/dc7/classDataMapper.html#a4b974aa78414c5dec9a60c13a35516b0">DataMapper::Inspect</a></div><div class="ttdeci">static std::string Inspect(Record const &amp;record)</div><div class="ttdoc">Constructs a human readable string representation of the given record.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00629">DataMapper.hpp:629</a></div></div>
+</div><!-- fragment --> 
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00417">417</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -734,9 +782,9 @@ template&lt;typename Record , typename... InputParameters&gt; </div>
 
 <p>Queries multiple records from the database, based on the given query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00659">659</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00977">977</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01041">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00526">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a>, and <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>.</p>
+<p class="reference">References <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01359">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00539">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a>, and <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>.</p>
 
 </div>
 </div>
@@ -786,9 +834,78 @@ template&lt;typename ElementMask , typename Record , typename... InputParameters
 <div class="line">   <span class="comment">// only info.name and info.city are loaded</span></div>
 <div class="line">}</div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00684">684</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01002">1002</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01041">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00526">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a>, and <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>.</p>
+<p class="reference">References <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01359">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00539">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a>, and <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>.</p>
+
+</div>
+</div>
+<a id="ac89b1cb83d761f853f3db8744c0ce7f8" name="ac89b1cb83d761f853f3db8744c0ce7f8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac89b1cb83d761f853f3db8744c0ce7f8">&#9670;&#160;</a></span>Query() <span class="overload">[3/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">SqlAllFieldsQueryBuilder&lt; Record &gt; DataMapper::Query </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Queries records of given Record type.</p>
+<dl class="section return"><dt>Returns</dt><dd>A query builder for the given Record type. The query builder can be used to further refine the query. The query builder will execute the query when a method like <a class="el" href="../../dc/dc7/classDataMapper.html#a3c24766350a44e5c1c59f9201bf2fcc4" title="Loads all records from the database for the given record type.">All()</a>, First(n), etc. is called.</dd></dl>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> records = dm.Query&lt;Person&gt;()</div>
+<div class="line">                       .Where(FieldNameOf&lt;&amp;Person::is_active&gt;, <span class="stringliteral">&quot;=&quot;</span>, <span class="keyword">true</span>)</div>
+<div class="line">                       .All();</div>
+</div><!-- fragment --> 
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00489">489</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a05e890e88fea5bc6b61ddecaa5278855" name="a05e890e88fea5bc6b61ddecaa5278855"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a05e890e88fea5bc6b61ddecaa5278855">&#9670;&#160;</a></span>QuerySparse()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record , auto... ReferencedFields&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">SqlSparseFieldQueryBuilder&lt; Record, ReferencedFields... &gt; DataMapper::QuerySparse </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Queries select fields from the given Record type.</p>
+<p>The fields are given in form of &amp;Record::field1, &amp;Record::field2, ...</p>
+<dl class="section return"><dt>Returns</dt><dd>A query builder for the given Record type. The query builder can be used to further refine the query. The query builder will execute the query when a method like <a class="el" href="../../dc/dc7/classDataMapper.html#a3c24766350a44e5c1c59f9201bf2fcc4" title="Loads all records from the database for the given record type.">All()</a>, First(n), etc. is called.</dd></dl>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> records = dm.QuerySparse&lt;Person, &amp;Person::id, &amp;Person::name, &amp;Person::age&gt;()</div>
+<div class="line">                       .Where(FieldNameOf&lt;&amp;Person::is_active&gt;, <span class="stringliteral">&quot;=&quot;</span>, <span class="keyword">true</span>)</div>
+<div class="line">                       .All();</div>
+</div><!-- fragment --> 
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00518">518</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -820,7 +937,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Checks if the record has any modified fields. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00487">487</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00805">805</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -844,9 +961,9 @@ template&lt;typename Record &gt; </div>
 
 <p>Updates the record in the database. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00504">504</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00822">822</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00702">ClearModifiedState()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00526">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>, <a class="el" href="../../d7/d7b/classSqlConnection.html#a12d862df9a05ab9511730e6ae7355428">SqlConnection::Query()</a>, and <a class="el" href="../../d0/d78/classSqlQueryBuilder.html#a7ba41a3e575f9edd7254ff1f002ff789">SqlQueryBuilder::Update()</a>.</p>
+<p class="reference">References <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01020">ClearModifiedState()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00539">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>, <a class="el" href="../../d7/d7b/classSqlConnection.html#a12d862df9a05ab9511730e6ae7355428">SqlConnection::Query()</a>, and <a class="el" href="../../d0/d78/classSqlQueryBuilder.html#a7ba41a3e575f9edd7254ff1f002ff789">SqlQueryBuilder::Update()</a>.</p>
 
 </div>
 </div>
@@ -870,9 +987,9 @@ template&lt;typename Record &gt; </div>
 
 <p>Deletes the record from the database. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00543">543</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00861">861</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d0/d78/classSqlQueryBuilder.html#a4b67b677befdd73664827d292e2fac61">SqlQueryBuilder::Delete()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00526">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#a798024560a6f680836e08f90dbb7b928">SqlStatement::NumRowsAffected()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>, and <a class="el" href="../../d7/d7b/classSqlConnection.html#a12d862df9a05ab9511730e6ae7355428">SqlConnection::Query()</a>.</p>
+<p class="reference">References <a class="el" href="../../d0/d78/classSqlQueryBuilder.html#a4b67b677befdd73664827d292e2fac61">SqlQueryBuilder::Delete()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00539">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#a798024560a6f680836e08f90dbb7b928">SqlStatement::NumRowsAffected()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>, and <a class="el" href="../../d7/d7b/classSqlConnection.html#a12d862df9a05ab9511730e6ae7355428">SqlConnection::Query()</a>.</p>
 
 </div>
 </div>
@@ -895,14 +1012,14 @@ template&lt;typename Record &gt; </div>
 
 <p>Loads all records from the database for the given record type. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00584">584</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00902">902</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d1/d91/classSqlSelectQueryBuilder.html#ab6b6bbe36ee51d4de422c8681266da3d">SqlSelectQueryBuilder::All()</a>, <a class="el" href="../../d7/d7b/classSqlConnection.html#a12d862df9a05ab9511730e6ae7355428">SqlConnection::Query()</a>, and <a class="el" href="../../d0/d78/classSqlQueryBuilder.html#a540942748905edd6045fe8c3fb16a124">SqlQueryBuilder::Select()</a>.</p>
 
 </div>
 </div>
-<a id="a58a564dd09a3fb2386135032251ac4a6" name="a58a564dd09a3fb2386135032251ac4a6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a58a564dd09a3fb2386135032251ac4a6">&#9670;&#160;</a></span>Query() <span class="overload">[3/4]</span></h2>
+<a id="acb0808f4b38ae0fbd9bef14f32697c22" name="acb0808f4b38ae0fbd9bef14f32697c22"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acb0808f4b38ae0fbd9bef14f32697c22">&#9670;&#160;</a></span>BuildQuery()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -913,7 +1030,7 @@ template&lt;typename Record &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">auto DataMapper::Query </td>
+          <td class="memname">auto DataMapper::BuildQuery </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> -&gt; <a class="el" href="../../d0/d78/classSqlQueryBuilder.html">SqlQueryBuilder</a>
@@ -929,7 +1046,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Constructs an SQL query builder for the given record type. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00239">239</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00558">558</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/d7b/classSqlConnection.html#a12d862df9a05ab9511730e6ae7355428">SqlConnection::Query()</a>.</p>
 
@@ -961,7 +1078,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Constructs an SQL query builder for the given table name. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00245">245</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00564">564</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/d7b/classSqlConnection.html#a12d862df9a05ab9511730e6ae7355428">SqlConnection::Query()</a>.</p>
 
@@ -995,9 +1112,9 @@ template&lt;typename Record &gt; </div>
 
 <p>Clears the modified state of the record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00702">702</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01020">1020</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00447">Create()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00504">Update()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00765">Create()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00822">Update()</a>.</p>
 
 </div>
 </div>
@@ -1021,7 +1138,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Loads all direct relations to this record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00939">939</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01257">1257</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -1045,11 +1162,11 @@ template&lt;typename Record &gt; </div>
 <p>Configures the auto loading of relations for the given record.</p>
 <p>This means, that no explicit loading of relations is required. The relations are automatically loaded when accessed. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01041">1041</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01359">1359</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d1/d91/classSqlSelectQueryBuilder.html#ab6b6bbe36ee51d4de422c8681266da3d">SqlSelectQueryBuilder::All()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00747">SqlStatement::CloseCursor()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01041">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../d1/d91/classSqlSelectQueryBuilder.html#a4cb95d2b6c32e248289b8f16794da86c">SqlSelectQueryBuilder::Count()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00526">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00652">SqlStatement::GetColumn()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>, <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00071">HasOneThrough&lt; OtherTable, ThroughTable &gt;::SetAutoLoader()</a>, <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00182">BelongsTo&lt; TheReferencedField, ColumnNameOverrideString &gt;::SetAutoLoader()</a>, <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00129">HasMany&lt; OtherRecord &gt;::SetAutoLoader()</a>, and <a class="el" href="../../da/daf/HasManyThrough_8hpp_source.html#l00095">HasManyThrough&lt; ReferencedRecordT, ThroughRecordT &gt;::SetAutoLoader()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/d91/classSqlSelectQueryBuilder.html#ab6b6bbe36ee51d4de422c8681266da3d">SqlSelectQueryBuilder::All()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00760">SqlStatement::CloseCursor()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01359">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../d1/d91/classSqlSelectQueryBuilder.html#a4cb95d2b6c32e248289b8f16794da86c">SqlSelectQueryBuilder::Count()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00539">SqlStatement::Execute()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00665">SqlStatement::GetColumn()</a>, <a class="el" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare()</a>, <a class="el" href="../../d4/d56/HasOneThrough_8hpp_source.html#l00071">HasOneThrough&lt; OtherTable, ThroughTable &gt;::SetAutoLoader()</a>, <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00182">BelongsTo&lt; TheReferencedField, ColumnNameOverrideString &gt;::SetAutoLoader()</a>, <a class="el" href="../../d8/deb/HasMany_8hpp_source.html#l00129">HasMany&lt; OtherRecord &gt;::SetAutoLoader()</a>, and <a class="el" href="../../da/daf/HasManyThrough_8hpp_source.html#l00095">HasManyThrough&lt; ReferencedRecordT, ThroughRecordT &gt;::SetAutoLoader()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01041">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00447">Create()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00684">Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00659">Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00590">QuerySingle()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00623">QuerySingle()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01359">ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00765">Create()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01002">Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00977">Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00908">QuerySingle()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00941">QuerySingle()</a>.</p>
 
 </div>
 </div>
@@ -1070,7 +1187,7 @@ template&lt;typename Record &gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00571">571</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00889">889</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -1110,7 +1227,7 @@ template&lt;typename Record , typename... InputParameters&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00650">650</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00968">968</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -1140,7 +1257,7 @@ template&lt;typename Record &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00965">965</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01283">1283</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -1180,7 +1297,7 @@ template&lt;typename Record , typename ValueType &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00981">981</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01299">1299</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -1210,7 +1327,7 @@ template&lt;typename Record &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00998">998</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01316">1316</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -1240,7 +1357,7 @@ template&lt;typename ElementMask , typename Record &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01012">1012</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01330">1330</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
