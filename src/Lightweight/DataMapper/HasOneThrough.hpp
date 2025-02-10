@@ -83,7 +83,7 @@ class HasOneThrough
             _loader.loadReference();
 
         if (!IsLoaded())
-            throw SqlRequireLoadedError { Reflection::TypeName<std::remove_cvref_t<decltype(*this)>> };
+            throw SqlRequireLoadedError { Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>> };
     }
 
     Loader _loader {};

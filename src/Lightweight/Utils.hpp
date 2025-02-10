@@ -50,7 +50,7 @@ struct MemberClassTypeHelper<M T::*>
 };
 
 template <typename Record>
-struct RecordTableName
+struct RecordTableNameImpl
 {
     static constexpr std::string_view Value = []() {
         if constexpr (requires { Record::TableName; })
@@ -58,7 +58,7 @@ struct RecordTableName
         else
             return []() {
                 // TODO: Build plural
-                auto const typeName = Reflection::TypeName<Record>;
+                auto const typeName = Reflection::TypeNameOf<Record>;
                 if (auto const i = typeName.rfind(':'); i != std::string_view::npos)
                     return typeName.substr(i + 1);
                 return typeName;
@@ -101,7 +101,7 @@ struct FieldNameOfImpl<R T::*, F>
             if constexpr (!R::ColumnNameOverride.empty())
                 return R::ColumnNameOverride;
         }
-        return Reflection::GetName<F>();
+        return Reflection::NameOf<F>;
     }();
 };
 
@@ -141,7 +141,7 @@ constexpr inline std::string_view FieldNameOf =
 ///
 /// @ingroup DataMapper
 template <typename Record>
-constexpr std::string_view RecordTableName = detail::RecordTableName<Record>::Value;
+constexpr std::string_view RecordTableName = detail::RecordTableNameImpl<Record>::Value;
 
 template <template <typename...> class S, class T>
 concept IsSpecializationOf = detail::is_specialization_of<S, T>::value;

@@ -133,7 +133,7 @@ class HasManyThrough
             _loader.all();
 
         if (!_records)
-            throw SqlRequireLoadedError(Reflection::TypeName<std::remove_cvref_t<decltype(*this)>>);
+            throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>);
     }
 
     Loader _loader;

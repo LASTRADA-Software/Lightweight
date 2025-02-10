@@ -279,12 +279,26 @@ class [[nodiscard]] SqlResultCursor
     SqlResultCursor() = delete;
     SqlResultCursor(SqlResultCursor const&) = delete;
     SqlResultCursor& operator=(SqlResultCursor const&) = delete;
-    SqlResultCursor(SqlResultCursor&&) = delete;
-    SqlResultCursor& operator=(SqlResultCursor&&) = delete;
+
+    constexpr SqlResultCursor(SqlResultCursor&& other) noexcept: m_stmt { other.m_stmt }
+    {
+        other.m_stmt = nullptr;
+    }
+
+    constexpr SqlResultCursor& operator=(SqlResultCursor&& other) noexcept
+    {
+        if (this != &other)
+        {
+            m_stmt = other.m_stmt;
+            other.m_stmt = nullptr;
+        }
+        return *this;
+    }
 
     LIGHTWEIGHT_FORCE_INLINE ~SqlResultCursor()
     {
-        SQLCloseCursor(m_stmt->NativeHandle());
+        if (m_stmt)
+            SQLCloseCursor(m_stmt->NativeHandle());
     }
 
     /// Retrieves the number of rows affected by the last query.
@@ -400,8 +414,7 @@ class SqlRowIterator
 
     SqlRowIterator begin()
     {
-        auto query =
-            _stmt->Query(detail::RecordTableName<value_type>::Value).Select().template Fields<value_type>().All();
+        auto query = _stmt->Query(RecordTableName<value_type>).Select().template Fields<value_type>().All();
         _stmt->Prepare(query);
         _stmt->Execute();
         _is_end = _stmt->FetchRow();

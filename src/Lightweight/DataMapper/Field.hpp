@@ -302,10 +302,7 @@ struct SqlDataBinder<Field<T, P1, P2>>
                                                         SQLLEN* indicator,
                                                         SqlDataBinderCallback const& cb) noexcept
     {
-        auto const sqlReturn = SqlDataBinder<T>::GetColumn(stmt, column, &result->emplace(), indicator, cb);
-        if (SQL_SUCCEEDED(sqlReturn))
-            result->SetModified(true);
-        return sqlReturn;
+        return SqlDataBinder<T>::GetColumn(stmt, column, &result->emplace(), indicator, cb);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(ValueType const& value) noexcept

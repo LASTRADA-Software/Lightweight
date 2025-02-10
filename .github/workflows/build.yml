@@ -146,10 +146,6 @@ jobs:
           echo "CC_VERSION=${CC_VERSION}" >> "$GITHUB_OUTPUT"
       - name: "install dependencies"
         run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev
-      - name: "inspect"
-        run: |
-          dpkg -L unixodbc-common
-          dpkg -L unixodbc-dev
       - name: Install GCC
         if: ${{ startsWith(matrix.compiler, 'GCC') }}
         run: sudo apt install -y g++-${{ steps.extract_matrix.outputs.CC_VERSION }}
@@ -263,8 +259,10 @@ jobs:
       - name: "Extract package"
         run: |
           sudo tar -xvf Lightweight-Linux-CI.tar.gz --strip-components=1 -C /usr/local
+      - name: "Update APT database"
+        run: sudo apt -q update
       - name: "install dependencies"
-        run: sudo apt install -y unixodbc-dev unixodbc odbcinst uuid-dev valgrind
+        run: sudo apt install -y unixodbc odbcinst libuuid1 valgrind
       - name: "Setup ${{ matrix.database }}"
         id: setup
         run: bash ./.github/prepare-test-run.sh "${{ matrix.database }}"
