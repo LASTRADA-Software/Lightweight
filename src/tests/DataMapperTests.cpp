@@ -60,19 +60,23 @@ struct NamingTest2
 
 TEST_CASE_METHOD(SqlTestFixture, "SQL entity naming", "[DataMapper]")
 {
-    CHECK(FieldNameAt<0, NamingTest1> == "normal"sv);
-    CHECK(FieldNameAt<1, NamingTest1> == "c1"sv);
-    CHECK(RecordTableName<NamingTest1> == "NamingTest1"sv);
+    static_assert(RecordTableName<NamingTest1> == "NamingTest1"sv);
+    static_assert(RecordTableName<NamingTest2> == "NamingTest2_aliased"sv);
 
-    CHECK(FieldNameAt<0, NamingTest2> == "First_PK"sv);
-    CHECK(FieldNameAt<1, NamingTest2> == "Second_PK"sv);
+    static_assert(FieldNameAt<0, NamingTest1> == "normal"sv);
+    static_assert(FieldNameAt<1, NamingTest1> == "c1"sv);
+    static_assert(FieldNameAt<0, NamingTest2> == "First_PK"sv);
+    static_assert(FieldNameAt<1, NamingTest2> == "Second_PK"sv);
 
-    CHECK(FieldNameOf<&NamingTest1::normal> == "normal"sv);
-    CHECK(FieldNameOf<&NamingTest1::name> == "c1"sv);
-    CHECK(FieldNameOf<&NamingTest2::pk1> == "First_PK"sv);
-    CHECK(FieldNameOf<&NamingTest2::pk2> == "Second_PK"sv);
+    static_assert(FieldNameOf<&NamingTest1::normal> == "normal"sv);
+    static_assert(FieldNameOf<&NamingTest1::name> == "c1"sv);
+    static_assert(FieldNameOf<&NamingTest2::pk1> == "First_PK"sv);
+    static_assert(FieldNameOf<&NamingTest2::pk2> == "Second_PK"sv);
 
-    CHECK(RecordTableName<NamingTest2> == "NamingTest2_aliased"sv);
+    static_assert(FullFieldNameOf<&NamingTest1::normal> == R"("NamingTest1"."normal")");
+    static_assert(FullFieldNameOf<&NamingTest1::name> == R"("NamingTest1"."c1")");
+    static_assert(FullFieldNameOf<&NamingTest2::pk1> == R"("NamingTest2_aliased"."First_PK")");
+    static_assert(FullFieldNameOf<&NamingTest2::pk2> == R"("NamingTest2_aliased"."Second_PK")");
 }
 
 TEST_CASE("Field: int", "[DataMapper],[Field]")
@@ -295,7 +299,7 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle.Get", "[DataMapper]")
     for (auto& person: expectedPersons)
         dm.Create(person);
 
-    auto const record = dm.QuerySingle<Person>().Where(FieldNameOf<&Person::age>, "=", 36).Get();
+    auto const record = dm.QuerySingle<Person>().Where(FullFieldNameOf<&Person::age>, "=", 36).Get();
 
     CHECK(record.has_value());
     CHECK(record.value() == expectedPersons[2]);

@@ -3,6 +3,7 @@
 #include <reflection-cpp/reflection.hpp>
 
 #include <optional>
+#include <ranges>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -70,15 +71,16 @@ template <std::size_t I, typename Record>
 struct BelongsToNameImpl
 {
     static constexpr auto baseName = Reflection::MemberNameOf<I, Record>;
-    static constexpr auto storage = []() -> std::array<char, baseName.size() + 3>
+    static constexpr auto storage = []() -> std::array<char, baseName.size() + 4>
     {
-        std::array<char, baseName.size() + 3> storage;
+        std::array<char, baseName.size() + 4> storage;
         std::copy_n(baseName.begin(), baseName.size(), storage.begin());
         std::copy_n("_id", 3, storage.begin() + baseName.size());
+        storage.back() = '\0';
         return storage;
     }
     ();
-    static constexpr auto name = std::string_view(storage.data(), storage.size());
+    static constexpr auto name = std::string_view(storage.data(), storage.size() - 1);
 };
 
 template <typename FieldType>
@@ -148,3 +150,51 @@ concept IsSpecializationOf = detail::is_specialization_of<S, T>::value;
 
 template <typename T>
 using MemberClassType = typename detail::MemberClassTypeHelper<T>::type;
+
+namespace detail
+{
+template <auto ReferencedField>
+struct FullFieldNameOfImpl
+{
+    static constexpr auto ClassName = RecordTableName<MemberClassType<decltype(ReferencedField)>>;
+    static constexpr auto FieldName = FieldNameOf<ReferencedField>;
+    static constexpr auto StorageSize = ClassName.size() + FieldName.size() + 6;
+
+    // Holds the full field name in the format "ClassName"."FieldName"
+    static constexpr auto Storage = []() constexpr -> std::array<char, StorageSize> {
+        // clang-format off
+        auto storage = std::array<char, StorageSize> {};
+        std::ranges::copy("\"",      storage.begin());
+        std::ranges::copy(ClassName, storage.begin() + 1);
+        std::ranges::copy("\".\"",   storage.begin() + 1 + ClassName.size());
+        std::ranges::copy(FieldName, storage.begin() + 1 + ClassName.size() + 3);
+        std::ranges::copy("\"",      storage.begin() + 1 + ClassName.size() + 3 + FieldName.size());
+        storage.back() = '\0';
+        // clang-format on
+        return storage;
+    }();
+    static constexpr auto value = std::string_view(Storage.data(), Storage.size() - 1);
+};
+} // namespace detail
+
+struct SqlRawColumnNameView
+{
+    std::string_view value;
+
+    std::weak_ordering operator<=>(SqlRawColumnNameView const& other) const = default;
+};
+
+constexpr bool operator==(SqlRawColumnNameView const& lhs, std::string_view rhs) noexcept
+{
+    return lhs.value == rhs;
+}
+
+constexpr bool operator!=(SqlRawColumnNameView const& lhs, std::string_view rhs) noexcept
+{
+    return lhs.value != rhs;
+}
+
+template <auto ReferencedField>
+constexpr inline auto FullFieldNameOf = SqlRawColumnNameView {
+    .value = detail::FullFieldNameOfImpl<ReferencedField>::value,
+};

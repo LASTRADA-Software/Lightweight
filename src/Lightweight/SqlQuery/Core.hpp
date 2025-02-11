@@ -61,6 +61,14 @@ std::string MakeSqlColumnName(ColumnName const& columnName)
         output += columnName.columnName;
         output += '"';
     }
+    else if constexpr (std::is_same_v<ColumnName, SqlRawColumnNameView>)
+    {
+        output += columnName.value;
+    }
+    else if constexpr (std::is_same_v<ColumnName, SqlWildcardType>)
+    {
+        output += '?';
+    }
     else
     {
         output += '"';
@@ -302,7 +310,8 @@ class [[nodiscard]] SqlWhereClauseBuilder
 
     template <typename ColumnName>
         requires(std::same_as<ColumnName, SqlQualifiedTableColumnName>
-                 || std::convertible_to<ColumnName, std::string_view> || std::convertible_to<ColumnName, std::string>)
+                 || std::convertible_to<ColumnName, std::string_view> || std::same_as<ColumnName, SqlRawColumnNameView>
+                 || std::convertible_to<ColumnName, std::string>)
     void AppendColumnName(ColumnName const& columnName);
 
     enum class JoinType : uint8_t
@@ -755,7 +764,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendWhere
 template <typename Derived>
 template <typename ColumnName>
     requires(std::same_as<ColumnName, SqlQualifiedTableColumnName> || std::convertible_to<ColumnName, std::string_view>
-             || std::convertible_to<ColumnName, std::string>)
+             || std::same_as<ColumnName, SqlRawColumnNameView> || std::convertible_to<ColumnName, std::string>)
 inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendColumnName(ColumnName const& columnName)
 {
     SearchCondition().condition += detail::MakeSqlColumnName(columnName);
