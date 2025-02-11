@@ -16,6 +16,7 @@
 
 #include <cstring>
 #include <expected>
+#include <memory>
 #include <optional>
 #include <ranges>
 #include <source_location>
@@ -280,7 +281,8 @@ class [[nodiscard]] SqlResultCursor
     SqlResultCursor(SqlResultCursor const&) = delete;
     SqlResultCursor& operator=(SqlResultCursor const&) = delete;
 
-    constexpr SqlResultCursor(SqlResultCursor&& other) noexcept: m_stmt { other.m_stmt }
+    constexpr SqlResultCursor(SqlResultCursor&& other) noexcept:
+        m_stmt { other.m_stmt }
     {
         other.m_stmt = nullptr;
     }
@@ -363,6 +365,8 @@ class [[nodiscard]] SqlResultCursor
     SqlStatement* m_stmt;
 };
 
+using SqlVariantRow = std::vector<SqlVariant>;
+
 /// @brief SQL query result row iterator
 ///
 /// Can be used to iterate over rows of the database and fetch them into a record type.
@@ -386,56 +390,80 @@ template <typename T>
 class SqlRowIterator
 {
   public:
-    using difference_type = bool;
-    using value_type = T;
-
-    SqlRowIterator(SqlStatement& stmt):
-        _stmt(&stmt)
+    explicit SqlRowIterator(SqlConnection& conn):
+        _connection { &conn }
     {
     }
 
-    SqlRowIterator operator++()
+    class iterator
     {
-        _is_end = _stmt->FetchRow();
-        return *this;
+      public:
+        using difference_type = bool;
+        using value_type = T;
+
+        iterator& operator++()
+        {
+            _is_end = !_stmt->FetchRow();
+            if (!_is_end)
+            {
+            }
+            else
+            {
+                _stmt->CloseCursor();
+            }
+            return *this;
+        }
+
+        LIGHTWEIGHT_FORCE_INLINE constexpr value_type& operator*() noexcept
+        {
+            return *_currentRow;
+        }
+
+        LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!=(iterator const& other) const noexcept
+        {
+            return _is_end != other._is_end;
+        }
+
+        constexpr iterator(std::default_sentinel_t /*sentinel*/) noexcept:
+            _is_end { true }
+        {
+        }
+
+        explicit iterator(SqlConnection& conn):
+            _stmt { std::make_unique<SqlStatement>(conn) },
+            _currentRow { std::make_unique<value_type>() }
+        {
+        }
+
+        LIGHTWEIGHT_FORCE_INLINE SqlStatement& Statement() noexcept
+        {
+            return *_stmt;
+        }
+
+      private:
+        bool _is_end = false;
+        std::unique_ptr<SqlStatement> _stmt;
+        std::unique_ptr<value_type> _currentRow;
+    };
+
+    iterator begin()
+    {
+        auto it = iterator { *_connection };
+        auto& stmt = it.Statement();
+        stmt.Prepare(it.Statement().Query(RecordTableName<T>).Select().template Fields<T>().All());
+        stmt.Execute();
+        stmt.BindOutputColumnsToRecord(&*it);
+        ++it;
+        return it;
     }
 
-    value_type operator*()
+    iterator end() noexcept
     {
-        auto res = T {};
-
-        Reflection::EnumerateMembers(res, [this]<size_t I>(auto&& value) {
-            auto tmp = _stmt->GetColumn<typename Reflection::MemberTypeOf<I, value_type>::ValueType>(I + 1);
-            value = tmp;
-        });
-
-        return res;
-    }
-
-    SqlRowIterator begin()
-    {
-        auto query = _stmt->Query(RecordTableName<value_type>).Select().template Fields<value_type>().All();
-        _stmt->Prepare(query);
-        _stmt->Execute();
-        _is_end = _stmt->FetchRow();
-        return *this;
-    }
-
-    SqlRowIterator end()
-    {
-        auto end_iterator = SqlRowIterator<T>(*_stmt);
-        end_iterator._is_end = true;
-        return end_iterator;
-    }
-
-    bool operator!=(SqlRowIterator const& other) const
-    {
-        return _is_end != other._is_end;
+        return iterator { std::default_sentinel };
     }
 
   private:
-    SqlStatement* _stmt;
-    bool _is_end = false;
+    SqlConnection* _connection;
 };
 
 // {{{ inline implementation
