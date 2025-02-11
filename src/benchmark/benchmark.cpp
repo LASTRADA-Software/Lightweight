@@ -218,6 +218,7 @@ void iterate()
     [[maybe_unused]] int count = 0;
     for (const auto& movie: SqlRowIterator<movies>(stmt))
     {
+        std::ignore = movie;
         ++count;
     }
 }
