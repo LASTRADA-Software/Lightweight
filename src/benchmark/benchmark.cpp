@@ -214,9 +214,8 @@ void count()
 void iterate()
 {
     auto dm = DataMapper();
-    auto stmt = SqlStatement { dm.Connection() };
     [[maybe_unused]] int count = 0;
-    for (const auto& movie: SqlRowIterator<movies>(stmt))
+    for (const auto& movie: SqlRowIterator<movies>(dm.Connection()))
     {
         std::ignore = movie;
         ++count;
