@@ -231,6 +231,20 @@ struct SqlVariant
         // clang-format on
     }
 
+    [[nodiscard]] std::optional<std::u16string_view> TryGetUtf16StringView() const noexcept
+    {
+        if (IsNull())
+            return std::nullopt;
+
+        // clang-format off
+        return std::visit(detail::overloaded {
+            [](std::u16string_view v) { return v; },
+            [](std::u16string const& v) { return std::u16string_view(v.data(), v.size()); },
+            [](auto const&) -> std::u16string_view { throw std::bad_variant_access(); }
+        }, value);
+        // clang-format on
+    }
+
     /// @brief function to get SqlDate from SqlVariant or std::nullopt
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<SqlDate> TryGetDate() const
     {
