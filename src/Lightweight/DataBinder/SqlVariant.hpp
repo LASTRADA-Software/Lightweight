@@ -300,6 +300,9 @@ struct SqlVariant
     [[nodiscard]] LIGHTWEIGHT_API std::string ToString() const;
 };
 
+/// @brief Represents a row of data from the database using SqlVariant as the column data type.
+using SqlVariantRow = std::vector<SqlVariant>;
+
 template <>
 struct LIGHTWEIGHT_API std::formatter<SqlVariant>: formatter<string>
 {
