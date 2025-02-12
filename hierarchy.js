@@ -59,7 +59,8 @@ var hierarchy =
     [ "SqlWildcardType", "da/dbf/structSqlWildcardType.html", null ],
     [ "std::exception", null, [
       [ "std::runtime_error", null, [
-        [ "SqlRequireLoadedError", "d5/d6a/classSqlRequireLoadedError.html", null ]
+        [ "SqlRequireLoadedError", "d5/d6a/classSqlRequireLoadedError.html", null ],
+        [ "SqlTransactionException", "db/d56/classSqlTransactionException.html", null ]
       ] ]
     ] ],
     [ "std::vector< uint8_t >", null, [

@@ -122,6 +122,7 @@ var NAVTREEINDEX1 =
 "db/d2a/classSqlUpdateQueryBuilder.html#af757aaba5629c8e2f171540085ba918d":[4,1,10,5],
 "db/d2a/tests_2Utils_8hpp_source.html":[7,0,2,0],
 "db/d47/MigrationPlan_8hpp_source.html":[7,0,1,3,4],
+"db/d56/classSqlTransactionException.html":[6,0,40],
 "db/d67/classSqlScopedTimeLogger.html":[6,0,34],
 "db/d83/SqlQuery_2Core_8hpp_source.html":[7,0,1,3,0],
 "dc/d74/CollectDifferences_8hpp_source.html":[7,0,1,1,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX1 =
 "df/dd6/classHasManyThrough.html#a0dd54929e7942a919ce0ec5d5890b03f":[4,0,6,3],
 "df/dd6/classHasManyThrough.html#a2064ef55f4172fedb05962508c86f6ed":[4,0,6,5],
 "df/dd6/classHasManyThrough.html#a21529e666f46d27a466d6cffc9367a67":[4,0,6,6],
-"df/dd6/classHasManyThrough.html#a289cfe87f4182e13ca5bce87203e004a":[4,0,6,8],
-"df/dd6/classHasManyThrough.html#a302f58acb9de3b2feebf5a000f08b72e":[4,0,6,1]
+"df/dd6/classHasManyThrough.html#a289cfe87f4182e13ca5bce87203e004a":[4,0,6,8]
 };
