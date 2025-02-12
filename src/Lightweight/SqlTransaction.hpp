@@ -9,6 +9,7 @@
 #include "SqlConnection.hpp"
 #include "SqlError.hpp"
 
+#include <format>
 #include <source_location>
 #include <stdexcept>
 
@@ -17,7 +18,40 @@
 #include <sqlspi.h>
 #include <sqltypes.h>
 
-// Represents the mode of a SQL transaction to be applied, if not done so explicitly.
+/// Represents the isolation level of a SQL transaction.
+///
+/// The isolation level determines the degree of isolation of data between concurrent transactions.
+/// The higher the isolation level, the less likely it is that two transactions will interfere with each other.
+///
+/// @see https://learn.microsoft.com/en-us/sql/odbc/reference/develop-app/transaction-isolation-levels
+enum class SqlIsolationMode : std::uint8_t
+{
+    /// The default isolation level of the SQL driver or DBMS
+    DriverDefault = 0,
+
+    /// Transactions are not isolated from each other, allowing to concurrently read uncommitted changes.
+    ReadUncommitted = SQL_TXN_READ_UNCOMMITTED,
+
+    /// The transaction waits until the locked writes are committed by other transactions.
+    ///
+    /// The transaction holds a read lock (if it only reads the row) or write lock (if it updates
+    /// or deletes the row) on the current row to prevent other transactions from updating or deleting it.
+    ReadCommitted = SQL_TXN_READ_COMMITTED,
+
+    /// The transaction waits until the locked writes are committed by other transactions.
+    ///
+    /// The transaction holds read locks on all rows it returns to the application and write locks
+    /// on all rows it inserts, updates, or deletes.
+    RepeatableRead = SQL_TXN_REPEATABLE_READ,
+
+    /// The transaction waits until the locked writes are committed by other transactions.
+    ///
+    /// The transaction holds a read lock (if it only reads rows) or write lock (if it can update
+    /// or delete rows) on the range of rows it affects.
+    Serializable = SQL_TXN_SERIALIZABLE,
+};
+
+/// Represents the mode of a SQL transaction to be applied, if not done so explicitly.
 enum class SqlTransactionMode : std::uint8_t
 {
     NONE,
@@ -25,6 +59,9 @@ enum class SqlTransactionMode : std::uint8_t
     ROLLBACK,
 };
 
+/// Represents an exception that occurred during a SQL transaction.
+///
+/// @see SqlTransaction::Commit(), SqlTransaction::Rollback()
 class SqlTransactionException: public std::runtime_error
 {
   public:
@@ -74,6 +111,7 @@ class SqlTransaction
     /// controlled manually.
     LIGHTWEIGHT_API explicit SqlTransaction(SqlConnection& connection,
                                             SqlTransactionMode defaultMode = SqlTransactionMode::COMMIT,
+                                            SqlIsolationMode isolationMode = SqlIsolationMode::DriverDefault,
                                             std::source_location location = std::source_location::current());
 
     /// Automatically commit the transaction if not done so
@@ -111,3 +149,55 @@ inline SqlConnection& SqlTransaction::Connection() noexcept
 {
     return *m_connection;
 }
+
+template <>
+struct LIGHTWEIGHT_API std::formatter<SqlTransactionMode>: std::formatter<std::string_view>
+{
+    auto format(SqlTransactionMode value, format_context& ctx) const -> format_context::iterator
+    {
+        using namespace std::string_view_literals;
+        string_view name;
+        switch (value)
+        {
+            case SqlTransactionMode::COMMIT:
+                name = "Commit";
+                break;
+            case SqlTransactionMode::ROLLBACK:
+                name = "Rollback";
+                break;
+            case SqlTransactionMode::NONE:
+                name = "None";
+                break;
+        }
+        return std::formatter<string_view>::format(name, ctx);
+    }
+};
+
+template <>
+struct LIGHTWEIGHT_API std::formatter<SqlIsolationMode>: std::formatter<std::string_view>
+{
+    auto format(SqlIsolationMode value, format_context& ctx) const -> format_context::iterator
+    {
+        using namespace std::string_view_literals;
+        string_view name;
+        switch (value)
+        {
+            case SqlIsolationMode::DriverDefault:
+                name = "DriverDefault";
+                break;
+            case SqlIsolationMode::ReadUncommitted:
+                name = "ReadUncommitted";
+                break;
+            case SqlIsolationMode::ReadCommitted:
+                name = "ReadCommitted";
+                break;
+            case SqlIsolationMode::RepeatableRead:
+                name = "RepeatableRead";
+                break;
+            case SqlIsolationMode::Serializable:
+                name = "Serializable";
+                break;
+        }
+        return std::formatter<string_view>::format(name, ctx);
+    }
+};

@@ -5,11 +5,26 @@
 
 SqlTransaction::SqlTransaction(SqlConnection& connection,
                                SqlTransactionMode defaultMode,
+                               SqlIsolationMode isolationMode,
                                std::source_location location):
     m_connection { &connection },
     m_defaultMode { defaultMode },
     m_location { location }
 {
+    if (isolationMode != SqlIsolationMode::DriverDefault)
+    {
+        auto const value = static_cast<SQLULEN>(isolationMode);
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wint-to-pointer-cast"
+#endif
+        // NOLINTNEXTLINE(performance-no-int-to-ptr)
+        SQLSetConnectAttr(NativeHandle(), SQL_ATTR_TXN_ISOLATION, (SQLPOINTER) value, SQL_IS_UINTEGER);
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic pop
+#endif
+    }
+
     connection.RequireSuccess(
         SQLSetConnectAttr(NativeHandle(), SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_OFF, SQL_IS_UINTEGER),
         m_location);
