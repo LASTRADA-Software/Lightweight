@@ -226,7 +226,7 @@ struct SqlVariant
             [](std::string_view v) { return v; },
             [](std::string const& v) { return std::string_view(v.data(), v.size()); },
             [](SqlText const& v) { return std::string_view(v.value.data(), v.value.size()); },
-            [](auto) -> std::string_view { throw std::bad_variant_access(); }
+            [](auto const&) -> std::string_view { throw std::bad_variant_access(); }
         }, value);
         // clang-format on
     }
