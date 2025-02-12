@@ -44,6 +44,7 @@ struct SqlVariant
     /// This type is a variant of all the supported SQL data types.
     using InnerType = std::variant<SqlNullType,
                                    bool,
+                                   int8_t,
                                    short,
                                    unsigned short,
                                    int,
@@ -181,7 +182,9 @@ struct SqlVariant
     // clang-format off
     /// @brief Retrieve the bool from the variant or std::nullopt
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<bool> TryGetBool() const noexcept { return TryGetIntegral<bool>(); }
-    /// @brief Retrieve the short from the variant or std::nullopt
+    /// @brief Retrieve the int8_t from the variant or std::nullopt
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<int8_t> TryGetInt8() const noexcept { return TryGetIntegral<int8_t>(); }
+    /// @brief Retrieve the unsigned short from the variant or std::nullopt
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<short> TryGetShort() const noexcept { return TryGetIntegral<short>(); }
     /// @brief Retrieve the unsigned short from the variant or std::nullopt
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<unsigned short> TryGetUShort() const noexcept { return TryGetIntegral<unsigned short>(); }
@@ -195,7 +198,7 @@ struct SqlVariant
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<unsigned long long> TryGetULongLong() const noexcept { return TryGetIntegral<unsigned long long>(); }
     // clang-format on
 
-    private:
+  private:
     /// @brief template that is used to get integral types
     template <typename ResultType>
     [[nodiscard]] std::optional<ResultType> TryGetIntegral() const noexcept
@@ -211,7 +214,7 @@ struct SqlVariant
         // clang-format on
     }
 
-    public:
+  public:
     /// @brief function to get string_view from SqlVariant or std::nullopt
     [[nodiscard]] std::optional<std::string_view> TryGetStringView() const noexcept
     {

@@ -31,7 +31,7 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
             returnCode = SqlDataBinder<bool>::GetColumn(stmt, column, &variant.emplace<bool>(), indicator, cb);
             break;
         case SQL_TINYINT:
-            returnCode = SqlDataBinder<short>::GetColumn(stmt, column, &variant.emplace<short>(), indicator, cb);
+            returnCode = SqlDataBinder<int8_t>::GetColumn(stmt, column, &variant.emplace<int8_t>(), indicator, cb);
             break;
         case SQL_SMALLINT:
             returnCode = SqlDataBinder<unsigned short>::GetColumn(
@@ -139,6 +139,7 @@ std::string SqlVariant::ToString() const
     return std::visit(detail::overloaded {
         [&](SqlNullType) { return "NULL"s; },
         [&](bool v) { return v ? "true"s : "false"s; },
+        [&](int8_t v) { return std::to_string(v); },
         [&](short v) { return std::to_string(v); },
         [&](unsigned short v) { return std::to_string(v); },
         [&](int v) { return std::to_string(v); },
