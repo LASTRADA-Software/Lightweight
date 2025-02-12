@@ -13,10 +13,15 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Field(std::string_view const& fiel
     if (!m_query.fields.empty())
         m_query.fields += ", ";
 
-    m_query.fields += '"';
-    m_query.fields += fieldName;
-    m_query.fields += '"';
-    m_aliasAllowed = true;
+    if (fieldName == "*")
+        m_query.fields += fieldName;
+    else
+    {
+        m_query.fields += '"';
+        m_query.fields += fieldName;
+        m_query.fields += '"';
+        m_aliasAllowed = true;
+    }
 
     return *this;
 }
@@ -28,10 +33,15 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Field(SqlQualifiedTableColumnName 
 
     m_query.fields += '"';
     m_query.fields += fieldName.tableName;
-    m_query.fields += "\".\"";
-    m_query.fields += fieldName.columnName;
-    m_query.fields += '"';
-    m_aliasAllowed = true;
+    if (fieldName.columnName == "*")
+        m_query.fields += "\".*";
+    else
+    {
+        m_query.fields += "\".\"";
+        m_query.fields += fieldName.columnName;
+        m_query.fields += '"';
+        m_aliasAllowed = true;
+    }
 
     return *this;
 }
