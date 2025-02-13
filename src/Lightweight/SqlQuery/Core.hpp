@@ -314,6 +314,9 @@ class [[nodiscard]] SqlWhereClauseBuilder
                  || std::convertible_to<ColumnName, std::string>)
     void AppendColumnName(ColumnName const& columnName);
 
+    template <typename LiteralType>
+    void AppendLiteralValue(LiteralType const& value);
+
     enum class JoinType : uint8_t
     {
         INNER,
@@ -550,47 +553,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(C
     searchCondition.condition += ' ';
     searchCondition.condition += binaryOp;
     searchCondition.condition += ' ';
-
-    if constexpr (std::is_same_v<T, SqlQualifiedTableColumnName>)
-    {
-        searchCondition.condition += '"';
-        searchCondition.condition += value.tableName;
-        searchCondition.condition += "\".\"";
-        searchCondition.condition += value.columnName;
-        searchCondition.condition += '"';
-    }
-    else if constexpr (detail::OneOf<T, SqlNullType, std::nullopt_t>)
-    {
-        searchCondition.condition += "NULL";
-    }
-    else if constexpr (std::is_same_v<T, SqlWildcardType>)
-    {
-        searchCondition.condition += '?';
-    }
-    else if constexpr (std::is_same_v<T, detail::RawSqlCondition>)
-    {
-        searchCondition.condition += value.condition;
-    }
-    else if (searchCondition.inputBindings)
-    {
-        searchCondition.condition += '?';
-        searchCondition.inputBindings->emplace_back(value);
-    }
-    else if constexpr (std::is_same_v<T, bool>)
-    {
-        searchCondition.condition += Formatter().BooleanLiteral(value);
-    }
-    else if constexpr (!WhereConditionLiteralType<T>::needsQuotes)
-    {
-        searchCondition.condition += std::format("{}", value);
-    }
-    else
-    {
-        // TODO: Escape single quotes
-        searchCondition.condition += '\'';
-        searchCondition.condition += std::format("{}", value);
-        searchCondition.condition += '\'';
-    }
+    AppendLiteralValue(value);
 
     return static_cast<Derived&>(*this);
 }
@@ -768,6 +731,54 @@ template <typename ColumnName>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendColumnName(ColumnName const& columnName)
 {
     SearchCondition().condition += detail::MakeSqlColumnName(columnName);
+}
+
+template <typename Derived>
+template <typename LiteralType>
+inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendLiteralValue(LiteralType const& value)
+{
+    auto& searchCondition = SearchCondition();
+
+    if constexpr (std::is_same_v<LiteralType, SqlQualifiedTableColumnName>)
+    {
+        searchCondition.condition += '"';
+        searchCondition.condition += value.tableName;
+        searchCondition.condition += "\".\"";
+        searchCondition.condition += value.columnName;
+        searchCondition.condition += '"';
+    }
+    else if constexpr (detail::OneOf<LiteralType, SqlNullType, std::nullopt_t>)
+    {
+        searchCondition.condition += "NULL";
+    }
+    else if constexpr (std::is_same_v<LiteralType, SqlWildcardType>)
+    {
+        searchCondition.condition += '?';
+    }
+    else if constexpr (std::is_same_v<LiteralType, detail::RawSqlCondition>)
+    {
+        searchCondition.condition += value.condition;
+    }
+    else if (searchCondition.inputBindings)
+    {
+        searchCondition.condition += '?';
+        searchCondition.inputBindings->emplace_back(value);
+    }
+    else if constexpr (std::is_same_v<LiteralType, bool>)
+    {
+        searchCondition.condition += Formatter().BooleanLiteral(value);
+    }
+    else if constexpr (!WhereConditionLiteralType<LiteralType>::needsQuotes)
+    {
+        searchCondition.condition += std::format("{}", value);
+    }
+    else
+    {
+        // TODO: Escape single quotes
+        searchCondition.condition += '\'';
+        searchCondition.condition += std::format("{}", value);
+        searchCondition.condition += '\'';
+    }
 }
 
 template <typename Derived>
