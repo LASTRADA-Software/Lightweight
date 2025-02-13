@@ -34,6 +34,7 @@ concept SqlQueryObject = requires(QueryObject const& queryObject) {
 };
 
 class SqlResultCursor;
+class SqlVariantRowCursor;
 
 /// @brief High level API for (prepared) raw SQL statements
 ///
@@ -231,6 +232,9 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// Retrieves the result cursor for reading an SQL query result.
     SqlResultCursor GetResultCursor() noexcept;
 
+    /// Retrieves the variant row cursor for reading an SQL query result of unknown column types and column count.
+    SqlVariantRowCursor GetVariantRowCursor() noexcept;
+
     /// Retrieves the value of the column at the given index for the currently selected row.
     ///
     /// Returns true if the value is not NULL, false otherwise.
@@ -271,7 +275,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 class [[nodiscard]] SqlResultCursor
 {
   public:
-    explicit LIGHTWEIGHT_FORCE_INLINE SqlResultCursor(SqlStatement& stmt):
+    explicit LIGHTWEIGHT_FORCE_INLINE SqlResultCursor(SqlStatement& stmt) noexcept:
         m_stmt { &stmt }
     {
     }
@@ -280,7 +284,8 @@ class [[nodiscard]] SqlResultCursor
     SqlResultCursor(SqlResultCursor const&) = delete;
     SqlResultCursor& operator=(SqlResultCursor const&) = delete;
 
-    constexpr SqlResultCursor(SqlResultCursor&& other) noexcept: m_stmt { other.m_stmt }
+    constexpr SqlResultCursor(SqlResultCursor&& other) noexcept:
+        m_stmt { other.m_stmt }
     {
         other.m_stmt = nullptr;
     }
@@ -361,6 +366,87 @@ class [[nodiscard]] SqlResultCursor
 
   private:
     SqlStatement* m_stmt;
+};
+
+struct [[nodiscard]] SqlSentinelIterator
+{
+};
+
+class [[nodiscard]] SqlVariantRowIterator
+{
+  public:
+    explicit SqlVariantRowIterator(SqlSentinelIterator /*sentinel*/) noexcept:
+        _cursor { nullptr }
+    {
+    }
+
+    explicit SqlVariantRowIterator(SqlResultCursor& cursor) noexcept:
+        _numResultColumns { static_cast<SQLUSMALLINT>(cursor.NumColumnsAffected()) },
+        _cursor { &cursor }
+    {
+        _row.reserve(_numResultColumns);
+        ++(*this);
+    }
+
+    SqlVariantRow& operator*() noexcept
+    {
+        return _row;
+    }
+
+    SqlVariantRow const& operator*() const noexcept
+    {
+        return _row;
+    }
+
+    SqlVariantRowIterator& operator++() noexcept
+    {
+        _end = !_cursor->FetchRow();
+        if (!_end)
+        {
+            _row.clear();
+            for (auto const i: std::views::iota(SQLUSMALLINT(1), SQLUSMALLINT(_numResultColumns + 1)))
+                _row.emplace_back(_cursor->GetColumn<SqlVariant>(i));
+        }
+        return *this;
+    }
+
+    bool operator!=(SqlSentinelIterator /*sentinel*/) const noexcept
+    {
+        return !_end;
+    }
+
+    bool operator!=(SqlVariantRowIterator const& /*rhs*/) const noexcept
+    {
+        return !_end;
+    }
+
+  private:
+    bool _end = false;
+    SQLUSMALLINT _numResultColumns = 0;
+    SqlResultCursor* _cursor;
+    SqlVariantRow _row;
+};
+
+class [[nodiscard]] SqlVariantRowCursor
+{
+  public:
+    explicit SqlVariantRowCursor(SqlResultCursor&& cursor):
+        _resultCursor { std::move(cursor) }
+    {
+    }
+
+    SqlVariantRowIterator begin() noexcept
+    {
+        return SqlVariantRowIterator { _resultCursor };
+    }
+
+    static SqlSentinelIterator end() noexcept
+    {
+        return SqlSentinelIterator {};
+    }
+
+  private:
+    SqlResultCursor _resultCursor;
 };
 
 /// @brief SQL query result row iterator
@@ -767,6 +853,11 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::CloseCursor() noexcept
 inline LIGHTWEIGHT_FORCE_INLINE SqlResultCursor SqlStatement::GetResultCursor() noexcept
 {
     return SqlResultCursor { *this };
+}
+
+inline LIGHTWEIGHT_FORCE_INLINE SqlVariantRowCursor SqlStatement::GetVariantRowCursor() noexcept
+{
+    return SqlVariantRowCursor { SqlResultCursor { *this } };
 }
 
 // }}}
