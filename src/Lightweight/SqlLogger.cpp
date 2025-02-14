@@ -8,6 +8,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <format>
+#include <mutex>
 #include <print>
 #include <ranges>
 #include <version>
@@ -30,16 +31,12 @@ class SqlStandardLogger: public SqlLogger
   private:
     std::chrono::time_point<std::chrono::system_clock> _currentTime;
     std::string _currentTimeStr;
+    std::mutex _mutex;
 
-  public:
-    SqlStandardLogger(SupportBindLogging supportBindLogging = SupportBindLogging::No):
-        SqlLogger { supportBindLogging }
-    {
-        ConfigureConsole();
-    }
-
+  protected:
     void Tick()
     {
+        auto const _ = std::lock_guard { _mutex };
         _currentTime = std::chrono::system_clock::now();
         auto const nowMs = time_point_cast<std::chrono::milliseconds>(_currentTime);
         _currentTimeStr = std::format("{:%F %X}.{:03}", _currentTime, nowMs.time_since_epoch().count() % 1'000);
@@ -48,8 +45,16 @@ class SqlStandardLogger: public SqlLogger
     template <typename... Args>
     void WriteMessage(std::format_string<Args...> const& fmt, Args&&... args)
     {
+        auto const _ = std::lock_guard { _mutex };
         // TODO: Use the new logging mechanism from Felix here, once merged.
         std::println("[{}] {}", _currentTimeStr, std::format(fmt, std::forward<Args>(args)...));
+    }
+
+  public:
+    SqlStandardLogger(SupportBindLogging supportBindLogging = SupportBindLogging::No):
+        SqlLogger { supportBindLogging }
+    {
+        ConfigureConsole();
     }
 
     void OnWarning(std::string_view const& message) override
