@@ -40,6 +40,16 @@ int main(int argc, char** argv)
     return Catch::Session().run(argc, argv);
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnectionDataSource.FromConnectionString", "[SqlConnection]")
+{
+    auto const connectionString = SqlConnectionString { "Dsn=Test;UID=TestUser;Pwd=TestPassword;Timeout=10" };
+    auto const dataSource = SqlConnectionDataSource::FromConnectionString(connectionString);
+    CHECK(dataSource.datasource == "Test");
+    CHECK(dataSource.username == "TestUser");
+    CHECK(dataSource.password == "TestPassword");
+    CHECK(dataSource.timeout.count() == std::chrono::seconds { 10 }.count());
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlStatement: ctor std::nullopt")
 {
     // Construct an empty SqlStatement, not referencing any SqlConnection.

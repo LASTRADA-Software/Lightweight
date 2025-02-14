@@ -91,3 +91,23 @@ SqlConnectionString BuildConnectionString(SqlConnectionStringMap const& map)
 
     return result;
 }
+
+SqlConnectionDataSource SqlConnectionDataSource::FromConnectionString(SqlConnectionString const& value)
+{
+    auto result = SqlConnectionDataSource {};
+    auto parsedConnectionStringPairs = ParseConnectionString(value);
+
+    if (auto dsn = parsedConnectionStringPairs.extract("DSN"); !dsn.empty())
+        result.datasource = std::move(dsn.mapped());
+
+    if (auto uid = parsedConnectionStringPairs.extract("UID"); !uid.empty())
+        result.username = std::move(uid.mapped());
+
+    if (auto pwd = parsedConnectionStringPairs.extract("PWD"); !pwd.empty())
+        result.password = std::move(pwd.mapped());
+
+    if (auto timeout = parsedConnectionStringPairs.extract("TIMEOUT"); !timeout.empty())
+        result.timeout = std::chrono::seconds(std::stoi(timeout.mapped()));
+
+    return result;
+}

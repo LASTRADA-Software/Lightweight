@@ -31,20 +31,20 @@ LIGHTWEIGHT_API SqlConnectionStringMap ParseConnectionString(SqlConnectionString
 LIGHTWEIGHT_API SqlConnectionString BuildConnectionString(SqlConnectionStringMap const& map);
 
 /// Represents a connection data source as a DSN, username, password, and timeout.
-struct SqlConnectionDataSource
+struct [[nodiscard]] SqlConnectionDataSource
 {
     std::string datasource;
     std::string username;
     std::string password;
     std::chrono::seconds timeout { 5 };
 
+    LIGHTWEIGHT_API static SqlConnectionDataSource FromConnectionString(SqlConnectionString const& value);
+
     [[nodiscard]] SqlConnectionString ToConnectionString() const
     {
-        return SqlConnectionString { .value = std::format("DSN={};UID={};PWD={};TIMEOUT={}",
-                                                          datasource,
-                                                          username,
-                                                          password,
-                                                          timeout.count()) };
+        return SqlConnectionString {
+            .value = std::format("DSN={};UID={};PWD={};TIMEOUT={}", datasource, username, password, timeout.count())
+        };
     }
 
     LIGHTWEIGHT_API auto operator<=>(SqlConnectionDataSource const&) const noexcept = default;
