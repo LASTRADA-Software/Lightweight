@@ -968,7 +968,8 @@ template <typename Record, typename... InputParameters>
 inline LIGHTWEIGHT_FORCE_INLINE std::vector<Record> DataMapper::Query(
     SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters)
 {
-    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+    static_assert(DataMapperRecord<Record> || std::same_as<Record, SqlVariantRow>,
+                  "Record must satisfy DataMapperRecord");
 
     return Query<Record>(selectQuery.ToSql(), std::forward<InputParameters>(inputParameters)...);
 }
@@ -976,23 +977,38 @@ inline LIGHTWEIGHT_FORCE_INLINE std::vector<Record> DataMapper::Query(
 template <typename Record, typename... InputParameters>
 std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputParameters&&... inputParameters)
 {
-    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-
-    _stmt.Prepare(sqlQueryString);
-    _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
-
     auto result = std::vector<Record> {};
 
-    auto record = Record {};
-    BindOutputColumns(record);
-    ConfigureRelationAutoLoading(record);
-
-    while (_stmt.FetchRow())
+    if constexpr (std::same_as<Record, SqlVariantRow>)
     {
-        result.emplace_back(std::move(record));
-        record = Record {};
+        _stmt.Prepare(sqlQueryString);
+        _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
+        size_t const numResultColumns = _stmt.NumColumnsAffected();
+        while (_stmt.FetchRow())
+        {
+            auto& record = result.emplace_back();
+            record.reserve(numResultColumns);
+            for (auto const i: std::views::iota(1U, numResultColumns + 1))
+                record.emplace_back(_stmt.GetColumn<SqlVariant>(i));
+        }
+    }
+    else
+    {
+        static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+
+        _stmt.Prepare(sqlQueryString);
+        _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
+
+        auto record = Record {};
         BindOutputColumns(record);
         ConfigureRelationAutoLoading(record);
+        while (_stmt.FetchRow())
+        {
+            result.emplace_back(std::move(record));
+            record = Record {};
+            BindOutputColumns(record);
+            ConfigureRelationAutoLoading(record);
+        }
     }
 
     return result;

@@ -945,6 +945,43 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: SELECT into simple struct", "[DataMappe
     CHECK(record.c2FromB == "c");
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Query: SELECT into SqlVariantRow", "[DataMapper],[SqlVariantRow]")
+{
+    auto dm = DataMapper {};
+
+    SqlStatement(dm.Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        using namespace SqlColumnTypeDefinitions;
+        migration.CreateTable("TableA")
+            .PrimaryKeyWithAutoIncrement("pk", Bigint {})
+            .Column("c1", Varchar { 30 })
+            .Column("c2", Varchar { 30 });
+        migration.CreateTable("TableB")
+            .PrimaryKeyWithAutoIncrement("pk", Bigint {})
+            .Column("c1", Varchar { 30 })
+            .Column("c2", Varchar { 30 });
+    });
+
+    SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableA").Insert().Set("c1", "a").Set("c2", "b"));
+    SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableB").Insert().Set("c1", "a").Set("c2", "c"));
+
+    auto records =
+        dm.Query<SqlVariantRow>(dm.FromTable("TableA")
+                                   .Select()
+                                   .Field("*")
+                                   .LeftOuterJoin("TableB", "c1", "c1")
+                                   .All());
+
+    CHECK(records.size() == 1);
+    auto& record = records.at(0);
+    CHECK(record.size() == 6);
+    CHECK(record[0].TryGetInt().value() == 1);
+    CHECK(record[1].TryGetStringView().value() == "a");
+    CHECK(record[2].TryGetStringView().value() == "b");
+    CHECK(record[3].TryGetInt().value() == 1);
+    CHECK(record[4].TryGetStringView().value() == "a");
+    CHECK(record[5].TryGetStringView().value() == "c");
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "Query: Partial retriaval of the data", "[DataMapper]")
 {
     auto dm = DataMapper {};

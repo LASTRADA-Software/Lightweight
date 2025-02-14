@@ -480,4 +480,61 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into two structs", "[SqlStatement]")
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SELECT into SqlVariantRowIterator", "[SqlStatement]")
+{
+    auto conn = SqlConnection {};
+    auto stmt = SqlStatement { conn };
+
+    GIVEN("two tables")
+    {
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+            using namespace SqlColumnTypeDefinitions;
+            migration.CreateTable(RecordTableName<Simple1>)
+                .PrimaryKeyWithAutoIncrement("pk", Bigint {})
+                .Column("c1", Varchar { 30 })
+                .Column("c2", Varchar { 30 });
+        });
+
+        WHEN("inserting some data and getting it via multi struct query building")
+        {
+            stmt.ExecuteDirect(conn.Query(RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
+            stmt.ExecuteDirect(conn.Query(RecordTableName<Simple1>).Insert().Set("c1", "A").Set("c2", "B"));
+
+            // clang-format off
+            stmt.Prepare(
+                conn.Query(RecordTableName<Simple1>)
+                    .Select()
+                    .Fields<Simple1>()
+                    .All());
+            // clang-format on
+
+            stmt.Execute();
+
+            THEN("we can fetch the data using SqlVariantRowIterator")
+            {
+                auto rowCount = 0;
+                for (auto& row: stmt.GetVariantRowCursor())
+                {
+                    ++rowCount;
+                    CAPTURE(rowCount);
+                    CHECK(row.size() == 3);
+                    if (rowCount == 1)
+                    {
+                        CHECK(row[0].TryGetULongLong().value() == 1);
+                        CHECK(row[1].TryGetStringView().value() == "a");
+                        CHECK(row[2].TryGetStringView().value() == "b");
+                    }
+                    else
+                    {
+                        CHECK(row[0].TryGetULongLong().value() == 2);
+                        CHECK(row[1].TryGetStringView().value() == "A");
+                        CHECK(row[2].TryGetStringView().value() == "B");
+                    }
+                }
+                CHECK(rowCount == 2);
+            }
+        }
+    }
+}
+
 // NOLINTEND(readability-container-size-empty)

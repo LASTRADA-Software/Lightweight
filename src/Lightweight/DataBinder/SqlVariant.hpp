@@ -44,6 +44,7 @@ struct SqlVariant
     /// This type is a variant of all the supported SQL data types.
     using InnerType = std::variant<SqlNullType,
                                    bool,
+                                   int8_t,
                                    short,
                                    unsigned short,
                                    int,
@@ -181,7 +182,9 @@ struct SqlVariant
     // clang-format off
     /// @brief Retrieve the bool from the variant or std::nullopt
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<bool> TryGetBool() const noexcept { return TryGetIntegral<bool>(); }
-    /// @brief Retrieve the short from the variant or std::nullopt
+    /// @brief Retrieve the int8_t from the variant or std::nullopt
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<int8_t> TryGetInt8() const noexcept { return TryGetIntegral<int8_t>(); }
+    /// @brief Retrieve the unsigned short from the variant or std::nullopt
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<short> TryGetShort() const noexcept { return TryGetIntegral<short>(); }
     /// @brief Retrieve the unsigned short from the variant or std::nullopt
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<unsigned short> TryGetUShort() const noexcept { return TryGetIntegral<unsigned short>(); }
@@ -195,7 +198,7 @@ struct SqlVariant
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<unsigned long long> TryGetULongLong() const noexcept { return TryGetIntegral<unsigned long long>(); }
     // clang-format on
 
-    private:
+  private:
     /// @brief template that is used to get integral types
     template <typename ResultType>
     [[nodiscard]] std::optional<ResultType> TryGetIntegral() const noexcept
@@ -211,7 +214,7 @@ struct SqlVariant
         // clang-format on
     }
 
-    public:
+  public:
     /// @brief function to get string_view from SqlVariant or std::nullopt
     [[nodiscard]] std::optional<std::string_view> TryGetStringView() const noexcept
     {
@@ -223,7 +226,21 @@ struct SqlVariant
             [](std::string_view v) { return v; },
             [](std::string const& v) { return std::string_view(v.data(), v.size()); },
             [](SqlText const& v) { return std::string_view(v.value.data(), v.value.size()); },
-            [](auto) -> std::string_view { throw std::bad_variant_access(); }
+            [](auto const&) -> std::string_view { throw std::bad_variant_access(); }
+        }, value);
+        // clang-format on
+    }
+
+    [[nodiscard]] std::optional<std::u16string_view> TryGetUtf16StringView() const noexcept
+    {
+        if (IsNull())
+            return std::nullopt;
+
+        // clang-format off
+        return std::visit(detail::overloaded {
+            [](std::u16string_view v) { return v; },
+            [](std::u16string const& v) { return std::u16string_view(v.data(), v.size()); },
+            [](auto const&) -> std::u16string_view { throw std::bad_variant_access(); }
         }, value);
         // clang-format on
     }
@@ -282,6 +299,9 @@ struct SqlVariant
     /// @brief Create string representation of the variant. Can be used for debug purposes
     [[nodiscard]] LIGHTWEIGHT_API std::string ToString() const;
 };
+
+/// @brief Represents a row of data from the database using SqlVariant as the column data type.
+using SqlVariantRow = std::vector<SqlVariant>;
 
 template <>
 struct LIGHTWEIGHT_API std::formatter<SqlVariant>: formatter<string>
