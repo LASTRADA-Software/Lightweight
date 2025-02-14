@@ -1,5 +1,6 @@
 var NAVTREEINDEX1 =
 {
+"d7/d7b/classSqlConnection.html#a8e4a85b24d2dc9df9aff1132ba11d5aa":[6,0,9,5],
 "d7/d7b/classSqlConnection.html#ab0ffa86b235846196d55554a005ba05f":[6,0,9,19],
 "d7/d7b/classSqlConnection.html#ad40c250ff1be7868511131c9d8d3656d":[6,0,9,16],
 "d7/d7b/classSqlConnection.html#adcaa93ca1d83786875e6df3bea261bef":[6,0,9,13],
@@ -191,7 +192,8 @@ var NAVTREEINDEX1 =
 "df/d17/classSqlStatement.html#a2da1393cb05328b1c0e4187bece9c019":[6,0,37,3],
 "df/d17/classSqlStatement.html#a2e35262bbb0eae1a90961e7b1d52863c":[6,0,37,12],
 "df/d17/classSqlStatement.html#a4973da6a55356060d9a37809731de80e":[6,0,37,8],
-"df/d17/classSqlStatement.html#a5e6af1d8e8e945319553505e73372ff0":[6,0,37,30],
+"df/d17/classSqlStatement.html#a5183d34164732d5ca41d55e22ab7f7c8":[6,0,37,29],
+"df/d17/classSqlStatement.html#a5e6af1d8e8e945319553505e73372ff0":[6,0,37,31],
 "df/d17/classSqlStatement.html#a67eaf53d5379651a706ac331d05dd3c9":[6,0,37,28],
 "df/d17/classSqlStatement.html#a798024560a6f680836e08f90dbb7b928":[6,0,37,23],
 "df/d17/classSqlStatement.html#a7d7fc4df758cfd56e3ddaf296b3b1411":[6,0,37,13],
@@ -206,12 +208,12 @@ var NAVTREEINDEX1 =
 "df/d17/classSqlStatement.html#abdc81e6ac6a5f063a445637b9cd64ee6":[6,0,37,24],
 "df/d17/classSqlStatement.html#ac37b4a541621dd7b1a6c3a2111c4c027":[6,0,37,19],
 "df/d17/classSqlStatement.html#ac7300b4d29568ae83bb7cc4f01fa8051":[6,0,37,25],
-"df/d17/classSqlStatement.html#ac85a805bae4ddf2ee4d2b118aa53281c":[6,0,37,31],
+"df/d17/classSqlStatement.html#ac85a805bae4ddf2ee4d2b118aa53281c":[6,0,37,32],
 "df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec":[6,0,37,26],
 "df/d17/classSqlStatement.html#acd12aea32817fef21321a48d3daf7e7a":[6,0,37,21],
 "df/d17/classSqlStatement.html#ad1b732b98002ac13a593a2c09b057e48":[6,0,37,11],
 "df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da":[6,0,37,9],
-"df/d17/classSqlStatement.html#ad3fe2d91f8ea3b611e0bb0816974792e":[6,0,37,29],
+"df/d17/classSqlStatement.html#ad3fe2d91f8ea3b611e0bb0816974792e":[6,0,37,30],
 "df/d17/classSqlStatement.html#ad4db979c5f830dcc838f9b2d9ae8b212":[6,0,37,6],
 "df/d17/classSqlStatement.html#aed36aff23ba36b1c67206ff0c56baa62":[6,0,37,1],
 "df/d17/classSqlStatement.html#af0e6121595d226f3926dbd915f7c7491":[6,0,37,0],
@@ -247,7 +249,5 @@ var NAVTREEINDEX1 =
 "df/dcd/UnicodeConverter_8hpp_source.html":[7,0,1,0,18],
 "df/dd6/classHasManyThrough.html":[4,0,6],
 "df/dd6/classHasManyThrough.html#a0dd54929e7942a919ce0ec5d5890b03f":[4,0,6,3],
-"df/dd6/classHasManyThrough.html#a2064ef55f4172fedb05962508c86f6ed":[4,0,6,5],
-"df/dd6/classHasManyThrough.html#a21529e666f46d27a466d6cffc9367a67":[4,0,6,6],
-"df/dd6/classHasManyThrough.html#a289cfe87f4182e13ca5bce87203e004a":[4,0,6,8]
+"df/dd6/classHasManyThrough.html#a2064ef55f4172fedb05962508c86f6ed":[4,0,6,5]
 };

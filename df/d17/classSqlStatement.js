@@ -29,6 +29,7 @@ var classSqlStatement =
     [ "FetchRow", "df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec", null ],
     [ "CloseCursor", "df/d17/classSqlStatement.html#a909e53eb14ad5d93f31b6fffc6958d01", null ],
     [ "GetResultCursor", "df/d17/classSqlStatement.html#a67eaf53d5379651a706ac331d05dd3c9", null ],
+    [ "GetVariantRowCursor", "df/d17/classSqlStatement.html#a5183d34164732d5ca41d55e22ab7f7c8", null ],
     [ "GetColumn", "df/d17/classSqlStatement.html#ad3fe2d91f8ea3b611e0bb0816974792e", null ],
     [ "GetColumn", "df/d17/classSqlStatement.html#a5e6af1d8e8e945319553505e73372ff0", null ],
     [ "GetNullableColumn", "df/d17/classSqlStatement.html#ac85a805bae4ddf2ee4d2b118aa53281c", null ]

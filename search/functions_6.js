@@ -6,5 +6,6 @@ var searchData=
   ['getnullablecolumn_3',['getnullablecolumn',['../df/d17/classSqlStatement.html#ac85a805bae4ddf2ee4d2b118aa53281c',1,'SqlStatement::GetNullableColumn()'],['../d7/d13/classSqlResultCursor.html#a42f1b14f00a444b581d74b2ebea1d87c',1,'SqlResultCursor::GetNullableColumn()']]],
   ['getprimarykeyfield_4',['GetPrimaryKeyField',['../dc/dc7/classDataMapper.html#a02eb0501dadc42e84041be41e2ca9022',1,'DataMapper']]],
   ['getresultcursor_5',['GetResultCursor',['../df/d17/classSqlStatement.html#a67eaf53d5379651a706ac331d05dd3c9',1,'SqlStatement']]],
-  ['groupby_6',['GroupBy',['../d1/d91/classSqlSelectQueryBuilder.html#a82296628440002df15f0884927170d2c',1,'SqlSelectQueryBuilder']]]
+  ['getvariantrowcursor_6',['GetVariantRowCursor',['../df/d17/classSqlStatement.html#a5183d34164732d5ca41d55e22ab7f7c8',1,'SqlStatement']]],
+  ['groupby_7',['GroupBy',['../d1/d91/classSqlSelectQueryBuilder.html#a82296628440002df15f0884927170d2c',1,'SqlSelectQueryBuilder']]]
 ];

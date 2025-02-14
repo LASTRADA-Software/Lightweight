@@ -1,6 +1,6 @@
 var structSqlVariant =
 [
-    [ "InnerType", "d0/df8/structSqlVariant.html#a13ad8633a019c66dc28431b389541754", null ],
+    [ "InnerType", "d0/df8/structSqlVariant.html#a40df252422c4e606ba772582c3538eaa", null ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html#a0a35319e9e89c5ebfb1b27c401bc5bbd", null ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html#a22666f660d802ede8bfdf1dee64e8410", null ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html#ae7b0d380468b23f0d1e1384d30c3bc38", null ],
@@ -22,6 +22,7 @@ var structSqlVariant =
     [ "Get", "d0/df8/structSqlVariant.html#ad851fc01f18cc702ca502a79353f24b0", null ],
     [ "ValueOr", "d0/df8/structSqlVariant.html#a7385d14562482b5052984d8a7ef2618a", null ],
     [ "TryGetBool", "d0/df8/structSqlVariant.html#ae1071385577db7a1502fa322aa97b4f0", null ],
+    [ "TryGetInt8", "d0/df8/structSqlVariant.html#a716c322948a86f2b6de16b7e8d0aabbb", null ],
     [ "TryGetShort", "d0/df8/structSqlVariant.html#aebd1de1b04c960687de5ab737f3f4578", null ],
     [ "TryGetUShort", "d0/df8/structSqlVariant.html#a17db62c22df1caa06eb4bf12be193154", null ],
     [ "TryGetInt", "d0/df8/structSqlVariant.html#ada646da7fabd58419028aadb2310f83e", null ],

@@ -16,13 +16,14 @@ var searchData=
   ['trygetdate_13',['TryGetDate',['../d0/df8/structSqlVariant.html#a711dd23d6443e4fba6dc6cb6e674597f',1,'SqlVariant']]],
   ['trygetdatetime_14',['TryGetDateTime',['../d0/df8/structSqlVariant.html#a8b2c8582356d8c88814112dcc42e68db',1,'SqlVariant']]],
   ['trygetint_15',['TryGetInt',['../d0/df8/structSqlVariant.html#ada646da7fabd58419028aadb2310f83e',1,'SqlVariant']]],
-  ['trygetlonglong_16',['TryGetLongLong',['../d0/df8/structSqlVariant.html#aba45d79aec474c8c8295b035633181eb',1,'SqlVariant']]],
-  ['trygetshort_17',['TryGetShort',['../d0/df8/structSqlVariant.html#aebd1de1b04c960687de5ab737f3f4578',1,'SqlVariant']]],
-  ['trygetstringview_18',['TryGetStringView',['../d0/df8/structSqlVariant.html#a0527e224ff468a41bb2c193475c719fb',1,'SqlVariant']]],
-  ['trygettime_19',['TryGetTime',['../d0/df8/structSqlVariant.html#a7d9baacb62d03dd0f42b04aeb7e39947',1,'SqlVariant']]],
-  ['trygetuint_20',['TryGetUInt',['../d0/df8/structSqlVariant.html#ac7d134134687d16f2813257175606d7c',1,'SqlVariant']]],
-  ['trygetulonglong_21',['TryGetULongLong',['../d0/df8/structSqlVariant.html#a3926fe4c1d9d77917ff052c4fa0a0cb8',1,'SqlVariant']]],
-  ['trygetushort_22',['TryGetUShort',['../d0/df8/structSqlVariant.html#a17db62c22df1caa06eb4bf12be193154',1,'SqlVariant']]],
-  ['tryparse_23',['TryParse',['../d2/d62/structSqlGuid.html#a7d67233c3e4b000d12f060da1c7da2dc',1,'SqlGuid']]],
-  ['tryrollback_24',['TryRollback',['../d1/dc2/classSqlTransaction.html#a9e8445b170f759ea4d26c24b7f119ef9',1,'SqlTransaction']]]
+  ['trygetint8_16',['TryGetInt8',['../d0/df8/structSqlVariant.html#a716c322948a86f2b6de16b7e8d0aabbb',1,'SqlVariant']]],
+  ['trygetlonglong_17',['TryGetLongLong',['../d0/df8/structSqlVariant.html#aba45d79aec474c8c8295b035633181eb',1,'SqlVariant']]],
+  ['trygetshort_18',['TryGetShort',['../d0/df8/structSqlVariant.html#aebd1de1b04c960687de5ab737f3f4578',1,'SqlVariant']]],
+  ['trygetstringview_19',['TryGetStringView',['../d0/df8/structSqlVariant.html#a0527e224ff468a41bb2c193475c719fb',1,'SqlVariant']]],
+  ['trygettime_20',['TryGetTime',['../d0/df8/structSqlVariant.html#a7d9baacb62d03dd0f42b04aeb7e39947',1,'SqlVariant']]],
+  ['trygetuint_21',['TryGetUInt',['../d0/df8/structSqlVariant.html#ac7d134134687d16f2813257175606d7c',1,'SqlVariant']]],
+  ['trygetulonglong_22',['TryGetULongLong',['../d0/df8/structSqlVariant.html#a3926fe4c1d9d77917ff052c4fa0a0cb8',1,'SqlVariant']]],
+  ['trygetushort_23',['TryGetUShort',['../d0/df8/structSqlVariant.html#a17db62c22df1caa06eb4bf12be193154',1,'SqlVariant']]],
+  ['tryparse_24',['TryParse',['../d2/d62/structSqlGuid.html#a7d67233c3e4b000d12f060da1c7da2dc',1,'SqlGuid']]],
+  ['tryrollback_25',['TryRollback',['../d1/dc2/classSqlTransaction.html#a9e8445b170f759ea4d26c24b7f119ef9',1,'SqlTransaction']]]
 ];
