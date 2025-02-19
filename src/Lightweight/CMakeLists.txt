@@ -86,6 +86,7 @@ set(SOURCE_FILES
     SqlSchema.cpp
     SqlStatement.cpp
     SqlTransaction.cpp
+    Utils.cpp
 )
 
 set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT OFF)

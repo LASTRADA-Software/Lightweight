@@ -2,6 +2,7 @@
 
 #include "SqlQuery.hpp"
 #include "SqlStatement.hpp"
+#include "Utils.hpp"
 
 struct SqlStatement::Data
 {
@@ -239,17 +240,7 @@ std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location
 
 void SqlStatement::RequireSuccess(SQLRETURN error, std::source_location sourceLocation) const
 {
-    if (SQL_SUCCEEDED(error))
-        return;
-
-    auto errorInfo = LastError();
-    if (errorInfo.sqlState == "07009")
-    {
-        SqlLogger::GetLogger().OnError(errorInfo, sourceLocation);
-        throw std::invalid_argument(std::format("SQL error: {}", errorInfo));
-    }
-    else
-        throw SqlException(std::move(errorInfo));
+    ::RequireSuccess(m_hStmt, error, sourceLocation);
 }
 
 SqlQueryBuilder SqlStatement::Query(std::string_view const& table) const
