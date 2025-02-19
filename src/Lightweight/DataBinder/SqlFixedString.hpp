@@ -253,18 +253,23 @@ struct detail::SqlViewHelper<SqlFixedString<N, CharT, Mode>>
     }
 };
 
+namespace detail
+{
+
 template <typename>
-struct IsSqlFixedStringType: std::false_type
+struct IsSqlFixedStringTypeImpl: std::false_type
 {
 };
 
 template <std::size_t N, typename T, SqlFixedStringMode Mode>
-struct IsSqlFixedStringType<SqlFixedString<N, T, Mode>>: std::true_type
+struct IsSqlFixedStringTypeImpl<SqlFixedString<N, T, Mode>>: std::true_type
 {
 };
 
+} // namespace detail
+
 template <typename T>
-constexpr bool IsSqlFixedString = IsSqlFixedStringType<T>::value;
+constexpr bool IsSqlFixedString = detail::IsSqlFixedStringTypeImpl<T>::value;
 
 /// Fixed-size string of element type `char` with a capacity of `N` characters.
 template <std::size_t N>
@@ -288,18 +293,6 @@ using SqlTrimmedFixedString = SqlFixedString<N, T, SqlFixedStringMode::FIXED_SIZ
 
 template <std::size_t N, typename T = char>
 using SqlString = SqlFixedString<N, T, SqlFixedStringMode::VARIABLE_SIZE>;
-
-template <std::size_t N, typename T, SqlFixedStringMode Mode>
-struct detail::SqlColumnSize<SqlFixedString<N, T, Mode>>
-{
-    static constexpr size_t Value = N;
-};
-
-template <std::size_t N, typename T, SqlFixedStringMode Mode>
-struct detail::SqlColumnSize<std::optional<SqlFixedString<N, T, Mode>>>
-{
-    static constexpr size_t Value = N;
-};
 
 template <std::size_t N, typename T, SqlFixedStringMode Mode>
 struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
