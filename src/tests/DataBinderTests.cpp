@@ -296,12 +296,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlTime", "[SqlDataBinder],[SqlVar
 
 TEST_CASE_METHOD(SqlTestFixture, "InputParameter and GetColumn for very large values", "[SqlDataBinder]")
 {
-    auto const MakeLargeText = [](size_t size) {
-        auto text = std::string(size, '\0');
-        std::ranges::generate(text, [i = 0]() mutable { return char('A' + (i++ % 26)); });
-        return text;
-    };
-
     auto stmt = SqlStatement {};
     UNSUPPORTED_DATABASE(stmt, SqlServerType::ORACLE);
     auto const expectedText = MakeLargeText(8 * 1000);

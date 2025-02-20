@@ -84,6 +84,45 @@ TEST_CASE("Field: int", "[DataMapper],[Field]")
     CHECK(field.IsModified());
 }
 
+struct TableWithLargeStrings
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign> id;
+    Field<SqlDynamicAnsiString<8000>> largeAnsiString;
+    // TODO(pr) Field<SqlDynamicWideString<8000>> largeWideString;
+    // Field<SqlAnsiString<10>> fixedString;
+
+    std::weak_ordering operator<=>(TableWithLargeStrings const& other) const = default;
+};
+
+std::ostream& operator<<(std::ostream& os, TableWithLargeStrings const& record)
+{
+    return os << DataMapper::Inspect(record);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Field check if has large filds", "[DataMapper],[Field],[SqlDynamicString]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<TableWithLargeStrings>();
+
+    auto const expectedRecord = TableWithLargeStrings {
+        .id = SqlGuid::Create(),
+        .largeAnsiString = MakeLargeText<char>(5000),
+        // TODO(pr) .largeWideString = MakeLargeText<wchar_t>(5000),
+        //.fixedString = "Hello",
+    };
+    dm.CreateExplicit(expectedRecord);
+
+    // Check single record retrieval
+    auto const actualResult = dm.QuerySingle<TableWithLargeStrings>().Get();
+    REQUIRE(actualResult.has_value());
+    CHECK(actualResult.value() == expectedRecord);
+
+    // Check multi-record retrieval (if one works, they all do)
+    auto const records = dm.Query<TableWithLargeStrings>().All();
+    REQUIRE(records.size() == 1);
+    CHECK(records[0] == expectedRecord);
+}
+
 TEST_CASE("Field: SqlAnsiString", "[DataMapper],[Field]")
 {
     Field<SqlAnsiString<25>> field;

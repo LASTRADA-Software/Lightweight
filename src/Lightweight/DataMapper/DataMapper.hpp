@@ -88,6 +88,50 @@ auto ToSharedPtrList(Container<Object, Allocator<Object>> container)
     return sharedPtrContainer;
 }
 
+template <typename Record>
+constexpr bool CanSafelyBindOutputColumns(SqlServerType sqlServerType, Record const& record)
+{
+    if (sqlServerType != SqlServerType::MICROSOFT_SQL)
+        return true;
+
+    // Test if we have some columns that might not be sufficient to store the result (e.g. string truncation),
+    // then don't call BindOutputColumn but SQLFetch to get the result, because
+    // regrowing previously bound columns is not supported in MS-SQL's ODBC driver, so it seems.
+    bool result = true;
+    Reflection::EnumerateMembers(record, [&result]<size_t I, typename Field>(Field& /*field*/) {
+        if constexpr (IsField<Field>)
+        {
+            if constexpr (detail::OneOf<typename Field::ValueType,
+                                        std::string,
+                                        std::wstring,
+                                        std::u16string,
+                                        std::u32string,
+                                        SqlBinary>
+                          || IsSqlDynamicString<typename Field::ValueType>)
+            {
+                // Known types that MAY require growing due to truncation.
+                result = false;
+            }
+        }
+    });
+    return result;
+}
+
+template <typename Record>
+void GetAllColumns(SqlResultCursor& reader, Record& record)
+{
+    Reflection::EnumerateMembers(record, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
+        if constexpr (IsField<Field>)
+        {
+            field.MutableValue() = reader->GetColumn<typename Field::ValueType>(I + 1);
+        }
+        else if constexpr (SqlGetColumnNativeType<Field>)
+        {
+            field = reader->GetColumn<Field>(I + 1);
+        }
+    });
+}
+
 } // namespace detail
 
 /// Main API for mapping records to C++ from the database using high level C++ syntax.
@@ -132,7 +176,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
                                                  this->_query.searchCondition.condition,
                                                  this->_query.orderBy,
                                                  this->_query.groupBy));
-        Derived::ReadResults(_stmt.GetResultCursor(), &records);
+        Derived::ReadResults(_stmt.Connection().ServerType(), _stmt.GetResultCursor(), &records);
         return records;
     }
 
@@ -148,7 +192,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
                                                    this->_query.searchCondition.condition,
                                                    this->_query.orderBy,
                                                    n));
-        Derived::ReadResults(_stmt.GetResultCursor(), &records);
+        Derived::ReadResults(_stmt.Connection().ServerType(), _stmt.GetResultCursor(), &records);
         return records;
     }
 
@@ -169,7 +213,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
             this->_query.groupBy,
             offset,
             limit));
-        Derived::ReadResults(_stmt.GetResultCursor(), &records);
+        Derived::ReadResults(_stmt.Connection().ServerType(), _stmt.GetResultCursor(), &records);
         return records;
     }
 };
@@ -190,17 +234,24 @@ class [[nodiscard]] SqlSparseFieldQueryBuilder final:
     }
 
     // NB: Required yb SqlCoreDataMapperQueryBuilder
-    static void ReadResults(SqlResultCursor reader, std::vector<Record>* records)
+    static void ReadResults(SqlServerType sqlServerType, SqlResultCursor reader, std::vector<Record>* records)
     {
         while (true)
         {
             auto& record = records->emplace_back();
-            reader.BindOutputColumns(&(record.*ReferencedFields)...);
+
+            auto const outputColumnsBound = detail::CanSafelyBindOutputColumns(sqlServerType, record);
+            if (outputColumnsBound)
+                reader.BindOutputColumns(&(record.*ReferencedFields)...);
+
             if (!reader.FetchRow())
             {
                 records->pop_back();
                 break;
             }
+
+            if (!outputColumnsBound)
+                detail::GetAllColumns(reader, record);
         }
     }
 };
@@ -237,16 +288,24 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
             });
     }
 
-    static void ReadResults(SqlResultCursor reader, std::vector<Record>* records)
+    static void ReadResults(SqlServerType sqlServerType, SqlResultCursor reader, std::vector<Record>* records)
     {
         while (true)
         {
-            BindAllOutputColumns(reader, records->emplace_back());
+            auto& record = records->emplace_back();
+
+            auto const outputColumnsBound = detail::CanSafelyBindOutputColumns(sqlServerType, record);
+            if (outputColumnsBound)
+                BindAllOutputColumns(reader, record);
+
             if (!reader.FetchRow())
             {
                 records->pop_back();
                 break;
             }
+
+            if (!outputColumnsBound)
+                detail::GetAllColumns(reader, record);
         }
     }
 };
@@ -318,9 +377,13 @@ class [[nodiscard]] SqlQuerySingleBuilder: public SqlWhereClauseBuilder<SqlQuery
                                                    count));
         auto reader = _stmt.GetResultCursor();
         auto record = Record {};
-        BindAllOutputColumns(reader, record);
+        auto canBindOutputColumns = detail::CanSafelyBindOutputColumns(_stmt.Connection().ServerType(), record);
+        if (canBindOutputColumns)
+            BindAllOutputColumns(reader, record);
         if (!reader.FetchRow())
             return std::nullopt;
+        if (!canBindOutputColumns)
+            detail::GetAllColumns(reader, record);
         return std::optional { std::move(record) };
     }
 };
