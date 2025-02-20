@@ -12,6 +12,10 @@ endif()
 
 target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES})
 
+if(MSVC)
+    target_compile_options(LightweightTest PRIVATE /bigobj)
+endif()
+
 set(SOURCE_FILES
     CoreTests.cpp
     DataBinderTests.cpp

@@ -95,7 +95,7 @@ class OracleSqlQueryFormatter final: public SQLiteQueryFormatter
                 [](Real const&) -> std::string { return "REAL"; },
                 [](Smallint const&) -> std::string { return "SMALLINT"; },
                 [](Text const& type) -> std::string {
-                    if (type.size <= 4000)
+                    if (type.size <= SqlOptimalMaxColumnSize)
                         return std::format("VARCHAR2({})", type.size);
                     else
                         return "CLOB";

@@ -93,7 +93,7 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
                 [](Integer const&) -> std::string { return "INTEGER"; },
                 [](NChar const& type) -> std::string { return std::format("NCHAR({})", type.size); },
                 [](NVarchar const& type) -> std::string {
-                    if (type.size == 0 || type.size > 4000)
+                    if (type.size == 0 || type.size > SqlOptimalMaxColumnSize)
                         return "NVARCHAR(MAX)";
                     else
                         return std::format("NVARCHAR({})", type.size);
@@ -106,7 +106,7 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
                 [](Tinyint const&) -> std::string { return "TINYINT"; },
                 [](VarBinary const& type) -> std::string { return std::format("VARBINARY({})", type.size); },
                 [](Varchar const& type) -> std::string {
-                    if (type.size == 0 || type.size > 4000)
+                    if (type.size == 0 || type.size > SqlOptimalMaxColumnSize)
                         return "VARCHAR(MAX)";
                     else
                         return std::format("VARCHAR({})", type.size);

@@ -136,6 +136,20 @@ struct SqlColumnTypeDefinitionOf<SqlFixedString<N, CharT, SqlFixedStringMode::FI
     static constexpr auto value = SqlColumnTypeDefinitions::NChar { N };
 };
 
+template <size_t N, typename CharT>
+    requires(detail::OneOf<CharT, char>)
+struct SqlColumnTypeDefinitionOf<SqlDynamicString<N, CharT>>
+{
+    static constexpr auto value = SqlColumnTypeDefinitions::Varchar { N };
+};
+
+template <size_t N, typename CharT>
+    requires(detail::OneOf<CharT, char8_t, char16_t, char32_t, wchar_t>)
+struct SqlColumnTypeDefinitionOf<SqlDynamicString<N, CharT>>
+{
+    static constexpr auto value = SqlColumnTypeDefinitions::NVarchar { N };
+};
+
 template <typename T>
 struct SqlColumnTypeDefinitionOf<std::optional<T>>
 {
