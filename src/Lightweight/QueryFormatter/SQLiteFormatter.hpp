@@ -174,7 +174,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
 
         if (column.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT)
             sqlQueryString << " PRIMARY KEY AUTOINCREMENT";
-        else if (column.unique && !column.index)
+        else if (column.primaryKey == SqlPrimaryKeyType::NONE && !column.index && column.unique)
             sqlQueryString << " UNIQUE";
 
         return sqlQueryString.str();
@@ -208,7 +208,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                 ++currentColumn;
                 sqlQueryString << "\n    ";
                 sqlQueryString << BuildColumnDefinition(column);
-                if (column.primaryKey == SqlPrimaryKeyType::MANUAL)
+                if (column.primaryKey == SqlPrimaryKeyType::MANUAL || column.primaryKey == SqlPrimaryKeyType::GUID)
                 {
                     if (!primaryKeyColumns.empty())
                         primaryKeyColumns += ", ";

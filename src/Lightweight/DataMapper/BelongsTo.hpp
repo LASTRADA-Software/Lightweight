@@ -190,7 +190,8 @@ class BelongsTo
         if (_loaded)
             return;
 
-        _loader.loadReference();
+        if (_loader.loadReference)
+            _loader.loadReference();
 
         if (!_loaded)
             throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>);
@@ -216,10 +217,11 @@ struct IsBelongsTo: std::false_type
 {
 };
 
-template <auto ReferencedField>
-struct IsBelongsTo<BelongsTo<ReferencedField>>: std::true_type
+template <auto ReferencedField, auto ColumnNameOverrideString>
+struct IsBelongsTo<BelongsTo<ReferencedField, ColumnNameOverrideString>>: std::true_type
 {
 };
+
 } // namespace detail
 
 template <typename T>
