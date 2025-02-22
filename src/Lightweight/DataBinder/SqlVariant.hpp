@@ -38,7 +38,6 @@ overloaded(Ts...) -> overloaded<Ts...>;
 /// Use this class with care. Always prefer native types when possible, in order to avoid any unnecessary overhead.
 struct SqlVariant
 {
-
     /// @brief The inner type of the variant.
     ///
     /// This type is a variant of all the supported SQL data types.

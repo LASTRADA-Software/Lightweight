@@ -91,9 +91,9 @@ constexpr SqlGuid SqlGuid::UnsafeParse(std::string_view const& text) noexcept
 }
 
 template <>
-struct LIGHTWEIGHT_API std::formatter<SqlGuid>: std::formatter<std::string>
+struct std::formatter<SqlGuid>: std::formatter<std::string>
 {
-    auto format(SqlGuid const& guid, format_context& ctx) const -> format_context::iterator
+    LIGHTWEIGHT_FORCE_INLINE auto format(SqlGuid const& guid, format_context& ctx) const -> format_context::iterator
     {
         // clang-format off
         return formatter<std::string>::format(std::format(

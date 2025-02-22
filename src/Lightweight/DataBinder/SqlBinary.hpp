@@ -25,7 +25,7 @@ class SqlBinary final: public std::vector<uint8_t>
 };
 
 template <>
-struct LIGHTWEIGHT_API SqlDataBinder<SqlBinary>
+struct SqlDataBinder<SqlBinary>
 {
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::Binary { 255 };
 

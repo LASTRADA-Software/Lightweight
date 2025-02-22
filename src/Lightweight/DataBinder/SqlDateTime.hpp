@@ -11,7 +11,7 @@
 /// Represents a date and time to efficiently write to or read from a database.
 ///
 /// @see SqlDate, SqlTime
-struct LIGHTWEIGHT_API SqlDateTime
+struct SqlDateTime
 {
     using native_type = std::chrono::system_clock::time_point;
     using duration_type = std::chrono::system_clock::duration;
@@ -49,7 +49,9 @@ struct LIGHTWEIGHT_API SqlDateTime
             .hour = (SQLUSMALLINT) time.hours().count(),
             .minute = (SQLUSMALLINT) time.minutes().count(),
             .second = (SQLUSMALLINT) time.seconds().count(),
-            .fraction = (SQLUINTEGER) (std::chrono::duration_cast<std::chrono::nanoseconds>(time.to_duration()).count() / 100) * 100,
+            .fraction =
+                (SQLUINTEGER) (std::chrono::duration_cast<std::chrono::nanoseconds>(time.to_duration()).count() / 100)
+                * 100,
         }
     {
     }
@@ -91,8 +93,8 @@ struct LIGHTWEIGHT_API SqlDateTime
         using namespace std::chrono;
         auto const totalDays = floor<days>(value);
         auto const ymd = year_month_day { totalDays };
-        auto const hms = hh_mm_ss<duration_type> {
-            std::chrono::duration_cast<duration_type>(floor<nanoseconds>(value - totalDays)) };
+        auto const hms = hh_mm_ss<duration_type> { std::chrono::duration_cast<duration_type>(
+            floor<nanoseconds>(value - totalDays)) };
         return ConvertToSqlValue(ymd, hms);
     }
 
@@ -113,7 +115,7 @@ struct LIGHTWEIGHT_API SqlDateTime
         // clang-format on
     }
 
-    static native_type constexpr ConvertToNative(SQL_TIMESTAMP_STRUCT const& time) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE native_type constexpr ConvertToNative(SQL_TIMESTAMP_STRUCT const& time) noexcept
     {
         // clang-format off
         using namespace std::chrono;
@@ -131,31 +133,31 @@ struct LIGHTWEIGHT_API SqlDateTime
     }
 
     /// Returns the current date and time.
-    [[nodiscard]] constexpr native_type value() const noexcept
+    [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE native_type value() const noexcept
     {
         return ConvertToNative(sqlValue);
     }
 
-    SqlDateTime& operator+=(duration_type duration) noexcept
+    LIGHTWEIGHT_FORCE_INLINE SqlDateTime& operator+=(duration_type duration) noexcept
     {
         *this = SqlDateTime { value() + duration };
         return *this;
     }
 
-    SqlDateTime& operator-=(duration_type duration) noexcept
+    LIGHTWEIGHT_FORCE_INLINE SqlDateTime& operator-=(duration_type duration) noexcept
     {
         *this = SqlDateTime { value() - duration };
         return *this;
     }
 
-    friend SqlDateTime operator+(SqlDateTime dateTime, duration_type duration) noexcept
+    friend LIGHTWEIGHT_FORCE_INLINE SqlDateTime operator+(SqlDateTime dateTime, duration_type duration) noexcept
     {
         auto tmp = dateTime.value() + duration;
         return SqlDateTime(tmp);
-        //return SqlDateTime { dateTime.value() + duration };
+        // return SqlDateTime { dateTime.value() + duration };
     }
 
-    friend SqlDateTime operator-(SqlDateTime dateTime, duration_type duration) noexcept
+    friend LIGHTWEIGHT_FORCE_INLINE SqlDateTime operator-(SqlDateTime dateTime, duration_type duration) noexcept
     {
         return SqlDateTime { dateTime.value() - duration };
     }
@@ -166,7 +168,8 @@ struct LIGHTWEIGHT_API SqlDateTime
 template <>
 struct std::formatter<SqlDateTime>: std::formatter<std::string>
 {
-    auto format(SqlDateTime const& value, std::format_context& ctx) const -> std::format_context::iterator
+    LIGHTWEIGHT_FORCE_INLINE auto format(SqlDateTime const& value, std::format_context& ctx) const
+        -> std::format_context::iterator
     {
         return std::formatter<std::string>::format(std::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:09}",
                                                                value.sqlValue.year,
@@ -181,13 +184,13 @@ struct std::formatter<SqlDateTime>: std::formatter<std::string>
 };
 
 template <>
-struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime::native_type>
+struct SqlDataBinder<SqlDateTime::native_type>
 {
-    static SQLRETURN GetColumn(SQLHSTMT stmt,
-                               SQLUSMALLINT column,
-                               SqlDateTime::native_type* result,
-                               SQLLEN* indicator,
-                               SqlDataBinderCallback const& /*cb*/) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,
+                                                        SQLUSMALLINT column,
+                                                        SqlDateTime::native_type* result,
+                                                        SQLLEN* indicator,
+                                                        SqlDataBinderCallback const& /*cb*/) noexcept
     {
         SQL_TIMESTAMP_STRUCT sqlValue {};
         auto const rc = SQLGetData(stmt, column, SQL_C_TYPE_TIMESTAMP, &sqlValue, sizeof(sqlValue), indicator);

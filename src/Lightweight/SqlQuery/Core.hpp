@@ -349,52 +349,51 @@ enum class SqlResultOrdering : uint8_t
 
 namespace detail
 {
-    enum class SelectType : std::uint8_t
-    {
-        Undefined,
-        Count,
-        All,
-        First,
-        Range
-    };
+enum class SelectType : std::uint8_t
+{
+    Undefined,
+    Count,
+    All,
+    First,
+    Range
+};
 
-    struct ComposedQuery
-    {
-        SelectType selectType = SelectType::Undefined;
-        SqlQueryFormatter const* formatter = nullptr;
+struct ComposedQuery
+{
+    SelectType selectType = SelectType::Undefined;
+    SqlQueryFormatter const* formatter = nullptr;
 
-        bool distinct = false;
-        SqlSearchCondition searchCondition {};
+    bool distinct = false;
+    SqlSearchCondition searchCondition {};
 
-        std::string fields;
+    std::string fields;
 
-        std::string orderBy;
-        std::string groupBy;
+    std::string orderBy;
+    std::string groupBy;
 
-        size_t offset = 0;
-        size_t limit = (std::numeric_limits<size_t>::max)();
+    size_t offset = 0;
+    size_t limit = (std::numeric_limits<size_t>::max)();
 
-        [[nodiscard]] LIGHTWEIGHT_API std::string ToSql() const;
-    };
-}
+    [[nodiscard]] LIGHTWEIGHT_API std::string ToSql() const;
+};
+} // namespace detail
 
 template <typename Derived>
 class [[nodiscard]] SqlBasicSelectQueryBuilder: public SqlWhereClauseBuilder<Derived>
 {
   public:
     /// Adds a DISTINCT clause to the SELECT query.
-    LIGHTWEIGHT_API Derived& Distinct() noexcept;
+    Derived& Distinct() noexcept;
 
     /// Constructs or extends a ORDER BY clause.
-    LIGHTWEIGHT_API Derived& OrderBy(SqlQualifiedTableColumnName const& columnName,
-                                     SqlResultOrdering ordering = SqlResultOrdering::ASCENDING);
+    Derived& OrderBy(SqlQualifiedTableColumnName const& columnName,
+                     SqlResultOrdering ordering = SqlResultOrdering::ASCENDING);
 
     /// Constructs or extends a ORDER BY clause.
-    LIGHTWEIGHT_API Derived& OrderBy(std::string_view columnName,
-                                     SqlResultOrdering ordering = SqlResultOrdering::ASCENDING);
+    Derived& OrderBy(std::string_view columnName, SqlResultOrdering ordering = SqlResultOrdering::ASCENDING);
 
     /// Constructs or extends a GROUP BY clause.
-    LIGHTWEIGHT_API Derived& GroupBy(std::string_view columnName);
+    Derived& GroupBy(std::string_view columnName);
 
     using ComposedQuery = detail::ComposedQuery;
 
@@ -403,14 +402,15 @@ class [[nodiscard]] SqlBasicSelectQueryBuilder: public SqlWhereClauseBuilder<Der
 };
 
 template <typename Derived>
-Derived& SqlBasicSelectQueryBuilder<Derived>::Distinct() noexcept
+inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlBasicSelectQueryBuilder<Derived>::Distinct() noexcept
 {
     _query.distinct = true;
     return static_cast<Derived&>(*this);
 }
 
 template <typename Derived>
-Derived& SqlBasicSelectQueryBuilder<Derived>::OrderBy(std::string_view columnName, SqlResultOrdering ordering)
+inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlBasicSelectQueryBuilder<Derived>::OrderBy(std::string_view columnName,
+                                                                                      SqlResultOrdering ordering)
 {
     if (_query.orderBy.empty())
         _query.orderBy += "\n ORDER BY ";
@@ -430,8 +430,8 @@ Derived& SqlBasicSelectQueryBuilder<Derived>::OrderBy(std::string_view columnNam
 }
 
 template <typename Derived>
-Derived& SqlBasicSelectQueryBuilder<Derived>::OrderBy(SqlQualifiedTableColumnName const& columnName,
-                                                      SqlResultOrdering ordering)
+inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlBasicSelectQueryBuilder<Derived>::OrderBy(
+    SqlQualifiedTableColumnName const& columnName, SqlResultOrdering ordering)
 {
     if (_query.orderBy.empty())
         _query.orderBy += "\n ORDER BY ";
@@ -453,7 +453,7 @@ Derived& SqlBasicSelectQueryBuilder<Derived>::OrderBy(SqlQualifiedTableColumnNam
 }
 
 template <typename Derived>
-Derived& SqlBasicSelectQueryBuilder<Derived>::GroupBy(std::string_view columnName)
+inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlBasicSelectQueryBuilder<Derived>::GroupBy(std::string_view columnName)
 {
     if (_query.groupBy.empty())
         _query.groupBy += "\n GROUP BY ";
