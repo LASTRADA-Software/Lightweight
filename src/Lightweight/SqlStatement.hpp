@@ -758,11 +758,8 @@ inline bool SqlStatement::GetColumn(SQLUSMALLINT column, T* result) const
 namespace detail
 {
 
-// is_specialization_of<> is inspired by:
-// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2098r1.pdf
-
 template <typename T>
-concept SqlNullableType = (std::same_as<T, SqlVariant> || is_specialization_of<std::optional, T>::value);
+concept SqlNullableType = (std::same_as<T, SqlVariant> || IsSpecializationOf<std::optional, T>);
 
 } // end namespace detail
 
