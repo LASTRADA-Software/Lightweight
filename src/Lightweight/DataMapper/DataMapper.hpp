@@ -53,24 +53,27 @@ concept RecordWithStorageFields = (RecordStorageFieldCount<Record> > 0);
 template <size_t... Ints>
 using SqlElements = std::integer_sequence<size_t, Ints...>;
 
-/// @brief Tests if the given record type does contain a primary key.
-template <typename T>
-constexpr bool HasPrimaryKey = Reflection::FoldMembers<T>(false, []<size_t I, typename Field>(bool const accum) {
-    if constexpr (IsPrimaryKey<Field>)
+namespace detail
+{
+
+template <auto Test, typename T>
+constexpr bool CheckFieldProperty = Reflection::FoldMembers<T>(false, []<size_t I, typename Field>(bool const accum) {
+    if constexpr (Test.template operator()<Field>())
         return true;
     else
         return accum;
 });
 
+} // namespace detail
+
+/// @brief Tests if the given record type does contain a primary key.
+template <typename T>
+constexpr bool HasPrimaryKey = detail::CheckFieldProperty<[]<typename Field>() { return IsPrimaryKey<Field>; }, T>;
+
 /// @brief Tests if the given record type does contain an auto increment primary key.
 template <typename T>
 constexpr bool HasAutoIncrementPrimaryKey =
-    Reflection::FoldMembers<T>(false, []<size_t I, typename Field>(bool const accum) {
-        if constexpr (IsAutoIncrementPrimaryKey<Field>)
-            return true;
-        else
-            return accum;
-    });
+    detail::CheckFieldProperty<[]<typename Field>() { return IsAutoIncrementPrimaryKey<Field>; }, T>;
 
 namespace detail
 {
