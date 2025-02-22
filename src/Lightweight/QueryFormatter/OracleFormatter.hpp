@@ -119,13 +119,12 @@ class OracleSqlQueryFormatter final: public SQLiteQueryFormatter
 
         if (column.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT)
             sqlQueryString << " GENERATED ALWAYS AS IDENTITY";
-        else if (column.unique && !column.index)
+        else if (column.primaryKey == SqlPrimaryKeyType::NONE && !column.index && column.unique)
             sqlQueryString << " UNIQUE";
 
-        if (column.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT)
-        {
+        if (column.primaryKey != SqlPrimaryKeyType::NONE)
             sqlQueryString << ",\n    PRIMARY KEY (\"" << column.name << "\")";
-        }
+
         return sqlQueryString.str();
     }
 };

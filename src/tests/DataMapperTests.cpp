@@ -267,17 +267,21 @@ TEST_CASE_METHOD(SqlTestFixture, "Query.Range", "[DataMapper]")
     auto dm = DataMapper {};
 
     auto expectedPersons = std::array {
-        Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 },
-        Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 },
         Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 },
         Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 },
+        Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 },
+        Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 },
     };
 
     dm.CreateTable<Person>();
     for (auto& person: expectedPersons)
         dm.Create(person);
 
-    auto const records = dm.Query<Person>().Range(1, 2);
+    // clang-format off
+    auto const records = dm.Query<Person>()
+                           .OrderBy(FieldNameOf<&Person::name>, SqlResultOrdering::ASCENDING)
+                           .Range(1, 2);
+    // clang-format on
 
     CHECK(records.size() == 2);
     CHECK(records[0] == expectedPersons[1]);
@@ -346,18 +350,22 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.Range", "[DataMapper]")
     auto dm = DataMapper {};
 
     dm.CreateTable<Person>();
-    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 });
-    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 });
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 });
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 });
 
-    auto const records = dm.QuerySparse<Person, &Person::name, &Person::age>().Range(1, 2);
+    // clang-format off
+    auto const records = dm.QuerySparse<Person, &Person::name, &Person::age>()
+                           .OrderBy(FieldNameOf<&Person::name>, SqlResultOrdering::ASCENDING)
+                           .Range(1, 2);
+    // clang-format on
 
     CHECK(records.size() == 2);
-    CHECK(records[0].name == "Jimmy John");
-    CHECK(records[0].age == 24);
-    CHECK(records[1].name == "Jane Doe");
-    CHECK(records[1].age == 36);
+    CHECK(records[0].name == "Jimbo Jones");
+    CHECK(records[0].age == 69);
+    CHECK(records[1].name == "Jimmy John");
+    CHECK(records[1].age == 24);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Constructor with connection string", "[DataMapper]")

@@ -7,12 +7,6 @@
 
 #include <reflection-cpp/reflection.hpp>
 
-enum class SqlResultOrdering : uint8_t
-{
-    ASCENDING,
-    DESCENDING
-};
-
 enum class SqlQueryBuilderMode : uint8_t
 {
     Fluent,
@@ -82,58 +76,29 @@ inline SqlFieldExpression Max(SqlQualifiedTableColumnName const& field) noexcept
 /// @brief Query builder for building SELECT ... queries.
 ///
 /// @see SqlQueryBuilder
-class [[nodiscard]] SqlSelectQueryBuilder final: public SqlWhereClauseBuilder<SqlSelectQueryBuilder>
+class [[nodiscard]] SqlSelectQueryBuilder final: public SqlBasicSelectQueryBuilder<SqlSelectQueryBuilder>
 {
   public:
-    enum class SelectType : std::uint8_t
-    {
-        Undefined,
-        Count,
-        All,
-        First,
-        Range
-    };
-
-    struct ComposedQuery
-    {
-        SelectType selectType = SelectType::Undefined;
-        SqlQueryFormatter const* formatter = nullptr;
-
-        bool distinct = false;
-        SqlSearchCondition searchCondition {};
-
-        std::string fields;
-
-        std::string orderBy;
-        std::string groupBy;
-
-        size_t offset = 0;
-        size_t limit = (std::numeric_limits<size_t>::max)();
-
-        [[nodiscard]] LIGHTWEIGHT_API std::string ToSql() const;
-    };
+    using SelectType = detail::SelectType;
 
     explicit SqlSelectQueryBuilder(SqlQueryFormatter const& formatter,
                                    std::string table,
                                    std::string tableAlias) noexcept:
-        SqlWhereClauseBuilder<SqlSelectQueryBuilder> {},
-        m_formatter { formatter }
+        SqlBasicSelectQueryBuilder<SqlSelectQueryBuilder> {},
+        _formatter { formatter }
     {
-        m_query.formatter = &formatter;
-        m_query.searchCondition.tableName = std::move(table);
-        m_query.searchCondition.tableAlias = std::move(tableAlias);
-        m_query.fields.reserve(256);
+        _query.formatter = &formatter;
+        _query.searchCondition.tableName = std::move(table);
+        _query.searchCondition.tableAlias = std::move(tableAlias);
+        _query.fields.reserve(256);
     }
 
     /// Sets the builder mode to Varying, allowing varying final query types.
     constexpr LIGHTWEIGHT_FORCE_INLINE SqlSelectQueryBuilder& Varying() noexcept
     {
-        m_mode = SqlQueryBuilderMode::Varying;
+        _mode = SqlQueryBuilderMode::Varying;
         return *this;
     }
-
-    /// Adds a DISTINCT clause to the SELECT query.
-    LIGHTWEIGHT_API SqlSelectQueryBuilder& Distinct() noexcept;
 
     /// Adds a sequence of columns to the SELECT clause.
     template <typename... MoreFields>
@@ -174,17 +139,6 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlWhereClauseBuilder<Sq
     LIGHTWEIGHT_API SqlSelectQueryBuilder& FieldAs(SqlQualifiedTableColumnName const& fieldName,
                                                    std::string_view const& alias);
 
-    /// Constructs or extends a ORDER BY clause.
-    LIGHTWEIGHT_API SqlSelectQueryBuilder& OrderBy(SqlQualifiedTableColumnName const& columnName,
-                                                   SqlResultOrdering ordering = SqlResultOrdering::ASCENDING);
-
-    /// Constructs or extends a ORDER BY clause.
-    LIGHTWEIGHT_API SqlSelectQueryBuilder& OrderBy(std::string_view columnName,
-                                                   SqlResultOrdering ordering = SqlResultOrdering::ASCENDING);
-
-    /// Constructs or extends a GROUP BY clause.
-    LIGHTWEIGHT_API SqlSelectQueryBuilder& GroupBy(std::string_view columnName);
-
     template <typename Callable>
     SqlSelectQueryBuilder& Build(Callable const& callable);
 
@@ -202,19 +156,18 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlWhereClauseBuilder<Sq
 
     LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SearchCondition() noexcept
     {
-        return m_query.searchCondition;
+        return _query.searchCondition;
     }
 
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter const& Formatter() const noexcept
     {
-        return m_formatter;
+        return _formatter;
     }
 
   private:
-    SqlQueryFormatter const& m_formatter;
-    ComposedQuery m_query;
-    SqlQueryBuilderMode m_mode = SqlQueryBuilderMode::Fluent;
-    bool m_aliasAllowed = false;
+    SqlQueryFormatter const& _formatter;
+    SqlQueryBuilderMode _mode = SqlQueryBuilderMode::Fluent;
+    bool _aliasAllowed = false;
 };
 
 template <typename... MoreFields>
@@ -224,7 +177,7 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::string_view const& fir
 
     std::ostringstream fragment;
 
-    if (!m_query.fields.empty())
+    if (!_query.fields.empty())
         fragment << ", "sv;
 
     fragment << '"' << firstField << '"';
@@ -232,7 +185,7 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::string_view const& fir
     if constexpr (sizeof...(MoreFields) > 0)
         ((fragment << R"(, ")"sv << std::forward<MoreFields>(moreFields) << '"') << ...);
 
-    m_query.fields += fragment.str();
+    _query.fields += fragment.str();
     return *this;
 }
 

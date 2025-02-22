@@ -70,20 +70,19 @@ auto ToSharedPtrList(Container<Object, Allocator<Object>> container)
 
 /// Main API for mapping records to C++ from the database using high level C++ syntax.
 template <typename Record, typename Derived>
-class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlWhereClauseBuilder<Derived>
+class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBuilder<Derived>
 {
   private:
     SqlStatement& _stmt;
     SqlQueryFormatter const& _formatter;
 
     std::string _fields;
-    SqlSearchCondition _searchCondition {};
 
     friend class SqlWhereClauseBuilder<Derived>;
 
     LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SearchCondition() noexcept
     {
-        return _searchCondition;
+        return this->_query.searchCondition;
     }
 
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter const& Formatter() const noexcept
@@ -103,17 +102,14 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlWhereClauseBuilder<
     [[nodiscard]] std::vector<Record> All()
     {
         auto records = std::vector<Record> {};
-        auto constexpr distinct = false;
-        auto constexpr orderBy = std::string_view {};
-        auto constexpr groupBy = std::string_view {};
-        _stmt.ExecuteDirect(_formatter.SelectAll(distinct,
+        _stmt.ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
                                                  _fields,
                                                  RecordTableName<Record>,
-                                                 _searchCondition.tableAlias,
-                                                 _searchCondition.tableJoins,
-                                                 _searchCondition.condition,
-                                                 orderBy,
-                                                 groupBy));
+                                                 this->_query.searchCondition.tableAlias,
+                                                 this->_query.searchCondition.tableJoins,
+                                                 this->_query.searchCondition.condition,
+                                                 this->_query.orderBy,
+                                                 this->_query.groupBy));
         Derived::ReadResults(_stmt.GetResultCursor(), &records);
         return records;
     }
@@ -122,15 +118,13 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlWhereClauseBuilder<
     {
         auto records = std::vector<Record> {};
         records.reserve(n);
-        auto constexpr distinct = false;
-        auto constexpr orderBy = std::string_view {};
-        _stmt.ExecuteDirect(_formatter.SelectFirst(distinct,
+        _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
                                                    _fields,
                                                    RecordTableName<Record>,
-                                                   _searchCondition.tableAlias,
-                                                   _searchCondition.tableJoins,
-                                                   _searchCondition.condition,
-                                                   orderBy,
+                                                   this->_query.searchCondition.tableAlias,
+                                                   this->_query.searchCondition.tableJoins,
+                                                   this->_query.searchCondition.condition,
+                                                   this->_query.orderBy,
                                                    n));
         Derived::ReadResults(_stmt.GetResultCursor(), &records);
         return records;
@@ -140,19 +134,19 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlWhereClauseBuilder<
     {
         auto records = std::vector<Record> {};
         records.reserve(limit);
-        auto constexpr distinct = false;
-        auto const orderBy = std::format(" ORDER BY \"{}\" ASC", FieldNameAt<RecordPrimaryKeyIndex<Record>, Record>);
-        auto constexpr groupBy = std::string_view {};
-        _stmt.ExecuteDirect(_formatter.SelectRange(distinct,
-                                                   _fields,
-                                                   RecordTableName<Record>,
-                                                   _searchCondition.tableAlias,
-                                                   _searchCondition.tableJoins,
-                                                   _searchCondition.condition,
-                                                   orderBy,
-                                                   groupBy,
-                                                   offset,
-                                                   limit));
+        _stmt.ExecuteDirect(_formatter.SelectRange(
+            this->_query.distinct,
+            _fields,
+            RecordTableName<Record>,
+            this->_query.searchCondition.tableAlias,
+            this->_query.searchCondition.tableJoins,
+            this->_query.searchCondition.condition,
+            !this->_query.orderBy.empty()
+                ? this->_query.orderBy
+                : std::format(" ORDER BY \"{}\" ASC", FieldNameAt<RecordPrimaryKeyIndex<Record>, Record>),
+            this->_query.groupBy,
+            offset,
+            limit));
         Derived::ReadResults(_stmt.GetResultCursor(), &records);
         return records;
     }

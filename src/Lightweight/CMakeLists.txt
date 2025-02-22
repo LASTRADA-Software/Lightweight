@@ -79,6 +79,7 @@ set(SOURCE_FILES
     SqlLogger.cpp
     SqlMigration.cpp
     SqlQuery.cpp
+    SqlQuery/Core.cpp
     SqlQuery/Migrate.cpp
     SqlQuery/MigrationPlan.cpp
     SqlQuery/Select.cpp
