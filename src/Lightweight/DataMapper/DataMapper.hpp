@@ -3,6 +3,7 @@
 
 #include "../SqlConnection.hpp"
 #include "../SqlDataBinder.hpp"
+#include "../SqlLogger.hpp"
 #include "../SqlRealName.hpp"
 #include "../SqlStatement.hpp"
 #include "../Utils.hpp"
@@ -13,7 +14,6 @@
 #include "HasManyThrough.hpp"
 #include "HasOneThrough.hpp"
 #include "Record.hpp"
-#include "RecordId.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -56,6 +56,28 @@ using SqlElements = std::integer_sequence<size_t, Ints...>;
 namespace detail
 {
 
+template <auto Test, typename T>
+constexpr bool CheckFieldProperty = Reflection::FoldMembers<T>(false, []<size_t I, typename Field>(bool const accum) {
+    if constexpr (Test.template operator()<Field>())
+        return true;
+    else
+        return accum;
+});
+
+} // namespace detail
+
+/// @brief Tests if the given record type does contain a primary key.
+template <typename T>
+constexpr bool HasPrimaryKey = detail::CheckFieldProperty<[]<typename Field>() { return IsPrimaryKey<Field>; }, T>;
+
+/// @brief Tests if the given record type does contain an auto increment primary key.
+template <typename T>
+constexpr bool HasAutoIncrementPrimaryKey =
+    detail::CheckFieldProperty<[]<typename Field>() { return IsAutoIncrementPrimaryKey<Field>; }, T>;
+
+namespace detail
+{
+
 template <template <typename> class Allocator, template <typename, typename> class Container, typename Object>
 auto ToSharedPtrList(Container<Object, Allocator<Object>> container)
 {
@@ -70,20 +92,19 @@ auto ToSharedPtrList(Container<Object, Allocator<Object>> container)
 
 /// Main API for mapping records to C++ from the database using high level C++ syntax.
 template <typename Record, typename Derived>
-class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlWhereClauseBuilder<Derived>
+class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBuilder<Derived>
 {
   private:
     SqlStatement& _stmt;
     SqlQueryFormatter const& _formatter;
 
     std::string _fields;
-    SqlSearchCondition _searchCondition {};
 
     friend class SqlWhereClauseBuilder<Derived>;
 
     LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SearchCondition() noexcept
     {
-        return _searchCondition;
+        return this->_query.searchCondition;
     }
 
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter const& Formatter() const noexcept
@@ -103,17 +124,14 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlWhereClauseBuilder<
     [[nodiscard]] std::vector<Record> All()
     {
         auto records = std::vector<Record> {};
-        auto constexpr distinct = false;
-        auto constexpr orderBy = std::string_view {};
-        auto constexpr groupBy = std::string_view {};
-        _stmt.ExecuteDirect(_formatter.SelectAll(distinct,
+        _stmt.ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
                                                  _fields,
                                                  RecordTableName<Record>,
-                                                 _searchCondition.tableAlias,
-                                                 _searchCondition.tableJoins,
-                                                 _searchCondition.condition,
-                                                 orderBy,
-                                                 groupBy));
+                                                 this->_query.searchCondition.tableAlias,
+                                                 this->_query.searchCondition.tableJoins,
+                                                 this->_query.searchCondition.condition,
+                                                 this->_query.orderBy,
+                                                 this->_query.groupBy));
         Derived::ReadResults(_stmt.GetResultCursor(), &records);
         return records;
     }
@@ -122,15 +140,13 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlWhereClauseBuilder<
     {
         auto records = std::vector<Record> {};
         records.reserve(n);
-        auto constexpr distinct = false;
-        auto constexpr orderBy = std::string_view {};
-        _stmt.ExecuteDirect(_formatter.SelectFirst(distinct,
+        _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
                                                    _fields,
                                                    RecordTableName<Record>,
-                                                   _searchCondition.tableAlias,
-                                                   _searchCondition.tableJoins,
-                                                   _searchCondition.condition,
-                                                   orderBy,
+                                                   this->_query.searchCondition.tableAlias,
+                                                   this->_query.searchCondition.tableJoins,
+                                                   this->_query.searchCondition.condition,
+                                                   this->_query.orderBy,
                                                    n));
         Derived::ReadResults(_stmt.GetResultCursor(), &records);
         return records;
@@ -140,19 +156,19 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlWhereClauseBuilder<
     {
         auto records = std::vector<Record> {};
         records.reserve(limit);
-        auto constexpr distinct = false;
-        auto const orderBy = std::format(" ORDER BY \"{}\" ASC", FieldNameAt<RecordPrimaryKeyIndex<Record>, Record>);
-        auto constexpr groupBy = std::string_view {};
-        _stmt.ExecuteDirect(_formatter.SelectRange(distinct,
-                                                   _fields,
-                                                   RecordTableName<Record>,
-                                                   _searchCondition.tableAlias,
-                                                   _searchCondition.tableJoins,
-                                                   _searchCondition.condition,
-                                                   orderBy,
-                                                   groupBy,
-                                                   offset,
-                                                   limit));
+        _stmt.ExecuteDirect(_formatter.SelectRange(
+            this->_query.distinct,
+            _fields,
+            RecordTableName<Record>,
+            this->_query.searchCondition.tableAlias,
+            this->_query.searchCondition.tableJoins,
+            this->_query.searchCondition.condition,
+            !this->_query.orderBy.empty()
+                ? this->_query.orderBy
+                : std::format(" ORDER BY \"{}\" ASC", FieldNameAt<RecordPrimaryKeyIndex<Record>, Record>),
+            this->_query.groupBy,
+            offset,
+            limit));
         Derived::ReadResults(_stmt.GetResultCursor(), &records);
         return records;
     }
@@ -210,6 +226,10 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
                 {
                     reader->BindOutputColumn(i++, &field.MutableValue());
                 }
+                else if constexpr (IsBelongsTo<Field>)
+                {
+                    reader->BindOutputColumn(i++, &field.MutableValue());
+                }
                 else if constexpr (SqlOutputColumnBinder<Field>)
                 {
                     reader->BindOutputColumn(i++, &field);
@@ -262,6 +282,10 @@ class [[nodiscard]] SqlQuerySingleBuilder: public SqlWhereClauseBuilder<SqlQuery
                 {
                     reader->BindOutputColumn(i++, &field.MutableValue());
                 }
+                else if constexpr (IsBelongsTo<Field>)
+                {
+                    reader->BindOutputColumn(i++, &field.MutableValue());
+                }
                 else if constexpr (SqlOutputColumnBinder<Field>)
                 {
                     reader->BindOutputColumn(i++, &field);
@@ -300,6 +324,23 @@ class [[nodiscard]] SqlQuerySingleBuilder: public SqlWhereClauseBuilder<SqlQuery
         return std::optional { std::move(record) };
     }
 };
+
+/// Returns the first primary key field of the record.
+template <typename Record>
+inline LIGHTWEIGHT_FORCE_INLINE RecordPrimaryKeyType<Record> GetPrimaryKeyField(Record const& record) noexcept
+{
+    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+    static_assert(HasPrimaryKey<Record>, "Record must have a primary key");
+
+    auto result = RecordPrimaryKeyType<Record> {};
+    Reflection::EnumerateMembers(record, [&]<size_t I, typename FieldType>(FieldType const& field) {
+        if constexpr (IsPrimaryKey<FieldType> && std::same_as<FieldType, RecordPrimaryKeyType<Record>>)
+        {
+            result = field;
+        }
+    });
+    return result;
+}
 
 /// @brief Main API for mapping records to and from the database using high level C++ syntax.
 ///
@@ -376,7 +417,7 @@ class DataMapper
     ///
     /// @return The primary key of the newly created record.
     template <typename Record>
-    RecordId Create(Record& record);
+    RecordPrimaryKeyType<Record> Create(Record& record);
 
     /// @brief Creates a new record in the database.
     ///
@@ -384,7 +425,7 @@ class DataMapper
     ///
     /// @return The primary key of the newly created record.
     template <typename Record>
-    RecordId CreateExplicit(Record const& record);
+    RecordPrimaryKeyType<Record> CreateExplicit(Record const& record);
 
     /// @brief Queries a single record from the database based on the given query.
     ///
@@ -574,10 +615,6 @@ class DataMapper
     template <typename Record>
     void LoadRelations(Record& record);
 
-    /// Returns the first primary key field of the record.
-    template <typename Record>
-    decltype(auto) GetPrimaryKeyField(Record const& record) const;
-
     /// Configures the auto loading of relations for the given record.
     ///
     /// This means, that no explicit loading of relations is required.
@@ -601,8 +638,8 @@ class DataMapper
     template <typename ElementMask, typename Record>
     Record& BindOutputColumns(Record& record, SqlStatement* stmt);
 
-    template <size_t FieldIndex, auto ReferencedRecordField, typename Record>
-    void LoadBelongsTo(Record& record, BelongsTo<ReferencedRecordField>& field);
+    template <auto ReferencedRecordField, auto BelongsToAlias>
+    void LoadBelongsTo(BelongsTo<ReferencedRecordField, BelongsToAlias>& field);
 
     template <size_t FieldIndex, typename Record, typename OtherRecord>
     void LoadHasMany(Record& record, HasMany<OtherRecord>& field);
@@ -722,17 +759,8 @@ void DataMapper::CreateTables()
     (CreateTable<MoreRecords>(), ...);
 }
 
-template <typename T>
-constexpr bool HasAutoIncrementPrimaryKey =
-    Reflection::FoldMembers<T>(false, []<size_t I, typename Field>(bool const accum) {
-        if constexpr (FieldWithStorage<Field> && IsAutoIncrementPrimaryKey<Field>)
-            return true;
-        else
-            return accum;
-    });
-
 template <typename Record>
-RecordId DataMapper::CreateExplicit(Record const& record)
+RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
@@ -757,12 +785,24 @@ RecordId DataMapper::CreateExplicit(Record const& record)
 
     if constexpr (HasAutoIncrementPrimaryKey<Record>)
         return { _stmt.LastInsertId(RecordTableName<Record>) };
-    else
-        return {};
+    else if constexpr (HasPrimaryKey<Record>)
+    {
+        RecordPrimaryKeyType<Record> const* primaryKey = nullptr;
+        Reflection::EnumerateMembers(record, [&]<size_t I, typename FieldType>(FieldType& field) {
+            if constexpr (IsField<FieldType>)
+            {
+                if constexpr (FieldType::IsPrimaryKey)
+                {
+                    primaryKey = &field.Value();
+                }
+            }
+        });
+        return *primaryKey;
+    }
 }
 
 template <typename Record>
-RecordId DataMapper::Create(Record& record)
+RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
 {
     static_assert(!std::is_const_v<Record>);
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
@@ -790,15 +830,16 @@ RecordId DataMapper::Create(Record& record)
         }
     });
 
-    auto const id = CreateExplicit(record);
+    CreateExplicit(record);
 
     if constexpr (HasAutoIncrementPrimaryKey<Record>)
-        SetId(record, id.value);
+        SetId(record, _stmt.LastInsertId(RecordTableName<Record>));
 
     ClearModifiedState(record);
     ConfigureRelationAutoLoading(record);
 
-    return id;
+    if constexpr (HasPrimaryKey<Record>)
+        return GetPrimaryKeyField(record);
 }
 
 template <typename Record>
@@ -1091,21 +1132,19 @@ inline LIGHTWEIGHT_FORCE_INLINE void CallOnBelongsTo(Callable const& callable)
     });
 }
 
-template <size_t FieldIndex, auto ReferencedRecordField, typename Record>
-void DataMapper::LoadBelongsTo(Record& record, BelongsTo<ReferencedRecordField>& field)
+template <auto ReferencedRecordField, auto BelongsToAlias>
+void DataMapper::LoadBelongsTo(BelongsTo<ReferencedRecordField, BelongsToAlias>& field)
 {
-    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-
     using FieldType = BelongsTo<ReferencedRecordField>;
     using ReferencedRecord = typename FieldType::ReferencedRecord;
 
-    CallOnPrimaryKey(record,
-                     [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
-                         if (auto result = QuerySingle<ReferencedRecord>(primaryKeyField.Value()); result)
-                         {
-                             field.EmplaceRecord() = std::move(*result);
-                         }
-                     });
+    CallOnPrimaryKey<ReferencedRecord>([&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>() {
+        if (auto result = QuerySingle<ReferencedRecord>(field.Value()); result)
+            field.EmplaceRecord() = std::move(*result);
+        else
+            SqlLogger::GetLogger().OnWarning(
+                std::format("Loading BelongsTo failed for {} ({})", RecordTableName<ReferencedRecord>, field.Value()));
+    });
 }
 
 template <size_t FieldIndex, typename Record, typename OtherRecord, typename Callable>
@@ -1278,7 +1317,7 @@ void DataMapper::LoadRelations(Record& record)
     Reflection::EnumerateMembers(record, [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
         if constexpr (IsBelongsTo<FieldType>)
         {
-            LoadBelongsTo<FieldIndex>(record, field);
+            LoadBelongsTo(field);
         }
         else if constexpr (IsHasMany<FieldType>)
         {
@@ -1291,22 +1330,6 @@ void DataMapper::LoadRelations(Record& record)
         else if constexpr (IsHasManyThrough<FieldType>)
         {
             LoadHasManyThrough(record, field);
-        }
-    });
-}
-
-template <typename Record>
-inline LIGHTWEIGHT_FORCE_INLINE decltype(auto) DataMapper::GetPrimaryKeyField(Record const& record) const
-{
-    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-
-    Reflection::EnumerateMembers(record, [&]<size_t I, typename FieldType>(FieldType& field) {
-        if constexpr (IsField<FieldType>)
-        {
-            if constexpr (FieldType::IsPrimaryKey)
-            {
-                return field;
-            }
         }
     });
 }
@@ -1379,9 +1402,8 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
     Reflection::EnumerateMembers(record, [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
         if constexpr (IsBelongsTo<FieldType>)
         {
-            BelongsTo<FieldType::ReferencedField>& belongsTo = field;
-            belongsTo.SetAutoLoader(typename FieldType::Loader {
-                .loadReference = [this, &record, &belongsTo]() { LoadBelongsTo<FieldIndex>(record, belongsTo); },
+            field.SetAutoLoader(typename FieldType::Loader {
+                .loadReference = [this, &field]() { LoadBelongsTo(field); },
             });
         }
         else if constexpr (IsHasMany<FieldType>)

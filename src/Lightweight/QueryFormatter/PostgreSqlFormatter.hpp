@@ -35,8 +35,7 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
 
         if (column.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT)
             sqlQueryString << " PRIMARY KEY";
-
-        if (column.unique && !column.index)
+        else if (column.primaryKey == SqlPrimaryKeyType::NONE && !column.index && column.unique)
             sqlQueryString << " UNIQUE";
 
         return sqlQueryString.str();

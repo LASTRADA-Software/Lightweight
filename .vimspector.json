@@ -5,8 +5,9 @@
             "adapter": "vscode-cpptools",
             "configuration": {
                 "request": "launch",
-                "program": "${workspaceRoot}/out/build/linux-gcc-debug/src/tests/LightweightTest",
+                "program": "${workspaceRoot}/out/build/linux-clang-debug/src/tests/LightweightTest",
                 "args": [
+                    "--trace-sql", "BelongsTo"
                 ],
                 "cwd": "${workspaceRoot}",
                 "externalConsole": true,
@@ -24,7 +25,7 @@
             "adapter": "vscode-cpptools",
             "configuration": {
                 "request": "launch",
-                "program": "${workspaceRoot}/out/build/linux-gcc-debug/src/tests/LightweightTest",
+                "program": "${workspaceRoot}/out/build/linux-clang-debug/src/tests/LightweightTest",
                 "args": [
                 ],
                 "environment": [
@@ -49,7 +50,7 @@
             "adapter": "vscode-cpptools",
             "configuration": {
                 "request": "launch",
-                "program": "${workspaceRoot}/out/build/linux-gcc-debug/src/tests/LightweightTest",
+                "program": "${workspaceRoot}/out/build/linux-clang-debug/src/tests/LightweightTest",
                 "args": [
                 ],
                 "environment": [
@@ -74,7 +75,7 @@
             "adapter": "vscode-cpptools",
             "configuration": {
                 "request": "launch",
-                "program": "${workspaceRoot}/out/build/linux-gcc-debug/src/tests/LightweightTest",
+                "program": "${workspaceRoot}/out/build/linux-clang-debug/src/tests/LightweightTest",
                 "args": [
                 ],
                 "environment": [

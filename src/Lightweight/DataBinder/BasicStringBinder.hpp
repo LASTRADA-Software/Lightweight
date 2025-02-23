@@ -134,7 +134,7 @@ SQLRETURN OutputColumnNonUtf16Unicode(
 // SqlDataBinder<> specialization for ANSI character strings
 template <typename AnsiStringType>
     requires SqlBasicStringBinderConcept<AnsiStringType, char>
-struct LIGHTWEIGHT_API SqlDataBinder<AnsiStringType>
+struct SqlDataBinder<AnsiStringType>
 {
     using ValueType = AnsiStringType;
     using CharType = char;
@@ -304,7 +304,7 @@ template <typename Utf16StringType>
     requires(SqlBasicStringBinderConcept<Utf16StringType, char16_t>
              || (SqlBasicStringBinderConcept<Utf16StringType, unsigned short>)
              || (SqlBasicStringBinderConcept<Utf16StringType, wchar_t> && sizeof(wchar_t) == 2))
-struct LIGHTWEIGHT_API SqlDataBinder<Utf16StringType>
+struct SqlDataBinder<Utf16StringType>
 {
     using ValueType = Utf16StringType;
     using CharType = std::remove_cvref_t<decltype(std::declval<Utf16StringType>()[0])>;
@@ -415,7 +415,7 @@ template <typename Utf32StringType>
     requires(SqlBasicStringBinderConcept<Utf32StringType, char32_t>
              || (SqlBasicStringBinderConcept<Utf32StringType, uint32_t>)
              || (SqlBasicStringBinderConcept<Utf32StringType, wchar_t> && sizeof(wchar_t) == 4))
-struct LIGHTWEIGHT_API SqlDataBinder<Utf32StringType>
+struct SqlDataBinder<Utf32StringType>
 {
     using ValueType = Utf32StringType;
     using CharType = typename Utf32StringType::value_type;
@@ -504,7 +504,7 @@ struct LIGHTWEIGHT_API SqlDataBinder<Utf32StringType>
 // SqlDataBinder<> specialization for UTF-8 strings
 template <typename Utf8StringType>
     requires SqlBasicStringBinderConcept<Utf8StringType, char8_t>
-struct LIGHTWEIGHT_API SqlDataBinder<Utf8StringType>
+struct SqlDataBinder<Utf8StringType>
 {
     using ValueType = Utf8StringType;
     using CharType = char8_t;

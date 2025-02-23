@@ -20,11 +20,6 @@ using namespace std::string_literals;
 
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
-std::ostream& operator<<(std::ostream& os, RecordId const& id)
-{
-    return os << id.value;
-}
-
 template <typename T, auto P1, auto P2>
 std::ostream& operator<<(std::ostream& os, Field<std::optional<T>, P1, P2> const& field)
 {
@@ -267,17 +262,21 @@ TEST_CASE_METHOD(SqlTestFixture, "Query.Range", "[DataMapper]")
     auto dm = DataMapper {};
 
     auto expectedPersons = std::array {
-        Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 },
-        Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 },
         Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 },
         Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 },
+        Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 },
+        Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 },
     };
 
     dm.CreateTable<Person>();
     for (auto& person: expectedPersons)
         dm.Create(person);
 
-    auto const records = dm.Query<Person>().Range(1, 2);
+    // clang-format off
+    auto const records = dm.Query<Person>()
+                           .OrderBy(FieldNameOf<&Person::name>, SqlResultOrdering::ASCENDING)
+                           .Range(1, 2);
+    // clang-format on
 
     CHECK(records.size() == 2);
     CHECK(records[0] == expectedPersons[1]);
@@ -346,18 +345,22 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.Range", "[DataMapper]")
     auto dm = DataMapper {};
 
     dm.CreateTable<Person>();
-    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 });
-    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 });
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 });
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 });
 
-    auto const records = dm.QuerySparse<Person, &Person::name, &Person::age>().Range(1, 2);
+    // clang-format off
+    auto const records = dm.QuerySparse<Person, &Person::name, &Person::age>()
+                           .OrderBy(FieldNameOf<&Person::name>, SqlResultOrdering::ASCENDING)
+                           .Range(1, 2);
+    // clang-format on
 
     CHECK(records.size() == 2);
-    CHECK(records[0].name == "Jimmy John");
-    CHECK(records[0].age == 24);
-    CHECK(records[1].name == "Jane Doe");
-    CHECK(records[1].age == 36);
+    CHECK(records[0].name == "Jimbo Jones");
+    CHECK(records[0].age == 69);
+    CHECK(records[1].name == "Jimmy John");
+    CHECK(records[1].age == 24);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Constructor with connection string", "[DataMapper]")
@@ -522,7 +525,7 @@ struct Email;
 
 struct User
 {
-    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlGuid, PrimaryKey::AutoAssign> id {};
     Field<SqlAnsiString<30>> name {};
 
     HasMany<Email> emails {};
@@ -530,12 +533,18 @@ struct User
 
 struct Email
 {
-    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlGuid, PrimaryKey::AutoAssign> id {};
     Field<SqlAnsiString<30>> address {};
     BelongsTo<&User::id> user {};
 
     constexpr std::weak_ordering operator<=>(Email const& other) const = default;
 };
+
+static_assert(HasPrimaryKey<User>);
+static_assert(HasPrimaryKey<Email>);
+
+static_assert(RecordPrimaryKeyIndex<User> == 0);
+static_assert(std::same_as<RecordPrimaryKeyType<User>, SqlGuid>);
 
 static_assert(RecordStorageFieldCount<User> == 2);
 static_assert(RecordStorageFieldCount<Email> == 3);
@@ -561,13 +570,13 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")
     auto dm = DataMapper();
     dm.CreateTables<User, Email>();
 
-    auto user = User { .name = "John Doe" };
+    auto user = User { .id = SqlGuid::Create(), .name = "John Doe" };
     dm.Create(user);
 
-    auto email1 = Email { .address = "john@doe.com", .user = user };
+    auto email1 = Email { .id = SqlGuid::Create(), .address = "john@doe.com", .user = user };
     dm.Create(email1);
 
-    dm.CreateExplicit(Email { .address = "john2@doe.com", .user = user });
+    dm.CreateExplicit(Email { .id = SqlGuid::Create(), .address = "john2@doe.com", .user = user });
 
     auto actualEmail1 = dm.QuerySingle<Email>(email1.id).value();
     CHECK(actualEmail1 == email1);
@@ -583,17 +592,18 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")
 
     if (dm.Connection().ServerType() == SqlServerType::SQLITE)
     {
-
-        REQUIRE(NormalizeText(dm.CreateTableString<User>(dm.Connection().ServerType()))
-                == NormalizeText(R"(CREATE TABLE "User" (
-                                    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                                    "name" VARCHAR(30) NOT NULL
+        CHECK(NormalizeText(dm.CreateTableString<User>(dm.Connection().ServerType()))
+              == NormalizeText(R"(CREATE TABLE "User" (
+                                    "id" GUID NOT NULL,
+                                    "name" VARCHAR(30) NOT NULL,
+                                    PRIMARY KEY ("id")
                                     );)"));
-        REQUIRE(NormalizeText(dm.CreateTableString<Email>(dm.Connection().ServerType()))
-                == NormalizeText(R"(CREATE TABLE "Email" (
-                                    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        CHECK(NormalizeText(dm.CreateTableString<Email>(dm.Connection().ServerType()))
+              == NormalizeText(R"(CREATE TABLE "Email" (
+                                    "id" GUID NOT NULL,
                                     "address" VARCHAR(30) NOT NULL,
-                                    "user_id" BIGINT,
+                                    "user_id" GUID,
+                                    PRIMARY KEY ("id"),
                                     CONSTRAINT FK_user_id FOREIGN KEY ("user_id") REFERENCES "User"("id")
                                     );)"));
     }
@@ -605,20 +615,20 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
     dm.CreateTables<User, Email>();
 
     // Create user John with 2 email addresses
-    auto johnDoe = User { .name = "John Doe" };
+    auto johnDoe = User { .id = SqlGuid::Create(), .name = "John Doe" };
     dm.Create(johnDoe);
 
-    auto email1 = Email { .address = "john@doe.com", .user = johnDoe };
+    auto email1 = Email { .id = SqlGuid::Create(), .address = "john@doe.com", .user = johnDoe };
     dm.Create(email1);
 
-    auto email2 = Email { .address = "john2@doe.com", .user = johnDoe };
+    auto email2 = Email { .id = SqlGuid::Create(), .address = "john2@doe.com", .user = johnDoe };
     dm.Create(email2);
 
     // Create some other users
-    auto const janeDoeID = dm.CreateExplicit(User { .name = "Jane Doe" });
-    dm.CreateExplicit(Email { .address = "john3@doe.com", .user = janeDoeID.value });
-    auto const jimDoeID = dm.CreateExplicit(User { .name = "Jim Doe" });
-    dm.CreateExplicit(Email { .address = "john3@doe.com", .user = jimDoeID.value });
+    auto const janeDoeID = dm.CreateExplicit(User { .id = SqlGuid::Create(), .name = "Jane Doe" });
+    dm.CreateExplicit(Email { .id = SqlGuid::Create(), .address = "john3@doe.com", .user = janeDoeID });
+    auto const jimDoeID = dm.CreateExplicit(User { .id = SqlGuid::Create(), .name = "Jim Doe" });
+    dm.CreateExplicit(Email { .id = SqlGuid::Create(), .address = "john3@doe.com", .user = jimDoeID });
 
     SECTION("Count")
     {
@@ -965,11 +975,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: SELECT into SqlVariantRow", "[DataMappe
     SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableB").Insert().Set("c1", "a").Set("c2", "c"));
 
     auto records =
-        dm.Query<SqlVariantRow>(dm.FromTable("TableA")
-                                   .Select()
-                                   .Field("*")
-                                   .LeftOuterJoin("TableB", "c1", "c1")
-                                   .All());
+        dm.Query<SqlVariantRow>(dm.FromTable("TableA").Select().Field("*").LeftOuterJoin("TableB", "c1", "c1").All());
 
     CHECK(records.size() == 1);
     auto& record = records.at(0);
@@ -1012,6 +1018,9 @@ struct SimpleStruct2
     std::u8string name;
     int age;
 };
+
+static_assert(RecordPrimaryKeyIndex<SimpleStruct2> == static_cast<size_t>(-1));
+static_assert(std::same_as<RecordPrimaryKeyType<SimpleStruct2>, void>);
 
 std::ostream& operator<<(std::ostream& os, SimpleStruct2 const& record)
 {

@@ -31,6 +31,9 @@ constexpr auto Finally(auto&& cleanupRoutine) noexcept
     return Finally { std::forward<decltype(cleanupRoutine)>(cleanupRoutine) };
 }
 
+// is_specialization_of<> is inspired by:
+// https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2020/p2098r1.pdf
+
 template <template <typename...> class T, typename U>
 struct is_specialization_of: std::false_type
 {

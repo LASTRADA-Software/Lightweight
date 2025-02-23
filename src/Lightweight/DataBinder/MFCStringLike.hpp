@@ -14,12 +14,12 @@ concept MFCStringLike = requires(T const& t) {
 
 template <typename T>
     requires(MFCStringLike<T>)
-struct LIGHTWEIGHT_API SqlDataBinder<T>
+struct SqlDataBinder<T>
 {
-    static SQLRETURN InputParameter(SQLHSTMT stmt,
-                                    SQLUSMALLINT column,
-                                    T const& value,
-                                    SqlDataBinderCallback& /*cb*/) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
+                                                             SQLUSMALLINT column,
+                                                             T const& value,
+                                                             SqlDataBinderCallback& /*cb*/) noexcept
     {
         return SQLBindParameter(stmt,
                                 column,

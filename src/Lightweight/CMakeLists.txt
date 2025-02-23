@@ -53,7 +53,6 @@ set(HEADER_FILES
     DataMapper/HasMany.hpp
     DataMapper/HasManyThrough.hpp
     DataMapper/HasOneThrough.hpp
-    DataMapper/RecordId.hpp
 
     SqlConnectInfo.hpp
     SqlConnection.hpp
@@ -79,6 +78,7 @@ set(SOURCE_FILES
     SqlLogger.cpp
     SqlMigration.cpp
     SqlQuery.cpp
+    SqlQuery/Core.cpp
     SqlQuery/Migrate.cpp
     SqlQuery/MigrationPlan.cpp
     SqlQuery/Select.cpp

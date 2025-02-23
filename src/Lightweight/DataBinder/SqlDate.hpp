@@ -9,7 +9,7 @@
 #include <format>
 
 /// Represents a date to efficiently write to or read from a database.
-struct LIGHTWEIGHT_API SqlDate
+struct SqlDate
 {
     SQL_DATE_STRUCT sqlValue {};
 
@@ -87,7 +87,7 @@ struct std::formatter<SqlDate>: std::formatter<std::string>
 };
 
 template <>
-struct LIGHTWEIGHT_API SqlDataBinder<SqlDate>
+struct SqlDataBinder<SqlDate>
 {
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::Date {};
 
