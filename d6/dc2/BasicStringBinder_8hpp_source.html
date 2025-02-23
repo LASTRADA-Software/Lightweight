@@ -234,7 +234,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span><span class="comment">// SqlDataBinder&lt;&gt; specialization for ANSI character strings</span></div>
 <div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> AnsiStringType&gt;</div>
 <div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>    <span class="keyword">requires</span> SqlBasicStringBinderConcept&lt;AnsiStringType, char&gt;</div>
-<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span><span class="keyword">struct </span>LIGHTWEIGHT_API SqlDataBinder&lt;AnsiStringType&gt;</div>
+<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span><span class="keyword">struct </span>SqlDataBinder&lt;AnsiStringType&gt;</div>
 <div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span>{</div>
 <div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span>    <span class="keyword">using </span>ValueType = AnsiStringType;</div>
 <div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span>    <span class="keyword">using </span>CharType = char;</div>
@@ -404,7 +404,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>    <span class="keyword">requires</span>(SqlBasicStringBinderConcept&lt;Utf16StringType, char16_t&gt;</div>
 <div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>             || (SqlBasicStringBinderConcept&lt;Utf16StringType, unsigned short&gt;)</div>
 <div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>             || (SqlBasicStringBinderConcept&lt;Utf16StringType, wchar_t&gt; &amp;&amp; <span class="keyword">sizeof</span>(<span class="keywordtype">wchar_t</span>) == 2))</div>
-<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span><span class="keyword">struct </span>LIGHTWEIGHT_API SqlDataBinder&lt;Utf16StringType&gt;</div>
+<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span><span class="keyword">struct </span>SqlDataBinder&lt;Utf16StringType&gt;</div>
 <div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>{</div>
 <div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>    <span class="keyword">using </span>ValueType = Utf16StringType;</div>
 <div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>    <span class="keyword">using </span>CharType = std::remove_cvref_t&lt;decltype(std::declval&lt;Utf16StringType&gt;()[0])&gt;;</div>
@@ -515,7 +515,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span>    <span class="keyword">requires</span>(SqlBasicStringBinderConcept&lt;Utf32StringType, char32_t&gt;</div>
 <div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span>             || (SqlBasicStringBinderConcept&lt;Utf32StringType, uint32_t&gt;)</div>
 <div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span>             || (SqlBasicStringBinderConcept&lt;Utf32StringType, wchar_t&gt; &amp;&amp; <span class="keyword">sizeof</span>(<span class="keywordtype">wchar_t</span>) == 4))</div>
-<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span><span class="keyword">struct </span>LIGHTWEIGHT_API SqlDataBinder&lt;Utf32StringType&gt;</div>
+<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span><span class="keyword">struct </span>SqlDataBinder&lt;Utf32StringType&gt;</div>
 <div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>{</div>
 <div class="line"><a id="l00420" name="l00420"></a><span class="lineno">  420</span>    <span class="keyword">using </span>ValueType = Utf32StringType;</div>
 <div class="line"><a id="l00421" name="l00421"></a><span class="lineno">  421</span>    <span class="keyword">using </span>CharType = <span class="keyword">typename</span> Utf32StringType::value_type;</div>
@@ -604,7 +604,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00504" name="l00504"></a><span class="lineno">  504</span><span class="comment">// SqlDataBinder&lt;&gt; specialization for UTF-8 strings</span></div>
 <div class="line"><a id="l00505" name="l00505"></a><span class="lineno">  505</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Utf8StringType&gt;</div>
 <div class="line"><a id="l00506" name="l00506"></a><span class="lineno">  506</span>    <span class="keyword">requires</span> SqlBasicStringBinderConcept&lt;Utf8StringType, char8_t&gt;</div>
-<div class="line"><a id="l00507" name="l00507"></a><span class="lineno">  507</span><span class="keyword">struct </span>LIGHTWEIGHT_API SqlDataBinder&lt;Utf8StringType&gt;</div>
+<div class="line"><a id="l00507" name="l00507"></a><span class="lineno">  507</span><span class="keyword">struct </span>SqlDataBinder&lt;Utf8StringType&gt;</div>
 <div class="line"><a id="l00508" name="l00508"></a><span class="lineno">  508</span>{</div>
 <div class="line"><a id="l00509" name="l00509"></a><span class="lineno">  509</span>    <span class="keyword">using </span>ValueType = Utf8StringType;</div>
 <div class="line"><a id="l00510" name="l00510"></a><span class="lineno">  510</span>    <span class="keyword">using </span>CharType = char8_t;</div>

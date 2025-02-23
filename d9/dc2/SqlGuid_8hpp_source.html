@@ -195,9 +195,9 @@ $(document).ready(function(){initNavTree('d9/dc2/SqlGuid_8hpp_source.html','../.
 </div>
 <div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span> </div>
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span><span class="keyword">struct </span>LIGHTWEIGHT_API std::formatter&lt;SqlGuid&gt;: std::formatter&lt;std::string&gt;</div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span><span class="keyword">struct </span>std::formatter&lt;<a class="code hl_struct" href="../../d2/d62/structSqlGuid.html">SqlGuid</a>&gt;: std::formatter&lt;std::string&gt;</div>
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>{</div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>    <span class="keyword">auto</span> format(<a class="code hl_struct" href="../../d2/d62/structSqlGuid.html">SqlGuid</a> <span class="keyword">const</span>&amp; guid, format_context&amp; ctx) <span class="keyword">const</span> -&gt; format_context::iterator</div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>    LIGHTWEIGHT_FORCE_INLINE <span class="keyword">auto</span> format(<a class="code hl_struct" href="../../d2/d62/structSqlGuid.html">SqlGuid</a> <span class="keyword">const</span>&amp; guid, format_context&amp; ctx) <span class="keyword">const</span> -&gt; format_context::iterator</div>
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>    {</div>
 <div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>        <span class="comment">// clang-format off</span></div>
 <div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>        <span class="keywordflow">return</span> formatter&lt;std::string&gt;::format(std::format(</div>

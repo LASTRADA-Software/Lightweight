@@ -13,11 +13,10 @@ var searchData=
   ['default_20connection_20information_20to_20the_20database_10',['Configure default connection information to the database',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database',1,'']]],
   ['defaultconnectionstring_11',['DefaultConnectionString',['../d7/d7b/classSqlConnection.html#a8989933c0a151abb0ef48fccd4a1b017',1,'SqlConnection']]],
   ['delete_12',['delete',['../dc/df2/classSqlQueryFormatter.html#acb760d8f25e9e3f7a38036068c82b863',1,'SqlQueryFormatter::Delete()'],['../d0/d78/classSqlQueryBuilder.html#a4b67b677befdd73664827d292e2fac61',1,'SqlQueryBuilder::Delete()'],['../dc/dc7/classDataMapper.html#acfcb03b2a7b0534cfd27287b93e7b907',1,'DataMapper::Delete()']]],
-  ['distinct_13',['Distinct',['../d1/d91/classSqlSelectQueryBuilder.html#a7d2ebe513cf4ba7bd27689a63be95e38',1,'SqlSelectQueryBuilder']]],
-  ['driver_20installation_20on_20other_20operating_20systems_14',['SQLite ODBC driver installation on other operating systems',['../index.html#sqlite-odbc-driver-installation-on-other-operating-systems',1,'']]],
-  ['driver_20related_20best_20practices_15',['SQL driver related best practices',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-driver-related-best-practices',1,'']]],
-  ['dropcolumn_16',['DropColumn',['../d3/d3f/classSqlAlterTableQueryBuilder.html#a0bd2dc01e143714dcf52c14210736cde',1,'SqlAlterTableQueryBuilder']]],
-  ['dropforeignkey_17',['DropForeignKey',['../d3/d3f/classSqlAlterTableQueryBuilder.html#abc19754ad52e4ee224138f75139061b2',1,'SqlAlterTableQueryBuilder']]],
-  ['dropindex_18',['DropIndex',['../d3/d3f/classSqlAlterTableQueryBuilder.html#acf6c90ae54196bd413ddcae33d24ed7b',1,'SqlAlterTableQueryBuilder']]],
-  ['droptable_19',['DropTable',['../dc/df2/classSqlQueryFormatter.html#aa630ad6de1899c6d62ff7d76d37768d9',1,'SqlQueryFormatter']]]
+  ['driver_20installation_20on_20other_20operating_20systems_13',['SQLite ODBC driver installation on other operating systems',['../index.html#sqlite-odbc-driver-installation-on-other-operating-systems',1,'']]],
+  ['driver_20related_20best_20practices_14',['SQL driver related best practices',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-driver-related-best-practices',1,'']]],
+  ['dropcolumn_15',['DropColumn',['../d3/d3f/classSqlAlterTableQueryBuilder.html#a0bd2dc01e143714dcf52c14210736cde',1,'SqlAlterTableQueryBuilder']]],
+  ['dropforeignkey_16',['DropForeignKey',['../d3/d3f/classSqlAlterTableQueryBuilder.html#abc19754ad52e4ee224138f75139061b2',1,'SqlAlterTableQueryBuilder']]],
+  ['dropindex_17',['DropIndex',['../d3/d3f/classSqlAlterTableQueryBuilder.html#acf6c90ae54196bd413ddcae33d24ed7b',1,'SqlAlterTableQueryBuilder']]],
+  ['droptable_18',['DropTable',['../dc/df2/classSqlQueryFormatter.html#aa630ad6de1899c6d62ff7d76d37768d9',1,'SqlQueryFormatter']]]
 ];

@@ -295,79 +295,81 @@ $(document).ready(function(){initNavTree('da/d23/BelongsTo_8hpp_source.html','..
 <div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>        <span class="keywordflow">if</span> (_loaded)</div>
 <div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>            <span class="keywordflow">return</span>;</div>
 <div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span> </div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>        _loader.loadReference();</div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span> </div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>        <span class="keywordflow">if</span> (!_loaded)</div>
-<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>            <span class="keywordflow">throw</span> <a class="code hl_class" href="../../d5/d6a/classSqlRequireLoadedError.html">SqlRequireLoadedError</a>(Reflection::TypeNameOf&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(*<span class="keyword">this</span>)&gt;&gt;);</div>
-<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>    }</div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span> </div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>    <a class="code hl_typedef" href="../../df/d1a/classBelongsTo.html#ab0544087140dd09c3d4ccfc0b762cc26">ValueType</a> _referencedFieldValue {};</div>
-<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>    Loader _loader {};</div>
-<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>    <span class="keywordtype">bool</span> _loaded = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>    <span class="keywordtype">bool</span> _modified = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>    std::optional&lt;ReferencedRecord&gt; _record {};</div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>};</div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>        <span class="keywordflow">if</span> (_loader.loadReference)</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>            _loader.loadReference();</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span> </div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>        <span class="keywordflow">if</span> (!_loaded)</div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>            <span class="keywordflow">throw</span> <a class="code hl_class" href="../../d5/d6a/classSqlRequireLoadedError.html">SqlRequireLoadedError</a>(Reflection::TypeNameOf&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(*<span class="keyword">this</span>)&gt;&gt;);</div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>    }</div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span> </div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>    <a class="code hl_typedef" href="../../df/d1a/classBelongsTo.html#ab0544087140dd09c3d4ccfc0b762cc26">ValueType</a> _referencedFieldValue {};</div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>    Loader _loader {};</div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>    <span class="keywordtype">bool</span> _loaded = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>    <span class="keywordtype">bool</span> _modified = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>    std::optional&lt;ReferencedRecord&gt; _record {};</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>};</div>
 </div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span> </div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span><span class="keyword">template</span> &lt;auto ReferencedField&gt;</div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>std::ostream&amp; operator&lt;&lt;(std::ostream&amp; os, <a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo&lt;ReferencedField&gt;</a> <span class="keyword">const</span>&amp; belongsTo)</div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>{</div>
-<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>    <span class="keywordflow">return</span> os &lt;&lt; belongsTo.<a class="code hl_function" href="../../df/d1a/classBelongsTo.html#a94d93fc122c629feb1064fca89cc23a0">Value</a>();</div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>}</div>
-<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span> </div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span><span class="keyword">namespace </span>detail</div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>{</div>
-<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span><span class="keyword">struct </span>IsBelongsTo: std::false_type</div>
-<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>{</div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>};</div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span> </div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span><span class="keyword">template</span> &lt;auto ReferencedField&gt;</div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span><span class="keyword">struct </span>IsBelongsTo&lt;<a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt;ReferencedField&gt;&gt;: std::true_type</div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>{</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>};</div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>} <span class="comment">// namespace detail</span></div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span> </div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span><span class="keyword">template</span> &lt;auto ReferencedField&gt;</div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>std::ostream&amp; operator&lt;&lt;(std::ostream&amp; os, <a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo&lt;ReferencedField&gt;</a> <span class="keyword">const</span>&amp; belongsTo)</div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>{</div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>    <span class="keywordflow">return</span> os &lt;&lt; belongsTo.<a class="code hl_function" href="../../df/d1a/classBelongsTo.html#a94d93fc122c629feb1064fca89cc23a0">Value</a>();</div>
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>}</div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span> </div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span><span class="keyword">namespace </span>detail</div>
+<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>{</div>
+<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span><span class="keyword">struct </span>IsBelongsTo: std::false_type</div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>{</div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>};</div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span> </div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span><span class="keyword">template</span> &lt;auto ReferencedField, auto ColumnNameOverr<span class="keywordtype">id</span>eString&gt;</div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span><span class="keyword">struct </span>IsBelongsTo&lt;<a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt;ReferencedField, ColumnNameOverrideString&gt;&gt;: std::true_type</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>{</div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>};</div>
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span> </div>
-<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsBelongsTo = detail::IsBelongsTo&lt;std::remove_cvref_t&lt;T&gt;&gt;::value;</div>
-<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span> </div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span><span class="keyword">template</span> &lt;auto ReferencedField&gt;</div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span><span class="keyword">struct </span>SqlDataBinder&lt;<a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt;ReferencedField&gt;&gt;</div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>{</div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>    <span class="keyword">using </span>SelfType = <a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo&lt;ReferencedField&gt;</a>;</div>
-<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>    <span class="keyword">using </span>InnerType = <span class="keyword">typename</span> SelfType::ValueType;</div>
-<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span> </div>
-<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> ColumnType = SqlDataBinder&lt;InnerType&gt;::ColumnType;</div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>} <span class="comment">// namespace detail</span></div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span> </div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsBelongsTo = detail::IsBelongsTo&lt;std::remove_cvref_t&lt;T&gt;&gt;::value;</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span> </div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span><span class="keyword">template</span> &lt;auto ReferencedField&gt;</div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="keyword">struct </span>SqlDataBinder&lt;<a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt;ReferencedField&gt;&gt;</div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>{</div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>    <span class="keyword">using </span>SelfType = <a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo&lt;ReferencedField&gt;</a>;</div>
+<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>    <span class="keyword">using </span>InnerType = <span class="keyword">typename</span> SelfType::ValueType;</div>
 <div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span> </div>
-<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>                                                             SQLUSMALLINT column,</div>
-<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>                                                             SelfType <span class="keyword">const</span>&amp; value,</div>
-<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>                                                             <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb)</div>
-<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>    {</div>
-<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>        <span class="keywordflow">return</span> SqlDataBinder&lt;InnerType&gt;::InputParameter(stmt, column, value.Value(), cb);</div>
-<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>    }</div>
-<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span> </div>
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN</div>
-<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>    OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb)</div>
-<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>    {</div>
-<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn =</div>
-<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>            SqlDataBinder&lt;InnerType&gt;::OutputColumn(stmt, column, &amp;result-&gt;MutableValue(), indicator, cb);</div>
-<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>        cb.PlanPostProcessOutputColumn([result]() { result-&gt;SetModified(<span class="keyword">true</span>); });</div>
-<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>        <span class="keywordflow">return</span> sqlReturn;</div>
-<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>    }</div>
-<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span> </div>
-<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>                                                        SQLUSMALLINT column,</div>
-<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>                                                        SelfType* result,</div>
-<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>                                                        SQLLEN* indicator,</div>
-<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>                                                        <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span>    {</div>
-<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;InnerType&gt;::GetColumn(stmt, column, &amp;result-&gt;emplace(), indicator, cb);</div>
-<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(sqlReturn))</div>
-<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>            result-&gt;SetModified(<span class="keyword">true</span>);</div>
-<div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>        <span class="keywordflow">return</span> sqlReturn;</div>
-<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>    }</div>
-<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>};</div>
+<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> ColumnType = SqlDataBinder&lt;InnerType&gt;::ColumnType;</div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span> </div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>                                                             SQLUSMALLINT column,</div>
+<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>                                                             SelfType <span class="keyword">const</span>&amp; value,</div>
+<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>                                                             <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb)</div>
+<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>    {</div>
+<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>        <span class="keywordflow">return</span> SqlDataBinder&lt;InnerType&gt;::InputParameter(stmt, column, value.Value(), cb);</div>
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>    }</div>
+<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span> </div>
+<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN</div>
+<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>    OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb)</div>
+<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>    {</div>
+<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn =</div>
+<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>            SqlDataBinder&lt;InnerType&gt;::OutputColumn(stmt, column, &amp;result-&gt;MutableValue(), indicator, cb);</div>
+<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>        cb.PlanPostProcessOutputColumn([result]() { result-&gt;SetModified(<span class="keyword">true</span>); });</div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>        <span class="keywordflow">return</span> sqlReturn;</div>
+<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>    }</div>
+<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span> </div>
+<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>                                                        SQLUSMALLINT column,</div>
+<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>                                                        SelfType* result,</div>
+<div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span>                                                        SQLLEN* indicator,</div>
+<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>                                                        <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>    {</div>
+<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;InnerType&gt;::GetColumn(stmt, column, &amp;result-&gt;emplace(), indicator, cb);</div>
+<div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(sqlReturn))</div>
+<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>            result-&gt;SetModified(<span class="keyword">true</span>);</div>
+<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>        <span class="keywordflow">return</span> sqlReturn;</div>
+<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>    }</div>
+<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>};</div>
 <div class="ttc" id="aclassBelongsTo_html"><div class="ttname"><a href="../../df/d1a/classBelongsTo.html">BelongsTo</a></div><div class="ttdoc">Represents a one-to-one relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00025">BelongsTo.hpp:26</a></div></div>
 <div class="ttc" id="aclassBelongsTo_html_a0170149a00082fcee7b61a7a10080183"><div class="ttname"><a href="../../df/d1a/classBelongsTo.html#a0170149a00082fcee7b61a7a10080183">BelongsTo::Record</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord &amp; Record() noexcept</div><div class="ttdoc">Retrieves a record from the relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00105">BelongsTo.hpp:105</a></div></div>
 <div class="ttc" id="aclassBelongsTo_html_a0e0395997be796b515cf5ecd37d048f8"><div class="ttname"><a href="../../df/d1a/classBelongsTo.html#a0e0395997be796b515cf5ecd37d048f8">BelongsTo::ColumnNameOverride</a></div><div class="ttdeci">static constexpr std::string_view ColumnNameOverride</div><div class="ttdoc">If not an empty string, this value will be used as the column name in the database.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00032">BelongsTo.hpp:32</a></div></div>

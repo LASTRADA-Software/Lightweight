@@ -9,8 +9,8 @@ var classDataMapper =
     [ "CreateTablesString", "dc/dc7/classDataMapper.html#a4959a7ee7cd77fd0f2c8d9423478e788", null ],
     [ "CreateTable", "dc/dc7/classDataMapper.html#a6a2df09ef7735f0d0e07886ef1b27457", null ],
     [ "CreateTables", "dc/dc7/classDataMapper.html#a65a471372c998066cde5dc246f8577e5", null ],
-    [ "Create", "dc/dc7/classDataMapper.html#a12e76849c4b2f5b2f558c546f9c4b62f", null ],
-    [ "CreateExplicit", "dc/dc7/classDataMapper.html#a7987f75a14a69b7360b995ee54534299", null ],
+    [ "Create", "dc/dc7/classDataMapper.html#a8dee2c6839d663d2178bf4054edb653b", null ],
+    [ "CreateExplicit", "dc/dc7/classDataMapper.html#a03200dd1a90fea3a9c166773e8b782f5", null ],
     [ "QuerySingle", "dc/dc7/classDataMapper.html#abc5831d373b3818e7b0dd856e5998209", null ],
     [ "QuerySingle", "dc/dc7/classDataMapper.html#a9cd001a64226389a0803d76b499081e2", null ],
     [ "QuerySingle", "dc/dc7/classDataMapper.html#a4f94e2f2ea26e48a64bb6a3c5ca18b53", null ],
@@ -29,6 +29,5 @@ var classDataMapper =
     [ "FromTable", "dc/dc7/classDataMapper.html#a8ab092be293cff17e7adb7c66d7bf6c0", null ],
     [ "ClearModifiedState", "dc/dc7/classDataMapper.html#af4a3ac8c8611aec1ce0757a41dda1994", null ],
     [ "LoadRelations", "dc/dc7/classDataMapper.html#a172f8cd80c33f627fa30927e9fff378f", null ],
-    [ "GetPrimaryKeyField", "dc/dc7/classDataMapper.html#a02eb0501dadc42e84041be41e2ca9022", null ],
     [ "ConfigureRelationAutoLoading", "dc/dc7/classDataMapper.html#ac70dd13e657b5ccb3cdda272e51dee30", null ]
 ];
