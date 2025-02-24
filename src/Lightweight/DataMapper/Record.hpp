@@ -40,7 +40,7 @@ constexpr std::optional<size_t> FindPrimaryKeyIndex()
 /// Declare RecordPrimaryKeyIndex<Record> to retrieve the primary key index of the given record.
 template <typename Record>
 constexpr size_t RecordPrimaryKeyIndex =
-    detail::FindPrimaryKeyIndex<0, Record>().value_or(std::numeric_limits<size_t>::max());
+    detail::FindPrimaryKeyIndex<0, Record>().value_or((std::numeric_limits<size_t>::max)());
 
 /// Retrieves a reference to the given record's primary key.
 template <typename Record>
