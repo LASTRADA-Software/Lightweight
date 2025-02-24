@@ -454,14 +454,13 @@ struct SqlDataBinder<Utf32StringType>
             case SqlServerType::SQLITE: // We assume UTF-16 for SQLite
             case SqlServerType::MICROSOFT_SQL:
             case SqlServerType::UNKNOWN: {
-                using CharType = StringTraits::CharType;
-                auto u16String =
-                    std::make_shared<std::u16string>(ToUtf16(detail::SqlViewHelper<Utf32StringType>::View(value)));
+                auto u16String = std::make_shared<std::u16string>(ToUtf16(detail::SqlViewHelper<Utf32StringType>::View(value)));
                 cb.PlanPostExecuteCallback([u8String = u16String]() {}); // Keep the string alive
                 auto const* data = u16String->data();
-                auto const sizeInBytes = u16String->size() * sizeof(CharType);
-                return SQLBindParameter(
-                    stmt, column, SQL_PARAM_INPUT, CType, SqlType, sizeInBytes, 0, (SQLPOINTER) data, 0, nullptr);
+                auto const charCount = u16String->size();
+                //auto const charCount = SQL_SS_LENGTH_UNLIMITED;
+                auto const sizeInBytes = u16String->size() * sizeof(char16_t);
+                return SQLBindParameter(stmt, column, SQL_PARAM_INPUT, CType, SqlType, charCount, 0, (SQLPOINTER) data, sizeInBytes, nullptr);
             }
         }
         std::unreachable();

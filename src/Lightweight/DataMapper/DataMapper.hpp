@@ -89,8 +89,12 @@ auto ToSharedPtrList(Container<Object, Allocator<Object>> container)
 }
 
 template <typename Record>
-constexpr bool CanSafelyBindOutputColumns(SqlServerType sqlServerType, Record const& record)
+/*constexpr*/ bool CanSafelyBindOutputColumns(SqlServerType sqlServerType, Record const& record)
 {
+    // (void) sqlServerType;
+    // (void) record;
+    // return false;
+    #if 1
     if (sqlServerType != SqlServerType::MICROSOFT_SQL)
         return true;
 
@@ -109,12 +113,18 @@ constexpr bool CanSafelyBindOutputColumns(SqlServerType sqlServerType, Record co
                                         SqlBinary>
                           || IsSqlDynamicString<typename Field::ValueType>)
             {
+                std::println("=== POSITIVE: Field: {} ===", Reflection::TypeNameOf<Field>);
                 // Known types that MAY require growing due to truncation.
                 result = false;
             }
+            else
+                std::println("=== SKIP: Field: {} ===", Reflection::TypeNameOf<Field>);
         }
+        else
+            std::println("=== SKIP: Non-Field: {} ===", Reflection::TypeNameOf<Field>);
     });
     return result;
+    #endif
 }
 
 template <typename Record>
