@@ -147,19 +147,4 @@ concept SqlBasicStringBinderConcept = requires(StringType* str) {
     { SqlBasicStringOperations<StringType>::Resize(str, SQLLEN {}) } -> std::same_as<void>;
     { SqlBasicStringOperations<StringType>::Clear(str) } -> std::same_as<void>;
 };
-
 // clang-format on
-
-namespace detail
-{
-
-template <typename>
-struct SqlColumnSize
-{
-    static constexpr size_t Value = 0;
-};
-
-} // namespace detail
-
-template <typename T>
-constexpr size_t SqlColumnSize = detail::SqlColumnSize<T>::Value;

@@ -549,6 +549,22 @@ inline std::ostream& operator<<(std::ostream& os, SqlFixedString<N, T, Mode> con
         return os << std::format("SqlFixedString<{}> {{ size: {}, data: '{}' }}", N, value.size(), value.data());
 }
 
+template <std::size_t N, typename T>
+inline std::ostream& operator<<(std::ostream& os, SqlDynamicString<N, T> const& value)
+{
+    if constexpr (std::same_as<T, char>)
+        return os << std::format("SqlDynamicString<{}> {{ size: {}, '{}' }}", N, value.size(), value.data());
+    else
+    {
+        auto u8String = ToUtf8(std::basic_string_view<T>(value.data(), value.size()));
+        return os << std::format("SqlDynamicString<{}, {}> {{ size: {}, '{}' }}",
+                                 N,
+                                 Reflection::TypeNameOf<T>,
+                                 value.size(),
+                                 (char const*) u8String.c_str());
+    }
+}
+
 [[nodiscard]] inline std::string NormalizeText(std::string_view const& text)
 {
     auto result = std::string(text);
@@ -616,4 +632,12 @@ inline void FillEmployeesTable(SqlStatement& stmt)
     stmt.Execute("Alice", "Smith", 50'000);
     stmt.Execute("Bob", "Johnson", 60'000);
     stmt.Execute("Charlie", "Brown", 70'000);
+}
+
+template <typename T = char>
+inline auto MakeLargeText(size_t size)
+{
+    auto text = std::basic_string<T>(size, {});
+    std::ranges::generate(text, [i = 0]() mutable { return static_cast<T>('A' + (i++ % 26)); });
+    return text;
 }
