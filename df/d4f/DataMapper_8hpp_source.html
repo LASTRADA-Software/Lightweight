@@ -1181,7 +1181,7 @@ $(document).ready(function(){initNavTree('df/d4f/DataMapper_8hpp_source.html','.
 <div class="line"><a id="l01030" name="l01030"></a><span class="lineno"> 1030</span>            <span class="keyword">auto</span>&amp; record = result.emplace_back();</div>
 <div class="line"><a id="l01031" name="l01031"></a><span class="lineno"> 1031</span>            record.reserve(numResultColumns);</div>
 <div class="line"><a id="l01032" name="l01032"></a><span class="lineno"> 1032</span>            <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span> i: std::views::iota(1U, numResultColumns + 1))</div>
-<div class="line"><a id="l01033" name="l01033"></a><span class="lineno"> 1033</span>                record.emplace_back(_stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ad3fe2d91f8ea3b611e0bb0816974792e">GetColumn</a>&lt;<a class="code hl_struct" href="../../d0/df8/structSqlVariant.html">SqlVariant</a>&gt;(i));</div>
+<div class="line"><a id="l01033" name="l01033"></a><span class="lineno"> 1033</span>                record.emplace_back(_stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ad3fe2d91f8ea3b611e0bb0816974792e">GetColumn</a>&lt;<a class="code hl_struct" href="../../d0/df8/structSqlVariant.html">SqlVariant</a>&gt;(<span class="keyword">static_cast&lt;</span>SQLUSMALLINT<span class="keyword">&gt;</span>(i)));</div>
 <div class="line"><a id="l01034" name="l01034"></a><span class="lineno"> 1034</span>        }</div>
 <div class="line"><a id="l01035" name="l01035"></a><span class="lineno"> 1035</span>    }</div>
 <div class="line"><a id="l01036" name="l01036"></a><span class="lineno"> 1036</span>    <span class="keywordflow">else</span></div>
