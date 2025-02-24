@@ -140,7 +140,7 @@ $(document).ready(function(){initNavTree('d3/d6b/Record_8hpp_source.html','../..
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="comment">/// Declare RecordPrimaryKeyIndex&lt;Record&gt; to retrieve the primary key index of the given record.</span></div>
 <div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Record&gt;</div>
 <div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="keyword">constexpr</span> <span class="keywordtype">size_t</span> RecordPrimaryKeyIndex =</div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>    detail::FindPrimaryKeyIndex&lt;0, Record&gt;().value_or(std::numeric_limits&lt;size_t&gt;::max());</div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>    detail::FindPrimaryKeyIndex&lt;0, Record&gt;().value_or((std::numeric_limits&lt;size_t&gt;::max)());</div>
 <div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span><span class="comment"></span> </div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="comment">/// Retrieves a reference to the given record&#39;s primary key.</span></div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Record&gt;</div>
