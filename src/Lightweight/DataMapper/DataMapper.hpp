@@ -1030,7 +1030,7 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
             auto& record = result.emplace_back();
             record.reserve(numResultColumns);
             for (auto const i: std::views::iota(1U, numResultColumns + 1))
-                record.emplace_back(_stmt.GetColumn<SqlVariant>(i));
+                record.emplace_back(_stmt.GetColumn<SqlVariant>(static_cast<SQLUSMALLINT>(i)));
         }
     }
     else
