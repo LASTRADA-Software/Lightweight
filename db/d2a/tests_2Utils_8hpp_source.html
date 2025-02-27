@@ -649,74 +649,98 @@ $(document).ready(function(){initNavTree('db/d2a/tests_2Utils_8hpp_source.html',
 <div class="line"><a id="l00549" name="l00549"></a><span class="lineno">  549</span>        <span class="keywordflow">return</span> os &lt;&lt; std::format(<span class="stringliteral">&quot;SqlFixedString&lt;{}&gt; {{ size: {}, data: &#39;{}&#39; }}&quot;</span>, N, value.<a class="code hl_function" href="../../d8/dcb/classSqlFixedString.html#a7a2b512a1cbd5a29fd6be089b6af36e3">size</a>(), value.data());</div>
 <div class="line"><a id="l00550" name="l00550"></a><span class="lineno">  550</span>}</div>
 <div class="line"><a id="l00551" name="l00551"></a><span class="lineno">  551</span> </div>
-<div class="line"><a id="l00552" name="l00552"></a><span class="lineno">  552</span>[[nodiscard]] <span class="keyword">inline</span> std::string NormalizeText(std::string_view <span class="keyword">const</span>&amp; text)</div>
-<div class="line"><a id="l00553" name="l00553"></a><span class="lineno">  553</span>{</div>
-<div class="line"><a id="l00554" name="l00554"></a><span class="lineno">  554</span>    <span class="keyword">auto</span> result = std::string(text);</div>
-<div class="line"><a id="l00555" name="l00555"></a><span class="lineno">  555</span> </div>
-<div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span>    <span class="comment">// Remove any newlines and reduce all whitespace to a single space</span></div>
-<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span>    result.erase(</div>
-<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span>        std::unique(result.begin(), result.end(), [](<span class="keywordtype">char</span> a, <span class="keywordtype">char</span> b) { return std::isspace(a) &amp;&amp; std::isspace(b); }),</div>
-<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span>        result.end());</div>
-<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span> </div>
-<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span>    <span class="comment">// trim lading and trailing whitespace</span></div>
-<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span>    <span class="keywordflow">while</span> (!result.empty() &amp;&amp; std::isspace(result.front()))</div>
-<div class="line"><a id="l00563" name="l00563"></a><span class="lineno">  563</span>        result.erase(result.begin());</div>
-<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span> </div>
-<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span>    <span class="keywordflow">while</span> (!result.empty() &amp;&amp; std::isspace(result.back()))</div>
-<div class="line"><a id="l00566" name="l00566"></a><span class="lineno">  566</span>        result.pop_back();</div>
+<div class="line"><a id="l00552" name="l00552"></a><span class="lineno">  552</span><span class="keyword">template</span> &lt;std::<span class="keywordtype">size_t</span> N, <span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00553" name="l00553"></a><span class="lineno">  553</span><span class="keyword">inline</span> std::ostream&amp; operator&lt;&lt;(std::ostream&amp; os, SqlDynamicString&lt;N, T&gt; <span class="keyword">const</span>&amp; value)</div>
+<div class="line"><a id="l00554" name="l00554"></a><span class="lineno">  554</span>{</div>
+<div class="line"><a id="l00555" name="l00555"></a><span class="lineno">  555</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::same_as&lt;T, char&gt;)</div>
+<div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span>        <span class="keywordflow">return</span> os &lt;&lt; std::format(<span class="stringliteral">&quot;SqlDynamicString&lt;{}&gt; {{ size: {}, &#39;{}&#39; }}&quot;</span>, N, value.size(), value.data());</div>
+<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span>    <span class="keywordflow">else</span></div>
+<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span>    {</div>
+<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span>        <span class="keyword">auto</span> u8String = ToUtf8(std::basic_string_view&lt;T&gt;(value.data(), value.size()));</div>
+<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span>        <span class="keywordflow">return</span> os &lt;&lt; std::format(<span class="stringliteral">&quot;SqlDynamicString&lt;{}, {}&gt; {{ size: {}, &#39;{}&#39; }}&quot;</span>,</div>
+<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span>                                 N,</div>
+<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span>                                 Reflection::TypeNameOf&lt;T&gt;,</div>
+<div class="line"><a id="l00563" name="l00563"></a><span class="lineno">  563</span>                                 value.size(),</div>
+<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span>                                 (<span class="keywordtype">char</span> <span class="keyword">const</span>*) u8String.c_str());</div>
+<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span>    }</div>
+<div class="line"><a id="l00566" name="l00566"></a><span class="lineno">  566</span>}</div>
 <div class="line"><a id="l00567" name="l00567"></a><span class="lineno">  567</span> </div>
-<div class="line"><a id="l00568" name="l00568"></a><span class="lineno">  568</span>    <span class="keywordflow">return</span> result;</div>
-<div class="line"><a id="l00569" name="l00569"></a><span class="lineno">  569</span>}</div>
-<div class="line"><a id="l00570" name="l00570"></a><span class="lineno">  570</span> </div>
-<div class="line"><a id="l00571" name="l00571"></a><span class="lineno">  571</span>[[nodiscard]] <span class="keyword">inline</span> std::string NormalizeText(std::vector&lt;std::string&gt; <span class="keyword">const</span>&amp; texts)</div>
-<div class="line"><a id="l00572" name="l00572"></a><span class="lineno">  572</span>{</div>
-<div class="line"><a id="l00573" name="l00573"></a><span class="lineno">  573</span>    <span class="keyword">auto</span> result = std::string {};</div>
-<div class="line"><a id="l00574" name="l00574"></a><span class="lineno">  574</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; text: texts)</div>
-<div class="line"><a id="l00575" name="l00575"></a><span class="lineno">  575</span>    {</div>
-<div class="line"><a id="l00576" name="l00576"></a><span class="lineno">  576</span>        <span class="keywordflow">if</span> (!result.empty())</div>
-<div class="line"><a id="l00577" name="l00577"></a><span class="lineno">  577</span>            result += <span class="charliteral">&#39;\n&#39;</span>;</div>
-<div class="line"><a id="l00578" name="l00578"></a><span class="lineno">  578</span>        result += NormalizeText(text);</div>
-<div class="line"><a id="l00579" name="l00579"></a><span class="lineno">  579</span>    }</div>
-<div class="line"><a id="l00580" name="l00580"></a><span class="lineno">  580</span>    <span class="keywordflow">return</span> result;</div>
-<div class="line"><a id="l00581" name="l00581"></a><span class="lineno">  581</span>}</div>
-<div class="line"><a id="l00582" name="l00582"></a><span class="lineno">  582</span> </div>
-<div class="line"><a id="l00583" name="l00583"></a><span class="lineno">  583</span><span class="comment">// }}}</span></div>
-<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span> </div>
-<div class="line"><a id="l00585" name="l00585"></a><span class="lineno">  585</span><span class="keyword">inline</span> <span class="keywordtype">void</span> CreateEmployeesTable(<a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a>&amp; stmt, std::source_location location = std::source_location::current())</div>
-<div class="line"><a id="l00586" name="l00586"></a><span class="lineno">  586</span>{</div>
-<div class="line"><a id="l00587" name="l00587"></a><span class="lineno">  587</span>    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ab1665766fa52c6fcdf8ca06c3895ea2d">MigrateDirect</a>(</div>
-<div class="line"><a id="l00588" name="l00588"></a><span class="lineno">  588</span>        [](<a class="code hl_class" href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a>&amp; migration) {</div>
-<div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span>            migration.CreateTable(<span class="stringliteral">&quot;Employees&quot;</span>)</div>
-<div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span>                .PrimaryKeyWithAutoIncrement(<span class="stringliteral">&quot;EmployeeID&quot;</span>)</div>
-<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span>                .RequiredColumn(<span class="stringliteral">&quot;FirstName&quot;</span>, SqlColumnTypeDefinitions::Varchar { 50 })</div>
-<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span>                .Column(<span class="stringliteral">&quot;LastName&quot;</span>, SqlColumnTypeDefinitions::Varchar { 50 })</div>
-<div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span>                .RequiredColumn(<span class="stringliteral">&quot;Salary&quot;</span>, SqlColumnTypeDefinitions::Integer {});</div>
-<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span>        },</div>
-<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span>        location);</div>
-<div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span>}</div>
-<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span> </div>
-<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span><span class="keyword">inline</span> <span class="keywordtype">void</span> CreateLargeTable(<a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a>&amp; stmt)</div>
-<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span>{</div>
-<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span>    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ab1665766fa52c6fcdf8ca06c3895ea2d">MigrateDirect</a>([](<a class="code hl_class" href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a>&amp; migration) {</div>
-<div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span>        <span class="keyword">auto</span> table = migration.CreateTable(<span class="stringliteral">&quot;LargeTable&quot;</span>);</div>
-<div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span>        <span class="keywordflow">for</span> (<span class="keywordtype">char</span> c = <span class="charliteral">&#39;A&#39;</span>; c &lt;= <span class="charliteral">&#39;Z&#39;</span>; ++c)</div>
-<div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span>        {</div>
-<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span>            table.<a class="code hl_function" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html#a543f957a1a122b0f5f0dae83315da102">Column</a>(std::string(1, c), SqlColumnTypeDefinitions::Varchar { 50 });</div>
-<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span>        }</div>
-<div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span>    });</div>
-<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span>}</div>
-<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span> </div>
-<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span><span class="keyword">inline</span> <span class="keywordtype">void</span> FillEmployeesTable(<a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a>&amp; stmt)</div>
-<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>{</div>
-<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">Prepare</a>(stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ad4db979c5f830dcc838f9b2d9ae8b212">Query</a>(<span class="stringliteral">&quot;Employees&quot;</span>)</div>
-<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span>                     .<a class="code hl_function" href="../../d0/d78/classSqlQueryBuilder.html#a2752da20dcda5fc1527670062fb45bdf">Insert</a>()</div>
-<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span>                     .Set(<span class="stringliteral">&quot;FirstName&quot;</span>, SqlWildcard)</div>
-<div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span>                     .Set(<span class="stringliteral">&quot;LastName&quot;</span>, SqlWildcard)</div>
-<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span>                     .Set(<span class="stringliteral">&quot;Salary&quot;</span>, SqlWildcard));</div>
-<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span>    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#a7d7fc4df758cfd56e3ddaf296b3b1411">Execute</a>(<span class="stringliteral">&quot;Alice&quot;</span>, <span class="stringliteral">&quot;Smith&quot;</span>, 50&#39;000);</div>
-<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span>    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#a7d7fc4df758cfd56e3ddaf296b3b1411">Execute</a>(<span class="stringliteral">&quot;Bob&quot;</span>, <span class="stringliteral">&quot;Johnson&quot;</span>, 60&#39;000);</div>
-<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span>    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#a7d7fc4df758cfd56e3ddaf296b3b1411">Execute</a>(<span class="stringliteral">&quot;Charlie&quot;</span>, <span class="stringliteral">&quot;Brown&quot;</span>, 70&#39;000);</div>
-<div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span>}</div>
+<div class="line"><a id="l00568" name="l00568"></a><span class="lineno">  568</span>[[nodiscard]] <span class="keyword">inline</span> std::string NormalizeText(std::string_view <span class="keyword">const</span>&amp; text)</div>
+<div class="line"><a id="l00569" name="l00569"></a><span class="lineno">  569</span>{</div>
+<div class="line"><a id="l00570" name="l00570"></a><span class="lineno">  570</span>    <span class="keyword">auto</span> result = std::string(text);</div>
+<div class="line"><a id="l00571" name="l00571"></a><span class="lineno">  571</span> </div>
+<div class="line"><a id="l00572" name="l00572"></a><span class="lineno">  572</span>    <span class="comment">// Remove any newlines and reduce all whitespace to a single space</span></div>
+<div class="line"><a id="l00573" name="l00573"></a><span class="lineno">  573</span>    result.erase(</div>
+<div class="line"><a id="l00574" name="l00574"></a><span class="lineno">  574</span>        std::unique(result.begin(), result.end(), [](<span class="keywordtype">char</span> a, <span class="keywordtype">char</span> b) { return std::isspace(a) &amp;&amp; std::isspace(b); }),</div>
+<div class="line"><a id="l00575" name="l00575"></a><span class="lineno">  575</span>        result.end());</div>
+<div class="line"><a id="l00576" name="l00576"></a><span class="lineno">  576</span> </div>
+<div class="line"><a id="l00577" name="l00577"></a><span class="lineno">  577</span>    <span class="comment">// trim lading and trailing whitespace</span></div>
+<div class="line"><a id="l00578" name="l00578"></a><span class="lineno">  578</span>    <span class="keywordflow">while</span> (!result.empty() &amp;&amp; std::isspace(result.front()))</div>
+<div class="line"><a id="l00579" name="l00579"></a><span class="lineno">  579</span>        result.erase(result.begin());</div>
+<div class="line"><a id="l00580" name="l00580"></a><span class="lineno">  580</span> </div>
+<div class="line"><a id="l00581" name="l00581"></a><span class="lineno">  581</span>    <span class="keywordflow">while</span> (!result.empty() &amp;&amp; std::isspace(result.back()))</div>
+<div class="line"><a id="l00582" name="l00582"></a><span class="lineno">  582</span>        result.pop_back();</div>
+<div class="line"><a id="l00583" name="l00583"></a><span class="lineno">  583</span> </div>
+<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span>    <span class="keywordflow">return</span> result;</div>
+<div class="line"><a id="l00585" name="l00585"></a><span class="lineno">  585</span>}</div>
+<div class="line"><a id="l00586" name="l00586"></a><span class="lineno">  586</span> </div>
+<div class="line"><a id="l00587" name="l00587"></a><span class="lineno">  587</span>[[nodiscard]] <span class="keyword">inline</span> std::string NormalizeText(std::vector&lt;std::string&gt; <span class="keyword">const</span>&amp; texts)</div>
+<div class="line"><a id="l00588" name="l00588"></a><span class="lineno">  588</span>{</div>
+<div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span>    <span class="keyword">auto</span> result = std::string {};</div>
+<div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; text: texts)</div>
+<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span>    {</div>
+<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span>        <span class="keywordflow">if</span> (!result.empty())</div>
+<div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span>            result += <span class="charliteral">&#39;\n&#39;</span>;</div>
+<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span>        result += NormalizeText(text);</div>
+<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span>    }</div>
+<div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span>    <span class="keywordflow">return</span> result;</div>
+<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span>}</div>
+<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span> </div>
+<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span><span class="comment">// }}}</span></div>
+<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span> </div>
+<div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span><span class="keyword">inline</span> <span class="keywordtype">void</span> CreateEmployeesTable(<a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a>&amp; stmt, std::source_location location = std::source_location::current())</div>
+<div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span>{</div>
+<div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span>    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ab1665766fa52c6fcdf8ca06c3895ea2d">MigrateDirect</a>(</div>
+<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span>        [](<a class="code hl_class" href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a>&amp; migration) {</div>
+<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span>            migration.CreateTable(<span class="stringliteral">&quot;Employees&quot;</span>)</div>
+<div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span>                .PrimaryKeyWithAutoIncrement(<span class="stringliteral">&quot;EmployeeID&quot;</span>)</div>
+<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span>                .RequiredColumn(<span class="stringliteral">&quot;FirstName&quot;</span>, SqlColumnTypeDefinitions::Varchar { 50 })</div>
+<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span>                .Column(<span class="stringliteral">&quot;LastName&quot;</span>, SqlColumnTypeDefinitions::Varchar { 50 })</div>
+<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span>                .RequiredColumn(<span class="stringliteral">&quot;Salary&quot;</span>, SqlColumnTypeDefinitions::Integer {});</div>
+<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>        },</div>
+<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>        location);</div>
+<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span>}</div>
+<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span> </div>
+<div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span><span class="keyword">inline</span> <span class="keywordtype">void</span> CreateLargeTable(<a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a>&amp; stmt)</div>
+<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span>{</div>
+<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span>    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ab1665766fa52c6fcdf8ca06c3895ea2d">MigrateDirect</a>([](<a class="code hl_class" href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a>&amp; migration) {</div>
+<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span>        <span class="keyword">auto</span> table = migration.CreateTable(<span class="stringliteral">&quot;LargeTable&quot;</span>);</div>
+<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span>        <span class="keywordflow">for</span> (<span class="keywordtype">char</span> c = <span class="charliteral">&#39;A&#39;</span>; c &lt;= <span class="charliteral">&#39;Z&#39;</span>; ++c)</div>
+<div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span>        {</div>
+<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span>            table.<a class="code hl_function" href="../../d4/d4a/classSqlCreateTableQueryBuilder.html#a543f957a1a122b0f5f0dae83315da102">Column</a>(std::string(1, c), SqlColumnTypeDefinitions::Varchar { 50 });</div>
+<div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span>        }</div>
+<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span>    });</div>
+<div class="line"><a id="l00623" name="l00623"></a><span class="lineno">  623</span>}</div>
+<div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span> </div>
+<div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span><span class="keyword">inline</span> <span class="keywordtype">void</span> FillEmployeesTable(<a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a>&amp; stmt)</div>
+<div class="line"><a id="l00626" name="l00626"></a><span class="lineno">  626</span>{</div>
+<div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span>    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">Prepare</a>(stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ad4db979c5f830dcc838f9b2d9ae8b212">Query</a>(<span class="stringliteral">&quot;Employees&quot;</span>)</div>
+<div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span>                     .<a class="code hl_function" href="../../d0/d78/classSqlQueryBuilder.html#a2752da20dcda5fc1527670062fb45bdf">Insert</a>()</div>
+<div class="line"><a id="l00629" name="l00629"></a><span class="lineno">  629</span>                     .Set(<span class="stringliteral">&quot;FirstName&quot;</span>, SqlWildcard)</div>
+<div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span>                     .Set(<span class="stringliteral">&quot;LastName&quot;</span>, SqlWildcard)</div>
+<div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span>                     .Set(<span class="stringliteral">&quot;Salary&quot;</span>, SqlWildcard));</div>
+<div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span>    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#a7d7fc4df758cfd56e3ddaf296b3b1411">Execute</a>(<span class="stringliteral">&quot;Alice&quot;</span>, <span class="stringliteral">&quot;Smith&quot;</span>, 50&#39;000);</div>
+<div class="line"><a id="l00633" name="l00633"></a><span class="lineno">  633</span>    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#a7d7fc4df758cfd56e3ddaf296b3b1411">Execute</a>(<span class="stringliteral">&quot;Bob&quot;</span>, <span class="stringliteral">&quot;Johnson&quot;</span>, 60&#39;000);</div>
+<div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span>    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#a7d7fc4df758cfd56e3ddaf296b3b1411">Execute</a>(<span class="stringliteral">&quot;Charlie&quot;</span>, <span class="stringliteral">&quot;Brown&quot;</span>, 70&#39;000);</div>
+<div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span>}</div>
+<div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span> </div>
+<div class="line"><a id="l00637" name="l00637"></a><span class="lineno">  637</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T = <span class="keywordtype">char</span>&gt;</div>
+<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span><span class="keyword">inline</span> <span class="keyword">auto</span> MakeLargeText(<span class="keywordtype">size_t</span> size)</div>
+<div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span>{</div>
+<div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span>    <span class="keyword">auto</span> text = std::basic_string&lt;T&gt;(size, {});</div>
+<div class="line"><a id="l00641" name="l00641"></a><span class="lineno">  641</span>    std::ranges::generate(text, [i = 0]() <span class="keyword">mutable</span> { <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>T<span class="keyword">&gt;</span>(<span class="charliteral">&#39;A&#39;</span> + (i++ % 26)); });</div>
+<div class="line"><a id="l00642" name="l00642"></a><span class="lineno">  642</span>    <span class="keywordflow">return</span> text;</div>
+<div class="line"><a id="l00643" name="l00643"></a><span class="lineno">  643</span>}</div>
 <div class="ttc" id="aclassSqlConnection_html"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html">SqlConnection</a></div><div class="ttdoc">Represents a connection to a SQL database.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00036">SqlConnection.hpp:37</a></div></div>
 <div class="ttc" id="aclassSqlConnection_html_a0dbada057b48928c5ac60f01687a58c0"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#a0dbada057b48928c5ac60f01687a58c0">SqlConnection::ServerType</a></div><div class="ttdeci">SqlServerType ServerType() const noexcept</div><div class="ttdoc">Retrieves the type of the server.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00179">SqlConnection.hpp:179</a></div></div>
 <div class="ttc" id="aclassSqlConnection_html_a431d3c5f9fa65867b64f825b01735642"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#a431d3c5f9fa65867b64f825b01735642">SqlConnection::NativeHandle</a></div><div class="ttdeci">SQLHDBC NativeHandle() const noexcept</div><div class="ttdoc">Retrieves the native handle.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00150">SqlConnection.hpp:150</a></div></div>

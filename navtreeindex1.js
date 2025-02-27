@@ -1,5 +1,6 @@
 var NAVTREEINDEX1 =
 {
+"d7/d7b/classSqlConnection.html#adcaa93ca1d83786875e6df3bea261bef":[6,0,9,13],
 "d7/d7b/classSqlConnection.html#ae3cce0a5866a68b03d2427df753e8fcc":[6,0,9,7],
 "d7/d7b/classSqlConnection.html#aea37a1f42d804e2310cc12ada35e78dd":[6,0,9,4],
 "d7/d7b/classSqlConnection.html#aeaa239269993596de12bdb0edac0c7fc":[6,0,9,18],
@@ -66,8 +67,8 @@ var NAVTREEINDEX1 =
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#example-1":[2,2,0],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#insert-elements":[2,1],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#select-elements":[2,2],
-"d9/dc2/SqlGuid_8hpp_source.html":[7,0,1,0,8],
-"d9/dc3/StdStringView_8hpp_source.html":[7,0,1,0,16],
+"d9/dc2/SqlGuid_8hpp_source.html":[7,0,1,0,9],
+"d9/dc3/StdStringView_8hpp_source.html":[7,0,1,0,17],
 "d9/de5/SqlLogger_8hpp_source.html":[7,0,1,10],
 "da/d1a/SqlDate_8hpp_source.html":[7,0,1,0,5],
 "da/d23/BelongsTo_8hpp_source.html":[7,0,1,1,0],
@@ -102,7 +103,7 @@ var NAVTREEINDEX1 =
 "da/dab/structSqlSchema_1_1Column.html":[6,0,0,0],
 "da/daf/HasManyThrough_8hpp_source.html":[7,0,1,1,6],
 "da/dbf/structSqlWildcardType.html":[4,1,1],
-"da/dce/StdOptional_8hpp_source.html":[7,0,1,0,14],
+"da/dce/StdOptional_8hpp_source.html":[7,0,1,0,15],
 "da/dd7/structSqlDateTime.html":[6,0,16],
 "da/dd7/structSqlDateTime.html#a248937ff221f05628dd0f73de36c86b8":[6,0,16,2],
 "da/dd7/structSqlDateTime.html#a5d75eeeb1ab6a78c8e40f913e7f46fd9":[6,0,16,1],
@@ -172,10 +173,10 @@ var NAVTREEINDEX1 =
 "dc/df2/classSqlQueryFormatter.html#aefe1393f80368ad2d775216abf9338f5":[6,0,29,9],
 "dc/df2/classSqlQueryFormatter.html#af09c7772d664c314a531e7f392d43a63":[6,0,29,5],
 "dd/d94/SqlBinary_8hpp_source.html":[7,0,1,0,4],
-"dd/dad/SqlText_8hpp_source.html":[7,0,1,0,11],
+"dd/dad/SqlText_8hpp_source.html":[7,0,1,0,12],
 "dd/dbd/classSqlInsertQueryBuilder.html":[4,1,6],
 "de/d07/structSqlNullType.html":[6,0,25],
-"de/dbb/StdString_8hpp_source.html":[7,0,1,0,15],
+"de/dbb/StdString_8hpp_source.html":[7,0,1,0,16],
 "df/d13/SqlQueryFormatter_8hpp_source.html":[7,0,1,13],
 "df/d17/classSqlStatement.html":[6,0,37],
 "df/d17/classSqlStatement.html#a0071b804ef24c9c48ee18e5c1e20aede":[6,0,37,17],
@@ -240,7 +241,7 @@ var NAVTREEINDEX1 =
 "df/d27/structField.html#aa8080d19388999c10fbeadd11547026d":[4,0,4,4],
 "df/d29/classSqlBinary.html":[6,0,8],
 "df/d4f/DataMapper_8hpp_source.html":[7,0,1,1,2],
-"df/dcd/UnicodeConverter_8hpp_source.html":[7,0,1,0,18],
+"df/dcd/UnicodeConverter_8hpp_source.html":[7,0,1,0,19],
 "df/dd6/classHasManyThrough.html":[4,0,6],
 "df/dd6/classHasManyThrough.html#a0dd54929e7942a919ce0ec5d5890b03f":[4,0,6,3],
 "df/dd6/classHasManyThrough.html#a2064ef55f4172fedb05962508c86f6ed":[4,0,6,5],
@@ -248,6 +249,5 @@ var NAVTREEINDEX1 =
 "df/dd6/classHasManyThrough.html#a289cfe87f4182e13ca5bce87203e004a":[4,0,6,8],
 "df/dd6/classHasManyThrough.html#a302f58acb9de3b2feebf5a000f08b72e":[4,0,6,1],
 "df/dd6/classHasManyThrough.html#a379b3afee3886e4166554b650ce0886b":[4,0,6,0],
-"df/dd6/classHasManyThrough.html#a56e2846ccbab38e110dc8933a803601f":[4,0,6,11],
-"df/dd6/classHasManyThrough.html#a75b212d9afc6f26766bb140dfc998dd5":[4,0,6,7]
+"df/dd6/classHasManyThrough.html#a56e2846ccbab38e110dc8933a803601f":[4,0,6,11]
 };

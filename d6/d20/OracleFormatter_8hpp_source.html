@@ -195,7 +195,7 @@ $(document).ready(function(){initNavTree('d6/d20/OracleFormatter_8hpp_source.htm
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>                [](Real <span class="keyword">const</span>&amp;) -&gt; std::string { <span class="keywordflow">return</span> <span class="stringliteral">&quot;REAL&quot;</span>; },</div>
 <div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>                [](Smallint <span class="keyword">const</span>&amp;) -&gt; std::string { <span class="keywordflow">return</span> <span class="stringliteral">&quot;SMALLINT&quot;</span>; },</div>
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>                [](Text <span class="keyword">const</span>&amp; type) -&gt; std::string {</div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>                    <span class="keywordflow">if</span> (type.size &lt;= 4000)</div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>                    <span class="keywordflow">if</span> (type.size &lt;= SqlOptimalMaxColumnSize)</div>
 <div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>                        <span class="keywordflow">return</span> std::format(<span class="stringliteral">&quot;VARCHAR2({})&quot;</span>, type.size);</div>
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>                    <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>                        <span class="keywordflow">return</span> <span class="stringliteral">&quot;CLOB&quot;</span>;</div>
