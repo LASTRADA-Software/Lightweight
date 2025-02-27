@@ -8,7 +8,10 @@
 #include <reflection-cpp/reflection.hpp>
 
 #include <catch2/catch_session.hpp>
+#include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <iostream>
 #include <ostream>
@@ -82,6 +85,68 @@ TEST_CASE("Field: int", "[DataMapper],[Field]")
     CHECK(field == 42);
     CHECK(field.Value() == 42);
     CHECK(field.IsModified());
+}
+
+template <typename T>
+struct TableWithLargeStrings
+{
+    using value_type = T;
+
+    Field<SqlGuid, PrimaryKey::AutoAssign> id;
+    Field<SqlDynamicString<5000, T>> longString;
+
+    static constexpr std::string_view TableName = "TableWithLargeStrings"sv;
+
+    std::weak_ordering operator<=>(TableWithLargeStrings<T> const& other) const = default;
+};
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, TableWithLargeStrings<T> const& record)
+{
+    return os << DataMapper::Inspect(record);
+}
+
+// clang-format off
+using TypesToTest = std::tuple<
+    TableWithLargeStrings<char>,
+    TableWithLargeStrings<char8_t>,
+    TableWithLargeStrings<char16_t>,
+    TableWithLargeStrings<char32_t>,
+    TableWithLargeStrings<wchar_t>
+>;
+// clang-format on
+
+TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[DataMapper],[Field],[SqlDynamicString]", TypesToTest)
+{
+    using TestRecord = TestType;
+
+    INFO(Reflection::TypeNameOf<TestRecord>);
+
+    SqlLogger::SetLogger(TestSuiteSqlLogger::GetLogger());
+
+    {
+        auto stmt = SqlStatement {};
+        SqlTestFixture::DropAllTablesInDatabase(stmt);
+    }
+
+    auto dm = DataMapper {};
+    dm.CreateTable<TestRecord>();
+
+    auto const expectedRecord = TestRecord {
+        .id = SqlGuid::Create(),
+        .longString = MakeLargeText<typename TestRecord::value_type>(5000),
+    };
+    dm.CreateExplicit(expectedRecord);
+
+    // Check single record retrieval
+    auto const actualResult = dm.QuerySingle<TestRecord>().Get();
+    REQUIRE(actualResult.has_value());
+    CHECK(actualResult.value() == expectedRecord);
+
+    // Check multi-record retrieval (if one works, they all do)
+    auto const records = dm.Query<TestRecord>().All();
+    REQUIRE(records.size() == 1);
+    CHECK(records[0] == expectedRecord);
 }
 
 TEST_CASE("Field: SqlAnsiString", "[DataMapper],[Field]")

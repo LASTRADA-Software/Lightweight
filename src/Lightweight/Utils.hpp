@@ -1,12 +1,18 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #pragma once
+
+#include "Api.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 
-#include <optional>
 #include <ranges>
+#include <source_location>
 #include <string_view>
 #include <type_traits>
 #include <utility>
+
+#include <sql.h>
 
 namespace detail
 {
@@ -201,3 +207,9 @@ template <auto ReferencedField>
 constexpr inline auto FullFieldNameOf = SqlRawColumnNameView {
     .value = detail::FullFieldNameOfImpl<ReferencedField>::value,
 };
+
+LIGHTWEIGHT_API void LogIfFailed(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLocation);
+
+LIGHTWEIGHT_API void RequireSuccess(SQLHSTMT hStmt,
+                                    SQLRETURN error,
+                                    std::source_location sourceLocation = std::source_location::current());

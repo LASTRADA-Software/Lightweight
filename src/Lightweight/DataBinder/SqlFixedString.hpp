@@ -200,9 +200,14 @@ class SqlFixedString
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr T const& operator[](std::size_t i) const noexcept { return _data[i]; }
     // clang-format on
 
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr explicit operator std::basic_string_view<T>() const noexcept
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string_view<T> ToStringView() const noexcept
     {
         return { _data, _size };
+    }
+
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr explicit operator std::basic_string_view<T>() const noexcept
+    {
+        return ToStringView();
     }
 
     template <std::size_t OtherSize, SqlFixedStringMode OtherMode>
@@ -232,12 +237,12 @@ class SqlFixedString
         return !(*this == other);
     }
 
-    LIGHTWEIGHT_FORCE_INLINE constexpr bool operator==(std::string_view other) const noexcept
+    LIGHTWEIGHT_FORCE_INLINE constexpr bool operator==(std::basic_string_view<T> other) const noexcept
     {
         return (substr() <=> other) == std::weak_ordering::equivalent;
     }
 
-    LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!=(std::string_view other) const noexcept
+    LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!=(std::basic_string_view<T> other) const noexcept
     {
         return !(*this == other);
     }
@@ -253,18 +258,23 @@ struct detail::SqlViewHelper<SqlFixedString<N, CharT, Mode>>
     }
 };
 
+namespace detail
+{
+
 template <typename>
-struct IsSqlFixedStringType: std::false_type
+struct IsSqlFixedStringTypeImpl: std::false_type
 {
 };
 
 template <std::size_t N, typename T, SqlFixedStringMode Mode>
-struct IsSqlFixedStringType<SqlFixedString<N, T, Mode>>: std::true_type
+struct IsSqlFixedStringTypeImpl<SqlFixedString<N, T, Mode>>: std::true_type
 {
 };
 
+} // namespace detail
+
 template <typename T>
-constexpr bool IsSqlFixedString = IsSqlFixedStringType<T>::value;
+constexpr bool IsSqlFixedString = detail::IsSqlFixedStringTypeImpl<T>::value;
 
 /// Fixed-size string of element type `char` with a capacity of `N` characters.
 template <std::size_t N>
@@ -288,18 +298,6 @@ using SqlTrimmedFixedString = SqlFixedString<N, T, SqlFixedStringMode::FIXED_SIZ
 
 template <std::size_t N, typename T = char>
 using SqlString = SqlFixedString<N, T, SqlFixedStringMode::VARIABLE_SIZE>;
-
-template <std::size_t N, typename T, SqlFixedStringMode Mode>
-struct detail::SqlColumnSize<SqlFixedString<N, T, Mode>>
-{
-    static constexpr size_t Value = N;
-};
-
-template <std::size_t N, typename T, SqlFixedStringMode Mode>
-struct detail::SqlColumnSize<std::optional<SqlFixedString<N, T, Mode>>>
-{
-    static constexpr size_t Value = N;
-};
 
 template <std::size_t N, typename T, SqlFixedStringMode Mode>
 struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
@@ -392,6 +390,9 @@ struct std::formatter<SqlFixedString<N, T, P>>: std::formatter<std::string>
     using value_type = SqlFixedString<N, T, P>;
     auto format(value_type const& text, format_context& ctx) const -> format_context::iterator
     {
-        return std::formatter<std::string>::format(text.c_str(), ctx);
+        if constexpr (std::same_as<T, wchar_t>)
+            return std::formatter<std::string>::format((char const*) ToUtf8(text.ToStringView()).c_str(), ctx);
+        else
+            return std::formatter<std::string>::format(text.c_str(), ctx);
     }
 };

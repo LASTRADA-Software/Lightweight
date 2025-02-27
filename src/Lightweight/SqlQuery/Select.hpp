@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "../SqlQueryFormatter.hpp"
 #include "../Utils.hpp"
 #include "Core.hpp"
 
