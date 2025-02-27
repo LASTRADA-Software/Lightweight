@@ -146,10 +146,10 @@ struct SqlDataBinder<AnsiStringType>
 
     static constexpr auto ColumnType = StringTraits::ColumnType;
 
-    static SQLRETURN InputParameter(SQLHSTMT stmt,
-                                    SQLUSMALLINT column,
-                                    AnsiStringType const& value,
-                                    SqlDataBinderCallback& /*cb*/) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
+                                                             SQLUSMALLINT column,
+                                                             AnsiStringType const& value,
+                                                             SqlDataBinderCallback& /*cb*/) noexcept
     {
         return SQLBindParameter(stmt,
                                 column,
@@ -163,11 +163,11 @@ struct SqlDataBinder<AnsiStringType>
                                 nullptr);
     }
 
-    static SQLRETURN OutputColumn(SQLHSTMT stmt,
-                                  SQLUSMALLINT column,
-                                  AnsiStringType* result,
-                                  SQLLEN* indicator,
-                                  SqlDataBinderCallback& cb) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(SQLHSTMT stmt,
+                                                           SQLUSMALLINT column,
+                                                           AnsiStringType* result,
+                                                           SQLLEN* indicator,
+                                                           SqlDataBinderCallback& cb) noexcept
     {
         if constexpr (requires { AnsiStringType::Capacity; })
             StringTraits::Resize(result, AnsiStringType::Capacity);
@@ -180,6 +180,7 @@ struct SqlDataBinder<AnsiStringType>
         else
             cb.PlanPostProcessOutputColumn(
                 [stmt, column, indicator, result]() { PostProcessOutputColumn(stmt, column, result, indicator); });
+
         return SQLBindCol(stmt,
                           column,
                           SQL_C_CHAR,
