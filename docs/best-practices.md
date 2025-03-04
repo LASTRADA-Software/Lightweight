@@ -8,7 +8,7 @@ as well as learnings from the underlying technologies.
 
 ## Common best practices
 
-### Use the `DataMapper` API
+### Use the DataMapper API
 
 The `DataMapper` API provides a high-level abstraction for working with database tables.
 It simplifies the process of querying, inserting, updating, and deleting data from the database
@@ -19,6 +19,25 @@ while retaining performance and flexibility.
 Keep the data model and business logic separate to improve the maintainability and scalability of your application.
 
 Remember to also keep frontend (e.g. GUI) and backend (e.g. API) separate.
+
+### Use transactions with care
+
+Use transactions to group multiple database operations into a single unit of work.
+This ensures that all operations are either committed or rolled back together.
+
+However, be careful when using transactions, as they can affect the performance serverically if not used properly.
+
+### Binding output parameters
+
+When not using the `DataMapper` API, you need to also retrieve the result manually.
+Either via `SqlStatement::BindOutputColumns()` or in post, by fetching the columns individually.
+It is always highly recommended to pre-bind in order to avoid unnecessary memory allocations and copying.
+
+With this, it is sufficient to call `SqlStatement::BindOutputColumns()` once one and then you can reuse the result
+throughout many `SqlStatement::FetchRow()` calls.
+
+The pitfall here is, that if using `std::optional<T>` column types, you **MUST** rebind the result columns before
+each fetch operation whereas if not having any nullable values, you do not have to.
 
 ## SQL driver related best practices
 
