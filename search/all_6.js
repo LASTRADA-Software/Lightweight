@@ -6,7 +6,7 @@ var searchData=
   ['emplacerecord_3',['emplacerecord',['../df/d1a/classBelongsTo.html#a80cdd134276af4c8bf91d96ef93aa65e',1,'BelongsTo::EmplaceRecord()'],['../da/d9d/classHasOneThrough.html#afa1ba0a866de9922e6935e35db2bc5a7',1,'HasOneThrough::EmplaceRecord()']]],
   ['empty_4',['empty',['../d8/dcb/classSqlFixedString.html#a5d554a3f55a4eb8f846fe652022f93d9',1,'SqlFixedString']]],
   ['eventhandler_5',['EventHandler',['../d3/df5/classSqlSchema_1_1EventHandler.html',1,'SqlSchema']]],
-  ['example_6',['example',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#example-1',1,'Example'],['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#example',1,'Example']]],
+  ['example_6',['example',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-column-data-type-binder-example',1,'Custom Column Data Type Binder Example'],['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#example',1,'Example'],['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#example-1',1,'Example']]],
   ['example_3a_20crud_20style_20high_20level_20data_20mapping_7',['Example: CRUD-style High level Data Mapping',['../index.html#example-crud-style-high-level-data-mapping',1,'']]],
   ['example_3a_20simple_20row_20retrieval_20via_20structs_8',['Example: Simple row retrieval via structs',['../index.html#example-simple-row-retrieval-via-structs',1,'']]],
   ['examples_9',['Usage Examples',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html',1,'']]],

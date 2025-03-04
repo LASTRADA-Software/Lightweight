@@ -13,7 +13,7 @@ var searchData=
   ['an_20odbc_20sql_20api_20for_20c_2023_10',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
   ['and_11',['And',['../d2/dca/classSqlWhereClauseBuilder.html#ad1c67751f8aa91d2b78462282a14d856',1,'SqlWhereClauseBuilder']]],
   ['and_20business_20logic_20separate_12',['Keep data model and business logic separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]],
-  ['api_13',['Use the &lt;tt&gt;DataMapper&lt;/tt&gt; API',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-the-datamapper-api',1,'']]],
+  ['api_13',['api',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html',1,'Data Binder API'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-the-datamapper-api',1,'Use the DataMapper API']]],
   ['api_20for_20c_2023_14',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
   ['as_15',['As',['../d1/d91/classSqlSelectQueryBuilder.html#a4e0a79bcab97428d4fa74218eacb2127',1,'SqlSelectQueryBuilder']]],
   ['assign_16',['assign',['../d8/dcb/classSqlFixedString.html#a170f238347eb8b01ae01364782cecf1b',1,'SqlFixedString::assign(T const (&amp;source)[SourceSize]) noexcept'],['../d8/dcb/classSqlFixedString.html#a7c143e2e6db8fe5ac33c0acdc195de6f',1,'SqlFixedString::assign(std::string_view s) noexcept'],['../da/d72/structSqlNumeric.html#af8b9f92104a0ed01918fa37498455719',1,'SqlNumeric::assign()']]],

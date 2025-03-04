@@ -9,7 +9,8 @@ var searchData=
   ['use_20native_20column_20types_6',['Use native column types',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types',1,'']]],
   ['use_20pagination_7',['Use pagination',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination',1,'']]],
   ['use_20prepared_20statements_8',['Use prepared statements',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements',1,'']]],
-  ['use_20the_20tt_20datamapper_20tt_20api_9',['Use the &lt;tt&gt;DataMapper&lt;/tt&gt; API',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-the-datamapper-api',1,'']]],
-  ['username_10',['UserName',['../d7/d7b/classSqlConnection.html#a4ee1f952a185fbf4bcd6666c3ed2f746',1,'SqlConnection']]],
-  ['using_20sqlite_20for_20testing_20on_20windows_20operating_20system_11',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]]
+  ['use_20the_20datamapper_20api_9',['Use the DataMapper API',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-the-datamapper-api',1,'']]],
+  ['use_20transactions_20with_20care_10',['Use transactions with care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]],
+  ['username_11',['UserName',['../d7/d7b/classSqlConnection.html#a4ee1f952a185fbf4bcd6666c3ed2f746',1,'SqlConnection']]],
+  ['using_20sqlite_20for_20testing_20on_20windows_20operating_20system_12',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]]
 ];
