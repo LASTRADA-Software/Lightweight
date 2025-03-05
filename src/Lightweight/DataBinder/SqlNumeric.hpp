@@ -27,6 +27,8 @@
 /// including the digits after the decimal point.
 ///
 /// Scale is the number of digits after the decimal point.
+///
+/// @ingroup DataTypes
 template <std::size_t ThePrecision, std::size_t TheScale>
 struct SqlNumeric
 {

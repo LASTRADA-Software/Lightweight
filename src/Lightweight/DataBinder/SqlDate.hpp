@@ -9,6 +9,8 @@
 #include <format>
 
 /// Represents a date to efficiently write to or read from a database.
+///
+/// @ingroup DataTypes
 struct SqlDate
 {
     SQL_DATE_STRUCT sqlValue {};

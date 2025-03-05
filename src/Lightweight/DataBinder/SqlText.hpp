@@ -8,9 +8,11 @@
 
 #include <string>
 
-// Represents a TEXT field in a SQL database.
-//
-// This is used for large texts, e.g. up to 65k characters.
+/// Represents a TEXT field in a SQL database.
+///
+/// This is used for large texts, e.g. up to 65k characters.
+///
+/// @ingroup DataTypes
 struct SqlText
 {
     using value_type = std::string;

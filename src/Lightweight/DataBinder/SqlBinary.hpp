@@ -11,6 +11,8 @@
 /// @brief Represents a binary data type.
 ///
 /// This class is a thin wrapper around std::vector<uint8_t> to represent binary data types efficiently.
+///
+/// @ingroup DataTypes
 class SqlBinary final: public std::vector<uint8_t>
 {
   public:

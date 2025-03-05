@@ -24,8 +24,7 @@
 
 /// @defgroup DataMapper Data Mapper
 ///
-/// The data mapper is a high level API for mapping records to and from the database
-/// using high level C++ syntax.
+/// @brief The data mapper is a high level API for mapping records to and from the database using high level C++ syntax.
 
 // Requires that T satisfies to be a field with storage.
 template <typename T>

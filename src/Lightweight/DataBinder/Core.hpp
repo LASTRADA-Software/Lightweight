@@ -16,6 +16,10 @@
 #include <sqlext.h>
 #include <sqltypes.h>
 
+/// @defgroup DataTypes Data Types
+///
+/// @brief Special purpose data types for SQL data binding.
+
 /// Callback interface for SqlDataBinder to allow post-processing of output columns.
 ///
 /// This is needed because the SQLBindCol() function does not allow to specify a callback function to be called

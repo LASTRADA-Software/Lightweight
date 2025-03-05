@@ -36,6 +36,8 @@ overloaded(Ts...) -> overloaded<Ts...>;
 /// @brief Represents a value that can be any of the supported SQL data types.
 ///
 /// Use this class with care. Always prefer native types when possible, in order to avoid any unnecessary overhead.
+///
+/// @ingroup DataTypes
 struct SqlVariant
 {
     /// @brief The inner type of the variant.

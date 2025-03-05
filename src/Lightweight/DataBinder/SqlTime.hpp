@@ -34,6 +34,8 @@ static_assert(
 // clang-format on
 
 /// Stores the time (of the day) to efficiently write to or read from a database.
+///
+/// @ingroup DataTypes
 struct SqlTime
 {
     using native_type = std::chrono::hh_mm_ss<std::chrono::microseconds>;

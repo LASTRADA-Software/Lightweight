@@ -10,6 +10,8 @@
 #include <string>
 
 /// Represents a GUID (Globally Unique Identifier).
+///
+/// @ingroup DataTypes
 struct LIGHTWEIGHT_API SqlGuid
 {
     uint8_t data[16] {};

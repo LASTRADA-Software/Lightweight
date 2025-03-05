@@ -13,6 +13,11 @@
 
 constexpr size_t SqlMaxColumnSize = std::numeric_limits<uint32_t>::max();
 
+/// SQL dynamic-capacity string that mimmicks standard library string.
+///
+/// The underlying memory is allocated dynamically and the string can grow up to the maximum size of a SQL column.
+///
+/// @ingroup DataTypes
 template <std::size_t N, typename T = char>
 class SqlDynamicString
 {
@@ -189,18 +194,26 @@ template <typename T>
 constexpr bool IsSqlDynamicString = detail::IsSqlDynamicStringImpl<T>::value;
 
 /// Fixed-size string of element type `char` with a capacity of `N` characters.
+///
+/// @ingroup DataTypes
 template <std::size_t N>
 using SqlDynamicAnsiString = SqlDynamicString<N, char>;
 
 /// Fixed-size string of element type `char16_t` with a capacity of `N` characters.
+///
+/// @ingroup DataTypes
 template <std::size_t N>
 using SqlDynamicUtf16String = SqlDynamicString<N, char16_t>;
 
 /// Fixed-size string of element type `char32_t` with a capacity of `N` characters.
+///
+/// @ingroup DataTypes
 template <std::size_t N>
 using SqlDynamicUtf32String = SqlDynamicString<N, char32_t>;
 
 /// Fixed-size string of element type `wchar_t` with a capacity of `N` characters.
+///
+/// @ingroup DataTypes
 template <std::size_t N>
 using SqlDynamicWideString = SqlDynamicString<N, wchar_t>;
 

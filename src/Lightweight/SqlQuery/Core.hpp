@@ -10,7 +10,7 @@
 
 /// @defgroup QueryBuilder Query Builder
 ///
-/// The query builder is a high level API for building SQL queries using high level C++ syntax.
+/// @brief The query builder is a high level API for building SQL queries using high level C++ syntax.
 
 /// @brief SqlWildcardType is a placeholder for an explicit wildcard input parameter in a SQL query.
 ///

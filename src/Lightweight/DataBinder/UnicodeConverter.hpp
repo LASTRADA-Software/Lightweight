@@ -199,13 +199,23 @@ struct [[nodiscard]] Utf32Iterator
 
 } // namespace detail
 
+/// @defgroup Unicode Unicode conversion functions
+///
+/// @brief Functions for converting between different (Unicode) encodings.
+
 /// Converts from UTF-32 to UTF-8.
+///
+/// @ingroup Unicode
 LIGHTWEIGHT_API std::u8string ToUtf8(std::u32string_view u32InputString);
 
 /// Converts from UTF-16 to UTF-8.
+///
+/// @ingroup Unicode
 LIGHTWEIGHT_API std::u8string ToUtf8(std::u16string_view u16InputString);
 
 /// Converts from UTF-16 (as wchar_t) to UTF-8.
+///
+/// @ingroup Unicode
 template <typename T>
     requires(std::same_as<T, wchar_t> && sizeof(wchar_t) == 2)
 inline LIGHTWEIGHT_FORCE_INLINE std::u8string ToUtf8(std::basic_string_view<T> u16InputString)
@@ -214,6 +224,8 @@ inline LIGHTWEIGHT_FORCE_INLINE std::u8string ToUtf8(std::basic_string_view<T> u
 }
 
 /// Converts a wchar_t-based wide string view to UTF-8.
+///
+/// @ingroup Unicode
 template <typename T>
     requires(std::same_as<T, wchar_t> && sizeof(wchar_t) == 4)
 inline LIGHTWEIGHT_FORCE_INLINE std::u8string ToUtf8(std::basic_string_view<T> u32InputString)
@@ -222,6 +234,8 @@ inline LIGHTWEIGHT_FORCE_INLINE std::u8string ToUtf8(std::basic_string_view<T> u
 }
 
 /// Converts from UTF-32 to UTF-16.
+///
+/// @ingroup Unicode
 template <typename T>
     requires std::same_as<T, char32_t> || (std::same_as<T, wchar_t> && sizeof(wchar_t) == 4)
 std::u16string ToUtf16(const std::basic_string_view<T> u32InputString)
@@ -235,12 +249,18 @@ std::u16string ToUtf16(const std::basic_string_view<T> u32InputString)
 }
 
 /// Converts from UTF-8 to UTF-16.
+///
+/// @ingroup Unicode
 LIGHTWEIGHT_API std::u16string ToUtf16(std::u8string_view u8InputString);
 
 /// Converts from local 8-bit string to UTF-16.
+///
+/// @ingroup Unicode
 LIGHTWEIGHT_API std::u16string ToUtf16(std::string const& localeInputString);
 
 /// Converts from UTF-8 to UTF-32.
+///
+/// @ingroup Unicode
 template <typename T = std::u32string>
 T ToUtf32(std::u8string_view u8InputString)
 {
@@ -251,6 +271,9 @@ T ToUtf32(std::u8string_view u8InputString)
 }
 
 
+/// Converts from UTF-16 to UTF-32.
+///
+/// @ingroup Unicode
 template <typename T = std::u32string>
 T ToUtf32(std::u16string_view u16InputString)
 {
@@ -268,7 +291,11 @@ T ToUtf32(std::u16string_view u16InputString)
 }
 
 // Converts a UTF-8 string to wchar_t-based wide string.
+///
+/// @ingroup Unicode
 LIGHTWEIGHT_API std::wstring ToStdWideString(std::u8string_view u8InputString);
 
 // Converts a local 8-bit string to wchar_t-based wide string.
+///
+/// @ingroup Unicode
 LIGHTWEIGHT_API std::wstring ToStdWideString(std::string const& localeInputString);

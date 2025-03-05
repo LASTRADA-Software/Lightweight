@@ -11,6 +11,7 @@
 /// Represents a date and time to efficiently write to or read from a database.
 ///
 /// @see SqlDate, SqlTime
+/// @ingroup DataTypes
 struct SqlDateTime
 {
     using native_type = std::chrono::system_clock::time_point;

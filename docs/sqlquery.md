@@ -1,6 +1,6 @@
-# Sql Query
+# SQL Query
 
-Sql Query builder class is the starting point of building sql queries to execute.
+SQL Query builder class is the starting point of building sql queries to execute.
 
 ## Create or Modife database schema 
 To create a database you need to use `Migration()` function provided by the `SqlQueryBuilder` class, then use API defined in `SqlMigrationQueryBuilder` to construct sql query to migrate to another schema or create a databse with the given schema. Detailed documentation can be found on separate documentation pages for each of the classes in the hirerarchy, here we present overall usage of the library.  Following options exist.

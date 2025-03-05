@@ -22,6 +22,8 @@ enum class SqlFixedStringMode : uint8_t
 ///
 /// The underlying storage will not be guaranteed to be `\0`-terminated unless
 /// a call to mutable/const c_str() has been performed.
+///
+/// @ingroup DataTypes
 template <std::size_t N, typename T = char, SqlFixedStringMode Mode = SqlFixedStringMode::FIXED_SIZE>
 class SqlFixedString
 {
@@ -277,22 +279,32 @@ template <typename T>
 constexpr bool IsSqlFixedString = detail::IsSqlFixedStringTypeImpl<T>::value;
 
 /// Fixed-size string of element type `char` with a capacity of `N` characters.
+///
+/// @ingroup DataTypes
 template <std::size_t N>
 using SqlAnsiString = SqlFixedString<N, char, SqlFixedStringMode::VARIABLE_SIZE>;
 
 /// Fixed-size string of element type `char16_t` with a capacity of `N` characters.
+///
+/// @ingroup DataTypes
 template <std::size_t N>
 using SqlUtf16String = SqlFixedString<N, char16_t, SqlFixedStringMode::VARIABLE_SIZE>;
 
 /// Fixed-size string of element type `char32_t` with a capacity of `N` characters.
+///
+/// @ingroup DataTypes
 template <std::size_t N>
 using SqlUtf32String = SqlFixedString<N, char32_t, SqlFixedStringMode::VARIABLE_SIZE>;
 
 /// Fixed-size string of element type `wchar_t` with a capacity of `N` characters.
+///
+/// @ingroup DataTypes
 template <std::size_t N>
 using SqlWideString = SqlFixedString<N, wchar_t, SqlFixedStringMode::VARIABLE_SIZE>;
 
 /// Fixed-size (right-trimmed) string of element type `char` with a capacity of `N` characters.
+///
+/// @ingroup DataTypes
 template <std::size_t N, typename T = char>
 using SqlTrimmedFixedString = SqlFixedString<N, T, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED>;
 
