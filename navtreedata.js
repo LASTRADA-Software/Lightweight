@@ -51,16 +51,18 @@ var NAVTREE =
         [ "Use transactions with care", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care", null ],
         [ "Binding output parameters", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#binding-output-parameters", null ]
       ] ],
-      [ "SQL driver related best practices", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-driver-related-best-practices", [
-        [ "Query result row columns in order", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order", null ]
-      ] ],
-      [ "Performance is key", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#performance-is-key", [
-        [ "Use native column types", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types", null ],
-        [ "Use prepared statements", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements", null ],
-        [ "Use pagination", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination", null ]
-      ] ],
-      [ "SQL server variation challenges", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges", [
-        [ "64-bit integer handling in Oracle database", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database", null ]
+      [ "||||||| Stash base", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md-stash-base", [
+        [ "Performance is key", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#performance-is-key", [
+          [ "Use transactions with care", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care-1", null ],
+          [ "Binding output parameters", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#binding-output-parameters-1", null ],
+          [ "Query result row columns in order", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order", null ],
+          [ "Use native column types", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types", null ],
+          [ "Use prepared statements", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements", null ],
+          [ "Use pagination", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination", null ]
+        ] ],
+        [ "SQL server variation challenges", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges", [
+          [ "64-bit integer handling in Oracle database", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database", null ]
+        ] ]
       ] ]
     ] ],
     [ "Data Binder API", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html", [
@@ -92,8 +94,8 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d7/d7b/classSqlConnection.html#ab0ffa86b235846196d55554a005ba05f",
-"df/dd6/classHasManyThrough.html"
+"d7/d7b/classSqlConnection.html#a8dfe6bf0a1833ed2aed719666e8d67ec",
+"df/d4f/DataMapper_8hpp_source.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

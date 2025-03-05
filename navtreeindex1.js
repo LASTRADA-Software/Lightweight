@@ -1,5 +1,7 @@
 var NAVTREEINDEX1 =
 {
+"d7/d7b/classSqlConnection.html#a8dfe6bf0a1833ed2aed719666e8d67ec":[7,0,9,22],
+"d7/d7b/classSqlConnection.html#a8e4a85b24d2dc9df9aff1132ba11d5aa":[7,0,9,5],
 "d7/d7b/classSqlConnection.html#ab0ffa86b235846196d55554a005ba05f":[7,0,9,19],
 "d7/d7b/classSqlConnection.html#ad40c250ff1be7868511131c9d8d3656d":[7,0,9,16],
 "d7/d7b/classSqlConnection.html#adcaa93ca1d83786875e6df3bea261bef":[7,0,9,13],
@@ -247,7 +249,5 @@ var NAVTREEINDEX1 =
 "df/d27/structField.html#a3e91e89b39678f33662d75ec1fc13674":[5,0,4,0],
 "df/d27/structField.html#a72afb9891ad3136a31477b5f11266c23":[5,0,4,1],
 "df/d27/structField.html#aa8080d19388999c10fbeadd11547026d":[5,0,4,4],
-"df/d29/classSqlBinary.html":[7,0,8],
-"df/d4f/DataMapper_8hpp_source.html":[8,0,1,1,2],
-"df/dcd/UnicodeConverter_8hpp_source.html":[8,0,1,0,19]
+"df/d29/classSqlBinary.html":[7,0,8]
 };

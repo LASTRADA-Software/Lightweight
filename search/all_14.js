@@ -16,7 +16,7 @@ var searchData=
   ['tounscaledvalue_13',['ToUnscaledValue',['../da/d72/structSqlNumeric.html#a0143674aef20e7f65ac70dd907f6a65a',1,'SqlNumeric']]],
   ['tracelogger_14',['TraceLogger',['../d8/d7e/classSqlLogger.html#afb845fed40a9a3de87589304ea8053d8',1,'SqlLogger']]],
   ['transactionactive_15',['TransactionActive',['../d7/d7b/classSqlConnection.html#a6ae1295e5d7226d13787e9ab663652d1',1,'SqlConnection']]],
-  ['transactions_20with_20care_16',['Use transactions with care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]],
+  ['transactions_20with_20care_16',['transactions with care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care-1',1,'Use transactions with care'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'Use transactions with care']]],
   ['transactionsallowed_17',['TransactionsAllowed',['../d7/d7b/classSqlConnection.html#aeaa239269993596de12bdb0edac0c7fc',1,'SqlConnection']]],
   ['trycommit_18',['TryCommit',['../d1/dc2/classSqlTransaction.html#a8d063f24728c22d9586b0c7c5155b327',1,'SqlTransaction']]],
   ['trygetbool_19',['TryGetBool',['../d0/df8/structSqlVariant.html#ae1071385577db7a1502fa322aa97b4f0',1,'SqlVariant']]],
