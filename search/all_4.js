@@ -2,7 +2,7 @@ var searchData=
 [
   ['c_2023_0',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
   ['capacity_1',['capacity',['../d8/dcb/classSqlFixedString.html#ac66ba1dac61d49d02f09a91b3971191d',1,'SqlFixedString']]],
-  ['care_2',['care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care-1',1,'Use transactions with care'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'Use transactions with care']]],
+  ['care_2',['Use transactions with care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]],
   ['challenges_3',['SQL server variation challenges',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges',1,'']]],
   ['clear_4',['clear',['../d8/dcb/classSqlFixedString.html#a69c27ac58d0c0e18fab3e34b8a573108',1,'SqlFixedString']]],
   ['clearmodifiedstate_5',['ClearModifiedState',['../dc/dc7/classDataMapper.html#af4a3ac8c8611aec1ce0757a41dda1994',1,'DataMapper']]],
@@ -19,7 +19,7 @@ var searchData=
   ['common_20best_20practices_16',['Common best practices',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#common-best-practices',1,'']]],
   ['configure_20default_20connection_20information_20to_20the_20database_17',['Configure default connection information to the database',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database',1,'']]],
   ['configurerelationautoloading_18',['ConfigureRelationAutoLoading',['../dc/dc7/classDataMapper.html#ac70dd13e657b5ccb3cdda272e51dee30',1,'DataMapper']]],
-  ['connect_19',['connect',['../d7/d7b/classSqlConnection.html#afe8d59e4a7c36314e15ee135b51e5ebc',1,'SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept'],['../d7/d7b/classSqlConnection.html#a8e4a85b24d2dc9df9aff1132ba11d5aa',1,'SqlConnection::Connect(SqlConnectionDataSource const &amp;info) noexcept']]],
+  ['connect_19',['connect',['../d7/d7b/classSqlConnection.html#a8e4a85b24d2dc9df9aff1132ba11d5aa',1,'SqlConnection::Connect(SqlConnectionDataSource const &amp;info) noexcept'],['../d7/d7b/classSqlConnection.html#afe8d59e4a7c36314e15ee135b51e5ebc',1,'SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept']]],
   ['connection_20',['connection',['../dc/dc7/classDataMapper.html#a4401e6c9bf930091061e7e43f798686d',1,'DataMapper::Connection() const noexcept'],['../dc/dc7/classDataMapper.html#ad765981326b51bb3865a2d01c314ecd2',1,'DataMapper::Connection() noexcept'],['../df/d17/classSqlStatement.html#a2da1393cb05328b1c0e4187bece9c019',1,'SqlStatement::Connection() noexcept'],['../df/d17/classSqlStatement.html#a0c123ef5159a3fdcd42d02eddf2a37de',1,'SqlStatement::Connection() const noexcept'],['../d1/dc2/classSqlTransaction.html#ac1adb210b5d6596493e20a9cb41e28d0',1,'SqlTransaction::Connection()']]],
   ['connection_20information_20to_20the_20database_21',['Configure default connection information to the database',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database',1,'']]],
   ['connectionid_22',['ConnectionId',['../d7/d7b/classSqlConnection.html#a2d29f5ad99181004a43497932c909fc1',1,'SqlConnection']]],

@@ -106,24 +106,12 @@ Use the DataMapper API</h2>
 Keep data model and business logic separate</h2>
 <p>Keep the data model and business logic separate to improve the maintainability and scalability of your application.</p>
 <p>Remember to also keep frontend (e.g. GUI) and backend (e.g. API) separate.</p>
-<p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; Updated upstream </p>
 <h2><a class="anchor" id="use-transactions-with-care"></a>
 Use transactions with care</h2>
 <p>Use transactions to group multiple database operations into a single unit of work. This ensures that all operations are either committed or rolled back together.</p>
 <p>However, be careful when using transactions, as they can affect the performance serverically if not used properly.</p>
 <h2><a class="anchor" id="binding-output-parameters"></a>
 Binding output parameters</h2>
-<p>When not using the <code><a class="el" href="../../dc/dc7/classDataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code> API, you need to also retrieve the result manually. Either via <code><a class="el" href="../../df/d17/classSqlStatement.html#ad1b732b98002ac13a593a2c09b057e48">SqlStatement::BindOutputColumns()</a></code> or in post, by fetching the columns individually. It is always highly recommended to pre-bind in order to avoid unnecessary memory allocations and copying.</p>
-<p>With this, it is sufficient to call <code><a class="el" href="../../df/d17/classSqlStatement.html#ad1b732b98002ac13a593a2c09b057e48">SqlStatement::BindOutputColumns()</a></code> once one and then you can reuse the result throughout many <code><a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a></code> calls.</p>
-<p>The pitfall here is, that if using <code>std::optional&lt;T&gt;</code> column types, you <b>MUST</b> rebind the result columns before each fetch operation whereas if not having any nullable values, you do not have to.</p>
-<h1><a class="anchor" id="autotoc_md-stash-base"></a>
-||||||| Stash base</h1>
-<h3><a class="anchor" id="use-transactions-with-care-1"></a>
-Use transactions with care</h3>
-<p>Use transactions to group multiple database operations into a single unit of work. This ensures that all operations are either committed or rolled back together.</p>
-<p>However, be careful when using transactions, as they can affect the performance serverically if not used properly.</p>
-<h3><a class="anchor" id="binding-output-parameters-1"></a>
-Binding output parameters</h3>
 <p>First things first, always favor using the <code><a class="el" href="../../dc/dc7/classDataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code> API over manual querying and binding of columns.</p>
 <p>However, when not using the <code><a class="el" href="../../dc/dc7/classDataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code> API, you need to also retrieve the result manually. Either via <code><a class="el" href="../../df/d17/classSqlStatement.html#ad1b732b98002ac13a593a2c09b057e48">SqlStatement::BindOutputColumns()</a></code> or in post, by fetching the columns individually. It is always highly recommended to pre-bind in order to avoid unnecessary memory allocations and copying.</p>
 <p>With this, it is sufficient to call <code><a class="el" href="../../df/d17/classSqlStatement.html#ad1b732b98002ac13a593a2c09b057e48">SqlStatement::BindOutputColumns()</a></code> once one and then you can reuse the result throughout many <code><a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a></code> calls.</p>
@@ -165,42 +153,28 @@ Binding output parameters</h3>
 <div class="ttc" id="aclassSqlStatement_html_ad1b732b98002ac13a593a2c09b057e48"><div class="ttname"><a href="../../df/d17/classSqlStatement.html#ad1b732b98002ac13a593a2c09b057e48">SqlStatement::BindOutputColumns</a></div><div class="ttdeci">void BindOutputColumns(Args *... args)</div></div>
 <div class="ttc" id="aclassSqlStatement_html_ad4db979c5f830dcc838f9b2d9ae8b212"><div class="ttname"><a href="../../df/d17/classSqlStatement.html#ad4db979c5f830dcc838f9b2d9ae8b212">SqlStatement::Query</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlQueryBuilder Query(std::string_view const &amp;table={}) const</div><div class="ttdoc">Creates a new query builder for the given table, compatible with the SQL server being connected.</div></div>
 <div class="ttc" id="astructField_html"><div class="ttname"><a href="../../df/d27/structField.html">Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00070">Field.hpp:71</a></div></div>
-</div><!-- fragment --><blockquote class="doxtable">
-<blockquote class="doxtable">
-<blockquote class="doxtable">
-<blockquote class="doxtable">
-<blockquote class="doxtable">
-<blockquote class="doxtable">
-<blockquote class="doxtable">
-<p>&zwj;Stashed changes </p>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-</blockquote>
-<p>## SQL driver related best practices</p>
-<h3><a class="anchor" id="query-result-row-columns-in-order"></a>
-Query result row columns in order</h3>
+</div><!-- fragment --><h1><a class="anchor" id="sql-driver-related-best-practices"></a>
+SQL driver related best practices</h1>
+<h2><a class="anchor" id="query-result-row-columns-in-order"></a>
+Query result row columns in order</h2>
 <p>When querying the result set, always access the columns in the order they are returned by the query. At least MS SQL server driver has issues when accessing columns out of order. Carefully check the driver documentation for the specific behavior of the driver you are using.</p>
 <p>This can be avoided when using the <code><a class="el" href="../../dc/dc7/classDataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code> API, which maps the result always in order and as efficient as possible.</p>
-<h2><a class="anchor" id="performance-is-key"></a>
-Performance is key</h2>
-<h3><a class="anchor" id="use-native-column-types"></a>
-Use native column types</h3>
+<h1><a class="anchor" id="performance-is-key"></a>
+Performance is key</h1>
+<h2><a class="anchor" id="use-native-column-types"></a>
+Use native column types</h2>
 <p>Use the native column types provided by the API for the columns in your tables. This will help to improve the performance of your application by reducing the overhead of data conversion.</p>
 <p>The existence of <code><a class="el" href="../../d0/df8/structSqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a></code> in the API allows you to store any type of data in a single column, but it is recommended to use the native column types whenever possible.</p>
-<h3><a class="anchor" id="use-prepared-statements"></a>
-Use prepared statements</h3>
+<h2><a class="anchor" id="use-prepared-statements"></a>
+Use prepared statements</h2>
 <p>Prepared statements are precompiled SQL statements that can be executed multiple times with different parameters. Using prepared statements can improve the performance of your application by reducing the overhead of parsing, analyzing, and compiling the SQL queries.</p>
-<h3><a class="anchor" id="use-pagination"></a>
-Use pagination</h3>
+<h2><a class="anchor" id="use-pagination"></a>
+Use pagination</h2>
 <p>When querying large result sets, use pagination to limit the number of results returned in a single response. This will help to reduce the response time and the load on the server.</p>
-<h2><a class="anchor" id="sql-server-variation-challenges"></a>
-SQL server variation challenges</h2>
-<h3><a class="anchor" id="autotoc_md64-bit-integer-handling-in-oracle-database"></a>
-64-bit integer handling in Oracle database</h3>
+<h1><a class="anchor" id="sql-server-variation-challenges"></a>
+SQL server variation challenges</h1>
+<h2><a class="anchor" id="autotoc_md64-bit-integer-handling-in-oracle-database"></a>
+64-bit integer handling in Oracle database</h2>
 <p>Oracle database does not support 64-bit integers natively. When working with 64-bit integers in Oracle database, you need to use the <code><a class="el" href="../../da/d72/structSqlNumeric.html">SqlNumeric</a></code> column types. </p>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
