@@ -100,7 +100,7 @@ Configure default connection information to the database</h1>
 <div class="line">    .value = std::format(<span class="stringliteral">&quot;DRIVER=SQLite3;Database=test.sqlite&quot;</span>)</div>
 <div class="line">});</div>
 <div class="line"> </div>
-<div class="line"><span class="keyword">auto</span> sqlConnection = <a class="code hl_class" href="../../d7/d7b/classSqlConnection.html">SqlConnection</a>();</div>
+<div class="line"><span class="keyword">auto</span> sqlConnection = <a class="code hl_class" href="../../d7/d7b/classSqlConnection.html">SqlConnection</a> {};</div>
 <div class="line"><span class="keywordflow">if</span> (!sqlConnection.IsAlive())</div>
 <div class="line">{</div>
 <div class="line">    std::println(<span class="stringliteral">&quot;Failed to connect to the database: {}&quot;</span>,</div>
