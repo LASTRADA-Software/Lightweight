@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['pagination_0',['Use pagination',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination',1,'']]],
+  ['pagination_20or_20infinite_20scrolling_0',['Use pagination or infinite scrolling',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination-or-infinite-scrolling',1,'']]],
   ['parameters_1',['Binding output parameters',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#binding-output-parameters',1,'']]],
   ['performance_20is_20key_2',['Performance is key',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#performance-is-key',1,'']]],
   ['platforms_3',['Supported platforms',['../index.html#supported-platforms',1,'']]],

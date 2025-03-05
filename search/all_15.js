@@ -8,7 +8,7 @@ var searchData=
   ['update_5',['update',['../dc/dc7/classDataMapper.html#acb83d80931e5cd6259290bc795e362f7',1,'DataMapper::Update()'],['../d0/d78/classSqlQueryBuilder.html#a7ba41a3e575f9edd7254ff1f002ff789',1,'SqlQueryBuilder::Update()'],['../dc/df2/classSqlQueryFormatter.html#aefe1393f80368ad2d775216abf9338f5',1,'SqlQueryFormatter::Update()']]],
   ['usage_20examples_6',['Usage Examples',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html',1,'']]],
   ['use_20native_20column_20types_7',['Use native column types',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types',1,'']]],
-  ['use_20pagination_8',['Use pagination',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination',1,'']]],
+  ['use_20pagination_20or_20infinite_20scrolling_8',['Use pagination or infinite scrolling',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination-or-infinite-scrolling',1,'']]],
   ['use_20prepared_20statements_9',['Use prepared statements',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements',1,'']]],
   ['use_20the_20datamapper_20api_10',['Use the DataMapper API',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-the-datamapper-api',1,'']]],
   ['use_20transactions_20with_20care_11',['Use transactions with care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]],
