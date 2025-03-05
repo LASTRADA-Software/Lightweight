@@ -148,11 +148,12 @@ $(document).ready(function(){initNavTree('d4/d46/StringLiteral_8hpp_source.html'
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span> </div>
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(T <span class="keyword">const</span>* value) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>    {</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>        <span class="keyword">auto</span> u8String = ToUtf8(std::basic_string_view&lt;T&gt; { value, N });</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>        <span class="keyword">auto</span> u8String = <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a>(std::basic_string_view&lt;T&gt; { value, N });</div>
 <div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>        <span class="keywordflow">return</span> std::string((<span class="keywordtype">char</span> <span class="keyword">const</span>*) u8String.data(), u8String.size());</div>
 <div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>    }</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>};</div>
-<div class="ttc" id="aclassSqlDataBinderCallback_html"><div class="ttname"><a href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a></div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00024">Core.hpp:25</a></div></div>
+<div class="ttc" id="aclassSqlDataBinderCallback_html"><div class="ttname"><a href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a></div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00028">Core.hpp:29</a></div></div>
+<div class="ttc" id="agroup__Unicode_html_gaf7c1f55d642f4db4d16e5d9e1ec9ddef"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a></div><div class="ttdeci">LIGHTWEIGHT_API std::u8string ToUtf8(std::u32string_view u32InputString)</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

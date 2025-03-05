@@ -123,7 +123,7 @@ $(document).ready(function(){initNavTree('da/dce/StdOptional_8hpp_source.html','
 <div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>        <span class="keywordflow">if</span> (value.has_value())</div>
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>            <span class="keywordflow">return</span> SqlDataBinder&lt;T&gt;::InputParameter(stmt, column, *value, cb);</div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>        <span class="keywordflow">else</span></div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>            <span class="keywordflow">return</span> SqlDataBinder&lt;SqlNullType&gt;::InputParameter(stmt, column, SqlNullValue, cb);</div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>            <span class="keywordflow">return</span> SqlDataBinder&lt;SqlNullType&gt;::InputParameter(stmt, column, <a class="code hl_variable" href="../../d4/d7c/group__DataTypes.html#ga41dfa03913f1a2ca75e01fcf821c5d9e">SqlNullValue</a>, cb);</div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>    }</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span> </div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(SQLHSTMT stmt,</div>
@@ -163,7 +163,8 @@ $(document).ready(function(){initNavTree('da/dce/StdOptional_8hpp_source.html','
 <div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>            <span class="keywordflow">return</span> std::string(SqlDataBinder&lt;T&gt;::Inspect(*value));</div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>    }</div>
 <div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>};</div>
-<div class="ttc" id="aclassSqlDataBinderCallback_html"><div class="ttname"><a href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a></div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00024">Core.hpp:25</a></div></div>
+<div class="ttc" id="aclassSqlDataBinderCallback_html"><div class="ttname"><a href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a></div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00028">Core.hpp:29</a></div></div>
+<div class="ttc" id="agroup__DataTypes_html_ga41dfa03913f1a2ca75e01fcf821c5d9e"><div class="ttname"><a href="../../d4/d7c/group__DataTypes.html#ga41dfa03913f1a2ca75e01fcf821c5d9e">SqlNullValue</a></div><div class="ttdeci">constexpr auto SqlNullValue</div><div class="ttdef"><b>Definition</b> <a href="../../d3/de6/SqlNullValue_8hpp_source.html#l00018">SqlNullValue.hpp:18</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

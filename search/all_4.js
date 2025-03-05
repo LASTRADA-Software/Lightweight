@@ -1,10 +1,10 @@
 var searchData=
 [
   ['c_2023_0',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
-  ['capacity_1',['capacity',['../d8/dcb/classSqlFixedString.html#ac66ba1dac61d49d02f09a91b3971191d',1,'SqlFixedString']]],
+  ['capacity_1',['capacity',['../dd/d83/classSqlDynamicString.html#a0876e662922885aa167c7d790218553c',1,'SqlDynamicString::capacity()'],['../d8/dcb/classSqlFixedString.html#ac66ba1dac61d49d02f09a91b3971191d',1,'SqlFixedString::capacity()']]],
   ['care_2',['Use transactions with care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]],
   ['challenges_3',['SQL server variation challenges',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges',1,'']]],
-  ['clear_4',['clear',['../d8/dcb/classSqlFixedString.html#a69c27ac58d0c0e18fab3e34b8a573108',1,'SqlFixedString']]],
+  ['clear_4',['clear',['../dd/d83/classSqlDynamicString.html#a6f87061762938ed30120444f1168873b',1,'SqlDynamicString::clear()'],['../d8/dcb/classSqlFixedString.html#a69c27ac58d0c0e18fab3e34b8a573108',1,'SqlFixedString::clear()']]],
   ['clearmodifiedstate_5',['ClearModifiedState',['../dc/dc7/classDataMapper.html#af4a3ac8c8611aec1ce0757a41dda1994',1,'DataMapper']]],
   ['close_6',['Close',['../d7/d7b/classSqlConnection.html#aea37a1f42d804e2310cc12ada35e78dd',1,'SqlConnection']]],
   ['closecursor_7',['CloseCursor',['../df/d17/classSqlStatement.html#a909e53eb14ad5d93f31b6fffc6958d01',1,'SqlStatement']]],
@@ -25,14 +25,15 @@ var searchData=
   ['connectionid_22',['ConnectionId',['../d7/d7b/classSqlConnection.html#a2d29f5ad99181004a43497932c909fc1',1,'SqlConnection']]],
   ['connectionstring_23',['ConnectionString',['../d7/d7b/classSqlConnection.html#aef6cca4aa9eda1d8a999ca681c3a1987',1,'SqlConnection']]],
   ['const_5fiterator_24',['const_iterator',['../d3/d09/classHasMany.html#a87328f4569988e57a6b6228d637885bc',1,'HasMany']]],
-  ['count_25',['count',['../dc/dc7/classDataMapper.html#a3c208d9e2342547997d2c40f1b7d5bac',1,'DataMapper::Count()'],['../d1/d91/classSqlSelectQueryBuilder.html#a4cb95d2b6c32e248289b8f16794da86c',1,'SqlSelectQueryBuilder::Count()'],['../df/dd6/classHasManyThrough.html#a21529e666f46d27a466d6cffc9367a67',1,'HasManyThrough::Count()'],['../d3/d09/classHasMany.html#a612cdb324e204923c2693bd2e53e49fc',1,'HasMany::Count()']]],
-  ['create_26',['create',['../dc/dc7/classDataMapper.html#a8dee2c6839d663d2178bf4054edb653b',1,'DataMapper::Create()'],['../d2/d62/structSqlGuid.html#a613b5dc1dcdaca783c74fcced32091ba',1,'SqlGuid::Create()']]],
-  ['create_20or_20modife_20database_20schema_27',['Create or Modife database schema',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modife-database-schema',1,'']]],
-  ['createexplicit_28',['CreateExplicit',['../dc/dc7/classDataMapper.html#a03200dd1a90fea3a9c166773e8b782f5',1,'DataMapper']]],
-  ['createtable_29',['createtable',['../dc/df2/classSqlQueryFormatter.html#a7c9701272fc9bf551bf03e3d1d5b906b',1,'SqlQueryFormatter::CreateTable()'],['../dc/dc7/classDataMapper.html#a6a2df09ef7735f0d0e07886ef1b27457',1,'DataMapper::CreateTable()']]],
-  ['createtables_30',['CreateTables',['../dc/dc7/classDataMapper.html#a65a471372c998066cde5dc246f8577e5',1,'DataMapper']]],
-  ['createtablesstring_31',['CreateTablesString',['../dc/dc7/classDataMapper.html#a4959a7ee7cd77fd0f2c8d9423478e788',1,'DataMapper']]],
-  ['createtablestring_32',['CreateTableString',['../dc/dc7/classDataMapper.html#a81f985f78813f21e5d968c55ba68eb53',1,'DataMapper']]],
-  ['crud_20style_20high_20level_20data_20mapping_33',['Example: CRUD-style High level Data Mapping',['../index.html#example-crud-style-high-level-data-mapping',1,'']]],
-  ['custom_20column_20data_20type_20binder_20example_34',['Custom Column Data Type Binder Example',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-column-data-type-binder-example',1,'']]]
+  ['conversion_20functions_25',['Unicode conversion functions',['../d1/d7d/group__Unicode.html',1,'']]],
+  ['count_26',['count',['../d1/d91/classSqlSelectQueryBuilder.html#a4cb95d2b6c32e248289b8f16794da86c',1,'SqlSelectQueryBuilder::Count()'],['../df/dd6/classHasManyThrough.html#a21529e666f46d27a466d6cffc9367a67',1,'HasManyThrough::Count()'],['../d3/d09/classHasMany.html#a612cdb324e204923c2693bd2e53e49fc',1,'HasMany::Count()'],['../dc/dc7/classDataMapper.html#a3c208d9e2342547997d2c40f1b7d5bac',1,'DataMapper::Count()']]],
+  ['create_27',['create',['../dc/dc7/classDataMapper.html#a8dee2c6839d663d2178bf4054edb653b',1,'DataMapper::Create()'],['../d2/d62/structSqlGuid.html#a613b5dc1dcdaca783c74fcced32091ba',1,'SqlGuid::Create()']]],
+  ['create_20or_20modife_20database_20schema_28',['Create or Modife database schema',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modife-database-schema',1,'']]],
+  ['createexplicit_29',['CreateExplicit',['../dc/dc7/classDataMapper.html#a03200dd1a90fea3a9c166773e8b782f5',1,'DataMapper']]],
+  ['createtable_30',['createtable',['../dc/df2/classSqlQueryFormatter.html#a7c9701272fc9bf551bf03e3d1d5b906b',1,'SqlQueryFormatter::CreateTable()'],['../dc/dc7/classDataMapper.html#a6a2df09ef7735f0d0e07886ef1b27457',1,'DataMapper::CreateTable()']]],
+  ['createtables_31',['CreateTables',['../dc/dc7/classDataMapper.html#a65a471372c998066cde5dc246f8577e5',1,'DataMapper']]],
+  ['createtablesstring_32',['CreateTablesString',['../dc/dc7/classDataMapper.html#a4959a7ee7cd77fd0f2c8d9423478e788',1,'DataMapper']]],
+  ['createtablestring_33',['CreateTableString',['../dc/dc7/classDataMapper.html#a81f985f78813f21e5d968c55ba68eb53',1,'DataMapper']]],
+  ['crud_20style_20high_20level_20data_20mapping_34',['Example: CRUD-style High level Data Mapping',['../index.html#example-crud-style-high-level-data-mapping',1,'']]],
+  ['custom_20column_20data_20type_20binder_20example_35',['Custom Column Data Type Binder Example',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-column-data-type-binder-example',1,'']]]
 ];

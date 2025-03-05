@@ -10,7 +10,7 @@ var searchData=
   ['requirestatementsuccess_7',['RequireStatementSuccess',['../d3/dbc/structSqlErrorInfo.html#a7818658b44c27da0ca3d5bfaee63d4a2',1,'SqlErrorInfo']]],
   ['requiresuccess_8',['RequireSuccess',['../d7/d7b/classSqlConnection.html#a40df02eaa4dc4a3fb5e646dc6db3c26f',1,'SqlConnection']]],
   ['resetpostconnectedhook_9',['ResetPostConnectedHook',['../d7/d7b/classSqlConnection.html#a0bef34bceacdb82e71bce7cb328b8c41',1,'SqlConnection']]],
-  ['resize_10',['resize',['../d8/dcb/classSqlFixedString.html#a40fc4353d3351ad90304248552c4771e',1,'SqlFixedString']]],
+  ['resize_10',['resize',['../dd/d83/classSqlDynamicString.html#a51b0060ed3b58e57a86fca29d9356e58',1,'SqlDynamicString::resize()'],['../d8/dcb/classSqlFixedString.html#a40fc4353d3351ad90304248552c4771e',1,'SqlFixedString::resize()']]],
   ['rightouterjoin_11',['rightouterjoin',['../d2/dca/classSqlWhereClauseBuilder.html#a9da3560c6a9b4109c28833d9b17b1a73',1,'SqlWhereClauseBuilder::RightOuterJoin(std::string_view joinTable, std::string_view joinColumnName, SqlQualifiedTableColumnName onOtherColumn)'],['../d2/dca/classSqlWhereClauseBuilder.html#a490b27b6b1a55811b45e442ab7037427',1,'SqlWhereClauseBuilder::RightOuterJoin(std::string_view joinTable, std::string_view joinColumnName, std::string_view onMainTableColumn)'],['../d2/dca/classSqlWhereClauseBuilder.html#ab5a2940cc45964acdfeae8d41628acc9',1,'SqlWhereClauseBuilder::RightOuterJoin(std::string_view joinTable, OnChainCallable const &amp;onClauseBuilder)']]],
   ['rollback_12',['Rollback',['../d1/dc2/classSqlTransaction.html#a1228dcf6a3e6692465a6296702b2d917',1,'SqlTransaction']]]
 ];

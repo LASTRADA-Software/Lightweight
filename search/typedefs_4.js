@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['value_5ftype_0',['value_type',['../d3/d09/classHasMany.html#a5208639efe3028064f337811b6bc1bcf',1,'HasMany']]],
-  ['valuetype_1',['ValueType',['../df/d1a/classBelongsTo.html#ab0544087140dd09c3d4ccfc0b762cc26',1,'BelongsTo']]]
+  ['throughrecord_0',['throughrecord',['../df/dd6/classHasManyThrough.html#a379b3afee3886e4166554b650ce0886b',1,'HasManyThrough::ThroughRecord'],['../da/d9d/classHasOneThrough.html#a38c692c1e65ea23626b6bb8b49dc94e5',1,'HasOneThrough::ThroughRecord']]]
 ];
