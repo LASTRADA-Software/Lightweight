@@ -8,7 +8,7 @@ SqlConnection::SetDefaultConnectionString(SqlConnectionString {
     .value = std::format("DRIVER=SQLite3;Database=test.sqlite")
 });
 
-auto sqlConnection = SqlConnection();
+auto sqlConnection = SqlConnection {};
 if (!sqlConnection.IsAlive())
 {
     std::println("Failed to connect to the database: {}",
