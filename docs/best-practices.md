@@ -98,10 +98,11 @@ Prepared statements are precompiled SQL statements that can be executed multiple
 Using prepared statements can improve the performance of your application by reducing the overhead
 of parsing, analyzing, and compiling the SQL queries.
 
-### Use pagination
+### Use pagination or infinite scrolling
 
-When querying large result sets, use pagination to limit the number of results returned in a single response.
-This will help to reduce the response time and the load on the server.
+When querying large result sets, use pagination or infinite scrolling to limit the number of results returned
+in a single response. This will help to reduce the response time and the load on the server
+and improve the performance of your application.
 
 ## SQL server variation challenges
 
