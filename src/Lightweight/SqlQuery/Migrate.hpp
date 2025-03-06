@@ -88,6 +88,8 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     ///
     /// @param columnName The name of the column to alter.
     /// @param columnType The new type of the column.
+    /// @param nullable The new nullable state of the column.
+    ///
     /// @return The current query builder for chaining.
     ///
     /// @see SqlColumnTypeDefinition
@@ -187,20 +189,39 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     {
     }
 
+    /// Creates a new database.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& CreateDatabase(std::string_view databaseName);
+
+    /// Drops a database.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& DropDatabase(std::string_view databaseName);
 
+    /// Creates a new table.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder CreateTable(std::string_view tableName);
+
+    /// Alters an existing table.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder AlterTable(std::string_view tableName);
+
+    /// Drops a table.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& DropTable(std::string_view tableName);
 
+    /// Executes raw SQL.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& RawSql(std::string_view sql);
+
+    /// Executes SQL interactively via a callback.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& Native(std::function<std::string(SqlConnection&)> callback);
 
+    /// Starts a transaction.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& BeginTransaction();
+
+    /// Commits a transaction.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& CommitTransaction();
 
+    /// Gets the migration plan.
     [[nodiscard]] LIGHTWEIGHT_API SqlMigrationPlan const& GetPlan() const &;
+
+    /// Gets the migration plan.
+    ///
+    /// @note This method is destructive and will invalidate the current builder.
     LIGHTWEIGHT_API SqlMigrationPlan GetPlan() &&;
 
   private:

@@ -65,7 +65,7 @@ consteval auto Choose(TargetType defaultValue, P1 p1, P2 p2) noexcept
 /// The column name, index, nullability, and type are known at compile time.
 ///
 /// @see DataMapper
-/// @ingroup DataMapper, Data Types
+/// @ingroup DataMapper, DataTypes
 template <detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::nullopt>
 struct Field
 {
