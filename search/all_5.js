@@ -20,7 +20,8 @@ var searchData=
   ['driver_20installation_20on_20other_20operating_20systems_17',['SQLite ODBC driver installation on other operating systems',['../index.html#sqlite-odbc-driver-installation-on-other-operating-systems',1,'']]],
   ['driver_20related_20best_20practices_18',['SQL driver related best practices',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-driver-related-best-practices',1,'']]],
   ['dropcolumn_19',['DropColumn',['../d3/d3f/classSqlAlterTableQueryBuilder.html#a0bd2dc01e143714dcf52c14210736cde',1,'SqlAlterTableQueryBuilder']]],
-  ['dropforeignkey_20',['DropForeignKey',['../d3/d3f/classSqlAlterTableQueryBuilder.html#abc19754ad52e4ee224138f75139061b2',1,'SqlAlterTableQueryBuilder']]],
-  ['dropindex_21',['DropIndex',['../d3/d3f/classSqlAlterTableQueryBuilder.html#acf6c90ae54196bd413ddcae33d24ed7b',1,'SqlAlterTableQueryBuilder']]],
-  ['droptable_22',['DropTable',['../dc/df2/classSqlQueryFormatter.html#aa630ad6de1899c6d62ff7d76d37768d9',1,'SqlQueryFormatter']]]
+  ['dropdatabase_20',['DropDatabase',['../d3/d15/classSqlMigrationQueryBuilder.html#a5303ecf0e2ba4232f16470e071a61fae',1,'SqlMigrationQueryBuilder']]],
+  ['dropforeignkey_21',['DropForeignKey',['../d3/d3f/classSqlAlterTableQueryBuilder.html#abc19754ad52e4ee224138f75139061b2',1,'SqlAlterTableQueryBuilder']]],
+  ['dropindex_22',['DropIndex',['../d3/d3f/classSqlAlterTableQueryBuilder.html#acf6c90ae54196bd413ddcae33d24ed7b',1,'SqlAlterTableQueryBuilder']]],
+  ['droptable_23',['droptable',['../dc/df2/classSqlQueryFormatter.html#aa630ad6de1899c6d62ff7d76d37768d9',1,'SqlQueryFormatter::DropTable()'],['../d3/d15/classSqlMigrationQueryBuilder.html#a5789543d34e6d174f81437f8c4ddc441',1,'SqlMigrationQueryBuilder::DropTable()']]]
 ];

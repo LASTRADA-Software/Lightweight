@@ -134,7 +134,7 @@ $(document).ready(function(){initNavTree('d8/dec/Delete_8hpp_source.html','../..
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>    }</div>
 <div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span> </div>
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>    <span class="comment">// Finalizes building the query as DELETE FROM ... query.</span></div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>    [[nodiscard]] std::string ToSql() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>    [[nodiscard]] std::string <a class="code hl_function" href="../../d6/daa/group__QueryBuilder.html#ga928bf407a9f3b15e5f55eb8af71fb020">ToSql</a>() <span class="keyword">const</span>;</div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>  <span class="keyword">private</span>:</div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>    <a class="code hl_class" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; m_formatter;</div>
@@ -153,6 +153,7 @@ $(document).ready(function(){initNavTree('d8/dec/Delete_8hpp_source.html','../..
 <div class="ttc" id="aclassSqlQueryFormatter_html"><div class="ttname"><a href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a></div><div class="ttdoc">API to format SQL queries for different SQL dialects.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00016">SqlQueryFormatter.hpp:17</a></div></div>
 <div class="ttc" id="aclassSqlQueryFormatter_html_acb760d8f25e9e3f7a38036068c82b863"><div class="ttname"><a href="../../dc/df2/classSqlQueryFormatter.html#acb760d8f25e9e3f7a38036068c82b863">SqlQueryFormatter::Delete</a></div><div class="ttdeci">virtual std::string Delete(std::string_view fromTable, std::string_view fromTableAlias, std::string_view tableJoins, std::string_view whereCondition) const =0</div><div class="ttdoc">Constructs an SQL DELETE query.</div></div>
 <div class="ttc" id="aclassSqlWhereClauseBuilder_html"><div class="ttname"><a href="../../d2/dca/classSqlWhereClauseBuilder.html">SqlWhereClauseBuilder</a></div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00146">Core.hpp:147</a></div></div>
+<div class="ttc" id="agroup__QueryBuilder_html_ga928bf407a9f3b15e5f55eb8af71fb020"><div class="ttname"><a href="../../d6/daa/group__QueryBuilder.html#ga928bf407a9f3b15e5f55eb8af71fb020">ToSql</a></div><div class="ttdeci">LIGHTWEIGHT_API std::vector&lt; std::string &gt; ToSql(SqlQueryFormatter const &amp;formatter, SqlMigrationPlanElement const &amp;element)</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

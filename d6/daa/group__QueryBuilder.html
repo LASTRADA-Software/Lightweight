@@ -91,7 +91,11 @@ $(document).ready(function(){initNavTree('d6/daa/group__QueryBuilder.html','../.
 
 <div class="header">
   <div class="summary">
-<a href="#nested-classes">Classes</a>  </div>
+<a href="#nested-classes">Classes</a> &#124;
+<a href="#typedef-members">Typedefs</a> &#124;
+<a href="#enum-members">Enumerations</a> &#124;
+<a href="#func-members">Functions</a> &#124;
+<a href="#var-members">Variables</a>  </div>
   <div class="headertitle"><div class="title">Query Builder</div></div>
 </div><!--header-->
 <div class="contents">
@@ -130,12 +134,191 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Query builder for building SQL migration queries.  <a href="../../d3/d15/classSqlMigrationQueryBuilder.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html">SqlForeignKeyReferenceDefinition</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a foreign key reference definition.  <a href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d8a/structSqlColumnDeclaration.html">SqlColumnDeclaration</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a SQL column declaration.  <a href="../../d3/d8a/structSqlColumnDeclaration.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/ddb/structSqlAlterTablePlan.html">SqlAlterTablePlan</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a SQL ALTER TABLE plan on a given table.  <a href="../../dd/ddb/structSqlAlterTablePlan.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/d6b/structSqlDropTablePlan.html">SqlDropTablePlan</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a SQL DROP TABLE plan.  <a href="../../d5/d6b/structSqlDropTablePlan.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d29/structSqlMigrationPlan.html">SqlMigrationPlan</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a SQL migration plan.  <a href="../../d1/d29/structSqlMigrationPlan.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/d2a/classSqlUpdateQueryBuilder.html">SqlUpdateQueryBuilder</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Query builder for building UPDATE ... queries.  <a href="../../db/d2a/classSqlUpdateQueryBuilder.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
+Typedefs</h2></td></tr>
+<tr class="memitem:gab73d1a4f191ddc376b76026bdeb207b7" id="r_gab73d1a4f191ddc376b76026bdeb207b7"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/daa/group__QueryBuilder.html#gab73d1a4f191ddc376b76026bdeb207b7">SqlAlterTableCommand</a> = std::variant&lt; SqlAlterTableCommands::RenameTable, SqlAlterTableCommands::AddColumn, SqlAlterTableCommands::AlterColumn, SqlAlterTableCommands::AddIndex, SqlAlterTableCommands::RenameColumn, SqlAlterTableCommands::DropColumn, SqlAlterTableCommands::DropIndex, SqlAlterTableCommands::AddForeignKey, SqlAlterTableCommands::DropForeignKey &gt;</td></tr>
+<tr class="memdesc:gab73d1a4f191ddc376b76026bdeb207b7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a single SQL ALTER TABLE command.  <br /></td></tr>
+<tr class="separator:gab73d1a4f191ddc376b76026bdeb207b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga4d116cb45cf9a4504b5fbae5a7cdc73f" id="r_ga4d116cb45cf9a4504b5fbae5a7cdc73f"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/daa/group__QueryBuilder.html#ga4d116cb45cf9a4504b5fbae5a7cdc73f">SqlMigrationPlanElement</a> = std::variant&lt; SqlCreateTablePlan, <a class="el" href="../../dd/ddb/structSqlAlterTablePlan.html">SqlAlterTablePlan</a>, <a class="el" href="../../d5/d6b/structSqlDropTablePlan.html">SqlDropTablePlan</a> &gt;</td></tr>
+<tr class="memdesc:ga4d116cb45cf9a4504b5fbae5a7cdc73f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a single SQL migration plan element.  <br /></td></tr>
+<tr class="separator:ga4d116cb45cf9a4504b5fbae5a7cdc73f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
+Enumerations</h2></td></tr>
+<tr class="memitem:gaac6b3e46ba9412b69e63301e2edda2f0" id="r_gaac6b3e46ba9412b69e63301e2edda2f0"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/daa/group__QueryBuilder.html#gaac6b3e46ba9412b69e63301e2edda2f0">SqlPrimaryKeyType</a> : uint8_t { <b>NONE</b>
+, <b>MANUAL</b>
+, <b>AUTO_INCREMENT</b>
+, <b>GUID</b>
+ }</td></tr>
+<tr class="memdesc:gaac6b3e46ba9412b69e63301e2edda2f0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a primary key type.  <a href="../../d6/daa/group__QueryBuilder.html#gaac6b3e46ba9412b69e63301e2edda2f0">More...</a><br /></td></tr>
+<tr class="separator:gaac6b3e46ba9412b69e63301e2edda2f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:ga928bf407a9f3b15e5f55eb8af71fb020" id="r_ga928bf407a9f3b15e5f55eb8af71fb020"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/daa/group__QueryBuilder.html#ga928bf407a9f3b15e5f55eb8af71fb020">ToSql</a> (<a class="el" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter, <a class="el" href="../../d6/daa/group__QueryBuilder.html#ga4d116cb45cf9a4504b5fbae5a7cdc73f">SqlMigrationPlanElement</a> const &amp;element)</td></tr>
+<tr class="separator:ga928bf407a9f3b15e5f55eb8af71fb020"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
+Variables</h2></td></tr>
+<tr class="memitem:ga8e9a30f502046f14ac27ec68a9ded002" id="r_ga8e9a30f502046f14ac27ec68a9ded002"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:ga8e9a30f502046f14ac27ec68a9ded002"><td class="memTemplItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a> = detail::SqlColumnTypeDefinitionOf&lt;T&gt;::value</td></tr>
+<tr class="memdesc:ga8e9a30f502046f14ac27ec68a9ded002"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a SQL column type definition of T.  <br /></td></tr>
+<tr class="separator:ga8e9a30f502046f14ac27ec68a9ded002"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>The query builder is a high level API for building SQL queries using high level C++ syntax. </p>
+<h2 class="groupheader">Typedef Documentation</h2>
+<a id="gab73d1a4f191ddc376b76026bdeb207b7" name="gab73d1a4f191ddc376b76026bdeb207b7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gab73d1a4f191ddc376b76026bdeb207b7">&#9670;&#160;</a></span>SqlAlterTableCommand</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="../../d6/daa/group__QueryBuilder.html#gab73d1a4f191ddc376b76026bdeb207b7">SqlAlterTableCommand</a> =  std::variant&lt;SqlAlterTableCommands::RenameTable, SqlAlterTableCommands::AddColumn, SqlAlterTableCommands::AlterColumn, SqlAlterTableCommands::AddIndex, SqlAlterTableCommands::RenameColumn, SqlAlterTableCommands::DropColumn, SqlAlterTableCommands::DropIndex, SqlAlterTableCommands::AddForeignKey, SqlAlterTableCommands::DropForeignKey&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Represents a single SQL ALTER TABLE command. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00291">291</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ga4d116cb45cf9a4504b5fbae5a7cdc73f" name="ga4d116cb45cf9a4504b5fbae5a7cdc73f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga4d116cb45cf9a4504b5fbae5a7cdc73f">&#9670;&#160;</a></span>SqlMigrationPlanElement</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="../../d6/daa/group__QueryBuilder.html#ga4d116cb45cf9a4504b5fbae5a7cdc73f">SqlMigrationPlanElement</a> =  std::variant&lt; SqlCreateTablePlan, <a class="el" href="../../dd/ddb/structSqlAlterTablePlan.html">SqlAlterTablePlan</a>, <a class="el" href="../../d5/d6b/structSqlDropTablePlan.html">SqlDropTablePlan</a> &gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Represents a single SQL migration plan element. </p>
+<p>This variant represents a single SQL migration plan element. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00329">329</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
+<h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="gaac6b3e46ba9412b69e63301e2edda2f0" name="gaac6b3e46ba9412b69e63301e2edda2f0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaac6b3e46ba9412b69e63301e2edda2f0">&#9670;&#160;</a></span>SqlPrimaryKeyType</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum class <a class="el" href="../../d6/daa/group__QueryBuilder.html#gaac6b3e46ba9412b69e63301e2edda2f0">SqlPrimaryKeyType</a> : uint8_t</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Represents a primary key type. </p>
+<p>This enumeration represents the primary key type of a column. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00172">172</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
+<h2 class="groupheader">Function Documentation</h2>
+<a id="ga928bf407a9f3b15e5f55eb8af71fb020" name="ga928bf407a9f3b15e5f55eb8af71fb020"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga928bf407a9f3b15e5f55eb8af71fb020">&#9670;&#160;</a></span>ToSql()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API std::vector&lt; std::string &gt; ToSql </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;&#160;</td>
+          <td class="paramname"><em>formatter</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="../../d6/daa/group__QueryBuilder.html#ga4d116cb45cf9a4504b5fbae5a7cdc73f">SqlMigrationPlanElement</a> const &amp;&#160;</td>
+          <td class="paramname"><em>element</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Formats the given SQL migration plan element as a list of SQL statements.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">formatter</td><td>The SQL query formatter to use. </td></tr>
+    <tr><td class="paramname">element</td><td>The SQL migration plan element to format.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A list of SQL statements. </dd></dl>
+
+</div>
+</div>
+<h2 class="groupheader">Variable Documentation</h2>
+<a id="ga8e9a30f502046f14ac27ec68a9ded002" name="ga8e9a30f502046f14ac27ec68a9ded002"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga8e9a30f502046f14ac27ec68a9ded002">&#9670;&#160;</a></span>SqlColumnTypeDefinitionOf</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr auto SqlColumnTypeDefinitionOf = detail::SqlColumnTypeDefinitionOf&lt;T&gt;::value</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Represents a SQL column type definition of T. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00165">165</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

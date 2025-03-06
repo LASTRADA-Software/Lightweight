@@ -103,8 +103,8 @@ $(document).ready(function(){initNavTree('db/d47/MigrationPlan_8hpp_source.html'
 <div class="line"><a id="l00003" name="l00003"></a><span class="lineno">    3</span><span class="preprocessor">#pragma once</span></div>
 <div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span> </div>
 <div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="preprocessor">#include &quot;../Api.hpp&quot;</span></div>
-<div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span><span class="preprocessor">#include &quot;../SqlDataBinder.hpp&quot;</span></div>
-<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#include &quot;../SqlColumnTypeDefinitions.hpp&quot;</span></div>
+<div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span><span class="preprocessor">#include &quot;../SqlColumnTypeDefinitions.hpp&quot;</span></div>
+<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#include &quot;../SqlDataBinder.hpp&quot;</span></div>
 <div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#include &quot;../Utils.hpp&quot;</span></div>
 <div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span> </div>
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#include &lt;reflection-cpp/reflection.hpp&gt;</span></div>
@@ -120,49 +120,49 @@ $(document).ready(function(){initNavTree('db/d47/MigrationPlan_8hpp_source.html'
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>{</div>
 <div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span> </div>
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="keyword">struct </span>SqlColumnTypeDefinitionOf</div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="keyword">struct </span><a class="code hl_variable" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a></div>
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>{</div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>    <span class="keyword">static_assert</span>(AlwaysFalse&lt;T&gt;, <span class="stringliteral">&quot;Unsupported type for SQL column definition.&quot;</span>);</div>
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>};</div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span> </div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="keyword">struct </span>SqlColumnTypeDefinitionOf&lt;bool&gt;</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="keyword">struct </span><a class="code hl_variable" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a>&lt;bool&gt;</div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>{</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::Bool {};</div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>};</div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span> </div>
 <div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span><span class="keyword">struct </span>SqlColumnTypeDefinitionOf&lt;char&gt;</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span><span class="keyword">struct </span><a class="code hl_variable" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a>&lt;char&gt;</div>
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>{</div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::Char { 1 };</div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>};</div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span> </div>
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span><span class="keyword">struct </span>SqlColumnTypeDefinitionOf&lt;<a class="code hl_struct" href="../../d3/d0e/structSqlDate.html">SqlDate</a>&gt;</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span><span class="keyword">struct </span><a class="code hl_variable" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a>&lt;<a class="code hl_struct" href="../../d3/d0e/structSqlDate.html">SqlDate</a>&gt;</div>
 <div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>{</div>
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::Date {};</div>
 <div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>};</div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span> </div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="keyword">struct </span>SqlColumnTypeDefinitionOf&lt;<a class="code hl_struct" href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a>&gt;</div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="keyword">struct </span><a class="code hl_variable" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a>&lt;<a class="code hl_struct" href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a>&gt;</div>
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>{</div>
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::DateTime {};</div>
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>};</div>
 <div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span> </div>
 <div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span><span class="keyword">struct </span>SqlColumnTypeDefinitionOf&lt;<a class="code hl_struct" href="../../d5/d6d/structSqlTime.html">SqlTime</a>&gt;</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span><span class="keyword">struct </span><a class="code hl_variable" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a>&lt;<a class="code hl_struct" href="../../d5/d6d/structSqlTime.html">SqlTime</a>&gt;</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>{</div>
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::Time {};</div>
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>};</div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span> </div>
 <div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="keyword">template</span> &lt;<span class="keywordtype">size_t</span> Precision, <span class="keywordtype">size_t</span> Scale&gt;</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="keyword">struct </span>SqlColumnTypeDefinitionOf&lt;<a class="code hl_struct" href="../../da/d72/structSqlNumeric.html">SqlNumeric</a>&lt;Precision, Scale&gt;&gt;</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="keyword">struct </span><a class="code hl_variable" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a>&lt;<a class="code hl_struct" href="../../da/d72/structSqlNumeric.html">SqlNumeric</a>&lt;Precision, Scale&gt;&gt;</div>
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>{</div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::Decimal { .precision = Precision, .scale = Scale };</div>
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>};</div>
 <div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span> </div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="keyword">struct </span>SqlColumnTypeDefinitionOf&lt;<a class="code hl_struct" href="../../d2/d62/structSqlGuid.html">SqlGuid</a>&gt;</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="keyword">struct </span><a class="code hl_variable" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a>&lt;<a class="code hl_struct" href="../../d2/d62/structSqlGuid.html">SqlGuid</a>&gt;</div>
 <div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>{</div>
 <div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::Guid {};</div>
 <div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>};</div>
@@ -224,7 +224,7 @@ $(document).ready(function(){initNavTree('db/d47/MigrationPlan_8hpp_source.html'
 <div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>};</div>
 <div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span> </div>
 <div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span><span class="keyword">template</span> &lt;<span class="keywordtype">size_t</span> N, <span class="keyword">typename</span> CharT&gt;</div>
-<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span><span class="keyword">struct </span>SqlColumnTypeDefinitionOf&lt;<a class="code hl_class" href="../../d8/dcb/classSqlFixedString.html">SqlFixedString</a>&lt;N, CharT, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED&gt;&gt;</div>
+<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span><span class="keyword">struct </span><a class="code hl_variable" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a>&lt;<a class="code hl_class" href="../../d8/dcb/classSqlFixedString.html">SqlFixedString</a>&lt;N, CharT, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED&gt;&gt;</div>
 <div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>{</div>
 <div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitions::Char { N };</div>
 <div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>};</div>
@@ -251,153 +251,252 @@ $(document).ready(function(){initNavTree('db/d47/MigrationPlan_8hpp_source.html'
 <div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>};</div>
 <div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span> </div>
 <div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span><span class="keyword">struct </span>SqlColumnTypeDefinitionOf&lt;std::optional&lt;T&gt;&gt;</div>
+<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span><span class="keyword">struct </span><a class="code hl_variable" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a>&lt;std::optional&lt;T&gt;&gt;</div>
 <div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span>{</div>
 <div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = SqlColumnTypeDefinitionOf&lt;T&gt;::value;</div>
 <div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span>};</div>
 <div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span> </div>
 <div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span>} <span class="comment">// namespace detail</span></div>
-<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span> </div>
-<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span><span class="keyword">constexpr</span> <span class="keyword">auto</span> SqlColumnTypeDefinitionOf = detail::SqlColumnTypeDefinitionOf&lt;T&gt;::value;</div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span> </div>
-<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span><span class="keyword">enum class</span> SqlPrimaryKeyType : uint8_t</div>
-<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>{</div>
-<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    NONE,</div>
-<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>    MANUAL,</div>
-<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>    AUTO_INCREMENT,</div>
-<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>    GUID,</div>
-<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>};</div>
-<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span> </div>
-<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span><span class="keyword">struct </span>SqlForeignKeyReferenceDefinition</div>
+<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span><span class="comment"></span> </div>
+<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span><span class="comment">/// @brief Represents a SQL column type definition of T.</span></div>
+<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span><span class="comment">///</span></div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00165" name="l00165"></a><span class="lineno"><a class="line" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">  165</a></span><span class="keyword">constexpr</span> <span class="keyword">auto</span> <a class="code hl_variable" href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a> = detail::SqlColumnTypeDefinitionOf&lt;T&gt;::value;</div>
+<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span><span class="comment"></span> </div>
+<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span><span class="comment">/// @brief Represents a primary key type.</span></div>
+<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span><span class="comment">///</span></div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span><span class="comment">/// This enumeration represents the primary key type of a column.</span></div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span><span class="comment">///</span></div>
+<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="foldopen" id="foldopen00172" data-start="{" data-end="};">
+<div class="line"><a id="l00172" name="l00172"></a><span class="lineno"><a class="line" href="../../d6/daa/group__QueryBuilder.html#gaac6b3e46ba9412b69e63301e2edda2f0">  172</a></span><span class="comment"></span><span class="keyword">enum class</span> <a class="code hl_enumeration" href="../../d6/daa/group__QueryBuilder.html#gaac6b3e46ba9412b69e63301e2edda2f0">SqlPrimaryKeyType</a> : uint8_t</div>
 <div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>{</div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>    std::string tableName;</div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>    std::string columnName;</div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>};</div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span> </div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span><span class="keyword">struct </span>SqlColumnDeclaration</div>
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>{</div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>    std::string name;</div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>    SqlColumnTypeDefinition type;</div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>    SqlPrimaryKeyType primaryKey { SqlPrimaryKeyType::NONE };</div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>    std::optional&lt;SqlForeignKeyReferenceDefinition&gt; foreignKey {};</div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>    <span class="keywordtype">bool</span> required { <span class="keyword">false</span> };</div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>    <span class="keywordtype">bool</span> unique { <span class="keyword">false</span> };</div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>    <span class="keywordtype">bool</span> index { <span class="keyword">false</span> };</div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>};</div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span> </div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span><span class="keyword">struct </span>SqlCreateTablePlan</div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>{</div>
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>    std::string_view tableName;</div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>    std::vector&lt;SqlColumnDeclaration&gt; columns;</div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>};</div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span> </div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span><span class="keyword">enum class</span> SqlNullable : uint8_t</div>
-<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>{</div>
-<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>    NotNull,</div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>    Null,</div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>};</div>
-<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span> </div>
-<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span><span class="keyword">namespace </span>SqlAlterTableCommands</div>
-<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>{</div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span> </div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span><span class="keyword">struct </span>RenameTable</div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>{</div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>    std::string_view newTableName;</div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>};</div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span> </div>
-<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span><span class="keyword">struct </span>AddColumn</div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>{</div>
-<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>    std::string columnName;</div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>    SqlColumnTypeDefinition columnType;</div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>    SqlNullable nullable = SqlNullable::Null;</div>
-<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>};</div>
-<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span> </div>
-<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span><span class="keyword">struct </span>AlterColumn</div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>{</div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>    std::string columnName;</div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>    SqlColumnTypeDefinition columnType;</div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    SqlNullable nullable = SqlNullable::Null;</div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>};</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span> </div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span><span class="keyword">struct </span>AddIndex</div>
-<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>{</div>
-<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>    std::string_view columnName;</div>
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>    <span class="keywordtype">bool</span> unique = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>};</div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span> </div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span><span class="keyword">struct </span>RenameColumn</div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>{</div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>    std::string_view oldColumnName;</div>
-<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>    std::string_view newColumnName;</div>
-<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>};</div>
-<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span> </div>
-<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span><span class="keyword">struct </span>DropColumn</div>
-<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>{</div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>    std::string_view columnName;</div>
-<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>};</div>
-<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span> </div>
-<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span><span class="keyword">struct </span>DropIndex</div>
-<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>{</div>
-<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>    std::string_view columnName;</div>
-<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>};</div>
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span> </div>
-<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span><span class="keyword">struct </span>AddForeignKey</div>
-<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>{</div>
-<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>    std::string columnName;</div>
-<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>    SqlForeignKeyReferenceDefinition referencedColumn;</div>
-<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>};</div>
-<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span><span class="keyword">struct </span>DropForeignKey</div>
-<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>{</div>
-<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>    std::string columnName;</div>
-<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>};</div>
-<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span> </div>
-<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>} <span class="comment">// namespace SqlAlterTableCommands</span></div>
-<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span> </div>
-<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span><span class="keyword">using </span>SqlAlterTableCommand = std::variant&lt;SqlAlterTableCommands::RenameTable,</div>
-<div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span>                                          SqlAlterTableCommands::AddColumn,</div>
-<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>                                          SqlAlterTableCommands::AlterColumn,</div>
-<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>                                          SqlAlterTableCommands::AddIndex,</div>
-<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>                                          SqlAlterTableCommands::RenameColumn,</div>
-<div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>                                          SqlAlterTableCommands::DropColumn,</div>
-<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>                                          SqlAlterTableCommands::DropIndex,</div>
-<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>                                          SqlAlterTableCommands::AddForeignKey,</div>
-<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>                                          SqlAlterTableCommands::DropForeignKey&gt;;</div>
-<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span> </div>
-<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span><span class="keyword">struct </span>SqlAlterTablePlan</div>
-<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>{</div>
-<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span>    std::string_view tableName;</div>
-<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>    std::vector&lt;SqlAlterTableCommand&gt; commands;</div>
-<div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>};</div>
-<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span> </div>
-<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span><span class="keyword">struct </span>SqlDropTablePlan</div>
-<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>{</div>
-<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>    std::string_view tableName;</div>
-<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>};</div>
-<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span> </div>
-<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span><span class="comment">// clang-format off</span></div>
-<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span><span class="keyword">using </span>SqlMigrationPlanElement = std::variant&lt;</div>
-<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>    SqlCreateTablePlan,</div>
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>    SqlAlterTablePlan,</div>
-<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>    SqlDropTablePlan</div>
-<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>&gt;;</div>
-<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span><span class="comment">// clang-format on</span></div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>    NONE,</div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>    MANUAL,</div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>    AUTO_INCREMENT,</div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>    GUID,</div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>};</div>
+</div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span><span class="comment"></span> </div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span><span class="comment">/// @brief Represents a foreign key reference definition.</span></div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span><span class="comment">///</span></div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="foldopen" id="foldopen00183" data-start="{" data-end="};">
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno"><a class="line" href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html">  183</a></span><span class="comment"></span><span class="keyword">struct </span><a class="code hl_struct" href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html">SqlForeignKeyReferenceDefinition</a></div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>{<span class="comment"></span></div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span><span class="comment">    /// The table name that the foreign key references.</span></div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno"><a class="line" href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html#a2747c66e9a950aaee4aa70984a759a89">  186</a></span><span class="comment"></span>    std::string <a class="code hl_variable" href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html#a2747c66e9a950aaee4aa70984a759a89">tableName</a>;</div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span><span class="comment"></span> </div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span><span class="comment">    /// The column name that the foreign key references.</span></div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno"><a class="line" href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html#a1eb2b3d405da67f955a37a5a61699c6b">  189</a></span><span class="comment"></span>    std::string <a class="code hl_variable" href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html#a1eb2b3d405da67f955a37a5a61699c6b">columnName</a>;</div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>};</div>
+</div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span><span class="comment"></span> </div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span><span class="comment">/// @brief Represents a SQL column declaration.</span></div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span><span class="comment">///</span></div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="foldopen" id="foldopen00195" data-start="{" data-end="};">
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno"><a class="line" href="../../d3/d8a/structSqlColumnDeclaration.html">  195</a></span><span class="comment"></span><span class="keyword">struct </span><a class="code hl_struct" href="../../d3/d8a/structSqlColumnDeclaration.html">SqlColumnDeclaration</a></div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>{<span class="comment"></span></div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span><span class="comment">    /// The name of the column.</span></div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno"><a class="line" href="../../d3/d8a/structSqlColumnDeclaration.html#aff2f4a516a4d7d0229ef895512911c65">  198</a></span><span class="comment"></span>    std::string <a class="code hl_variable" href="../../d3/d8a/structSqlColumnDeclaration.html#aff2f4a516a4d7d0229ef895512911c65">name</a>;</div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span><span class="comment"></span> </div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span><span class="comment">    /// The type of the column.</span></div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno"><a class="line" href="../../d3/d8a/structSqlColumnDeclaration.html#a564790b8f7f95492c11cfeff57dd142b">  201</a></span><span class="comment"></span>    SqlColumnTypeDefinition <a class="code hl_variable" href="../../d3/d8a/structSqlColumnDeclaration.html#a564790b8f7f95492c11cfeff57dd142b">type</a>;</div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span><span class="comment"></span> </div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span><span class="comment">    /// The primary key type of the column.</span></div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno"><a class="line" href="../../d3/d8a/structSqlColumnDeclaration.html#a728c1a59b47c63e23c8a0218e95a74f9">  204</a></span><span class="comment"></span>    <a class="code hl_enumeration" href="../../d6/daa/group__QueryBuilder.html#gaac6b3e46ba9412b69e63301e2edda2f0">SqlPrimaryKeyType</a> <a class="code hl_variable" href="../../d3/d8a/structSqlColumnDeclaration.html#a728c1a59b47c63e23c8a0218e95a74f9">primaryKey</a> { SqlPrimaryKeyType::NONE };</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span><span class="comment"></span> </div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span><span class="comment">    /// The foreign key reference definition of the column.</span></div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno"><a class="line" href="../../d3/d8a/structSqlColumnDeclaration.html#a5c9673d6bf4bd66a972a6753a52ddfb7">  207</a></span><span class="comment"></span>    std::optional&lt;SqlForeignKeyReferenceDefinition&gt; <a class="code hl_variable" href="../../d3/d8a/structSqlColumnDeclaration.html#a5c9673d6bf4bd66a972a6753a52ddfb7">foreignKey</a> {};</div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span><span class="comment"></span> </div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span><span class="comment">    /// Indicates if the column is required (non-nullable).</span></div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno"><a class="line" href="../../d3/d8a/structSqlColumnDeclaration.html#a596e33a6ad955278812bb8d8f8b61fbd">  210</a></span><span class="comment"></span>    <span class="keywordtype">bool</span> <a class="code hl_variable" href="../../d3/d8a/structSqlColumnDeclaration.html#a596e33a6ad955278812bb8d8f8b61fbd">required</a> { <span class="keyword">false</span> };</div>
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span><span class="comment"></span> </div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span><span class="comment">    /// Indicates if the column is unique.</span></div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno"><a class="line" href="../../d3/d8a/structSqlColumnDeclaration.html#ac8fdbff04f053622ca941e301b8f5b83">  213</a></span><span class="comment"></span>    <span class="keywordtype">bool</span> <a class="code hl_variable" href="../../d3/d8a/structSqlColumnDeclaration.html#ac8fdbff04f053622ca941e301b8f5b83">unique</a> { <span class="keyword">false</span> };</div>
+<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span><span class="comment"></span> </div>
+<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span><span class="comment">    /// Indicates if the column is indexed.</span></div>
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno"><a class="line" href="../../d3/d8a/structSqlColumnDeclaration.html#a30dc6a31ca68bb6666eb94c1ad80fdf6">  216</a></span><span class="comment"></span>    <span class="keywordtype">bool</span> <a class="code hl_variable" href="../../d3/d8a/structSqlColumnDeclaration.html#a30dc6a31ca68bb6666eb94c1ad80fdf6">index</a> { <span class="keyword">false</span> };</div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>};</div>
+</div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span> </div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span><span class="keyword">struct </span>SqlCreateTablePlan</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>{</div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>    std::string_view tableName;</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>    std::vector&lt;SqlColumnDeclaration&gt; columns;</div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>};</div>
+<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span> </div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span><span class="keyword">enum class</span> SqlNullable : uint8_t</div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>{</div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>    NotNull,</div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>    Null,</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>};</div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span> </div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="keyword">namespace </span>SqlAlterTableCommands</div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>{</div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span> </div>
+<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span><span class="keyword">struct </span>RenameTable</div>
+<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>{</div>
+<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>    std::string_view newTableName;</div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>};</div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span> </div>
+<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span><span class="keyword">struct </span>AddColumn</div>
+<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>{</div>
+<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>    std::string columnName;</div>
+<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>    SqlColumnTypeDefinition columnType;</div>
+<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>    SqlNullable nullable = SqlNullable::Null;</div>
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>};</div>
+<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span> </div>
+<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span><span class="keyword">struct </span>AlterColumn</div>
+<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>{</div>
+<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>    std::string columnName;</div>
+<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>    SqlColumnTypeDefinition columnType;</div>
+<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>    SqlNullable nullable = SqlNullable::Null;</div>
+<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>};</div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span> </div>
+<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span><span class="keyword">struct </span>AddIndex</div>
+<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>{</div>
+<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>    std::string_view columnName;</div>
+<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>    <span class="keywordtype">bool</span> unique = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>};</div>
+<div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span> </div>
+<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span><span class="keyword">struct </span>RenameColumn</div>
+<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>{</div>
+<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>    std::string_view oldColumnName;</div>
+<div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>    std::string_view newColumnName;</div>
+<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>};</div>
+<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span> </div>
+<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span><span class="keyword">struct </span>DropColumn</div>
+<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>{</div>
+<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>    std::string_view columnName;</div>
+<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>};</div>
+<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span> </div>
+<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span><span class="keyword">struct </span>DropIndex</div>
+<div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>{</div>
+<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>    std::string_view columnName;</div>
+<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>};</div>
+<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span> </div>
+<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span><span class="keyword">struct </span>AddForeignKey</div>
+<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>{</div>
+<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>    std::string columnName;</div>
+<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>    <a class="code hl_struct" href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html">SqlForeignKeyReferenceDefinition</a> referencedColumn;</div>
+<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>};</div>
+<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span> </div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span><span class="keyword">struct </span>DropForeignKey</div>
+<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>{</div>
+<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>    std::string columnName;</div>
+<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>};</div>
 <div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span> </div>
-<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>std::vector&lt;std::string&gt; ToSql(<a class="code hl_class" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; formatter, SqlMigrationPlanElement <span class="keyword">const</span>&amp; element);</div>
-<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span> </div>
-<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span><span class="keyword">struct </span>[[nodiscard]] SqlMigrationPlan</div>
-<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>{</div>
-<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>    <a class="code hl_class" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; formatter;</div>
-<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>    std::vector&lt;SqlMigrationPlanElement&gt; steps {};</div>
-<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span> </div>
-<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>    [[nodiscard]] LIGHTWEIGHT_API std::vector&lt;std::string&gt; ToSql() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>};</div>
+<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>} <span class="comment">// namespace SqlAlterTableCommands</span></div>
+<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span><span class="comment"></span> </div>
+<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span><span class="comment">/// @brief Represents a single SQL ALTER TABLE command.</span></div>
+<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span><span class="comment">///</span></div>
+<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="line"><a id="l00291" name="l00291"></a><span class="lineno"><a class="line" href="../../d6/daa/group__QueryBuilder.html#gab73d1a4f191ddc376b76026bdeb207b7">  291</a></span><span class="comment"></span><span class="keyword">using </span><a class="code hl_typedef" href="../../d6/daa/group__QueryBuilder.html#gab73d1a4f191ddc376b76026bdeb207b7">SqlAlterTableCommand</a> = std::variant&lt;SqlAlterTableCommands::RenameTable,</div>
+<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>                                          SqlAlterTableCommands::AddColumn,</div>
+<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>                                          SqlAlterTableCommands::AlterColumn,</div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>                                          SqlAlterTableCommands::AddIndex,</div>
+<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>                                          SqlAlterTableCommands::RenameColumn,</div>
+<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>                                          SqlAlterTableCommands::DropColumn,</div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>                                          SqlAlterTableCommands::DropIndex,</div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>                                          SqlAlterTableCommands::AddForeignKey,</div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>                                          SqlAlterTableCommands::DropForeignKey&gt;;</div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span><span class="comment"></span> </div>
+<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span><span class="comment">/// @brief Represents a SQL ALTER TABLE plan on a given table.</span></div>
+<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span><span class="comment">///</span></div>
+<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="foldopen" id="foldopen00304" data-start="{" data-end="};">
+<div class="line"><a id="l00304" name="l00304"></a><span class="lineno"><a class="line" href="../../dd/ddb/structSqlAlterTablePlan.html">  304</a></span><span class="comment"></span><span class="keyword">struct </span><a class="code hl_struct" href="../../dd/ddb/structSqlAlterTablePlan.html">SqlAlterTablePlan</a></div>
+<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>{<span class="comment"></span></div>
+<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span><span class="comment">    /// The name of the table to alter.</span></div>
+<div class="line"><a id="l00307" name="l00307"></a><span class="lineno"><a class="line" href="../../dd/ddb/structSqlAlterTablePlan.html#a55904d3d71609a166225e13f6723f6d4">  307</a></span><span class="comment"></span>    std::string_view <a class="code hl_variable" href="../../dd/ddb/structSqlAlterTablePlan.html#a55904d3d71609a166225e13f6723f6d4">tableName</a>;</div>
+<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span><span class="comment"></span> </div>
+<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span><span class="comment">    /// The list of commands to execute on the table.</span></div>
+<div class="line"><a id="l00310" name="l00310"></a><span class="lineno"><a class="line" href="../../dd/ddb/structSqlAlterTablePlan.html#af812891a8f3e9c51023791379d5a3c61">  310</a></span><span class="comment"></span>    std::vector&lt;SqlAlterTableCommand&gt; <a class="code hl_variable" href="../../dd/ddb/structSqlAlterTablePlan.html#af812891a8f3e9c51023791379d5a3c61">commands</a>;</div>
+<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span>};</div>
+</div>
+<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span><span class="comment"></span> </div>
+<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span><span class="comment">/// @brief Represents a SQL DROP TABLE plan.</span></div>
+<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span><span class="comment">///</span></div>
+<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="foldopen" id="foldopen00316" data-start="{" data-end="};">
+<div class="line"><a id="l00316" name="l00316"></a><span class="lineno"><a class="line" href="../../d5/d6b/structSqlDropTablePlan.html">  316</a></span><span class="comment"></span><span class="keyword">struct </span><a class="code hl_struct" href="../../d5/d6b/structSqlDropTablePlan.html">SqlDropTablePlan</a></div>
+<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>{<span class="comment"></span></div>
+<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span><span class="comment">    /// The name of the table to drop.</span></div>
+<div class="line"><a id="l00319" name="l00319"></a><span class="lineno"><a class="line" href="../../d5/d6b/structSqlDropTablePlan.html#a58a25bec98024e0d9a523b0788f3d0cd">  319</a></span><span class="comment"></span>    std::string_view <a class="code hl_variable" href="../../d5/d6b/structSqlDropTablePlan.html#a58a25bec98024e0d9a523b0788f3d0cd">tableName</a>;</div>
+<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>};</div>
+</div>
+<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span> </div>
+<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span><span class="comment">// clang-format off</span></div>
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span><span class="comment"></span> </div>
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span><span class="comment">/// @brief Represents a single SQL migration plan element.</span></div>
+<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span><span class="comment">///</span></div>
+<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span><span class="comment">/// This variant represents a single SQL migration plan element.</span></div>
+<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span><span class="comment">///</span></div>
+<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno"><a class="line" href="../../d6/daa/group__QueryBuilder.html#ga4d116cb45cf9a4504b5fbae5a7cdc73f">  329</a></span><span class="comment"></span><span class="keyword">using </span><a class="code hl_typedef" href="../../d6/daa/group__QueryBuilder.html#ga4d116cb45cf9a4504b5fbae5a7cdc73f">SqlMigrationPlanElement</a> = std::variant&lt;</div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>    SqlCreateTablePlan,</div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>    <a class="code hl_struct" href="../../dd/ddb/structSqlAlterTablePlan.html">SqlAlterTablePlan</a>,</div>
+<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>    <a class="code hl_struct" href="../../d5/d6b/structSqlDropTablePlan.html">SqlDropTablePlan</a></div>
+<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>&gt;;</div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span> </div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span><span class="comment">// clang-format on</span></div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span><span class="comment"></span> </div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span><span class="comment">/// Formats the given SQL migration plan element as a list of SQL statements.</span></div>
+<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span><span class="comment">///</span></div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span><span class="comment">/// @param formatter The SQL query formatter to use.</span></div>
+<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span><span class="comment">/// @param element The SQL migration plan element to format.</span></div>
+<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span><span class="comment">///</span></div>
+<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span><span class="comment">/// @return A list of SQL statements.</span></div>
+<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span><span class="comment">///</span></div>
+<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="line"><a id="l00345" name="l00345"></a><span class="lineno"><a class="line" href="../../d6/daa/group__QueryBuilder.html#ga928bf407a9f3b15e5f55eb8af71fb020">  345</a></span><span class="comment"></span>[[nodiscard]] LIGHTWEIGHT_API std::vector&lt;std::string&gt; <a class="code hl_function" href="../../d6/daa/group__QueryBuilder.html#ga928bf407a9f3b15e5f55eb8af71fb020">ToSql</a>(<a class="code hl_class" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; formatter,</div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>                                                             <a class="code hl_typedef" href="../../d6/daa/group__QueryBuilder.html#ga4d116cb45cf9a4504b5fbae5a7cdc73f">SqlMigrationPlanElement</a> <span class="keyword">const</span>&amp; element);</div>
+<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span><span class="comment"></span> </div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span><span class="comment">/// @brief Represents a SQL migration plan.</span></div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span><span class="comment">///</span></div>
+<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span><span class="comment">/// This structure represents a SQL migration plan that can be executed on a database.</span></div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span><span class="comment">///</span></div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="foldopen" id="foldopen00353" data-start="{" data-end="};">
+<div class="line"><a id="l00353" name="l00353"></a><span class="lineno"><a class="line" href="../../d1/d29/structSqlMigrationPlan.html">  353</a></span><span class="comment"></span><span class="keyword">struct </span>[[nodiscard]] <a class="code hl_struct" href="../../d1/d29/structSqlMigrationPlan.html">SqlMigrationPlan</a></div>
+<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>{</div>
+<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>    <a class="code hl_class" href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; formatter;</div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>    std::vector&lt;SqlMigrationPlanElement&gt; steps {};</div>
+<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span> </div>
+<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>    [[nodiscard]] LIGHTWEIGHT_API std::vector&lt;std::string&gt; <a class="code hl_function" href="../../d6/daa/group__QueryBuilder.html#ga928bf407a9f3b15e5f55eb8af71fb020">ToSql</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>};</div>
+</div>
 <div class="ttc" id="aclassSqlDynamicString_html"><div class="ttname"><a href="../../dd/d83/classSqlDynamicString.html">SqlDynamicString</a></div><div class="ttdef"><b>Definition</b> <a href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00022">SqlDynamicString.hpp:23</a></div></div>
 <div class="ttc" id="aclassSqlFixedString_html"><div class="ttname"><a href="../../d8/dcb/classSqlFixedString.html">SqlFixedString</a></div><div class="ttdef"><b>Definition</b> <a href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00028">SqlFixedString.hpp:29</a></div></div>
 <div class="ttc" id="aclassSqlQueryFormatter_html"><div class="ttname"><a href="../../dc/df2/classSqlQueryFormatter.html">SqlQueryFormatter</a></div><div class="ttdoc">API to format SQL queries for different SQL dialects.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00016">SqlQueryFormatter.hpp:17</a></div></div>
+<div class="ttc" id="agroup__QueryBuilder_html_ga4d116cb45cf9a4504b5fbae5a7cdc73f"><div class="ttname"><a href="../../d6/daa/group__QueryBuilder.html#ga4d116cb45cf9a4504b5fbae5a7cdc73f">SqlMigrationPlanElement</a></div><div class="ttdeci">std::variant&lt; SqlCreateTablePlan, SqlAlterTablePlan, SqlDropTablePlan &gt; SqlMigrationPlanElement</div><div class="ttdoc">Represents a single SQL migration plan element.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00329">MigrationPlan.hpp:333</a></div></div>
+<div class="ttc" id="agroup__QueryBuilder_html_ga8e9a30f502046f14ac27ec68a9ded002"><div class="ttname"><a href="../../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002">SqlColumnTypeDefinitionOf</a></div><div class="ttdeci">constexpr auto SqlColumnTypeDefinitionOf</div><div class="ttdoc">Represents a SQL column type definition of T.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00165">MigrationPlan.hpp:165</a></div></div>
+<div class="ttc" id="agroup__QueryBuilder_html_ga928bf407a9f3b15e5f55eb8af71fb020"><div class="ttname"><a href="../../d6/daa/group__QueryBuilder.html#ga928bf407a9f3b15e5f55eb8af71fb020">ToSql</a></div><div class="ttdeci">LIGHTWEIGHT_API std::vector&lt; std::string &gt; ToSql(SqlQueryFormatter const &amp;formatter, SqlMigrationPlanElement const &amp;element)</div></div>
+<div class="ttc" id="agroup__QueryBuilder_html_gaac6b3e46ba9412b69e63301e2edda2f0"><div class="ttname"><a href="../../d6/daa/group__QueryBuilder.html#gaac6b3e46ba9412b69e63301e2edda2f0">SqlPrimaryKeyType</a></div><div class="ttdeci">SqlPrimaryKeyType</div><div class="ttdoc">Represents a primary key type.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00172">MigrationPlan.hpp:173</a></div></div>
+<div class="ttc" id="agroup__QueryBuilder_html_gab73d1a4f191ddc376b76026bdeb207b7"><div class="ttname"><a href="../../d6/daa/group__QueryBuilder.html#gab73d1a4f191ddc376b76026bdeb207b7">SqlAlterTableCommand</a></div><div class="ttdeci">std::variant&lt; SqlAlterTableCommands::RenameTable, SqlAlterTableCommands::AddColumn, SqlAlterTableCommands::AlterColumn, SqlAlterTableCommands::AddIndex, SqlAlterTableCommands::RenameColumn, SqlAlterTableCommands::DropColumn, SqlAlterTableCommands::DropIndex, SqlAlterTableCommands::AddForeignKey, SqlAlterTableCommands::DropForeignKey &gt; SqlAlterTableCommand</div><div class="ttdoc">Represents a single SQL ALTER TABLE command.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00291">MigrationPlan.hpp:299</a></div></div>
+<div class="ttc" id="astructSqlAlterTablePlan_html"><div class="ttname"><a href="../../dd/ddb/structSqlAlterTablePlan.html">SqlAlterTablePlan</a></div><div class="ttdoc">Represents a SQL ALTER TABLE plan on a given table.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00304">MigrationPlan.hpp:305</a></div></div>
+<div class="ttc" id="astructSqlAlterTablePlan_html_a55904d3d71609a166225e13f6723f6d4"><div class="ttname"><a href="../../dd/ddb/structSqlAlterTablePlan.html#a55904d3d71609a166225e13f6723f6d4">SqlAlterTablePlan::tableName</a></div><div class="ttdeci">std::string_view tableName</div><div class="ttdoc">The name of the table to alter.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00307">MigrationPlan.hpp:307</a></div></div>
+<div class="ttc" id="astructSqlAlterTablePlan_html_af812891a8f3e9c51023791379d5a3c61"><div class="ttname"><a href="../../dd/ddb/structSqlAlterTablePlan.html#af812891a8f3e9c51023791379d5a3c61">SqlAlterTablePlan::commands</a></div><div class="ttdeci">std::vector&lt; SqlAlterTableCommand &gt; commands</div><div class="ttdoc">The list of commands to execute on the table.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00310">MigrationPlan.hpp:310</a></div></div>
+<div class="ttc" id="astructSqlColumnDeclaration_html"><div class="ttname"><a href="../../d3/d8a/structSqlColumnDeclaration.html">SqlColumnDeclaration</a></div><div class="ttdoc">Represents a SQL column declaration.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00195">MigrationPlan.hpp:196</a></div></div>
+<div class="ttc" id="astructSqlColumnDeclaration_html_a30dc6a31ca68bb6666eb94c1ad80fdf6"><div class="ttname"><a href="../../d3/d8a/structSqlColumnDeclaration.html#a30dc6a31ca68bb6666eb94c1ad80fdf6">SqlColumnDeclaration::index</a></div><div class="ttdeci">bool index</div><div class="ttdoc">Indicates if the column is indexed.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00216">MigrationPlan.hpp:216</a></div></div>
+<div class="ttc" id="astructSqlColumnDeclaration_html_a564790b8f7f95492c11cfeff57dd142b"><div class="ttname"><a href="../../d3/d8a/structSqlColumnDeclaration.html#a564790b8f7f95492c11cfeff57dd142b">SqlColumnDeclaration::type</a></div><div class="ttdeci">SqlColumnTypeDefinition type</div><div class="ttdoc">The type of the column.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00201">MigrationPlan.hpp:201</a></div></div>
+<div class="ttc" id="astructSqlColumnDeclaration_html_a596e33a6ad955278812bb8d8f8b61fbd"><div class="ttname"><a href="../../d3/d8a/structSqlColumnDeclaration.html#a596e33a6ad955278812bb8d8f8b61fbd">SqlColumnDeclaration::required</a></div><div class="ttdeci">bool required</div><div class="ttdoc">Indicates if the column is required (non-nullable).</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00210">MigrationPlan.hpp:210</a></div></div>
+<div class="ttc" id="astructSqlColumnDeclaration_html_a5c9673d6bf4bd66a972a6753a52ddfb7"><div class="ttname"><a href="../../d3/d8a/structSqlColumnDeclaration.html#a5c9673d6bf4bd66a972a6753a52ddfb7">SqlColumnDeclaration::foreignKey</a></div><div class="ttdeci">std::optional&lt; SqlForeignKeyReferenceDefinition &gt; foreignKey</div><div class="ttdoc">The foreign key reference definition of the column.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00207">MigrationPlan.hpp:207</a></div></div>
+<div class="ttc" id="astructSqlColumnDeclaration_html_a728c1a59b47c63e23c8a0218e95a74f9"><div class="ttname"><a href="../../d3/d8a/structSqlColumnDeclaration.html#a728c1a59b47c63e23c8a0218e95a74f9">SqlColumnDeclaration::primaryKey</a></div><div class="ttdeci">SqlPrimaryKeyType primaryKey</div><div class="ttdoc">The primary key type of the column.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00204">MigrationPlan.hpp:204</a></div></div>
+<div class="ttc" id="astructSqlColumnDeclaration_html_ac8fdbff04f053622ca941e301b8f5b83"><div class="ttname"><a href="../../d3/d8a/structSqlColumnDeclaration.html#ac8fdbff04f053622ca941e301b8f5b83">SqlColumnDeclaration::unique</a></div><div class="ttdeci">bool unique</div><div class="ttdoc">Indicates if the column is unique.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00213">MigrationPlan.hpp:213</a></div></div>
+<div class="ttc" id="astructSqlColumnDeclaration_html_aff2f4a516a4d7d0229ef895512911c65"><div class="ttname"><a href="../../d3/d8a/structSqlColumnDeclaration.html#aff2f4a516a4d7d0229ef895512911c65">SqlColumnDeclaration::name</a></div><div class="ttdeci">std::string name</div><div class="ttdoc">The name of the column.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00198">MigrationPlan.hpp:198</a></div></div>
 <div class="ttc" id="astructSqlDateTime_html"><div class="ttname"><a href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a></div><div class="ttdef"><b>Definition</b> <a href="../../d4/d52/SqlDateTime_8hpp_source.html#l00015">SqlDateTime.hpp:16</a></div></div>
 <div class="ttc" id="astructSqlDate_html"><div class="ttname"><a href="../../d3/d0e/structSqlDate.html">SqlDate</a></div><div class="ttdef"><b>Definition</b> <a href="../../da/d1a/SqlDate_8hpp_source.html#l00014">SqlDate.hpp:15</a></div></div>
+<div class="ttc" id="astructSqlDropTablePlan_html"><div class="ttname"><a href="../../d5/d6b/structSqlDropTablePlan.html">SqlDropTablePlan</a></div><div class="ttdoc">Represents a SQL DROP TABLE plan.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00316">MigrationPlan.hpp:317</a></div></div>
+<div class="ttc" id="astructSqlDropTablePlan_html_a58a25bec98024e0d9a523b0788f3d0cd"><div class="ttname"><a href="../../d5/d6b/structSqlDropTablePlan.html#a58a25bec98024e0d9a523b0788f3d0cd">SqlDropTablePlan::tableName</a></div><div class="ttdeci">std::string_view tableName</div><div class="ttdoc">The name of the table to drop.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00319">MigrationPlan.hpp:319</a></div></div>
+<div class="ttc" id="astructSqlForeignKeyReferenceDefinition_html"><div class="ttname"><a href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html">SqlForeignKeyReferenceDefinition</a></div><div class="ttdoc">Represents a foreign key reference definition.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00183">MigrationPlan.hpp:184</a></div></div>
+<div class="ttc" id="astructSqlForeignKeyReferenceDefinition_html_a1eb2b3d405da67f955a37a5a61699c6b"><div class="ttname"><a href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html#a1eb2b3d405da67f955a37a5a61699c6b">SqlForeignKeyReferenceDefinition::columnName</a></div><div class="ttdeci">std::string columnName</div><div class="ttdoc">The column name that the foreign key references.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00189">MigrationPlan.hpp:189</a></div></div>
+<div class="ttc" id="astructSqlForeignKeyReferenceDefinition_html_a2747c66e9a950aaee4aa70984a759a89"><div class="ttname"><a href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html#a2747c66e9a950aaee4aa70984a759a89">SqlForeignKeyReferenceDefinition::tableName</a></div><div class="ttdeci">std::string tableName</div><div class="ttdoc">The table name that the foreign key references.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00186">MigrationPlan.hpp:186</a></div></div>
 <div class="ttc" id="astructSqlGuid_html"><div class="ttname"><a href="../../d2/d62/structSqlGuid.html">SqlGuid</a></div><div class="ttdef"><b>Definition</b> <a href="../../d9/dc2/SqlGuid_8hpp_source.html#l00015">SqlGuid.hpp:16</a></div></div>
+<div class="ttc" id="astructSqlMigrationPlan_html"><div class="ttname"><a href="../../d1/d29/structSqlMigrationPlan.html">SqlMigrationPlan</a></div><div class="ttdoc">Represents a SQL migration plan.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00353">MigrationPlan.hpp:354</a></div></div>
 <div class="ttc" id="astructSqlNumeric_html"><div class="ttname"><a href="../../da/d72/structSqlNumeric.html">SqlNumeric</a></div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00033">SqlNumeric.hpp:34</a></div></div>
 <div class="ttc" id="astructSqlTime_html"><div class="ttname"><a href="../../d5/d6d/structSqlTime.html">SqlTime</a></div><div class="ttdef"><b>Definition</b> <a href="../../d5/de7/SqlTime_8hpp_source.html#l00039">SqlTime.hpp:40</a></div></div>
 </div><!-- fragment --></div><!-- contents -->

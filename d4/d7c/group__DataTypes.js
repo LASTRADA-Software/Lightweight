@@ -101,6 +101,15 @@ var group__DataTypes =
       [ "TryGetDateTime", "d0/df8/structSqlVariant.html#a8b2c8582356d8c88814112dcc42e68db", null ],
       [ "ToString", "d0/df8/structSqlVariant.html#adfd9cc94c7be9f532260afccacab4f1e", null ]
     ] ],
+    [ "Field< T, P1, P2 >", "df/d27/structField.html", [
+      [ "Field", "df/d27/structField.html#a3e91e89b39678f33662d75ec1fc13674", null ],
+      [ "operator=", "df/d27/structField.html#a72afb9891ad3136a31477b5f11266c23", null ],
+      [ "InspectValue", "df/d27/structField.html#a09d24464919b54e0109a8340129a1d4e", null ],
+      [ "SetModified", "df/d27/structField.html#a3abf09195ef457b992517ffd419c7fbf", null ],
+      [ "IsModified", "df/d27/structField.html#aa8080d19388999c10fbeadd11547026d", null ],
+      [ "Value", "df/d27/structField.html#a2cc8ce7f24bceff610bfcab34c041562", null ],
+      [ "MutableValue", "df/d27/structField.html#a039d1f376893024a21164269783af9ce", null ]
+    ] ],
     [ "SqlDynamicAnsiString", "d4/d7c/group__DataTypes.html#gaed9d7ede7f7d314b9d901acbc20937c1", null ],
     [ "SqlDynamicUtf16String", "d4/d7c/group__DataTypes.html#ga4c818abe58303982c54328892e55938c", null ],
     [ "SqlDynamicUtf32String", "d4/d7c/group__DataTypes.html#ga5193e84ec628c260914622d27cc63343", null ],

@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['precision_0',['Precision',['../da/d72/structSqlNumeric.html#a1fd3d0e31008e83ced4422a52fec4859',1,'SqlNumeric']]],
-  ['primarykeys_1',['primaryKeys',['../d0/d20/structSqlSchema_1_1Table.html#a61cf4522464775c477a3ec6b5a155d5d',1,'SqlSchema::Table']]]
+  ['name_0',['name',['../d3/d8a/structSqlColumnDeclaration.html#aff2f4a516a4d7d0229ef895512911c65',1,'SqlColumnDeclaration::name'],['../d0/d20/structSqlSchema_1_1Table.html#adda203ef1e0c0dba3539403505be8694',1,'SqlSchema::Table::name']]]
 ];

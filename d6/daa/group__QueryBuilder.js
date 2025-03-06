@@ -80,7 +80,40 @@ var group__QueryBuilder =
       [ "AddNotRequiredForeignKeyColumn", "d3/d3f/classSqlAlterTableQueryBuilder.html#a6be9b3f9241183d51f72e5a0d3db79b1", null ],
       [ "DropForeignKey", "d3/d3f/classSqlAlterTableQueryBuilder.html#abc19754ad52e4ee224138f75139061b2", null ]
     ] ],
-    [ "SqlMigrationQueryBuilder", "d3/d15/classSqlMigrationQueryBuilder.html", null ],
+    [ "SqlMigrationQueryBuilder", "d3/d15/classSqlMigrationQueryBuilder.html", [
+      [ "CreateDatabase", "d3/d15/classSqlMigrationQueryBuilder.html#acf0dc4502caad56af371041f4f8a5c5b", null ],
+      [ "DropDatabase", "d3/d15/classSqlMigrationQueryBuilder.html#a5303ecf0e2ba4232f16470e071a61fae", null ],
+      [ "CreateTable", "d3/d15/classSqlMigrationQueryBuilder.html#a5510fe0d2c3392695035d4939579a125", null ],
+      [ "AlterTable", "d3/d15/classSqlMigrationQueryBuilder.html#a9a63d493d206c0b74ab053defec372c9", null ],
+      [ "DropTable", "d3/d15/classSqlMigrationQueryBuilder.html#a5789543d34e6d174f81437f8c4ddc441", null ],
+      [ "RawSql", "d3/d15/classSqlMigrationQueryBuilder.html#a8683edf676e2527718619232ce6d62e3", null ],
+      [ "Native", "d3/d15/classSqlMigrationQueryBuilder.html#ab6eac01af3a4dfe3d3da0c251829183d", null ],
+      [ "BeginTransaction", "d3/d15/classSqlMigrationQueryBuilder.html#a0b63ef1ebcd24c2f2681d31d823e5ce7", null ],
+      [ "CommitTransaction", "d3/d15/classSqlMigrationQueryBuilder.html#ad61bc9ad948b70bd09c85e88d2f1acad", null ],
+      [ "GetPlan", "d3/d15/classSqlMigrationQueryBuilder.html#ad9e07debe4ac4576581159e23cff545d", null ],
+      [ "GetPlan", "d3/d15/classSqlMigrationQueryBuilder.html#a6d43ab377f01493c3712d620140c079e", null ]
+    ] ],
+    [ "SqlForeignKeyReferenceDefinition", "d2/de0/structSqlForeignKeyReferenceDefinition.html", [
+      [ "tableName", "d2/de0/structSqlForeignKeyReferenceDefinition.html#a2747c66e9a950aaee4aa70984a759a89", null ],
+      [ "columnName", "d2/de0/structSqlForeignKeyReferenceDefinition.html#a1eb2b3d405da67f955a37a5a61699c6b", null ]
+    ] ],
+    [ "SqlColumnDeclaration", "d3/d8a/structSqlColumnDeclaration.html", [
+      [ "name", "d3/d8a/structSqlColumnDeclaration.html#aff2f4a516a4d7d0229ef895512911c65", null ],
+      [ "type", "d3/d8a/structSqlColumnDeclaration.html#a564790b8f7f95492c11cfeff57dd142b", null ],
+      [ "primaryKey", "d3/d8a/structSqlColumnDeclaration.html#a728c1a59b47c63e23c8a0218e95a74f9", null ],
+      [ "foreignKey", "d3/d8a/structSqlColumnDeclaration.html#a5c9673d6bf4bd66a972a6753a52ddfb7", null ],
+      [ "required", "d3/d8a/structSqlColumnDeclaration.html#a596e33a6ad955278812bb8d8f8b61fbd", null ],
+      [ "unique", "d3/d8a/structSqlColumnDeclaration.html#ac8fdbff04f053622ca941e301b8f5b83", null ],
+      [ "index", "d3/d8a/structSqlColumnDeclaration.html#a30dc6a31ca68bb6666eb94c1ad80fdf6", null ]
+    ] ],
+    [ "SqlAlterTablePlan", "dd/ddb/structSqlAlterTablePlan.html", [
+      [ "tableName", "dd/ddb/structSqlAlterTablePlan.html#a55904d3d71609a166225e13f6723f6d4", null ],
+      [ "commands", "dd/ddb/structSqlAlterTablePlan.html#af812891a8f3e9c51023791379d5a3c61", null ]
+    ] ],
+    [ "SqlDropTablePlan", "d5/d6b/structSqlDropTablePlan.html", [
+      [ "tableName", "d5/d6b/structSqlDropTablePlan.html#a58a25bec98024e0d9a523b0788f3d0cd", null ]
+    ] ],
+    [ "SqlMigrationPlan", "d1/d29/structSqlMigrationPlan.html", null ],
     [ "SqlUpdateQueryBuilder", "db/d2a/classSqlUpdateQueryBuilder.html", [
       [ "SqlUpdateQueryBuilder", "db/d2a/classSqlUpdateQueryBuilder.html#a35a553c0ed9d18b18a72a6a4bb7dcee2", null ],
       [ "Formatter", "db/d2a/classSqlUpdateQueryBuilder.html#a571c810c61e362894786a20d427b5a0d", null ],
@@ -88,5 +121,10 @@ var group__QueryBuilder =
       [ "Set", "db/d2a/classSqlUpdateQueryBuilder.html#ad7cc1e537919e86cfc2d825e94d30276", null ],
       [ "Set", "db/d2a/classSqlUpdateQueryBuilder.html#aa5eb15f84bbf3a67225df2c6fdb97e4f", null ],
       [ "ToSql", "db/d2a/classSqlUpdateQueryBuilder.html#af757aaba5629c8e2f171540085ba918d", null ]
-    ] ]
+    ] ],
+    [ "SqlAlterTableCommand", "d6/daa/group__QueryBuilder.html#gab73d1a4f191ddc376b76026bdeb207b7", null ],
+    [ "SqlMigrationPlanElement", "d6/daa/group__QueryBuilder.html#ga4d116cb45cf9a4504b5fbae5a7cdc73f", null ],
+    [ "SqlPrimaryKeyType", "d6/daa/group__QueryBuilder.html#gaac6b3e46ba9412b69e63301e2edda2f0", null ],
+    [ "ToSql", "d6/daa/group__QueryBuilder.html#ga928bf407a9f3b15e5f55eb8af71fb020", null ],
+    [ "SqlColumnTypeDefinitionOf", "d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002", null ]
 ];

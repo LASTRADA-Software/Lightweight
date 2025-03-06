@@ -110,7 +110,7 @@ Create or Modife database schema</h1>
 </li>
 <li><code>Column(std::string columnName, SqlColumnTypeDefinition columnType)</code>, <code>Column(SqlColumnDeclaration column)</code><ul>
 <li>create a column specified by a name and type</li>
-<li>for precise control on the column specification <code>SqlColumnDeclaration</code> can be used as an argument.</li>
+<li>for precise control on the column specification <code><a class="el" href="../../d3/d8a/structSqlColumnDeclaration.html" title="Represents a SQL column declaration.">SqlColumnDeclaration</a></code> can be used as an argument.</li>
 </ul>
 </li>
 <li><code>RequiredColumn(std::string columnName, SqlColumnTypeDefinition columnType)</code><ul>
@@ -167,20 +167,22 @@ Create or Modife database schema</h1>
 </ul>
 <h2><a class="anchor" id="example"></a>
 Example</h2>
-<div class="fragment"><div class="line">CreateTable(&quot;Appointment&quot;).PrimaryKeyWithAutoIncrement(&quot;id&quot;, Guid{})</div>
-<div class="line">                  .RequiredColumn(&quot;date&quot;, DateTime {} )</div>
-<div class="line">                  .Column(&quot;comment&quot;, Varchar{80})</div>
-<div class="line">                  .ForeignKey(&quot;physician_id&quot;, Guid{}, SqlForeignKeyReferenceDefinition {</div>
-<div class="line">                                                          .tableName = &quot;Physician&quot;,</div>
-<div class="line">                                                          .columnName = &quot;id&quot;,</div>
-<div class="line">                                                      } )</div>
-<div class="line">                  .ForeignKey(&quot;patient_id&quot;, Guid{}, SqlForeignKeyReferenceDefinition {</div>
-<div class="line">                                                          .tableName = &quot;Patient&quot;,</div>
-<div class="line">                                                          .columnName = &quot;id&quot;,</div>
-<div class="line">                                                      } );</div>
+<div class="fragment"><div class="line"><a class="code hl_class" href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a> migration;</div>
+<div class="line">migration.<a class="code hl_function" href="../../d3/d15/classSqlMigrationQueryBuilder.html#a5510fe0d2c3392695035d4939579a125">CreateTable</a>(<span class="stringliteral">&quot;Appointment&quot;</span>).PrimaryKeyWithAutoIncrement(<span class="stringliteral">&quot;id&quot;</span>, Guid{})</div>
+<div class="line">         .RequiredColumn(<span class="stringliteral">&quot;date&quot;</span>, DateTime {})</div>
+<div class="line">         .Column(<span class="stringliteral">&quot;comment&quot;</span>, Varchar { 80 })</div>
+<div class="line">         .ForeignKey(<span class="stringliteral">&quot;physician_id&quot;</span>, Guid {}, </div>
+<div class="line">                     <a class="code hl_struct" href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html">SqlForeignKeyReferenceDefinition</a> { .<a class="code hl_variable" href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html#a2747c66e9a950aaee4aa70984a759a89">tableName</a> = <span class="stringliteral">&quot;Physician&quot;</span>, .columnName = <span class="stringliteral">&quot;id&quot;</span> })</div>
+<div class="line">         .ForeignKey(<span class="stringliteral">&quot;patient_id&quot;</span>, Guid {}, </div>
+<div class="line">                     <a class="code hl_struct" href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html">SqlForeignKeyReferenceDefinition</a> { .<a class="code hl_variable" href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html#a2747c66e9a950aaee4aa70984a759a89">tableName</a> = <span class="stringliteral">&quot;Patient&quot;</span>, .columnName = <span class="stringliteral">&quot;id&quot;</span> });</div>
+<div class="ttc" id="aclassSqlMigrationQueryBuilder_html"><div class="ttname"><a href="../../d3/d15/classSqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a></div><div class="ttdoc">Query builder for building SQL migration queries.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6b/Migrate_8hpp_source.html#l00183">Migrate.hpp:184</a></div></div>
+<div class="ttc" id="aclassSqlMigrationQueryBuilder_html_a5510fe0d2c3392695035d4939579a125"><div class="ttname"><a href="../../d3/d15/classSqlMigrationQueryBuilder.html#a5510fe0d2c3392695035d4939579a125">SqlMigrationQueryBuilder::CreateTable</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlCreateTableQueryBuilder CreateTable(std::string_view tableName)</div><div class="ttdoc">Creates a new table.</div></div>
+<div class="ttc" id="astructSqlForeignKeyReferenceDefinition_html"><div class="ttname"><a href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html">SqlForeignKeyReferenceDefinition</a></div><div class="ttdoc">Represents a foreign key reference definition.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00183">MigrationPlan.hpp:184</a></div></div>
+<div class="ttc" id="astructSqlForeignKeyReferenceDefinition_html_a2747c66e9a950aaee4aa70984a759a89"><div class="ttname"><a href="../../d2/de0/structSqlForeignKeyReferenceDefinition.html#a2747c66e9a950aaee4aa70984a759a89">SqlForeignKeyReferenceDefinition::tableName</a></div><div class="ttdeci">std::string tableName</div><div class="ttdoc">The table name that the foreign key references.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00186">MigrationPlan.hpp:186</a></div></div>
 </div><!-- fragment --><h1><a class="anchor" id="insert-elements"></a>
 Insert elements</h1>
-<p>To insert elements in the database first call <code>FrommTable(table)</code> function to specify which table to use, and then function <code>Insert()</code> to start construction of <code><a class="el" href="../../dd/dbd/classSqlInsertQueryBuilder.html" title="Query builder for building INSERT INTO ... queries.">SqlInsertQueryBuilder</a></code></p><ul>
+<p>To insert elements in the database first call <code>FrommTable(table)</code> function to specify which table to use, and then function <code>Insert()</code> to start construction of <code><a class="el" href="../../dd/dbd/classSqlInsertQueryBuilder.html" title="Query builder for building INSERT INTO ... queries.">SqlInsertQueryBuilder</a></code></p>
+<ul>
 <li><code>Set(std::string_view columnName, ColumnValue const&amp; value)</code><ul>
 <li>Adds a single column to the INSERT query.</li>
 </ul>
@@ -216,37 +218,45 @@ Select elements</h1>
 </li>
 <li>(optional) Additional option to build WHERE clause. See documentation for <code><a class="el" href="../../d2/dca/classSqlWhereClauseBuilder.html">SqlWhereClauseBuilder</a></code><ul>
 <li><code>Where</code><ul>
-<li><code>Where("a",1)</code> specify simple condition that is equivalent to the sql query <code>WHERE "a" = 1</code></li>
-<li><code>Where(<a class="el" href="../../d1/de4/structSqlQualifiedTableColumnName.html" title="SqlQualifiedTableColumnName represents a column name qualified with a table name.">SqlQualifiedTableColumnName</a>{ .tableName = "Table_A", .columnName = "a"}, 1)</code> such call translated into <code>WHERE "Table_A".a" = 1&lt;/tt&gt;
-  - &lt;tt&gt;Or()&lt;/tt&gt;, &lt;tt&gt;And()&lt;/tt&gt; and &lt;tt&gt;Not()&lt;/tt&gt; logical functions to apply to the next call
-    + Example of usage &lt;tt&gt;Where("a",1).Or().Where("b",1)&lt;/tt&gt;
-  -  &lt;tt&gt;Inner&lt;/tt&gt;|&lt;tt&gt;LeftOuter&lt;/tt&gt;|&lt;tt&gt;RightOuter&lt;/tt&gt;|&lt;tt&gt;FullOuter&lt;/tt&gt; + &lt;tt&gt;Join&lt;/tt&gt;
-    + See documentation for &lt;tt&gt;SqlJoinConditionBuilder&lt;/tt&gt; for details 
-* End
-  - &lt;tt&gt;First()&lt;/tt&gt;
-   + Specify number of elements to fetch, by default only one element will be fetched.
-  - &lt;tt&gt;All()&lt;/tt&gt;
-
-
-@subsection example-1 Example
-
-@icode 
-q.FromTable("Table_A")
-                .Select()
-                .Fields({ "foo"sv, "bar"sv }, "Table_A")
-                .Fields({ "that_foo"sv, "that_id"sv }, "Table_B")
-                .LeftOuterJoin("Table_B",
-                               [](SqlJoinConditionBuilder q) {
-                               return q.On("id", { .tableName = "Table_A", .columnName = "that_id" })
-                                       .On("that_foo", { .tableName = "Table_A", .columnName = "foo" });
-                               })
-                .Where(SqlQualifiedTableColumnName { .tableName = "Table_A", .columnName = "foo" }, 42) .All()  </code></li>
+<li><code>Where("a", 42)</code> specify simple condition that is equivalent to the sql query <code>WHERE "a" = 42</code></li>
+<li><code>Where(<a class="el" href="../../d1/de4/structSqlQualifiedTableColumnName.html" title="SqlQualifiedTableColumnName represents a column name qualified with a table name.">SqlQualifiedTableColumnName</a> { .tableName = "Table_A", .columnName = "a" }, 42)</code> such call translated into <code>WHERE "Table_A"."a" = 42</code></li>
+</ul>
+</li>
+<li><code>Or()</code>, <code>And()</code> and <code>Not()</code> logical functions to apply to the next call<ul>
+<li>Example of usage <code>Where("a",1).Or().Where("b",1)</code></li>
+</ul>
+</li>
+<li><code>Inner</code>|<code>LeftOuter</code>|<code>RightOuter</code>|<code>FullOuter</code> + <code>Join</code><ul>
+<li>See documentation for <code><a class="el" href="../../d5/d6f/classSqlJoinConditionBuilder.html" title="Query builder for building JOIN conditions.">SqlJoinConditionBuilder</a></code> for details</li>
 </ul>
 </li>
 </ul>
 </li>
+<li>End<ul>
+<li><code>First()</code><ul>
+<li>Specify number of elements to fetch, by default only one element will be fetched.</li>
 </ul>
-</div></div><!-- contents -->
+</li>
+<li><code>All()</code></li>
+</ul>
+</li>
+</ul>
+<h2><a class="anchor" id="example-1"></a>
+Example</h2>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> query = q.FromTable(<span class="stringliteral">&quot;Table_A&quot;</span>)</div>
+<div class="line">              .Select()</div>
+<div class="line">              .Fields({ <span class="stringliteral">&quot;foo&quot;</span>sv, <span class="stringliteral">&quot;bar&quot;</span>sv }, <span class="stringliteral">&quot;Table_A&quot;</span>)</div>
+<div class="line">              .Fields({ <span class="stringliteral">&quot;that_foo&quot;</span>sv, <span class="stringliteral">&quot;that_id&quot;</span>sv }, <span class="stringliteral">&quot;Table_B&quot;</span>)</div>
+<div class="line">              .LeftOuterJoin(<span class="stringliteral">&quot;Table_B&quot;</span>,</div>
+<div class="line">                  [](<a class="code hl_class" href="../../d5/d6f/classSqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> q) {</div>
+<div class="line">                      <span class="keywordflow">return</span> q.On(<span class="stringliteral">&quot;id&quot;</span>, { .tableName = <span class="stringliteral">&quot;Table_A&quot;</span>, .columnName = <span class="stringliteral">&quot;that_id&quot;</span> })</div>
+<div class="line">                              .On(<span class="stringliteral">&quot;that_foo&quot;</span>, { .tableName = <span class="stringliteral">&quot;Table_A&quot;</span>, .columnName = <span class="stringliteral">&quot;foo&quot;</span> });</div>
+<div class="line">                  })</div>
+<div class="line">              .Where(<a class="code hl_struct" href="../../d1/de4/structSqlQualifiedTableColumnName.html">SqlQualifiedTableColumnName</a> { .tableName = <span class="stringliteral">&quot;Table_A&quot;</span>, .columnName = <span class="stringliteral">&quot;foo&quot;</span> }, 42)</div>
+<div class="line">              .All();</div>
+<div class="ttc" id="aclassSqlJoinConditionBuilder_html"><div class="ttname"><a href="../../d5/d6f/classSqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a></div><div class="ttdoc">Query builder for building JOIN conditions.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00093">Core.hpp:94</a></div></div>
+<div class="ttc" id="astructSqlQualifiedTableColumnName_html"><div class="ttname"><a href="../../d1/de4/structSqlQualifiedTableColumnName.html">SqlQualifiedTableColumnName</a></div><div class="ttdoc">SqlQualifiedTableColumnName represents a column name qualified with a table name.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00039">Core.hpp:40</a></div></div>
+</div><!-- fragment --> </div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->
 <!-- start footer part -->
