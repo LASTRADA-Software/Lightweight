@@ -23,7 +23,9 @@
                 "rhs": "Windows"
             },
             "cacheVariables": {
-                "CMAKE_SYSTEM_VERSION": "10.0"
+                "CMAKE_SYSTEM_VERSION": "10.0",
+                "PEDANTIC_COMPILER": "ON",
+                "PEDANTIC_COMPILER_WERROR": "ON"
             }
         },
         {
