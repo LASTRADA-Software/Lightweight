@@ -164,9 +164,17 @@ struct SqlVariant
 
     /// @brief Retrieve the value as the specified type.
     template <typename T>
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE T& Get() noexcept
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE decltype(auto) Get() noexcept
     {
-        return std::get<T>(value);
+        if constexpr (IsSpecializationOf<std::optional, T>)
+        {
+            if (IsNull())
+                return T { std::nullopt };
+            else
+                return T { std::get<typename T::value_type>(value) };
+        }
+        else
+            return std::get<T>(value);
     }
 
     /// @brief Retrieve the value as the specified type, or return the default value if the value is NULL.
