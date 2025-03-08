@@ -1292,4 +1292,22 @@ TEST_CASE_METHOD(SqlTestFixture, "Test DifferenceView", "[DataMapper]")
     CHECK(differenceCount == 3);
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "MapFromRecordFields", "[DataMapper]")
+{
+    auto const person = Person {
+        .id = SqlGuid::Create(),
+        .name = "John Doe",
+        .is_active = true,
+        .age = 42,
+    };
+
+    auto variantFields = SqlVariantRow {};
+    variantFields.resize(RecordStorageFieldCount<Person>);
+
+    MapFromRecordFields(person, variantFields);
+
+    Reflection::EnumerateMembers(
+        person, [&]<size_t I>(auto const& field) { CHECK(variantFields[I] == SqlVariant(field.Value())); });
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
