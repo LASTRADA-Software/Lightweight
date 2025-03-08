@@ -79,8 +79,7 @@ std::string MakeType(SqlSchema::Column const& column)
 std::string MakeVariableName(SqlSchema::FullyQualifiedTableName const& table)
 {
     auto name = std::format("{}", table.table);
-    // NOLINTNEXTLINE(bugprone-narrowing-conversions,cppcoreguidelines-narrowing-conversions)
-    name.at(0) = std::tolower(name.at(0));
+    name.at(0) = static_cast<char>(std::tolower(name.at(0)));
     return name;
 }
 

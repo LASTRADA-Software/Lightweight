@@ -481,12 +481,11 @@ struct SqlDataBinder<Utf32StringType>
                 auto const* data = u16String->data();
                 auto const charCount = u16String->size();
                 auto const sizeInBytes = u16String->size() * sizeof(char16_t);
-                auto const CType = SQL_C_WCHAR;
-                auto const sqlType = charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR;
+                auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
                 return SQLBindParameter(stmt,
                                         column,
                                         SQL_PARAM_INPUT,
-                                        CType,
+                                        SQL_C_WCHAR,
                                         sqlType,
                                         charCount,
                                         0,
@@ -575,7 +574,7 @@ struct SqlDataBinder<Utf8StringType>
                 auto const CType = SQL_C_WCHAR;
                 auto const charCount = u16String->size();
                 auto const byteCount = u16String->size() * sizeof(char16_t);
-                auto const sqlType = charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR;
+                auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
                 return SQLBindParameter(stmt,
                                         column,
                                         SQL_PARAM_INPUT,
