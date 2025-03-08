@@ -275,6 +275,16 @@ struct SqlVariant
         throw std::bad_variant_access();
     }
 
+    [[nodiscard]] bool operator==(SqlVariant const& other) const noexcept
+    {
+        return ToString() == other.ToString();
+    }
+
+    [[nodiscard]] bool operator!=(SqlVariant const& other) const noexcept
+    {
+        return !(*this == other);
+    }
+
     /// @brief function to get SqlTime from SqlVariant or std::nullopt
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<SqlTime> TryGetTime() const
     {
