@@ -26,7 +26,9 @@
 ///
 /// @brief The data mapper is a high level API for mapping records to and from the database using high level C++ syntax.
 
-// Requires that T satisfies to be a field with storage.
+/// Requires that T satisfies to be a field with storage.
+///
+/// @ingroup DataMapper
 template <typename T>
 concept FieldWithStorage = requires(T const& field, T& mutableField) {
     { field.Value() } -> std::convertible_to<typename T::ValueType const&>;
@@ -35,7 +37,9 @@ concept FieldWithStorage = requires(T const& field, T& mutableField) {
     { mutableField.SetModified(bool {}) } -> std::convertible_to<void>;
 };
 
-// Represents the number of fields with storage in a record.
+/// Represents the number of fields with storage in a record.
+///
+/// @ingroup DataMapper
 template <typename Record>
 constexpr size_t RecordStorageFieldCount =
     Reflection::FoldMembers<Record>(size_t { 0 }, []<size_t I, typename Field>(size_t const accum) constexpr {
@@ -49,6 +53,8 @@ template <typename Record>
 concept RecordWithStorageFields = (RecordStorageFieldCount<Record> > 0);
 
 /// @brief Represents a sequence of indexes that can be used alongside Query() to retrieve only part of the record.
+///
+/// @ingroup DataMapper
 template <size_t... Ints>
 using SqlElements = std::integer_sequence<size_t, Ints...>;
 
@@ -66,10 +72,14 @@ constexpr bool CheckFieldProperty = Reflection::FoldMembers<T>(false, []<size_t 
 } // namespace detail
 
 /// @brief Tests if the given record type does contain a primary key.
+///
+/// @ingroup DataMapper
 template <typename T>
 constexpr bool HasPrimaryKey = detail::CheckFieldProperty<[]<typename Field>() { return IsPrimaryKey<Field>; }, T>;
 
 /// @brief Tests if the given record type does contain an auto increment primary key.
+///
+/// @ingroup DataMapper
 template <typename T>
 constexpr bool HasAutoIncrementPrimaryKey =
     detail::CheckFieldProperty<[]<typename Field>() { return IsAutoIncrementPrimaryKey<Field>; }, T>;
@@ -134,6 +144,8 @@ void GetAllColumns(SqlResultCursor& reader, Record& record)
 } // namespace detail
 
 /// Main API for mapping records to C++ from the database using high level C++ syntax.
+///
+/// @ingroup DataMapper
 template <typename Record, typename Derived>
 class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBuilder<Derived>
 {
@@ -217,6 +229,9 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     }
 };
 
+/// @brief Represents a query builder that retrieves only the fields specified.
+///
+/// @ingroup DataMapper
 template <typename Record, auto... ReferencedFields>
 class [[nodiscard]] SqlSparseFieldQueryBuilder final:
     public SqlCoreDataMapperQueryBuilder<Record, SqlSparseFieldQueryBuilder<Record, ReferencedFields...>>
@@ -255,6 +270,9 @@ class [[nodiscard]] SqlSparseFieldQueryBuilder final:
     }
 };
 
+/// @brief Represents a query builder that retrieves all fields of a record.
+///
+/// @ingroup DataMapper
 template <typename Record>
 class [[nodiscard]] SqlAllFieldsQueryBuilder final:
     public SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record>>
@@ -309,6 +327,11 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
     }
 };
 
+/// @brief Represents a query builder that retrieves only the first record found.
+///
+/// @see DataMapper::QuerySingle()
+///
+/// @ingroup DataMapper
 template <typename Record>
 class [[nodiscard]] SqlQuerySingleBuilder: public SqlWhereClauseBuilder<SqlQuerySingleBuilder<Record>>
 {
@@ -388,6 +411,8 @@ class [[nodiscard]] SqlQuerySingleBuilder: public SqlWhereClauseBuilder<SqlQuery
 };
 
 /// Returns the first primary key field of the record.
+///
+/// @ingroup DataMapper
 template <typename Record>
 inline LIGHTWEIGHT_FORCE_INLINE RecordPrimaryKeyType<Record> GetPrimaryKeyField(Record const& record) noexcept
 {
