@@ -93,21 +93,36 @@ struct Field
         requires std::constructible_from<T, S>
     constexpr Field& operator=(S&& value) noexcept;
 
+    /// Indicates if the field is optional, i.e., it can be NULL.
     static constexpr auto IsOptional = detail::IsStdOptional<T>;
+
+    /// Indicates if the field is mandatory, i.e., it cannot be NULL.
     static constexpr auto IsMandatory = !IsOptional;
+
+    /// Indicates if the field is a primary key.
     static constexpr auto IsPrimaryKey = IsPrimaryKeyValue != PrimaryKey::No;
+
+    /// Indicates if this is a primary key, it also is auto-assigned by the client.
     static constexpr auto IsAutoAssignPrimaryKey = IsPrimaryKeyValue == PrimaryKey::AutoAssign;
+
+    /// Indicates if this is a primary key, it also is auto-incremented by the database.
     static constexpr auto IsAutoIncrementPrimaryKey = IsPrimaryKeyValue == PrimaryKey::ServerSideAutoIncrement;
 
+    /// Compares two fields for equality.
     constexpr std::weak_ordering operator<=>(Field const& other) const noexcept;
 
+    /// Compares the field value with the given value for equality.
     bool operator==(Field const& value) const noexcept = default;
+
+    /// Compares the field value with the given value for inequality.
     bool operator!=(Field const& value) const noexcept = default;
 
+    /// Compares the field value with the given value for equality.
     template <typename S>
         requires std::convertible_to<S, T>
     bool operator==(S const& value) const noexcept;
 
+    /// Compares the field value with the given value for inequality.
     template <typename S>
         requires std::convertible_to<S, T>
     bool operator!=(S const& value) const noexcept;

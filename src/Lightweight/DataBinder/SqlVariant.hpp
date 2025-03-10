@@ -10,6 +10,7 @@
 #include "SqlDate.hpp"
 #include "SqlDateTime.hpp"
 #include "SqlFixedString.hpp"
+#include "SqlGuid.hpp"
 #include "SqlNullValue.hpp"
 #include "SqlText.hpp"
 #include "SqlTime.hpp"
@@ -44,6 +45,7 @@ struct SqlVariant
     ///
     /// This type is a variant of all the supported SQL data types.
     using InnerType = std::variant<SqlNullType,
+                                   SqlGuid,
                                    bool,
                                    int8_t,
                                    short,
@@ -162,9 +164,17 @@ struct SqlVariant
 
     /// @brief Retrieve the value as the specified type.
     template <typename T>
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE T& Get() noexcept
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE decltype(auto) Get() noexcept
     {
-        return std::get<T>(value);
+        if constexpr (IsSpecializationOf<std::optional, T>)
+        {
+            if (IsNull())
+                return T { std::nullopt };
+            else
+                return T { std::get<typename T::value_type>(value) };
+        }
+        else
+            return std::get<T>(value);
     }
 
     /// @brief Retrieve the value as the specified type, or return the default value if the value is NULL.
@@ -265,6 +275,16 @@ struct SqlVariant
         throw std::bad_variant_access();
     }
 
+    [[nodiscard]] bool operator==(SqlVariant const& other) const noexcept
+    {
+        return ToString() == other.ToString();
+    }
+
+    [[nodiscard]] bool operator!=(SqlVariant const& other) const noexcept
+    {
+        return !(*this == other);
+    }
+
     /// @brief function to get SqlTime from SqlVariant or std::nullopt
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<SqlTime> TryGetTime() const
     {
@@ -293,6 +313,18 @@ struct SqlVariant
 
         if (auto const* dateTime = std::get_if<SqlDateTime>(&value))
             return *dateTime;
+
+        throw std::bad_variant_access();
+    }
+
+    /// @brief Retrieve the GUID from the variant or std::nullopt if the value is NULL.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<SqlGuid> TryGetGuid() const
+    {
+        if (IsNull())
+            return std::nullopt;
+
+        if (auto const* guid = std::get_if<SqlGuid>(&value))
+            return *guid;
 
         throw std::bad_variant_access();
     }

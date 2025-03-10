@@ -234,6 +234,45 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: NULL values", "[SqlDataBinder],[Sq
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlGuid", "[SqlDataBinder],[SqlVariant]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect(
+        [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Guid {}); });
+
+    using namespace std::chrono_literals;
+    auto const expectedVariant = SqlVariant { SqlGuid::Create() };
+    auto const& expectedValue = std::get<SqlGuid>(expectedVariant.value);
+
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+    stmt.Execute(expectedVariant);
+
+    stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
+    {
+        auto reader = stmt.GetResultCursor();
+        (void) reader.FetchRow();
+        auto const actualVariant = reader.GetColumn<SqlVariant>(1);
+        CHECK(actualVariant.TryGetGuid().value_or(SqlGuid {}) == expectedValue);
+    }
+
+    // Test for inserting/getting NULL values
+    stmt.ExecuteDirect(stmt.Query("Test").Delete());
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+    stmt.Execute(SqlNullValue);
+    stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
+    {
+        auto reader = stmt.GetResultCursor();
+        (void) reader.FetchRow();
+        auto const actualVariant = reader.GetColumn<SqlVariant>(1);
+        CHECK(actualVariant.IsNull());
+        CHECK(actualVariant.TryGetGuid().has_value() == false);
+    }
+
+    // Test for TryGetGuid() on non-GUID variant
+    auto const nonGuidVariant = SqlVariant { 42 };
+    CHECK_THROWS_AS(nonGuidVariant.TryGetGuid(), std::bad_variant_access);
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlDate", "[SqlDataBinder],[SqlVariant]")
 {
     auto stmt = SqlStatement {};

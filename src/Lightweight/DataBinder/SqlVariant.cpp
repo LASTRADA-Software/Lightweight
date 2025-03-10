@@ -56,6 +56,16 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
         case SQL_LONGVARCHAR:   // long string
             returnCode =
                 SqlDataBinder<std::string>::GetColumn(stmt, column, &variant.emplace<std::string>(), indicator, cb);
+
+            if (cb.ServerType() == SqlServerType::SQLITE && SQL_SUCCEEDED(returnCode))
+            {
+                // The SQLite driver returns SQL_VARCHAR for GUID columns.
+                // So we need to have some heuristic to detect GUIDs in the string and convert them.
+                if (auto maybeGuid = SqlGuid::TryParse(std::get<std::string>(variant)); maybeGuid)
+                {
+                    variant = maybeGuid.value();
+                }
+            }
             break;
         case SQL_WCHAR:         // fixed-length Unicode (UTF-16) string
         case SQL_WVARCHAR:      // variable-length Unicode (UTF-16) string
@@ -120,8 +130,8 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
             break;
         }
         case SQL_GUID:
-            // TODO: Get them implemented on demand
-            [[fallthrough]];
+            returnCode = SqlDataBinder<SqlGuid>::GetColumn(stmt, column, &variant.emplace<SqlGuid>(), indicator, cb);
+            break;
         default:
             SqlLogger::GetLogger().OnError(SqlError::UNSUPPORTED_TYPE);
             returnCode = SQL_ERROR; // std::errc::invalid_argument;
@@ -138,6 +148,7 @@ std::string SqlVariant::ToString() const
     // clang-format off
     return std::visit(detail::overloaded {
         [&](SqlNullType) { return "NULL"s; },
+        [&](SqlGuid guid) { return std::format("{}", guid); },
         [&](bool v) { return v ? "true"s : "false"s; },
         [&](int8_t v) { return std::to_string(v); },
         [&](short v) { return std::to_string(v); },

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "../Utils.hpp"
 #include "Field.hpp"
 
 #include <reflection-cpp/reflection.hpp>
@@ -51,7 +52,8 @@ decltype(auto) RecordPrimaryKeyOf(Record&& record)
     return Reflection::GetMemberAt<RecordPrimaryKeyIndex<std::remove_cvref_t<Record>>>(std::forward<Record>(record));
 }
 
-namespace details {
+namespace details
+{
 
 template <typename Record>
 struct RecordPrimaryKeyTypeHelper
@@ -71,3 +73,16 @@ struct RecordPrimaryKeyTypeHelper<Record>
 /// Reflects the primary key type of the given record.
 template <typename Record>
 using RecordPrimaryKeyType = typename details::RecordPrimaryKeyTypeHelper<Record>::type;
+
+/// @brief Maps the fields of the given record to the target that supports the operator[].
+template <typename Record, typename TargetMappable>
+void MapFromRecordFields(Record&& record, TargetMappable& target)
+{
+    Reflection::EnumerateMembers(std::forward<Record>(record), [&]<std::size_t I>(auto const& field) {
+        using MemberType = Reflection::MemberTypeOf<I, Record>;
+        static_assert(IsField<MemberType>, "Record member must be a Field<> type");
+        static_assert(std::is_assignable_v<decltype(target[I]), decltype(field.Value())>,
+                      "Target must support operator[] with the field type");
+        target[I] = field.Value();
+    });
+}
