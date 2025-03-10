@@ -581,145 +581,144 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00481" name="l00481"></a><span class="lineno">  481</span>                <span class="keyword">auto</span> <span class="keyword">const</span>* data = u16String-&gt;data();</div>
 <div class="line"><a id="l00482" name="l00482"></a><span class="lineno">  482</span>                <span class="keyword">auto</span> <span class="keyword">const</span> charCount = u16String-&gt;size();</div>
 <div class="line"><a id="l00483" name="l00483"></a><span class="lineno">  483</span>                <span class="keyword">auto</span> <span class="keyword">const</span> sizeInBytes = u16String-&gt;size() * <span class="keyword">sizeof</span>(char16_t);</div>
-<div class="line"><a id="l00484" name="l00484"></a><span class="lineno">  484</span>                <span class="keyword">auto</span> <span class="keyword">const</span> CType = SQL_C_WCHAR;</div>
-<div class="line"><a id="l00485" name="l00485"></a><span class="lineno">  485</span>                <span class="keyword">auto</span> <span class="keyword">const</span> sqlType = charCount &gt; SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR;</div>
-<div class="line"><a id="l00486" name="l00486"></a><span class="lineno">  486</span>                <span class="keywordflow">return</span> SQLBindParameter(stmt,</div>
-<div class="line"><a id="l00487" name="l00487"></a><span class="lineno">  487</span>                                        column,</div>
-<div class="line"><a id="l00488" name="l00488"></a><span class="lineno">  488</span>                                        SQL_PARAM_INPUT,</div>
-<div class="line"><a id="l00489" name="l00489"></a><span class="lineno">  489</span>                                        CType,</div>
-<div class="line"><a id="l00490" name="l00490"></a><span class="lineno">  490</span>                                        sqlType,</div>
-<div class="line"><a id="l00491" name="l00491"></a><span class="lineno">  491</span>                                        charCount,</div>
-<div class="line"><a id="l00492" name="l00492"></a><span class="lineno">  492</span>                                        0,</div>
-<div class="line"><a id="l00493" name="l00493"></a><span class="lineno">  493</span>                                        (SQLPOINTER) data,</div>
-<div class="line"><a id="l00494" name="l00494"></a><span class="lineno">  494</span>                                        sizeInBytes,</div>
-<div class="line"><a id="l00495" name="l00495"></a><span class="lineno">  495</span>                                        <span class="keyword">nullptr</span>);</div>
-<div class="line"><a id="l00496" name="l00496"></a><span class="lineno">  496</span>            }</div>
-<div class="line"><a id="l00497" name="l00497"></a><span class="lineno">  497</span>        }</div>
-<div class="line"><a id="l00498" name="l00498"></a><span class="lineno">  498</span>        std::unreachable();</div>
-<div class="line"><a id="l00499" name="l00499"></a><span class="lineno">  499</span>    }</div>
-<div class="line"><a id="l00500" name="l00500"></a><span class="lineno">  500</span> </div>
-<div class="line"><a id="l00501" name="l00501"></a><span class="lineno">  501</span>    <span class="keyword">static</span> SQLRETURN OutputColumn(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00502" name="l00502"></a><span class="lineno">  502</span>                                  SQLUSMALLINT column,</div>
-<div class="line"><a id="l00503" name="l00503"></a><span class="lineno">  503</span>                                  Utf32StringType* result,</div>
-<div class="line"><a id="l00504" name="l00504"></a><span class="lineno">  504</span>                                  SQLLEN* indicator,</div>
-<div class="line"><a id="l00505" name="l00505"></a><span class="lineno">  505</span>                                  <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00506" name="l00506"></a><span class="lineno">  506</span>    {</div>
-<div class="line"><a id="l00507" name="l00507"></a><span class="lineno">  507</span>        <span class="keywordflow">return</span> detail::OutputColumnNonUtf16Unicode&lt;Utf32StringType&gt;(stmt, column, result, indicator, cb);</div>
-<div class="line"><a id="l00508" name="l00508"></a><span class="lineno">  508</span>    }</div>
-<div class="line"><a id="l00509" name="l00509"></a><span class="lineno">  509</span> </div>
-<div class="line"><a id="l00510" name="l00510"></a><span class="lineno">  510</span>    <span class="keyword">static</span> SQLRETURN GetColumn(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00511" name="l00511"></a><span class="lineno">  511</span>                               SQLUSMALLINT column,</div>
-<div class="line"><a id="l00512" name="l00512"></a><span class="lineno">  512</span>                               Utf32StringType* result,</div>
-<div class="line"><a id="l00513" name="l00513"></a><span class="lineno">  513</span>                               SQLLEN* indicator,</div>
-<div class="line"><a id="l00514" name="l00514"></a><span class="lineno">  514</span>                               <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00515" name="l00515"></a><span class="lineno">  515</span>    {</div>
-<div class="line"><a id="l00516" name="l00516"></a><span class="lineno">  516</span>        <span class="keyword">auto</span> u16String = std::u16string {};</div>
-<div class="line"><a id="l00517" name="l00517"></a><span class="lineno">  517</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlResult = detail::GetColumnUtf16(stmt, column, &amp;u16String, indicator, cb);</div>
-<div class="line"><a id="l00518" name="l00518"></a><span class="lineno">  518</span>        <span class="keywordflow">if</span> (!SQL_SUCCEEDED(sqlResult))</div>
-<div class="line"><a id="l00519" name="l00519"></a><span class="lineno">  519</span>            <span class="keywordflow">return</span> sqlResult;</div>
-<div class="line"><a id="l00520" name="l00520"></a><span class="lineno">  520</span> </div>
-<div class="line"><a id="l00521" name="l00521"></a><span class="lineno">  521</span>        <span class="keyword">auto</span> <span class="keyword">const</span> u32String = <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#ga6c3ec34652e689bcfa46800912724a6e">ToUtf32</a>(u16String);</div>
-<div class="line"><a id="l00522" name="l00522"></a><span class="lineno">  522</span>        StringTraits::Resize(result, u32String.size());</div>
-<div class="line"><a id="l00523" name="l00523"></a><span class="lineno">  523</span>        std::copy_n((CharType <span class="keyword">const</span>*) u32String.data(), u32String.size(), StringTraits::Data(result));</div>
-<div class="line"><a id="l00524" name="l00524"></a><span class="lineno">  524</span> </div>
-<div class="line"><a id="l00525" name="l00525"></a><span class="lineno">  525</span>        <span class="keywordflow">return</span> sqlResult;</div>
-<div class="line"><a id="l00526" name="l00526"></a><span class="lineno">  526</span>    }</div>
-<div class="line"><a id="l00527" name="l00527"></a><span class="lineno">  527</span> </div>
-<div class="line"><a id="l00528" name="l00528"></a><span class="lineno">  528</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(Utf32StringType <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00529" name="l00529"></a><span class="lineno">  529</span>    {</div>
-<div class="line"><a id="l00530" name="l00530"></a><span class="lineno">  530</span>        <span class="keyword">auto</span> u8String = <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a>(detail::SqlViewHelper&lt;Utf32StringType&gt;::View(value));</div>
-<div class="line"><a id="l00531" name="l00531"></a><span class="lineno">  531</span>        <span class="keywordflow">return</span> std::string(<span class="keyword">reinterpret_cast&lt;</span><span class="keywordtype">char</span> const*<span class="keyword">&gt;</span>(u8String.data()), u8String.size());</div>
-<div class="line"><a id="l00532" name="l00532"></a><span class="lineno">  532</span>    }</div>
-<div class="line"><a id="l00533" name="l00533"></a><span class="lineno">  533</span>};</div>
-<div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span> </div>
-<div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span><span class="comment">// SqlDataBinder&lt;&gt; specialization for UTF-8 strings</span></div>
-<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Utf8StringType&gt;</div>
-<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span>    <span class="keyword">requires</span> SqlBasicStringBinderConcept&lt;Utf8StringType, char8_t&gt;</div>
-<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span><span class="keyword">struct </span>SqlDataBinder&lt;Utf8StringType&gt;</div>
-<div class="line"><a id="l00539" name="l00539"></a><span class="lineno">  539</span>{</div>
-<div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span>    <span class="keyword">using </span>ValueType = Utf8StringType;</div>
-<div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span>    <span class="keyword">using </span>CharType = char8_t;</div>
-<div class="line"><a id="l00542" name="l00542"></a><span class="lineno">  542</span>    <span class="keyword">using </span>StringTraits = SqlBasicStringOperations&lt;Utf8StringType&gt;;</div>
-<div class="line"><a id="l00543" name="l00543"></a><span class="lineno">  543</span> </div>
-<div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> ColumnType = StringTraits::ColumnType;</div>
-<div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span> </div>
-<div class="line"><a id="l00546" name="l00546"></a><span class="lineno">  546</span>    <span class="keyword">static</span> SQLRETURN InputParameter(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00547" name="l00547"></a><span class="lineno">  547</span>                                    SQLUSMALLINT column,</div>
-<div class="line"><a id="l00548" name="l00548"></a><span class="lineno">  548</span>                                    Utf8StringType <span class="keyword">const</span>&amp; value,</div>
-<div class="line"><a id="l00549" name="l00549"></a><span class="lineno">  549</span>                                    <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00550" name="l00550"></a><span class="lineno">  550</span>    {</div>
-<div class="line"><a id="l00551" name="l00551"></a><span class="lineno">  551</span>        <span class="keywordflow">switch</span> (cb.ServerType())</div>
-<div class="line"><a id="l00552" name="l00552"></a><span class="lineno">  552</span>        {</div>
-<div class="line"><a id="l00553" name="l00553"></a><span class="lineno">  553</span>            <span class="keywordflow">case</span> SqlServerType::POSTGRESQL: {</div>
-<div class="line"><a id="l00554" name="l00554"></a><span class="lineno">  554</span>                <span class="comment">// PostgreSQL only supports UTF-8 as Unicode encoding</span></div>
-<div class="line"><a id="l00555" name="l00555"></a><span class="lineno">  555</span>                <span class="keywordflow">return</span> SQLBindParameter(stmt,</div>
-<div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span>                                        column,</div>
-<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span>                                        SQL_PARAM_INPUT,</div>
-<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span>                                        SQL_C_CHAR,</div>
-<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span>                                        SQL_VARCHAR,</div>
-<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span>                                        value.size(),</div>
-<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span>                                        0,</div>
-<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span>                                        (SQLPOINTER) value.data(),</div>
-<div class="line"><a id="l00563" name="l00563"></a><span class="lineno">  563</span>                                        0,</div>
-<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span>                                        <span class="keyword">nullptr</span>);</div>
-<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span>            }</div>
-<div class="line"><a id="l00566" name="l00566"></a><span class="lineno">  566</span>            <span class="keywordflow">case</span> SqlServerType::ORACLE:</div>
-<div class="line"><a id="l00567" name="l00567"></a><span class="lineno">  567</span>            <span class="keywordflow">case</span> SqlServerType::MYSQL:</div>
-<div class="line"><a id="l00568" name="l00568"></a><span class="lineno">  568</span>            <span class="keywordflow">case</span> SqlServerType::SQLITE: <span class="comment">// We assume UTF-16 for SQLite</span></div>
-<div class="line"><a id="l00569" name="l00569"></a><span class="lineno">  569</span>            <span class="keywordflow">case</span> SqlServerType::MICROSOFT_SQL:</div>
-<div class="line"><a id="l00570" name="l00570"></a><span class="lineno">  570</span>            <span class="keywordflow">case</span> SqlServerType::UNKNOWN: {</div>
-<div class="line"><a id="l00571" name="l00571"></a><span class="lineno">  571</span>                <span class="keyword">auto</span> u16String =</div>
-<div class="line"><a id="l00572" name="l00572"></a><span class="lineno">  572</span>                    std::make_shared&lt;std::u16string&gt;(<a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gabd2bf0a25881dd4f308c6fa47a63c4f8">ToUtf16</a>(detail::SqlViewHelper&lt;Utf8StringType&gt;::View(value)));</div>
-<div class="line"><a id="l00573" name="l00573"></a><span class="lineno">  573</span>                cb.PlanPostExecuteCallback([u16String = u16String]() {}); <span class="comment">// Keep the string alive</span></div>
-<div class="line"><a id="l00574" name="l00574"></a><span class="lineno">  574</span> </div>
-<div class="line"><a id="l00575" name="l00575"></a><span class="lineno">  575</span>                <span class="keyword">auto</span> <span class="keyword">const</span> CType = SQL_C_WCHAR;</div>
-<div class="line"><a id="l00576" name="l00576"></a><span class="lineno">  576</span>                <span class="keyword">auto</span> <span class="keyword">const</span> charCount = u16String-&gt;size();</div>
-<div class="line"><a id="l00577" name="l00577"></a><span class="lineno">  577</span>                <span class="keyword">auto</span> <span class="keyword">const</span> byteCount = u16String-&gt;size() * <span class="keyword">sizeof</span>(char16_t);</div>
-<div class="line"><a id="l00578" name="l00578"></a><span class="lineno">  578</span>                <span class="keyword">auto</span> <span class="keyword">const</span> sqlType = charCount &gt; SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR;</div>
-<div class="line"><a id="l00579" name="l00579"></a><span class="lineno">  579</span>                <span class="keywordflow">return</span> SQLBindParameter(stmt,</div>
-<div class="line"><a id="l00580" name="l00580"></a><span class="lineno">  580</span>                                        column,</div>
-<div class="line"><a id="l00581" name="l00581"></a><span class="lineno">  581</span>                                        SQL_PARAM_INPUT,</div>
-<div class="line"><a id="l00582" name="l00582"></a><span class="lineno">  582</span>                                        CType,</div>
-<div class="line"><a id="l00583" name="l00583"></a><span class="lineno">  583</span>                                        sqlType,</div>
-<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span>                                        charCount,</div>
-<div class="line"><a id="l00585" name="l00585"></a><span class="lineno">  585</span>                                        0,</div>
-<div class="line"><a id="l00586" name="l00586"></a><span class="lineno">  586</span>                                        (SQLPOINTER) u16String-&gt;data(),</div>
-<div class="line"><a id="l00587" name="l00587"></a><span class="lineno">  587</span>                                        byteCount,</div>
-<div class="line"><a id="l00588" name="l00588"></a><span class="lineno">  588</span>                                        <span class="keyword">nullptr</span>);</div>
-<div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span>            }</div>
-<div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span>        }</div>
-<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span>        std::unreachable();</div>
-<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span>    }</div>
-<div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span> </div>
-<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span>    <span class="keyword">static</span> SQLRETURN OutputColumn(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span>                                  SQLUSMALLINT column,</div>
-<div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span>                                  Utf8StringType* result,</div>
-<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span>                                  SQLLEN* indicator,</div>
-<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span>                                  <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span>    {</div>
-<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span>        <span class="keywordflow">return</span> detail::OutputColumnNonUtf16Unicode&lt;Utf8StringType&gt;(stmt, column, result, indicator, cb);</div>
-<div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span>    }</div>
-<div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span> </div>
-<div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span>    <span class="keyword">static</span> SQLRETURN GetColumn(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span>                               SQLUSMALLINT column,</div>
-<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span>                               Utf8StringType* result,</div>
-<div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span>                               SQLLEN* indicator,</div>
-<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span>                               <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span>    {</div>
-<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span>        <span class="keyword">auto</span> u16String = std::u16string {};</div>
-<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>        u16String.resize(result-&gt;size());</div>
-<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = detail::GetColumnUtf16(stmt, column, &amp;u16String, indicator, cb);</div>
-<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(sqlReturn))</div>
-<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span>            *result = <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a>(u16String);</div>
-<div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span>        <span class="keywordflow">return</span> sqlReturn;</div>
-<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span>    }</div>
-<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span> </div>
-<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(Utf8StringType <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span>    {</div>
-<div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span>        <span class="comment">// Pass data as-is</span></div>
-<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span>        <span class="keywordflow">return</span> std::string(<span class="keyword">reinterpret_cast&lt;</span><span class="keywordtype">char</span> const*<span class="keyword">&gt;</span>(value.data()), value.size());</div>
-<div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span>    }</div>
-<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span>};</div>
+<div class="line"><a id="l00484" name="l00484"></a><span class="lineno">  484</span>                <span class="keyword">auto</span> <span class="keyword">const</span> sqlType = <span class="keyword">static_cast&lt;</span>SQLSMALLINT<span class="keyword">&gt;</span>(charCount &gt; SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);</div>
+<div class="line"><a id="l00485" name="l00485"></a><span class="lineno">  485</span>                <span class="keywordflow">return</span> SQLBindParameter(stmt,</div>
+<div class="line"><a id="l00486" name="l00486"></a><span class="lineno">  486</span>                                        column,</div>
+<div class="line"><a id="l00487" name="l00487"></a><span class="lineno">  487</span>                                        SQL_PARAM_INPUT,</div>
+<div class="line"><a id="l00488" name="l00488"></a><span class="lineno">  488</span>                                        SQL_C_WCHAR,</div>
+<div class="line"><a id="l00489" name="l00489"></a><span class="lineno">  489</span>                                        sqlType,</div>
+<div class="line"><a id="l00490" name="l00490"></a><span class="lineno">  490</span>                                        charCount,</div>
+<div class="line"><a id="l00491" name="l00491"></a><span class="lineno">  491</span>                                        0,</div>
+<div class="line"><a id="l00492" name="l00492"></a><span class="lineno">  492</span>                                        (SQLPOINTER) data,</div>
+<div class="line"><a id="l00493" name="l00493"></a><span class="lineno">  493</span>                                        sizeInBytes,</div>
+<div class="line"><a id="l00494" name="l00494"></a><span class="lineno">  494</span>                                        <span class="keyword">nullptr</span>);</div>
+<div class="line"><a id="l00495" name="l00495"></a><span class="lineno">  495</span>            }</div>
+<div class="line"><a id="l00496" name="l00496"></a><span class="lineno">  496</span>        }</div>
+<div class="line"><a id="l00497" name="l00497"></a><span class="lineno">  497</span>        std::unreachable();</div>
+<div class="line"><a id="l00498" name="l00498"></a><span class="lineno">  498</span>    }</div>
+<div class="line"><a id="l00499" name="l00499"></a><span class="lineno">  499</span> </div>
+<div class="line"><a id="l00500" name="l00500"></a><span class="lineno">  500</span>    <span class="keyword">static</span> SQLRETURN OutputColumn(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00501" name="l00501"></a><span class="lineno">  501</span>                                  SQLUSMALLINT column,</div>
+<div class="line"><a id="l00502" name="l00502"></a><span class="lineno">  502</span>                                  Utf32StringType* result,</div>
+<div class="line"><a id="l00503" name="l00503"></a><span class="lineno">  503</span>                                  SQLLEN* indicator,</div>
+<div class="line"><a id="l00504" name="l00504"></a><span class="lineno">  504</span>                                  <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00505" name="l00505"></a><span class="lineno">  505</span>    {</div>
+<div class="line"><a id="l00506" name="l00506"></a><span class="lineno">  506</span>        <span class="keywordflow">return</span> detail::OutputColumnNonUtf16Unicode&lt;Utf32StringType&gt;(stmt, column, result, indicator, cb);</div>
+<div class="line"><a id="l00507" name="l00507"></a><span class="lineno">  507</span>    }</div>
+<div class="line"><a id="l00508" name="l00508"></a><span class="lineno">  508</span> </div>
+<div class="line"><a id="l00509" name="l00509"></a><span class="lineno">  509</span>    <span class="keyword">static</span> SQLRETURN GetColumn(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00510" name="l00510"></a><span class="lineno">  510</span>                               SQLUSMALLINT column,</div>
+<div class="line"><a id="l00511" name="l00511"></a><span class="lineno">  511</span>                               Utf32StringType* result,</div>
+<div class="line"><a id="l00512" name="l00512"></a><span class="lineno">  512</span>                               SQLLEN* indicator,</div>
+<div class="line"><a id="l00513" name="l00513"></a><span class="lineno">  513</span>                               <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00514" name="l00514"></a><span class="lineno">  514</span>    {</div>
+<div class="line"><a id="l00515" name="l00515"></a><span class="lineno">  515</span>        <span class="keyword">auto</span> u16String = std::u16string {};</div>
+<div class="line"><a id="l00516" name="l00516"></a><span class="lineno">  516</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlResult = detail::GetColumnUtf16(stmt, column, &amp;u16String, indicator, cb);</div>
+<div class="line"><a id="l00517" name="l00517"></a><span class="lineno">  517</span>        <span class="keywordflow">if</span> (!SQL_SUCCEEDED(sqlResult))</div>
+<div class="line"><a id="l00518" name="l00518"></a><span class="lineno">  518</span>            <span class="keywordflow">return</span> sqlResult;</div>
+<div class="line"><a id="l00519" name="l00519"></a><span class="lineno">  519</span> </div>
+<div class="line"><a id="l00520" name="l00520"></a><span class="lineno">  520</span>        <span class="keyword">auto</span> <span class="keyword">const</span> u32String = <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#ga6c3ec34652e689bcfa46800912724a6e">ToUtf32</a>(u16String);</div>
+<div class="line"><a id="l00521" name="l00521"></a><span class="lineno">  521</span>        StringTraits::Resize(result, u32String.size());</div>
+<div class="line"><a id="l00522" name="l00522"></a><span class="lineno">  522</span>        std::copy_n((CharType <span class="keyword">const</span>*) u32String.data(), u32String.size(), StringTraits::Data(result));</div>
+<div class="line"><a id="l00523" name="l00523"></a><span class="lineno">  523</span> </div>
+<div class="line"><a id="l00524" name="l00524"></a><span class="lineno">  524</span>        <span class="keywordflow">return</span> sqlResult;</div>
+<div class="line"><a id="l00525" name="l00525"></a><span class="lineno">  525</span>    }</div>
+<div class="line"><a id="l00526" name="l00526"></a><span class="lineno">  526</span> </div>
+<div class="line"><a id="l00527" name="l00527"></a><span class="lineno">  527</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(Utf32StringType <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00528" name="l00528"></a><span class="lineno">  528</span>    {</div>
+<div class="line"><a id="l00529" name="l00529"></a><span class="lineno">  529</span>        <span class="keyword">auto</span> u8String = <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a>(detail::SqlViewHelper&lt;Utf32StringType&gt;::View(value));</div>
+<div class="line"><a id="l00530" name="l00530"></a><span class="lineno">  530</span>        <span class="keywordflow">return</span> std::string(<span class="keyword">reinterpret_cast&lt;</span><span class="keywordtype">char</span> const*<span class="keyword">&gt;</span>(u8String.data()), u8String.size());</div>
+<div class="line"><a id="l00531" name="l00531"></a><span class="lineno">  531</span>    }</div>
+<div class="line"><a id="l00532" name="l00532"></a><span class="lineno">  532</span>};</div>
+<div class="line"><a id="l00533" name="l00533"></a><span class="lineno">  533</span> </div>
+<div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span><span class="comment">// SqlDataBinder&lt;&gt; specialization for UTF-8 strings</span></div>
+<div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Utf8StringType&gt;</div>
+<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span>    <span class="keyword">requires</span> SqlBasicStringBinderConcept&lt;Utf8StringType, char8_t&gt;</div>
+<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span><span class="keyword">struct </span>SqlDataBinder&lt;Utf8StringType&gt;</div>
+<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span>{</div>
+<div class="line"><a id="l00539" name="l00539"></a><span class="lineno">  539</span>    <span class="keyword">using </span>ValueType = Utf8StringType;</div>
+<div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span>    <span class="keyword">using </span>CharType = char8_t;</div>
+<div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span>    <span class="keyword">using </span>StringTraits = SqlBasicStringOperations&lt;Utf8StringType&gt;;</div>
+<div class="line"><a id="l00542" name="l00542"></a><span class="lineno">  542</span> </div>
+<div class="line"><a id="l00543" name="l00543"></a><span class="lineno">  543</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> ColumnType = StringTraits::ColumnType;</div>
+<div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span> </div>
+<div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span>    <span class="keyword">static</span> SQLRETURN InputParameter(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00546" name="l00546"></a><span class="lineno">  546</span>                                    SQLUSMALLINT column,</div>
+<div class="line"><a id="l00547" name="l00547"></a><span class="lineno">  547</span>                                    Utf8StringType <span class="keyword">const</span>&amp; value,</div>
+<div class="line"><a id="l00548" name="l00548"></a><span class="lineno">  548</span>                                    <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00549" name="l00549"></a><span class="lineno">  549</span>    {</div>
+<div class="line"><a id="l00550" name="l00550"></a><span class="lineno">  550</span>        <span class="keywordflow">switch</span> (cb.ServerType())</div>
+<div class="line"><a id="l00551" name="l00551"></a><span class="lineno">  551</span>        {</div>
+<div class="line"><a id="l00552" name="l00552"></a><span class="lineno">  552</span>            <span class="keywordflow">case</span> SqlServerType::POSTGRESQL: {</div>
+<div class="line"><a id="l00553" name="l00553"></a><span class="lineno">  553</span>                <span class="comment">// PostgreSQL only supports UTF-8 as Unicode encoding</span></div>
+<div class="line"><a id="l00554" name="l00554"></a><span class="lineno">  554</span>                <span class="keywordflow">return</span> SQLBindParameter(stmt,</div>
+<div class="line"><a id="l00555" name="l00555"></a><span class="lineno">  555</span>                                        column,</div>
+<div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span>                                        SQL_PARAM_INPUT,</div>
+<div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span>                                        SQL_C_CHAR,</div>
+<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span>                                        SQL_VARCHAR,</div>
+<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span>                                        value.size(),</div>
+<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span>                                        0,</div>
+<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span>                                        (SQLPOINTER) value.data(),</div>
+<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span>                                        0,</div>
+<div class="line"><a id="l00563" name="l00563"></a><span class="lineno">  563</span>                                        <span class="keyword">nullptr</span>);</div>
+<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span>            }</div>
+<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span>            <span class="keywordflow">case</span> SqlServerType::ORACLE:</div>
+<div class="line"><a id="l00566" name="l00566"></a><span class="lineno">  566</span>            <span class="keywordflow">case</span> SqlServerType::MYSQL:</div>
+<div class="line"><a id="l00567" name="l00567"></a><span class="lineno">  567</span>            <span class="keywordflow">case</span> SqlServerType::SQLITE: <span class="comment">// We assume UTF-16 for SQLite</span></div>
+<div class="line"><a id="l00568" name="l00568"></a><span class="lineno">  568</span>            <span class="keywordflow">case</span> SqlServerType::MICROSOFT_SQL:</div>
+<div class="line"><a id="l00569" name="l00569"></a><span class="lineno">  569</span>            <span class="keywordflow">case</span> SqlServerType::UNKNOWN: {</div>
+<div class="line"><a id="l00570" name="l00570"></a><span class="lineno">  570</span>                <span class="keyword">auto</span> u16String =</div>
+<div class="line"><a id="l00571" name="l00571"></a><span class="lineno">  571</span>                    std::make_shared&lt;std::u16string&gt;(<a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gabd2bf0a25881dd4f308c6fa47a63c4f8">ToUtf16</a>(detail::SqlViewHelper&lt;Utf8StringType&gt;::View(value)));</div>
+<div class="line"><a id="l00572" name="l00572"></a><span class="lineno">  572</span>                cb.PlanPostExecuteCallback([u16String = u16String]() {}); <span class="comment">// Keep the string alive</span></div>
+<div class="line"><a id="l00573" name="l00573"></a><span class="lineno">  573</span> </div>
+<div class="line"><a id="l00574" name="l00574"></a><span class="lineno">  574</span>                <span class="keyword">auto</span> <span class="keyword">const</span> CType = SQL_C_WCHAR;</div>
+<div class="line"><a id="l00575" name="l00575"></a><span class="lineno">  575</span>                <span class="keyword">auto</span> <span class="keyword">const</span> charCount = u16String-&gt;size();</div>
+<div class="line"><a id="l00576" name="l00576"></a><span class="lineno">  576</span>                <span class="keyword">auto</span> <span class="keyword">const</span> byteCount = u16String-&gt;size() * <span class="keyword">sizeof</span>(char16_t);</div>
+<div class="line"><a id="l00577" name="l00577"></a><span class="lineno">  577</span>                <span class="keyword">auto</span> <span class="keyword">const</span> sqlType = <span class="keyword">static_cast&lt;</span>SQLSMALLINT<span class="keyword">&gt;</span>(charCount &gt; SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);</div>
+<div class="line"><a id="l00578" name="l00578"></a><span class="lineno">  578</span>                <span class="keywordflow">return</span> SQLBindParameter(stmt,</div>
+<div class="line"><a id="l00579" name="l00579"></a><span class="lineno">  579</span>                                        column,</div>
+<div class="line"><a id="l00580" name="l00580"></a><span class="lineno">  580</span>                                        SQL_PARAM_INPUT,</div>
+<div class="line"><a id="l00581" name="l00581"></a><span class="lineno">  581</span>                                        CType,</div>
+<div class="line"><a id="l00582" name="l00582"></a><span class="lineno">  582</span>                                        sqlType,</div>
+<div class="line"><a id="l00583" name="l00583"></a><span class="lineno">  583</span>                                        charCount,</div>
+<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span>                                        0,</div>
+<div class="line"><a id="l00585" name="l00585"></a><span class="lineno">  585</span>                                        (SQLPOINTER) u16String-&gt;data(),</div>
+<div class="line"><a id="l00586" name="l00586"></a><span class="lineno">  586</span>                                        byteCount,</div>
+<div class="line"><a id="l00587" name="l00587"></a><span class="lineno">  587</span>                                        <span class="keyword">nullptr</span>);</div>
+<div class="line"><a id="l00588" name="l00588"></a><span class="lineno">  588</span>            }</div>
+<div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span>        }</div>
+<div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span>        std::unreachable();</div>
+<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span>    }</div>
+<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span> </div>
+<div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span>    <span class="keyword">static</span> SQLRETURN OutputColumn(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span>                                  SQLUSMALLINT column,</div>
+<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span>                                  Utf8StringType* result,</div>
+<div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span>                                  SQLLEN* indicator,</div>
+<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span>                                  <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span>    {</div>
+<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span>        <span class="keywordflow">return</span> detail::OutputColumnNonUtf16Unicode&lt;Utf8StringType&gt;(stmt, column, result, indicator, cb);</div>
+<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span>    }</div>
+<div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span> </div>
+<div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span>    <span class="keyword">static</span> SQLRETURN GetColumn(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span>                               SQLUSMALLINT column,</div>
+<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span>                               Utf8StringType* result,</div>
+<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span>                               SQLLEN* indicator,</div>
+<div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span>                               <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span>    {</div>
+<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span>        <span class="keyword">auto</span> u16String = std::u16string {};</div>
+<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span>        u16String.resize(result-&gt;size());</div>
+<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = detail::GetColumnUtf16(stmt, column, &amp;u16String, indicator, cb);</div>
+<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(sqlReturn))</div>
+<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span>            *result = <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a>(u16String);</div>
+<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span>        <span class="keywordflow">return</span> sqlReturn;</div>
+<div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span>    }</div>
+<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span> </div>
+<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(Utf8StringType <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span>    {</div>
+<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span>        <span class="comment">// Pass data as-is</span></div>
+<div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span>        <span class="keywordflow">return</span> std::string(<span class="keyword">reinterpret_cast&lt;</span><span class="keywordtype">char</span> const*<span class="keyword">&gt;</span>(value.data()), value.size());</div>
+<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span>    }</div>
+<div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span>};</div>
 <div class="ttc" id="aclassSqlDataBinderCallback_html"><div class="ttname"><a href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a></div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00028">Core.hpp:29</a></div></div>
 <div class="ttc" id="agroup__Unicode_html_ga6c3ec34652e689bcfa46800912724a6e"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#ga6c3ec34652e689bcfa46800912724a6e">ToUtf32</a></div><div class="ttdeci">T ToUtf32(std::u8string_view u8InputString)</div><div class="ttdef"><b>Definition</b> <a href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00265">UnicodeConverter.hpp:265</a></div></div>
 <div class="ttc" id="agroup__Unicode_html_gabd2bf0a25881dd4f308c6fa47a63c4f8"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#gabd2bf0a25881dd4f308c6fa47a63c4f8">ToUtf16</a></div><div class="ttdeci">std::u16string ToUtf16(const std::basic_string_view&lt; T &gt; u32InputString)</div><div class="ttdef"><b>Definition</b> <a href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00241">UnicodeConverter.hpp:241</a></div></div>

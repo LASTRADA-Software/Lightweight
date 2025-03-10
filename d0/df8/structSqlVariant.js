@@ -1,6 +1,6 @@
 var structSqlVariant =
 [
-    [ "InnerType", "d0/df8/structSqlVariant.html#a40df252422c4e606ba772582c3538eaa", null ],
+    [ "InnerType", "d0/df8/structSqlVariant.html#a8fcb2e1d28afe7a038d1c5d7a6561bdc", null ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html#a0a35319e9e89c5ebfb1b27c401bc5bbd", null ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html#a22666f660d802ede8bfdf1dee64e8410", null ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html#ae7b0d380468b23f0d1e1384d30c3bc38", null ],
@@ -19,7 +19,7 @@ var structSqlVariant =
     [ "operator=", "d0/df8/structSqlVariant.html#a4d7535c50d9ec69a98ecbff54ab0da48", null ],
     [ "IsNull", "d0/df8/structSqlVariant.html#a84d703e694f9339457cfa6367bf16501", null ],
     [ "Is", "d0/df8/structSqlVariant.html#a6a3a8acb604aac26eee474337475546b", null ],
-    [ "Get", "d0/df8/structSqlVariant.html#ad851fc01f18cc702ca502a79353f24b0", null ],
+    [ "Get", "d0/df8/structSqlVariant.html#a292c7c32a4f30c6c003c28518f97dbfd", null ],
     [ "ValueOr", "d0/df8/structSqlVariant.html#a7385d14562482b5052984d8a7ef2618a", null ],
     [ "TryGetBool", "d0/df8/structSqlVariant.html#ae1071385577db7a1502fa322aa97b4f0", null ],
     [ "TryGetInt8", "d0/df8/structSqlVariant.html#a716c322948a86f2b6de16b7e8d0aabbb", null ],
@@ -33,5 +33,6 @@ var structSqlVariant =
     [ "TryGetDate", "d0/df8/structSqlVariant.html#a711dd23d6443e4fba6dc6cb6e674597f", null ],
     [ "TryGetTime", "d0/df8/structSqlVariant.html#a7d9baacb62d03dd0f42b04aeb7e39947", null ],
     [ "TryGetDateTime", "d0/df8/structSqlVariant.html#a8b2c8582356d8c88814112dcc42e68db", null ],
+    [ "TryGetGuid", "d0/df8/structSqlVariant.html#afa087d67bfadea835bcd1a3b6646ee64", null ],
     [ "ToString", "d0/df8/structSqlVariant.html#adfd9cc94c7be9f532260afccacab4f1e", null ]
 ];

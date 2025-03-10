@@ -1,5 +1,6 @@
 var group__DataMapper =
 [
+    [ "FieldWithStorage", "d8/de5/conceptFieldWithStorage.html", null ],
     [ "DataMapperRecord", "d2/db8/conceptDataMapperRecord.html", null ],
     [ "BelongsTo< TheReferencedField, ColumnNameOverrideString >", "df/d1a/classBelongsTo.html", [
       [ "ReferencedRecord", "df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5", null ],
@@ -20,6 +21,12 @@ var group__DataMapper =
       [ "operator bool", "df/d1a/classBelongsTo.html#a30eb552a115fe938e4f4a4a45a614d25", null ],
       [ "EmplaceRecord", "df/d1a/classBelongsTo.html#a80cdd134276af4c8bf91d96ef93aa65e", null ],
       [ "SetAutoLoader", "df/d1a/classBelongsTo.html#a33e8b5b9bec68d5c8a527e5fdea8ef4a", null ]
+    ] ],
+    [ "SqlCoreDataMapperQueryBuilder< Record, Derived >", "d7/d28/classSqlCoreDataMapperQueryBuilder.html", null ],
+    [ "SqlSparseFieldQueryBuilder< Record, ReferencedFields >", "df/d4d/classSqlSparseFieldQueryBuilder.html", null ],
+    [ "SqlAllFieldsQueryBuilder< Record >", "dd/d2d/classSqlAllFieldsQueryBuilder.html", null ],
+    [ "SqlQuerySingleBuilder< Record >", "d4/d5e/classSqlQuerySingleBuilder.html", [
+      [ "Get", "d4/d5e/classSqlQuerySingleBuilder.html#a242fdcd7515909fca7ad0721492b3130", null ]
     ] ],
     [ "DataMapper", "dc/dc7/classDataMapper.html", [
       [ "DataMapper", "dc/dc7/classDataMapper.html#aeca0c52b22597fb398863360dd125c56", null ],
@@ -57,6 +64,11 @@ var group__DataMapper =
     [ "Field< T, P1, P2 >", "df/d27/structField.html", [
       [ "Field", "df/d27/structField.html#a3e91e89b39678f33662d75ec1fc13674", null ],
       [ "operator=", "df/d27/structField.html#a72afb9891ad3136a31477b5f11266c23", null ],
+      [ "operator<=>", "df/d27/structField.html#a76855e701d40405838208ce5d2d13973", null ],
+      [ "operator==", "df/d27/structField.html#aaf3748a4ca2824c86c5e9b1012fd823e", null ],
+      [ "operator!=", "df/d27/structField.html#adaa7a1ba455edbca28c7ee3b3cb0f455", null ],
+      [ "operator==", "df/d27/structField.html#a3839297b89fcd782d351bf3946a7cf19", null ],
+      [ "operator!=", "df/d27/structField.html#a3118ebf07af2b1260b9857f4464bca2d", null ],
       [ "InspectValue", "df/d27/structField.html#a09d24464919b54e0109a8340129a1d4e", null ],
       [ "SetModified", "df/d27/structField.html#a3abf09195ef457b992517ffd419c7fbf", null ],
       [ "IsModified", "df/d27/structField.html#aa8080d19388999c10fbeadd11547026d", null ],
@@ -112,6 +124,11 @@ var group__DataMapper =
       [ "operator->", "da/d9d/classHasOneThrough.html#ab8dd2cec742cef96bb13bf935cf23c3f", null ],
       [ "SetAutoLoader", "da/d9d/classHasOneThrough.html#a6f6f6b0db57bb1b21866f113384ce076", null ]
     ] ],
+    [ "SqlElements", "d7/d2f/group__DataMapper.html#ga651af3a7205c384daa6e93487a42d486", null ],
+    [ "GetPrimaryKeyField", "d7/d2f/group__DataMapper.html#ga2cbee85281351782c747be3caf17271c", null ],
+    [ "RecordStorageFieldCount", "d7/d2f/group__DataMapper.html#ga558b97acf0b93fc85914ac4bb3f9b473", null ],
+    [ "HasPrimaryKey", "d7/d2f/group__DataMapper.html#gace402d02f34595be6afc813311b93ea7", null ],
+    [ "HasAutoIncrementPrimaryKey", "d7/d2f/group__DataMapper.html#gacf4cfc35b4bab422bb7351d766f0eb98", null ],
     [ "FieldNameAt", "d7/d2f/group__DataMapper.html#gac81e84c4d6ab9877c8dba3e0d414f7d5", null ],
     [ "RecordTableName", "d7/d2f/group__DataMapper.html#ga4565e3cf41830db5a08951da5702c776", null ]
 ];

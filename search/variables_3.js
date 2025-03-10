@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['index_0',['index',['../d3/d8a/structSqlColumnDeclaration.html#a30dc6a31ca68bb6666eb94c1ad80fdf6',1,'SqlColumnDeclaration']]]
+  ['hasautoincrementprimarykey_0',['HasAutoIncrementPrimaryKey',['../d7/d2f/group__DataMapper.html#gacf4cfc35b4bab422bb7351d766f0eb98',1,'DataMapper.hpp']]],
+  ['hasprimarykey_1',['HasPrimaryKey',['../d7/d2f/group__DataMapper.html#gace402d02f34595be6afc813311b93ea7',1,'DataMapper.hpp']]]
 ];

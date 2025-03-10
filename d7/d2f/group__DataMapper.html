@@ -93,6 +93,8 @@ $(document).ready(function(){initNavTree('d7/d2f/group__DataMapper.html','../../
   <div class="summary">
 <a href="#concepts">Concepts</a> &#124;
 <a href="#nested-classes">Classes</a> &#124;
+<a href="#typedef-members">Typedefs</a> &#124;
+<a href="#func-members">Functions</a> &#124;
 <a href="#var-members">Variables</a>  </div>
   <div class="headertitle"><div class="title">Data Mapper</div></div>
 </div><!--header-->
@@ -103,6 +105,8 @@ $(document).ready(function(){initNavTree('d7/d2f/group__DataMapper.html','../../
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="concepts" name="concepts"></a>
 Concepts</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">concept &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/de5/conceptFieldWithStorage.html">FieldWithStorage</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">concept &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/db8/conceptDataMapperRecord.html">DataMapperRecord</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a record type that can be used with the <a class="el" href="../../dc/dc7/classDataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a>. <br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -111,6 +115,17 @@ Concepts</h2></td></tr>
 Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo&lt; TheReferencedField, ColumnNameOverrideString &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a one-to-one relationship.  <a href="../../df/d1a/classBelongsTo.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d7/d28/classSqlCoreDataMapperQueryBuilder.html">SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d4d/classSqlSparseFieldQueryBuilder.html">SqlSparseFieldQueryBuilder&lt; Record, ReferencedFields &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a query builder that retrieves only the fields specified.  <a href="../../df/d4d/classSqlSparseFieldQueryBuilder.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d2d/classSqlAllFieldsQueryBuilder.html">SqlAllFieldsQueryBuilder&lt; Record &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a query builder that retrieves all fields of a record.  <a href="../../dd/d2d/classSqlAllFieldsQueryBuilder.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5e/classSqlQuerySingleBuilder.html">SqlQuerySingleBuilder&lt; Record &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a query builder that retrieves only the first record found.  <a href="../../d4/d5e/classSqlQuerySingleBuilder.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/dc7/classDataMapper.html">DataMapper</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Main API for mapping records to and from the database using high level C++ syntax.  <a href="../../dc/dc7/classDataMapper.html#details">More...</a><br /></td></tr>
@@ -131,8 +146,32 @@ Classes</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a one-to-one relationship through a join table.  <a href="../../da/d9d/classHasOneThrough.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
+Typedefs</h2></td></tr>
+<tr class="memitem:ga651af3a7205c384daa6e93487a42d486" id="r_ga651af3a7205c384daa6e93487a42d486"><td class="memTemplParams" colspan="2">template&lt;size_t... Ints&gt; </td></tr>
+<tr class="memitem:ga651af3a7205c384daa6e93487a42d486"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga651af3a7205c384daa6e93487a42d486">SqlElements</a> = std::integer_sequence&lt; size_t, Ints... &gt;</td></tr>
+<tr class="memdesc:ga651af3a7205c384daa6e93487a42d486"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a sequence of indexes that can be used alongside Query() to retrieve only part of the record.  <br /></td></tr>
+<tr class="separator:ga651af3a7205c384daa6e93487a42d486"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:ga2cbee85281351782c747be3caf17271c" id="r_ga2cbee85281351782c747be3caf17271c"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
+<tr class="memitem:ga2cbee85281351782c747be3caf17271c"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE RecordPrimaryKeyType&lt; Record &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga2cbee85281351782c747be3caf17271c">GetPrimaryKeyField</a> (Record const &amp;record) noexcept</td></tr>
+<tr class="separator:ga2cbee85281351782c747be3caf17271c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
+<tr class="memitem:ga558b97acf0b93fc85914ac4bb3f9b473" id="r_ga558b97acf0b93fc85914ac4bb3f9b473"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
+<tr class="memitem:ga558b97acf0b93fc85914ac4bb3f9b473"><td class="memTemplItemLeft" align="right" valign="top">constexpr size_t&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga558b97acf0b93fc85914ac4bb3f9b473">RecordStorageFieldCount</a></td></tr>
+<tr class="separator:ga558b97acf0b93fc85914ac4bb3f9b473"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gace402d02f34595be6afc813311b93ea7" id="r_gace402d02f34595be6afc813311b93ea7"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:gace402d02f34595be6afc813311b93ea7"><td class="memTemplItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gace402d02f34595be6afc813311b93ea7">HasPrimaryKey</a> = detail::CheckFieldProperty&lt;[]&lt;typename <a class="el" href="../../df/d27/structField.html">Field</a>&gt;() { return IsPrimaryKey&lt;<a class="el" href="../../df/d27/structField.html">Field</a>&gt;; }, T&gt;</td></tr>
+<tr class="memdesc:gace402d02f34595be6afc813311b93ea7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Tests if the given record type does contain a primary key.  <br /></td></tr>
+<tr class="separator:gace402d02f34595be6afc813311b93ea7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gacf4cfc35b4bab422bb7351d766f0eb98" id="r_gacf4cfc35b4bab422bb7351d766f0eb98"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
+<tr class="memitem:gacf4cfc35b4bab422bb7351d766f0eb98"><td class="memTemplItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gacf4cfc35b4bab422bb7351d766f0eb98">HasAutoIncrementPrimaryKey</a></td></tr>
+<tr class="memdesc:gacf4cfc35b4bab422bb7351d766f0eb98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Tests if the given record type does contain an auto increment primary key.  <br /></td></tr>
+<tr class="separator:gacf4cfc35b4bab422bb7351d766f0eb98"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gac81e84c4d6ab9877c8dba3e0d414f7d5" id="r_gac81e84c4d6ab9877c8dba3e0d414f7d5"><td class="memTemplParams" colspan="2">template&lt;std::size_t I, typename Record &gt; </td></tr>
 <tr class="memitem:gac81e84c4d6ab9877c8dba3e0d414f7d5"><td class="memTemplItemLeft" align="right" valign="top">constexpr std::string_view&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gac81e84c4d6ab9877c8dba3e0d414f7d5">FieldNameAt</a> = detail::FieldNameAt&lt;I, Record&gt;()</td></tr>
 <tr class="memdesc:gac81e84c4d6ab9877c8dba3e0d414f7d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the SQL field name of the given field index in the record.  <br /></td></tr>
@@ -144,7 +183,156 @@ Variables</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>The data mapper is a high level API for mapping records to and from the database using high level C++ syntax. </p>
+<h2 class="groupheader">Typedef Documentation</h2>
+<a id="ga651af3a7205c384daa6e93487a42d486" name="ga651af3a7205c384daa6e93487a42d486"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga651af3a7205c384daa6e93487a42d486">&#9670;&#160;</a></span>SqlElements</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;size_t... Ints&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="../../d7/d2f/group__DataMapper.html#ga651af3a7205c384daa6e93487a42d486">SqlElements</a> =  std::integer_sequence&lt;size_t, Ints...&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Represents a sequence of indexes that can be used alongside Query() to retrieve only part of the record. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00059">59</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+
+</div>
+</div>
+<h2 class="groupheader">Function Documentation</h2>
+<a id="ga2cbee85281351782c747be3caf17271c" name="ga2cbee85281351782c747be3caf17271c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga2cbee85281351782c747be3caf17271c">&#9670;&#160;</a></span>GetPrimaryKeyField()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE RecordPrimaryKeyType&lt; Record &gt; GetPrimaryKeyField </td>
+          <td>(</td>
+          <td class="paramtype">Record const &amp;&#160;</td>
+          <td class="paramname"><em>record</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Returns the first primary key field of the record. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00417">417</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00892">Create()</a>.</p>
+
+</div>
+</div>
 <h2 class="groupheader">Variable Documentation</h2>
+<a id="ga558b97acf0b93fc85914ac4bb3f9b473" name="ga558b97acf0b93fc85914ac4bb3f9b473"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga558b97acf0b93fc85914ac4bb3f9b473">&#9670;&#160;</a></span>RecordStorageFieldCount</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr size_t RecordStorageFieldCount</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<b>Initial value:</b><div class="fragment"><div class="line">=</div>
+<div class="line">    Reflection::FoldMembers&lt;Record&gt;(<span class="keywordtype">size_t</span> { 0 }, []&lt;<span class="keywordtype">size_t</span> I, <span class="keyword">typename</span> <a class="code hl_struct" href="../../df/d27/structField.html">Field</a>&gt;(<span class="keywordtype">size_t</span> <span class="keyword">const</span> accum) <span class="keyword">constexpr</span> {</div>
+<div class="line">        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (<a class="code hl_concept" href="../../d8/de5/conceptFieldWithStorage.html">FieldWithStorage&lt;Field&gt;</a>)</div>
+<div class="line">            <span class="keywordflow">return</span> accum + 1;</div>
+<div class="line">        <span class="keywordflow">else</span></div>
+<div class="line">            <span class="keywordflow">return</span> accum;</div>
+<div class="line">    })</div>
+<div class="ttc" id="aconceptFieldWithStorage_html"><div class="ttname"><a href="../../d8/de5/conceptFieldWithStorage.html">FieldWithStorage</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00033">DataMapper.hpp:33</a></div></div>
+<div class="ttc" id="astructField_html"><div class="ttname"><a href="../../df/d27/structField.html">Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00070">Field.hpp:71</a></div></div>
+</div><!-- fragment --><p>Represents the number of fields with storage in a record. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00044">44</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+
+</div>
+</div>
+<a id="gace402d02f34595be6afc813311b93ea7" name="gace402d02f34595be6afc813311b93ea7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gace402d02f34595be6afc813311b93ea7">&#9670;&#160;</a></span>HasPrimaryKey</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr bool HasPrimaryKey = detail::CheckFieldProperty&lt;[]&lt;typename <a class="el" href="../../df/d27/structField.html">Field</a>&gt;() { return IsPrimaryKey&lt;<a class="el" href="../../df/d27/structField.html">Field</a>&gt;; }, T&gt;</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Tests if the given record type does contain a primary key. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00078">78</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+
+</div>
+</div>
+<a id="gacf4cfc35b4bab422bb7351d766f0eb98" name="gacf4cfc35b4bab422bb7351d766f0eb98"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gacf4cfc35b4bab422bb7351d766f0eb98">&#9670;&#160;</a></span>HasAutoIncrementPrimaryKey</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename T &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr bool HasAutoIncrementPrimaryKey</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<b>Initial value:</b><div class="fragment"><div class="line">=</div>
+<div class="line">    detail::CheckFieldProperty&lt;[]&lt;typename Field&gt;() { <span class="keywordflow">return</span> IsAutoIncrementPrimaryKey&lt;Field&gt;; }, T&gt;</div>
+</div><!-- fragment -->
+<p>Tests if the given record type does contain an auto increment primary key. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00084">84</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+
+</div>
+</div>
 <a id="gac81e84c4d6ab9877c8dba3e0d414f7d5" name="gac81e84c4d6ab9877c8dba3e0d414f7d5"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#gac81e84c4d6ab9877c8dba3e0d414f7d5">&#9670;&#160;</a></span>FieldNameAt</h2>
 

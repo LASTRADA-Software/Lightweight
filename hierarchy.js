@@ -51,7 +51,9 @@ var hierarchy =
     [ "SqlWhereClauseBuilder< SqlDeleteQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", [
       [ "SqlDeleteQueryBuilder", "d8/d88/classSqlDeleteQueryBuilder.html", null ]
     ] ],
-    [ "SqlWhereClauseBuilder< SqlQuerySingleBuilder< Record > >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
+    [ "SqlWhereClauseBuilder< SqlQuerySingleBuilder< Record > >", "d2/dca/classSqlWhereClauseBuilder.html", [
+      [ "SqlQuerySingleBuilder< Record >", "d4/d5e/classSqlQuerySingleBuilder.html", null ]
+    ] ],
     [ "SqlWhereClauseBuilder< SqlSelectQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
     [ "SqlWhereClauseBuilder< SqlSparseFieldQueryBuilder< Record, ReferencedFields... > >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
     [ "SqlWhereClauseBuilder< SqlUpdateQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", [
