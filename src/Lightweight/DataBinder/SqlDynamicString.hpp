@@ -11,7 +11,7 @@
 #include <limits>
 #include <string>
 
-constexpr size_t SqlMaxColumnSize = std::numeric_limits<uint32_t>::max();
+constexpr size_t SqlMaxColumnSize = (std::numeric_limits<uint32_t>::max)();
 
 /// SQL dynamic-capacity string that mimmicks standard library string.
 ///

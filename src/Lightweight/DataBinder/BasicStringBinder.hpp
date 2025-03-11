@@ -444,9 +444,6 @@ struct SqlDataBinder<Utf32StringType>
 
     static constexpr auto ColumnType = StringTraits::ColumnType;
 
-    static constexpr auto CType = SQL_C_WCHAR;
-    static constexpr auto SqlType = SQL_WVARCHAR;
-
     static SQLRETURN InputParameter(SQLHSTMT stmt,
                                     SQLUSMALLINT column,
                                     Utf32StringType const& value,
@@ -481,11 +478,12 @@ struct SqlDataBinder<Utf32StringType>
                 auto const* data = u16String->data();
                 auto const charCount = u16String->size();
                 auto const sizeInBytes = u16String->size() * sizeof(char16_t);
+                auto const CType = SQLSMALLINT { SQL_C_WCHAR };
                 auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
                 return SQLBindParameter(stmt,
                                         column,
                                         SQL_PARAM_INPUT,
-                                        SQL_C_WCHAR,
+                                        CType,
                                         sqlType,
                                         charCount,
                                         0,
