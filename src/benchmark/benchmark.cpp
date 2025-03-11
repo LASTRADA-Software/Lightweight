@@ -214,9 +214,8 @@ void count()
 void iterate()
 {
     auto dm = DataMapper();
-    auto stmt = SqlStatement { dm.Connection() };
     [[maybe_unused]] int count = 0;
-    for ([[maybe_unused]] const auto& movie: SqlRowIterator<movies>(stmt))
+    for ([[maybe_unused]] const auto& movie: SqlRowIterator<movies>(dm.Connection()))
     {
         ++count;
     }
