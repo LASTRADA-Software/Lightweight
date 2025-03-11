@@ -531,15 +531,18 @@ TEST_CASE_METHOD(SqlTestFixture, "iterate over database", "[SqlRowIterator]")
         dm.Create(person);
     }
 
-    auto stmt = SqlStatement { dm.Connection() };
     int age = 40;
-    for (auto&& person: SqlRowIterator<Person>(stmt))
+    size_t count = 0;
+    for (auto&& person: SqlRowIterator<Person>(dm.Connection()))
     {
         CHECK(person.name.Value() == std::format("John-{}", age));
         CHECK(person.age.Value() == age);
         CHECK(person.id.Value());
         ++age;
+        ++count;
     }
+
+    CHECK(count == 11);
 }
 
 struct RecordWithDefaults
