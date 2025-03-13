@@ -25,8 +25,20 @@ option(PEDANTIC_COMPILER_WERROR "Enables -Werror to force warnings to be treated
 try_add_compile_options(-fdiagnostics-color=always)
 
 if(${PEDANTIC_COMPILER})
-    if(("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
-        message(STATUS "Enabling pedantic compiler options: yes")
+    if("${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "MSVC")
+        message(STATUS "Enabling pedantic compiler options: yes (MSVC)")
+        try_add_compile_options(/W4)
+        try_add_compile_options(/permissive-)
+        try_add_compile_options(/Zc:__cplusplus)
+        #try_add_compile_options(/Zc:enumTypes)
+        #try_add_compile_options(/Zc:externConstexpr)
+        try_add_compile_options(/Zc:inline)
+        #try_add_compile_options(/Zc:templateScope)
+        if(${PEDANTIC_COMPILER_WERROR})
+            try_add_compile_options(/WX)
+        endif()
+    elseif(("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
+        message(STATUS "Enabling pedantic compiler options: yes (Clang/GCC)")
         # TODO: check https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#compilers
         try_add_compile_options(-Qunused-arguments)
         try_add_compile_options(-Wall)
@@ -55,37 +67,24 @@ if(${PEDANTIC_COMPILER})
         #try_add_compile_options(-Wsign-conversion)
         try_add_compile_options(-Wsuggest-destructor-override)
         try_add_compile_options(-pedantic)
-    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-        message(STATUS "Enabling pedantic compiler options: yes")
-        try_add_compile_options(/W4)
-        try_add_compile_options(/permissive-)
-        try_add_compile_options(/Zc:__cplusplus)
-        try_add_compile_options(/Zc:enumTypes)
-        try_add_compile_options(/Zc:externConstexpr)
-        try_add_compile_options(/Zc:inline)
-        try_add_compile_options(/Zc:templateScope)
         if(${PEDANTIC_COMPILER_WERROR})
-            try_add_compile_options(/WX)
+            try_add_compile_options(-Werror)
+
+            # Don't complain here. That's needed for bitpacking (codepoint_properties) in libunicode dependency.
+            try_add_compile_options(-Wno-error=c++20-extensions)
+            try_add_compile_options(-Wno-c++20-extensions)
+
+            # Not sure how to work around these.
+            try_add_compile_options(-Wno-error=class-memaccess)
+            try_add_compile_options(-Wno-class-memaccess)
+
+            # TODO: Should be addressed.
+            try_add_compile_options(-Wno-error=missing-declarations)
+            try_add_compile_options(-Wno-missing-declarations)
         endif()
     else()
         message(STATUS "Enabling pedantic compiler options: unsupported platform")
     endif()
 else()
     message(STATUS "Enabling pedantic compiler options: no")
-endif()
-
-if(${PEDANTIC_COMPILER_WERROR})
-    try_add_compile_options(-Werror)
-
-    # Don't complain here. That's needed for bitpacking (codepoint_properties) in libunicode dependency.
-    try_add_compile_options(-Wno-error=c++20-extensions)
-    try_add_compile_options(-Wno-c++20-extensions)
-
-    # Not sure how to work around these.
-    try_add_compile_options(-Wno-error=class-memaccess)
-    try_add_compile_options(-Wno-class-memaccess)
-
-    # TODO: Should be addressed.
-    try_add_compile_options(-Wno-error=missing-declarations)
-    try_add_compile_options(-Wno-missing-declarations)
 endif()

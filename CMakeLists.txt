@@ -25,6 +25,12 @@ include(${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake)
 # TODO: use a release version of reflection-cpp as soon as possible
 CPMAddPackage("gh:contour-terminal/reflection-cpp#master")
 
+# Detect clang-cl
+set(CLANG_CL FALSE)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    set(CLANG_CL TRUE)
+endif()
+
 if(NOT WIN32 AND NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose the build mode." FORCE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release MinSizeRel RelWithDebInfo)
