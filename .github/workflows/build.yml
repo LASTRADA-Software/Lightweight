@@ -88,6 +88,14 @@ jobs:
   # }}}
   # {{{ Windows
   windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        preset:
+          [
+            "windows-cl-debug",
+            "windows-clangcl-debug",
+          ]
     name: "Windows"
     runs-on: windows-latest
     steps:
@@ -104,15 +112,18 @@ jobs:
         run: |
           choco install sqliteodbc
           choco install sqlite
+      - name: "Install ninnja "
+        run: |
+          choco install ninja
       - name: "Generate build files"
-        run: cmake --preset windows-cl-debug
+        run: cmake --preset ${{ matrix.preset }}
         env:
           VCPKG_ROOT: "${{ runner.workspace }}/vcpkg"
       - name: "Build"
-        run: cmake --build --preset windows-cl-debug
+        run: cmake --build --preset ${{ matrix.preset }}
       - name: "Test"
         if: false # TODO: Make sure sqliteodbc is found
-        run: ./out/build/windows-cl-debug/target/Debug/LightweightTest.exe --trace-sql --trace-odbc -- -s -a
+        run: ./out/build/${{ matrix.preset }}/target/Debug/LightweightTest.exe --trace-sql --trace-odbc -- -s -a
   # }}}
   # {{{ Ubuntu build CC matrix
   ubuntu_build_cc_matrix:

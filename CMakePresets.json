@@ -8,8 +8,7 @@
             "installDir": "${sourceDir}/out/install/${presetName}",
             "generator": "Ninja",
             "cacheVariables": {
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
-                "CMAKE_VERBOSE_MAKEFILE": "OFF"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
             }
         },
         {
@@ -21,18 +20,12 @@
                 "type": "equals",
                 "lhs": "${hostSystemName}",
                 "rhs": "Windows"
-            },
-            "cacheVariables": {
-                "CMAKE_SYSTEM_VERSION": "10.0",
-                "PEDANTIC_COMPILER": "ON",
-                "PEDANTIC_COMPILER_WERROR": "ON"
             }
         },
         {
             "name": "windows-cl-common",
             "hidden": true,
             "inherits": ["windows-common"],
-            "generator": "Visual Studio 17 2022",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "cl"
             }

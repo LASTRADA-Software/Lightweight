@@ -5,7 +5,10 @@ target_compile_features(LightweightTest PUBLIC cxx_std_23)
 
 set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight)
 if(MSVC)
-    target_compile_options(LightweightTest PRIVATE /MP)
+    # clang-cl does not support /MP
+    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(Lightweight PRIVATE /MP)
+    endif()
 else()
     set(TEST_LIBRARIES ${TEST_LIBRARIES} odbc ${SQLITE3_LIBRARY}) # FIXME: should be PkgConfig::ODBC in Lightweight target already
 endif()

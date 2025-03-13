@@ -129,7 +129,10 @@ target_link_libraries(Lightweight PUBLIC reflection-cpp::reflection-cpp)
 
 if(MSVC)
     target_compile_options(Lightweight PRIVATE /W4 /WX)
-    target_compile_options(Lightweight PRIVATE /MP)
+    # clang-cl does not support /MP
+    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(Lightweight PRIVATE /MP)
+    endif()
     target_link_libraries(Lightweight PUBLIC odbc32)
 else()
     target_compile_options(Lightweight PRIVATE -Wall -Wextra -pedantic -Werror)
