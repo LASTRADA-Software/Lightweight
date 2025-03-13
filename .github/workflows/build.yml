@@ -96,7 +96,7 @@ jobs:
             "windows-cl-debug",
             "windows-clangcl-debug",
           ]
-    name: "Windows"
+    name: "Windows-${{ matrix.preset }}"
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -112,7 +112,7 @@ jobs:
         run: |
           choco install sqliteodbc
           choco install sqlite
-      - name: "Install ninnja "
+      - name: "Install ninja"
         run: |
           choco install ninja
       - name: "Generate build files"

@@ -16,7 +16,7 @@
 
 
 // clang-cl doesn't support __int128_t but defines __SIZEOF_INT128__
-// and also since it predents to be MSVC, it also defines _MSC_VER
+// and also since it pretends to be MSVC, it also defines _MSC_VER
 // clang-format off
 #if defined(__SIZEOF_INT128__) && !defined(_MSC_VER)
     #define LIGHTWEIGHT_INT128_T __int128_t
