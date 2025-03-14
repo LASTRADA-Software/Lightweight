@@ -114,15 +114,15 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
                 switch (numeric.scale)
                 {
                     case 0: variant = static_cast<int64_t>(SqlNumeric<15, 0>(numeric).ToUnscaledValue()); break;
-                    case 1: variant = SqlNumeric<15, 1>(numeric).ToFloat(); break;
-                    case 2: variant = SqlNumeric<15, 2>(numeric).ToFloat(); break;
-                    case 3: variant = SqlNumeric<15, 3>(numeric).ToFloat(); break;
-                    case 4: variant = SqlNumeric<15, 4>(numeric).ToFloat(); break;
-                    case 5: variant = SqlNumeric<15, 5>(numeric).ToFloat(); break;
-                    case 6: variant = SqlNumeric<15, 6>(numeric).ToFloat(); break;
-                    case 7: variant = SqlNumeric<15, 7>(numeric).ToFloat(); break;
-                    case 8: variant = SqlNumeric<15, 8>(numeric).ToFloat(); break;
-                    default: variant = SqlNumeric<15, 9>(numeric).ToFloat(); break;
+                    case 1: variant = SqlNumeric<15, 1>(numeric).ToDouble(); break;
+                    case 2: variant = SqlNumeric<15, 2>(numeric).ToDouble(); break;
+                    case 3: variant = SqlNumeric<15, 3>(numeric).ToDouble(); break;
+                    case 4: variant = SqlNumeric<15, 4>(numeric).ToDouble(); break;
+                    case 5: variant = SqlNumeric<15, 5>(numeric).ToDouble(); break;
+                    case 6: variant = SqlNumeric<15, 6>(numeric).ToDouble(); break;
+                    case 7: variant = SqlNumeric<15, 7>(numeric).ToDouble(); break;
+                    case 8: variant = SqlNumeric<15, 8>(numeric).ToDouble(); break;
+                    default: variant = SqlNumeric<15, 9>(numeric).ToDouble(); break;
                 }
                 // clang-format on
             }

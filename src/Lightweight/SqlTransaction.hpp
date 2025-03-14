@@ -100,12 +100,12 @@ class SqlTransactionException: public std::runtime_error
 class SqlTransaction
 {
   public:
-    LIGHTWEIGHT_API SqlTransaction() = delete;
-    LIGHTWEIGHT_API SqlTransaction(SqlTransaction const&) = delete;
-    LIGHTWEIGHT_API SqlTransaction& operator=(SqlTransaction const&) = delete;
+    SqlTransaction() = delete;
+    SqlTransaction(SqlTransaction const&) = delete;
+    SqlTransaction& operator=(SqlTransaction const&) = delete;
 
-    LIGHTWEIGHT_API SqlTransaction(SqlTransaction&&) = default;
-    LIGHTWEIGHT_API SqlTransaction& operator=(SqlTransaction&&) = default;
+    SqlTransaction(SqlTransaction&&) = default;
+    SqlTransaction& operator=(SqlTransaction&&) = default;
 
     /// Construct a new SqlTransaction object, and disable the auto-commit mode, so that the transaction can be
     /// controlled manually.

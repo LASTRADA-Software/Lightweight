@@ -14,8 +14,11 @@
 #include <print>
 #include <source_location>
 
+
+// clang-cl doesn't support __int128_t but defines __SIZEOF_INT128__
+// and also since it pretends to be MSVC, it also defines _MSC_VER
 // clang-format off
-#if defined(__SIZEOF_INT128__)
+#if defined(__SIZEOF_INT128__) && !defined(_MSC_VER)
     #define LIGHTWEIGHT_INT128_T __int128_t
     static_assert(sizeof(__int128_t) == sizeof(SQL_NUMERIC_STRUCT::val));
 #endif
