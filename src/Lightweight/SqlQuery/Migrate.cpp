@@ -24,7 +24,7 @@ SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::DropTable(std::string_view t
 SqlCreateTableQueryBuilder SqlMigrationQueryBuilder::CreateTable(std::string_view tableName)
 {
     _migrationPlan.steps.emplace_back(SqlCreateTablePlan {
-        .tableName = tableName,
+        .tableName = std::string(tableName),
         .columns = {},
     });
     return SqlCreateTableQueryBuilder { std::get<SqlCreateTablePlan>(_migrationPlan.steps.back()) };
