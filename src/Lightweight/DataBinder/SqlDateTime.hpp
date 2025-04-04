@@ -172,14 +172,19 @@ struct std::formatter<SqlDateTime>: std::formatter<std::string>
     LIGHTWEIGHT_FORCE_INLINE auto format(SqlDateTime const& value, std::format_context& ctx) const
         -> std::format_context::iterator
     {
-        return std::formatter<std::string>::format(std::format("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:09}",
+        // This can be used manually to format the date and time inside sql query builder,
+        // that is why we need to use iso standard 8601, also millisecond precision is used for the formatting
+        //
+        // internally fraction is stored in nanoseconds, here we need to get it in milliseconds
+        const auto milliseconds = value.sqlValue.fraction / 1'000'000;
+        return std::formatter<std::string>::format(std::format("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:03}",
                                                                value.sqlValue.year,
                                                                value.sqlValue.month,
                                                                value.sqlValue.day,
                                                                value.sqlValue.hour,
                                                                value.sqlValue.minute,
                                                                value.sqlValue.second,
-                                                               value.sqlValue.fraction),
+                                                               milliseconds),
                                                    ctx);
     }
 };
