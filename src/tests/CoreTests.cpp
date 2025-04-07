@@ -40,6 +40,30 @@ int main(int argc, char** argv)
     return Catch::Session().run(argc, argv);
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "NameFormatting", "[Format]")
+{
+
+    const std::array inputNames = {
+        "test", "TEST_NR", "TEST-NR", "TEST NR", "TESTNR", "TestNr",
+    };
+    const std::array expectedCamelCase = {
+        "test", "testNr", "testNr", "testNr", "testnr", "testnr",
+    };
+    const std::array expectedSnakeCase = {
+        "test", "test_nr", "test_nr", "test_nr", "testnr", "testnr",
+    };
+    const std::array expectedExisting = {
+        "test", "TEST_NR", "TEST-NR", "TEST NR", "TESTNR", "TestNr",
+    };
+
+    for (size_t i = 0; i < inputNames.size(); ++i)
+    {
+        CHECK(formatName(inputNames[i], FormatType::camelCase) == expectedCamelCase[i]);
+        CHECK(formatName(inputNames[i], FormatType::snakeCase) == expectedSnakeCase[i]);
+        CHECK(formatName(inputNames[i], FormatType::existing) == expectedExisting[i]);
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnectionDataSource.FromConnectionString", "[SqlConnection]")
 {
     auto const connectionString = SqlConnectionString { "Dsn=Test;UID=TestUser;Pwd=TestPassword;Timeout=10" };

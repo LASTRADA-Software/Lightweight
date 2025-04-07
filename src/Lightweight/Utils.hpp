@@ -213,3 +213,13 @@ LIGHTWEIGHT_API void LogIfFailed(SQLHSTMT hStmt, SQLRETURN error, std::source_lo
 LIGHTWEIGHT_API void RequireSuccess(SQLHSTMT hStmt,
                                     SQLRETURN error,
                                     std::source_location sourceLocation = std::source_location::current());
+
+enum class FormatType : uint8_t
+{
+    snakeCase,
+    camelCase,
+    existing,
+};
+
+/// @brief Converts a string to a format that is more suitable for C++ code.
+LIGHTWEIGHT_API std::string formatName(std::string_view name, FormatType formatType);
