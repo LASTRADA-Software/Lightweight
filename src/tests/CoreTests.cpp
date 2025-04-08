@@ -55,9 +55,9 @@ TEST_CASE_METHOD(SqlTestFixture, "NameFormatting", "[Format]")
 
     for (size_t i = 0; i < inputNames.size(); ++i)
     {
-        CHECK(formatName(inputNames[i], FormatType::camelCase) == expectedCamelCase[i]);
-        CHECK(formatName(inputNames[i], FormatType::snakeCase) == expectedSnakeCase[i]);
-        CHECK(formatName(inputNames[i], FormatType::preserve) == inputNames[i]);
+        CHECK(FormatName(inputNames[i], FormatType::camelCase) == expectedCamelCase[i]);
+        CHECK(FormatName(inputNames[i], FormatType::snakeCase) == expectedSnakeCase[i]);
+        CHECK(FormatName(inputNames[i], FormatType::preserve) == inputNames[i]);
     }
 }
 

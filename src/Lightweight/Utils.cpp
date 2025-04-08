@@ -27,7 +27,7 @@ void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location source
         throw SqlException(std::move(errorInfo));
 }
 
-std::string formatName(std::string_view name, FormatType formatType)
+std::string FormatName(std::string_view name, FormatType formatType)
 {
     if (formatType == FormatType::preserve)
         return std::string { name };

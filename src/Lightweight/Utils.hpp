@@ -228,4 +228,4 @@ enum class FormatType : uint8_t
 };
 
 /// @brief Converts a string to a format that is more suitable for C++ code.
-LIGHTWEIGHT_API std::string formatName(std::string_view name, FormatType formatType);
+LIGHTWEIGHT_API std::string FormatName(std::string_view name, FormatType formatType);

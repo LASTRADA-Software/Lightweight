@@ -121,3 +121,33 @@ arch -arm64 brew install sqliteodbc
 - sqliteODBC Documentation: http://www.ch-werner.de/sqliteodbc/html/index.html
 - Example connection string: `DRIVER=SQLite3;Database=file::memory:`
 
+
+## Generate example for the existing database
+
+You can use `ddl2cpp` to generate header file for you database schema as well as an example file that you can compile
+
+First, configure cmake project and compile `ddl2cpp` target
+``` sh
+cmake --build build --target ddl2cpp 
+```
+
+Generate header file from the existing database by providing connection string to the tool 
+``` sh
+ ./build/src/tools/ddl2cpp --connection-string "DRIVER=SQLite3;Database=test.db" --make-aliases --naming-convention CamelCase  --output ./src/examples/example.hpp --generate-example
+```
+
+Now you can configure cmake to compile example
+
+``` sh
+cmake --preset linux-clang-debug -DLIGHWEIGHT_EXAMPLE=ON -B build
+```
+
+Finally, compile and run the example
+
+``` sh
+cmake --build build  && ./build/src/examples/example
+```
+
+`
+
+
