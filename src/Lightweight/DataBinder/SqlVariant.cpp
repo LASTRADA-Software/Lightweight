@@ -8,10 +8,13 @@ SQLRETURN SqlDataBinder<SqlVariant>::InputParameter(SQLHSTMT stmt,
                                                     SqlVariant const& variantValue,
                                                     SqlDataBinderCallback& cb) noexcept
 {
-    return std::visit(detail::overloaded { [&]<typename T>(T const& value) {
-                          return SqlDataBinder<T>::InputParameter(stmt, column, value, cb);
-                      } },
-                      variantValue.value);
+    if (variantValue.IsNull())
+        return SqlDataBinder<SqlNullType>::InputParameter(stmt, column, SqlNullValue, cb);
+    else
+        return std::visit(detail::overloaded { [&]<typename T>(T const& value) {
+                              return SqlDataBinder<T>::InputParameter(stmt, column, value, cb);
+                          } },
+                          variantValue.value);
 }
 
 SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
