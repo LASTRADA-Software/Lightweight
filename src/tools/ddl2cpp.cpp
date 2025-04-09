@@ -2,6 +2,7 @@
 #include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlSchema.hpp>
 #include <Lightweight/SqlStatement.hpp>
+#include <Lightweight/Utils.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -83,15 +84,47 @@ std::string MakeVariableName(SqlSchema::FullyQualifiedTableName const& table)
     return name;
 }
 
+// "user_id" into "UserId"
+// "task_list_entry" into "TaskListEntry"
+// "person" into "Person"
+// and so on
+std::string FormatTableName(std::string_view name)
+{
+    std::string result;
+    result.reserve(name.size());
+
+    bool makeUpper = true;
+
+    for (auto const& c: name)
+    {
+        if (c == '_')
+        {
+            makeUpper = true;
+            continue;
+        }
+        if (makeUpper)
+        {
+            result += static_cast<char>(std::toupper(c));
+            makeUpper = false;
+        }
+        else
+        {
+            result += static_cast<char>(std::tolower(c));
+        }
+    }
+
+    return result;
+}
+
 class CxxModelPrinter
 {
   private:
     mutable std::vector<std::string> _forwardDeclarations;
     std::stringstream _definitions;
-
     struct Config
     {
         bool makeAliases = false;
+        FormatType formatType = FormatType::camelCase;
     } _config;
 
   public:
@@ -134,6 +167,7 @@ class CxxModelPrinter
             cxxPrimaryKeys += '"' + key + '"';
         }
 
+        // corresponds to the column name in the sql table
         auto aliasName = [&](std::string_view name) {
             if (_config.makeAliases)
             {
@@ -145,10 +179,7 @@ class CxxModelPrinter
         auto aliasTableName = [&](std::string_view name) {
             if (_config.makeAliases)
             {
-                return std::format("{}", [](std::string name) {
-                    std::ranges::transform(name, name.begin(), [](unsigned char c) { return std::tolower(c); });
-                    return name;
-                }(std::string { name }));
+                return FormatTableName(name);
             }
             return std::string { name };
         };
@@ -174,12 +205,13 @@ class CxxModelPrinter
                 _definitions << std::format("    Field<{}, PrimaryKey::ServerSideAutoIncrement{}> {};\n",
                                             type,
                                             aliasName(column.name),
-                                            column.name);
+                                            formatName(column.name, _config.formatType));
                 continue;
             }
             if (column.isForeignKey)
                 continue;
-            _definitions << std::format("    Field<{}{}> {};\n", type, aliasName(column.name), column.name);
+            _definitions << std::format(
+                "    Field<{}{}> {};\n", type, aliasName(column.name), formatName(column.name, _config.formatType));
         }
 
         for (auto const& foreignKey: table.foreignKeys)
@@ -292,6 +324,7 @@ struct Configuration
     std::string_view outputFileName;
     bool createTestTables = false;
     bool makeAliases = false;
+    FormatType formatType = FormatType::existing;
 };
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -344,6 +377,14 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
         {
             config.makeAliases = true;
         }
+        else if (argv[i] == "--snake-case"sv)
+        {
+            config.formatType = FormatType::snakeCase;
+        }
+        else if (argv[i] == "--camel-case"sv)
+        {
+            config.formatType = FormatType::camelCase;
+        }
         else if (argv[i] == "--help"sv || argv[i] == "-h"sv)
         {
             std::println("Usage: {} [options] [database] [schema]", argv[0]);
@@ -355,6 +396,8 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
             std::println("  --create-test-tables    Create test tables");
             std::println("  --output STR            Output file name");
             std::println("  --make-aliases          Create aliases for the tables and members");
+            std::println("  --snake-case            Convert names to snake_case. Only applies to aliases.");
+            std::println("  --camel-case            Convert names to camelCase. Only applies to aliases.");
             std::println("  --help, -h              Display this information");
             std::println("");
             return { EXIT_SUCCESS };
@@ -395,6 +438,7 @@ int main(int argc, char const* argv[])
     std::vector<SqlSchema::Table> tables = SqlSchema::ReadAllTables(config.database, config.schema);
     CxxModelPrinter printer;
     printer.Config().makeAliases = config.makeAliases;
+    printer.Config().formatType = config.formatType;
 
     for (auto const& table: tables)
     {

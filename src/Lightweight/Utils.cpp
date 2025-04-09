@@ -26,3 +26,45 @@ void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location source
     else
         throw SqlException(std::move(errorInfo));
 }
+
+std::string formatName(std::string_view name, FormatType formatType)
+{
+    if (formatType == FormatType::existing)
+        return std::string { name };
+
+    const auto IsDelimiter = [](char c) {
+        return c == '_' || c == '-' || c == ' ';
+    };
+
+    std::string result;
+    result.reserve(name.size());
+
+    bool makeUpper = false;
+
+    for (auto const c: name)
+    {
+        if (IsDelimiter(c))
+        {
+            if (formatType == FormatType::snakeCase)
+            {
+                result += '_';
+            }
+            else if (formatType == FormatType::camelCase)
+            {
+                makeUpper = true;
+            }
+            continue;
+        }
+        if (makeUpper)
+        {
+            result += static_cast<char>(std::toupper(c));
+            makeUpper = false;
+        }
+        else
+        {
+            result += static_cast<char>(std::tolower(c));
+        }
+    }
+
+    return result;
+}

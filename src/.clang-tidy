@@ -92,3 +92,5 @@ CheckOptions:
     value:           'NULL'
   - key:             modernize-use-default-member-init.UseAssignment
     value:           '1'
+  - key:             readability-identifier-naming.FunctionCase
+    value:           CamelCase
