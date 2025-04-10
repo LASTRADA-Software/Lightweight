@@ -10,6 +10,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <functional>
 #include <ranges>
 #include <set>
@@ -1177,4 +1178,15 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddForeignKeyColumn", "[SqlQueryBui
                         ALTER TABLE "Table" ADD CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
                     )sql",
         });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: SqlDateTime formatting", "[SqlQueryBuilder]")
+{
+
+    const auto tp_micros = time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+    const auto sqlDateTime = SqlDateTime { tp_micros };
+
+    // ensure that the formatting of sqlDateTime is correct and matches the ISO 8601 format
+    // with the only difference that the Z is not in the format
+    CHECK(std::format("{}Z", sqlDateTime) == std::format("{:%FT%TZ}", tp_micros));
 }
