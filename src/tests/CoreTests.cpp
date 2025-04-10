@@ -7,6 +7,7 @@
 #include <Lightweight/SqlDataBinder.hpp>
 #include <Lightweight/SqlQuery.hpp>
 #include <Lightweight/SqlQueryFormatter.hpp>
+#include <Lightweight/SqlSchema.hpp>
 #include <Lightweight/SqlScopedTraceLogger.hpp>
 #include <Lightweight/SqlStatement.hpp>
 #include <Lightweight/SqlTransaction.hpp>
@@ -556,6 +557,40 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into SqlVariantRowIterator", "[SqlState
             }
         }
     }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlSchema: simple", "[SqlSchema]")
+{
+    auto conn = SqlConnection {};
+    auto stmt = SqlStatement { conn };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        using namespace SqlColumnTypeDefinitions;
+        for (int i = 1; i <= 2; ++i)
+        {
+            migration.CreateTable("Table" + std::to_string(i))
+                .PrimaryKeyWithAutoIncrement("pk", Integer {})
+                .Column("c1", Varchar { 30 });
+        }
+    });
+
+    auto const schemaName = ""sv; // TODO(pr) how to get the schema name for SQL server tests (dbo) here, generically?
+    auto const& dialect = SqlQueryFormatter::SqlServer();
+    SqlMigrationQueryBuilder migrationPlan = SqlSchema::BuildStructureFromSchema(conn, schemaName, dialect);
+    SqlMigrationPlan const& plan = migrationPlan.GetPlan();
+    auto const sqlStatements = plan.ToSql();
+    CHECK(sqlStatements.size() == 2);
+    CHECK(NormalizeText(sqlStatements.at(0)) == NormalizeText(R"sql(
+        CREATE TABLE "Table1" (
+            "pk" INTEGER IDENTITY(1,1) PRIMARY KEY,
+            "c1" VARCHAR(30)
+        );
+    )sql"));
+    CHECK(NormalizeText(sqlStatements.at(1)) == NormalizeText(R"sql(
+        CREATE TABLE "Table2" (
+            "pk" INTEGER IDENTITY(1,1) PRIMARY KEY,
+            "c1" VARCHAR(30)
+        );
+    )sql"));
 }
 
 // NOLINTEND(readability-container-size-empty)

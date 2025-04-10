@@ -440,7 +440,8 @@ int main(int argc, char const* argv[])
 
     PrintInfo();
 
-    std::vector<SqlSchema::Table> tables = SqlSchema::ReadAllTables(config.database, config.schema);
+    auto connection = SqlConnection {};
+    std::vector<SqlSchema::Table> tables = SqlSchema::ReadAllTables(connection, config.schema);
     CxxModelPrinter printer;
     printer.Config().makeAliases = config.makeAliases;
     printer.Config().formatType = config.formatType;

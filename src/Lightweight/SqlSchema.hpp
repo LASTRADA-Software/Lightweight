@@ -7,6 +7,7 @@
 #endif
 
 #include "Api.hpp"
+#include "SqlQuery/Migrate.hpp"
 #include "SqlQuery/MigrationPlan.hpp"
 
 #include <format>
@@ -121,7 +122,7 @@ class EventHandler
 };
 
 /// Reads all tables in the given database and schema and calls the event handler for each table.
-LIGHTWEIGHT_API void ReadAllTables(std::string_view database, std::string_view schema, EventHandler& eventHandler);
+LIGHTWEIGHT_API void ReadAllTables(SqlConnection& connection, std::string_view schema, EventHandler& eventHandler);
 
 /// Holds the definition of a table in a SQL database as read from the database schema.
 struct Table
@@ -148,7 +149,7 @@ struct Table
 using TableList = std::vector<Table>;
 
 /// Retrieves all tables in the given @p database and @p schema.
-LIGHTWEIGHT_API TableList ReadAllTables(std::string_view database, std::string_view schema = {});
+LIGHTWEIGHT_API TableList ReadAllTables(SqlConnection& connection, std::string_view schema = {});
 
 /// Retrieves all tables in the given database and schema that have a foreign key to the given table.
 LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt,
@@ -157,6 +158,17 @@ LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement&
 /// Retrieves all tables in the given database and schema that have a foreign key from the given table.
 LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysFrom(SqlStatement& stmt,
                                                                      FullyQualifiedTableName const& table);
+
+/// Builds a migration plan to create the structure of the given database and schema.
+///
+/// @param connection   The connection to the database to read the tables and relations from.
+/// @param schemaName   The name of the schema to read the tables and relations from.
+/// @param dialect      The SQL dialect to use for the migration plan.
+///
+/// @return A migration plan that creates the structure of the given database and schema.
+LIGHTWEIGHT_API SqlMigrationQueryBuilder BuildStructureFromSchema(SqlConnection& connection,
+                                                                  std::string_view schemaName,
+                                                                  SqlQueryFormatter const& dialect);
 
 } // namespace SqlSchema
 

@@ -29,13 +29,14 @@ bool operator<(KeyPair const& a, KeyPair const& b)
 
 namespace
 {
-    std::vector<std::string> AllTables(std::string_view database, std::string_view schema)
+    std::vector<std::string> AllTables(SqlConnection& connection, std::string_view schema)
     {
         auto const tableType = "TABLE"sv;
-        (void) database;
-        (void) schema;
+        auto database = connection.DatabaseName();
+        // (void) schema;
 
-        auto stmt = SqlStatement();
+        auto stmt = SqlStatement { connection };
+        SqlLogger::GetLogger().OnExecute(std::format(R"(SQLTables("{}"."{}".*))", database, schema));
         auto sqlResult = SQLTables(stmt.NativeHandle(),
                                    (SQLCHAR*) database.data(),
                                    (SQLSMALLINT) database.size(),
@@ -50,6 +51,7 @@ namespace
         auto result = std::vector<std::string>();
         while (stmt.FetchRow())
             result.emplace_back(stmt.GetColumn<std::string>(3));
+        stmt.CloseCursor();
 
         return result;
     }
@@ -64,6 +66,7 @@ namespace
         auto* fkCatalog = (SQLCHAR*) (!foreignKey.catalog.empty() ? foreignKey.catalog.c_str() : nullptr);
         auto* fkSchema = (SQLCHAR*) (!foreignKey.schema.empty() ? foreignKey.schema.c_str() : nullptr);
         auto* fkTable = (SQLCHAR*) (!foreignKey.table.empty() ? foreignKey.table.c_str() : nullptr);
+        SqlLogger::GetLogger().OnExecute(std::format(R"(SQLForeignKeys(pk="{}", fk="{}"))", primaryKey, foreignKey));
         auto sqlResult = SQLForeignKeys(stmt.NativeHandle(),
                                         pkCatalog,
                                         (SQLSMALLINT) primaryKey.catalog.size(),
@@ -106,6 +109,7 @@ namespace
                 keyColumns.resize(sequenceNumber);
             keyColumns[sequenceNumber - 1] = std::move(pkColumnName);
         }
+        stmt.CloseCursor();
 
         auto result = std::vector<ForeignKeyConstraint>();
         for (auto const& [keyPair, columns]: constraints)
@@ -126,6 +130,8 @@ namespace
         std::vector<std::string> keys;
         std::vector<size_t> sequenceNumbers;
 
+        SqlLogger::GetLogger().OnExecute(
+            std::format(R"(SQLPrimaryKeys("{}"."{}"."{}"))", table.catalog, table.schema, table.table));
         auto sqlResult = SQLPrimaryKeys(stmt.NativeHandle(),
                                         (SQLCHAR*) table.catalog.data(),
                                         (SQLSMALLINT) table.catalog.size(),
@@ -141,6 +147,7 @@ namespace
             keys.emplace_back(stmt.GetColumn<std::string>(4));
             sequenceNumbers.emplace_back(stmt.GetColumn<size_t>(5));
         }
+        stmt.CloseCursor();
 
         std::vector<std::string> sortedKeys;
         sortedKeys.resize(keys.size());
@@ -153,10 +160,11 @@ namespace
 } // namespace
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void ReadAllTables(std::string_view database, std::string_view schema, EventHandler& eventHandler)
+void ReadAllTables(SqlConnection& connection, std::string_view schema, EventHandler& eventHandler)
 {
-    auto stmt = SqlStatement {};
-    auto const tableNames = AllTables(database, schema);
+    auto stmt = SqlStatement { connection };
+    auto const database = connection.DatabaseName();
+    auto const tableNames = AllTables(connection, schema);
 
     for (auto const& tableName: tableNames)
     {
@@ -184,7 +192,8 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
         for (auto const& foreignKey: incomingForeignKeys)
             eventHandler.OnExternalForeignKey(foreignKey);
 
-        auto columnStmt = SqlStatement();
+        auto columnStmt = SqlStatement { connection };
+        SqlLogger::GetLogger().OnExecute(std::format(R"(SQLColumns("{}"."{}"."{}".*))", database, schema, tableName));
         auto const sqlResult = SQLColumns(columnStmt.NativeHandle(),
                                           (SQLCHAR*) database.data(),
                                           (SQLSMALLINT) database.size(),
@@ -255,6 +264,7 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
 
             eventHandler.OnColumn(column);
         }
+        stmt.CloseCursor();
 
         eventHandler.OnTableEnd();
     }
@@ -267,7 +277,7 @@ std::string ToLowerCase(std::string_view str)
     return result;
 }
 
-TableList ReadAllTables(std::string_view database, std::string_view schema)
+TableList ReadAllTables(SqlConnection& connection, std::string_view schema)
 {
     TableList tables;
     struct EventHandler: public SqlSchema::EventHandler
@@ -306,7 +316,7 @@ TableList ReadAllTables(std::string_view database, std::string_view schema)
             tables.back().externalForeignKeys.emplace_back(foreignKeyConstraint);
         }
     } eventHandler { tables };
-    ReadAllTables(database, schema, eventHandler);
+    ReadAllTables(connection, schema, eventHandler);
 
     std::map<std::string, std::string> tableNameCaseMap;
     for (auto const& table: tables)
@@ -339,6 +349,39 @@ std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt, FullyQual
 std::vector<ForeignKeyConstraint> AllForeignKeysFrom(SqlStatement& stmt, FullyQualifiedTableName const& table)
 {
     return AllForeignKeys(stmt, FullyQualifiedTableName {}, table);
+}
+
+SqlMigrationQueryBuilder BuildStructureFromSchema(SqlConnection& connection,
+                                                  std::string_view schemaName,
+                                                  SqlQueryFormatter const& dialect)
+{
+    auto builder = SqlMigrationQueryBuilder { dialect };
+    SqlSchema::TableList tables = SqlSchema::ReadAllTables(connection, schemaName);
+    for (SqlSchema::Table const& table: tables)
+    {
+        auto tableBuilder = builder.CreateTable(table.name);
+        for (SqlSchema::Column const& column: table.columns)
+        {
+            if (column.isPrimaryKey)
+            {
+                if (column.isAutoIncrement)
+                    tableBuilder.PrimaryKeyWithAutoIncrement(column.name, column.type);
+                else
+                    tableBuilder.PrimaryKey(column.name, column.type);
+            }
+            else
+            {
+                tableBuilder.Column(SqlColumnDeclaration {
+                    .name = column.name,
+                    .type = column.type,
+                    .required = !column.isNullable,
+                    .unique = column.isUnique,
+                    .index = false, // TODO
+                });
+            }
+        }
+    }
+    return builder;
 }
 
 } // namespace SqlSchema
