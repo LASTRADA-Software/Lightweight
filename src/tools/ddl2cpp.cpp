@@ -17,7 +17,7 @@
 namespace
 {
 
-constexpr auto finally(auto&& cleanupRoutine) noexcept
+constexpr auto finally(auto&& cleanupRoutine) noexcept // NOLINT(readability-identifier-naming)
 {
     // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
     struct Finally
@@ -133,7 +133,7 @@ class CxxModelPrinter
         return _config;
     }
 
-    std::string str(std::string_view modelNamespace) const
+    std::string str(std::string_view modelNamespace) const // NOLINT(readability-identifier-naming)
     {
         std::ranges::sort(_forwardDeclarations);
 
@@ -324,7 +324,7 @@ struct Configuration
     std::string_view outputFileName;
     bool createTestTables = false;
     bool makeAliases = false;
-    FormatType formatType = FormatType::existing;
+    FormatType formatType = FormatType::preserve;
 };
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -345,6 +345,19 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
             if (++i >= argc)
                 return { EXIT_FAILURE };
             config.connectionString = argv[i];
+        }
+        else if (argv[i] == "--naming-convention"sv)
+        {
+            if (++i >= argc)
+                return { EXIT_FAILURE };
+            if (argv[i] == "none"sv)
+                config.formatType = FormatType::preserve;
+            else if (argv[i] == "snake_case"sv)
+                config.formatType = FormatType::snakeCase;
+            else if (argv[i] == "CamelCase"sv)
+                config.formatType = FormatType::camelCase;
+            else
+                return { EXIT_FAILURE };
         }
         else if (argv[i] == "--database"sv)
         {
@@ -377,14 +390,6 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
         {
             config.makeAliases = true;
         }
-        else if (argv[i] == "--snake-case"sv)
-        {
-            config.formatType = FormatType::snakeCase;
-        }
-        else if (argv[i] == "--camel-case"sv)
-        {
-            config.formatType = FormatType::camelCase;
-        }
         else if (argv[i] == "--help"sv || argv[i] == "-h"sv)
         {
             std::println("Usage: {} [options] [database] [schema]", argv[0]);
@@ -396,8 +401,8 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
             std::println("  --create-test-tables    Create test tables");
             std::println("  --output STR            Output file name");
             std::println("  --make-aliases          Create aliases for the tables and members");
-            std::println("  --snake-case            Convert names to snake_case. Only applies to aliases.");
-            std::println("  --camel-case            Convert names to camelCase. Only applies to aliases.");
+            std::println("  --naming-convention STR Naming convention for aliases");
+            std::println("                          [none, snake_case, CamelCase]");
             std::println("  --help, -h              Display this information");
             std::println("");
             return { EXIT_SUCCESS };

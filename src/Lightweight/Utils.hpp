@@ -214,11 +214,17 @@ LIGHTWEIGHT_API void RequireSuccess(SQLHSTMT hStmt,
                                     SQLRETURN error,
                                     std::source_location sourceLocation = std::source_location::current());
 
+/// Defines the naming convention for use (e.g. for C++ column names or table names in C++ struct names).
 enum class FormatType : uint8_t
 {
+    /// Preserve the original naming convention.
+    preserve,
+
+    /// Ensure the name is formatted in snake_case naming convention.
     snakeCase,
+
+    /// Ensure the name is formatted in CamelCase naming convention.
     camelCase,
-    existing,
 };
 
 /// @brief Converts a string to a format that is more suitable for C++ code.

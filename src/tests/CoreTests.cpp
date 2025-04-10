@@ -52,15 +52,12 @@ TEST_CASE_METHOD(SqlTestFixture, "NameFormatting", "[Format]")
     const std::array expectedSnakeCase = {
         "test", "test_nr", "test_nr", "test_nr", "testnr", "testnr",
     };
-    const std::array expectedExisting = {
-        "test", "TEST_NR", "TEST-NR", "TEST NR", "TESTNR", "TestNr",
-    };
 
     for (size_t i = 0; i < inputNames.size(); ++i)
     {
         CHECK(formatName(inputNames[i], FormatType::camelCase) == expectedCamelCase[i]);
         CHECK(formatName(inputNames[i], FormatType::snakeCase) == expectedSnakeCase[i]);
-        CHECK(formatName(inputNames[i], FormatType::existing) == expectedExisting[i]);
+        CHECK(formatName(inputNames[i], FormatType::preserve) == inputNames[i]);
     }
 }
 
