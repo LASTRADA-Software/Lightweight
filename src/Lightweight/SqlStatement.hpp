@@ -828,7 +828,10 @@ void SqlStatement::MigrateDirect(Callable const& callable, std::source_location 
     callable(migration);
     auto const queries = migration.GetPlan().ToSql();
     for (auto const& query: queries)
+    {
         ExecuteDirect(query, location);
+        CloseCursor();
+    }
 }
 
 template <typename T>

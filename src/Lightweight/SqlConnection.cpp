@@ -5,6 +5,7 @@
 #include "SqlQueryFormatter.hpp"
 
 #include <sql.h>
+#include <sqlext.h>
 
 using namespace std::chrono_literals;
 using namespace std::string_view_literals;
@@ -188,7 +189,10 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
                                             nullptr,
                                             SQL_DRIVER_NOPROMPT);
     if (!SQL_SUCCEEDED(sqlResult))
+    {
+        RequireSuccess(sqlResult);
         return false;
+    }
 
     sqlResult = SQLSetConnectAttrA(m_hDbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
     if (!SQL_SUCCEEDED(sqlResult))
