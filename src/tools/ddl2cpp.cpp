@@ -72,7 +72,11 @@ std::string MakeType(SqlSchema::Column const& column)
                        // TODO distinguish between BINARY and VARBINARY
                        // (https://github.com/LASTRADA-Software/Lightweight/issues/182)
                        [](VarBinary const& type) -> std::string { return std::format("SqlBinary<{}>", type.size); },
-                       [](Varchar const& type) -> std::string { return std::format("SqlAnsiString<{}>", type.size); },
+                       [](Varchar const& type) -> std::string {
+                           if (type.size > 0 && type.size <= SqlOptimalMaxColumnSize)
+                               return std::format("SqlAnsiString<{}>", type.size);
+                           return std::format("SqlDynamicAnsiString<{}>", 255); // put something else ?
+                       },
                    },
                    column.type));
 }
@@ -124,6 +128,7 @@ class CxxModelPrinter
     struct Config
     {
         bool makeAliases = false;
+        bool generateExample = false;
         FormatType formatType = FormatType::camelCase;
     } _config;
 
@@ -142,6 +147,8 @@ class CxxModelPrinter
         output << "#pragma once\n";
         output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
         output << "\n";
+        output << "using namespace std::string_view_literals;\n";
+        output << "\n";
 
         if (!modelNamespace.empty())
             output << std::format("namespace {}\n{{\n\n", modelNamespace);
@@ -153,6 +160,45 @@ class CxxModelPrinter
             output << std::format("}} // end namespace {}\n", modelNamespace);
 
         return output.str();
+    }
+
+    std::string example(SqlSchema::Table const& table) const
+    {
+        std::stringstream exampleEntries;
+        auto aliasTableName = [&](std::string_view name) {
+            if (_config.makeAliases)
+            {
+                return FormatTableName(name);
+            }
+            return std::string { name };
+        };
+
+        const auto tableName = aliasTableName(table.name);
+        exampleEntries << std::format("auto entries{} = dm.Query<{}>().All();\n", tableName, tableName);
+
+        exampleEntries << std::format("for (auto const& entry: entries{})\n", tableName);
+        exampleEntries << "{\n";
+
+        const auto column = table.columns[0];
+        const auto memberName = FormatName(column.name, _config.formatType);
+        if (column.isNullable)
+        {
+            exampleEntries << std::format("    if (entry.{}.Value())\n", memberName);
+            exampleEntries << "    {\n";
+            exampleEntries << std::format(
+                "        std::println(\"{}: {{}}\", entry.{}.Value().value());\n", memberName, memberName);
+            exampleEntries << "    }\n";
+        }
+        else
+        {
+            exampleEntries << std::format("    std::println(\"{{}}\", entry.{}.Value());\n", column.name);
+        }
+
+        exampleEntries << "}\n";
+
+        exampleEntries << "\n";
+
+        return exampleEntries.str();
     }
 
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -205,13 +251,13 @@ class CxxModelPrinter
                 _definitions << std::format("    Field<{}, PrimaryKey::ServerSideAutoIncrement{}> {};\n",
                                             type,
                                             aliasName(column.name),
-                                            formatName(column.name, _config.formatType));
+                                            FormatName(column.name, _config.formatType));
                 continue;
             }
             if (column.isForeignKey)
                 continue;
             _definitions << std::format(
-                "    Field<{}{}> {};\n", type, aliasName(column.name), formatName(column.name, _config.formatType));
+                "    Field<{}{}> {};\n", type, aliasName(column.name), FormatName(column.name, _config.formatType));
         }
 
         for (auto const& foreignKey: table.foreignKeys)
@@ -324,6 +370,7 @@ struct Configuration
     std::string_view outputFileName;
     bool createTestTables = false;
     bool makeAliases = false;
+    bool generateExample = false;
     FormatType formatType = FormatType::preserve;
 };
 
@@ -386,6 +433,10 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
             config.outputFileName = argv[i];
             std::println("Output file name: {}", config.outputFileName);
         }
+        else if (argv[i] == "--generate-example"sv)
+        {
+            config.generateExample = true;
+        }
         else if (argv[i] == "--make-aliases"sv)
         {
             config.makeAliases = true;
@@ -400,6 +451,8 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
             std::println("  --schema STR            Schema name");
             std::println("  --create-test-tables    Create test tables");
             std::println("  --output STR            Output file name");
+            std::println(
+                "  --generate-example      Generate usage example code using generated header and database connection");
             std::println("  --make-aliases          Create aliases for the tables and members");
             std::println("  --naming-convention STR Naming convention for aliases");
             std::println("                          [none, snake_case, CamelCase]");
@@ -444,6 +497,7 @@ int main(int argc, char const* argv[])
     CxxModelPrinter printer;
     printer.Config().makeAliases = config.makeAliases;
     printer.Config().formatType = config.formatType;
+    printer.Config().generateExample = config.generateExample;
 
     for (auto const& table: tables)
     {
@@ -457,6 +511,33 @@ int main(int argc, char const* argv[])
         auto file = std::ofstream(config.outputFileName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage)
         file << printer.str(config.modelNamespace);
         std::println("Wrote to file : {}", config.outputFileName);
+    }
+
+    if (config.generateExample)
+    {
+        const auto sourceFileName =
+            std::string(config.outputFileName.substr(0, config.outputFileName.find_last_of('.'))) + ".cpp";
+        auto file = std::ofstream(sourceFileName); // NOLINT(bugprone-suspicious-stringview-data-usage)
+        file << std::format("#include \"{}\"\n", [&config] {
+            return config.outputFileName.substr(config.outputFileName.find_last_of('/') + 1,
+                                                config.outputFileName.find_last_of('.'));
+        }());
+        file << "#include <cstdlib>\n";
+        file << "\n";
+        file << "int main()\n";
+        file << "{\n";
+        file << std::format("SqlConnection::SetDefaultConnectionString(SqlConnectionString {{ \"{}\" }});\n",
+                            std::string(config.connectionString));
+        file << "\n";
+        file << "auto dm = DataMapper{};";
+        file << "\n";
+        for (auto const& table: tables)
+        {
+            file << printer.example(table);
+        }
+        file << "\n";
+        file << "return EXIT_SUCCESS;\n";
+        file << "}\n";
     }
 
     return EXIT_SUCCESS;

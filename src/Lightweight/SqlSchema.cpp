@@ -246,6 +246,7 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
             auto const type = columnStmt.GetColumn<int>(5);
             column.dialectDependantTypeString = columnStmt.GetColumn<std::string>(6);
             column.size = columnStmt.GetColumn<int>(7);
+
             // 8 - bufferLength
             try
             {
