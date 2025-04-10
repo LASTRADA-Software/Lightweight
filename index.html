@@ -210,8 +210,22 @@ SQLite ODBC driver installation on other operating systems</h2>
 <div class="line">arch -arm64 brew install sqliteodbc</div>
 </div><!-- fragment --><ul>
 <li>sqliteODBC Documentation: <a href="http://www.ch-werner.de/sqliteodbc/html/index.html">http://www.ch-werner.de/sqliteodbc/html/index.html</a></li>
-<li>Example connection string: <code>DRIVER=SQLite3;Database=<a href="file::memory:">file::memory:</a></code> </li>
+<li>Example connection string: <code>DRIVER=SQLite3;Database=<a href="file::memory:">file::memory:</a></code></li>
 </ul>
+<h1><a class="anchor" id="generate-example-for-the-existing-database"></a>
+Generate example for the existing database</h1>
+<p>You can use <code>ddl2cpp</code> to generate header file for you database schema as well as an example file that you can compile</p>
+<p>First, configure cmake project and compile <code>ddl2cpp</code> target </p><div class="fragment"><div class="line"> sh</div>
+<div class="line">cmake --build build --target ddl2cpp </div>
+</div><!-- fragment --><p>Generate header file from the existing database by providing connection string to the tool </p><div class="fragment"><div class="line">sh</div>
+<div class="line">./build/src/tools/ddl2cpp --connection-string &quot;DRIVER=SQLite3;Database=test.db&quot; --make-aliases --naming-convention CamelCase  --output ./src/examples/example.hpp --generate-example</div>
+</div><!-- fragment --><p>Now you can configure cmake to compile example</p>
+<div class="fragment"><div class="line"> sh</div>
+<div class="line">cmake --preset linux-clang-debug -DLIGHWEIGHT_EXAMPLE=ON -B build</div>
+</div><!-- fragment --><p>Finally, compile and run the example</p>
+<div class="fragment"><div class="line"> sh</div>
+<div class="line">cmake --build build  &amp;&amp; ./build/src/examples/example</div>
+</div><!-- fragment --><p>` </p>
 </div></div><!-- PageDoc -->
 </div><!-- contents -->
 </div><!-- doc-content -->

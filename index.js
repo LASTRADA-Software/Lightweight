@@ -7,5 +7,6 @@ var index =
     [ "Supported databases", "index.html#supported-databases", null ],
     [ "Using SQLite for testing on Windows operating system", "index.html#using-sqlite-for-testing-on-windows-operating-system", [
       [ "SQLite ODBC driver installation on other operating systems", "index.html#sqlite-odbc-driver-installation-on-other-operating-systems", null ]
-    ] ]
+    ] ],
+    [ "Generate example for the existing database", "index.html#generate-example-for-the-existing-database", null ]
 ];
