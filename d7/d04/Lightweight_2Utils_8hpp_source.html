@@ -313,16 +313,22 @@ $(document).ready(function(){initNavTree('d7/d04/Lightweight_2Utils_8hpp_source.
 <div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>LIGHTWEIGHT_API <span class="keywordtype">void</span> RequireSuccess(SQLHSTMT hStmt,</div>
 <div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>                                    SQLRETURN error,</div>
 <div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>                                    std::source_location sourceLocation = std::source_location::current());</div>
-<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span> </div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span><span class="keyword">enum class</span> FormatType : uint8_t</div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>{</div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>    snakeCase,</div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    camelCase,</div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>    existing,</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>};</div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span><span class="comment"></span> </div>
-<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span><span class="comment">/// @brief Converts a string to a format that is more suitable for C++ code.</span></div>
-<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span><span class="comment"></span>LIGHTWEIGHT_API std::string formatName(std::string_view name, FormatType formatType);</div>
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span><span class="comment"></span> </div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span><span class="comment">/// Defines the naming convention for use (e.g. for C++ column names or table names in C++ struct names).</span></div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span><span class="comment"></span><span class="keyword">enum class</span> FormatType : uint8_t</div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>{<span class="comment"></span></div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span><span class="comment">    /// Preserve the original naming convention.</span></div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span><span class="comment"></span>    preserve,</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span><span class="comment"></span> </div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span><span class="comment">    /// Ensure the name is formatted in snake_case naming convention.</span></div>
+<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span><span class="comment"></span>    snakeCase,</div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span><span class="comment"></span> </div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span><span class="comment">    /// Ensure the name is formatted in CamelCase naming convention.</span></div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span><span class="comment"></span>    camelCase,</div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>};</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span><span class="comment"></span> </div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span><span class="comment">/// @brief Converts a string to a format that is more suitable for C++ code.</span></div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="comment"></span>LIGHTWEIGHT_API std::string formatName(std::string_view name, FormatType formatType);</div>
 <div class="ttc" id="agroup__DataMapper_html_ga4565e3cf41830db5a08951da5702c776"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga4565e3cf41830db5a08951da5702c776">RecordTableName</a></div><div class="ttdeci">constexpr std::string_view RecordTableName</div><div class="ttdoc">Holds the SQL tabl ename for the given record type.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00155">Utils.hpp:155</a></div></div>
 <div class="ttc" id="agroup__DataMapper_html_gac81e84c4d6ab9877c8dba3e0d414f7d5"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#gac81e84c4d6ab9877c8dba3e0d414f7d5">FieldNameAt</a></div><div class="ttdeci">constexpr std::string_view FieldNameAt</div><div class="ttdoc">Returns the SQL field name of the given field index in the record.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00142">Utils.hpp:142</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
