@@ -29,7 +29,7 @@ void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location source
 
 std::string formatName(std::string_view name, FormatType formatType)
 {
-    if (formatType == FormatType::existing)
+    if (formatType == FormatType::preserve)
         return std::string { name };
 
     const auto IsDelimiter = [](char c) {
