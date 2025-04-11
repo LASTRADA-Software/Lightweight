@@ -218,7 +218,7 @@ struct SqlColumnDeclaration
 
 struct SqlCreateTablePlan
 {
-    std::string_view tableName;
+    std::string tableName;
     std::vector<SqlColumnDeclaration> columns;
 };
 
