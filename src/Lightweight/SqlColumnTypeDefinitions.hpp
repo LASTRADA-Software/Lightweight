@@ -2,11 +2,15 @@
 
 #pragma once
 
-#include <optional>
-#include <variant>
+#if defined(_WIN32) || defined(_WIN64)
+    #include <Windows.h>
+#endif
 
 #include <sql.h>
 #include <sqlext.h>
+
+#include <optional>
+#include <variant>
 
 namespace SqlColumnTypeDefinitions
 {
