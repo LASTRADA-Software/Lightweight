@@ -30,7 +30,8 @@ SqlConnection::SqlConnection():
     SQLSetEnvAttr(m_hEnv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER) SQL_OV_ODBC3, 0);
     SQLAllocHandle(SQL_HANDLE_DBC, m_hEnv, &m_hDbc);
 
-    Connect(DefaultConnectionString());
+    if (!Connect(DefaultConnectionString()))
+        throw SqlException(LastError());
 }
 
 SqlConnection::SqlConnection(std::optional<SqlConnectionString> connectInfo):
