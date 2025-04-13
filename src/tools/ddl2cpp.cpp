@@ -81,13 +81,6 @@ std::string MakeType(SqlSchema::Column const& column)
                    column.type));
 }
 
-std::string MakeVariableName(SqlSchema::FullyQualifiedTableName const& table)
-{
-    auto name = std::format("{}", table.table);
-    name.at(0) = static_cast<char>(std::tolower(name.at(0)));
-    return name;
-}
-
 // "user_id" into "UserId"
 // "task_list_entry" into "TaskListEntry"
 // "person" into "Person"
@@ -265,9 +258,9 @@ class CxxModelPrinter
             _definitions << std::format(
                 "    BelongsTo<&{}> {};\n",
                 [&]() {
-                    return std::format("{}::{}", foreignKey.primaryKey.table, foreignKey.primaryKey.columns[0]); // TODO
+                    return std::format("{}::{}", aliasTableName(foreignKey.primaryKey.table.table), foreignKey.primaryKey.columns[0]); // TODO
                 }(),
-                MakeVariableName(foreignKey.primaryKey.table));
+                FormatName(std::string_view { foreignKey.primaryKey.table.table }, _config.formatType));
         }
 
         for (SqlSchema::ForeignKeyConstraint const& foreignKey: table.externalForeignKeys)
