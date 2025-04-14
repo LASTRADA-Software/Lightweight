@@ -72,10 +72,8 @@ std::string MakeType(SqlSchema::Column const& column)
                        [](Time const&) -> std::string { return "SqlTime"; },
                        [](Timestamp const&) -> std::string { return "SqlDateTime"; },
                        [](Tinyint const&) -> std::string { return "uint8_t"; },
-                       // TODO distinguish between BINARY and VARBINARY and VARBINARY(MAX) which is for an IMAGE
-                       // (https://github.com/LASTRADA-Software/Lightweight/issues/182)
                        [](VarBinary const& type) -> std::string {
-                           return std::format("SqlBinary", type.size > 100 ? 100 : type.size);
+                           return std::format("SqlDynamicBinary<{}>", type.size);
                        },
                        [](Varchar const& type) -> std::string {
                            if (type.size > 0 && type.size <= SqlOptimalMaxColumnSize)

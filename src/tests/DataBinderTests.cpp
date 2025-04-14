@@ -79,21 +79,15 @@ struct SqlDataBinder<CustomType>
         return SqlDataBinder<int>::InputParameter(hStmt, column, value.value, cb);
     }
 
-    static SQLRETURN OutputColumn(SQLHSTMT hStmt,
-                                  SQLUSMALLINT column,
-                                  CustomType* result,
-                                  SQLLEN* indicator,
-                                  SqlDataBinderCallback& callback) noexcept
+    static SQLRETURN OutputColumn(
+        SQLHSTMT hStmt, SQLUSMALLINT column, CustomType* result, SQLLEN* indicator, SqlDataBinderCallback& callback) noexcept
     {
         callback.PlanPostProcessOutputColumn([result]() { result->value = PostProcess(result->value); });
         return SqlDataBinder<int>::OutputColumn(hStmt, column, &result->value, indicator, callback);
     }
 
-    static SQLRETURN GetColumn(SQLHSTMT hStmt,
-                               SQLUSMALLINT column,
-                               CustomType* result,
-                               SQLLEN* indicator,
-                               SqlDataBinderCallback const& cb) noexcept
+    static SQLRETURN GetColumn(
+        SQLHSTMT hStmt, SQLUSMALLINT column, CustomType* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
     {
         return SqlDataBinder<int>::GetColumn(hStmt, column, &result->value, indicator, cb);
     }
@@ -834,11 +828,23 @@ struct TestTypeTraits<SqlBinary>
     static auto const inline expectedOutputValue = SqlBinary { 0x00, 0x02, 0x03, 0x00, 0x05 };
 };
 
+template <>
+struct TestTypeTraits<SqlDynamicBinary<8>>
+{
+    static constexpr auto blacklist = std::array {
+        std::pair { SqlServerType::ORACLE, "TODO: Oracle"sv },
+    };
+    static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::VarBinary { 50 };
+    static auto const inline inputValue = SqlDynamicBinary<8> {{ 0x00, 0x02, 0x03, 0x00, 0x05, 0x06 }};
+    static auto const inline expectedOutputValue = SqlDynamicBinary<8> {{ 0x00, 0x02, 0x03, 0x00, 0x05, 0x06 }};
+};
+
 using TypesToTest = std::tuple<
     CustomType,
     SqlBinary,
     SqlDate,
     SqlDateTime,
+    SqlDynamicBinary<8>,
     SqlGuid,
     SqlNumeric<15, 2>,
     SqlAnsiString<20>,
@@ -922,14 +928,12 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
                 if constexpr (std::is_convertible_v<TestType, double> && !std::integral<TestType>)
                 {
                     auto const actualValue = stmt.GetColumn<TestType>(1);
-                    CHECK_THAT(
-                        actualValue,
-                        (Catch::Matchers::WithinAbs(double(TestTypeTraits<TestType>::expectedOutputValue), 0.001)));
+                    CHECK_THAT(actualValue,
+                               (Catch::Matchers::WithinAbs(double(TestTypeTraits<TestType>::expectedOutputValue), 0.001)));
                 }
                 else if constexpr (requires { typename TestTypeTraits<TestType>::GetColumnTypeOverride; })
                 {
-                    auto const actualValue =
-                        stmt.GetColumn<typename TestTypeTraits<TestType>::GetColumnTypeOverride>(1);
+                    auto const actualValue = stmt.GetColumn<typename TestTypeTraits<TestType>::GetColumnTypeOverride>(1);
                     CHECK(actualValue == TestTypeTraits<TestType>::expectedOutputValue);
                 }
                 else
