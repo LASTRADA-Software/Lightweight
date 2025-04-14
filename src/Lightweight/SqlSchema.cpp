@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "SqlConnection.hpp"
+#include "SqlColumnTypeDefinitions.hpp"
 #include "SqlError.hpp"
 #include "SqlSchema.hpp"
 #include "SqlStatement.hpp"
@@ -29,48 +29,6 @@ bool operator<(KeyPair const& a, KeyPair const& b)
 
 namespace
 {
-    SqlColumnTypeDefinition FromNativeDataType(int value, size_t size, size_t precision)
-    {
-        // Maps ODBC data types to SqlColumnTypeDefinition
-        // See: https://learn.microsoft.com/en-us/sql/odbc/reference/appendixes/sql-data-types?view=sql-server-ver16
-        using namespace SqlColumnTypeDefinitions;
-        // clang-format off
-        switch (value)
-        {
-            case SQL_BIGINT: return Bigint {};
-            case SQL_BINARY: return Binary { size };
-            case SQL_BIT: return Bool {};
-            case SQL_CHAR: return Char { size };
-            case SQL_DATE: return Date {};
-            case SQL_DECIMAL: assert(size <= precision); return Decimal { .precision = precision, .scale = size };
-            case SQL_DOUBLE: return Real {};
-            case SQL_FLOAT: return Real {};
-            case SQL_GUID: return Guid {};
-            case SQL_INTEGER: return Integer {};
-            case SQL_LONGVARBINARY: return VarBinary { size };
-            case SQL_LONGVARCHAR: return Varchar { size };
-            case SQL_NUMERIC: assert(size <= precision); return Decimal { .precision = precision, .scale = size };
-            case SQL_REAL: return Real {};
-            case SQL_SMALLINT: return Smallint {};
-            case SQL_TIME: return Time {};
-            case SQL_TIMESTAMP: return DateTime {};
-            case SQL_TINYINT: return Tinyint {};
-            case SQL_TYPE_DATE: return Date {};
-            case SQL_TYPE_TIME: return Time {};
-            case SQL_TYPE_TIMESTAMP: return DateTime {};
-            case SQL_VARBINARY: return Binary { size };
-            case SQL_VARCHAR: return Varchar { size };
-            case SQL_WCHAR: return NChar { size };
-            case SQL_WLONGVARCHAR: return NVarchar { size };
-            case SQL_WVARCHAR: return NVarchar { size };
-            // case SQL_UNKNOWN_TYPE:
-            default:
-                SqlLogger::GetLogger().OnError(SqlError::UNSUPPORTED_TYPE);
-                throw std::runtime_error(std::format("Unsupported data type: {}", value));
-        }
-        // clang-format on
-    }
-
     std::vector<std::string> AllTables(std::string_view database, std::string_view schema)
     {
         auto const tableType = "TABLE"sv;
@@ -194,6 +152,7 @@ namespace
 
 } // namespace
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void ReadAllTables(std::string_view database, std::string_view schema, EventHandler& eventHandler)
 {
     auto stmt = SqlStatement {};
@@ -275,7 +234,13 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
                 column.defaultValue = {};
             }
 
-            column.type = FromNativeDataType(type, column.size, column.decimalDigits);
+            if (auto cType = MakeColumnTypeFromNative(type, column.size, column.decimalDigits); cType.has_value())
+                column.type = *cType;
+            else
+            {
+                SqlLogger::GetLogger().OnError(SqlError::UNSUPPORTED_TYPE);
+                throw std::runtime_error(std::format("Unsupported data type: {}", type));
+            }
 
             // accumulated properties
             column.isPrimaryKey = std::ranges::contains(primaryKeys, column.name);

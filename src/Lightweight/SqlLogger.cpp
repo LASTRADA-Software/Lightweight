@@ -218,6 +218,7 @@ class SqlTraceLogger: public SqlStandardLogger
         _state = State::Executing;
         _lastPreparedQuery = query;
         _startedAt = std::chrono::steady_clock::now();
+        _fetchRowCount = 0;
     }
 
     void OnExecute(std::string_view const& query) override
