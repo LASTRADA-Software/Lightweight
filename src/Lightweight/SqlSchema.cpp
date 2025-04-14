@@ -126,12 +126,16 @@ namespace
         std::vector<std::string> keys;
         std::vector<size_t> sequenceNumbers;
 
+        auto* pkCatalog = (SQLCHAR*) (!table.catalog.empty() ? table.catalog.c_str() : nullptr);
+        auto* pkSchema = (SQLCHAR*) (!table.schema.empty() ? table.schema.c_str() : nullptr);
+        auto* pkTable = (SQLCHAR*) (!table.table.empty() ? table.table.c_str() : nullptr);
+
         auto sqlResult = SQLPrimaryKeys(stmt.NativeHandle(),
-                                        (SQLCHAR*) table.catalog.data(),
+                                        pkCatalog,
                                         (SQLSMALLINT) table.catalog.size(),
-                                        (SQLCHAR*) table.schema.data(),
+                                        pkSchema,
                                         (SQLSMALLINT) table.schema.size(),
-                                        (SQLCHAR*) table.table.data(),
+                                        pkTable,
                                         (SQLSMALLINT) table.table.size());
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLPrimaryKeys failed: {}", stmt.LastError()));

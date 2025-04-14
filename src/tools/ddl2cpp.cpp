@@ -8,6 +8,7 @@
 #include <cassert>
 #include <fstream>
 #include <print>
+#include <unordered_map>
 
 // TODO: have an OdbcConnectionString API to help compose/decompose connection settings
 // TODO: move SanitizePwd function into that API, like `string OdbcConnectionString::PrettyPrintSanitized()`
@@ -255,12 +256,16 @@ class CxxModelPrinter
 
         for (auto const& foreignKey: table.foreignKeys)
         {
+
+            std::println("table:{} foreignkey: {}", table.name, foreignKey.primaryKey.columns[0]);
             _definitions << std::format(
                 "    BelongsTo<&{}> {};\n",
                 [&]() {
-                    return std::format("{}::{}", aliasTableName(foreignKey.primaryKey.table.table), foreignKey.primaryKey.columns[0]); // TODO
+                    return std::format("{}::{}",
+                                       aliasTableName(foreignKey.primaryKey.table.table),
+                                       FormatName(foreignKey.primaryKey.columns[0] , _config.formatType)); // TODO
                 }(),
-                FormatName(std::string_view { foreignKey.primaryKey.table.table }, _config.formatType));
+                FormatName(std::string_view { foreignKey.foreignKey.column }, _config.formatType));
         }
 
         for (SqlSchema::ForeignKeyConstraint const& foreignKey: table.externalForeignKeys)
@@ -394,7 +399,7 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
                 config.formatType = FormatType::preserve;
             else if (argv[i] == "snake_case"sv)
                 config.formatType = FormatType::snakeCase;
-            else if (argv[i] == "CamelCase"sv)
+            else if (argv[i] == "camelCase"sv)
                 config.formatType = FormatType::camelCase;
             else
                 return { EXIT_FAILURE };
@@ -448,7 +453,7 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
                 "  --generate-example      Generate usage example code using generated header and database connection");
             std::println("  --make-aliases          Create aliases for the tables and members");
             std::println("  --naming-convention STR Naming convention for aliases");
-            std::println("                          [none, snake_case, CamelCase]");
+            std::println("                          [none, snake_case, camelCase]");
             std::println("  --help, -h              Display this information");
             std::println("");
             return { EXIT_SUCCESS };
@@ -469,6 +474,45 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
         argv[i - 1] = argv[0];
 
     return { config };
+}
+
+void resolveOrderAndPrintTable(auto& printer, const auto& tables)
+{
+    std::println("Starting to print tables");
+    std::unordered_map<size_t, size_t> numberOfForeignKeys;
+    for (auto const& [index, table]: std::views::enumerate(tables))
+    {
+        numberOfForeignKeys[index] = table.foreignKeys.size();
+    }
+
+    std::println("Filled number of foreign keys");
+    const auto updateForeignKeyCountAfterPrinted = [&](const auto& tablePrinted) {
+        for (auto const& [index, table]: std::views::enumerate(tables))
+        {
+            for (auto const& foreignKey: table.foreignKeys)
+            {
+                if (foreignKey.primaryKey.table.table == tablePrinted.name)
+                {
+                    numberOfForeignKeys[index]--;
+                }
+            }
+        }
+    };
+
+    size_t numberOfPrintedTables = 0;
+    std::println("Number of tables: {}", tables.size());
+    while (numberOfPrintedTables < tables.size())
+    {
+        for (auto const& [index, table]: std::views::enumerate(tables))
+        {
+            if (numberOfForeignKeys[index] == 0)
+            {
+                numberOfPrintedTables++;
+                printer.PrintTable(table);
+                updateForeignKeyCountAfterPrinted(table);
+            }
+        }
+    }
 }
 
 int main(int argc, char const* argv[])
@@ -492,10 +536,7 @@ int main(int argc, char const* argv[])
     printer.Config().formatType = config.formatType;
     printer.Config().generateExample = config.generateExample;
 
-    for (auto const& table: tables)
-    {
-        printer.PrintTable(table);
-    }
+    resolveOrderAndPrintTable(printer, tables);
 
     if (config.outputFileName.empty() || config.outputFileName == "-")
         std::println("{}", printer.str(config.modelNamespace));
