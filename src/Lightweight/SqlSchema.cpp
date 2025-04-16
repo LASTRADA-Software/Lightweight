@@ -215,7 +215,7 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
             {
                 column.decimalDigits = columnStmt.GetColumn<uint16_t>(9);
                 // some special handling of weird types
-                if(column.dialectDependantTypeString == "money")
+                if (column.dialectDependantTypeString == "money")
                 {
                     // 0.123 -> decimalDigits = 3 size = 4
                     // 100.123 -> decimalDigits = 3  size = 6
