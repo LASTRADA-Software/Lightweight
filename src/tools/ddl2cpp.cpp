@@ -8,6 +8,7 @@
 #include <cassert>
 #include <fstream>
 #include <print>
+#include <unordered_map>
 
 // TODO: have an OdbcConnectionString API to help compose/decompose connection settings
 // TODO: move SanitizePwd function into that API, like `string OdbcConnectionString::PrettyPrintSanitized()`
@@ -43,7 +44,7 @@ std::string MakeType(SqlSchema::Column const& column)
     return optional(
         std::visit(detail::overloaded {
                        [](Bigint const&) -> std::string { return "int64_t"; },
-                       [](Binary const& type) -> std::string { return std::format("SqlBinary<{}>", type.size); },
+                       [](Binary const& type) -> std::string { return std::format("SqlBinary", type.size); },
                        [](Bool const&) -> std::string { return "bool"; },
                        [](Char const& type) -> std::string {
                            if (type.size == 1)
@@ -69,9 +70,11 @@ std::string MakeType(SqlSchema::Column const& column)
                        [](Time const&) -> std::string { return "SqlTime"; },
                        [](Timestamp const&) -> std::string { return "SqlDateTime"; },
                        [](Tinyint const&) -> std::string { return "uint8_t"; },
-                       // TODO distinguish between BINARY and VARBINARY
+                       // TODO distinguish between BINARY and VARBINARY and VARBINARY(MAX) which is for an IMAGE
                        // (https://github.com/LASTRADA-Software/Lightweight/issues/182)
-                       [](VarBinary const& type) -> std::string { return std::format("SqlBinary<{}>", type.size); },
+                       [](VarBinary const& type) -> std::string {
+                           return std::format("SqlBinary", type.size > 100 ? 100 : type.size);
+                       },
                        [](Varchar const& type) -> std::string {
                            if (type.size > 0 && type.size <= SqlOptimalMaxColumnSize)
                                return std::format("SqlAnsiString<{}>", type.size);
@@ -79,13 +82,6 @@ std::string MakeType(SqlSchema::Column const& column)
                        },
                    },
                    column.type));
-}
-
-std::string MakeVariableName(SqlSchema::FullyQualifiedTableName const& table)
-{
-    auto name = std::format("{}", table.table);
-    name.at(0) = static_cast<char>(std::tolower(name.at(0)));
-    return name;
 }
 
 // "user_id" into "UserId"
@@ -191,7 +187,7 @@ class CxxModelPrinter
         }
         else
         {
-            exampleEntries << std::format("    std::println(\"{{}}\", entry.{}.Value());\n", column.name);
+            exampleEntries << std::format("    std::println(\"{{}}\", entry.{}.Value());\n", memberName);
         }
 
         exampleEntries << "}\n";
@@ -238,6 +234,9 @@ class CxxModelPrinter
             return std::string {};
         };
 
+
+        std::vector<std::string> addedMembers;
+
         _forwardDeclarations.push_back(aliasTableName(table.name));
         _definitions << std::format("struct {} final\n", aliasTableName(table.name));
         _definitions << std::format("{{\n");
@@ -246,28 +245,51 @@ class CxxModelPrinter
         for (auto const& column: table.columns)
         {
             std::string type = MakeType(column);
+            const auto memberName = FormatName(column.name, _config.formatType);
+            addedMembers.push_back(memberName);
+            // all foreign keys will be handled in the BelongsTo
             if (column.isPrimaryKey)
             {
                 _definitions << std::format("    Field<{}, PrimaryKey::ServerSideAutoIncrement{}> {};\n",
                                             type,
-                                            aliasName(column.name),
-                                            FormatName(column.name, _config.formatType));
+                                            aliasName(column.name), memberName
+                                            );
                 continue;
             }
             if (column.isForeignKey)
                 continue;
+
             _definitions << std::format(
-                "    Field<{}{}> {};\n", type, aliasName(column.name), FormatName(column.name, _config.formatType));
+                "    Field<{}{}> {};\n", type, aliasName(column.name), memberName);
+
         }
 
         for (auto const& foreignKey: table.foreignKeys)
         {
+
+            const auto memberName = FormatName(std::string_view { foreignKey.foreignKey.column }, _config.formatType);
+            if (foreignKey.primaryKey.columns[0].empty())
+            {
+                std::println("Foreign key {} has no primary key", memberName);
+                continue;
+            }
+
+
+            if (std::ranges::find(addedMembers, memberName) != addedMembers.end())
+            {
+                std::println("Foreign key {} already added", memberName);
+                continue;
+            }
+
             _definitions << std::format(
                 "    BelongsTo<&{}> {};\n",
                 [&]() {
-                    return std::format("{}::{}", foreignKey.primaryKey.table, foreignKey.primaryKey.columns[0]); // TODO
+                    return std::format("{}::{}",
+                                       aliasTableName(foreignKey.primaryKey.table.table),
+                                       FormatName(foreignKey.primaryKey.columns[0], _config.formatType)); // TODO
                 }(),
-                MakeVariableName(foreignKey.primaryKey.table));
+                memberName);
+            addedMembers.push_back(memberName);
         }
 
         for (SqlSchema::ForeignKeyConstraint const& foreignKey: table.externalForeignKeys)
@@ -401,7 +423,7 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
                 config.formatType = FormatType::preserve;
             else if (argv[i] == "snake_case"sv)
                 config.formatType = FormatType::snakeCase;
-            else if (argv[i] == "CamelCase"sv)
+            else if (argv[i] == "camelCase"sv)
                 config.formatType = FormatType::camelCase;
             else
                 return { EXIT_FAILURE };
@@ -455,7 +477,7 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
                 "  --generate-example      Generate usage example code using generated header and database connection");
             std::println("  --make-aliases          Create aliases for the tables and members");
             std::println("  --naming-convention STR Naming convention for aliases");
-            std::println("                          [none, snake_case, CamelCase]");
+            std::println("                          [none, snake_case, camelCase]");
             std::println("  --help, -h              Display this information");
             std::println("");
             return { EXIT_SUCCESS };
@@ -476,6 +498,50 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
         argv[i - 1] = argv[0];
 
     return { config };
+}
+
+void resolveOrderAndPrintTable(auto& printer, const auto& tables)
+{
+    std::println("Starting to print tables");
+    std::unordered_map<size_t, int> numberOfForeignKeys;
+    for (auto const& [index, table]: std::views::enumerate(tables))
+    {
+        numberOfForeignKeys[index] = static_cast<int>(table.foreignKeys.size());
+    }
+
+    std::println("Filled number of foreign keys");
+    const auto updateForeignKeyCountAfterPrinted = [&](const auto& tablePrinted) {
+        for (auto const [index, table]: std::views::enumerate(tables))
+        {
+            if (table.name == tablePrinted.name)
+                numberOfForeignKeys[index] = -1;
+
+            for (auto const& foreignKey: table.foreignKeys)
+            {
+                if (foreignKey.primaryKey.table.table == tablePrinted.name)
+                {
+                    numberOfForeignKeys[index]--;
+                }
+            }
+        }
+    };
+
+    size_t numberOfPrintedTables = 0;
+    std::println("Number of tables: {}", tables.size());
+    while (numberOfPrintedTables < tables.size())
+    {
+        for (auto const& [index, table]: std::views::enumerate(tables))
+        {
+            if (numberOfForeignKeys[index] == 0)
+            {
+                numberOfPrintedTables++;
+                printer.PrintTable(table);
+                updateForeignKeyCountAfterPrinted(table);
+                // remove the printed table from the map
+            }
+        }
+        std::println("Number of printed tables: {}", numberOfPrintedTables);
+    }
 }
 
 int main(int argc, char const* argv[])
@@ -499,10 +565,7 @@ int main(int argc, char const* argv[])
     printer.Config().formatType = config.formatType;
     printer.Config().generateExample = config.generateExample;
 
-    for (auto const& table: tables)
-    {
-        printer.PrintTable(table);
-    }
+    resolveOrderAndPrintTable(printer, tables);
 
     if (config.outputFileName.empty() || config.outputFileName == "-")
         std::println("{}", printer.str(config.modelNamespace));
