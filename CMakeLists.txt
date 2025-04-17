@@ -13,17 +13,23 @@ set(CMAKE_COLOR_DIAGNOSTICS ON)
 include(ClangTidy)
 include(PedanticCompiler)
 
-# download CPM.cmake
-file(
-    DOWNLOAD
-    https://github.com/cpm-cmake/CPM.cmake/releases/download/v0.38.3/CPM.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake
-    EXPECTED_HASH SHA256=cc155ce02e7945e7b8967ddfaff0b050e958a723ef7aad3766d368940cb15494
-)
-include(${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake)
-
 # TODO: use a release version of reflection-cpp as soon as possible
-CPMAddPackage("gh:contour-terminal/reflection-cpp#master")
+find_package(reflection-cpp)
+
+if(reflection-cpp_FOUND)
+    message(STATUS "reflection-cpp found: ${reflection-cpp_INCLUDE_DIRS}")
+else()
+    message(STATUS "reflection-cpp not found, downloading...")
+    # download CPM.cmake
+    file(
+        DOWNLOAD
+        https://github.com/cpm-cmake/CPM.cmake/releases/download/v0.38.3/CPM.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake
+        EXPECTED_HASH SHA256=cc155ce02e7945e7b8967ddfaff0b050e958a723ef7aad3766d368940cb15494
+    )
+    include(${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake)
+    CPMAddPackage("gh:contour-terminal/reflection-cpp#master")
+endif()
 
 # Detect clang-cl
 set(CLANG_CL FALSE)
@@ -53,7 +59,7 @@ if(NOT(CPACK_GENERATOR))
     set(CPACK_GENERATOR TGZ)
 endif()
 set(CPACK_PACKAGE_NAME "Lightweight")
-set(CPACK_PACKAGE_VENDOR "https://github.com/christianparpart/Lightwweight/")
+set(CPACK_PACKAGE_VENDOR "https://github.com/LASTRADA-Software/Lightweight")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Lightweight SQL C++ library on top of ODBC")
 set(CPACK_PACKAGE_CONTACT "Christian Parpart <christian@parpart.family>")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
@@ -61,10 +67,10 @@ set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
 #set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE.txt")
 #set(CPACK_PACKAGE_INSTALL_DIRECTORY "Lightweight SQL ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 
+enable_testing()
+
 add_subdirectory(src/Lightweight)
 add_subdirectory(src/tools)
-
-enable_testing()
 add_subdirectory(src/tests)
 add_subdirectory(src/benchmark)
 add_subdirectory(src/examples)

@@ -1,7 +1,3 @@
-cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
-
-project(Lightweight LANGUAGES CXX)
-
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -107,7 +103,6 @@ add_library(Lightweight ${LIGHTWEIGHT_LIBRARY_TYPE})
 add_library(Lightweight::Lightweight ALIAS Lightweight)
 target_compile_features(Lightweight PUBLIC cxx_std_23)
 target_sources(Lightweight PRIVATE ${SOURCE_FILES})
-target_sources(Lightweight PUBLIC ${HEADER_FILES})
 
 if(LIGHTWEIGHT_BUILD_SHARED)
     target_compile_definitions(Lightweight PRIVATE BUILD_LIGHTWEIGHT=1)
@@ -121,7 +116,7 @@ endif()
 
 # target_include_directories(Lightweight PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>)
 target_include_directories(Lightweight PUBLIC
-    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/..>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/include>
 )
 
@@ -150,21 +145,71 @@ else()
     endif()
 endif()
 
+set_target_properties(Lightweight PROPERTIES
+    EXPORT_NAME Lightweight
+    OUTPUT_NAME Lightweight
+    COMPILE_PDB_NAME Lightweight
+    COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" # The directory where the PDB file is generated
+    VERSION "${CMAKE_PROJECT_VERSION}"
+    SOVERSION "${CMAKE_PROJECT_VERSION_MAJOR}"
+)
+
 # ==================================================================================================
 
-
-if(NOT WIN32)
-    include(GNUInstallDirs)
-endif()
-
-#install(TARGETS LightweightTest DESTINATION bin)
-install(TARGETS Lightweight DESTINATION lib)
+include(GNUInstallDirs) # Provides standard installation directory variables like CMAKE_INSTALL_LIBDIR
 
 # install header files recursively
 install(
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
-    DESTINATION include/Lightweight
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Lightweight
     FILES_MATCHING PATTERN "*.hpp"
+)
+
+install(TARGETS Lightweight
+    EXPORT Lightweight-targets
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} # For DLLs on Windows
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} # For shared libs (.so, .dll) and Windows import libs (.lib)
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} # For static libs (.a, .lib)
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} # IMPORTANT: Needed for interface libraries / header locations
+)
+
+# Only install the PDB file for Debug and RelWithDebInfo configurations on Windows platform
+if(WIN32)
+    install(FILES $<TARGET_PDB_FILE:Lightweight>
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+        CONFIGURATIONS Debug RelWithDebInfo
+        COMPONENT DebugSymbols
+        OPTIONAL
+    )
+endif()
+
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/Lightweight-config-version.cmake"
+    VERSION ${CMAKE_PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/Lightweight-config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/Lightweight-config.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Lightweight" # Standard location
+    PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR # Variables to make absolute in config file
+)
+
+install(
+    FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/Lightweight-config.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/Lightweight-config-version.cmake"
+    DESTINATION
+        "${CMAKE_INSTALL_LIBDIR}/cmake/Lightweight" # Same dir as INSTALL_DESTINATION above
+)
+
+install(
+    EXPORT Lightweight-targets # Must match the EXPORT name used in install(TARGETS)
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Lightweight" # Same dir as config files
+    NAMESPACE Lightweight:: # The namespace for imported targets (e.g., Lightweight::Lightweight)
 )
 
 include(CPack)

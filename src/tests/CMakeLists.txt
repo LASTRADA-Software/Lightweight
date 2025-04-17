@@ -1,3 +1,9 @@
+option(LIGHTWEIGHT_BUILD_TESTS "Build Lightweight tests" ON)
+
+if(NOT LIGHTWEIGHT_BUILD_TESTS)
+    return()
+endif()
+
 find_package(Catch2 REQUIRED)
 
 add_executable(LightweightTest)

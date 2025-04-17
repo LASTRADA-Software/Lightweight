@@ -1,0 +1,8 @@
+@PACKAGE_INIT@
+
+# prevent repeatedly including the targets
+if(NOT TARGET Lightweight::Lightweight)
+    include(${CMAKE_CURRENT_LIST_DIR}/Lightweight-targets.cmake)
+endif()
+
+message(STATUS "Found @PROJECT_NAME@, with version: ${@PROJECT_NAME@_VERSION}")
