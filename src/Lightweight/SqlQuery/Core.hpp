@@ -77,6 +77,23 @@ std::string MakeSqlColumnName(ColumnName const& columnName)
     return output;
 }
 
+template <typename T>
+std::string MakeEscapedSqlString(T const& value)
+{
+    std::string escapedValue;
+    escapedValue += '\'';
+
+    for (auto const ch : value)
+    {
+        // In SQL strings, single quotes are escaped by doubling them.
+        if (ch == '\'')
+            escapedValue += '\'';
+        escapedValue += ch;
+    }
+    escapedValue += '\'';
+    return escapedValue;
+}
+
 } // namespace detail
 
 struct [[nodiscard]] SqlSearchCondition
@@ -316,6 +333,12 @@ class [[nodiscard]] SqlWhereClauseBuilder
     template <typename LiteralType>
     void AppendLiteralValue(LiteralType const& value);
 
+    template <typename LiteralType, typename TargetType>
+    void PopulateLiteralValueInto(LiteralType const& value, TargetType& target);
+
+    template <typename LiteralType>
+    detail::RawSqlCondition PopulateSqlSetExpression(LiteralType const& values);
+
     enum class JoinType : uint8_t
     {
         INNER,
@@ -548,32 +571,12 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(C
     return static_cast<Derived&>(*this);
 }
 
-namespace detail
-{
-
-inline LIGHTWEIGHT_FORCE_INLINE RawSqlCondition PopulateSqlSetExpression(auto const& values)
-{
-    using namespace std::string_view_literals;
-    std::ostringstream fragment;
-    fragment << '(';
-    for (auto const&& [index, value]: values | std::views::enumerate)
-    {
-        if (index > 0)
-            fragment << ", "sv;
-        fragment << value;
-    }
-    fragment << ')';
-    return RawSqlCondition { fragment.str() };
-}
-
-} // namespace detail
-
 template <typename Derived>
 template <typename ColumnName, std::ranges::input_range InputRange>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn(ColumnName const& columnName,
                                                                                  InputRange const& values)
 {
-    return Where(columnName, "IN", detail::PopulateSqlSetExpression(values));
+    return Where(columnName, "IN", PopulateSqlSetExpression(values));
 }
 
 template <typename Derived>
@@ -581,7 +584,7 @@ template <typename ColumnName, typename T>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn(ColumnName const& columnName,
                                                                                  std::initializer_list<T> const& values)
 {
-    return Where(columnName, "IN", detail::PopulateSqlSetExpression(values));
+    return Where(columnName, "IN", PopulateSqlSetExpression(values));
 }
 
 template <typename Derived>
@@ -864,25 +867,12 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendLiter
 {
     auto& searchCondition = SearchCondition();
 
-    if constexpr (std::is_same_v<LiteralType, SqlQualifiedTableColumnName>)
+    if constexpr (std::is_same_v<LiteralType, SqlQualifiedTableColumnName>
+                  || detail::OneOf<LiteralType, SqlNullType, std::nullopt_t>
+                  || std::is_same_v<LiteralType, SqlWildcardType>
+                  || std::is_same_v<LiteralType, detail::RawSqlCondition>)
     {
-        searchCondition.condition += '"';
-        searchCondition.condition += value.tableName;
-        searchCondition.condition += "\".\"";
-        searchCondition.condition += value.columnName;
-        searchCondition.condition += '"';
-    }
-    else if constexpr (detail::OneOf<LiteralType, SqlNullType, std::nullopt_t>)
-    {
-        searchCondition.condition += "NULL";
-    }
-    else if constexpr (std::is_same_v<LiteralType, SqlWildcardType>)
-    {
-        searchCondition.condition += '?';
-    }
-    else if constexpr (std::is_same_v<LiteralType, detail::RawSqlCondition>)
-    {
-        searchCondition.condition += value.condition;
+        PopulateLiteralValueInto(value, searchCondition.condition);
     }
     else if (searchCondition.inputBindings)
     {
@@ -899,11 +889,67 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendLiter
     }
     else
     {
-        // TODO: Escape single quotes
-        searchCondition.condition += '\'';
-        searchCondition.condition += std::format("{}", value);
-        searchCondition.condition += '\'';
+        searchCondition.condition += detail::MakeEscapedSqlString(std::format("{}", value));
     }
+}
+
+template <typename Derived>
+template <typename LiteralType, typename TargetType>
+inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::PopulateLiteralValueInto(LiteralType const& value,
+                                                                                              TargetType& target)
+{
+    if constexpr (std::is_same_v<LiteralType, SqlQualifiedTableColumnName>)
+    {
+        target += '"';
+        target += value.tableName;
+        target += "\".\"";
+        target += value.columnName;
+        target += '"';
+    }
+    else if constexpr (detail::OneOf<LiteralType, SqlNullType, std::nullopt_t>)
+    {
+        target += "NULL";
+    }
+    else if constexpr (std::is_same_v<LiteralType, SqlWildcardType>)
+    {
+        target += '?';
+    }
+    else if constexpr (std::is_same_v<LiteralType, detail::RawSqlCondition>)
+    {
+        target += value.condition;
+    }
+    else if constexpr (std::is_same_v<LiteralType, bool>)
+    {
+        target += Formatter().BooleanLiteral(value);
+    }
+    else if constexpr (!WhereConditionLiteralType<LiteralType>::needsQuotes)
+    {
+        target += std::format("{}", value);
+    }
+    else
+    {
+        target += detail::MakeEscapedSqlString(std::format("{}", value));
+    }
+}
+
+template <typename Derived>
+template <typename LiteralType>
+detail::RawSqlCondition SqlWhereClauseBuilder<Derived>::PopulateSqlSetExpression(LiteralType const& values)
+{
+    using namespace std::string_view_literals;
+    std::ostringstream fragment;
+    fragment << '(';
+    for (auto const&& [index, value]: values | std::views::enumerate)
+    {
+        if (index > 0)
+            fragment << ", "sv;
+
+        std::string valueString;
+        PopulateLiteralValueInto(value, valueString);
+        fragment << valueString;
+    }
+    fragment << ')';
+    return detail::RawSqlCondition { fragment.str() };
 }
 
 template <typename Derived>
