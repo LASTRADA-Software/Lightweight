@@ -396,6 +396,28 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn", "[SqlQueryBuilder]")
                                                    WHERE "foo" IN (1, 2, 3))"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with strings", "[SqlQueryBuilder]")
+{
+    using namespace std::string_view_literals;
+
+    // Check functionality of container overloads for IN
+    checkSqlQueryBuilder(
+        [](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", std::vector { "foo"sv, "bar"sv, "com"sv }); },
+        QueryExpectations::All(R"(DELETE FROM "That"
+                                  WHERE "foo" IN ('foo', 'bar', 'com'))"));
+
+    // Check functionality of an lvalue input range
+    auto const values = std::set { "foo"sv, "bar"sv, "com"sv }; // will be alphabetically sorted on iteration
+    checkSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", values); },
+                         QueryExpectations::All(R"(DELETE FROM "That"
+                                                   WHERE "foo" IN ('bar', 'com', 'foo'))"));
+
+    // Check functionality of the initializer_list overload for IN
+    checkSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", { "foo"sv, "bar"sv, "com"sv }); },
+                         QueryExpectations::All(R"(DELETE FROM "That"
+                                                   WHERE "foo" IN ('foo', 'bar', 'com'))"));
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Join", "[SqlQueryBuilder]")
 {
     checkSqlQueryBuilder(
