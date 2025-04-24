@@ -7,7 +7,9 @@
 #include <algorithm>
 #include <cassert>
 #include <fstream>
+#include <ostream>
 #include <print>
+#include <sstream>
 #include <unordered_map>
 
 // TODO: have an OdbcConnectionString API to help compose/decompose connection settings
@@ -118,9 +120,14 @@ std::string FormatTableName(std::string_view name)
 
 class CxxModelPrinter
 {
+    struct TableInfo
+    {
+        std::stringstream text;
+        std::vector<std::string> requiredTables;
+    };
+
   private:
-    mutable std::vector<std::string> _forwardDeclarations;
-    std::stringstream _definitions;
+    std::unordered_map<std::string_view, TableInfo> _definitions;
     struct Config
     {
         bool makeAliases = false;
@@ -134,11 +141,59 @@ class CxxModelPrinter
         return _config;
     }
 
-    std::string str(std::string_view modelNamespace) const // NOLINT(readability-identifier-naming)
+    std::string str(std::string_view modelNamespace)
     {
-        std::ranges::sort(_forwardDeclarations);
+        std::string result;
+        for (auto const& [tableName, definition]: _definitions)
+        {
+            result += std::format("// file: {}.hpp\n", tableName);
+            result += headerFileForTheTable(modelNamespace, tableName);
+        }
+        return result;
+    }
+
+    std::string tableIncludes()
+    {
+
+        std::string result;
+        for (auto const& [tableName, definition]: _definitions)
+        {
+            result += std::format("#include \"{}.hpp\"\n", tableName);
+        }
+        return result;
+    }
+
+    std::string aliasTableName(std::string_view name) const
+    {
+        if (_config.makeAliases)
+        {
+            return FormatTableName(name);
+        }
+        return std::string { name };
+    }
+
+    void printToFiles(std::string_view modelNamespace, std::string_view outputDirectory)
+    {
+
+        for (auto const& [tableName, definition]: _definitions)
+        {
+            const auto fileName = std::format("{}/{}.hpp", outputDirectory, aliasTableName(tableName));
+            auto file = std::ofstream(fileName);
+            if (!file)
+            {
+                std::println("Failed to create file {}.", fileName);
+                continue;
+            }
+            file << headerFileForTheTable(modelNamespace, tableName);
+        }
+    }
+
+    std::string headerFileForTheTable(std::string_view modelNamespace,
+                                      std::string_view tableName) // NOLINT(readability-identifier-naming)
+    {
 
         std::stringstream output;
+        output << "// File is generated automatically using ddl2cpp \n";
         output << "// SPDX-License-Identifier: Apache-2.0\n";
         output << "#pragma once\n";
         output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
@@ -146,12 +201,17 @@ class CxxModelPrinter
         output << "using namespace std::string_view_literals;\n";
         output << "\n";
 
+        auto requiredTables = _definitions[tableName].requiredTables;
+        std::sort(requiredTables.begin(), requiredTables.end());
+        for (auto const& requiredTable: requiredTables)
+        {
+            output << std::format("#include \"{}.hpp\"\n", requiredTable);
+        }
+
         if (!modelNamespace.empty())
             output << std::format("namespace {}\n{{\n\n", modelNamespace);
-        for (auto const& name: _forwardDeclarations)
-            output << std::format("struct {};\n", name);
         output << "\n";
-        output << _definitions.str();
+        output << _definitions[tableName].text.str();
         if (!modelNamespace.empty())
             output << std::format("}} // end namespace {}\n", modelNamespace);
 
@@ -161,13 +221,6 @@ class CxxModelPrinter
     std::string example(SqlSchema::Table const& table) const
     {
         std::stringstream exampleEntries;
-        auto aliasTableName = [&](std::string_view name) {
-            if (_config.makeAliases)
-            {
-                return FormatTableName(name);
-            }
-            return std::string { name };
-        };
 
         const auto tableName = aliasTableName(table.name);
         exampleEntries << std::format("auto entries{} = dm.Query<{}>().All();\n", tableName, tableName);
@@ -201,6 +254,7 @@ class CxxModelPrinter
     void PrintTable(SqlSchema::Table const& table)
     {
 
+        auto& definition = _definitions[table.name];
         std::string cxxPrimaryKeys;
         for (auto const& key: table.primaryKeys)
         {
@@ -234,34 +288,27 @@ class CxxModelPrinter
             return std::string {};
         };
 
-
-        std::vector<std::string> addedMembers;
-
-        _forwardDeclarations.push_back(aliasTableName(table.name));
-        _definitions << std::format("struct {} final\n", aliasTableName(table.name));
-        _definitions << std::format("{{\n");
-        _definitions << aliasRealTableName(table.name);
+        definition.text << std::format("struct {} final\n", aliasTableName(table.name));
+        definition.text << std::format("{{\n");
+        definition.text << aliasRealTableName(table.name);
 
         for (auto const& column: table.columns)
         {
             std::string type = MakeType(column);
             const auto memberName = FormatName(column.name, _config.formatType);
-            addedMembers.push_back(memberName);
             // all foreign keys will be handled in the BelongsTo
             if (column.isPrimaryKey)
             {
-                _definitions << std::format("    Field<{}, PrimaryKey::ServerSideAutoIncrement{}> {};\n",
-                                            type,
-                                            aliasName(column.name), memberName
-                                            );
+                definition.text << std::format("    Field<{}, PrimaryKey::ServerSideAutoIncrement{}> {};\n",
+                                               type,
+                                               aliasName(column.name),
+                                               memberName);
                 continue;
             }
             if (column.isForeignKey)
                 continue;
 
-            _definitions << std::format(
-                "    Field<{}{}> {};\n", type, aliasName(column.name), memberName);
-
+            definition.text << std::format("    Field<{}{}> {};\n", type, aliasName(column.name), memberName);
         }
 
         for (auto const& foreignKey: table.foreignKeys)
@@ -274,22 +321,19 @@ class CxxModelPrinter
                 continue;
             }
 
+            const auto foreignTableName = aliasTableName(foreignKey.primaryKey.table.table);
 
-            if (std::ranges::find(addedMembers, memberName) != addedMembers.end())
-            {
-                std::println("Foreign key {} already added", memberName);
-                continue;
-            }
-
-            _definitions << std::format(
+            definition.requiredTables.push_back(foreignTableName);
+            std::string foreignKeyContraint = std::format(
                 "    BelongsTo<&{}> {};\n",
                 [&]() {
                     return std::format("{}::{}",
-                                       aliasTableName(foreignKey.primaryKey.table.table),
+                                       foreignTableName,
                                        FormatName(foreignKey.primaryKey.columns[0], _config.formatType)); // TODO
                 }(),
                 memberName);
-            addedMembers.push_back(memberName);
+
+            definition.text << foreignKeyContraint;
         }
 
         for (SqlSchema::ForeignKeyConstraint const& foreignKey: table.externalForeignKeys)
@@ -302,7 +346,7 @@ class CxxModelPrinter
             if (!column.isPrimaryKey && !column.isForeignKey)
                 fieldNames.push_back(column.name);
 
-        _definitions << "};\n\n";
+        definition.text << "};\n\n";
     }
 };
 
@@ -389,7 +433,7 @@ struct Configuration
     std::string_view database;
     std::string_view schema;
     std::string_view modelNamespace;
-    std::string_view outputFileName;
+    std::string_view outputDirectory;
     bool createTestTables = false;
     bool makeAliases = false;
     bool generateExample = false;
@@ -452,8 +496,8 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
         {
             if (++i >= argc)
                 return { EXIT_FAILURE };
-            config.outputFileName = argv[i];
-            std::println("Output file name: {}", config.outputFileName);
+            config.outputDirectory = argv[i];
+            std::println("Output directory name: {}", config.outputDirectory);
         }
         else if (argv[i] == "--generate-example"sv)
         {
@@ -472,7 +516,8 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
             std::println("  --database STR          Database name");
             std::println("  --schema STR            Schema name");
             std::println("  --create-test-tables    Create test tables");
-            std::println("  --output STR            Output file name");
+            std::println(
+                "  --output STR            Output directory, for every table separate header file will be created");
             std::println(
                 "  --generate-example      Generate usage example code using generated header and database connection");
             std::println("  --make-aliases          Create aliases for the tables and members");
@@ -506,6 +551,7 @@ void resolveOrderAndPrintTable(auto& printer, const auto& tables)
     std::unordered_map<size_t, int> numberOfForeignKeys;
     for (auto const& [index, table]: std::views::enumerate(tables))
     {
+        std::println("Table: {}, has {} foreign keys", table.name, table.foreignKeys.size());
         numberOfForeignKeys[index] = static_cast<int>(table.foreignKeys.size());
     }
 
@@ -567,24 +613,23 @@ int main(int argc, char const* argv[])
 
     resolveOrderAndPrintTable(printer, tables);
 
-    if (config.outputFileName.empty() || config.outputFileName == "-")
+    if (config.outputDirectory.empty() || config.outputDirectory == "-")
         std::println("{}", printer.str(config.modelNamespace));
     else
     {
-        auto file = std::ofstream(config.outputFileName.data()); // NOLINT(bugprone-suspicious-stringview-data-usage)
-        file << printer.str(config.modelNamespace);
-        std::println("Wrote to file : {}", config.outputFileName);
+        printer.printToFiles(config.modelNamespace, config.outputDirectory);
+        std::println("Wrote to directory : {}", config.outputDirectory);
     }
 
     if (config.generateExample)
     {
-        const auto sourceFileName =
-            std::string(config.outputFileName.substr(0, config.outputFileName.find_last_of('.'))) + ".cpp";
+        const auto normalizedOutputDir = config.outputDirectory.back() == '/' || config.outputDirectory.back() == '\\'
+                                             ? std::string(config.outputDirectory)
+                                             : std::string(config.outputDirectory) + '/';
+        const auto sourceFileName = normalizedOutputDir + "example.cpp";
         auto file = std::ofstream(sourceFileName); // NOLINT(bugprone-suspicious-stringview-data-usage)
-        file << std::format("#include \"{}\"\n", [&config] {
-            return config.outputFileName.substr(config.outputFileName.find_last_of('/') + 1,
-                                                config.outputFileName.find_last_of('.'));
-        }());
+
+        file << printer.tableIncludes();
         file << "#include <cstdlib>\n";
         file << "\n";
         file << "int main()\n";
