@@ -262,11 +262,16 @@ class [[nodiscard]] SqlWhereClauseBuilder
         requires std::invocable<OnChainCallable, SqlJoinConditionBuilder>
     [[nodiscard]] Derived& InnerJoin(std::string_view joinTable, OnChainCallable const& onClauseBuilder);
 
-    /// Constructs an INNER JOIN clause given two fields from different records
+    /// Constructs an `INNER JOIN` clause given two fields from different records
     /// using the field name as join column.
+    /// 
+    /// @tparam LeftField  The field name to join on, such as `JoinTestB::a_id`, which will join on table `JoinTestB` with the column `a_id` to be compared against right field's column.
+    /// @tparam RightField The other column to compare and join against.
+    ///
     /// Example:
     /// @code
     /// InnerJoin<&JoinTestB::a_id, &JoinTestA::id>()
+    /// // This will generate a INNER JOIN "JoinTestB" ON "InnerTestB"."a_id" = "JoinTestA"."id"
     template <auto LeftField, auto RightField>
     [[nodiscard]] Derived& InnerJoin();
 
