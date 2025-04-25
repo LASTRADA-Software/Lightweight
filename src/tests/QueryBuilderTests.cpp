@@ -2,8 +2,7 @@
 
 #include "Utils.hpp"
 
-#include <Lightweight/DataMapper/DataMapper.hpp>
-#include <Lightweight/SqlRealName.hpp>
+#include <Lightweight/Lightweight.hpp>
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>

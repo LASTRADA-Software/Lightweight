@@ -15,6 +15,8 @@ Documentation is available at [https://lastrada-software.github.io/Lightweight/]
 ## Example: CRUD-style High level Data Mapping
 
 ```cpp
+#include <Lightweight/Lightweight.hpp>
+
 // Define a person structure, mapping to a table
 // The field members are mapped to the columns in the table,
 // and the Field<> template parameter specifies the type of the column.
@@ -61,6 +63,8 @@ and also do not need to wrap the fields into `Field<>` template.
 The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.
 
 ```cpp
+#include <Lightweight/Lightweight.hpp>
+
 struct SimpleStruct
 {
     uint64_t pkFromA;
@@ -147,7 +151,3 @@ Finally, compile and run the example
 ``` sh
 cmake --build build  && ./build/src/examples/example
 ```
-
-`
-
-

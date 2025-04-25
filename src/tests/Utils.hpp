@@ -6,14 +6,7 @@
     #include <Windows.h>
 #endif
 
-#include "../Lightweight/DataBinder/UnicodeConverter.hpp"
-#include "../Lightweight/SqlConnectInfo.hpp"
-#include "../Lightweight/SqlConnection.hpp"
-#include "../Lightweight/SqlDataBinder.hpp"
-#include "../Lightweight/SqlLogger.hpp"
-#include "../Lightweight/SqlSchema.hpp"
-#include "../Lightweight/SqlStatement.hpp"
-#include "../Lightweight/Utils.hpp"
+#include <Lightweight/Lightweight.hpp>
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>

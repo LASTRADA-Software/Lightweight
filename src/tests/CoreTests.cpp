@@ -2,14 +2,7 @@
 
 #include "Utils.hpp"
 
-#include <Lightweight/DataBinder/UnicodeConverter.hpp>
-#include <Lightweight/SqlConnection.hpp>
-#include <Lightweight/SqlDataBinder.hpp>
-#include <Lightweight/SqlQuery.hpp>
-#include <Lightweight/SqlQueryFormatter.hpp>
-#include <Lightweight/SqlScopedTraceLogger.hpp>
-#include <Lightweight/SqlStatement.hpp>
-#include <Lightweight/SqlTransaction.hpp>
+#include <Lightweight/Lightweight.hpp>
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
