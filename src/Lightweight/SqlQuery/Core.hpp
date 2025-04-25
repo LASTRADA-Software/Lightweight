@@ -83,7 +83,7 @@ std::string MakeEscapedSqlString(T const& value)
     std::string escapedValue;
     escapedValue += '\'';
 
-    for (auto const ch : value)
+    for (auto const ch: value)
     {
         // In SQL strings, single quotes are escaped by doubling them.
         if (ch == '\'')
@@ -261,6 +261,19 @@ class [[nodiscard]] SqlWhereClauseBuilder
     template <typename OnChainCallable>
         requires std::invocable<OnChainCallable, SqlJoinConditionBuilder>
     [[nodiscard]] Derived& InnerJoin(std::string_view joinTable, OnChainCallable const& onClauseBuilder);
+
+    /// Constructs an `INNER JOIN` clause given two fields from different records
+    /// using the field name as join column.
+    /// 
+    /// @tparam LeftField  The field name to join on, such as `JoinTestB::a_id`, which will join on table `JoinTestB` with the column `a_id` to be compared against right field's column.
+    /// @tparam RightField The other column to compare and join against.
+    ///
+    /// Example:
+    /// @code
+    /// InnerJoin<&JoinTestB::a_id, &JoinTestA::id>()
+    /// // This will generate a INNER JOIN "JoinTestB" ON "InnerTestB"."a_id" = "JoinTestA"."id"
+    template <auto LeftField, auto RightField>
+    [[nodiscard]] Derived& InnerJoin();
 
     /// Constructs an LEFT OUTER JOIN clause.
     [[nodiscard]] Derived& LeftOuterJoin(std::string_view joinTable,
@@ -718,6 +731,17 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::InnerJo
                                                                                    std::string_view onMainTableColumn)
 {
     return Join(JoinType::INNER, joinTable, joinColumnName, onMainTableColumn);
+}
+
+template <typename Derived>
+template <auto LeftField, auto RightField>
+Derived& SqlWhereClauseBuilder<Derived>::InnerJoin()
+{
+    return Join(JoinType::INNER,
+                RecordTableName<Reflection::MemberClassType<LeftField>>,
+                FieldNameOf<LeftField>,
+                SqlQualifiedTableColumnName { RecordTableName<Reflection::MemberClassType<RightField>>,
+                                              FieldNameOf<RightField> });
 }
 
 template <typename Derived>

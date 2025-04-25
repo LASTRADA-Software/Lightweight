@@ -402,7 +402,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with strings", "[SqlQu
 
     // Check functionality of container overloads for IN
     checkSqlQueryBuilder(
-        [](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", std::vector { "foo"sv, "bar"sv, "com"sv }); },
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("That").Delete().WhereIn("foo", std::vector { "foo"sv, "bar"sv, "com"sv });
+        },
         QueryExpectations::All(R"(DELETE FROM "That"
                                   WHERE "foo" IN ('foo', 'bar', 'com'))"));
 
@@ -413,8 +415,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with strings", "[SqlQu
                                                    WHERE "foo" IN ('bar', 'com', 'foo'))"));
 
     // Check functionality of the initializer_list overload for IN
-    checkSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", { "foo"sv, "bar"sv, "com"sv }); },
-                         QueryExpectations::All(R"(DELETE FROM "That"
+    checkSqlQueryBuilder(
+        [](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", { "foo"sv, "bar"sv, "com"sv }); },
+        QueryExpectations::All(R"(DELETE FROM "That"
                                                    WHERE "foo" IN ('foo', 'bar', 'com'))"));
 }
 
@@ -497,6 +500,61 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Join", "[SqlQueryBuilder]")
                LEFT OUTER JOIN "Table_B" ON "Table_B"."id" = "Table_A"."that_id" AND "Table_B"."that_foo" = "Table_A"."foo"
                WHERE "Table_A"."foo" = 42)"));
 }
+
+struct JoinTestA
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<int> value_a_first {};
+    Field<int> value_a_second {};
+    Field<int> value_a_third {};
+};
+
+struct JoinTestB
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<uint64_t> a_id {};
+    Field<uint64_t> c_id {};
+    Field<int> value_b_first {};
+    Field<int> value_b_second {};
+    Field<int> value_b_third {};
+};
+
+struct JoinTestC
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<int> value_c_first {};
+    Field<int> value_c_second {};
+    Field<int> value_c_third {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "Query Join", "[DataMapper]")
+{
+    checkSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            // clang-format off
+            return q.FromTable(RecordTableName<JoinTestA>)
+                    .Select()
+                    .Fields<JoinTestA, JoinTestC>()
+                    .InnerJoin<&JoinTestB::a_id, &JoinTestA::id>()
+                    .InnerJoin<&JoinTestC::id, &JoinTestB::c_id>()
+                    .All();
+            // clang-format onn
+        },
+        QueryExpectations::All(R"(SELECT "JoinTestA"."id", "JoinTestA"."value_a_first", "JoinTestA"."value_a_second", "JoinTestA"."value_a_third", "JoinTestC"."id", "JoinTestC"."value_c_first", "JoinTestC"."value_c_second", "JoinTestC"."value_c_third" FROM "JoinTestA"
+            INNER JOIN "JoinTestB" ON "JoinTestB"."a_id" = "JoinTestA"."id"
+            INNER JOIN "JoinTestC" ON "JoinTestC"."id" = "JoinTestB"."c_id")"));
+
+}
+
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Field", "[SqlQueryBuilder]")
+{
+    checkSqlQueryBuilder(
+        [](SqlQueryBuilder& q) { return q.FromTable("That").Select().Field("foo").Field("bar").All(); },
+        QueryExpectations::All(R"(SELECT "foo", "bar" FROM "That")"));
+}
+
+
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.SelectAs", "[SqlQueryBuilder]")
 {
