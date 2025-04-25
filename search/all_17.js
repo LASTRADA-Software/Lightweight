@@ -1,14 +1,5 @@
 var searchData=
 [
-  ['where_0',['where',['../d2/dca/classSqlWhereClauseBuilder.html#abd4a3fc0965514533bf2ee86a9910545',1,'SqlWhereClauseBuilder::Where(ColumnName const &amp;columnName, std::string_view binaryOp, SubSelectQuery const &amp;value)'],['../d2/dca/classSqlWhereClauseBuilder.html#a5a894f7ac85f89bff2f8d88c365eced6',1,'SqlWhereClauseBuilder::Where(ColumnName const &amp;columnName, std::string_view binaryOp, char const (&amp;value)[N])'],['../d2/dca/classSqlWhereClauseBuilder.html#aaf6e2b6986a5d012642b0c826116e1b9',1,'SqlWhereClauseBuilder::Where(ColumnName const &amp;columnName, T const &amp;value)'],['../d2/dca/classSqlWhereClauseBuilder.html#a063cafa05d8b14532ba24532737f9692',1,'SqlWhereClauseBuilder::Where(Callable const &amp;callable)'],['../d2/dca/classSqlWhereClauseBuilder.html#a01cd2ae1ca82d7d65fa09e179bde986f',1,'SqlWhereClauseBuilder::Where(ColumnName const &amp;columnName, std::string_view binaryOp, T const &amp;value)']]],
-  ['wherecolumn_1',['WhereColumn',['../d2/dca/classSqlWhereClauseBuilder.html#ad70e265dd3e49f5df4b6ef52a6313334',1,'SqlWhereClauseBuilder']]],
-  ['wherefalse_2',['WhereFalse',['../d2/dca/classSqlWhereClauseBuilder.html#a78b6370bab5eda99a2efdc8cebaa85d7',1,'SqlWhereClauseBuilder']]],
-  ['wherein_3',['wherein',['../d2/dca/classSqlWhereClauseBuilder.html#aaacc1d0ae1ae670baef546842369c0cd',1,'SqlWhereClauseBuilder::WhereIn(ColumnName const &amp;columnName, std::initializer_list&lt; T &gt; const &amp;values)'],['../d2/dca/classSqlWhereClauseBuilder.html#aea4e7833fce07692e6035f8154b28d2c',1,'SqlWhereClauseBuilder::WhereIn(ColumnName const &amp;columnName, SubSelectQuery const &amp;subSelectQuery)'],['../d2/dca/classSqlWhereClauseBuilder.html#a7fb7bf4ed16e5c3acf8c2891d884f476',1,'SqlWhereClauseBuilder::WhereIn(ColumnName const &amp;columnName, InputRange const &amp;values)']]],
-  ['wherenotequal_4',['WhereNotEqual',['../d2/dca/classSqlWhereClauseBuilder.html#ae7762b70bfb3f406260fbe3be26d5033',1,'SqlWhereClauseBuilder']]],
-  ['wherenotnull_5',['WhereNotNull',['../d2/dca/classSqlWhereClauseBuilder.html#a7421828739d74983088310e218dafedc',1,'SqlWhereClauseBuilder']]],
-  ['wherenull_6',['WhereNull',['../d2/dca/classSqlWhereClauseBuilder.html#a5d9c12081762953f84cb820dfbd2942f',1,'SqlWhereClauseBuilder']]],
-  ['whereraw_7',['WhereRaw',['../d2/dca/classSqlWhereClauseBuilder.html#ae3964f22827e30d7a5270ade601d0940',1,'SqlWhereClauseBuilder']]],
-  ['wheretrue_8',['WhereTrue',['../d2/dca/classSqlWhereClauseBuilder.html#a7207f9ea5cddd81df89f0369528a40ab',1,'SqlWhereClauseBuilder']]],
-  ['windows_20operating_20system_9',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]],
-  ['with_20care_10',['Use transactions with care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]]
+  ['windows_20operating_20system_0',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]],
+  ['with_20care_1',['Use transactions with care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]]
 ];

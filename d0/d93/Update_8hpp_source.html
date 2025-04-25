@@ -112,7 +112,7 @@ $(document).ready(function(){initNavTree('d0/d93/Update_8hpp_source.html','../..
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="comment">///</span></div>
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="comment">/// @ingroup QueryBuilder</span></div>
 <div class="foldopen" id="foldopen00014" data-start="{" data-end="};">
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno"><a class="line" href="../../db/d2a/classSqlUpdateQueryBuilder.html">   14</a></span><span class="comment"></span><span class="keyword">class </span>[[nodiscard]] <a class="code hl_class" href="../../db/d2a/classSqlUpdateQueryBuilder.html">SqlUpdateQueryBuilder</a> final: <span class="keyword">public</span> <a class="code hl_class" href="../../d2/dca/classSqlWhereClauseBuilder.html">SqlWhereClauseBuilder</a>&lt;SqlUpdateQueryBuilder&gt;</div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno"><a class="line" href="../../db/d2a/classSqlUpdateQueryBuilder.html">   14</a></span><span class="comment"></span><span class="keyword">class </span>[[nodiscard]] <a class="code hl_class" href="../../db/d2a/classSqlUpdateQueryBuilder.html">SqlUpdateQueryBuilder</a> final: <span class="keyword">public</span> SqlWhereClauseBuilder&lt;SqlUpdateQueryBuilder&gt;</div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span>{</div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span>  <span class="keyword">public</span>:<span class="comment"></span></div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="comment">    /// Constructs a new SqlUpdateQueryBuilder object.</span></div>
@@ -127,7 +127,7 @@ $(document).ready(function(){initNavTree('d0/d93/Update_8hpp_source.html','../..
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>                          std::string table,</div>
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>                          std::string tableAlias,</div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>                          std::vector&lt;SqlVariant&gt;* inputBindings) <span class="keyword">noexcept</span>:</div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>        <a class="code hl_class" href="../../d2/dca/classSqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;SqlUpdateQueryBuilder&gt;</a> {},</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>        SqlWhereClauseBuilder&lt;SqlUpdateQueryBuilder&gt; {},</div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>        m_formatter { formatter }</div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>    {</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>        m_searchCondition.tableName = std::move(table);</div>
@@ -233,7 +233,6 @@ $(document).ready(function(){initNavTree('d0/d93/Update_8hpp_source.html','../..
 <div class="ttc" id="aclassSqlUpdateQueryBuilder_html_aa5eb15f84bbf3a67225df2c6fdb97e4f"><div class="ttname"><a href="../../db/d2a/classSqlUpdateQueryBuilder.html#aa5eb15f84bbf3a67225df2c6fdb97e4f">SqlUpdateQueryBuilder::Set</a></div><div class="ttdeci">SqlUpdateQueryBuilder &amp; Set(std::string_view columnName, MFCStringLike auto const *value)</div><div class="ttdoc">Adds a single column to the SET clause with the value being a MFC like CString.</div></div>
 <div class="ttc" id="aclassSqlUpdateQueryBuilder_html_ad7cc1e537919e86cfc2d825e94d30276"><div class="ttname"><a href="../../db/d2a/classSqlUpdateQueryBuilder.html#ad7cc1e537919e86cfc2d825e94d30276">SqlUpdateQueryBuilder::Set</a></div><div class="ttdeci">SqlUpdateQueryBuilder &amp; Set(std::string_view columnName, char const (&amp;value)[N])</div><div class="ttdoc">Adds a single column to the SET clause with the value being a string literal.</div></div>
 <div class="ttc" id="aclassSqlUpdateQueryBuilder_html_af757aaba5629c8e2f171540085ba918d"><div class="ttname"><a href="../../db/d2a/classSqlUpdateQueryBuilder.html#af757aaba5629c8e2f171540085ba918d">SqlUpdateQueryBuilder::ToSql</a></div><div class="ttdeci">std::string ToSql() const</div><div class="ttdoc">Finalizes building the query as UPDATE ... query.</div></div>
-<div class="ttc" id="aclassSqlWhereClauseBuilder_html"><div class="ttname"><a href="../../d2/dca/classSqlWhereClauseBuilder.html">SqlWhereClauseBuilder</a></div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00163">Core.hpp:164</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

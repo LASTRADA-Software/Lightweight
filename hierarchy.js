@@ -12,12 +12,20 @@ var hierarchy =
     [ "SqlConnection", "d7/d7b/classSqlConnection.html", null ],
     [ "SqlConnectionDataSource", "df/dde/structSqlConnectionDataSource.html", null ],
     [ "SqlConnectionString", "d0/d8e/structSqlConnectionString.html", null ],
+    [ "SqlCoreDataMapperQueryBuilder< Record, Derived >", "d7/d28/classSqlCoreDataMapperQueryBuilder.html", null ],
+    [ "SqlCoreDataMapperQueryBuilder< Record, SqlAllFieldsQueryBuilder< Record > >", "d7/d28/classSqlCoreDataMapperQueryBuilder.html", [
+      [ "SqlAllFieldsQueryBuilder< Record >", "dd/d2d/classSqlAllFieldsQueryBuilder.html", null ]
+    ] ],
+    [ "SqlCoreDataMapperQueryBuilder< Record, SqlSparseFieldQueryBuilder< Record, ReferencedFields... > >", "d7/d28/classSqlCoreDataMapperQueryBuilder.html", [
+      [ "SqlSparseFieldQueryBuilder< Record, ReferencedFields >", "df/d4d/classSqlSparseFieldQueryBuilder.html", null ]
+    ] ],
     [ "SqlCreateTableQueryBuilder", "d4/d4a/classSqlCreateTableQueryBuilder.html", null ],
     [ "SqlDataBinderCallback", "d5/d40/classSqlDataBinderCallback.html", [
       [ "SqlStatement", "df/d17/classSqlStatement.html", null ]
     ] ],
     [ "SqlDate", "d3/d0e/structSqlDate.html", null ],
     [ "SqlDateTime", "da/dd7/structSqlDateTime.html", null ],
+    [ "SqlDeleteQueryBuilder", "d8/d88/classSqlDeleteQueryBuilder.html", null ],
     [ "SqlDropTablePlan", "d5/d6b/structSqlDropTablePlan.html", null ],
     [ "SqlDynamicString< N, T >", "dd/d83/classSqlDynamicString.html", null ],
     [ "SqlErrorInfo", "d3/dbc/structSqlErrorInfo.html", null ],
@@ -34,6 +42,7 @@ var hierarchy =
     [ "SqlQualifiedTableColumnName", "d1/de4/structSqlQualifiedTableColumnName.html", null ],
     [ "SqlQueryBuilder", "d0/d78/classSqlQueryBuilder.html", null ],
     [ "SqlQueryFormatter", "dc/df2/classSqlQueryFormatter.html", null ],
+    [ "SqlQuerySingleBuilder< Record >", "d4/d5e/classSqlQuerySingleBuilder.html", null ],
     [ "SqlRealName< N >", "dc/dda/structSqlRealName.html", null ],
     [ "SqlResultCursor", "d7/d13/classSqlResultCursor.html", null ],
     [ "SqlRowIterator< T >", "d7/db1/classSqlRowIterator.html", null ],
@@ -42,23 +51,12 @@ var hierarchy =
     [ "SqlSchema::Table", "d0/d20/structSqlSchema_1_1Table.html", null ],
     [ "SqlScopedTimeLogger", "db/d67/classSqlScopedTimeLogger.html", null ],
     [ "SqlScopedTraceLogger", "d5/d21/classSqlScopedTraceLogger.html", null ],
+    [ "SqlSelectQueryBuilder", "d1/d91/classSqlSelectQueryBuilder.html", null ],
     [ "SqlText", "d5/d84/structSqlText.html", null ],
     [ "SqlTime", "d5/d6d/structSqlTime.html", null ],
     [ "SqlTransaction", "d1/dc2/classSqlTransaction.html", null ],
+    [ "SqlUpdateQueryBuilder", "db/d2a/classSqlUpdateQueryBuilder.html", null ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html", null ],
-    [ "SqlWhereClauseBuilder< Derived >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
-    [ "SqlWhereClauseBuilder< SqlAllFieldsQueryBuilder< Record > >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
-    [ "SqlWhereClauseBuilder< SqlDeleteQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", [
-      [ "SqlDeleteQueryBuilder", "d8/d88/classSqlDeleteQueryBuilder.html", null ]
-    ] ],
-    [ "SqlWhereClauseBuilder< SqlQuerySingleBuilder< Record > >", "d2/dca/classSqlWhereClauseBuilder.html", [
-      [ "SqlQuerySingleBuilder< Record >", "d4/d5e/classSqlQuerySingleBuilder.html", null ]
-    ] ],
-    [ "SqlWhereClauseBuilder< SqlSelectQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
-    [ "SqlWhereClauseBuilder< SqlSparseFieldQueryBuilder< Record, ReferencedFields... > >", "d2/dca/classSqlWhereClauseBuilder.html", null ],
-    [ "SqlWhereClauseBuilder< SqlUpdateQueryBuilder >", "d2/dca/classSqlWhereClauseBuilder.html", [
-      [ "SqlUpdateQueryBuilder", "db/d2a/classSqlUpdateQueryBuilder.html", null ]
-    ] ],
     [ "SqlWildcardType", "da/dbf/structSqlWildcardType.html", null ],
     [ "std::exception", null, [
       [ "std::runtime_error", null, [

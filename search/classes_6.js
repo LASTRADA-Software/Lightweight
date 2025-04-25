@@ -48,12 +48,5 @@ var searchData=
   ['sqltransactionexception_45',['SqlTransactionException',['../db/d56/classSqlTransactionException.html',1,'']]],
   ['sqlupdatequerybuilder_46',['SqlUpdateQueryBuilder',['../db/d2a/classSqlUpdateQueryBuilder.html',1,'']]],
   ['sqlvariant_47',['SqlVariant',['../d0/df8/structSqlVariant.html',1,'']]],
-  ['sqlwhereclausebuilder_48',['SqlWhereClauseBuilder',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
-  ['sqlwhereclausebuilder_3c_20sqlallfieldsquerybuilder_3c_20record_20_3e_20_3e_49',['SqlWhereClauseBuilder&lt; SqlAllFieldsQueryBuilder&lt; Record &gt; &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
-  ['sqlwhereclausebuilder_3c_20sqldeletequerybuilder_20_3e_50',['SqlWhereClauseBuilder&lt; SqlDeleteQueryBuilder &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
-  ['sqlwhereclausebuilder_3c_20sqlquerysinglebuilder_3c_20record_20_3e_20_3e_51',['SqlWhereClauseBuilder&lt; SqlQuerySingleBuilder&lt; Record &gt; &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
-  ['sqlwhereclausebuilder_3c_20sqlselectquerybuilder_20_3e_52',['SqlWhereClauseBuilder&lt; SqlSelectQueryBuilder &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
-  ['sqlwhereclausebuilder_3c_20sqlsparsefieldquerybuilder_3c_20record_2c_20referencedfields_2e_2e_2e_20_3e_20_3e_53',['SqlWhereClauseBuilder&lt; SqlSparseFieldQueryBuilder&lt; Record, ReferencedFields... &gt; &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
-  ['sqlwhereclausebuilder_3c_20sqlupdatequerybuilder_20_3e_54',['SqlWhereClauseBuilder&lt; SqlUpdateQueryBuilder &gt;',['../d2/dca/classSqlWhereClauseBuilder.html',1,'']]],
-  ['sqlwildcardtype_55',['SqlWildcardType',['../da/dbf/structSqlWildcardType.html',1,'']]]
+  ['sqlwildcardtype_48',['SqlWildcardType',['../da/dbf/structSqlWildcardType.html',1,'']]]
 ];
