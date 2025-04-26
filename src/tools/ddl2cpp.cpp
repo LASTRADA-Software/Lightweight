@@ -6,11 +6,14 @@
 
 #include <algorithm>
 #include <cassert>
+#include <filesystem>
 #include <fstream>
 #include <ostream>
 #include <print>
 #include <sstream>
 #include <unordered_map>
+
+#include <yaml-cpp/yaml.h>
 
 // TODO: have an OdbcConnectionString API to help compose/decompose connection settings
 // TODO: move SanitizePwd function into that API, like `string OdbcConnectionString::PrettyPrintSanitized()`
@@ -429,59 +432,92 @@ void PrintInfo()
 
 struct Configuration
 {
-    std::string_view connectionString;
-    std::string_view database;
-    std::string_view schema;
-    std::string_view modelNamespace;
-    std::string_view outputDirectory;
+    std::string connectionString;
+    std::string database;
+    std::string schema;
+    std::string modelNamespace;
+    std::string outputDirectory;
     bool createTestTables = false;
     bool makeAliases = false;
     bool generateExample = false;
     FormatType formatType = FormatType::preserve;
+
+    bool showHelpAndExit = false;
 };
 
+std::expected<FormatType, std::string> ToFormatType(std::string_view formatType)
+{
+    auto lowerString = std::string(formatType);
+    std::transform(lowerString.begin(), lowerString.end(), lowerString.begin(), [](unsigned char c) {
+        return std::tolower(c);
+    });
+
+    if (lowerString == "none")
+        return FormatType::preserve;
+
+    if (lowerString == "snake_case")
+        return FormatType::snakeCase;
+
+    if (lowerString == "camelcase")
+        return FormatType::camelCase;
+
+    return std::unexpected(std::format("Unknown naming convention: \"{}\"", formatType));
+}
+
+void PrintHelp(std::string_view programName)
+{
+    std::println("Usage: {} [options] [database] [schema]", programName);
+    std::println("Options:");
+    std::println("  --trace-sql             Enable SQL tracing");
+    std::println("  --connection-string STR ODBC connection string");
+    std::println("  --database STR          Database name");
+    std::println("  --schema STR            Schema name");
+    std::println("  --create-test-tables    Create test tables");
+    std::println("  --output STR            Output directory, for every table separate header file will be created");
+    std::println("  --generate-example      Generate usage example code using generated header and database connection");
+    std::println("  --make-aliases          Create aliases for the tables and members");
+    std::println("  --naming-convention STR Naming convention for aliases");
+    std::println("                          [none, snake_case, camelCase]");
+    std::println("  --help, -h              Display this information");
+    std::println("");
+}
+
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
+std::expected<void, std::string> ParseArguments(int argc, char const* argv[], Configuration& config)
 {
     using namespace std::string_view_literals;
-    auto config = Configuration {};
 
     int i = 1;
 
     for (; i < argc; ++i)
     {
-        std::println("ARGS: {}", argv[i]);
         if (argv[i] == "--trace-sql"sv)
             SqlLogger::SetLogger(SqlLogger::TraceLogger());
         else if (argv[i] == "--connection-string"sv)
         {
             if (++i >= argc)
-                return { EXIT_FAILURE };
+                return std::unexpected("Missing connection string");
             config.connectionString = argv[i];
         }
         else if (argv[i] == "--naming-convention"sv)
         {
             if (++i >= argc)
-                return { EXIT_FAILURE };
-            if (argv[i] == "none"sv)
-                config.formatType = FormatType::preserve;
-            else if (argv[i] == "snake_case"sv)
-                config.formatType = FormatType::snakeCase;
-            else if (argv[i] == "camelCase"sv)
-                config.formatType = FormatType::camelCase;
-            else
-                return { EXIT_FAILURE };
+                return std::unexpected("Missing naming convention");
+            auto namingConvention = ToFormatType(argv[i]);
+            if (!namingConvention)
+                return std::unexpected(std::move(namingConvention.error()));
+            config.formatType = namingConvention.value();
         }
         else if (argv[i] == "--database"sv)
         {
             if (++i >= argc)
-                return { EXIT_FAILURE };
+                return std::unexpected("Missing database name");
             config.database = argv[i];
         }
         else if (argv[i] == "--schema"sv)
         {
             if (++i >= argc)
-                return { EXIT_FAILURE };
+                return std::unexpected("Missing schema name");
             config.schema = argv[i];
         }
         else if (argv[i] == "--create-test-tables"sv)
@@ -489,15 +525,14 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
         else if (argv[i] == "--model-namespace"sv)
         {
             if (++i >= argc)
-                return { EXIT_FAILURE };
+                return std::unexpected("Missing model namespace");
             config.modelNamespace = argv[i];
         }
         else if (argv[i] == "--output"sv)
         {
             if (++i >= argc)
-                return { EXIT_FAILURE };
+                return std::unexpected("Missing output directory");
             config.outputDirectory = argv[i];
-            std::println("Output directory name: {}", config.outputDirectory);
         }
         else if (argv[i] == "--generate-example"sv)
         {
@@ -509,23 +544,8 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
         }
         else if (argv[i] == "--help"sv || argv[i] == "-h"sv)
         {
-            std::println("Usage: {} [options] [database] [schema]", argv[0]);
-            std::println("Options:");
-            std::println("  --trace-sql             Enable SQL tracing");
-            std::println("  --connection-string STR ODBC connection string");
-            std::println("  --database STR          Database name");
-            std::println("  --schema STR            Schema name");
-            std::println("  --create-test-tables    Create test tables");
-            std::println(
-                "  --output STR            Output directory, for every table separate header file will be created");
-            std::println(
-                "  --generate-example      Generate usage example code using generated header and database connection");
-            std::println("  --make-aliases          Create aliases for the tables and members");
-            std::println("  --naming-convention STR Naming convention for aliases");
-            std::println("                          [none, snake_case, camelCase]");
-            std::println("  --help, -h              Display this information");
-            std::println("");
-            return { EXIT_SUCCESS };
+            config.showHelpAndExit = true;
+            break;
         }
         else if (argv[i] == "--"sv)
         {
@@ -534,18 +554,17 @@ std::variant<Configuration, int> ParseArguments(int argc, char const* argv[])
         }
         else
         {
-            std::println("Unknown option: {}", argv[i]);
-            return { EXIT_FAILURE };
+            return std::unexpected(std::format("Unknown option: {}", argv[i]));
         }
     }
 
     if (i < argc)
         argv[i - 1] = argv[0];
 
-    return { config };
+    return {};
 }
 
-void resolveOrderAndPrintTable(auto& printer, const auto& tables)
+void ResolveOrderAndPrintTable(auto& printer, const auto& tables)
 {
     std::println("Starting to print tables");
     std::unordered_map<size_t, int> numberOfForeignKeys;
@@ -590,12 +609,121 @@ void resolveOrderAndPrintTable(auto& printer, const auto& tables)
     }
 }
 
+template <typename T>
+void TryLoadNode(YAML::Node const& node, T& value)
+{
+    if (node.IsDefined())
+        value = node.as<T>();
+}
+
+std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path const& path)
+{
+    YAML::Node loadedYaml;
+
+    try
+    {
+        loadedYaml = YAML::LoadFile(path.string());
+    }
+    catch (const YAML::BadFile& e)
+    {
+        return std::unexpected(std::format("Failed to open YAML file: {}", e.what()));
+    }
+    catch (const YAML::ParserException& e)
+    {
+        return std::unexpected(std::format("Failed to parse YAML file: {}", e.what()));
+    }
+
+    auto config = Configuration {};
+
+    TryLoadNode(loadedYaml["ConnectionString"], config.connectionString);
+    TryLoadNode(loadedYaml["Database"], config.database);
+    TryLoadNode(loadedYaml["Schema"], config.schema);
+    TryLoadNode(loadedYaml["ModelNamespace"], config.modelNamespace);
+    TryLoadNode(loadedYaml["OutputDirectory"], config.outputDirectory);
+    TryLoadNode(loadedYaml["CreateTestTables"], config.createTestTables);
+    TryLoadNode(loadedYaml["MakeAliases"], config.makeAliases);
+    TryLoadNode(loadedYaml["GenerateExample"], config.generateExample);
+
+    auto const formatType = ToFormatType(loadedYaml["NamingConvention"].as<std::string>());
+    if (!formatType)
+        return std::unexpected(formatType.error());
+    config.formatType = formatType.value();
+
+    return config;
+}
+
+std::optional<std::filesystem::path> FindFileUpwards(std::string_view fileName, std::filesystem::path const& startPath)
+{
+    auto path = startPath;
+    while (true)
+    {
+        auto filePath = path / fileName;
+        if (std::filesystem::exists(filePath))
+            return filePath;
+
+        if (path == path.root_path())
+            break;
+
+        path = path.parent_path();
+    }
+    return std::nullopt;
+}
+
+std::expected<Configuration, std::string> LoadConfigFromFileAndCLI(std::string_view configFileName, int argc, char const* argv[])
+{
+    // Walk up the directory tree to find the config file, and load it, if found
+    auto config = Configuration {};
+
+    auto const foundPath = FindFileUpwards(configFileName, std::filesystem::current_path());
+    if (foundPath.has_value())
+    {
+        std::println("Found config file: {}", foundPath.value().string());
+        auto loadedFile = LoadConfigFile(foundPath.value());
+        if (!loadedFile)
+            return std::unexpected(std::move(loadedFile.error()));
+
+        config = std::move(loadedFile.value());
+    }
+
+    // Now, see if we have any command line arguments that override the config file
+    auto parsedArguments = ParseArguments(argc, argv, config);
+    if (!parsedArguments)
+        return std::unexpected(std::move(parsedArguments.error()));
+
+    return std::move(config);
+}
+
+auto TimedExecution(std::string_view title, auto&& func)
+{
+    struct ScopeExit
+    {
+        std::string_view title;
+        std::chrono::high_resolution_clock::time_point const start = std::chrono::high_resolution_clock::now();
+        ~ScopeExit()
+        {
+            auto const end = std::chrono::high_resolution_clock::now();
+            auto const duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            std::println("{} took {:.3} seconds", title, duration / 1000.0);
+        }
+    } scopeExit { title };
+    return func();
+}
+
 int main(int argc, char const* argv[])
 {
-    auto const configOpt = ParseArguments(argc, argv);
-    if (auto const* exitCode = std::get_if<int>(&configOpt))
-        return *exitCode;
-    auto const config = std::get<Configuration>(configOpt);
+    auto const loadedConfig = LoadConfigFromFileAndCLI("ddl2cpp.yml", argc, argv);
+    if (!loadedConfig)
+    {
+        std::println("Failed to load config: {}", loadedConfig.error());
+        return EXIT_FAILURE;
+    }
+
+    auto const& config = loadedConfig.value();
+    if (config.showHelpAndExit)
+    {
+        PrintHelp(argv[0]);
+        return EXIT_SUCCESS;
+    }
 
     SqlConnection::SetDefaultConnectionString(SqlConnectionString { std::string(config.connectionString) });
     SqlConnection::SetPostConnectedHook(&PostConnectedHook);
@@ -604,14 +732,20 @@ int main(int argc, char const* argv[])
         CreateTestTables();
 
     PrintInfo();
+    std::println("Output directory name: {}", config.outputDirectory);
 
-    std::vector<SqlSchema::Table> tables = SqlSchema::ReadAllTables(config.database, config.schema);
+    std::vector<SqlSchema::Table> tables = TimedExecution(
+        "Read all tables",
+        [&]{ return SqlSchema::ReadAllTables(config.database, config.schema); }
+    );
     CxxModelPrinter printer;
     printer.Config().makeAliases = config.makeAliases;
     printer.Config().formatType = config.formatType;
     printer.Config().generateExample = config.generateExample;
 
-    resolveOrderAndPrintTable(printer, tables);
+    TimedExecution("Resolve Order and print tables", [&] {
+        ResolveOrderAndPrintTable(printer, tables);
+    });
 
     if (config.outputDirectory.empty() || config.outputDirectory == "-")
         std::println("{}", printer.str(config.modelNamespace));

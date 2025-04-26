@@ -136,6 +136,17 @@ Generate header file from the existing database by providing connection string t
  ./build/src/tools/ddl2cpp --connection-string "DRIVER=SQLite3;Database=test.db" --make-aliases --naming-convention CamelCase  --output ./src/examples/example.hpp --generate-example
 ```
 
+You can also avoid all those command line arguments by creating a config file that muts be in your
+current working directory or in one of its parent directories.
+The config file must be named `ddl2cpp.yml` and must contain the following content:
+
+```yaml
+ConnectionString: 'DSN=YourDSN;UID=YourUser;PWD=YourSecret'
+OutputDirectory: 'src/entities'
+MakeAliases: true
+NamingConvention: CamelCase
+```
+
 Now you can configure cmake to compile example
 
 ``` sh
@@ -145,9 +156,5 @@ cmake --preset linux-clang-debug -DLIGHWEIGHT_EXAMPLE=ON -B build
 Finally, compile and run the example
 
 ``` sh
-cmake --build build  && ./build/src/examples/example
+cmake --build build && ./build/src/examples/example
 ```
-
-`
-
-
