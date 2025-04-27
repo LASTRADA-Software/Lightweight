@@ -97,7 +97,7 @@ jobs:
             "windows-clangcl-debug",
           ]
     name: "Windows-${{ matrix.preset }}"
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
       - name: Run sccache-cache
