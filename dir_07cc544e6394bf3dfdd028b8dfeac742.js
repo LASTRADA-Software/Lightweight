@@ -5,6 +5,7 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "QueryFormatter", "dir_20a36fc8a4949d7efb0c8c5bf02352ee.html", "dir_20a36fc8a4949d7efb0c8c5bf02352ee" ],
     [ "SqlQuery", "dir_bd1ea25228cf56b99f3317a58dd9f8fb.html", "dir_bd1ea25228cf56b99f3317a58dd9f8fb" ],
     [ "Api.hpp", "d1/de4/Api_8hpp_source.html", null ],
+    [ "Lightweight.hpp", "d3/d69/Lightweight_8hpp_source.html", null ],
     [ "SqlColumnTypeDefinitions.hpp", "d8/db2/SqlColumnTypeDefinitions_8hpp_source.html", null ],
     [ "SqlConnectInfo.hpp", "d7/d24/SqlConnectInfo_8hpp_source.html", null ],
     [ "SqlConnection.hpp", "d5/df9/SqlConnection_8hpp_source.html", null ],

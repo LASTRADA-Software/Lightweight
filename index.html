@@ -106,7 +106,9 @@ Goals</h1>
 </ul>
 <h1><a class="anchor" id="example-crud-style-high-level-data-mapping"></a>
 Example: CRUD-style High level Data Mapping</h1>
-<div class="fragment"><div class="line"><span class="comment">// Define a person structure, mapping to a table</span></div>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/Lightweight.hpp&gt;</span></div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Define a person structure, mapping to a table</span></div>
 <div class="line"><span class="comment">// The field members are mapped to the columns in the table,</span></div>
 <div class="line"><span class="comment">// and the Field&lt;&gt; template parameter specifies the type of the column.</span></div>
 <div class="line"><span class="comment">// Field&lt;&gt; is also used to track what fields are modified and need to be updated.</span></div>
@@ -155,7 +157,9 @@ Example: CRUD-style High level Data Mapping</h1>
 </div><!-- fragment --><h1><a class="anchor" id="example-simple-row-retrieval-via-structs"></a>
 Example: Simple row retrieval via structs</h1>
 <p>When only read access is needed, you can use a simple struct to represent the row, and also do not need to wrap the fields into <code><a class="el" href="df/d27/structField.html" title="Represents a single column in a table.">Field</a>&lt;&gt;</code> template. The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
-<div class="fragment"><div class="line"><span class="keyword">struct </span>SimpleStruct</div>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/Lightweight.hpp&gt;</span></div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">struct </span>SimpleStruct</div>
 <div class="line">{</div>
 <div class="line">    uint64_t pkFromA;</div>
 <div class="line">    uint64_t pkFromB;</div>
@@ -225,8 +229,7 @@ Generate example for the existing database</h1>
 </div><!-- fragment --><p>Finally, compile and run the example</p>
 <div class="fragment"><div class="line"> sh</div>
 <div class="line">cmake --build build  &amp;&amp; ./build/src/examples/example</div>
-</div><!-- fragment --><p>` </p>
-</div></div><!-- PageDoc -->
+</div><!-- fragment --> </div></div><!-- PageDoc -->
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
