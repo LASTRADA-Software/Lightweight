@@ -26,6 +26,7 @@ var annotated_dup =
     [ "SqlDateTime", "da/dd7/structSqlDateTime.html", "da/dd7/structSqlDateTime" ],
     [ "SqlDeleteQueryBuilder", "d8/d88/classSqlDeleteQueryBuilder.html", null ],
     [ "SqlDropTablePlan", "d5/d6b/structSqlDropTablePlan.html", "d5/d6b/structSqlDropTablePlan" ],
+    [ "SqlDynamicBinary", "dc/db1/classSqlDynamicBinary.html", "dc/db1/classSqlDynamicBinary" ],
     [ "SqlDynamicString", "dd/d83/classSqlDynamicString.html", "dd/d83/classSqlDynamicString" ],
     [ "SqlErrorInfo", "d3/dbc/structSqlErrorInfo.html", null ],
     [ "SqlFixedString", "d8/dcb/classSqlFixedString.html", "d8/dcb/classSqlFixedString" ],

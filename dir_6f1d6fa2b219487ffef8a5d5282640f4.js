@@ -7,6 +7,7 @@ var dir_6f1d6fa2b219487ffef8a5d5282640f4 =
     [ "SqlBinary.hpp", "dd/d94/SqlBinary_8hpp_source.html", null ],
     [ "SqlDate.hpp", "da/d1a/SqlDate_8hpp_source.html", null ],
     [ "SqlDateTime.hpp", "d4/d52/SqlDateTime_8hpp_source.html", null ],
+    [ "SqlDynamicBinary.hpp", "db/d8a/SqlDynamicBinary_8hpp_source.html", null ],
     [ "SqlDynamicString.hpp", "d5/d1f/SqlDynamicString_8hpp_source.html", null ],
     [ "SqlFixedString.hpp", "d1/dfb/SqlFixedString_8hpp_source.html", null ],
     [ "SqlGuid.hpp", "d9/dc2/SqlGuid_8hpp_source.html", null ],

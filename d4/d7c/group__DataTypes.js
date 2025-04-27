@@ -12,6 +12,13 @@ var group__DataTypes =
       [ "SqlDateTime", "da/dd7/structSqlDateTime.html#a248937ff221f05628dd0f73de36c86b8", null ],
       [ "value", "da/dd7/structSqlDateTime.html#a61886bf68a8cd595102758806cf0bc3d", null ]
     ] ],
+    [ "SqlDynamicBinary< N >", "dc/db1/classSqlDynamicBinary.html", [
+      [ "SqlDynamicBinary", "dc/db1/classSqlDynamicBinary.html#a831bc4b444a7d6183791e34958ca1247", null ],
+      [ "SqlDynamicBinary", "dc/db1/classSqlDynamicBinary.html#af1adf9fd4e33b4cdbd3f7d28d2ee9ce1", null ],
+      [ "SqlDynamicBinary", "dc/db1/classSqlDynamicBinary.html#a69909c12ba77905706f8772d0267167b", null ],
+      [ "ToStringView", "dc/db1/classSqlDynamicBinary.html#a8b87ce0fc9a0d6c392091a37c5c2e1fb", null ],
+      [ "ToSpan", "dc/db1/classSqlDynamicBinary.html#a49ab153fbe123125a51fce466a846121", null ]
+    ] ],
     [ "SqlDynamicString< N, T >", "dd/d83/classSqlDynamicString.html", [
       [ "SqlDynamicString", "dd/d83/classSqlDynamicString.html#ae1a173d70c2a6a1f0915ea9cada0dd5f", null ],
       [ "SqlDynamicString", "dd/d83/classSqlDynamicString.html#a64085d9b8dc217cf7aa6b132c3ee9022", null ],

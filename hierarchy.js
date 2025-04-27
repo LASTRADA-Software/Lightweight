@@ -65,6 +65,7 @@ var hierarchy =
       ] ]
     ] ],
     [ "std::vector< uint8_t >", null, [
-      [ "SqlBinary", "df/d29/classSqlBinary.html", null ]
+      [ "SqlBinary", "df/d29/classSqlBinary.html", null ],
+      [ "SqlDynamicBinary< N >", "dc/db1/classSqlDynamicBinary.html", null ]
     ] ]
 ];
