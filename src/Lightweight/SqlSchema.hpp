@@ -108,6 +108,9 @@ class EventHandler
     EventHandler& operator=(EventHandler const&) = default;
     virtual ~EventHandler() = default;
 
+    /// Called when the names of all tables are read.
+    virtual void OnTables(std::vector<std::string> const& tables) = 0;
+
     virtual bool OnTable(std::string_view table) = 0;
     virtual void OnPrimaryKeys(std::string_view table, std::vector<std::string> const& columns) = 0;
     virtual void OnForeignKey(ForeignKeyConstraint const& foreignKeyConstraint) = 0;
@@ -143,8 +146,10 @@ struct Table
 /// A list of tables.
 using TableList = std::vector<Table>;
 
+using ReadAllTablesCallback = std::function<void(std::string_view /*tableName*/, size_t /*current*/, size_t /*total*/)>;
+
 /// Retrieves all tables in the given @p database and @p schema.
-LIGHTWEIGHT_API TableList ReadAllTables(std::string_view database, std::string_view schema = {});
+LIGHTWEIGHT_API TableList ReadAllTables(std::string_view database, std::string_view schema = {}, ReadAllTablesCallback callback = {});
 
 /// Retrieves all tables in the given database and schema that have a foreign key to the given table.
 LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt,

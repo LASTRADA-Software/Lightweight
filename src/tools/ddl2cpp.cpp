@@ -320,7 +320,9 @@ class CxxModelPrinter
             const auto memberName = FormatName(std::string_view { foreignKey.foreignKey.column }, _config.formatType);
             if (foreignKey.primaryKey.columns[0].empty())
             {
-                std::println("Foreign key {} has no primary key", memberName);
+                std::println("Warning: Foreign key {}.{} has no primary key",
+                             foreignKey.foreignKey.table.table,
+                             foreignKey.foreignKey.column);
                 continue;
             }
 
@@ -417,19 +419,6 @@ void PostConnectedHook(SqlConnection& connection)
     }
 }
 
-void PrintInfo()
-{
-    auto c = SqlConnection();
-    assert(c.IsAlive());
-    std::println("Connected to   : {}", c.DatabaseName());
-    std::println("Server name    : {}", c.ServerName());
-    std::println("Server version : {}", c.ServerVersion());
-    std::println("User name      : {}", c.UserName());
-    std::println("");
-}
-
-} // end namespace
-
 struct Configuration
 {
     std::string connectionString;
@@ -444,6 +433,18 @@ struct Configuration
 
     bool showHelpAndExit = false;
 };
+
+void PrintInfo(Configuration const& config)
+{
+    auto c = SqlConnection();
+    assert(c.IsAlive());
+    std::println("Output directory name : {}", config.outputDirectory);
+    std::println("Connected to          : {}", c.DatabaseName());
+    std::println("Server name           : {}", c.ServerName());
+    std::println("Server version        : {}", c.ServerVersion());
+    std::println("User name             : {}", c.UserName());
+    std::println();
+}
 
 std::expected<FormatType, std::string> ToFormatType(std::string_view formatType)
 {
@@ -566,15 +567,12 @@ std::expected<void, std::string> ParseArguments(int argc, char const* argv[], Co
 
 void ResolveOrderAndPrintTable(auto& printer, const auto& tables)
 {
-    std::println("Starting to print tables");
     std::unordered_map<size_t, int> numberOfForeignKeys;
     for (auto const& [index, table]: std::views::enumerate(tables))
     {
-        std::println("Table: {}, has {} foreign keys", table.name, table.foreignKeys.size());
         numberOfForeignKeys[index] = static_cast<int>(table.foreignKeys.size());
     }
 
-    std::println("Filled number of foreign keys");
     const auto updateForeignKeyCountAfterPrinted = [&](const auto& tablePrinted) {
         for (auto const [index, table]: std::views::enumerate(tables))
         {
@@ -592,7 +590,6 @@ void ResolveOrderAndPrintTable(auto& printer, const auto& tables)
     };
 
     size_t numberOfPrintedTables = 0;
-    std::println("Number of tables: {}", tables.size());
     while (numberOfPrintedTables < tables.size())
     {
         for (auto const& [index, table]: std::views::enumerate(tables))
@@ -605,7 +602,6 @@ void ResolveOrderAndPrintTable(auto& printer, const auto& tables)
                 // remove the printed table from the map
             }
         }
-        std::println("Number of printed tables: {}", numberOfPrintedTables);
     }
 }
 
@@ -677,7 +673,7 @@ std::expected<Configuration, std::string> LoadConfigFromFileAndCLI(std::string_v
     auto const foundPath = FindFileUpwards(configFileName, std::filesystem::current_path());
     if (foundPath.has_value())
     {
-        std::println("Found config file: {}", foundPath.value().string());
+        std::println("Using config file {}", foundPath.value().string());
         auto loadedFile = LoadConfigFile(foundPath.value());
         if (!loadedFile)
             return std::unexpected(std::move(loadedFile.error()));
@@ -689,6 +685,15 @@ std::expected<Configuration, std::string> LoadConfigFromFileAndCLI(std::string_v
     auto parsedArguments = ParseArguments(argc, argv, config);
     if (!parsedArguments)
         return std::unexpected(std::move(parsedArguments.error()));
+
+    // Make output directory full path and create it if it doesn't exist
+    if (!config.outputDirectory.empty() && config.outputDirectory != "-")
+    {
+        auto const outputPath = std::filesystem::absolute(config.outputDirectory);
+        if (!std::filesystem::exists(outputPath))
+            std::filesystem::create_directories(outputPath);
+        config.outputDirectory = outputPath.string();
+    }
 
     return std::move(config);
 }
@@ -708,6 +713,8 @@ auto TimedExecution(std::string_view title, auto&& func)
     } scopeExit { title };
     return func();
 }
+
+} // end namespace
 
 int main(int argc, char const* argv[])
 {
@@ -731,19 +738,24 @@ int main(int argc, char const* argv[])
     if (config.createTestTables)
         CreateTestTables();
 
-    PrintInfo();
-    std::println("Output directory name: {}", config.outputDirectory);
+    PrintInfo(config);
 
     std::vector<SqlSchema::Table> tables = TimedExecution(
-        "Read all tables",
-        [&]{ return SqlSchema::ReadAllTables(config.database, config.schema); }
+        "Reading all tables",
+        [&]{ return SqlSchema::ReadAllTables(config.database, config.schema,
+                                             [](std::string_view tableName, size_t current, size_t total) {
+                                                 std::print("\r\033[K [{}/{}] Reading table schema {}", current, total, tableName);
+                                                 if (current == total)
+                                                     std::println();
+                                             }); 
+        }
     );
     CxxModelPrinter printer;
     printer.Config().makeAliases = config.makeAliases;
     printer.Config().formatType = config.formatType;
     printer.Config().generateExample = config.generateExample;
 
-    TimedExecution("Resolve Order and print tables", [&] {
+    TimedExecution("Resolving Order and print tables", [&] {
         ResolveOrderAndPrintTable(printer, tables);
     });
 
