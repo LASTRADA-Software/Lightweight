@@ -8,6 +8,7 @@
 #include "DataBinder/SqlBinary.hpp"
 #include "DataBinder/SqlDate.hpp"
 #include "DataBinder/SqlDateTime.hpp"
+#include "DataBinder/SqlDynamicBinary.hpp"
 #include "DataBinder/SqlDynamicString.hpp"
 #include "DataBinder/SqlFixedString.hpp"
 #include "DataBinder/SqlGuid.hpp"
