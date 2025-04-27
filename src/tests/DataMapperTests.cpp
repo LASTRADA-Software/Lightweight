@@ -2,8 +2,7 @@
 
 #include "Utils.hpp"
 
-#include <Lightweight/DataMapper/DataMapper.hpp>
-#include <Lightweight/Utils.hpp>
+#include <Lightweight/Lightweight.hpp>
 
 #include <reflection-cpp/reflection.hpp>
 

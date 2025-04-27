@@ -2,8 +2,7 @@
 
 #include "Utils.hpp"
 
-#include <Lightweight/SqlConnection.hpp>
-#include <Lightweight/SqlMigration.hpp>
+#include <Lightweight/Lightweight.hpp>
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
