@@ -12,5 +12,4 @@ compile_commands.json
 *.sqlite
 /html/
 .aider*
-/src/entities/
 /ddl2cpp.yml

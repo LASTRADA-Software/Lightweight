@@ -275,6 +275,8 @@ class CxxModelPrinter
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void PrintTable(SqlSchema::Table const& table)
     {
+        using namespace std::string_view_literals;
+
         auto& definition = _definitions[table.name];
         std::string cxxPrimaryKeys;
         for (auto const& key: table.primaryKeys)
@@ -291,6 +293,15 @@ class CxxModelPrinter
                 return std::format(", SqlRealName{{\"{}\"}}", name);
             }
             return std::string {};
+        };
+
+        auto const primaryKeyPart = [this]() {
+            if (_config.primaryKeyAssignment == PrimaryKey::ServerSideAutoIncrement)
+                return ", PrimaryKey::ServerSideAutoIncrement"sv;
+            else if (_config.primaryKeyAssignment == PrimaryKey::AutoAssign)
+                return ", PrimaryKey::AutoAssign"sv;
+            else
+                return ""sv;
         };
 
         auto aliasTableName = [&](std::string_view name) {
@@ -320,13 +331,8 @@ class CxxModelPrinter
             // all foreign keys will be handled in the BelongsTo
             if (column.isPrimaryKey)
             {
-                auto primaryKeyAssignmentText = std::string {};
-                if (_config.primaryKeyAssignment == PrimaryKey::ServerSideAutoIncrement)
-                    primaryKeyAssignmentText = ", PrimaryKey::ServerSideAutoIncrement";
-                else if (_config.primaryKeyAssignment == PrimaryKey::AutoAssign)
-                    primaryKeyAssignmentText = ", PrimaryKey::AutoAssign";
                 definition.text << std::format(
-                    "    Field<{}{}{}> {};\n", type, primaryKeyAssignmentText, aliasName(column.name), memberName);
+                    "    Field<{}{}{}> {};\n", type, primaryKeyPart(), aliasName(column.name), memberName);
                 continue;
             }
             if (column.isForeignKey)
