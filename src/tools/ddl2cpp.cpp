@@ -39,54 +39,78 @@ constexpr auto finally(auto&& cleanupRoutine) noexcept // NOLINT(readability-ide
     return Finally { std::forward<decltype(cleanupRoutine)>(cleanupRoutine) };
 }
 
-std::string MakeType(SqlSchema::Column const& column)
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColumn)
 {
-    auto optional = [&](auto const& type) {
+    auto optional = [&]<typename T>(T&& type) {
         if (column.isNullable)
             return std::format("std::optional<{}>", type);
-        return std::string { type };
+        return std::string { std::forward<T>(type) };
     };
 
     using namespace SqlColumnTypeDefinitions;
-    return optional(
-        std::visit(detail::overloaded {
-                       [](Bigint const&) -> std::string { return "int64_t"; },
-                       [](Binary const& type) -> std::string { return std::format("SqlBinary", type.size); },
-                       [](Bool const&) -> std::string { return "bool"; },
-                       [](Char const& type) -> std::string {
-                           if (type.size == 1)
-                               return "char";
-                           return std::format("SqlAnsiString<{}>", type.size);
-                       },
-                       [](Date const&) -> std::string { return "SqlDate"; },
-                       [](DateTime const&) -> std::string { return "SqlDateTime"; },
-                       [](Decimal const& type) -> std::string {
-                           return std::format("SqlNumeric<{}, {}>", type.precision, type.scale);
-                       },
-                       [](Guid const&) -> std::string { return "SqlGuid"; },
-                       [](Integer const&) -> std::string { return "int32_t"; },
-                       [](NChar const& type) -> std::string {
-                           if (type.size == 1)
-                               return "char16_t";
-                           return std::format("SqlUtf16String<{}>", type.size);
-                       },
-                       [](NVarchar const& type) -> std::string { return std::format("SqlUtf16String<{}>", type.size); },
-                       [](Real const&) -> std::string { return "float"; },
-                       [](Smallint const&) -> std::string { return "int16_t"; },
-                       [](Text const& type) -> std::string { return std::format("SqlAnsiString<{}>", type.size); },
-                       [](Time const&) -> std::string { return "SqlTime"; },
-                       [](Timestamp const&) -> std::string { return "SqlDateTime"; },
-                       [](Tinyint const&) -> std::string { return "uint8_t"; },
-                       [](VarBinary const& type) -> std::string {
-                           return std::format("SqlDynamicBinary<{}>", type.size);
-                       },
-                       [](Varchar const& type) -> std::string {
-                           if (type.size > 0 && type.size <= SqlOptimalMaxColumnSize)
-                               return std::format("SqlAnsiString<{}>", type.size);
-                           return std::format("SqlDynamicAnsiString<{}>", 255); // put something else ?
-                       },
-                   },
-                   column.type));
+    return optional(std::visit(
+        detail::overloaded {
+            [](Bigint const&) -> std::string { return "int64_t"; },
+            [](Binary const& type) -> std::string { return std::format("SqlBinary", type.size); },
+            [](Bool const&) -> std::string { return "bool"; },
+            [&](Char const& type) -> std::string {
+                if (type.size == 1)
+                {
+                    if (forceUnicodeTextColumn)
+                        return "wchar_t";
+                    else
+                        return "char";
+                }
+                else
+                {
+                    if (forceUnicodeTextColumn)
+                        return std::format("SqlWideString<{}>", type.size);
+                    else
+                        return std::format("SqlAnsiString<{}>", type.size);
+                }
+            },
+            [](Date const&) -> std::string { return "SqlDate"; },
+            [](DateTime const&) -> std::string { return "SqlDateTime"; },
+            [](Decimal const& type) -> std::string { return std::format("SqlNumeric<{}, {}>", type.precision, type.scale); },
+            [](Guid const&) -> std::string { return "SqlGuid"; },
+            [](Integer const&) -> std::string { return "int32_t"; },
+            [](NChar const& type) -> std::string {
+                if (type.size == 1)
+                    return "char16_t";
+                return std::format("SqlUtf16String<{}>", type.size);
+            },
+            [](NVarchar const& type) -> std::string { return std::format("SqlUtf16String<{}>", type.size); },
+            [](Real const&) -> std::string { return "float"; },
+            [](Smallint const&) -> std::string { return "int16_t"; },
+            [=](Text const& type) -> std::string {
+                if (forceUnicodeTextColumn)
+                    return std::format("SqlWideString<{}>", type.size);
+                else
+                    return std::format("SqlAnsiString<{}>", type.size);
+            },
+            [](Time const&) -> std::string { return "SqlTime"; },
+            [](Timestamp const&) -> std::string { return "SqlDateTime"; },
+            [](Tinyint const&) -> std::string { return "uint8_t"; },
+            [](VarBinary const& type) -> std::string { return std::format("SqlDynamicBinary<{}>", type.size); },
+            [=](Varchar const& type) -> std::string {
+                if (type.size > 0 && type.size <= SqlOptimalMaxColumnSize)
+                {
+                    if (forceUnicodeTextColumn)
+                        return std::format("SqlWideString<{}>", type.size);
+                    else
+                        return std::format("SqlAnsiString<{}>", type.size);
+                }
+                else
+                {
+                    if (forceUnicodeTextColumn)
+                        return std::format("SqlDynamicWideString<{}>", type.size);
+                    else
+                        return std::format("SqlDynamicAnsiString<{}>", type.size);
+                }
+            },
+        },
+        column.type));
 }
 
 // "user_id" into "UserId"
@@ -123,25 +147,18 @@ std::string FormatTableName(std::string_view name)
 
 class CxxModelPrinter
 {
-    struct TableInfo
-    {
-        std::stringstream text;
-        std::vector<std::string> requiredTables;
-    };
-
-  private:
-    std::unordered_map<std::string_view, TableInfo> _definitions;
+  public:
     struct Config
     {
         bool makeAliases = false;
-        bool generateExample = false;
         FormatType formatType = FormatType::camelCase;
-    } _config;
+        bool forceUnicodeTextColumns = false;
+        bool generateExample = false;
+    };
 
-  public:
-    auto& Config() noexcept
+    explicit CxxModelPrinter(Config config) noexcept:
+        _config(config)
     {
-        return _config;
     }
 
     std::string str(std::string_view modelNamespace)
@@ -155,7 +172,7 @@ class CxxModelPrinter
         return result;
     }
 
-    std::string tableIncludes()
+    std::string tableIncludes() const
     {
 
         std::string result;
@@ -296,15 +313,13 @@ class CxxModelPrinter
 
         for (auto const& column: table.columns)
         {
-            std::string type = MakeType(column);
+            std::string type = MakeType(column, _config.forceUnicodeTextColumns);
             const auto memberName = FormatName(column.name, _config.formatType);
             // all foreign keys will be handled in the BelongsTo
             if (column.isPrimaryKey)
             {
-                definition.text << std::format("    Field<{}, PrimaryKey::ServerSideAutoIncrement{}> {};\n",
-                                               type,
-                                               aliasName(column.name),
-                                               memberName);
+                definition.text << std::format(
+                    "    Field<{}, PrimaryKey::ServerSideAutoIncrement{}> {};\n", type, aliasName(column.name), memberName);
                 continue;
             }
             if (column.isForeignKey)
@@ -350,6 +365,16 @@ class CxxModelPrinter
 
         definition.text << "};\n\n";
     }
+
+  private:
+    struct TableInfo
+    {
+        std::stringstream text;
+        std::vector<std::string> requiredTables;
+    };
+
+    std::unordered_map<std::string_view, TableInfo> _definitions;
+    Config _config;
 };
 
 std::string_view PrimaryKeyAutoIncrement(SqlServerType serverType) noexcept
@@ -423,6 +448,7 @@ struct Configuration
     std::string schema;
     std::string modelNamespace;
     std::string outputDirectory;
+    bool forceUnicodeTextColumns = false;
     bool createTestTables = false;
     bool makeAliases = false;
     bool generateExample = false;
@@ -631,6 +657,7 @@ std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path c
     TryLoadNode(loadedYaml["Schema"], config.schema);
     TryLoadNode(loadedYaml["ModelNamespace"], config.modelNamespace);
     TryLoadNode(loadedYaml["OutputDirectory"], config.outputDirectory);
+    TryLoadNode(loadedYaml["ForceUnicodeTextColumns"], config.forceUnicodeTextColumns);
     TryLoadNode(loadedYaml["CreateTestTables"], config.createTestTables);
     TryLoadNode(loadedYaml["MakeAliases"], config.makeAliases);
     TryLoadNode(loadedYaml["GenerateExample"], config.generateExample);
@@ -713,6 +740,35 @@ auto TimedExecution(std::string_view title, auto&& func)
 
 } // end namespace
 
+void GenerateExample(Configuration const& config,
+                     CxxModelPrinter const& cxxModelPrinter,
+                     std::vector<SqlSchema::Table> const& tables)
+{
+    const auto normalizedOutputDir = config.outputDirectory.back() == '/' || config.outputDirectory.back() == '\\'
+                                         ? std::string(config.outputDirectory)
+                                         : std::string(config.outputDirectory) + '/';
+    const auto sourceFileName = normalizedOutputDir + "example.cpp";
+    auto file = std::ofstream(sourceFileName); // NOLINT(bugprone-suspicious-stringview-data-usage)
+
+    file << cxxModelPrinter.tableIncludes();
+    file << "#include <cstdlib>\n";
+    file << "\n";
+    file << "int main()\n";
+    file << "{\n";
+    file << std::format("SqlConnection::SetDefaultConnectionString(SqlConnectionString {{ \"{}\" }});\n",
+                        std::string(config.connectionString));
+    file << "\n";
+    file << "auto dm = DataMapper{};";
+    file << "\n";
+    for (auto const& table: tables)
+    {
+        file << cxxModelPrinter.example(table);
+    }
+    file << "\n";
+    file << "return EXIT_SUCCESS;\n";
+    file << "}\n";
+}
+
 int main(int argc, char const* argv[])
 {
     auto const loadedConfig = LoadConfigFromFileAndCLI("ddl2cpp.yml", argc, argv);
@@ -737,7 +793,7 @@ int main(int argc, char const* argv[])
 
     PrintInfo(config);
 
-    std::vector<SqlSchema::Table> tables = TimedExecution("Reading all tables", [&] {
+    std::vector<SqlSchema::Table> const tables = TimedExecution("Reading all tables", [&] {
         return SqlSchema::ReadAllTables(
             config.database, config.schema, [](std::string_view tableName, size_t current, size_t total) {
                 std::print("\r\033[K [{}/{}] Reading table schema {}", current, total, tableName);
@@ -745,47 +801,24 @@ int main(int argc, char const* argv[])
                     std::println();
             });
     });
-    CxxModelPrinter cxxModelPrinter;
-    cxxModelPrinter.Config().makeAliases = config.makeAliases;
-    cxxModelPrinter.Config().formatType = config.formatType;
-    cxxModelPrinter.Config().generateExample = config.generateExample;
+
+    auto cxxModelPrinter = CxxModelPrinter { CxxModelPrinter::Config {
+        .makeAliases = config.makeAliases,
+        .formatType = config.formatType,
+        .forceUnicodeTextColumns = config.forceUnicodeTextColumns,
+        .generateExample = config.generateExample,
+    } };
 
     TimedExecution("Resolving Order and print tables", [&] { ResolveOrderAndPrintTable(cxxModelPrinter, tables); });
 
     if (config.outputDirectory.empty() || config.outputDirectory == "-")
         std::println("{}", cxxModelPrinter.str(config.modelNamespace));
     else
-    {
-        cxxModelPrinter.printToFiles(config.modelNamespace, config.outputDirectory);
-        std::println("Wrote to directory : {}", config.outputDirectory);
-    }
+        TimedExecution(std::format("Writing to directory {}", config.outputDirectory),
+                       [&] { cxxModelPrinter.printToFiles(config.modelNamespace, config.outputDirectory); });
 
     if (config.generateExample)
-    {
-        const auto normalizedOutputDir = config.outputDirectory.back() == '/' || config.outputDirectory.back() == '\\'
-                                             ? std::string(config.outputDirectory)
-                                             : std::string(config.outputDirectory) + '/';
-        const auto sourceFileName = normalizedOutputDir + "example.cpp";
-        auto file = std::ofstream(sourceFileName); // NOLINT(bugprone-suspicious-stringview-data-usage)
-
-        file << cxxModelPrinter.tableIncludes();
-        file << "#include <cstdlib>\n";
-        file << "\n";
-        file << "int main()\n";
-        file << "{\n";
-        file << std::format("SqlConnection::SetDefaultConnectionString(SqlConnectionString {{ \"{}\" }});\n",
-                            std::string(config.connectionString));
-        file << "\n";
-        file << "auto dm = DataMapper{};";
-        file << "\n";
-        for (auto const& table: tables)
-        {
-            file << cxxModelPrinter.example(table);
-        }
-        file << "\n";
-        file << "return EXIT_SUCCESS;\n";
-        file << "}\n";
-    }
+        GenerateExample(config, cxxModelPrinter, tables);
 
     return EXIT_SUCCESS;
 }

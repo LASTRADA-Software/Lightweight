@@ -144,7 +144,7 @@ class SqlFixedString
     }
 
     /// Assigns a string view to the string.
-    LIGHTWEIGHT_FORCE_INLINE constexpr void assign(std::string_view s) noexcept
+    LIGHTWEIGHT_FORCE_INLINE constexpr void assign(std::basic_string_view<T> s) noexcept
     {
         _size = (std::min)(N, s.size());
         std::copy_n(s.data(), _size, _data);
