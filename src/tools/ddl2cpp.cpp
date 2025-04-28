@@ -256,7 +256,6 @@ class CxxModelPrinter
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void PrintTable(SqlSchema::Table const& table)
     {
-
         auto& definition = _definitions[table.name];
         std::string cxxPrimaryKeys;
         for (auto const& key: table.primaryKeys)
@@ -286,7 +285,7 @@ class CxxModelPrinter
         auto aliasRealTableName = [&](std::string_view name) {
             if (_config.makeAliases)
             {
-                return std::format("    static constexpr std::string_view TableName = \"{}\"sv;\n", name);
+                return std::format("    static constexpr std::string_view TableName = \"{}\"sv;\n\n", name);
             }
             return std::string {};
         };
@@ -314,9 +313,11 @@ class CxxModelPrinter
             definition.text << std::format("    Field<{}{}> {};\n", type, aliasName(column.name), memberName);
         }
 
+        if (!table.foreignKeys.empty())
+            definition.text << "\n";
+
         for (auto const& foreignKey: table.foreignKeys)
         {
-
             const auto memberName = FormatName(std::string_view { foreignKey.foreignKey.column }, _config.formatType);
             if (foreignKey.primaryKey.columns[0].empty())
             {
@@ -343,13 +344,9 @@ class CxxModelPrinter
 
         for (SqlSchema::ForeignKeyConstraint const& foreignKey: table.externalForeignKeys)
         {
+            // TODO: How to figure out if this is a HasOne or HasMany relation.
             (void) foreignKey; // TODO
         }
-
-        std::vector<std::string> fieldNames;
-        for (auto const& column: table.columns)
-            if (!column.isPrimaryKey && !column.isForeignKey)
-                fieldNames.push_back(column.name);
 
         definition.text << "};\n\n";
     }
@@ -565,13 +562,11 @@ std::expected<void, std::string> ParseArguments(int argc, char const* argv[], Co
     return {};
 }
 
-void ResolveOrderAndPrintTable(auto& printer, const auto& tables)
+void ResolveOrderAndPrintTable(CxxModelPrinter& cxxModelPrinter, std::vector<SqlSchema::Table> const& tables)
 {
     std::unordered_map<size_t, int> numberOfForeignKeys;
     for (auto const& [index, table]: std::views::enumerate(tables))
-    {
         numberOfForeignKeys[index] = static_cast<int>(table.foreignKeys.size());
-    }
 
     const auto updateForeignKeyCountAfterPrinted = [&](const auto& tablePrinted) {
         for (auto const [index, table]: std::views::enumerate(tables))
@@ -592,12 +587,12 @@ void ResolveOrderAndPrintTable(auto& printer, const auto& tables)
     size_t numberOfPrintedTables = 0;
     while (numberOfPrintedTables < tables.size())
     {
-        for (auto const& [index, table]: std::views::enumerate(tables))
+        for (auto const [index, table]: std::views::enumerate(tables))
         {
             if (numberOfForeignKeys[index] == 0)
             {
                 numberOfPrintedTables++;
-                printer.PrintTable(table);
+                cxxModelPrinter.PrintTable(table);
                 updateForeignKeyCountAfterPrinted(table);
                 // remove the printed table from the map
             }
@@ -750,18 +745,18 @@ int main(int argc, char const* argv[])
                     std::println();
             });
     });
-    CxxModelPrinter printer;
-    printer.Config().makeAliases = config.makeAliases;
-    printer.Config().formatType = config.formatType;
-    printer.Config().generateExample = config.generateExample;
+    CxxModelPrinter cxxModelPrinter;
+    cxxModelPrinter.Config().makeAliases = config.makeAliases;
+    cxxModelPrinter.Config().formatType = config.formatType;
+    cxxModelPrinter.Config().generateExample = config.generateExample;
 
-    TimedExecution("Resolving Order and print tables", [&] { ResolveOrderAndPrintTable(printer, tables); });
+    TimedExecution("Resolving Order and print tables", [&] { ResolveOrderAndPrintTable(cxxModelPrinter, tables); });
 
     if (config.outputDirectory.empty() || config.outputDirectory == "-")
-        std::println("{}", printer.str(config.modelNamespace));
+        std::println("{}", cxxModelPrinter.str(config.modelNamespace));
     else
     {
-        printer.printToFiles(config.modelNamespace, config.outputDirectory);
+        cxxModelPrinter.printToFiles(config.modelNamespace, config.outputDirectory);
         std::println("Wrote to directory : {}", config.outputDirectory);
     }
 
@@ -773,7 +768,7 @@ int main(int argc, char const* argv[])
         const auto sourceFileName = normalizedOutputDir + "example.cpp";
         auto file = std::ofstream(sourceFileName); // NOLINT(bugprone-suspicious-stringview-data-usage)
 
-        file << printer.tableIncludes();
+        file << cxxModelPrinter.tableIncludes();
         file << "#include <cstdlib>\n";
         file << "\n";
         file << "int main()\n";
@@ -785,7 +780,7 @@ int main(int argc, char const* argv[])
         file << "\n";
         for (auto const& table: tables)
         {
-            file << printer.example(table);
+            file << cxxModelPrinter.example(table);
         }
         file << "\n";
         file << "return EXIT_SUCCESS;\n";
