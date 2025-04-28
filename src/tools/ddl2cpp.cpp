@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include <Lightweight/DataMapper/Field.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
 #include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlSchema.hpp>
@@ -152,6 +153,7 @@ class CxxModelPrinter
     {
         bool makeAliases = false;
         FormatType formatType = FormatType::camelCase;
+        PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
         bool forceUnicodeTextColumns = false;
         bool generateExample = false;
     };
@@ -318,8 +320,13 @@ class CxxModelPrinter
             // all foreign keys will be handled in the BelongsTo
             if (column.isPrimaryKey)
             {
+                auto primaryKeyAssignmentText = std::string {};
+                if (_config.primaryKeyAssignment == PrimaryKey::ServerSideAutoIncrement)
+                    primaryKeyAssignmentText = ", PrimaryKey::ServerSideAutoIncrement";
+                else if (_config.primaryKeyAssignment == PrimaryKey::AutoAssign)
+                    primaryKeyAssignmentText = ", PrimaryKey::AutoAssign";
                 definition.text << std::format(
-                    "    Field<{}, PrimaryKey::ServerSideAutoIncrement{}> {};\n", type, aliasName(column.name), memberName);
+                    "    Field<{}{}{}> {};\n", type, primaryKeyAssignmentText, aliasName(column.name), memberName);
                 continue;
             }
             if (column.isForeignKey)
@@ -449,6 +456,7 @@ struct Configuration
     std::string modelNamespace;
     std::string outputDirectory;
     bool forceUnicodeTextColumns = false;
+    PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
     bool createTestTables = false;
     bool makeAliases = false;
     bool generateExample = false;
@@ -662,6 +670,17 @@ std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path c
     TryLoadNode(loadedYaml["MakeAliases"], config.makeAliases);
     TryLoadNode(loadedYaml["GenerateExample"], config.generateExample);
 
+    if (loadedYaml["PrimaryKeyAssignment"].IsDefined())
+    {
+        auto const primaryKey = loadedYaml["PrimaryKeyAssignment"].as<std::string>();
+        if (primaryKey == "ServerSide")
+            config.primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
+        else if (primaryKey == "ClientSide")
+            config.primaryKeyAssignment = PrimaryKey::AutoAssign;
+        else
+            return std::unexpected(std::format("Unknown primary key assignment: {}", primaryKey));
+    }
+
     auto const formatType = ToFormatType(loadedYaml["NamingConvention"].as<std::string>());
     if (!formatType)
         return std::unexpected(formatType.error());
@@ -805,6 +824,7 @@ int main(int argc, char const* argv[])
     auto cxxModelPrinter = CxxModelPrinter { CxxModelPrinter::Config {
         .makeAliases = config.makeAliases,
         .formatType = config.formatType,
+        .primaryKeyAssignment = config.primaryKeyAssignment,
         .forceUnicodeTextColumns = config.forceUnicodeTextColumns,
         .generateExample = config.generateExample,
     } };
