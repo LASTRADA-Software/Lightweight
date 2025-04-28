@@ -1312,4 +1312,67 @@ TEST_CASE_METHOD(SqlTestFixture, "MapFromRecordFields", "[DataMapper]")
         person, [&]<size_t I>(auto const& field) { CHECK(variantFields[I] == SqlVariant(field.Value())); });
 }
 
+struct JoinA
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<int> value_a_first {};
+    Field<int> value_a_second {};
+    Field<int> value_a_third {};
+};
+
+struct JoinB
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<uint64_t> a_id {};
+    Field<uint64_t> c_id {};
+};
+
+struct JoinC
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<int> value_c_first {};
+    Field<int> value_c_second {};
+    Field<int> value_c_third {};
+    Field<int> value_c_fourth {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "MapForJointStatement", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<JoinA>();
+    dm.CreateTable<JoinB>();
+    dm.CreateTable<JoinC>();
+
+    // fill with some data
+    for (const int i: std::views::iota(1, 100))
+    {
+        auto a = JoinA { .value_a_first = i, .value_a_second = 10 + i, .value_a_third = 100 + i };
+        auto b = JoinB { .a_id = 49 + i, .c_id = i };
+        auto c = JoinC {
+            .value_c_first = i, .value_c_second = 10 + i, .value_c_third = 100 + i, .value_c_fourth = 1000 + i
+        };
+        dm.Create(a);
+        dm.Create(b);
+        dm.Create(c);
+    }
+
+    auto const records = dm.Query<JoinA, JoinC>(dm.FromTable(RecordTableName<JoinA>)
+                                                    .Select()
+                                                    .Fields<JoinA, JoinC>()
+                                                    .InnerJoin<&JoinB::a_id, &JoinA::id>()
+                                                    .InnerJoin<&JoinC::id, &JoinB::c_id>()
+                                                    .All());
+
+    CHECK(records.size() == 50);
+    int i = 1;
+    for (auto const& [elementA, elementC]: records)
+    {
+        CHECK(elementA.id.Value() == static_cast<uint64_t>(49 + i));
+        CHECK(elementC.id.Value() == static_cast<uint64_t>(i));
+        CHECK(elementC.value_c_fourth.Value() == 1000 + i);
+        CHECK(elementA.value_a_third.Value() == 100 + 49 + i);
+        ++i;
+    }
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)

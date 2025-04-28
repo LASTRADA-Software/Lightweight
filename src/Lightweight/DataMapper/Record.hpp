@@ -10,6 +10,33 @@
 #include <concepts>
 #include <limits>
 
+/// @brief Represents a sequence of indexes that can be used alongside Query() to retrieve only part of the record.
+///
+/// @ingroup DataMapper
+template <size_t... Ints>
+using SqlElements = std::integer_sequence<size_t, Ints...>;
+
+namespace detail
+{
+// Helper trait to detect specializations of SqlElements
+template <typename T>
+struct IsSqlElements: std::false_type
+{
+};
+
+template <size_t... Ints>
+struct IsSqlElements<SqlElements<Ints...>>: std::true_type
+{
+};
+} // namespace detail
+
+
+// @brief Helper concept to check if a type is not a specialization of SqlElements
+template <typename T>
+concept NotSqlElements = !detail::IsSqlElements<T>::value;
+
+
+
 /// @brief Represents a record type that can be used with the DataMapper.
 ///
 /// The record type must be an aggregate type.
@@ -17,7 +44,7 @@
 /// @see DataMapper, Field, BelongsTo, HasMany, HasManyThrough, HasOneThrough
 /// @ingroup DataMapper
 template <typename Record>
-concept DataMapperRecord = std::is_aggregate_v<Record>;
+concept DataMapperRecord = std::is_aggregate_v<Record> && NotSqlElements<Record>;
 
 namespace detail
 {
