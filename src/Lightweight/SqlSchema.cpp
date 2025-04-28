@@ -162,7 +162,9 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
     auto stmt = SqlStatement {};
     auto const tableNames = AllTables(database, schema);
 
-    for (auto const& tableName: tableNames)
+    eventHandler.OnTables(tableNames);
+
+    for (auto const [i, tableName]: tableNames | std::views::enumerate)
     {
         if (tableName == "sqlite_sequence")
             continue;
@@ -280,19 +282,32 @@ std::string ToLowerCase(std::string_view str)
     return result;
 }
 
-TableList ReadAllTables(std::string_view database, std::string_view schema)
+TableList ReadAllTables(std::string_view database, std::string_view schema, ReadAllTablesCallback callback)
 {
     TableList tables;
     struct EventHandler: public SqlSchema::EventHandler
     {
         TableList& tables;
-        EventHandler(TableList& tables):
-            tables(tables)
+        ReadAllTablesCallback callback;
+        size_t currentlyProcessedTablesCount = 0;
+        size_t totalTableCount = 0;
+
+        EventHandler(TableList& tables, ReadAllTablesCallback callback):
+            tables { tables },
+            callback { std::move(callback) }
         {
+        }
+
+        void OnTables(std::vector<std::string> const& tableNames) override
+        {
+            totalTableCount = tableNames.size();
         }
 
         bool OnTable(std::string_view table) override
         {
+            ++currentlyProcessedTablesCount;
+            if (callback)
+                callback(table, currentlyProcessedTablesCount, totalTableCount);
             tables.emplace_back(Table { .name = std::string(table) });
             return true;
         }
@@ -318,7 +333,7 @@ TableList ReadAllTables(std::string_view database, std::string_view schema)
         {
             tables.back().externalForeignKeys.emplace_back(foreignKeyConstraint);
         }
-    } eventHandler { tables };
+    } eventHandler { tables, std::move(callback) };
     ReadAllTables(database, schema, eventHandler);
 
     std::map<std::string, std::string> tableNameCaseMap;

@@ -1,6 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "dependencies": [
+    { "name": "yaml-cpp", "version>=": "0.8.0" },
     { "name": "catch2", "version>=": "3.5.2" }
   ]
 }
