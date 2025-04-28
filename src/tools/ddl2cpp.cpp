@@ -151,6 +151,7 @@ class CxxModelPrinter
   public:
     struct Config
     {
+        std::string foreignKeyCollisionPrefix;
         bool makeAliases = false;
         FormatType formatType = FormatType::camelCase;
         PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
@@ -222,7 +223,7 @@ class CxxModelPrinter
         output << "\n";
 
         auto requiredTables = _definitions[tableName].requiredTables;
-        std::sort(requiredTables.begin(), requiredTables.end());
+        std::ranges::sort(requiredTables);
         for (auto const& requiredTable: requiredTables)
             output << std::format("#include \"{}.hpp\"\n", requiredTable);
 
@@ -277,6 +278,8 @@ class CxxModelPrinter
     {
         using namespace std::string_view_literals;
 
+
+        std::vector<std::string> renameForeignKeys;
         auto& definition = _definitions[table.name];
         std::string cxxPrimaryKeys;
         for (auto const& key: table.primaryKeys)
@@ -328,6 +331,12 @@ class CxxModelPrinter
         {
             std::string type = MakeType(column, _config.forceUnicodeTextColumns);
             const auto memberName = FormatName(column.name, _config.formatType);
+
+            if (column.isForeignKey && column.isPrimaryKey)
+            {
+                std::println("Column is both a foreign key and a primary key: {}.{}", table.name, column.name);
+                renameForeignKeys.push_back(column.name);
+            }
             // all foreign keys will be handled in the BelongsTo
             if (column.isPrimaryKey)
             {
@@ -335,8 +344,6 @@ class CxxModelPrinter
                     "    Field<{}{}{}> {};\n", type, primaryKeyPart(), aliasName(column.name), memberName);
                 continue;
             }
-            if (column.isForeignKey)
-                continue;
 
             definition.text << std::format("    Field<{}{}> {};\n", type, aliasName(column.name), memberName);
         }
@@ -346,7 +353,19 @@ class CxxModelPrinter
 
         for (auto const& foreignKey: table.foreignKeys)
         {
-            const auto memberName = FormatName(std::string_view { foreignKey.foreignKey.column }, _config.formatType);
+
+            auto const avoidPrimaryKeyNameCollision = [&](std::string name)
+            {
+                // if  foreignKey.foreignKey.column inside renameForeignKeys
+                // we prepend `foreignKeyCollisionPrefix` to the name
+                if (std::ranges::find(renameForeignKeys, foreignKey.foreignKey.column) != renameForeignKeys.end())
+                {
+                    name = std::format("{}{}", _config.foreignKeyCollisionPrefix, name);
+                }
+                return name;
+            };
+
+            auto const memberName = avoidPrimaryKeyNameCollision(FormatName(std::string_view { foreignKey.foreignKey.column }, _config.formatType));
             if (foreignKey.primaryKey.columns[0].empty())
             {
                 if (!_config.suppressWarnings)
@@ -463,6 +482,7 @@ struct Configuration
     std::string schema;
     std::string modelNamespace;
     std::string outputDirectory;
+    std::string foreignKeyCollisionPrefix {};
     bool forceUnicodeTextColumns = false;
     PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
     bool createTestTables = false;
@@ -684,6 +704,7 @@ std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path c
     TryLoadNode(loadedYaml["MakeAliases"], config.makeAliases);
     TryLoadNode(loadedYaml["SuppressWarnings"], config.suppressWarnings);
     TryLoadNode(loadedYaml["GenerateExample"], config.generateExample);
+    TryLoadNode(loadedYaml["ForeignKeyCollisionPrefix"], config.foreignKeyCollisionPrefix);
 
     if (loadedYaml["PrimaryKeyAssignment"].IsDefined())
     {
@@ -837,6 +858,7 @@ int main(int argc, char const* argv[])
     });
 
     auto cxxModelPrinter = CxxModelPrinter { CxxModelPrinter::Config {
+        .foreignKeyCollisionPrefix = config.foreignKeyCollisionPrefix,
         .makeAliases = config.makeAliases,
         .formatType = config.formatType,
         .primaryKeyAssignment = config.primaryKeyAssignment,
