@@ -449,9 +449,8 @@ void PrintInfo(Configuration const& config)
 std::expected<FormatType, std::string> ToFormatType(std::string_view formatType)
 {
     auto lowerString = std::string(formatType);
-    std::transform(lowerString.begin(), lowerString.end(), lowerString.begin(), [](unsigned char c) {
-        return std::tolower(c);
-    });
+    std::transform(
+        lowerString.begin(), lowerString.end(), lowerString.begin(), [](unsigned char c) { return std::tolower(c); });
 
     if (lowerString == "none")
         return FormatType::preserve;
@@ -475,7 +474,8 @@ void PrintHelp(std::string_view programName)
     std::println("  --schema STR            Schema name");
     std::println("  --create-test-tables    Create test tables");
     std::println("  --output STR            Output directory, for every table separate header file will be created");
-    std::println("  --generate-example      Generate usage example code using generated header and database connection");
+    std::println("  --generate-example      Generate usage example code");
+    std::println("                          using generated header and database connection");
     std::println("  --make-aliases          Create aliases for the tables and members");
     std::println("  --naming-convention STR Naming convention for aliases");
     std::println("                          [none, snake_case, camelCase]");
@@ -665,7 +665,9 @@ std::optional<std::filesystem::path> FindFileUpwards(std::string_view fileName, 
     return std::nullopt;
 }
 
-std::expected<Configuration, std::string> LoadConfigFromFileAndCLI(std::string_view configFileName, int argc, char const* argv[])
+std::expected<Configuration, std::string> LoadConfigFromFileAndCLI(std::string_view configFileName,
+                                                                   int argc,
+                                                                   char const* argv[])
 {
     // Walk up the directory tree to find the config file, and load it, if found
     auto config = Configuration {};
@@ -740,24 +742,20 @@ int main(int argc, char const* argv[])
 
     PrintInfo(config);
 
-    std::vector<SqlSchema::Table> tables = TimedExecution(
-        "Reading all tables",
-        [&]{ return SqlSchema::ReadAllTables(config.database, config.schema,
-                                             [](std::string_view tableName, size_t current, size_t total) {
-                                                 std::print("\r\033[K [{}/{}] Reading table schema {}", current, total, tableName);
-                                                 if (current == total)
-                                                     std::println();
-                                             }); 
-        }
-    );
+    std::vector<SqlSchema::Table> tables = TimedExecution("Reading all tables", [&] {
+        return SqlSchema::ReadAllTables(
+            config.database, config.schema, [](std::string_view tableName, size_t current, size_t total) {
+                std::print("\r\033[K [{}/{}] Reading table schema {}", current, total, tableName);
+                if (current == total)
+                    std::println();
+            });
+    });
     CxxModelPrinter printer;
     printer.Config().makeAliases = config.makeAliases;
     printer.Config().formatType = config.formatType;
     printer.Config().generateExample = config.generateExample;
 
-    TimedExecution("Resolving Order and print tables", [&] {
-        ResolveOrderAndPrintTable(printer, tables);
-    });
+    TimedExecution("Resolving Order and print tables", [&] { ResolveOrderAndPrintTable(printer, tables); });
 
     if (config.outputDirectory.empty() || config.outputDirectory == "-")
         std::println("{}", printer.str(config.modelNamespace));
