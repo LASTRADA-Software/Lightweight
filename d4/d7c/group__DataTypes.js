@@ -47,7 +47,7 @@ var group__DataTypes =
       [ "capacity", "d8/dcb/classSqlFixedString.html#ac66ba1dac61d49d02f09a91b3971191d", null ],
       [ "clear", "d8/dcb/classSqlFixedString.html#a69c27ac58d0c0e18fab3e34b8a573108", null ],
       [ "assign", "d8/dcb/classSqlFixedString.html#a170f238347eb8b01ae01364782cecf1b", null ],
-      [ "assign", "d8/dcb/classSqlFixedString.html#a7c143e2e6db8fe5ac33c0acdc195de6f", null ],
+      [ "assign", "d8/dcb/classSqlFixedString.html#a51d1a720b197519d6ba5950dcd542b78", null ],
       [ "push_back", "d8/dcb/classSqlFixedString.html#a81165d73c4e1979c9379bcbb4b1a3f14", null ],
       [ "pop_back", "d8/dcb/classSqlFixedString.html#a8c36b54521c8de3d9124ef11efe62bd5", null ],
       [ "substr", "d8/dcb/classSqlFixedString.html#a07e1905e09dc7c0e7b6f2092eeb01361", null ],

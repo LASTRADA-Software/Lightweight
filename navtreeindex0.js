@@ -185,6 +185,7 @@ var NAVTREEINDEX0 =
 "d3/dbc/structSqlErrorInfo.html":[7,0,24],
 "d3/de6/SqlNullValue_8hpp_source.html":[8,0,1,0,11],
 "d3/df5/classSqlSchema_1_1EventHandler.html":[7,0,0,1],
+"d3/df5/classSqlSchema_1_1EventHandler.html#a42b8d10902e80459b93fde8336313f1e":[7,0,0,1,0],
 "d4/d46/StringLiteral_8hpp_source.html":[8,0,1,0,19],
 "d4/d4a/classSqlCreateTableQueryBuilder.html":[5,3,6],
 "d4/d4a/classSqlCreateTableQueryBuilder.html#a0072543c2affaa06d3ddf5b1a2d632b7":[5,3,6,5],
@@ -248,6 +249,5 @@ var NAVTREEINDEX0 =
 "d7/d13/classSqlResultCursor.html#a6e44fedea5ea3ce30d133c4bd65e9787":[7,0,41,1],
 "d7/d13/classSqlResultCursor.html#a972c11800c78354f7432b95106fbc491":[7,0,41,4],
 "d7/d13/classSqlResultCursor.html#aea40e5a1b2d59766112bb8a8316471b5":[7,0,41,0],
-"d7/d24/SqlConnectInfo_8hpp_source.html":[8,0,1,7],
-"d7/d28/classSqlCoreDataMapperQueryBuilder.html":[5,2,3]
+"d7/d24/SqlConnectInfo_8hpp_source.html":[8,0,1,7]
 };

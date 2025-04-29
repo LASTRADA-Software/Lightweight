@@ -1,5 +1,6 @@
 var NAVTREEINDEX1 =
 {
+"d7/d28/classSqlCoreDataMapperQueryBuilder.html":[5,2,3],
 "d7/d2f/group__DataMapper.html":[5,2],
 "d7/d2f/group__DataMapper.html#ga2cbee85281351782c747be3caf17271c":[5,2,14],
 "d7/d2f/group__DataMapper.html#ga4565e3cf41830db5a08951da5702c776":[5,2,19],
@@ -63,11 +64,11 @@ var NAVTREEINDEX1 =
 "d8/dcb/classSqlFixedString.html#a07e1905e09dc7c0e7b6f2092eeb01361":[5,0,5,14],
 "d8/dcb/classSqlFixedString.html#a170f238347eb8b01ae01364782cecf1b":[5,0,5,10],
 "d8/dcb/classSqlFixedString.html#a40fc4353d3351ad90304248552c4771e":[5,0,5,7],
+"d8/dcb/classSqlFixedString.html#a51d1a720b197519d6ba5950dcd542b78":[5,0,5,11],
 "d8/dcb/classSqlFixedString.html#a5d554a3f55a4eb8f846fe652022f93d9":[5,0,5,5],
 "d8/dcb/classSqlFixedString.html#a5d76b54243a47e610f7d2dafbf3a8eaa":[5,0,5,15],
 "d8/dcb/classSqlFixedString.html#a69c27ac58d0c0e18fab3e34b8a573108":[5,0,5,9],
 "d8/dcb/classSqlFixedString.html#a7a2b512a1cbd5a29fd6be089b6af36e3":[5,0,5,6],
-"d8/dcb/classSqlFixedString.html#a7c143e2e6db8fe5ac33c0acdc195de6f":[5,0,5,11],
 "d8/dcb/classSqlFixedString.html#a81165d73c4e1979c9379bcbb4b1a3f14":[5,0,5,12],
 "d8/dcb/classSqlFixedString.html#a87bf4d9a01b8fb806dfa3ca49009aa03":[5,0,5,0],
 "d8/dcb/classSqlFixedString.html#a8c36b54521c8de3d9124ef11efe62bd5":[5,0,5,13],
@@ -248,6 +249,5 @@ var NAVTREEINDEX1 =
 "df/d17/classSqlStatement.html#a2da1393cb05328b1c0e4187bece9c019":[7,0,47,3],
 "df/d17/classSqlStatement.html#a2e35262bbb0eae1a90961e7b1d52863c":[7,0,47,12],
 "df/d17/classSqlStatement.html#a4973da6a55356060d9a37809731de80e":[7,0,47,8],
-"df/d17/classSqlStatement.html#a5183d34164732d5ca41d55e22ab7f7c8":[7,0,47,29],
-"df/d17/classSqlStatement.html#a5e6af1d8e8e945319553505e73372ff0":[7,0,47,31]
+"df/d17/classSqlStatement.html#a5183d34164732d5ca41d55e22ab7f7c8":[7,0,47,29]
 };

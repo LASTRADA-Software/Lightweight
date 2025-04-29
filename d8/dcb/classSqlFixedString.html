@@ -166,9 +166,9 @@ LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../d8/dcb/classSqlFixe
 <tr class="memitem:a170f238347eb8b01ae01364782cecf1b"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/dcb/classSqlFixedString.html#a170f238347eb8b01ae01364782cecf1b">assign</a> (T const (&amp;source)[SourceSize]) noexcept</td></tr>
 <tr class="memdesc:a170f238347eb8b01ae01364782cecf1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Assigns a string literal to the string.  <br /></td></tr>
 <tr class="separator:a170f238347eb8b01ae01364782cecf1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7c143e2e6db8fe5ac33c0acdc195de6f" id="r_a7c143e2e6db8fe5ac33c0acdc195de6f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dcb/classSqlFixedString.html#a7c143e2e6db8fe5ac33c0acdc195de6f">assign</a> (std::string_view s) noexcept</td></tr>
-<tr class="memdesc:a7c143e2e6db8fe5ac33c0acdc195de6f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Assigns a string view to the string.  <br /></td></tr>
-<tr class="separator:a7c143e2e6db8fe5ac33c0acdc195de6f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a51d1a720b197519d6ba5950dcd542b78" id="r_a51d1a720b197519d6ba5950dcd542b78"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dcb/classSqlFixedString.html#a51d1a720b197519d6ba5950dcd542b78">assign</a> (std::basic_string_view&lt; T &gt; s) noexcept</td></tr>
+<tr class="memdesc:a51d1a720b197519d6ba5950dcd542b78"><td class="mdescLeft">&#160;</td><td class="mdescRight">Assigns a string view to the string.  <br /></td></tr>
+<tr class="separator:a51d1a720b197519d6ba5950dcd542b78"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a81165d73c4e1979c9379bcbb4b1a3f14" id="r_a81165d73c4e1979c9379bcbb4b1a3f14"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dcb/classSqlFixedString.html#a81165d73c4e1979c9379bcbb4b1a3f14">push_back</a> (T c) noexcept</td></tr>
 <tr class="memdesc:a81165d73c4e1979c9379bcbb4b1a3f14"><td class="mdescLeft">&#160;</td><td class="mdescRight">Appends a character to the string.  <br /></td></tr>
 <tr class="separator:a81165d73c4e1979c9379bcbb4b1a3f14"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -759,8 +759,8 @@ template&lt;std::size_t SourceSize&gt; </div>
 
 </div>
 </div>
-<a id="a7c143e2e6db8fe5ac33c0acdc195de6f" name="a7c143e2e6db8fe5ac33c0acdc195de6f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7c143e2e6db8fe5ac33c0acdc195de6f">&#9670;&#160;</a></span>assign() <span class="overload">[2/2]</span></h2>
+<a id="a51d1a720b197519d6ba5950dcd542b78" name="a51d1a720b197519d6ba5950dcd542b78"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a51d1a720b197519d6ba5950dcd542b78">&#9670;&#160;</a></span>assign() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -773,7 +773,7 @@ template&lt;std::size_t N, typename T  = char, SqlFixedStringMode Mode = SqlFixe
         <tr>
           <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr void <a class="el" href="../../d8/dcb/classSqlFixedString.html">SqlFixedString</a>&lt; N, T, Mode &gt;::assign </td>
           <td>(</td>
-          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramtype">std::basic_string_view&lt; T &gt;&#160;</td>
           <td class="paramname"><em>s</em></td><td>)</td>
           <td></td>
         </tr>
