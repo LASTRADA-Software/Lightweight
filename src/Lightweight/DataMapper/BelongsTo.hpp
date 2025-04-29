@@ -20,7 +20,23 @@
 /// in the form of `&OtherRecord::Field`.
 /// Other Field must be a primary key.
 ///
+/// @tparam TheReferencedField The field in the other record that references the current record.
+/// @tparam ColumnNameOverrideString If not an empty string, this value will be used as the column name in the database.
+///
 /// @ingroup DataMapper
+///
+/// @code
+/// struct User {
+///     Field<SqlGuid, PrimaryKey::AutoAssign> id;
+///     Field<SqlAnsiString<30>> name;
+/// };
+/// struct Email {
+///     Field<SqlGuid, PrimaryKey::AutoAssign> id;
+///     Field<SqlAnsiString<40>> address;
+///     BelongsTo<&User::id>> user;
+///     BelongsTo<&User::id, SqlRealName<"the_user_id">> user; // also possible to customize the column name
+/// };
+/// @endcode
 template <auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt>
 class BelongsTo
 {
