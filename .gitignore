@@ -11,3 +11,5 @@ CMakeSettings.json
 compile_commands.json
 *.sqlite
 /html/
+.aider*
+/ddl2cpp.yml

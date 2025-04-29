@@ -22,7 +22,7 @@ jobs:
       - name: update apt
         run: sudo apt -q update
       - name: install dependencies
-        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc valgrind uuid-dev g++-14  doxygen
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libyaml-cpp-dev libsqliteodbc valgrind uuid-dev g++-14  doxygen
       - name: cmake configure
         run: cmake --preset linux-gcc-release
       - name: build
