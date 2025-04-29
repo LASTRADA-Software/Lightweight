@@ -114,10 +114,8 @@ if(CLANG_TIDY_EXE)
     set_target_properties(Lightweight PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
 endif()
 
-# target_include_directories(Lightweight PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>)
 target_include_directories(Lightweight PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/include>
 )
 
 target_link_libraries(Lightweight PUBLIC reflection-cpp::reflection-cpp)
