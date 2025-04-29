@@ -33,7 +33,7 @@
 /// struct Email {
 ///     Field<SqlGuid, PrimaryKey::AutoAssign> id;
 ///     Field<SqlAnsiString<40>> address;
-///     BelongsTo<&User::id>> user;
+///     BelongsTo<&User::id> user;
 ///     BelongsTo<&User::id, SqlRealName<"the_user_id">> user; // also possible to customize the column name
 /// };
 /// @endcode

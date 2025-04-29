@@ -215,7 +215,7 @@ class CxxModelPrinter
     {
 
         std::stringstream output;
-        output << "// File is automatically generated automatically using ddl2cpp\n";
+        output << "// File is automatically generated using ddl2cpp.\n";
         output << "#pragma once\n";
         output << "\n";
         output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
