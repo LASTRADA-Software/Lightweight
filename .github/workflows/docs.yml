@@ -24,7 +24,7 @@ jobs:
       - name: install dependencies
         run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libyaml-cpp-dev libsqliteodbc valgrind uuid-dev g++-14  doxygen
       - name: cmake configure
-        run: cmake --preset linux-gcc-release
+        run: cmake --preset linux-gcc-release -D LIGHTWEIGHT_BUILD_DOCUMENTATION=ON
       - name: build
         run: cmake --build --preset linux-gcc-release --target doc
 
