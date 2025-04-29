@@ -155,7 +155,7 @@ class CxxModelPrinter
         FormatType formatType = FormatType::camelCase;
         PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
         bool forceUnicodeTextColumns = false;
-        bool generateExample = false;
+        bool suppressWarnings = false;
     };
 
     explicit CxxModelPrinter(Config config) noexcept:
@@ -215,23 +215,23 @@ class CxxModelPrinter
     {
 
         std::stringstream output;
-        output << "// File is generated automatically using ddl2cpp \n";
-        output << "// SPDX-License-Identifier: Apache-2.0\n";
+        output << "// File is automatically generated using ddl2cpp.\n";
         output << "#pragma once\n";
-        output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
         output << "\n";
-        output << "using namespace std::string_view_literals;\n";
+        output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
         output << "\n";
 
         auto requiredTables = _definitions[tableName].requiredTables;
         std::sort(requiredTables.begin(), requiredTables.end());
         for (auto const& requiredTable: requiredTables)
-        {
             output << std::format("#include \"{}.hpp\"\n", requiredTable);
-        }
+
+        if (!std::empty(requiredTables))
+            output << '\n';
 
         if (!modelNamespace.empty())
-            output << std::format("namespace {}\n{{\n\n", modelNamespace);
+            output << std::format("namespace {}\n{{\n", modelNamespace);
+
         output << "\n";
         output << _definitions[tableName].text.str();
         if (!modelNamespace.empty())
@@ -315,7 +315,7 @@ class CxxModelPrinter
         auto aliasRealTableName = [&](std::string_view name) {
             if (_config.makeAliases)
             {
-                return std::format("    static constexpr std::string_view TableName = \"{}\"sv;\n\n", name);
+                return std::format("    static constexpr std::string_view TableName = \"{}\";\n\n", name);
             }
             return std::string {};
         };
@@ -349,9 +349,10 @@ class CxxModelPrinter
             const auto memberName = FormatName(std::string_view { foreignKey.foreignKey.column }, _config.formatType);
             if (foreignKey.primaryKey.columns[0].empty())
             {
-                std::println("Warning: Foreign key {}.{} has no primary key",
-                             foreignKey.foreignKey.table.table,
-                             foreignKey.foreignKey.column);
+                if (!_config.suppressWarnings)
+                    std::println("Warning: Foreign key {}.{} has no primary key",
+                                 foreignKey.foreignKey.table.table,
+                                 foreignKey.foreignKey.column);
                 continue;
             }
 
@@ -359,12 +360,13 @@ class CxxModelPrinter
 
             definition.requiredTables.push_back(foreignTableName);
             std::string foreignKeyContraint = std::format(
-                "    BelongsTo<&{}> {};\n",
+                "    BelongsTo<&{}{}> {};\n",
                 [&]() {
                     return std::format("{}::{}",
                                        foreignTableName,
                                        FormatName(foreignKey.primaryKey.columns[0], _config.formatType)); // TODO
                 }(),
+                aliasName(foreignKey.foreignKey.column),
                 memberName);
 
             definition.text << foreignKeyContraint;
@@ -465,6 +467,7 @@ struct Configuration
     PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
     bool createTestTables = false;
     bool makeAliases = false;
+    bool suppressWarnings = false;
     bool generateExample = false;
     FormatType formatType = FormatType::preserve;
 
@@ -516,6 +519,7 @@ void PrintHelp(std::string_view programName)
     std::println("  --make-aliases          Create aliases for the tables and members");
     std::println("  --naming-convention STR Naming convention for aliases");
     std::println("                          [none, snake_case, camelCase]");
+    std::println("  --no-warnings           Suppresses warnings");
     std::println("  --help, -h              Display this information");
     std::println("");
 }
@@ -579,6 +583,10 @@ std::expected<void, std::string> ParseArguments(int argc, char const* argv[], Co
         else if (argv[i] == "--make-aliases"sv)
         {
             config.makeAliases = true;
+        }
+        else if (argv[i] == "--no-warnings"sv)
+        {
+            config.suppressWarnings = true;
         }
         else if (argv[i] == "--help"sv || argv[i] == "-h"sv)
         {
@@ -674,6 +682,7 @@ std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path c
     TryLoadNode(loadedYaml["ForceUnicodeTextColumns"], config.forceUnicodeTextColumns);
     TryLoadNode(loadedYaml["CreateTestTables"], config.createTestTables);
     TryLoadNode(loadedYaml["MakeAliases"], config.makeAliases);
+    TryLoadNode(loadedYaml["SuppressWarnings"], config.suppressWarnings);
     TryLoadNode(loadedYaml["GenerateExample"], config.generateExample);
 
     if (loadedYaml["PrimaryKeyAssignment"].IsDefined())
@@ -832,7 +841,7 @@ int main(int argc, char const* argv[])
         .formatType = config.formatType,
         .primaryKeyAssignment = config.primaryKeyAssignment,
         .forceUnicodeTextColumns = config.forceUnicodeTextColumns,
-        .generateExample = config.generateExample,
+        .suppressWarnings = config.suppressWarnings,
     } };
 
     TimedExecution("Resolving Order and print tables", [&] { ResolveOrderAndPrintTable(cxxModelPrinter, tables); });
