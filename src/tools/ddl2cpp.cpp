@@ -215,23 +215,23 @@ class CxxModelPrinter
     {
 
         std::stringstream output;
-        output << "// File is generated automatically using ddl2cpp \n";
-        output << "// SPDX-License-Identifier: Apache-2.0\n";
+        output << "// File is automatically generated automatically using ddl2cpp\n";
         output << "#pragma once\n";
-        output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
         output << "\n";
-        output << "using namespace std::string_view_literals;\n";
+        output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
         output << "\n";
 
         auto requiredTables = _definitions[tableName].requiredTables;
         std::sort(requiredTables.begin(), requiredTables.end());
         for (auto const& requiredTable: requiredTables)
-        {
             output << std::format("#include \"{}.hpp\"\n", requiredTable);
-        }
+
+        if (!std::empty(requiredTables))
+            output << '\n';
 
         if (!modelNamespace.empty())
-            output << std::format("namespace {}\n{{\n\n", modelNamespace);
+            output << std::format("namespace {}\n{{\n", modelNamespace);
+
         output << "\n";
         output << _definitions[tableName].text.str();
         if (!modelNamespace.empty())
@@ -315,7 +315,7 @@ class CxxModelPrinter
         auto aliasRealTableName = [&](std::string_view name) {
             if (_config.makeAliases)
             {
-                return std::format("    static constexpr std::string_view TableName = \"{}\"sv;\n\n", name);
+                return std::format("    static constexpr std::string_view TableName = \"{}\";\n\n", name);
             }
             return std::string {};
         };
