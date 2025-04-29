@@ -360,12 +360,13 @@ class CxxModelPrinter
 
             definition.requiredTables.push_back(foreignTableName);
             std::string foreignKeyContraint = std::format(
-                "    BelongsTo<&{}> {};\n",
+                "    BelongsTo<&{}{}> {};\n",
                 [&]() {
                     return std::format("{}::{}",
                                        foreignTableName,
                                        FormatName(foreignKey.primaryKey.columns[0], _config.formatType)); // TODO
                 }(),
+                aliasName(foreignKey.foreignKey.column),
                 memberName);
 
             definition.text << foreignKeyContraint;
