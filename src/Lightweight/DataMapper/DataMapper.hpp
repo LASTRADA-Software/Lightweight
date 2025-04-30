@@ -19,6 +19,7 @@
 
 #include <cassert>
 #include <concepts>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -137,6 +138,35 @@ void GetAllColumns(SqlResultCursor& reader, Record& record)
     });
 }
 
+template <typename FirstRecord, typename SecondRecord>
+void GetAllColumns(SqlResultCursor& reader, std::tuple<FirstRecord, SecondRecord>& record)
+{
+    auto& [firstRecord, secondRecord] = record;
+
+    Reflection::EnumerateMembers(firstRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
+        if constexpr (IsField<Field>)
+        {
+            field.MutableValue() = reader->GetColumn<typename Field::ValueType>(I + 1);
+        }
+        else if constexpr (SqlGetColumnNativeType<Field>)
+        {
+            field = reader->GetColumn<Field>(I + 1);
+        }
+    });
+
+    Reflection::EnumerateMembers(secondRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
+        if constexpr (IsField<Field>)
+        {
+            field.MutableValue() =
+                reader->GetColumn<typename Field::ValueType>(Reflection::CountMembers<FirstRecord> + I + 1);
+        }
+        else if constexpr (SqlGetColumnNativeType<Field>)
+        {
+            field = reader->GetColumn<Field>(Reflection::CountMembers<FirstRecord> + I + 1);
+        }
+    });
+}
+
 } // namespace detail
 
 /// Main API for mapping records to C++ from the database using high level C++ syntax.
@@ -237,9 +267,8 @@ class [[nodiscard]] SqlSparseFieldQueryBuilder final:
     friend class SqlCoreDataMapperQueryBuilder<Record, SqlSparseFieldQueryBuilder<Record, ReferencedFields...>>;
 
     LIGHTWEIGHT_FORCE_INLINE explicit SqlSparseFieldQueryBuilder(SqlStatement& stmt, std::string fields) noexcept:
-        SqlCoreDataMapperQueryBuilder<Record, SqlSparseFieldQueryBuilder<Record, ReferencedFields...>> {
-            stmt, std::move(fields)
-        }
+        SqlCoreDataMapperQueryBuilder<Record, SqlSparseFieldQueryBuilder<Record, ReferencedFields...>> { stmt,
+                                                                                                         std::move(fields) }
     {
     }
 
@@ -318,6 +347,87 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
             }
 
             if (!outputColumnsBound)
+                detail::GetAllColumns(reader, record);
+        }
+    }
+};
+
+/// @brief Specialization of SqlAllFieldsQueryBuilder for the case when we return std::tuple
+/// of two records
+///
+/// @ingroup DataMapper
+template <typename FirstRecord, typename SecondRecord>
+class [[nodiscard]] SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>> final:
+    public SqlCoreDataMapperQueryBuilder<std::tuple<FirstRecord, SecondRecord>,
+                                         SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>>>
+{
+  private:
+    using RecordType = std::tuple<FirstRecord, SecondRecord>;
+    friend class DataMapper;
+    friend class SqlCoreDataMapperQueryBuilder<RecordType, SqlAllFieldsQueryBuilder<RecordType>>;
+
+    LIGHTWEIGHT_FORCE_INLINE explicit SqlAllFieldsQueryBuilder(SqlStatement& stmt, std::string fields) noexcept:
+        SqlCoreDataMapperQueryBuilder<RecordType, SqlAllFieldsQueryBuilder<RecordType>> { stmt, std::move(fields) }
+    {
+    }
+
+    static void BindAllOutputColumns(SqlResultCursor& reader, RecordType& record)
+    {
+        auto& [firstRecord, secondRecord] = record;
+        Reflection::EnumerateMembers(
+            firstRecord, [reader = &reader, i = SQLSMALLINT { 1 }]<size_t I, typename Field>(Field& field) mutable {
+                if constexpr (IsField<Field>)
+                {
+                    reader->BindOutputColumn(i++, &field.MutableValue());
+                }
+                else if constexpr (IsBelongsTo<Field>)
+                {
+                    reader->BindOutputColumn(i++, &field.MutableValue());
+                }
+                else if constexpr (SqlOutputColumnBinder<Field>)
+                {
+                    reader->BindOutputColumn(i++, &field);
+                }
+            });
+
+        Reflection::EnumerateMembers(
+            secondRecord,
+            [reader = &reader,
+             i = SQLSMALLINT { 1 + Reflection::CountMembers<FirstRecord> }]<size_t I, typename Field>(Field& field) mutable {
+                if constexpr (IsField<Field>)
+                {
+                    reader->BindOutputColumn(i++, &field.MutableValue());
+                }
+                else if constexpr (IsBelongsTo<Field>)
+                {
+                    reader->BindOutputColumn(i++, &field.MutableValue());
+                }
+                else if constexpr (SqlOutputColumnBinder<Field>)
+                {
+                    reader->BindOutputColumn(i++, &field);
+                }
+            });
+    }
+
+    static void ReadResults(SqlServerType sqlServerType, SqlResultCursor reader, std::vector<RecordType>* records)
+    {
+        while (true)
+        {
+            auto& record = records->emplace_back();
+            auto& [firstRecord, secondRecord] = record;
+
+            auto const outputColumnsBoundFirst = detail::CanSafelyBindOutputColumns(sqlServerType, firstRecord);
+            auto const outputColumnsBoundSecond = detail::CanSafelyBindOutputColumns(sqlServerType, secondRecord);
+            if (outputColumnsBoundFirst && outputColumnsBoundSecond)
+                BindAllOutputColumns(reader, record);
+
+            if (!reader.FetchRow())
+            {
+                records->pop_back();
+                break;
+            }
+
+            if (!(outputColumnsBoundFirst && outputColumnsBoundSecond))
                 detail::GetAllColumns(reader, record);
         }
     }
@@ -564,8 +674,7 @@ class DataMapper
 
     /// Queries multiple records from the database, based on the given query.
     template <typename Record, typename... InputParameters>
-    std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
-                              InputParameters&&... inputParameters);
+    std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters);
 
     /// Queries multiple records from the database, based on the given query.
     template <typename Record, typename... InputParameters>
@@ -596,8 +705,7 @@ class DataMapper
     /// }
     /// @endcode
     template <typename ElementMask, typename Record, typename... InputParameters>
-    std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
-                              InputParameters&&... inputParameters);
+    std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters);
 
     /// Queries records of different types from the database, based on the given query.
     /// User can constructed query that selects columns from the multiple tables
@@ -627,6 +735,28 @@ class DataMapper
         requires DataMapperRecord<FirstRecord> && DataMapperRecord<NextRecord>
     std::vector<std::tuple<FirstRecord, NextRecord>> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
                                                            InputParameters&&... inputParameters);
+
+    /// Similar to previous one but quiery is builded from the object return by the quiery
+    template <typename FirstRecord, typename NextRecord>
+        requires DataMapperRecord<FirstRecord> && DataMapperRecord<NextRecord>
+    SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>> Query()
+    {
+
+        std::string fields;
+
+        const auto emplaceRecordsFrom = [&fields]<typename Record>() {
+            Reflection::EnumerateMembers<Record>([&fields]<size_t I, typename Field>() {
+                if (!fields.empty())
+                    fields += ", ";
+                fields += std::format(R"("{}"."{}")", RecordTableName<Record>, FieldNameAt<I, Record>);
+            });
+        };
+
+        emplaceRecordsFrom.template operator()<FirstRecord>();
+        emplaceRecordsFrom.template operator()<NextRecord>();
+
+        return SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>>(_stmt, std::move(fields));
+    }
 
     /// Queries records of given Record type.
     ///
@@ -671,8 +801,7 @@ class DataMapper
     template <typename Record, auto... ReferencedFields>
     SqlSparseFieldQueryBuilder<Record, ReferencedFields...> QuerySparse()
     {
-        auto const appendFieldTo = []<auto ReferencedField>(std::string & fields)
-        {
+        auto const appendFieldTo = []<auto ReferencedField>(std::string& fields) {
             using ReferencedRecord = Reflection::MemberClassType<ReferencedField>;
             if (!fields.empty())
                 fields += ", ";
@@ -788,8 +917,7 @@ std::string DataMapper::Inspect(Record const& record)
 
         if constexpr (FieldWithStorage<Value>)
             str += std::format("{} {} := {}", Reflection::TypeNameOf<Value>, name, value.Value());
-        else if constexpr (!IsHasMany<Value> && !IsHasManyThrough<Value> && !IsHasOneThrough<Value>
-                           && !IsBelongsTo<Value>)
+        else if constexpr (!IsHasMany<Value> && !IsHasManyThrough<Value> && !IsHasOneThrough<Value> && !IsBelongsTo<Value>)
             str += std::format("{} {} := {}", Reflection::TypeNameOf<Value>, name, value);
     });
     return "{" + std::move(str) + "}";
@@ -880,18 +1008,16 @@ RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
 
     auto query = _connection.Query(RecordTableName<Record>).Insert(nullptr);
 
-    Reflection::EnumerateMembers(
-        record, [&query]<auto I, typename FieldType>(FieldType const& /*field*/) {
-            if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
-                query.Set(FieldNameAt<I, Record>, SqlWildcard);
-        });
+    Reflection::EnumerateMembers(record, [&query]<auto I, typename FieldType>(FieldType const& /*field*/) {
+        if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
+            query.Set(FieldNameAt<I, Record>, SqlWildcard);
+    });
 
     _stmt.Prepare(query);
 
     Reflection::CallOnMembers(
         record,
-        [this, i = SQLSMALLINT { 1 }]<typename Name, typename FieldType>(Name const& name,
-                                                                         FieldType const& field) mutable {
+        [this, i = SQLSMALLINT { 1 }]<typename Name, typename FieldType>(Name const& name, FieldType const& field) mutable {
             if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
                 _stmt.BindInputParameter(i++, field, name);
         });
@@ -981,14 +1107,13 @@ void DataMapper::Update(Record& record)
 
     auto query = _connection.Query(RecordTableName<Record>).Update();
 
-    Reflection::CallOnMembers(record,
-                              [&query]<typename Name, typename FieldType>(Name const& name, FieldType const& field) {
-                                  if (field.IsModified())
-                                      query.Set(name, SqlWildcard);
-                                  if constexpr (FieldType::IsPrimaryKey)
-                                      if (!field.IsModified())
-                                          std::ignore = query.Where(name, SqlWildcard);
-                              });
+    Reflection::CallOnMembers(record, [&query]<typename Name, typename FieldType>(Name const& name, FieldType const& field) {
+        if (field.IsModified())
+            query.Set(name, SqlWildcard);
+        if constexpr (FieldType::IsPrimaryKey)
+            if (!field.IsModified())
+                std::ignore = query.Where(name, SqlWildcard);
+    });
 
     _stmt.Prepare(query);
 
@@ -1020,21 +1145,21 @@ std::size_t DataMapper::Delete(Record const& record)
 
     auto query = _connection.Query(RecordTableName<Record>).Delete();
 
-    Reflection::CallOnMembers(
-        record, [&query]<typename Name, typename FieldType>(Name const& name, FieldType const& /*field*/) {
-            if constexpr (FieldType::IsPrimaryKey)
-                std::ignore = query.Where(name, SqlWildcard);
-        });
+    Reflection::CallOnMembers(record,
+                              [&query]<typename Name, typename FieldType>(Name const& name, FieldType const& /*field*/) {
+                                  if constexpr (FieldType::IsPrimaryKey)
+                                      std::ignore = query.Where(name, SqlWildcard);
+                              });
 
     _stmt.Prepare(query);
 
     // Bind the WHERE clause
-    Reflection::CallOnMembers(record,
-                              [this, i = SQLSMALLINT { 1 }]<typename Name, typename FieldType>(
-                                  Name const& name, FieldType const& field) mutable {
-                                  if constexpr (FieldType::IsPrimaryKey)
-                                      _stmt.BindInputParameter(i++, field.Value(), name);
-                              });
+    Reflection::CallOnMembers(
+        record,
+        [this, i = SQLSMALLINT { 1 }]<typename Name, typename FieldType>(Name const& name, FieldType const& field) mutable {
+            if constexpr (FieldType::IsPrimaryKey)
+                _stmt.BindInputParameter(i++, field.Value(), name);
+        });
 
     _stmt.Execute();
 
@@ -1124,8 +1249,7 @@ template <typename Record, typename... InputParameters>
 inline LIGHTWEIGHT_FORCE_INLINE std::vector<Record> DataMapper::Query(
     SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters)
 {
-    static_assert(DataMapperRecord<Record> || std::same_as<Record, SqlVariantRow>,
-                  "Record must satisfy DataMapperRecord");
+    static_assert(DataMapperRecord<Record> || std::same_as<Record, SqlVariantRow>, "Record must satisfy DataMapperRecord");
 
     return Query<Record>(selectQuery.ToSql(), std::forward<InputParameters>(inputParameters)...);
 }
@@ -1172,8 +1296,8 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
 
 template <typename FirstRecord, typename SecondRecord, typename... InputParameters>
     requires DataMapperRecord<FirstRecord> && DataMapperRecord<SecondRecord>
-std::vector<std::tuple<FirstRecord, SecondRecord>> DataMapper::Query(
-    SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters)
+std::vector<std::tuple<FirstRecord, SecondRecord>> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
+                                                                     InputParameters&&... inputParameters)
 {
     auto result = std::vector<std::tuple<FirstRecord, SecondRecord>> {};
 
@@ -1303,22 +1427,21 @@ void DataMapper::CallOnHasMany(Record& record, Callable const& callback)
     using FieldType = HasMany<OtherRecord>;
     using ReferencedRecord = typename FieldType::ReferencedRecord;
 
-    CallOnPrimaryKey(
-        record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
-            auto query = _connection.Query(RecordTableName<ReferencedRecord>)
-                             .Select()
-                             .Build([&](auto& query) {
-                                 Reflection::EnumerateMembers<ReferencedRecord>(
-                                     [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
-                                         if constexpr (FieldWithStorage<ReferencedFieldType>)
-                                         {
-                                             query.Field(FieldNameAt<ReferencedFieldIndex, ReferencedRecord>);
-                                         }
-                                     });
-                             })
-                             .Where(FieldNameAt<FieldIndex, ReferencedRecord>, SqlWildcard);
-            callback(query, primaryKeyField);
-        });
+    CallOnPrimaryKey(record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
+        auto query = _connection.Query(RecordTableName<ReferencedRecord>)
+                         .Select()
+                         .Build([&](auto& query) {
+                             Reflection::EnumerateMembers<ReferencedRecord>(
+                                 [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
+                                     if constexpr (FieldWithStorage<ReferencedFieldType>)
+                                     {
+                                         query.Field(FieldNameAt<ReferencedFieldIndex, ReferencedRecord>);
+                                     }
+                                 });
+                         })
+                         .Where(FieldNameAt<FieldIndex, ReferencedRecord>, SqlWildcard);
+        callback(query, primaryKeyField);
+    });
 }
 
 template <size_t FieldIndex, typename Record, typename OtherRecord>
@@ -1327,10 +1450,9 @@ void DataMapper::LoadHasMany(Record& record, HasMany<OtherRecord>& field)
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     static_assert(DataMapperRecord<OtherRecord>, "OtherRecord must satisfy DataMapperRecord");
 
-    CallOnHasMany<FieldIndex, Record, OtherRecord>(
-        record, [&](SqlSelectQueryBuilder selectQuery, auto& primaryKeyField) {
-            field.Emplace(detail::ToSharedPtrList(Query<OtherRecord>(selectQuery.All(), primaryKeyField.Value())));
-        });
+    CallOnHasMany<FieldIndex, Record, OtherRecord>(record, [&](SqlSelectQueryBuilder selectQuery, auto& primaryKeyField) {
+        field.Emplace(detail::ToSharedPtrList(Query<OtherRecord>(selectQuery.All(), primaryKeyField.Value())));
+    });
 }
 
 template <typename ReferencedRecord, typename ThroughRecord, typename Record>
@@ -1340,52 +1462,51 @@ void DataMapper::LoadHasOneThrough(Record& record, HasOneThrough<ReferencedRecor
     static_assert(DataMapperRecord<ThroughRecord>, "ThroughRecord must satisfy DataMapperRecord");
 
     // Find the PK of Record
-    CallOnPrimaryKey(
-        record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
-            // Find the BelongsTo of ThroughRecord pointing to the PK of Record
-            CallOnBelongsTo<ThroughRecord>([&]<size_t ThroughBelongsToIndex, typename ThroughBelongsToType>() {
-                // Find the PK of ThroughRecord
-                CallOnPrimaryKey<ThroughRecord>([&]<size_t ThroughPrimaryKeyIndex, typename ThroughPrimaryKeyType>() {
-                    // Find the BelongsTo of ReferencedRecord pointing to the PK of ThroughRecord
-                    CallOnBelongsTo<ReferencedRecord>([&]<size_t ReferencedKeyIndex, typename ReferencedKeyType>() {
-                        // Query the ReferencedRecord where:
-                        // - the BelongsTo of ReferencedRecord points to the PK of ThroughRecord,
-                        // - and the BelongsTo of ThroughRecord points to the PK of Record
-                        auto query = _connection.Query(RecordTableName<ReferencedRecord>)
-                                         .Select()
-                                         .Build([&](auto& query) {
-                                             Reflection::EnumerateMembers<ReferencedRecord>(
-                                                 [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
-                                                     if constexpr (FieldWithStorage<ReferencedFieldType>)
-                                                     {
-                                                         query.Field(SqlQualifiedTableColumnName {
-                                                             RecordTableName<ReferencedRecord>,
-                                                             FieldNameAt<ReferencedFieldIndex, ReferencedRecord> });
-                                                     }
-                                                 });
-                                         })
-                                         .InnerJoin(RecordTableName<ThroughRecord>,
-                                                    FieldNameAt<ThroughPrimaryKeyIndex, ThroughRecord>,
-                                                    FieldNameAt<ReferencedKeyIndex, ReferencedRecord>)
-                                         .InnerJoin(RecordTableName<Record>,
-                                                    FieldNameAt<PrimaryKeyIndex, Record>,
-                                                    SqlQualifiedTableColumnName {
-                                                        RecordTableName<ThroughRecord>,
-                                                        FieldNameAt<ThroughBelongsToIndex, ThroughRecord> })
-                                         .Where(
-                                             SqlQualifiedTableColumnName {
-                                                 RecordTableName<Record>,
-                                                 FieldNameAt<PrimaryKeyIndex, ThroughRecord>,
-                                             },
-                                             SqlWildcard);
-                        if (auto link = QuerySingle<ReferencedRecord>(std::move(query), primaryKeyField.Value()); link)
-                        {
-                            field.EmplaceRecord(std::make_shared<ReferencedRecord>(std::move(*link)));
-                        }
-                    });
+    CallOnPrimaryKey(record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
+        // Find the BelongsTo of ThroughRecord pointing to the PK of Record
+        CallOnBelongsTo<ThroughRecord>([&]<size_t ThroughBelongsToIndex, typename ThroughBelongsToType>() {
+            // Find the PK of ThroughRecord
+            CallOnPrimaryKey<ThroughRecord>([&]<size_t ThroughPrimaryKeyIndex, typename ThroughPrimaryKeyType>() {
+                // Find the BelongsTo of ReferencedRecord pointing to the PK of ThroughRecord
+                CallOnBelongsTo<ReferencedRecord>([&]<size_t ReferencedKeyIndex, typename ReferencedKeyType>() {
+                    // Query the ReferencedRecord where:
+                    // - the BelongsTo of ReferencedRecord points to the PK of ThroughRecord,
+                    // - and the BelongsTo of ThroughRecord points to the PK of Record
+                    auto query =
+                        _connection.Query(RecordTableName<ReferencedRecord>)
+                            .Select()
+                            .Build([&](auto& query) {
+                                Reflection::EnumerateMembers<ReferencedRecord>(
+                                    [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
+                                        if constexpr (FieldWithStorage<ReferencedFieldType>)
+                                        {
+                                            query.Field(SqlQualifiedTableColumnName {
+                                                RecordTableName<ReferencedRecord>,
+                                                FieldNameAt<ReferencedFieldIndex, ReferencedRecord> });
+                                        }
+                                    });
+                            })
+                            .InnerJoin(RecordTableName<ThroughRecord>,
+                                       FieldNameAt<ThroughPrimaryKeyIndex, ThroughRecord>,
+                                       FieldNameAt<ReferencedKeyIndex, ReferencedRecord>)
+                            .InnerJoin(RecordTableName<Record>,
+                                       FieldNameAt<PrimaryKeyIndex, Record>,
+                                       SqlQualifiedTableColumnName { RecordTableName<ThroughRecord>,
+                                                                     FieldNameAt<ThroughBelongsToIndex, ThroughRecord> })
+                            .Where(
+                                SqlQualifiedTableColumnName {
+                                    RecordTableName<Record>,
+                                    FieldNameAt<PrimaryKeyIndex, ThroughRecord>,
+                                },
+                                SqlWildcard);
+                    if (auto link = QuerySingle<ReferencedRecord>(std::move(query), primaryKeyField.Value()); link)
+                    {
+                        field.EmplaceRecord(std::make_shared<ReferencedRecord>(std::move(*link)));
+                    }
                 });
             });
         });
+    });
 }
 
 template <typename ReferencedRecord, typename ThroughRecord, typename Record, typename Callable>
@@ -1394,54 +1515,49 @@ void DataMapper::CallOnHasManyThrough(Record& record, Callable const& callback)
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
     // Find the PK of Record
-    CallOnPrimaryKey(
-        record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
-            // Find the BelongsTo of ThroughRecord pointing to the PK of Record
-            CallOnBelongsTo<ThroughRecord>(
-                [&]<size_t ThroughBelongsToRecordIndex, typename ThroughBelongsToRecordType>() {
-                    using ThroughBelongsToRecordFieldType =
-                        Reflection::MemberTypeOf<ThroughBelongsToRecordIndex, ThroughRecord>;
-                    if constexpr (std::is_same_v<typename ThroughBelongsToRecordFieldType::ReferencedRecord, Record>)
-                    {
-                        // Find the BelongsTo of ThroughRecord pointing to the PK of ReferencedRecord
-                        CallOnBelongsTo<ThroughRecord>([&]<size_t ThroughBelongsToReferenceRecordIndex,
-                                                           typename ThroughBelongsToReferenceRecordType>() {
-                            using ThroughBelongsToReferenceRecordFieldType =
-                                Reflection::MemberTypeOf<ThroughBelongsToReferenceRecordIndex, ThroughRecord>;
-                            if constexpr (std::is_same_v<
-                                              typename ThroughBelongsToReferenceRecordFieldType::ReferencedRecord,
-                                              ReferencedRecord>)
-                            {
-                                auto query =
-                                    _connection.Query(RecordTableName<ReferencedRecord>)
-                                        .Select()
-                                        .Build([&](auto& query) {
-                                            Reflection::EnumerateMembers<ReferencedRecord>(
-                                                [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
-                                                    if constexpr (FieldWithStorage<ReferencedFieldType>)
-                                                    {
-                                                        query.Field(SqlQualifiedTableColumnName {
-                                                            RecordTableName<ReferencedRecord>,
-                                                            FieldNameAt<ReferencedFieldIndex, ReferencedRecord> });
-                                                    }
-                                                });
-                                        })
-                                        .InnerJoin(RecordTableName<ThroughRecord>,
-                                                   FieldNameAt<ThroughBelongsToReferenceRecordIndex, ThroughRecord>,
-                                                   SqlQualifiedTableColumnName { RecordTableName<ReferencedRecord>,
-                                                                                 FieldNameAt<PrimaryKeyIndex, Record> })
-                                        .Where(
-                                            SqlQualifiedTableColumnName {
-                                                RecordTableName<ThroughRecord>,
-                                                FieldNameAt<ThroughBelongsToRecordIndex, ThroughRecord>,
-                                            },
-                                            SqlWildcard);
-                                callback(query, primaryKeyField);
-                            }
-                        });
-                    }
-                });
+    CallOnPrimaryKey(record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
+        // Find the BelongsTo of ThroughRecord pointing to the PK of Record
+        CallOnBelongsTo<ThroughRecord>([&]<size_t ThroughBelongsToRecordIndex, typename ThroughBelongsToRecordType>() {
+            using ThroughBelongsToRecordFieldType = Reflection::MemberTypeOf<ThroughBelongsToRecordIndex, ThroughRecord>;
+            if constexpr (std::is_same_v<typename ThroughBelongsToRecordFieldType::ReferencedRecord, Record>)
+            {
+                // Find the BelongsTo of ThroughRecord pointing to the PK of ReferencedRecord
+                CallOnBelongsTo<ThroughRecord>(
+                    [&]<size_t ThroughBelongsToReferenceRecordIndex, typename ThroughBelongsToReferenceRecordType>() {
+                        using ThroughBelongsToReferenceRecordFieldType =
+                            Reflection::MemberTypeOf<ThroughBelongsToReferenceRecordIndex, ThroughRecord>;
+                        if constexpr (std::is_same_v<typename ThroughBelongsToReferenceRecordFieldType::ReferencedRecord,
+                                                     ReferencedRecord>)
+                        {
+                            auto query = _connection.Query(RecordTableName<ReferencedRecord>)
+                                             .Select()
+                                             .Build([&](auto& query) {
+                                                 Reflection::EnumerateMembers<ReferencedRecord>(
+                                                     [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
+                                                         if constexpr (FieldWithStorage<ReferencedFieldType>)
+                                                         {
+                                                             query.Field(SqlQualifiedTableColumnName {
+                                                                 RecordTableName<ReferencedRecord>,
+                                                                 FieldNameAt<ReferencedFieldIndex, ReferencedRecord> });
+                                                         }
+                                                     });
+                                             })
+                                             .InnerJoin(RecordTableName<ThroughRecord>,
+                                                        FieldNameAt<ThroughBelongsToReferenceRecordIndex, ThroughRecord>,
+                                                        SqlQualifiedTableColumnName { RecordTableName<ReferencedRecord>,
+                                                                                      FieldNameAt<PrimaryKeyIndex, Record> })
+                                             .Where(
+                                                 SqlQualifiedTableColumnName {
+                                                     RecordTableName<ThroughRecord>,
+                                                     FieldNameAt<ThroughBelongsToRecordIndex, ThroughRecord>,
+                                                 },
+                                                 SqlWildcard);
+                            callback(query, primaryKeyField);
+                        }
+                    });
+            }
         });
+    });
 }
 
 template <typename ReferencedRecord, typename ThroughRecord, typename Record>
@@ -1509,9 +1625,8 @@ inline LIGHTWEIGHT_FORCE_INLINE Record& DataMapper::BindOutputColumns(Record& re
 template <typename Record, size_t InitialOffset>
 Record& DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
 {
-    return BindOutputColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>,
-                             Record,
-                             InitialOffset>(record, stmt);
+    return BindOutputColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>, Record, InitialOffset>(
+        record, stmt);
 }
 
 template <typename ElementMask, typename Record, size_t InitialOffset>
