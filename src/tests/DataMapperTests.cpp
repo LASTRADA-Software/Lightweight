@@ -1137,8 +1137,8 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct with extra ele
     auto stmt = SqlStatement(dm.Connection());
     stmt.ExecuteDirect(R"(INSERT INTO "SimpleStruct3" ("name", "age") VALUES ('John', 42))");
 
-    auto result = dm.QuerySingle<SimpleStruct3>(
-        dm.FromTable(RecordTableName<SimpleStruct3>).Select().Fields({ "name"sv, "age"sv }));
+    auto result =
+        dm.QuerySingle<SimpleStruct3>(dm.FromTable(RecordTableName<SimpleStruct3>).Select().Fields({ "name"sv, "age"sv }));
 
     REQUIRE(result.has_value());
     auto const& record = result.value();
@@ -1161,8 +1161,8 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct with less elem
 
     dm.CreateExplicit(SimpleStruct3 { .name = "John", .age = 42, .notAge = 0 });
 
-    auto result = dm.QuerySingle<SimpleStruct2>(
-        dm.FromTable(RecordTableName<SimpleStruct3>).Select().Fields({ "name"sv, "age"sv }));
+    auto result =
+        dm.QuerySingle<SimpleStruct2>(dm.FromTable(RecordTableName<SimpleStruct3>).Select().Fields({ "name"sv, "age"sv }));
 
     REQUIRE(result.has_value());
     auto const& record = result.value();
@@ -1308,8 +1308,8 @@ TEST_CASE_METHOD(SqlTestFixture, "MapFromRecordFields", "[DataMapper]")
 
     MapFromRecordFields(person, variantFields);
 
-    Reflection::EnumerateMembers(
-        person, [&]<size_t I>(auto const& field) { CHECK(variantFields[I] == SqlVariant(field.Value())); });
+    Reflection::EnumerateMembers(person,
+                                 [&]<size_t I>(auto const& field) { CHECK(variantFields[I] == SqlVariant(field.Value())); });
 }
 
 struct JoinA
@@ -1348,20 +1348,15 @@ TEST_CASE_METHOD(SqlTestFixture, "MapForJointStatement", "[DataMapper]")
     {
         auto a = JoinA { .value_a_first = i, .value_a_second = 10 + i, .value_a_third = 100 + i };
         auto b = JoinB { .a_id = 49 + i, .c_id = i };
-        auto c = JoinC {
-            .value_c_first = i, .value_c_second = 10 + i, .value_c_third = 100 + i, .value_c_fourth = 1000 + i
-        };
+        auto c =
+            JoinC { .value_c_first = i, .value_c_second = 10 + i, .value_c_third = 100 + i, .value_c_fourth = 1000 + i };
         dm.Create(a);
         dm.Create(b);
         dm.Create(c);
     }
 
-    auto const records = dm.Query<JoinA, JoinC>(dm.FromTable(RecordTableName<JoinA>)
-                                                    .Select()
-                                                    .Fields<JoinA, JoinC>()
-                                                    .InnerJoin<&JoinB::a_id, &JoinA::id>()
-                                                    .InnerJoin<&JoinC::id, &JoinB::c_id>()
-                                                    .All());
+    auto const records =
+        dm.Query<JoinA, JoinC>().InnerJoin<&JoinB::a_id, &JoinA::id>().InnerJoin<&JoinC::id, &JoinB::c_id>().All();
 
     CHECK(records.size() == 50);
     int i = 1;
@@ -1369,8 +1364,13 @@ TEST_CASE_METHOD(SqlTestFixture, "MapForJointStatement", "[DataMapper]")
     {
         CHECK(elementA.id.Value() == static_cast<uint64_t>(49 + i));
         CHECK(elementC.id.Value() == static_cast<uint64_t>(i));
-        CHECK(elementC.value_c_fourth.Value() == 1000 + i);
+        CHECK(elementA.value_a_first.Value() == 49 + i);
+        CHECK(elementA.value_a_second.Value() == 10 + 49 + i);
         CHECK(elementA.value_a_third.Value() == 100 + 49 + i);
+        CHECK(elementC.value_c_first.Value() == i);
+        CHECK(elementC.value_c_second.Value() == 10 + i);
+        CHECK(elementC.value_c_third.Value() == 100 + i);
+        CHECK(elementC.value_c_fourth.Value() == 1000 + i);
         ++i;
     }
 }

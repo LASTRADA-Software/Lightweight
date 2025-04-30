@@ -76,6 +76,27 @@ struct RecordTableNameImpl
     }();
 };
 
+
+// specialization for the case when we use tuple as
+// a record, then we usethe first element of the tuple
+// to get the table name
+template <typename First, typename Second>
+struct RecordTableNameImpl<std::tuple<First, Second>>
+{
+    static constexpr std::string_view Value = []() {
+        if constexpr (requires { First::TableName; })
+            return First::TableName;
+        else
+            return []() {
+                // TODO: Build plural
+                auto const typeName = Reflection::TypeNameOf<First>;
+                if (auto const i = typeName.rfind(':'); i != std::string_view::npos)
+                    return typeName.substr(i + 1);
+                return typeName;
+            }();
+    }();
+};
+
 template <std::size_t I, typename Record>
 struct BelongsToNameImpl
 {
@@ -145,8 +166,7 @@ constexpr inline std::string_view FieldNameAt = detail::FieldNameAt<I, Record>()
 ///
 /// This also supports custom column name overrides.
 template <auto ReferencedField>
-constexpr inline std::string_view FieldNameOf =
-    detail::FieldNameOfImpl<decltype(ReferencedField), ReferencedField>::value;
+constexpr inline std::string_view FieldNameOf = detail::FieldNameOfImpl<decltype(ReferencedField), ReferencedField>::value;
 
 /// @brief Holds the SQL tabl ename for the given record type.
 ///
