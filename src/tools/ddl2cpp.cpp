@@ -278,7 +278,6 @@ class CxxModelPrinter
     {
         using namespace std::string_view_literals;
 
-
         std::vector<std::string> renameForeignKeys;
         auto& definition = _definitions[table.name];
         std::string cxxPrimaryKeys;
@@ -354,8 +353,7 @@ class CxxModelPrinter
         for (auto const& foreignKey: table.foreignKeys)
         {
 
-            auto const avoidPrimaryKeyNameCollision = [&](std::string name)
-            {
+            auto const avoidPrimaryKeyNameCollision = [&](std::string name) {
                 // if  foreignKey.foreignKey.column inside renameForeignKeys
                 // we prepend `foreignKeyCollisionPrefix` to the name
                 if (std::ranges::find(renameForeignKeys, foreignKey.foreignKey.column) != renameForeignKeys.end())
@@ -365,7 +363,8 @@ class CxxModelPrinter
                 return name;
             };
 
-            auto const memberName = avoidPrimaryKeyNameCollision(FormatName(std::string_view { foreignKey.foreignKey.column }, _config.formatType));
+            auto const memberName = avoidPrimaryKeyNameCollision(
+                FormatName(std::string_view { foreignKey.foreignKey.column }, _config.formatType));
             if (foreignKey.primaryKey.columns[0].empty())
             {
                 if (!_config.suppressWarnings)
@@ -630,9 +629,10 @@ std::expected<void, std::string> ParseArguments(int argc, char const* argv[], Co
     return {};
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void ResolveOrderAndPrintTable(CxxModelPrinter& cxxModelPrinter, std::vector<SqlSchema::Table> const& tables)
 {
-    std::unordered_map<size_t, int> numberOfForeignKeys;
+    std::unordered_map<size_t, std::optional<int>> numberOfForeignKeys;
     for (auto const& [index, table]: std::views::enumerate(tables))
         numberOfForeignKeys[index] = static_cast<int>(table.foreignKeys.size());
 
@@ -640,29 +640,49 @@ void ResolveOrderAndPrintTable(CxxModelPrinter& cxxModelPrinter, std::vector<Sql
         for (auto const [index, table]: std::views::enumerate(tables))
         {
             if (table.name == tablePrinted.name)
-                numberOfForeignKeys[index] = -1;
+                numberOfForeignKeys[index] = std::nullopt;
 
             for (auto const& foreignKey: table.foreignKeys)
             {
-                if (foreignKey.primaryKey.table.table == tablePrinted.name)
-                {
-                    numberOfForeignKeys[index]--;
-                }
+                if ((foreignKey.primaryKey.table.table == tablePrinted.name) && numberOfForeignKeys[index].has_value())
+                    numberOfForeignKeys[index] = numberOfForeignKeys[index].value() - 1;
             }
         }
     };
 
     size_t numberOfPrintedTables = 0;
+
+    const auto printTable = [&](size_t index, auto const& table) {
+        cxxModelPrinter.PrintTable(table);
+        numberOfPrintedTables++;
+        updateForeignKeyCountAfterPrinted(table);
+        numberOfForeignKeys[index] = std::nullopt;
+    };
+
     while (numberOfPrintedTables < tables.size())
     {
         for (auto const [index, table]: std::views::enumerate(tables))
         {
-            if (numberOfForeignKeys[index] == 0)
+            if (!numberOfForeignKeys[index])
+                continue;
+            if (numberOfForeignKeys[index].value() == 0)
             {
-                numberOfPrintedTables++;
-                cxxModelPrinter.PrintTable(table);
-                updateForeignKeyCountAfterPrinted(table);
-                // remove the printed table from the map
+                printTable(index, table);
+            }
+            else
+            {
+                // check all other tables and see if we have some with 0 foreign keys
+                // if we do NOT have them, we need to print this table anyway since
+                // there is some circular dependency that we cannot resolve
+                bool found = false;
+                for (auto const [otherIndex, otherTable]: std::views::enumerate(tables))
+                {
+                    if (numberOfForeignKeys[otherIndex] == 0)
+                        found = true;
+                }
+                // we need to print this table so that we do not print it again
+                if (!found)
+                    printTable(index, table);
             }
         }
     }
