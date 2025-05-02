@@ -229,3 +229,12 @@ case "$DBMS" in
         exit 1
         ;;
 esac
+
+# Second argument is the file to load into the database
+if [ -n "$2" ]; then
+    echo "Loading data into the database..."
+    file_name="$2"
+    sqlcmd -S localhost -U SA -P "${DB_PASSWORD}" -d "${DB_NAME}" -i "${file_name}"
+else
+    echo "No file to load into the database."
+fi

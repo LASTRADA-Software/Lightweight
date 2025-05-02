@@ -237,11 +237,22 @@ jobs:
         run: |
           sudo tar -xvf Lightweight-Linux-CI.tar.gz --strip-components=1 -C /usr/local
       - name: "install dependencies"
-        run: sudo apt install -y unixodbc-dev unixodbc libsqliteodbc odbcinst uuid-dev sqlite3 uuid-dev
-      - name: "Run DDL2CPP"
-        run: ./src/tools/test.sh
-        env:
-          DDL2CPP: "/usr/local/bin/ddl2cpp"
+        run: sudo apt install -y unixodbc-dev unixodbc libsqliteodbc odbcinst uuid-dev sqlite3 uuid-dev libyaml-cpp-dev
+      - name: "Setup ms sql server"
+        id: setup
+        run: |
+          bash ./.github/prepare-test-run.sh "MS SQL Server 2022" "./src/examples/test_chinook/Chinook_Sqlite.sql"
+      - name: "Run ddl2cpp on Chinook db"
+        run: |
+          /usr/local/bin/ddl2cpp --connection-string "${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}" --make-aliases --database LightweightTest --schema dbo > ./src/examples/test_chinook/output_unfiltered.hpp
+      - name: "Prepare header file"
+        run: |
+            cat ./src/examples/test_chinook/output_unfiltered.hpp
+            awk '/^#pragma/ {found=1} found' ./src/examples/test_chinook/output_unfiltered.hpp | grep -v '^#' | grep -v '^//' | grep -v '^\s*$'  > ./src/examples/test_chinook/output.hpp
+            echo "#include <Lightweight/DataMapper/DataMapper.hpp>" | cat - ./src/examples/test_chinook/output.hpp > ./src/examples/test_chinook/header_test.hpp
+      - name: Compare files
+        run: |
+          diff ./src/examples/test_chinook/header_test.hpp ./src/examples/test_chinook/header.hpp
 
   dbms_test_matrix:
     strategy:
