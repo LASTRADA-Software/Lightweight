@@ -120,7 +120,10 @@ class EventHandler
 };
 
 /// Reads all tables in the given database and schema and calls the event handler for each table.
-LIGHTWEIGHT_API void ReadAllTables(std::string_view database, std::string_view schema, EventHandler& eventHandler);
+LIGHTWEIGHT_API void ReadAllTables(SqlStatement& stmt,
+                                   std::string_view database,
+                                   std::string_view schema,
+                                   EventHandler& eventHandler);
 
 /// Holds the definition of a table in a SQL database as read from the database schema.
 struct Table
@@ -149,15 +152,23 @@ using TableList = std::vector<Table>;
 using ReadAllTablesCallback = std::function<void(std::string_view /*tableName*/, size_t /*current*/, size_t /*total*/)>;
 
 /// Retrieves all tables in the given @p database and @p schema.
-LIGHTWEIGHT_API TableList ReadAllTables(std::string_view database, std::string_view schema = {}, ReadAllTablesCallback callback = {});
+LIGHTWEIGHT_API TableList ReadAllTables(SqlStatement& stmt,
+                                        std::string_view database,
+                                        std::string_view schema = {},
+                                        ReadAllTablesCallback callback = {});
 
 /// Retrieves all tables in the given database and schema that have a foreign key to the given table.
-LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt,
-                                                                   FullyQualifiedTableName const& table);
+LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt, FullyQualifiedTableName const& table);
 
 /// Retrieves all tables in the given database and schema that have a foreign key from the given table.
 LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysFrom(SqlStatement& stmt,
                                                                      FullyQualifiedTableName const& table);
+
+/// Creats an SQL CREATE TABLE plan for the given table description.
+LIGHTWEIGHT_API SqlCreateTablePlan MakeCreateTablePlan(Table const& tableDescription);
+
+/// Creates an SQL CREATE TABLE plan for all the given table descriptions.
+LIGHTWEIGHT_API std::vector<SqlCreateTablePlan> MakeCreateTablePlan(TableList const& tableDescriptions);
 
 } // namespace SqlSchema
 
