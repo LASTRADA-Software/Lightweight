@@ -1105,8 +1105,9 @@ int main(int argc, char const* argv[])
     PrintInfo(config);
 
     std::vector<SqlSchema::Table> const tables = TimedExecution("Reading all tables", [&] {
+        SqlStatement stmt;
         return SqlSchema::ReadAllTables(
-            config.database, config.schema, [](std::string_view tableName, size_t current, size_t total) {
+            stmt, config.database, config.schema, [](std::string_view tableName, size_t current, size_t total) {
                 std::print("\r\033[K {:>3}% [{}/{}] Reading table schema {}",
                            static_cast<int>((current * 100) / total),
                            current,

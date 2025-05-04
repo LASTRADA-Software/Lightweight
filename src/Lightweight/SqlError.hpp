@@ -43,6 +43,11 @@ struct SqlErrorInfo
         return fromHandle(SQL_HANDLE_STMT, hStmt);
     }
 
+    static SqlErrorInfo fromEnvironmentHandle(SQLHSTMT hEnv)
+    {
+        return fromHandle(SQL_HANDLE_ENV, hEnv);
+    }
+
     /// Asserts that the given result is a success code, otherwise throws an exception.
     static void RequireStatementSuccess(SQLRETURN result, SQLHSTMT hStmt, std::string_view message);
 

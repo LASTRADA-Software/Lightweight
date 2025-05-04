@@ -357,3 +357,5 @@ struct [[nodiscard]] SqlMigrationPlan
 
     [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> ToSql() const;
 };
+
+[[nodiscard]] std::vector<std::string> ToSql(SqlQueryFormatter const& formatter, std::vector<SqlMigrationPlan> const& elements);

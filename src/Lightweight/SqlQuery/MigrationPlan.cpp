@@ -13,7 +13,6 @@ std::vector<std::string> SqlMigrationPlan::ToSql() const
     }
     return result;
 }
-
 std::vector<std::string> ToSql(SqlQueryFormatter const& formatter, SqlMigrationPlanElement const& element)
 {
     using namespace std::string_literals;
@@ -38,3 +37,20 @@ std::vector<std::string> ToSql(SqlQueryFormatter const& formatter, SqlMigrationP
         },
         element);
 }
+
+std::vector<std::string> ToSql(std::vector<SqlMigrationPlan> const& plans)
+{
+    std::vector<std::string> result;
+
+    for (auto const& plan: plans)
+    {
+        for (auto const& step: plan.steps)
+        {
+            auto subSteps = ToSql(plan.formatter, step);
+            result.insert(result.end(), subSteps.begin(), subSteps.end());
+        }
+    }
+
+    return result;
+}
+

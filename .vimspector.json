@@ -1,6 +1,27 @@
 {
     "$schema": "https://puremourning.github.io/vimspector/schema/vimspector.schema.json#",
     "configurations": {
+        "dbcopy from and to SQLite3": {
+            "adapter": "vscode-cpptools",
+            "configuration": {
+                "request": "launch",
+                "program": "${workspaceRoot}/out/build/linux-clang-debug/src/tools/dbcopy",
+                "args": [
+                    "--from\\=DRIVER\\=SQLite3\\;DATABASE\\=${workspaceRoot}/Chinook.sqlite",
+                    "--to\\=DRIVER\\=SQLite3\\;DATABASE\\=${workspaceRoot}/output.sqlite"
+                ],
+                "cwd": "${workspaceRoot}",
+                "externalConsole": true,
+                "stopAtEntry": false,
+                "MIMode": "gdb"
+            },
+            "breakpoints": {
+                "exception": {
+                    "caught": "Y",
+                    "uncaught": "Y"
+                }
+            }
+        },
         "CoreTest - SQLite": {
             "adapter": "vscode-cpptools",
             "configuration": {

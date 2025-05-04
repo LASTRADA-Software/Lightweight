@@ -43,7 +43,11 @@ SqlConnection::SqlConnection(std::optional<SqlConnectionString> connectInfo):
     SQLAllocHandle(SQL_HANDLE_DBC, m_hEnv, &m_hDbc);
 
     if (connectInfo.has_value())
-        Connect(std::move(*connectInfo));
+    {
+        auto const success = Connect(std::move(*connectInfo));
+        if (!success)
+            ;
+    }
 }
 
 SqlConnection::SqlConnection(SqlConnection&& other) noexcept:
@@ -189,7 +193,12 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
                                             nullptr,
                                             SQL_DRIVER_NOPROMPT);
     if (!SQL_SUCCEEDED(sqlResult))
+    {
+        auto const errorInfo = SqlErrorInfo::fromConnectionHandle(m_hDbc);
+        SqlLogger::GetLogger().OnError(errorInfo);
+        // throw SqlException(std::move(errorInfo));
         return false;
+    }
 
     sqlResult = SQLSetConnectAttrA(m_hDbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
     if (!SQL_SUCCEEDED(sqlResult))
