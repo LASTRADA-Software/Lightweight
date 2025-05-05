@@ -152,6 +152,7 @@ class CxxModelPrinter
     struct Config
     {
         std::string foreignKeyCollisionPrefix;
+        std::string collisionPrefix = "c_";
         bool makeAliases = false;
         FormatType formatType = FormatType::camelCase;
         PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
@@ -326,6 +327,26 @@ class CxxModelPrinter
         definition.text << std::format("{{\n");
         definition.text << aliasRealTableName(table.name);
 
+        std::vector<std::string> existingMembers;
+
+        const auto checkCollisionAndPropose = [&](std::string name) {
+            auto it = std::ranges::find(existingMembers, name);
+            if (it != existingMembers.end())
+            {
+                std::string newName;
+                do
+                {
+                    newName = std::format("{}{}", _config.collisionPrefix, name);
+                    it = std::ranges::find(existingMembers, newName);
+                } while (it != existingMembers.end());
+
+                existingMembers.push_back(newName);
+                return newName;
+            }
+            existingMembers.push_back(name);
+            return name;
+        };
+
         for (auto const& column: table.columns)
         {
             std::string type = MakeType(column, _config.forceUnicodeTextColumns);
@@ -339,12 +360,16 @@ class CxxModelPrinter
             // all foreign keys will be handled in the BelongsTo
             if (column.isPrimaryKey)
             {
-                definition.text << std::format(
-                    "    Field<{}{}{}> {};\n", type, primaryKeyPart(), aliasName(column.name), memberName);
+                definition.text << std::format("    Field<{}{}{}> {};\n",
+                                               type,
+                                               primaryKeyPart(),
+                                               aliasName(column.name),
+                                               checkCollisionAndPropose(memberName));
                 continue;
             }
 
-            definition.text << std::format("    Field<{}{}> {};\n", type, aliasName(column.name), memberName);
+            definition.text << std::format(
+                "    Field<{}{}> {};\n", type, aliasName(column.name), checkCollisionAndPropose(memberName));
         }
 
         if (!table.foreignKeys.empty())
@@ -385,7 +410,7 @@ class CxxModelPrinter
                                        FormatName(foreignKey.primaryKey.columns[0], _config.formatType)); // TODO
                 }(),
                 aliasName(foreignKey.foreignKey.column),
-                memberName);
+                checkCollisionAndPropose(memberName));
 
             definition.text << foreignKeyContraint;
         }
@@ -588,6 +613,12 @@ std::expected<void, std::string> ParseArguments(int argc, char const* argv[], Co
             if (++i >= argc)
                 return std::unexpected("Missing model namespace");
             config.modelNamespace = argv[i];
+        }
+        else if (argv[i] == "--foreign-key-collision-prefix"sv)
+        {
+            if (++i >= argc)
+                return std::unexpected("Missing key collision prefix");
+            config.foreignKeyCollisionPrefix = argv[i];
         }
         else if (argv[i] == "--output"sv)
         {
