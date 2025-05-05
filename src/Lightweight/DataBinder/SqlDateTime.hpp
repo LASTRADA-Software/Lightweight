@@ -84,6 +84,48 @@ struct SqlDateTime
     {
     }
 
+    /// Returns the year of this date-time object.
+    [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE std::chrono::year year() const noexcept
+    {
+        return std::chrono::year(static_cast<int>(sqlValue.year));
+    }
+
+    /// Returns the month of this date-time object.
+    [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE std::chrono::month month() const noexcept
+    {
+        return std::chrono::month(static_cast<unsigned>(sqlValue.month));
+    }
+
+    /// Returns the day of this date-time object.
+    [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE std::chrono::day day() const noexcept
+    {
+        return std::chrono::day(static_cast<unsigned>(sqlValue.day));
+    }
+
+    /// Returns the hour of this date-time object.
+    [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE std::chrono::hours hour() const noexcept
+    {
+        return std::chrono::hours(static_cast<unsigned>(sqlValue.hour));
+    }
+
+    /// Returns the minute of this date-time object.
+    [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE std::chrono::minutes minute() const noexcept
+    {
+        return std::chrono::minutes(static_cast<unsigned>(sqlValue.minute));
+    }
+
+    /// Returns the second of this date-time object.
+    [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE std::chrono::seconds second() const noexcept
+    {
+        return std::chrono::seconds(static_cast<unsigned>(sqlValue.second));
+    }
+
+    /// Returns the nanosecond of this date-time object.
+    [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE std::chrono::nanoseconds nanosecond() const noexcept
+    {
+        return std::chrono::nanoseconds(static_cast<unsigned>(sqlValue.fraction));
+    }
+
     LIGHTWEIGHT_FORCE_INLINE constexpr operator native_type() const noexcept
     {
         return value();
@@ -120,7 +162,7 @@ struct SqlDateTime
     {
         // clang-format off
         using namespace std::chrono;
-        auto const ymd = year_month_day { year { time.year } / month { time.month } / day { time.day } };
+        auto const ymd = year_month_day { std::chrono::year { time.year } / std::chrono::month { time.month } / std::chrono::day { time.day } };
         auto const hms = hh_mm_ss<duration_type> {
             duration_cast<duration_type>(
                 hours { time.hour }
