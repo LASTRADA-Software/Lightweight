@@ -202,11 +202,25 @@ class SqlFixedString
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr T const& operator[](std::size_t i) const noexcept { return _data[i]; }
     // clang-format on
 
+    /// Returns a std::basic_string<T> from the string.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string<T> ToString() const noexcept
+    {
+        return { _data, _size };
+    }
+
+    /// Returns a std::basic_string<T> from the string.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr explicit operator std::basic_string<T>() const noexcept
+    {
+        return ToString();
+    }
+
+    /// Returns a std::basic_string_view<T> from the string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string_view<T> ToStringView() const noexcept
     {
         return { _data, _size };
     }
 
+    /// Returns a std::basic_string_view<T> from the string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr explicit operator std::basic_string_view<T>() const noexcept
     {
         return ToStringView();
