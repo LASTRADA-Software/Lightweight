@@ -1,9 +1,8 @@
 var searchData=
 [
-  ['native_0',['Native',['../d3/d15/classSqlMigrationQueryBuilder.html#ab6eac01af3a4dfe3d3da0c251829183d',1,'SqlMigrationQueryBuilder']]],
-  ['nativehandle_1',['nativehandle',['../d7/d7b/classSqlConnection.html#a431d3c5f9fa65867b64f825b01735642',1,'SqlConnection::NativeHandle()'],['../df/d17/classSqlStatement.html#a4973da6a55356060d9a37809731de80e',1,'SqlStatement::NativeHandle()']]],
-  ['now_2',['Now',['../da/dd7/structSqlDateTime.html#afd6225eb14a6c3d7e0ab1e36f9629282',1,'SqlDateTime']]],
-  ['nulllogger_3',['NullLogger',['../d8/d7e/classSqlLogger.html#a5951444ad37594aa2d4e972a7dd598ba',1,'SqlLogger']]],
-  ['numcolumnsaffected_4',['numcolumnsaffected',['../df/d17/classSqlStatement.html#abdc81e6ac6a5f063a445637b9cd64ee6',1,'SqlStatement::NumColumnsAffected()'],['../d7/d13/classSqlResultCursor.html#a6e44fedea5ea3ce30d133c4bd65e9787',1,'SqlResultCursor::NumColumnsAffected()']]],
-  ['numrowsaffected_5',['numrowsaffected',['../df/d17/classSqlStatement.html#a798024560a6f680836e08f90dbb7b928',1,'SqlStatement::NumRowsAffected()'],['../d7/d13/classSqlResultCursor.html#aea40e5a1b2d59766112bb8a8316471b5',1,'SqlResultCursor::NumRowsAffected()']]]
+  ['migratedirect_0',['MigrateDirect',['../df/d17/classSqlStatement.html#ab1665766fa52c6fcdf8ca06c3895ea2d',1,'SqlStatement']]],
+  ['migration_1',['migration',['../d7/d7b/classSqlConnection.html#ad40c250ff1be7868511131c9d8d3656d',1,'SqlConnection::Migration()'],['../d0/d78/classSqlQueryBuilder.html#aef9b2b49b2ebde2e23fcdabd1d450eb2',1,'SqlQueryBuilder::Migration()']]],
+  ['minute_2',['minute',['../da/dd7/structSqlDateTime.html#a2380a1bc73db4b03e05c3af2b44da5e2',1,'SqlDateTime']]],
+  ['month_3',['month',['../da/dd7/structSqlDateTime.html#a0de8aeeaa0c6df61a85c69a8d92e6dbb',1,'SqlDateTime']]],
+  ['mutablevalue_4',['mutablevalue',['../df/d1a/classBelongsTo.html#a1ad1e97d0321af12aa44ef5bd96d6129',1,'BelongsTo::MutableValue()'],['../df/d27/structField.html#a039d1f376893024a21164269783af9ce',1,'Field::MutableValue()']]]
 ];

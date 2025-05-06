@@ -1,7 +1,7 @@
 var searchData=
 [
   ['unicode_20conversion_20functions_0',['Unicode conversion functions',['../d1/d7d/group__Unicode.html',1,'']]],
-  ['unique_1',['unique',['../d3/d8a/structSqlColumnDeclaration.html#ac8fdbff04f053622ca941e301b8f5b83',1,'SqlColumnDeclaration::unique'],['../d4/d4a/classSqlCreateTableQueryBuilder.html#a18f1d76e76923048c1d4a2a8e1e4157a',1,'SqlCreateTableQueryBuilder::Unique()']]],
+  ['unique_1',['unique',['../d4/d4a/classSqlCreateTableQueryBuilder.html#a18f1d76e76923048c1d4a2a8e1e4157a',1,'SqlCreateTableQueryBuilder::Unique()'],['../d3/d8a/structSqlColumnDeclaration.html#ac8fdbff04f053622ca941e301b8f5b83',1,'SqlColumnDeclaration::unique']]],
   ['uniqueindex_2',['UniqueIndex',['../d4/d4a/classSqlCreateTableQueryBuilder.html#ade1e13201cafcf0642277eea30888a3f',1,'SqlCreateTableQueryBuilder']]],
   ['unload_3',['unload',['../df/d1a/classBelongsTo.html#a83ec5bd75e4d193746869a315ff05389',1,'BelongsTo::Unload()'],['../da/d9d/classHasOneThrough.html#a870fa4d80433debd82a2d8d4ac40acd2',1,'HasOneThrough::Unload()']]],
   ['unsafeparse_4',['UnsafeParse',['../d2/d62/structSqlGuid.html#a10990592c316bd8bef182121614d0ff4',1,'SqlGuid']]],

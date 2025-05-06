@@ -6,5 +6,6 @@ var searchData=
   ['hasmanythrough_3',['HasManyThrough',['../df/dd6/classHasManyThrough.html',1,'']]],
   ['hasonethrough_4',['HasOneThrough',['../da/d9d/classHasOneThrough.html',1,'']]],
   ['hasprimarykey_5',['HasPrimaryKey',['../d7/d2f/group__DataMapper.html#gace402d02f34595be6afc813311b93ea7',1,'DataMapper.hpp']]],
-  ['high_20level_20data_20mapping_6',['high level data mapping',['../index.html#example-crud-style-high-level-data-mapping',1,'Example: CRUD-style High level Data Mapping'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping',1,'High level Data Mapping']]]
+  ['high_20level_20data_20mapping_6',['high level data mapping',['../index.html#example-crud-style-high-level-data-mapping',1,'Example: CRUD-style High level Data Mapping'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping',1,'High level Data Mapping']]],
+  ['hour_7',['hour',['../da/dd7/structSqlDateTime.html#aeef3a25725be822be07310e648ca7a54',1,'SqlDateTime']]]
 ];

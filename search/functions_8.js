@@ -1,7 +1,13 @@
 var searchData=
 [
-  ['lasterror_0',['lasterror',['../d7/d7b/classSqlConnection.html#ae3cce0a5866a68b03d2427df753e8fcc',1,'SqlConnection::LastError()'],['../df/d17/classSqlStatement.html#a90b7f94b46b84daf94bda2019bde86b3',1,'SqlStatement::LastError()']]],
-  ['lastinsertid_1',['lastinsertid',['../d0/d78/classSqlQueryBuilder.html#a4cebfec7d16571e61e728c506889d603',1,'SqlQueryBuilder::LastInsertId()'],['../df/d17/classSqlStatement.html#ac7300b4d29568ae83bb7cc4f01fa8051',1,'SqlStatement::LastInsertId()']]],
-  ['lastused_2',['LastUsed',['../d7/d7b/classSqlConnection.html#a8dfe6bf0a1833ed2aed719666e8d67ec',1,'SqlConnection']]],
-  ['loadrelations_3',['LoadRelations',['../dc/dc7/classDataMapper.html#a172f8cd80c33f627fa30927e9fff378f',1,'DataMapper']]]
+  ['index_0',['Index',['../d4/d4a/classSqlCreateTableQueryBuilder.html#a432d2469420055cfbdbaaa4c67e9b25c',1,'SqlCreateTableQueryBuilder']]],
+  ['insert_1',['insert',['../d0/d78/classSqlQueryBuilder.html#a2752da20dcda5fc1527670062fb45bdf',1,'SqlQueryBuilder::Insert()'],['../dc/df2/classSqlQueryFormatter.html#ad7b2761d14f9b93b5fad0c88d7dd10fb',1,'SqlQueryFormatter::Insert()']]],
+  ['inspect_2',['Inspect',['../dc/dc7/classDataMapper.html#a4b974aa78414c5dec9a60c13a35516b0',1,'DataMapper']]],
+  ['inspectvalue_3',['InspectValue',['../df/d27/structField.html#a09d24464919b54e0109a8340129a1d4e',1,'Field']]],
+  ['is_4',['Is',['../d0/df8/structSqlVariant.html#a6a3a8acb604aac26eee474337475546b',1,'SqlVariant']]],
+  ['isalive_5',['IsAlive',['../d7/d7b/classSqlConnection.html#ab0ffa86b235846196d55554a005ba05f',1,'SqlConnection']]],
+  ['isempty_6',['isempty',['../d3/d09/classHasMany.html#a54200f1623f32404fe361da2f71a95b5',1,'HasMany::IsEmpty()'],['../df/dd6/classHasManyThrough.html#a75b212d9afc6f26766bb140dfc998dd5',1,'HasManyThrough::IsEmpty()']]],
+  ['isloaded_7',['isloaded',['../df/d1a/classBelongsTo.html#abe2488edbe14628219d0f33c21984ebf',1,'BelongsTo::IsLoaded()'],['../da/d9d/classHasOneThrough.html#af567fe189d861b5804c7401014404335',1,'HasOneThrough::IsLoaded()']]],
+  ['ismodified_8',['ismodified',['../df/d1a/classBelongsTo.html#ada9a20754dd3011d89885970b6cc1900',1,'BelongsTo::IsModified()'],['../dc/dc7/classDataMapper.html#a0cfde49ef08f08db4ae20518e30a6a0a',1,'DataMapper::IsModified()'],['../df/d27/structField.html#aa8080d19388999c10fbeadd11547026d',1,'Field::IsModified()']]],
+  ['isnull_9',['IsNull',['../d0/df8/structSqlVariant.html#a84d703e694f9339457cfa6367bf16501',1,'SqlVariant']]]
 ];
