@@ -244,15 +244,36 @@ jobs:
           bash ./.github/prepare-test-run.sh "MS SQL Server 2022" "./src/examples/test_chinook/Chinook_Sqlite.sql"
       - name: "Run ddl2cpp on Chinook db"
         run: |
-          /usr/local/bin/ddl2cpp --connection-string "${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}" --make-aliases --database LightweightTest --schema dbo > ./src/examples/test_chinook/output_unfiltered.hpp
-      - name: "Prepare header file"
-        run: |
-            cat ./src/examples/test_chinook/output_unfiltered.hpp
-            awk '/^#pragma/ {found=1} found' ./src/examples/test_chinook/output_unfiltered.hpp | grep -v '^#' | grep -v '^//' | grep -v '^\s*$'  > ./src/examples/test_chinook/output.hpp
-            echo "#include <Lightweight/DataMapper/DataMapper.hpp>" | cat - ./src/examples/test_chinook/output.hpp > ./src/examples/test_chinook/header_test.hpp
+          /usr/local/bin/ddl2cpp --connection-string "${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}" --make-aliases --database LightweightTest --schema dbo --foreign-key-collision-prefix fk_ --output ./src/examples/test_chinook/entities_compare
       - name: Compare files
         run: |
-          diff ./src/examples/test_chinook/header_test.hpp ./src/examples/test_chinook/header.hpp
+          declare -a files_to_compare=(
+            "./src/examples/test_chinook/entities/Album.hpp ./src/examples/test_chinook/entities_compare/Album.hpp"
+            "./src/examples/test_chinook/entities/Artist.hpp ./src/examples/test_chinook/entities_compare/Artist.hpp"
+            "./src/examples/test_chinook/entities/Customer.hpp ./src/examples/test_chinook/entities_compare/Customer.hpp"
+            "./src/examples/test_chinook/entities/Employee.hpp ./src/examples/test_chinook/entities_compare/Employee.hpp"
+            "./src/examples/test_chinook/entities/Genre.hpp ./src/examples/test_chinook/entities_compare/Genre.hpp"
+            "./src/examples/test_chinook/entities/Invoice.hpp ./src/examples/test_chinook/entities_compare/Invoice.hpp"
+            "./src/examples/test_chinook/entities/Invoiceline.hpp ./src/examples/test_chinook/entities_compare/Invoiceline.hpp"
+            "./src/examples/test_chinook/entities/Mediatype.hpp ./src/examples/test_chinook/entities_compare/Mediatype.hpp"
+            "./src/examples/test_chinook/entities/Playlist.hpp ./src/examples/test_chinook/entities_compare/Playlist.hpp"
+            "./src/examples/test_chinook/entities/Playlisttrack.hpp ./src/examples/test_chinook/entities_compare/Playlisttrack.hpp"
+            "./src/examples/test_chinook/entities/Track.hpp ./src/examples/test_chinook/entities_compare/Track.hpp"
+          )
+          for pair in "${file_pairs[@]}"; do
+            # Split the pair into two file paths using 'read'
+            read -r file1 file2 <<< "$pair"
+
+            # Compare the files
+            if ! diff "$file1" "$file2" > /dev/null; then
+              echo "Files $file1 and $file2 differ!"
+              echo "Differences:"
+              diff "$file1" "$file2"
+              exit 1
+            else
+              echo "Files $file1 and $file2 are identical."
+            fi
+          done
 
   dbms_test_matrix:
     strategy:

@@ -6,3 +6,5 @@ if(LIGHWEIGHT_EXAMPLE)
   target_link_libraries(example PRIVATE Lightweight::Lightweight)
   target_compile_features(example PUBLIC cxx_std_23)
 endif()
+
+add_subdirectory(test_chinook)
