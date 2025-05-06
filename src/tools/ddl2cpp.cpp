@@ -347,14 +347,15 @@ class CxxModelPrinter
 
         std::vector<std::string> existingMembers;
 
-        const auto checkCollisionAndPropose = [&](std::string name) {
+        const auto checkCollisionAndPropose = [&](std::string name, std::string prefix) {
             auto it = std::ranges::find(existingMembers, name);
+
             if (it != existingMembers.end())
             {
-                std::string newName;
+                std::string newName = name;
                 do
                 {
-                    newName = std::format("{}{}", _config.collisionPrefix, name);
+                    newName = std::format("{}{}", prefix, newName);
                     it = std::ranges::find(existingMembers, newName);
                 } while (it != existingMembers.end());
 
@@ -382,12 +383,12 @@ class CxxModelPrinter
                                                type,
                                                primaryKeyPart(),
                                                aliasName(column.name),
-                                               checkCollisionAndPropose(memberName));
+                                               checkCollisionAndPropose(memberName, _config.collisionPrefix));
                 continue;
             }
 
             definition.text << std::format(
-                "    Field<{}{}> {};\n", type, aliasName(column.name), checkCollisionAndPropose(memberName));
+                "    Field<{}{}> {};\n", type, aliasName(column.name), checkCollisionAndPropose(memberName, _config.collisionPrefix));
         }
 
         if (!table.foreignKeys.empty())
@@ -428,7 +429,7 @@ class CxxModelPrinter
                                        FormatName(foreignKey.primaryKey.columns[0], _config.formatType)); // TODO
                 }(),
                 aliasName(foreignKey.foreignKey.column),
-                checkCollisionAndPropose(memberName));
+                checkCollisionAndPropose(memberName, _config.foreignKeyCollisionPrefix));
 
             definition.text << foreignKeyContraint;
         }
@@ -525,7 +526,7 @@ struct Configuration
     std::string modelNamespace;
     std::string outputDirectory;
     std::string cumulativeHeaderFile;
-    std::string foreignKeyCollisionPrefix {};
+    std::string foreignKeyCollisionPrefix;
     bool forceUnicodeTextColumns = false;
     PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
     bool createTestTables = false;
@@ -845,7 +846,7 @@ std::expected<Configuration, std::string> LoadConfigFromFileAndCLI(std::string_v
         config.outputDirectory = outputPath.string();
     }
 
-    return std::move(config);
+    return config;
 }
 
 auto TimedExecution(std::string_view title, auto&& func)
