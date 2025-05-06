@@ -205,7 +205,11 @@ LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../d8/dcb/classSqlFixe
 <tr class="separator:a78e62db6871bfe6abf464113a98d25a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0a7523e402445aebb8fa5912281c1416" id="r_a0a7523e402445aebb8fa5912281c1416"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr T const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dcb/classSqlFixedString.html#a0a7523e402445aebb8fa5912281c1416">operator[]</a> (std::size_t i) const noexcept</td></tr>
 <tr class="separator:a0a7523e402445aebb8fa5912281c1416"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ade5b4796dca725a200b3be52e48d641b" id="r_ade5b4796dca725a200b3be52e48d641b"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dcb/classSqlFixedString.html#ade5b4796dca725a200b3be52e48d641b">ToString</a> () const noexcept</td></tr>
+<tr class="memdesc:ade5b4796dca725a200b3be52e48d641b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a std::basic_string&lt;T&gt; from the string.  <br /></td></tr>
+<tr class="separator:ade5b4796dca725a200b3be52e48d641b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae4f78475d19a27118c8b7034d4b0beb2" id="r_ae4f78475d19a27118c8b7034d4b0beb2"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string_view&lt; T &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dcb/classSqlFixedString.html#ae4f78475d19a27118c8b7034d4b0beb2">ToStringView</a> () const noexcept</td></tr>
+<tr class="memdesc:ae4f78475d19a27118c8b7034d4b0beb2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a std::basic_string_view&lt;T&gt; from the string.  <br /></td></tr>
 <tr class="separator:ae4f78475d19a27118c8b7034d4b0beb2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a60dc6e48724749bd9ebad8972bd2cfeb" id="r_a60dc6e48724749bd9ebad8972bd2cfeb"><td class="memTemplParams" colspan="2">template&lt;std::size_t OtherSize, SqlFixedStringMode OtherMode&gt; </td></tr>
 <tr class="memitem:a60dc6e48724749bd9ebad8972bd2cfeb"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE std::weak_ordering&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/dcb/classSqlFixedString.html#a60dc6e48724749bd9ebad8972bd2cfeb">operator&lt;=&gt;</a> (<a class="el" href="../../d8/dcb/classSqlFixedString.html">SqlFixedString</a>&lt; OtherSize, T, OtherMode &gt; const &amp;other) const noexcept</td></tr>
@@ -1279,6 +1283,37 @@ template&lt;std::size_t N, typename T  = char, SqlFixedStringMode Mode = SqlFixe
 
 </div>
 </div>
+<a id="ade5b4796dca725a200b3be52e48d641b" name="ade5b4796dca725a200b3be52e48d641b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ade5b4796dca725a200b3be52e48d641b">&#9670;&#160;</a></span>ToString()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::size_t N, typename T  = char, SqlFixedStringMode Mode = SqlFixedStringMode::FIXED_SIZE&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string&lt; T &gt; <a class="el" href="../../d8/dcb/classSqlFixedString.html">SqlFixedString</a>&lt; N, T, Mode &gt;::ToString </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a std::basic_string&lt;T&gt; from the string. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00206">206</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
+
+</div>
+</div>
 <a id="ae4f78475d19a27118c8b7034d4b0beb2" name="ae4f78475d19a27118c8b7034d4b0beb2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae4f78475d19a27118c8b7034d4b0beb2">&#9670;&#160;</a></span>ToStringView()</h2>
 
@@ -1304,7 +1339,9 @@ template&lt;std::size_t N, typename T  = char, SqlFixedStringMode Mode = SqlFixe
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00205">205</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
+<p>Returns a std::basic_string_view&lt;T&gt; from the string. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00218">218</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
 
 </div>
 </div>
@@ -1336,7 +1373,7 @@ template&lt;std::size_t OtherSize, SqlFixedStringMode OtherMode&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00216">216</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00230">230</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
 
 </div>
 </div>
@@ -1368,7 +1405,7 @@ template&lt;std::size_t OtherSize, SqlFixedStringMode OtherMode&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00229">229</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00243">243</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
 
 </div>
 </div>
@@ -1400,7 +1437,7 @@ template&lt;std::size_t OtherSize, SqlFixedStringMode OtherMode&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00236">236</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00250">250</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
 
 </div>
 </div>
@@ -1430,7 +1467,7 @@ template&lt;std::size_t N, typename T  = char, SqlFixedStringMode Mode = SqlFixe
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00242">242</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00256">256</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
 
 </div>
 </div>
@@ -1460,7 +1497,7 @@ template&lt;std::size_t N, typename T  = char, SqlFixedStringMode Mode = SqlFixe
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00247">247</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00261">261</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
 
 </div>
 </div>

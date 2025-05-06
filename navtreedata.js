@@ -93,7 +93,7 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d7/d13/classSqlResultCursor.html#a4153151b990ce9f7b85f1c9f7f3ed629",
-"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn"
+"de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

@@ -15,5 +15,7 @@ var classSqlFixedString =
     [ "push_back", "d8/dcb/classSqlFixedString.html#a81165d73c4e1979c9379bcbb4b1a3f14", null ],
     [ "pop_back", "d8/dcb/classSqlFixedString.html#a8c36b54521c8de3d9124ef11efe62bd5", null ],
     [ "substr", "d8/dcb/classSqlFixedString.html#a07e1905e09dc7c0e7b6f2092eeb01361", null ],
-    [ "str", "d8/dcb/classSqlFixedString.html#a5d76b54243a47e610f7d2dafbf3a8eaa", null ]
+    [ "str", "d8/dcb/classSqlFixedString.html#a5d76b54243a47e610f7d2dafbf3a8eaa", null ],
+    [ "ToString", "d8/dcb/classSqlFixedString.html#ade5b4796dca725a200b3be52e48d641b", null ],
+    [ "ToStringView", "d8/dcb/classSqlFixedString.html#ae4f78475d19a27118c8b7034d4b0beb2", null ]
 ];
