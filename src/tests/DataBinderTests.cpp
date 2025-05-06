@@ -96,6 +96,17 @@ struct SqlDataBinder<CustomType>
     }
 };
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: retrieval", "[SqlFixedString]")
+{
+    SqlFixedString<8> sqlFixedString = "Blurb";
+
+    auto const stdStringView = sqlFixedString.ToStringView();
+    CHECK(stdStringView == "Blurb");
+
+    auto const stdString = sqlFixedString.ToString();
+    CHECK(stdString == "Blurb");
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: resize and clear", "[SqlFixedString]")
 {
     SqlFixedString<8> str;
