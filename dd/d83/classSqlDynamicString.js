@@ -8,6 +8,7 @@ var classSqlDynamicString =
     [ "value", "dd/d83/classSqlDynamicString.html#a21e23652121674ee87109464b1641f51", null ],
     [ "data", "dd/d83/classSqlDynamicString.html#a33ddfcfb714918434842c077be5d6b45", null ],
     [ "data", "dd/d83/classSqlDynamicString.html#a0b7a8480e66d094bc221f14095a77036", null ],
+    [ "c_str", "dd/d83/classSqlDynamicString.html#ab158ec8d8ef355367b8b2d0e597b81d0", null ],
     [ "capacity", "dd/d83/classSqlDynamicString.html#a0876e662922885aa167c7d790218553c", null ],
     [ "size", "dd/d83/classSqlDynamicString.html#a96462cd834a7a9f95b3d069dcb6b264c", null ],
     [ "empty", "dd/d83/classSqlDynamicString.html#aef3728ceb65d3f5ff23e76cf62e2672b", null ],

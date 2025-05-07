@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"de/d07/structSqlNullType.html":[5,0,7],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html":[4],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-column-data-type-binder-example":[4,0],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn":[4,3],

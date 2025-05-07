@@ -147,6 +147,9 @@ LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../dd/d83/classSqlDyna
 <tr class="memitem:a0b7a8480e66d094bc221f14095a77036" id="r_a0b7a8480e66d094bc221f14095a77036"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE T *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d83/classSqlDynamicString.html#a0b7a8480e66d094bc221f14095a77036">data</a> () noexcept</td></tr>
 <tr class="memdesc:a0b7a8480e66d094bc221f14095a77036"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the string's inner value (as T*).  <br /></td></tr>
 <tr class="separator:a0b7a8480e66d094bc221f14095a77036"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab158ec8d8ef355367b8b2d0e597b81d0" id="r_ab158ec8d8ef355367b8b2d0e597b81d0"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE T const *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d83/classSqlDynamicString.html#ab158ec8d8ef355367b8b2d0e597b81d0">c_str</a> () const noexcept</td></tr>
+<tr class="memdesc:ab158ec8d8ef355367b8b2d0e597b81d0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the string's inner value (as T const*).  <br /></td></tr>
+<tr class="separator:ab158ec8d8ef355367b8b2d0e597b81d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0876e662922885aa167c7d790218553c" id="r_a0876e662922885aa167c7d790218553c"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d83/classSqlDynamicString.html#a0876e662922885aa167c7d790218553c">capacity</a> () const noexcept</td></tr>
 <tr class="memdesc:a0876e662922885aa167c7d790218553c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the string's capacity.  <br /></td></tr>
 <tr class="separator:a0876e662922885aa167c7d790218553c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -497,6 +500,37 @@ template&lt;std::size_t N, typename T  = char&gt; </div>
 
 </div>
 </div>
+<a id="ab158ec8d8ef355367b8b2d0e597b81d0" name="ab158ec8d8ef355367b8b2d0e597b81d0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab158ec8d8ef355367b8b2d0e597b81d0">&#9670;&#160;</a></span>c_str()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::size_t N, typename T  = char&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE T const  * <a class="el" href="../../dd/d83/classSqlDynamicString.html">SqlDynamicString</a>&lt; N, T &gt;::c_str </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Retrieves the string's inner value (as T const*). </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00087">87</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+
+</div>
+</div>
 <a id="a0876e662922885aa167c7d790218553c" name="a0876e662922885aa167c7d790218553c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0876e662922885aa167c7d790218553c">&#9670;&#160;</a></span>capacity()</h2>
 
@@ -524,7 +558,7 @@ template&lt;std::size_t N, typename T  = char&gt; </div>
 
 <p>Retrieves the string's capacity. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00087">87</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00093">93</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
@@ -555,7 +589,7 @@ template&lt;std::size_t N, typename T  = char&gt; </div>
 
 <p>Retrieves the string's size. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00093">93</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00099">99</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
@@ -586,7 +620,7 @@ template&lt;std::size_t N, typename T  = char&gt; </div>
 
 <p>Tests if the string is empty. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00099">99</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00105">105</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
@@ -617,7 +651,7 @@ template&lt;std::size_t N, typename T  = char&gt; </div>
 
 <p>Clears the string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00105">105</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00111">111</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
@@ -649,7 +683,7 @@ template&lt;std::size_t N, typename T  = char&gt; </div>
 
 <p>Resizes the string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00111">111</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00117">117</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
@@ -680,7 +714,7 @@ template&lt;std::size_t N, typename T  = char&gt; </div>
 
 <p>Retrieves a string view of the string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00117">117</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00123">123</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
@@ -710,7 +744,7 @@ template&lt;std::size_t N, typename T  = char&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00122">122</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00128">128</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
@@ -740,7 +774,7 @@ template&lt;std::size_t N, typename T  = char&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00127">127</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00133">133</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
@@ -772,7 +806,7 @@ template&lt;std::size_t OtherSize&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00138">138</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00144">144</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
@@ -804,7 +838,7 @@ template&lt;std::size_t OtherSize&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00144">144</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00150">150</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
@@ -836,7 +870,7 @@ template&lt;std::size_t OtherSize&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00150">150</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00156">156</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
@@ -866,7 +900,7 @@ template&lt;std::size_t N, typename T  = char&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00155">155</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00161">161</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
@@ -896,7 +930,7 @@ template&lt;std::size_t N, typename T  = char&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00160">160</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html#l00166">166</a> of file <a class="el" href="../../d5/d1f/SqlDynamicString_8hpp_source.html">SqlDynamicString.hpp</a>.</p>
 
 </div>
 </div>
