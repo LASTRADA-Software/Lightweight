@@ -83,6 +83,12 @@ class SqlDynamicString
         return _value.data();
     }
 
+    /// Retrieves the string's inner value (as T const*).
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE T const* c_str() const noexcept
+    {
+        return _value.c_str();
+    }
+
     /// Retrieves the string's capacity.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::size_t capacity() const noexcept
     {
