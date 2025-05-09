@@ -196,9 +196,27 @@ class CxxModelPrinter
         return std::string { name };
     }
 
+    [[nodiscard]] std::expected<void, std::string> PrintCumulativeHeaderFile(
+        std::filesystem::path const& outputDirectory, std::filesystem::path const& cumulativeHeaderFile)
+    {
+        auto const headerFilePath = outputDirectory / cumulativeHeaderFile;
+
+        auto file = std::ofstream(headerFilePath.string());
+        if (!file)
+            return std::unexpected(std::format("Failed to create file {}.", headerFilePath.string()));
+
+        file << "// File is automatically generated using ddl2cpp.\n"
+             << "#pragma once\n"
+             << "\n";
+
+        for (auto const& [tableName, definition]: _definitions)
+            file << std::format("#include \"{}.hpp\"\n", aliasTableName(tableName));
+
+        return {};
+    }
+
     void printToFiles(std::string_view modelNamespace, std::string_view outputDirectory)
     {
-
         for (auto const& [tableName, definition]: _definitions)
         {
             const auto fileName = std::format("{}/{}.hpp", outputDirectory, aliasTableName(tableName));
@@ -506,6 +524,7 @@ struct Configuration
     std::string schema;
     std::string modelNamespace;
     std::string outputDirectory;
+    std::string cumulativeHeaderFile;
     std::string foreignKeyCollisionPrefix {};
     bool forceUnicodeTextColumns = false;
     PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
@@ -750,6 +769,7 @@ std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path c
     TryLoadNode(loadedYaml["Schema"], config.schema);
     TryLoadNode(loadedYaml["ModelNamespace"], config.modelNamespace);
     TryLoadNode(loadedYaml["OutputDirectory"], config.outputDirectory);
+    TryLoadNode(loadedYaml["CumulativeHeaderFile"], config.cumulativeHeaderFile);
     TryLoadNode(loadedYaml["ForceUnicodeTextColumns"], config.forceUnicodeTextColumns);
     TryLoadNode(loadedYaml["CreateTestTables"], config.createTestTables);
     TryLoadNode(loadedYaml["MakeAliases"], config.makeAliases);
@@ -924,6 +944,16 @@ int main(int argc, char const* argv[])
     else
         TimedExecution(std::format("Writing to directory {}", config.outputDirectory),
                        [&] { cxxModelPrinter.printToFiles(config.modelNamespace, config.outputDirectory); });
+
+    if (!config.cumulativeHeaderFile.empty())
+    {
+        auto const success = cxxModelPrinter.PrintCumulativeHeaderFile(config.outputDirectory, config.cumulativeHeaderFile);
+        if (!success)
+        {
+            std::println("Failed to create cumulative header file: {}", success.error());
+            return EXIT_FAILURE;
+        }
+    }
 
     if (config.generateExample)
         GenerateExample(config, cxxModelPrinter, tables);
