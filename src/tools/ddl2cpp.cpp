@@ -209,8 +209,14 @@ class CxxModelPrinter
              << "#pragma once\n"
              << "\n";
 
+        std::vector<std::string> includes;
         for (auto const& [tableName, definition]: _definitions)
-            file << std::format("#include \"{}.hpp\"\n", aliasTableName(tableName));
+            includes.emplace_back(aliasTableName(std::format("{}.hpp", tableName)));
+
+        std::ranges::sort(includes);
+
+        for (auto const& include: includes)
+            file << std::format("#include \"{}\"\n", include);
 
         return {};
     }
