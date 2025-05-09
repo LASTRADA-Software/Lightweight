@@ -426,12 +426,10 @@ class CxxModelPrinter
             "Foreign key not found for {} in table {}", column.name, column.foreignKeyConstraint->foreignKey.table));
     }
 
-    std::optional<std::string> MapColumnNameOverride(SqlSchema::FullyQualifiedTableName const& tableName,
-                                                     std::string const& columnName) const
+    std::optional<std::string> MapColumnNameOverride(SqlSchema::FullyQualifiedTableName const& tableName, std::string const& columnName) const
     {
         using namespace SqlSchema;
-        auto const it =
-            _config.columnNameOverrides.find(FullyQualifiedTableColumn { .table = tableName, .column = columnName });
+        auto const it = _config.columnNameOverrides.find(FullyQualifiedTableColumn { .table = tableName , .column = columnName });
         if (it != _config.columnNameOverrides.end())
             return it->second;
         return std::nullopt;
@@ -494,10 +492,9 @@ class CxxModelPrinter
         for (auto const& column: table.columns)
         {
             std::string type = MakeType(column, _config.forceUnicodeTextColumns);
-            auto const memberName =
-                MapColumnNameOverride(tableName, column.name)
-                    .or_else([&] { return std::optional { SanitizeName(FormatName(column.name, _config.formatType)) }; })
-                    .value();
+            auto const memberName = MapColumnNameOverride(tableName, column.name).or_else([&] {
+                return std::optional { SanitizeName(FormatName(column.name, _config.formatType)) };
+            }).value();
 
             ++_numberOfColumnsListed;
 
@@ -507,13 +504,9 @@ class CxxModelPrinter
                 if (foreignKey.primaryKey.columns.size() == 1)
                 {
                     auto foreignTableName = aliasTableName(foreignKey.primaryKey.table.table);
-                    auto const relationName =
-                        MapColumnNameOverride(tableName, column.name)
-                            .or_else([&] {
-                                return std::optional { SanitizeName(
-                                    FormatName(StripSuffix(foreignKey.foreignKey.columns.at(0)), _config.formatType)) };
-                            })
-                            .value();
+                    auto const relationName = MapColumnNameOverride(tableName, column.name).or_else([&] {
+                        return std::optional { SanitizeName(FormatName(StripSuffix(foreignKey.foreignKey.columns.at(0)), _config.formatType)) };
+                    }).value();
                     definition.text << std::format(
                         "    BelongsTo<&{}{}> {};\n",
                         [&]() {
@@ -574,9 +567,8 @@ class CxxModelPrinter
         if (!_warningOnUnsupportedMultiKeyForeignKey.empty() && !_config.suppressWarnings)
         {
             std::println();
-            std::println(
-                "Warning: The database has {} following foreign keys having multiple columns, which is not supported.",
-                _warningOnUnsupportedMultiKeyForeignKey.size());
+            std::println("Warning: The database has {} following foreign keys having multiple columns, which is not supported.",
+                         _warningOnUnsupportedMultiKeyForeignKey.size());
             for (auto const& fk: _warningOnUnsupportedMultiKeyForeignKey)
                 std::println("  {} -> {}", fk.second.foreignKey, fk.second.primaryKey);
         }
@@ -923,7 +915,7 @@ std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path c
                 auto columnName = columnNode.first.as<std::string>();
                 auto columnOverrideName = columnNode.second.as<std::string>();
                 auto const tableColumn = SqlSchema::FullyQualifiedTableColumn {
-                    .table = SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = tableName },
+                    .table = SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = tableName }, 
                     .column = std::move(columnName),
                 };
                 config.columnNameOverrides[tableColumn] = std::move(columnOverrideName);
