@@ -10,6 +10,7 @@
 #include <source_location>
 #include <string_view>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 
 #include <sql.h>
@@ -75,7 +76,6 @@ struct RecordTableNameImpl
             }();
     }();
 };
-
 
 // specialization for the case when we use tuple as
 // a record, then we usethe first element of the tuple
@@ -248,4 +248,24 @@ enum class FormatType : uint8_t
 };
 
 /// @brief Converts a string to a format that is more suitable for C++ code.
+LIGHTWEIGHT_API std::string FormatName(std::string const& name, FormatType formatType);
+
+/// @brief Converts a string to a format that is more suitable for C++ code.
 LIGHTWEIGHT_API std::string FormatName(std::string_view name, FormatType formatType);
+
+/// Maintains collisions to create unique names
+class UniqueNameBuilder
+{
+  public:
+    /// Tests if the given name is already registered.
+    [[nodiscard]] LIGHTWEIGHT_API bool IsColliding(std::string const& name) const noexcept;
+
+    /// Tries to declare a name and returns it, otherwise returns std::nullopt.
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<std::string> TryDeclareName(std::string name);
+
+    /// Creates a name that is definitely not colliding.
+    [[nodiscard]] LIGHTWEIGHT_API std::string DeclareName(std::string name);
+
+  private:
+    std::unordered_map<std::string, size_t> _collisionMap;
+};

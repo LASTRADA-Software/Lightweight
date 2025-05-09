@@ -74,11 +74,21 @@ struct FullyQualifiedTableColumnSequence
     std::vector<std::string> columns;
 };
 
+inline bool operator<(FullyQualifiedTableColumnSequence const& a, FullyQualifiedTableColumnSequence const& b) noexcept
+{
+    return std::tie(a.table, a.columns) < std::tie(b.table, b.columns);
+}
+
 struct ForeignKeyConstraint
 {
-    FullyQualifiedTableColumn foreignKey;
+    FullyQualifiedTableColumnSequence foreignKey;
     FullyQualifiedTableColumnSequence primaryKey;
 };
+
+inline bool operator<(ForeignKeyConstraint const& a, ForeignKeyConstraint const& b) noexcept
+{
+    return std::tie(a.foreignKey, a.primaryKey) < std::tie(b.foreignKey, b.primaryKey);
+}
 
 /// Holds the definition of a column in a SQL table as read from the database schema.
 struct Column
@@ -149,11 +159,12 @@ using TableList = std::vector<Table>;
 using ReadAllTablesCallback = std::function<void(std::string_view /*tableName*/, size_t /*current*/, size_t /*total*/)>;
 
 /// Retrieves all tables in the given @p database and @p schema.
-LIGHTWEIGHT_API TableList ReadAllTables(std::string_view database, std::string_view schema = {}, ReadAllTablesCallback callback = {});
+LIGHTWEIGHT_API TableList ReadAllTables(std::string_view database,
+                                        std::string_view schema = {},
+                                        ReadAllTablesCallback callback = {});
 
 /// Retrieves all tables in the given database and schema that have a foreign key to the given table.
-LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt,
-                                                                   FullyQualifiedTableName const& table);
+LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt, FullyQualifiedTableName const& table);
 
 /// Retrieves all tables in the given database and schema that have a foreign key from the given table.
 LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysFrom(SqlStatement& stmt,
@@ -181,8 +192,7 @@ struct LIGHTWEIGHT_API std::formatter<SqlSchema::FullyQualifiedTableName>: std::
 template <>
 struct LIGHTWEIGHT_API std::formatter<SqlSchema::FullyQualifiedTableColumn>: std::formatter<std::string>
 {
-    auto format(SqlSchema::FullyQualifiedTableColumn const& value, format_context& ctx) const
-        -> format_context::iterator
+    auto format(SqlSchema::FullyQualifiedTableColumn const& value, format_context& ctx) const -> format_context::iterator
     {
         auto const table = std::format("{}", value.table);
         if (table.empty())
@@ -200,16 +210,16 @@ struct LIGHTWEIGHT_API std::formatter<SqlSchema::FullyQualifiedTableColumnSequen
     {
         auto const resolvedTableName = std::format("{}", value.table);
         string output;
+        output += resolvedTableName;
+        output += '(';
 
-        for (auto const& column: value.columns)
+        for (auto const [i, column]: value.columns | std::views::enumerate)
         {
-            if (!output.empty())
+            if (i != 0)
                 output += ", ";
-            output += resolvedTableName;
-            if (!output.empty() && !resolvedTableName.empty())
-                output += '.';
             output += column;
         }
+        output += ')';
 
         return formatter<string>::format(output, ctx);
     }

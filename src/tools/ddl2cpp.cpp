@@ -23,6 +23,10 @@
 
 // TODO: get inspired by .NET's Dapper, and EF Core APIs
 
+using namespace std::string_view_literals;
+
+using ColumnNameOverrides = std::map<SqlSchema::FullyQualifiedTableColumn, std::string>;
+
 namespace
 {
 
@@ -151,11 +155,11 @@ class CxxModelPrinter
   public:
     struct Config
     {
-        std::string foreignKeyCollisionPrefix;
-        std::string collisionPrefix = "c_";
+        std::vector<std::string> stripSuffixes = { "_id", "_nr" };
         bool makeAliases = false;
         FormatType formatType = FormatType::camelCase;
         PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
+        ColumnNameOverrides columnNameOverrides;
         bool forceUnicodeTextColumns = false;
         bool suppressWarnings = false;
     };
@@ -209,9 +213,10 @@ class CxxModelPrinter
              << "#pragma once\n"
              << "\n";
 
-        std::vector<std::string> includes;
+        auto includes = std::vector<std::string> {};
+        includes.reserve(_definitions.size());
         for (auto const& [tableName, definition]: _definitions)
-            includes.emplace_back(aliasTableName(std::format("{}.hpp", tableName)));
+            includes.emplace_back(std::format("{}.hpp", aliasTableName(tableName)));
 
         std::ranges::sort(includes);
 
@@ -298,12 +303,143 @@ class CxxModelPrinter
         return exampleEntries.str();
     }
 
+    static auto ToLower(std::string value) -> std::string
+    {
+        std::ranges::transform(value, value.begin(), [](auto c) { return static_cast<char>(std::tolower(c)); });
+        return value;
+    }
+
+    auto StripSuffix(std::string name) -> std::string
+    {
+        std::string const lowerName = ToLower(name);
+        for (auto const& suffix: _config.stripSuffixes)
+        {
+            if (lowerName.ends_with(suffix))
+                return name.substr(0, name.length() - suffix.length());
+        }
+        return name;
+    }
+
+    static auto SanitizeName(std::string name) -> std::string
+    {
+        static constexpr auto cxxKeywords =
+            std::array { "alignas"sv,
+                         "alignof"sv,
+                         "asm"sv,
+                         "auto"sv,
+                         "bool"sv,
+                         "break"sv,
+                         "case"sv,
+                         "catch"sv,
+                         "char"sv,
+                         "char16_t"sv,
+                         "char32_t"sv,
+                         "char8_t"sv,
+                         "class"sv,
+                         "co_await"sv,
+                         "co_return"sv,
+                         "co_yield"sv,
+                         "concept"sv,
+                         "const"sv,
+                         "const_cast"sv,
+                         "consteval"sv,
+                         "constexpr"sv,
+                         "constinit"sv,
+                         "continue"sv,
+                         "decltype"sv,
+                         "default"sv,
+                         "delete"sv,
+                         "do"sv,
+                         "double"sv,
+                         "dynamic_cast"sv,
+                         "else"sv,
+                         "enum"sv,
+                         "explicit"sv,
+                         "export"sv, // For modules
+                         "extern"sv,
+                         "false"sv,
+                         "float"sv,
+                         "for"sv,
+                         "friend"sv,
+                         "goto"sv,
+                         "if"sv,
+                         "import"sv, // For modules
+                         "inline"sv,
+                         "int"sv,
+                         "long"sv,
+                         "module"sv, // For modules
+                         "mutable"sv,
+                         "namespace"sv,
+                         "new"sv,
+                         "noexcept"sv,
+                         "nullptr"sv,
+                         "operator"sv,
+                         "private"sv,
+                         "protected"sv,
+                         "public"sv,
+                         "register"sv, // Deprecated in C++11, reserved in C++17, removed in C++23 but still reserved.
+                         "reinterpret_cast"sv,
+                         "requires"sv,
+                         "return"sv,
+                         "short"sv,
+                         "signed"sv,
+                         "sizeof"sv,
+                         "static"sv,
+                         "static_assert"sv,
+                         "static_cast"sv,
+                         "struct"sv,
+                         "switch"sv,
+                         "template"sv,
+                         "this"sv,
+                         "thread_local"sv,
+                         "throw"sv,
+                         "true"sv,
+                         "try"sv,
+                         "typedef"sv,
+                         "typeid"sv,
+                         "typename"sv,
+                         "union"sv,
+                         "unsigned"sv,
+                         "using"sv,
+                         "virtual"sv,
+                         "void"sv,
+                         "volatile"sv,
+                         "wchar_t"sv,
+                         "while"sv };
+
+        if (std::ranges::contains(cxxKeywords, name))
+            name += "_";
+
+        return name;
+    }
+
+    static SqlSchema::ForeignKeyConstraint const& GetForeignKey(
+        SqlSchema::Column const& column, std::vector<SqlSchema::ForeignKeyConstraint> const& foreignKeys)
+    {
+        auto it = std::ranges::find_if(foreignKeys, [&](SqlSchema::ForeignKeyConstraint const& foreignKey) {
+            return std::ranges::contains(foreignKey.foreignKey.columns, column.name);
+        });
+        if (it != foreignKeys.end())
+            return *it;
+
+        throw std::runtime_error(std::format(
+            "Foreign key not found for {} in table {}", column.name, column.foreignKeyConstraint->foreignKey.table));
+    }
+
+    std::optional<std::string> MapColumnNameOverride(SqlSchema::FullyQualifiedTableName const& tableName,
+                                                     std::string const& columnName) const
+    {
+        using namespace SqlSchema;
+        auto const it =
+            _config.columnNameOverrides.find(FullyQualifiedTableColumn { .table = tableName, .column = columnName });
+        if (it != _config.columnNameOverrides.end())
+            return it->second;
+        return std::nullopt;
+    }
+
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void PrintTable(SqlSchema::Table const& table)
     {
-        using namespace std::string_view_literals;
-
-        std::vector<std::string> renameForeignKeys;
         auto& definition = _definitions[table.name];
         std::string cxxPrimaryKeys;
         for (auto const& key: table.primaryKeys)
@@ -351,93 +487,68 @@ class CxxModelPrinter
         definition.text << std::format("{{\n");
         definition.text << aliasRealTableName(table.name);
 
-        std::vector<std::string> existingMembers;
+        UniqueNameBuilder uniqueMemberNameBuilder;
 
-        const auto checkCollisionAndPropose = [&](std::string name, std::string prefix) {
-            auto it = std::ranges::find(existingMembers, name);
-
-            if (it != existingMembers.end())
-            {
-                std::string newName = name;
-                do
-                {
-                    newName = std::format("{}{}", prefix, newName);
-                    it = std::ranges::find(existingMembers, newName);
-                } while (it != existingMembers.end());
-
-                existingMembers.push_back(newName);
-                return newName;
-            }
-            existingMembers.push_back(name);
-            return name;
-        };
+        auto const tableName = SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = table.name };
 
         for (auto const& column: table.columns)
         {
             std::string type = MakeType(column, _config.forceUnicodeTextColumns);
-            const auto memberName = FormatName(column.name, _config.formatType);
+            auto const memberName =
+                MapColumnNameOverride(tableName, column.name)
+                    .or_else([&] { return std::optional { SanitizeName(FormatName(column.name, _config.formatType)) }; })
+                    .value();
 
-            if (column.isForeignKey && column.isPrimaryKey)
+            ++_numberOfColumnsListed;
+
+            if (column.isForeignKey && !column.isPrimaryKey)
             {
-                std::println("Column is both a foreign key and a primary key: {}.{}", table.name, column.name);
-                renameForeignKeys.push_back(column.name);
+                auto const& foreignKey = GetForeignKey(column, table.foreignKeys);
+                if (foreignKey.primaryKey.columns.size() == 1)
+                {
+                    auto foreignTableName = aliasTableName(foreignKey.primaryKey.table.table);
+                    auto const relationName =
+                        MapColumnNameOverride(tableName, column.name)
+                            .or_else([&] {
+                                return std::optional { SanitizeName(
+                                    FormatName(StripSuffix(foreignKey.foreignKey.columns.at(0)), _config.formatType)) };
+                            })
+                            .value();
+                    definition.text << std::format(
+                        "    BelongsTo<&{}{}> {};\n",
+                        [&]() {
+                            return std::format("{}::{}",
+                                               foreignTableName,
+                                               FormatName(foreignKey.primaryKey.columns.at(0), _config.formatType));
+                        }(),
+                        aliasName(foreignKey.foreignKey.columns.at(0)),
+                        uniqueMemberNameBuilder.DeclareName(relationName));
+                    definition.requiredTables.emplace_back(std::move(foreignTableName));
+                    ++_numberOfForeignKeysListed;
+                    continue;
+                }
+                _warningOnUnsupportedMultiKeyForeignKey[foreignKey.foreignKey.table] = foreignKey;
             }
-            // all foreign keys will be handled in the BelongsTo
+
             if (column.isPrimaryKey)
             {
-                definition.text << std::format("    Field<{}{}{}> {};\n",
+                definition.text << std::format("    Field<{}{}{}> {};",
                                                type,
                                                primaryKeyPart(),
                                                aliasName(column.name),
-                                               checkCollisionAndPropose(memberName, _config.collisionPrefix));
+                                               uniqueMemberNameBuilder.DeclareName(memberName));
+                if (column.isForeignKey)
+                    definition.text << " // NB: This is also a foreign key";
+                definition.text << "\n";
                 continue;
             }
 
+            // Fallback: Handle the column as a regular field.
             definition.text << std::format(
-                "    Field<{}{}> {};\n", type, aliasName(column.name), checkCollisionAndPropose(memberName, _config.collisionPrefix));
-        }
-
-        if (!table.foreignKeys.empty())
-            definition.text << "\n";
-
-        for (auto const& foreignKey: table.foreignKeys)
-        {
-
-            auto const avoidPrimaryKeyNameCollision = [&](std::string name) {
-                // if  foreignKey.foreignKey.column inside renameForeignKeys
-                // we prepend `foreignKeyCollisionPrefix` to the name
-                if (std::ranges::find(renameForeignKeys, foreignKey.foreignKey.column) != renameForeignKeys.end())
-                {
-                    name = std::format("{}{}", _config.foreignKeyCollisionPrefix, name);
-                }
-                return name;
-            };
-
-            auto const memberName = avoidPrimaryKeyNameCollision(
-                FormatName(std::string_view { foreignKey.foreignKey.column }, _config.formatType));
-            if (foreignKey.primaryKey.columns[0].empty())
-            {
-                if (!_config.suppressWarnings)
-                    std::println("Warning: Foreign key {}.{} has no primary key",
-                                 foreignKey.foreignKey.table.table,
-                                 foreignKey.foreignKey.column);
-                continue;
-            }
-
-            const auto foreignTableName = aliasTableName(foreignKey.primaryKey.table.table);
-
-            definition.requiredTables.push_back(foreignTableName);
-            std::string foreignKeyContraint = std::format(
-                "    BelongsTo<&{}{}> {};\n",
-                [&]() {
-                    return std::format("{}::{}",
-                                       foreignTableName,
-                                       FormatName(foreignKey.primaryKey.columns[0], _config.formatType)); // TODO
-                }(),
-                aliasName(foreignKey.foreignKey.column),
-                checkCollisionAndPropose(memberName, _config.foreignKeyCollisionPrefix));
-
-            definition.text << foreignKeyContraint;
+                "    Field<{}{}> {};", type, aliasName(column.name), uniqueMemberNameBuilder.DeclareName(memberName));
+            if (column.isForeignKey)
+                definition.text << std::format(" // NB: This is also a foreign key");
+            definition.text << '\n';
         }
 
         for (SqlSchema::ForeignKeyConstraint const& foreignKey: table.externalForeignKeys)
@@ -449,6 +560,28 @@ class CxxModelPrinter
         definition.text << "};\n\n";
     }
 
+    void PrintReport()
+    {
+        std::println();
+        std::println("Summary");
+        std::println("=======");
+        std::println();
+        std::println("Tables created          : {}", _definitions.size());
+        std::println("Columns listed          : {}", _numberOfColumnsListed);
+        std::println("Foreign keys considered : {}", _numberOfForeignKeysListed);
+        std::println("Foreign keys ignored    : {}", _warningOnUnsupportedMultiKeyForeignKey.size());
+
+        if (!_warningOnUnsupportedMultiKeyForeignKey.empty() && !_config.suppressWarnings)
+        {
+            std::println();
+            std::println(
+                "Warning: The database has {} following foreign keys having multiple columns, which is not supported.",
+                _warningOnUnsupportedMultiKeyForeignKey.size());
+            for (auto const& fk: _warningOnUnsupportedMultiKeyForeignKey)
+                std::println("  {} -> {}", fk.second.foreignKey, fk.second.primaryKey);
+        }
+    }
+
   private:
     struct TableInfo
     {
@@ -458,6 +591,9 @@ class CxxModelPrinter
 
     std::unordered_map<std::string_view, TableInfo> _definitions;
     Config _config;
+    std::map<SqlSchema::FullyQualifiedTableName, SqlSchema::ForeignKeyConstraint> _warningOnUnsupportedMultiKeyForeignKey;
+    size_t _numberOfColumnsListed = 0;
+    size_t _numberOfForeignKeysListed = 0;
 };
 
 std::string_view PrimaryKeyAutoIncrement(SqlServerType serverType) noexcept
@@ -532,7 +668,7 @@ struct Configuration
     std::string modelNamespace;
     std::string outputDirectory;
     std::string cumulativeHeaderFile;
-    std::string foreignKeyCollisionPrefix;
+    ColumnNameOverrides columnNameOverrides;
     bool forceUnicodeTextColumns = false;
     PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
     bool createTestTables = false;
@@ -597,8 +733,6 @@ void PrintHelp(std::string_view programName)
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::expected<void, std::string> ParseArguments(int argc, char const* argv[], Configuration& config)
 {
-    using namespace std::string_view_literals;
-
     int i = 1;
 
     for (; i < argc; ++i)
@@ -639,12 +773,6 @@ std::expected<void, std::string> ParseArguments(int argc, char const* argv[], Co
             if (++i >= argc)
                 return std::unexpected("Missing model namespace");
             config.modelNamespace = argv[i];
-        }
-        else if (argv[i] == "--foreign-key-collision-prefix"sv)
-        {
-            if (++i >= argc)
-                return std::unexpected("Missing key collision prefix");
-            config.foreignKeyCollisionPrefix = argv[i];
         }
         else if (argv[i] == "--output"sv)
         {
@@ -743,6 +871,7 @@ void ResolveOrderAndPrintTable(CxxModelPrinter& cxxModelPrinter, std::vector<Sql
             }
         }
     }
+    cxxModelPrinter.PrintReport();
 }
 
 template <typename T>
@@ -782,7 +911,25 @@ std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path c
     TryLoadNode(loadedYaml["MakeAliases"], config.makeAliases);
     TryLoadNode(loadedYaml["SuppressWarnings"], config.suppressWarnings);
     TryLoadNode(loadedYaml["GenerateExample"], config.generateExample);
-    TryLoadNode(loadedYaml["ForeignKeyCollisionPrefix"], config.foreignKeyCollisionPrefix);
+
+    if (auto const columnNameOverridesYaml = loadedYaml["ColumnNameOverrides"]; columnNameOverridesYaml.IsMap())
+    {
+        for (auto const& tableNode: columnNameOverridesYaml)
+        {
+            auto const tableName = tableNode.first.as<std::string>();
+            auto const tableColumnsNode = tableNode.second;
+            for (auto const& columnNode: tableColumnsNode)
+            {
+                auto columnName = columnNode.first.as<std::string>();
+                auto columnOverrideName = columnNode.second.as<std::string>();
+                auto const tableColumn = SqlSchema::FullyQualifiedTableColumn {
+                    .table = SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = tableName },
+                    .column = std::move(columnName),
+                };
+                config.columnNameOverrides[tableColumn] = std::move(columnOverrideName);
+            }
+        }
+    }
 
     if (loadedYaml["PrimaryKeyAssignment"].IsDefined())
     {
@@ -831,6 +978,7 @@ std::expected<Configuration, std::string> LoadConfigFromFileAndCLI(std::string_v
     if (foundPath.has_value())
     {
         std::println("Using config file {}", foundPath.value().string());
+        std::println();
         auto loadedFile = LoadConfigFile(foundPath.value());
         if (!loadedFile)
             return std::unexpected(std::move(loadedFile.error()));
@@ -929,17 +1077,21 @@ int main(int argc, char const* argv[])
     std::vector<SqlSchema::Table> const tables = TimedExecution("Reading all tables", [&] {
         return SqlSchema::ReadAllTables(
             config.database, config.schema, [](std::string_view tableName, size_t current, size_t total) {
-                std::print("\r\033[K [{}/{}] Reading table schema {}", current, total, tableName);
+                std::print("\r\033[K {:>3}% [{}/{}] Reading table schema {}",
+                           static_cast<int>((current * 100.0) / total),
+                           current,
+                           total,
+                           tableName);
                 if (current == total)
                     std::println();
             });
     });
 
     auto cxxModelPrinter = CxxModelPrinter { CxxModelPrinter::Config {
-        .foreignKeyCollisionPrefix = config.foreignKeyCollisionPrefix,
         .makeAliases = config.makeAliases,
         .formatType = config.formatType,
         .primaryKeyAssignment = config.primaryKeyAssignment,
+        .columnNameOverrides = config.columnNameOverrides,
         .forceUnicodeTextColumns = config.forceUnicodeTextColumns,
         .suppressWarnings = config.suppressWarnings,
     } };

@@ -27,6 +27,11 @@ void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location source
         throw SqlException(std::move(errorInfo));
 }
 
+std::string FormatName(std::string const& name, FormatType formatType)
+{
+    return FormatName(std::string_view { name }, formatType);
+}
+
 std::string FormatName(std::string_view name, FormatType formatType)
 {
     if (formatType == FormatType::preserve)
@@ -67,4 +72,31 @@ std::string FormatName(std::string_view name, FormatType formatType)
     }
 
     return result;
+}
+
+bool UniqueNameBuilder::IsColliding(std::string const& name) const noexcept
+{
+    return _collisionMap.find(name) != _collisionMap.end();
+}
+
+std::optional<std::string> UniqueNameBuilder::TryDeclareName(std::string name)
+{
+    if (auto const result = _collisionMap.try_emplace(std::move(name), 0); result.second)
+        return { result.first->first };
+    return std::nullopt;
+}
+
+std::string UniqueNameBuilder::DeclareName(std::string name)
+{
+    auto iter = _collisionMap.find(name);
+
+    if (iter == _collisionMap.end())
+    {
+        return _collisionMap.insert(std::pair { std::move(name), 1 }).first->first;
+    }
+    else
+    {
+        ++iter->second;
+        return std::format("{}_{}", iter->first, iter->second);
+    }
 }

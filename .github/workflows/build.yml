@@ -244,7 +244,7 @@ jobs:
           bash ./.github/prepare-test-run.sh "MS SQL Server 2022" "./src/examples/test_chinook/Chinook_Sqlite.sql"
       - name: "Run ddl2cpp on Chinook db"
         run: |
-          /usr/local/bin/ddl2cpp --connection-string "${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}" --make-aliases --database LightweightTest --schema dbo --foreign-key-collision-prefix fk_ --output ./src/examples/test_chinook/entities_compare
+          /usr/local/bin/ddl2cpp --connection-string "${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}" --make-aliases --database LightweightTest --schema dbo --output ./src/examples/test_chinook/entities_compare
       - name: Compare files
         run: |
           declare -a files_to_compare=(
