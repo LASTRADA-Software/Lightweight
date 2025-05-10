@@ -15,10 +15,8 @@ int main()
 
     // helper function to create std::string from string_view<char16_t>
     auto const toString = [](std::basic_string_view<char16_t> str) {
-        std::string result;
-        result.reserve(str.size());
-        std::ranges::copy(str, std::back_inserter(result));
-        return result;
+        auto const u8Str = ToUtf8(str);
+        return std::string(reinterpret_cast<char const*>(u8Str.data()), u8Str.size());
     };
 
     // get all employees

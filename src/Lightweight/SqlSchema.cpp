@@ -20,7 +20,7 @@ namespace SqlSchema
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-using KeyPair = std::pair<FullyQualifiedTableName, FullyQualifiedTableColumn>;
+using KeyPair = std::pair<FullyQualifiedTableName /*fk table*/, FullyQualifiedTableName /*pk table*/>;
 
 bool operator<(KeyPair const& a, KeyPair const& b)
 {
@@ -29,6 +29,21 @@ bool operator<(KeyPair const& a, KeyPair const& b)
 
 namespace
 {
+    template <typename A, typename B>
+    std::tuple<std::vector<A>, std::vector<B>> Unzip(std::vector<std::pair<A, B>> const& zippedList)
+    {
+        auto first = std::vector<A>();
+        auto second = std::vector<B>();
+        first.reserve(zippedList.size());
+        second.reserve(zippedList.size());
+        for (auto const& [a, b]: zippedList)
+        {
+            first.emplace_back(a);
+            second.emplace_back(b);
+        }
+        return { std::move(first), std::move(second) };
+    }
+
     std::vector<std::string> AllTables(std::string_view database, std::string_view schema)
     {
         auto const tableType = "TABLE"sv;
@@ -81,40 +96,41 @@ namespace
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLForeignKeys failed: {}", stmt.LastError()));
 
-        using ColumnList = std::vector<std::string>;
+        using ColumnList = std::vector<std::pair<std::string /*fk*/, std::string /*pk*/>>;
         auto constraints = std::map<KeyPair, ColumnList>();
         while (stmt.FetchRow())
         {
             auto primaryKeyTable = FullyQualifiedTableName {
-                .catalog = stmt.GetColumn<std::string>(1),
-                .schema = stmt.GetColumn<std::string>(2),
-                .table = stmt.GetColumn<std::string>(3),
+                .catalog = stmt.GetNullableColumn<std::string>(1).value_or(""),
+                .schema = stmt.GetNullableColumn<std::string>(2).value_or(""),
+                .table = stmt.GetNullableColumn<std::string>(3).value_or(""),
             };
-            auto pkColumnName = stmt.GetColumn<std::string>(4);
-            auto foreignKeyTable = FullyQualifiedTableColumn {
-                .table =
-                    FullyQualifiedTableName {
-                        .catalog = stmt.GetColumn<std::string>(5),
-                        .schema = stmt.GetColumn<std::string>(6),
-                        .table = stmt.GetColumn<std::string>(7),
-                    },
-                .column = stmt.GetColumn<std::string>(8),
+            auto pkColumnName = stmt.GetNullableColumn<std::string>(4).value_or("");
+            auto foreignKeyTable = FullyQualifiedTableName {
+                .catalog = stmt.GetNullableColumn<std::string>(5).value_or(""),
+                .schema = stmt.GetNullableColumn<std::string>(6).value_or(""),
+                .table = stmt.GetNullableColumn<std::string>(7).value_or(""),
             };
-            auto const sequenceNumber = stmt.GetColumn<size_t>(9);
-            ColumnList& keyColumns = constraints[{ primaryKeyTable, foreignKeyTable }];
+            auto foreignKeyColumn = stmt.GetNullableColumn<std::string>(8).value_or("");
+            auto const sequenceNumber = stmt.GetNullableColumn<size_t>(9).value_or(1);
+            ColumnList& keyColumns = constraints[{ foreignKeyTable, primaryKeyTable }];
             if (sequenceNumber > keyColumns.size())
                 keyColumns.resize(sequenceNumber);
-            keyColumns[sequenceNumber - 1] = std::move(pkColumnName);
+            keyColumns[sequenceNumber - 1] = { std::move(foreignKeyColumn), std::move(pkColumnName) };
         }
 
         auto result = std::vector<ForeignKeyConstraint>();
         for (auto const& [keyPair, columns]: constraints)
         {
+            auto const [fromColumns, toColumns] = Unzip(columns);
             result.emplace_back(ForeignKeyConstraint {
-                .foreignKey = keyPair.second,
-                .primaryKey = {
+                .foreignKey = {
                     .table = keyPair.first,
-                    .columns = columns,
+                    .columns = fromColumns,
+                },
+                .primaryKey = {
+                    .table = keyPair.second,
+                    .columns = toColumns,
                 },
             });
         }
@@ -181,8 +197,8 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
         auto const primaryKeys = AllPrimaryKeys(stmt, fullyQualifiedTableName);
         eventHandler.OnPrimaryKeys(tableName, primaryKeys);
 
-        auto const foreignKeys = AllForeignKeysFrom(stmt, fullyQualifiedTableName);
-        auto const incomingForeignKeys = AllForeignKeysTo(stmt, fullyQualifiedTableName);
+        std::vector<ForeignKeyConstraint> const foreignKeys = AllForeignKeysFrom(stmt, fullyQualifiedTableName);
+        std::vector<ForeignKeyConstraint> const incomingForeignKeys = AllForeignKeysTo(stmt, fullyQualifiedTableName);
 
         for (auto const& foreignKey: foreignKeys)
             eventHandler.OnForeignKey(foreignKey);
@@ -259,10 +275,13 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
             // accumulated properties
             column.isPrimaryKey = std::ranges::contains(primaryKeys, column.name);
             // column.isForeignKey = ...;
-            column.isForeignKey = std::ranges::any_of(
-                foreignKeys, [&column](auto const& fk) { return fk.foreignKey.column == column.name; });
-            if (auto const p = std::ranges::find_if(
-                    incomingForeignKeys, [&column](auto const& fk) { return fk.foreignKey.column == column.name; });
+            column.isForeignKey = std::ranges::any_of(foreignKeys, [&column](ForeignKeyConstraint const& fk) {
+                return std::ranges::contains(fk.foreignKey.columns, column.name);
+            });
+            if (auto const p = std::ranges::find_if(incomingForeignKeys,
+                                                    [&column](ForeignKeyConstraint const& fk) {
+                                                        return std::ranges::contains(fk.foreignKey.columns, column.name);
+                                                    });
                 p != incomingForeignKeys.end())
             {
                 column.foreignKeyConstraint = *p;

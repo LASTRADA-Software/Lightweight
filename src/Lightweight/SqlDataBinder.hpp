@@ -21,3 +21,4 @@
 #include "DataBinder/StdString.hpp"
 #include "DataBinder/StdStringView.hpp"
 #include "DataBinder/StringLiteral.hpp"
+#include "DataBinder/UnicodeConverter.hpp"

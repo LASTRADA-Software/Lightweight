@@ -74,11 +74,23 @@ struct FullyQualifiedTableColumnSequence
     std::vector<std::string> columns;
 };
 
+inline bool operator<(FullyQualifiedTableColumnSequence const& a, FullyQualifiedTableColumnSequence const& b) noexcept
+{
+    return std::tie(a.table, a.columns) < std::tie(b.table, b.columns);
+}
+
+
 struct ForeignKeyConstraint
 {
-    FullyQualifiedTableColumn foreignKey;
+    FullyQualifiedTableColumnSequence foreignKey;
     FullyQualifiedTableColumnSequence primaryKey;
 };
+
+inline bool operator<(ForeignKeyConstraint const& a, ForeignKeyConstraint const& b) noexcept
+{
+    return std::tie(a.foreignKey, a.primaryKey) < std::tie(b.foreignKey, b.primaryKey);
+}
+
 
 /// Holds the definition of a column in a SQL table as read from the database schema.
 struct Column
@@ -200,16 +212,16 @@ struct LIGHTWEIGHT_API std::formatter<SqlSchema::FullyQualifiedTableColumnSequen
     {
         auto const resolvedTableName = std::format("{}", value.table);
         string output;
+        output += resolvedTableName;
+        output += '(';
 
-        for (auto const& column: value.columns)
+        for (auto const [i, column]: value.columns | std::views::enumerate)
         {
-            if (!output.empty())
+            if (i != 0)
                 output += ", ";
-            output += resolvedTableName;
-            if (!output.empty() && !resolvedTableName.empty())
-                output += '.';
             output += column;
         }
+        output += ')';
 
         return formatter<string>::format(output, ctx);
     }
