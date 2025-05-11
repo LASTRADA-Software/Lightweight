@@ -58,5 +58,6 @@ var annotated_dup =
     [ "SqlTransactionException", "db/d56/classSqlTransactionException.html", null ],
     [ "SqlUpdateQueryBuilder", "db/d2a/classSqlUpdateQueryBuilder.html", "db/d2a/classSqlUpdateQueryBuilder" ],
     [ "SqlVariant", "d0/df8/structSqlVariant.html", "d0/df8/structSqlVariant" ],
-    [ "SqlWildcardType", "da/dbf/structSqlWildcardType.html", null ]
+    [ "SqlWildcardType", "da/dbf/structSqlWildcardType.html", null ],
+    [ "UniqueNameBuilder", "df/dd4/classUniqueNameBuilder.html", "df/dd4/classUniqueNameBuilder" ]
 ];

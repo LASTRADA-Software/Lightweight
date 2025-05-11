@@ -99,6 +99,7 @@ var hierarchy =
         [ "SqlTransactionException", "db/d56/classSqlTransactionException.html", null ]
       ] ]
     ] ],
+    [ "UniqueNameBuilder", "df/dd4/classUniqueNameBuilder.html", null ],
     [ "std::vector< uint8_t >", null, [
       [ "SqlBinary", "df/d29/classSqlBinary.html", null ],
       [ "SqlDynamicBinary< N >", "dc/db1/classSqlDynamicBinary.html", null ]

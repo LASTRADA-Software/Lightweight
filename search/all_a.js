@@ -19,12 +19,13 @@ var searchData=
   ['isalive_16',['IsAlive',['../d7/d7b/classSqlConnection.html#ab0ffa86b235846196d55554a005ba05f',1,'SqlConnection']]],
   ['isautoassignprimarykey_17',['IsAutoAssignPrimaryKey',['../df/d27/structField.html#adcb10511beea5a739b1ac4bfe32c6477',1,'Field']]],
   ['isautoincrementprimarykey_18',['IsAutoIncrementPrimaryKey',['../df/d27/structField.html#a6ded374ead9cfb4195c910c3878650c9',1,'Field']]],
-  ['isempty_19',['isempty',['../d3/d09/classHasMany.html#a54200f1623f32404fe361da2f71a95b5',1,'HasMany::IsEmpty()'],['../df/dd6/classHasManyThrough.html#a75b212d9afc6f26766bb140dfc998dd5',1,'HasManyThrough::IsEmpty()']]],
-  ['isloaded_20',['isloaded',['../da/d9d/classHasOneThrough.html#af567fe189d861b5804c7401014404335',1,'HasOneThrough::IsLoaded()'],['../df/d1a/classBelongsTo.html#abe2488edbe14628219d0f33c21984ebf',1,'BelongsTo::IsLoaded()']]],
-  ['ismandatory_21',['IsMandatory',['../df/d27/structField.html#abeda083e1c1a0c1be2ca9bc406c616a7',1,'Field']]],
-  ['ismodified_22',['ismodified',['../df/d27/structField.html#aa8080d19388999c10fbeadd11547026d',1,'Field::IsModified()'],['../dc/dc7/classDataMapper.html#a0cfde49ef08f08db4ae20518e30a6a0a',1,'DataMapper::IsModified()'],['../df/d1a/classBelongsTo.html#ada9a20754dd3011d89885970b6cc1900',1,'BelongsTo::IsModified()']]],
-  ['isnull_23',['IsNull',['../d0/df8/structSqlVariant.html#a84d703e694f9339457cfa6367bf16501',1,'SqlVariant']]],
-  ['isoptional_24',['IsOptional',['../df/d27/structField.html#af5aab89dcd1f6c3e589a4fc62866f184',1,'Field']]],
-  ['isprimarykey_25',['IsPrimaryKey',['../df/d27/structField.html#a416f5a2a4486c013fa816788d1f72fda',1,'Field']]],
-  ['iterator_26',['iterator',['../d3/d09/classHasMany.html#a3691f70d4679323b4033439a35578a88',1,'HasMany']]]
+  ['iscolliding_19',['IsColliding',['../df/dd4/classUniqueNameBuilder.html#a147b20b2c644849c3a9b4948bcadaae1',1,'UniqueNameBuilder']]],
+  ['isempty_20',['isempty',['../df/dd6/classHasManyThrough.html#a75b212d9afc6f26766bb140dfc998dd5',1,'HasManyThrough::IsEmpty()'],['../d3/d09/classHasMany.html#a54200f1623f32404fe361da2f71a95b5',1,'HasMany::IsEmpty()']]],
+  ['isloaded_21',['isloaded',['../df/d1a/classBelongsTo.html#abe2488edbe14628219d0f33c21984ebf',1,'BelongsTo::IsLoaded()'],['../da/d9d/classHasOneThrough.html#af567fe189d861b5804c7401014404335',1,'HasOneThrough::IsLoaded()']]],
+  ['ismandatory_22',['IsMandatory',['../df/d27/structField.html#abeda083e1c1a0c1be2ca9bc406c616a7',1,'Field']]],
+  ['ismodified_23',['ismodified',['../df/d27/structField.html#aa8080d19388999c10fbeadd11547026d',1,'Field::IsModified()'],['../dc/dc7/classDataMapper.html#a0cfde49ef08f08db4ae20518e30a6a0a',1,'DataMapper::IsModified()'],['../df/d1a/classBelongsTo.html#ada9a20754dd3011d89885970b6cc1900',1,'BelongsTo::IsModified()']]],
+  ['isnull_24',['IsNull',['../d0/df8/structSqlVariant.html#a84d703e694f9339457cfa6367bf16501',1,'SqlVariant']]],
+  ['isoptional_25',['IsOptional',['../df/d27/structField.html#af5aab89dcd1f6c3e589a4fc62866f184',1,'Field']]],
+  ['isprimarykey_26',['IsPrimaryKey',['../df/d27/structField.html#a416f5a2a4486c013fa816788d1f72fda',1,'Field']]],
+  ['iterator_27',['iterator',['../d3/d09/classHasMany.html#a3691f70d4679323b4033439a35578a88',1,'HasMany']]]
 ];
