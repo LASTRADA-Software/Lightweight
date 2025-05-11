@@ -6,14 +6,14 @@ To setup docker image for this example:
 Create empty mssql database 
 
 ``` sh
-docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=QWERT1.qwerty" -p 1433:1433 --name sql22 --hostname sql22 -d mcr.microsoft.com/mssql/server:2022-latest
+docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=Qwerty1." -p 1433:1433 --name sql22 --hostname sql22 -d mcr.microsoft.com/mssql/server:2022-latest
 ```
 
 
 Create database 
 
 ``` sh
-sqlcmd -S localhost -U sa -P "QWERT1.qwerty" -Q "CREATE DATABASE LightweightExample" -C
+sqlcmd -S localhost -U sa -P "Qwerty1." -Q "CREATE DATABASE LightweightTest" -C
 ```
 
 
@@ -21,7 +21,7 @@ sqlcmd -S localhost -U sa -P "QWERT1.qwerty" -Q "CREATE DATABASE LightweightExam
 Load sql file to populate schema and data
 
 ``` sh
-sqlcmd -S localhost -U sa -P "QWERT1.qwerty" -C -d LightweightExample -i ./src/examples/test_chinook/Chinook_Sqlite.sql
+sqlcmd -S localhost -U sa -P "Qwerty1." -C -d LightweightTest -i ./src/examples/test_chinook/Chinook_Sqlite.sql
 ```
 
 

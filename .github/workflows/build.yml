@@ -233,6 +233,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ubuntu2404-tests
+      - name: "update APT database"
+        run: sudo apt -q update
       - name: "Extract package"
         run: |
           sudo tar -xvf Lightweight-Linux-CI.tar.gz --strip-components=1 -C /usr/local
@@ -244,36 +246,15 @@ jobs:
           bash ./.github/prepare-test-run.sh "MS SQL Server 2022" "./src/examples/test_chinook/Chinook_Sqlite.sql"
       - name: "Run ddl2cpp on Chinook db"
         run: |
-          /usr/local/bin/ddl2cpp --connection-string "${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}" --make-aliases --database LightweightTest --schema dbo --output ./src/examples/test_chinook/entities_compare
-      - name: Compare files
-        run: |
-          declare -a files_to_compare=(
-            "./src/examples/test_chinook/entities/Album.hpp ./src/examples/test_chinook/entities_compare/Album.hpp"
-            "./src/examples/test_chinook/entities/Artist.hpp ./src/examples/test_chinook/entities_compare/Artist.hpp"
-            "./src/examples/test_chinook/entities/Customer.hpp ./src/examples/test_chinook/entities_compare/Customer.hpp"
-            "./src/examples/test_chinook/entities/Employee.hpp ./src/examples/test_chinook/entities_compare/Employee.hpp"
-            "./src/examples/test_chinook/entities/Genre.hpp ./src/examples/test_chinook/entities_compare/Genre.hpp"
-            "./src/examples/test_chinook/entities/Invoice.hpp ./src/examples/test_chinook/entities_compare/Invoice.hpp"
-            "./src/examples/test_chinook/entities/Invoiceline.hpp ./src/examples/test_chinook/entities_compare/Invoiceline.hpp"
-            "./src/examples/test_chinook/entities/Mediatype.hpp ./src/examples/test_chinook/entities_compare/Mediatype.hpp"
-            "./src/examples/test_chinook/entities/Playlist.hpp ./src/examples/test_chinook/entities_compare/Playlist.hpp"
-            "./src/examples/test_chinook/entities/Playlisttrack.hpp ./src/examples/test_chinook/entities_compare/Playlisttrack.hpp"
-            "./src/examples/test_chinook/entities/Track.hpp ./src/examples/test_chinook/entities_compare/Track.hpp"
-          )
-          for pair in "${file_pairs[@]}"; do
-            # Split the pair into two file paths using 'read'
-            read -r file1 file2 <<< "$pair"
-
-            # Compare the files
-            if ! diff "$file1" "$file2" > /dev/null; then
-              echo "Files $file1 and $file2 differ!"
-              echo "Differences:"
-              diff "$file1" "$file2"
-              exit 1
-            else
-              echo "Files $file1 and $file2 are identical."
-            fi
-          done
+          DDL2CPP=/usr/local/bin/ddl2cpp  ODBC_CONNECTION_STRING="${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}" ./src/tools/test_chinook.sh
+      - name: "install dependencies"
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev g++-14 libstdc++-14-dev
+      - name: "Configure cmake"
+        run: cmake --preset linux-gcc-release -B build -D CMAKE_CXX_COMPILER=g++-14
+      - name: "Configure cmake"
+        run: cmake --build build --target chinook
+      - name: "Run chinook example"
+        run: ./build/src/examples/test_chinook/chinook
 
   dbms_test_matrix:
     strategy:

@@ -715,6 +715,43 @@ struct TestTypeTraits<SqlNumeric<15, 2>>
     static const inline auto expectedOutputValue = SqlNumeric<15, 2> { 123.45 };
 };
 
+
+template <>
+struct TestTypeTraits<SqlNumeric<5, 2>>
+{
+    static constexpr auto blacklist = std::array {
+        std::pair { SqlServerType::SQLITE, "SQLite does not support NUMERIC type"sv },
+    };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Decimal { .precision=5, .scale=2 };
+    static const inline auto inputValue = SqlNumeric<5, 2> { 123.45 };
+    static const inline auto expectedOutputValue = SqlNumeric<5, 2> { 123.45 };
+};
+
+
+template <>
+struct TestTypeTraits<SqlNumeric<9, 6>>
+{
+    static constexpr auto blacklist = std::array {
+        std::pair { SqlServerType::SQLITE, "SQLite does not support NUMERIC type"sv },
+    };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Decimal { .precision=9, .scale=6 };
+    static const inline auto inputValue = SqlNumeric<9, 6> { 123.456789 };
+    static const inline auto expectedOutputValue = SqlNumeric<9, 6> { 123.456789 };
+};
+
+template <>
+struct TestTypeTraits<SqlNumeric<10, 2>>
+{
+    static constexpr auto blacklist = std::array {
+        std::pair { SqlServerType::SQLITE, "SQLite does not support NUMERIC type"sv },
+    };
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Decimal { .precision=10, .scale=2 };
+    static const inline auto inputValue = SqlNumeric<10, 2> { 0.99 };
+    static const inline auto expectedOutputValue = SqlNumeric<10, 2> { 0.99 };
+};
+
+
+
 template <typename T>
 T MakeStringOuputInitializer(SqlServerType serverType)
 {
