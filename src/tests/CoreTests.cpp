@@ -37,13 +37,13 @@ TEST_CASE_METHOD(SqlTestFixture, "NameFormatting", "[Format]")
 {
 
     const std::array inputNames = {
-        "test", "TEST_NR", "TEST-NR", "TEST NR", "TESTNR", "TestNr",
+        "test"sv, "TEST_NR"sv, "TEST-NR"sv, "TEST NR"sv, "TESTNR"sv, "TestNr"sv,
     };
     const std::array expectedCamelCase = {
-        "test", "testNr", "testNr", "testNr", "testnr", "testnr",
+        "test"sv, "testNr"sv, "testNr"sv, "testNr"sv, "testnr"sv, "testnr"sv,
     };
     const std::array expectedSnakeCase = {
-        "test", "test_nr", "test_nr", "test_nr", "testnr", "testnr",
+        "test"sv, "test_nr"sv, "test_nr"sv, "test_nr"sv, "testnr"sv, "testnr"sv,
     };
 
     for (size_t i = 0; i < inputNames.size(); ++i)
@@ -52,6 +52,25 @@ TEST_CASE_METHOD(SqlTestFixture, "NameFormatting", "[Format]")
         CHECK(FormatName(inputNames[i], FormatType::snakeCase) == expectedSnakeCase[i]);
         CHECK(FormatName(inputNames[i], FormatType::preserve) == inputNames[i]);
     }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "UniqueNameBuilder", "[Utils]")
+{
+    UniqueNameBuilder uniqueNameBuilder;
+    REQUIRE(!uniqueNameBuilder.IsColliding("foo"));
+    REQUIRE(uniqueNameBuilder.DeclareName("foo") == "foo");
+    REQUIRE(uniqueNameBuilder.IsColliding("foo"));
+    REQUIRE(uniqueNameBuilder.DeclareName("foo") == "foo_2");
+    REQUIRE(uniqueNameBuilder.IsColliding("foo"));
+
+    REQUIRE(!uniqueNameBuilder.IsColliding("bar"));
+    REQUIRE(uniqueNameBuilder.DeclareName("bar") == "bar");
+    REQUIRE(uniqueNameBuilder.IsColliding("bar"));
+    REQUIRE(uniqueNameBuilder.DeclareName("foo") == "foo_3");
+
+    REQUIRE(uniqueNameBuilder.TryDeclareName("foo") == std::nullopt);
+    REQUIRE(uniqueNameBuilder.TryDeclareName("baz").value_or("error") == "baz");
+    REQUIRE(uniqueNameBuilder.TryDeclareName("baz") == std::nullopt);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnectionDataSource.FromConnectionString", "[SqlConnection]")
