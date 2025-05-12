@@ -1107,13 +1107,14 @@ void DataMapper::Update(Record& record)
 
     auto query = _connection.Query(RecordTableName<Record>).Update();
 
-    Reflection::CallOnMembers(record, [&query]<typename Name, typename FieldType>(Name const& name, FieldType const& field) {
+    Reflection::CallOnMembersWithoutName(record, [&query]<size_t I, typename FieldType>(FieldType const& field) {
         if (field.IsModified())
-            query.Set(name, SqlWildcard);
-        if constexpr (FieldType::IsPrimaryKey)
+            query.Set(FieldNameAt<I, Record>, SqlWildcard);
+        if constexpr (IsPrimaryKey<FieldType>)
             if (!field.IsModified())
-                std::ignore = query.Where(name, SqlWildcard);
+                std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
     });
+
 
     _stmt.Prepare(query);
 

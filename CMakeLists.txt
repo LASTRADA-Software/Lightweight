@@ -13,7 +13,7 @@ set(CMAKE_COLOR_DIAGNOSTICS ON)
 include(ClangTidy)
 include(PedanticCompiler)
 
-find_package(reflection-cpp 0.1.0)
+find_package(reflection-cpp 0.4.0)
 
 if(reflection-cpp_FOUND)
     message(STATUS "reflection-cpp found: ${reflection-cpp_INCLUDE_DIRS}")
