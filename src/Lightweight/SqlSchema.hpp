@@ -173,7 +173,7 @@ LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysFrom(SqlStatemen
 } // namespace SqlSchema
 
 template <>
-struct LIGHTWEIGHT_API std::formatter<SqlSchema::FullyQualifiedTableName>: std::formatter<std::string>
+struct std::formatter<SqlSchema::FullyQualifiedTableName>: std::formatter<std::string>
 {
     auto format(SqlSchema::FullyQualifiedTableName const& value, format_context& ctx) const -> format_context::iterator
     {
@@ -190,7 +190,7 @@ struct LIGHTWEIGHT_API std::formatter<SqlSchema::FullyQualifiedTableName>: std::
 };
 
 template <>
-struct LIGHTWEIGHT_API std::formatter<SqlSchema::FullyQualifiedTableColumn>: std::formatter<std::string>
+struct std::formatter<SqlSchema::FullyQualifiedTableColumn>: std::formatter<std::string>
 {
     auto format(SqlSchema::FullyQualifiedTableColumn const& value, format_context& ctx) const -> format_context::iterator
     {
@@ -203,7 +203,7 @@ struct LIGHTWEIGHT_API std::formatter<SqlSchema::FullyQualifiedTableColumn>: std
 };
 
 template <>
-struct LIGHTWEIGHT_API std::formatter<SqlSchema::FullyQualifiedTableColumnSequence>: std::formatter<std::string>
+struct std::formatter<SqlSchema::FullyQualifiedTableColumnSequence>: std::formatter<std::string>
 {
     auto format(SqlSchema::FullyQualifiedTableColumnSequence const& value, format_context& ctx) const
         -> format_context::iterator
