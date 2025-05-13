@@ -154,7 +154,7 @@ inline std::error_code make_error_code(SqlError e)
 }
 
 template <>
-struct LIGHTWEIGHT_API std::formatter<SqlError>: formatter<std::string>
+struct std::formatter<SqlError>: formatter<std::string>
 {
     auto format(SqlError value, format_context& ctx) const -> format_context::iterator
     {
@@ -164,7 +164,7 @@ struct LIGHTWEIGHT_API std::formatter<SqlError>: formatter<std::string>
 };
 
 template <>
-struct LIGHTWEIGHT_API std::formatter<SqlErrorInfo>: formatter<std::string>
+struct std::formatter<SqlErrorInfo>: formatter<std::string>
 {
     auto format(SqlErrorInfo const& info, format_context& ctx) const -> format_context::iterator
     {

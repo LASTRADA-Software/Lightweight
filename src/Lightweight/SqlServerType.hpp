@@ -18,7 +18,7 @@ enum class SqlServerType : uint8_t
 };
 
 template <>
-struct LIGHTWEIGHT_API std::formatter<SqlServerType>: std::formatter<std::string_view>
+struct std::formatter<SqlServerType>: std::formatter<std::string_view>
 {
     auto format(SqlServerType type, format_context& ctx) const -> format_context::iterator
     {

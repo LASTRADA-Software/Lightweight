@@ -151,7 +151,7 @@ inline SqlConnection& SqlTransaction::Connection() noexcept
 }
 
 template <>
-struct LIGHTWEIGHT_API std::formatter<SqlTransactionMode>: std::formatter<std::string_view>
+struct std::formatter<SqlTransactionMode>: std::formatter<std::string_view>
 {
     auto format(SqlTransactionMode value, format_context& ctx) const -> format_context::iterator
     {
@@ -174,7 +174,7 @@ struct LIGHTWEIGHT_API std::formatter<SqlTransactionMode>: std::formatter<std::s
 };
 
 template <>
-struct LIGHTWEIGHT_API std::formatter<SqlIsolationMode>: std::formatter<std::string_view>
+struct std::formatter<SqlIsolationMode>: std::formatter<std::string_view>
 {
     auto format(SqlIsolationMode value, format_context& ctx) const -> format_context::iterator
     {

@@ -337,7 +337,7 @@ struct SqlVariant
 using SqlVariantRow = std::vector<SqlVariant>;
 
 template <>
-struct LIGHTWEIGHT_API std::formatter<SqlVariant>: formatter<string>
+struct std::formatter<SqlVariant>: formatter<string>
 {
     auto format(SqlVariant const& value, format_context& ctx) const -> format_context::iterator
     {
