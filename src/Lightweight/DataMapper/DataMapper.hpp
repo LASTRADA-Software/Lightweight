@@ -1110,9 +1110,10 @@ void DataMapper::Update(Record& record)
     Reflection::CallOnMembersWithoutName(record, [&query]<size_t I, typename FieldType>(FieldType const& field) {
         if (field.IsModified())
             query.Set(FieldNameAt<I, Record>, SqlWildcard);
-        if constexpr (IsPrimaryKey<FieldType>)
-            if (!field.IsModified())
-                std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
+        // for some reason compiler do not want to properly deduce FieldType, so here we
+        // directly infer the type from the Record type and index
+        if constexpr (IsPrimaryKey<Reflection::MemberTypeOf<I, Record>>)
+            std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
     });
 
 
@@ -1130,8 +1131,7 @@ void DataMapper::Update(Record& record)
     Reflection::CallOnMembers(
         record, [this, &i]<typename Name, typename FieldType>(Name const& name, FieldType const& field) mutable {
             if constexpr (FieldType::IsPrimaryKey)
-                if (!field.IsModified())
-                    _stmt.BindInputParameter(i++, field.Value(), name);
+                _stmt.BindInputParameter(i++, field.Value(), name);
         });
 
     _stmt.Execute();
