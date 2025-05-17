@@ -12,12 +12,9 @@ struct Invoiceline final
     static constexpr std::string_view TableName = "InvoiceLine";
 
     Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"InvoiceLineId"}> InvoiceLineId;
-    Field<int32_t, SqlRealName{"InvoiceId"}> InvoiceId;
-    Field<int32_t, SqlRealName{"TrackId"}> TrackId;
-    Field<SqlNumeric<2, 10>, SqlRealName{"UnitPrice"}> UnitPrice;
+    BelongsTo<&Invoice::InvoiceId, SqlRealName{"InvoiceId"}> InvoiceId;
+    BelongsTo<&Track::TrackId, SqlRealName{"TrackId"}> TrackId;
+    Field<SqlNumeric<12, 2>, SqlRealName{"UnitPrice"}> UnitPrice;
     Field<int32_t, SqlRealName{"Quantity"}> Quantity;
-
-    BelongsTo<&Invoice::InvoiceId, SqlRealName{"InvoiceId"}> c_InvoiceId;
-    BelongsTo<&Track::TrackId, SqlRealName{"TrackId"}> c_TrackId;
 };
 

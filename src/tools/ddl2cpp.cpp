@@ -77,7 +77,7 @@ std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColum
             },
             [](Date const&) -> std::string { return "SqlDate"; },
             [](DateTime const&) -> std::string { return "SqlDateTime"; },
-            [](Decimal const& type) -> std::string { return std::format("SqlNumeric<{}, {}>", type.precision, type.scale); },
+            [](Decimal const& type) -> std::string { return std::format("SqlNumeric<{}, {}>", type.precision + type.scale, type.precision); },
             [](Guid const&) -> std::string { return "SqlGuid"; },
             [](Integer const&) -> std::string { return "int32_t"; },
             [](NChar const& type) -> std::string {
@@ -483,6 +483,15 @@ class CxxModelPrinter
             return std::string {};
         };
 
+        auto const selfReferencing = [&](const auto& column) {
+            if (column.isForeignKey)
+            {
+                auto const& foreignKey = GetForeignKey(column, table.foreignKeys);
+                return foreignKey.primaryKey.table == foreignKey.foreignKey.table;
+            }
+            return false;
+        };
+
         definition.text << std::format("struct {} final\n", aliasTableName(table.name));
         definition.text << std::format("{{\n");
         definition.text << aliasRealTableName(table.name);
@@ -501,7 +510,7 @@ class CxxModelPrinter
 
             ++_numberOfColumnsListed;
 
-            if (column.isForeignKey && !column.isPrimaryKey)
+            if (column.isForeignKey && !column.isPrimaryKey && !selfReferencing(column))
             {
                 auto const& foreignKey = GetForeignKey(column, table.foreignKeys);
                 if (foreignKey.primaryKey.columns.size() == 1)

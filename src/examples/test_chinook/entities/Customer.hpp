@@ -22,8 +22,6 @@ struct Customer final
     Field<std::optional<SqlUtf16String<24>>, SqlRealName{"Phone"}> Phone;
     Field<std::optional<SqlUtf16String<24>>, SqlRealName{"Fax"}> Fax;
     Field<SqlUtf16String<60>, SqlRealName{"Email"}> Email;
-    Field<std::optional<int32_t>, SqlRealName{"SupportRepId"}> SupportRepId;
-
-    BelongsTo<&Employee::EmployeeId, SqlRealName{"SupportRepId"}> c_SupportRepId;
+    BelongsTo<&Employee::EmployeeId, SqlRealName{"SupportRepId"}> SupportRepId;
 };
 
