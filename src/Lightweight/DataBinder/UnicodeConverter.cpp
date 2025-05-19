@@ -98,66 +98,6 @@ std::u16string ToUtf16(std::u8string_view u8InputString)
     return u16String;
 }
 
-std::u16string Utf8ToUtf16(const std::string& utf8)
-{
-    std::u16string utf16;
-    size_t i = 0;
-    while (i < utf8.size())
-    {
-        uint32_t codepoint = 0;
-        unsigned char c = utf8[i];
-        if ((c & 0x80) == 0)
-        {
-            // 1-byte character (ASCII)
-            codepoint = c;
-            i++;
-        }
-        else if ((c & 0xE0) == 0xC0)
-        {
-            // 2-byte character
-            if (i + 1 >= utf8.size())
-                throw std::runtime_error("Invalid UTF-8 sequence");
-            codepoint = ((c & 0x1F) << 6) | (utf8[i + 1] & 0x3F);
-            i += 2;
-        }
-        else if ((c & 0xF0) == 0xE0)
-        {
-            // 3-byte character
-            if (i + 2 >= utf8.size())
-                throw std::runtime_error("Invalid UTF-8 sequence");
-            codepoint = ((c & 0x0F) << 12) | ((utf8[i + 1] & 0x3F) << 6) | (utf8[i + 2] & 0x3F);
-            i += 3;
-        }
-        else if ((c & 0xF8) == 0xF0)
-        {
-            // 4-byte character
-            if (i + 3 >= utf8.size())
-                throw std::runtime_error("Invalid UTF-8 sequence");
-            codepoint =
-                ((c & 0x07) << 18) | ((utf8[i + 1] & 0x3F) << 12) | ((utf8[i + 2] & 0x3F) << 6) | (utf8[i + 3] & 0x3F);
-            i += 4;
-        }
-        else
-        {
-            throw std::runtime_error("Invalid UTF-8 sequence");
-        }
-
-        if (codepoint <= 0xFFFF)
-        {
-            // BMP character
-            utf16.push_back(static_cast<char16_t>(codepoint));
-        }
-        else
-        {
-            // Non-BMP character (surrogate pair)
-            codepoint -= 0x10000;
-            utf16.push_back(static_cast<char16_t>((codepoint >> 10) + 0xD800));
-            utf16.push_back(static_cast<char16_t>((codepoint & 0x3FF) + 0xDC00));
-        }
-    }
-    return utf16;
-}
-
 std::u16string ToUtf16(std::string const& localeInputString)
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -173,7 +113,7 @@ std::u16string ToUtf16(std::string const& localeInputString)
     return { reinterpret_cast<char16_t const*>(wideString.data()),
              reinterpret_cast<char16_t const*>(wideString.data() + wideString.size()) };
 #else
-    return Utf8ToUtf16(localeInputString);
+    return ToUtf16(std::u8string_view{ reinterpret_cast<char8_t const*>(localeInputString.data()), localeInputString.size() } );
 #endif
 }
 
