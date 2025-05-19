@@ -117,10 +117,10 @@ class BelongsTo
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ValueType& MutableValue() noexcept { return _referencedFieldValue; }
 
     /// Retrieves a record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& Record() noexcept { RequireLoaded(); return _record.value(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& Record() { RequireLoaded(); return _record.value(); }
 
     /// Retrieves an immutable reference to the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& Record() const noexcept { RequireLoaded(); return _record.value(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& Record() const { RequireLoaded(); return _record.value(); }
 
     /// Checks if the record is loaded into memory.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool IsLoaded() const noexcept { return _loaded; }
@@ -135,10 +135,10 @@ class BelongsTo
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& operator*() const noexcept { RequireLoaded(); return _record.value(); }
 
     /// Retrieves the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* operator->() noexcept { RequireLoaded(); return &_record.value(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* operator->() { RequireLoaded(); return &_record.value(); }
 
     /// Retrieves the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* operator->() const noexcept { RequireLoaded(); return &_record.value(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* operator->() const { RequireLoaded(); return &_record.value(); }
 
     /// Checks if the field value is NULL.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!() const noexcept { return !_referencedFieldValue; }
@@ -150,6 +150,7 @@ class BelongsTo
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& EmplaceRecord() { _loaded = true; return _record.emplace(); }
 
     LIGHTWEIGHT_FORCE_INLINE void BindOutputColumn(SQLSMALLINT outputIndex, SqlStatement& stmt) { stmt.BindOutputColumn(outputIndex, &_referencedFieldValue); }
+
     // clang-format on
 
     template <auto OtherReferencedField>

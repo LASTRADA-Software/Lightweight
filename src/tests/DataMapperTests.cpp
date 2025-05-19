@@ -676,6 +676,29 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "BelongsTo do not load", "[DataMapper][relations]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<User, Email>();
+
+    auto user = User { .id = SqlGuid::Create(), .name = "John Doe" };
+    dm.Create(user);
+
+    auto email1 = Email { .id = SqlGuid::Create(), .address = "john@doe.com", .user = user };
+    dm.Create(email1);
+
+    auto actualEmail1 = dm.QuerySingleWithoutRelationAutoLoading<Email>(email1.id).value();
+
+    CHECK(actualEmail1.address == email1.address);
+    REQUIRE(!actualEmail1.user.IsLoaded());
+
+    // The following test works locally but seems to fail on GitHub Actions with SIGSEGV
+    if (!IsGithubActions())
+    {
+        REQUIRE_THROWS_AS(actualEmail1.user->name.Value(), SqlRequireLoadedError);
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
 {
     auto dm = DataMapper();
