@@ -1,6 +1,7 @@
 #include "UnicodeConverter.hpp"
 
 #include <codecvt>
+#include <cstdint>
 #include <locale>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -101,8 +102,8 @@ std::u16string ToUtf16(std::string const& localeInputString)
 {
 #if defined(_WIN32) || defined(_WIN64)
     std::wstring wideString;
-    wideString.resize(MultiByteToWideChar(
-        CP_ACP, 0, localeInputString.data(), static_cast<int>(localeInputString.size()), nullptr, 0));
+    wideString.resize(
+        MultiByteToWideChar(CP_ACP, 0, localeInputString.data(), static_cast<int>(localeInputString.size()), nullptr, 0));
     MultiByteToWideChar(CP_ACP,
                         0,
                         localeInputString.data(),
@@ -112,11 +113,7 @@ std::u16string ToUtf16(std::string const& localeInputString)
     return { reinterpret_cast<char16_t const*>(wideString.data()),
              reinterpret_cast<char16_t const*>(wideString.data() + wideString.size()) };
 #else
-    std::locale sys_locale("");
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utf16conv;
-    auto const result = utf16conv.from_bytes(localeInputString);
-    return { reinterpret_cast<char16_t const*>(result.data()),
-             reinterpret_cast<char16_t const*>(result.data() + result.size()) };
+    return ToUtf16(std::u8string_view{ reinterpret_cast<char8_t const*>(localeInputString.data()), localeInputString.size() } );
 #endif
 }
 
@@ -141,8 +138,8 @@ std::wstring ToStdWideString(std::string const& localeInputString)
     // convert from system locale to wchar_t-based wide string
 #if defined(_WIN32) || defined(_WIN64)
     std::wstring wideString;
-    wideString.resize(MultiByteToWideChar(
-        CP_ACP, 0, localeInputString.data(), static_cast<int>(localeInputString.size()), nullptr, 0));
+    wideString.resize(
+        MultiByteToWideChar(CP_ACP, 0, localeInputString.data(), static_cast<int>(localeInputString.size()), nullptr, 0));
     MultiByteToWideChar(CP_ACP,
                         0,
                         localeInputString.data(),
@@ -152,8 +149,14 @@ std::wstring ToStdWideString(std::string const& localeInputString)
     return wideString;
 #else
     // Get the system locale.
-    std::locale sys_locale("");
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> utf16conv;
-    return utf16conv.from_bytes(localeInputString);
+    std::wstring wideString;
+    wideString.reserve(localeInputString.size());
+
+    // Convert each character to wide character
+    for (char ch : localeInputString) {
+        wideString.push_back(static_cast<wchar_t>(ch));
+    }
+
+    return wideString;
 #endif
 }

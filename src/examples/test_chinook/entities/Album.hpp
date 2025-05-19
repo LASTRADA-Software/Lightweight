@@ -12,8 +12,6 @@ struct Album final
 
     Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"AlbumId"}> AlbumId;
     Field<SqlUtf16String<160>, SqlRealName{"Title"}> Title;
-    Field<int32_t, SqlRealName{"ArtistId"}> ArtistId;
-
-    BelongsTo<&Artist::ArtistId, SqlRealName{"ArtistId"}> c_ArtistId;
+    BelongsTo<&Artist::ArtistId, SqlRealName{"ArtistId"}> ArtistId;
 };
 
