@@ -676,6 +676,24 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "BelongsTo do not load", "[DataMapper][relations]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<User, Email>();
+
+    auto user = User { .id = SqlGuid::Create(), .name = "John Doe" };
+    dm.Create(user);
+
+    auto email1 = Email { .id = SqlGuid::Create(), .address = "john@doe.com", .user = user };
+    dm.Create(email1);
+
+    auto actualEmail1 = dm.QuerySingleNoRelations<Email>(email1.id).value();
+
+    CHECK(actualEmail1.address == email1.address);
+    REQUIRE(!actualEmail1.user.IsLoaded());
+    // actualEmail1.user->id; // will throw
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
 {
     auto dm = DataMapper();

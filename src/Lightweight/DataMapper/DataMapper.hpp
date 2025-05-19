@@ -636,6 +636,15 @@ class DataMapper
     template <typename Record, typename... PrimaryKeyTypes>
     std::optional<Record> QuerySingle(PrimaryKeyTypes&&... primaryKeys);
 
+    /// @brief Queries a single record (based on primary key) from the database without loading relations.
+    ///
+    /// The primary key(s) are used to identify the record to load.
+    /// Main goal of this function is to load record without relationships to
+    /// decrease compilation time and work around some limitations of template instantiation
+    /// depth on msvc compiler.
+    template <typename Record, typename... PrimaryKeyTypes>
+    std::optional<Record> QuerySingleNoRelations(PrimaryKeyTypes&&... primaryKeys);
+
     /// @brief Queries a single record from the database.
     ///
     /// @return A query builder for the given Record type that will also allow executing the query.
@@ -1116,7 +1125,6 @@ void DataMapper::Update(Record& record)
             std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
     });
 
-
     _stmt.Prepare(query);
 
     // Bind the SET clause
@@ -1187,7 +1195,7 @@ std::vector<Record> DataMapper::All()
 }
 
 template <typename Record, typename... PrimaryKeyTypes>
-std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
+std::optional<Record> DataMapper::QuerySingleNoRelations(PrimaryKeyTypes&&... primaryKeys)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
@@ -1217,6 +1225,15 @@ std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
     ConfigureRelationAutoLoading(resultRecord);
 
     return { std::move(resultRecord) };
+}
+
+template <typename Record, typename... PrimaryKeyTypes>
+std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
+{
+    auto record = QuerySingleNoRelations<Record>(std::forward<PrimaryKeyTypes>(primaryKeys)...);
+    if (record)
+        ConfigureRelationAutoLoading(record.value());
+    return record;
 }
 
 template <typename Record, typename... Args>
