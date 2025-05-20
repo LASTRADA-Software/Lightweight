@@ -1232,7 +1232,7 @@ std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
 {
     auto record = QuerySingleNoRelations<Record>(std::forward<PrimaryKeyTypes>(primaryKeys)...);
     if (record)
-        ConfigureRelationAutoLoading(record.value());
+        ConfigureRelationAutoLoading(*record);
     return record;
 }
 
