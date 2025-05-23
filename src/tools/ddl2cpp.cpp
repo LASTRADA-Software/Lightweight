@@ -77,7 +77,7 @@ std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColum
             },
             [](Date const&) -> std::string { return "SqlDate"; },
             [](DateTime const&) -> std::string { return "SqlDateTime"; },
-            [](Decimal const& type) -> std::string { return std::format("SqlNumeric<{}, {}>", type.precision + type.scale, type.precision); },
+            [](Decimal const& type) -> std::string { return std::format("SqlNumeric<{}, {}>", type.scale, type.precision); },
             [](Guid const&) -> std::string { return "SqlGuid"; },
             [](Integer const&) -> std::string { return "int32_t"; },
             [](NChar const& type) -> std::string {
