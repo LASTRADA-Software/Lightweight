@@ -14,7 +14,7 @@ struct Invoiceline final
     Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"InvoiceLineId"}> InvoiceLineId;
     BelongsTo<&Invoice::InvoiceId, SqlRealName{"InvoiceId"}> InvoiceId;
     BelongsTo<&Track::TrackId, SqlRealName{"TrackId"}> TrackId;
-    Field<SqlNumeric<12, 2>, SqlRealName{"UnitPrice"}> UnitPrice;
+    Field<SqlNumeric<10, 2>, SqlRealName{"UnitPrice"}> UnitPrice;
     Field<int32_t, SqlRealName{"Quantity"}> Quantity;
 };
 
