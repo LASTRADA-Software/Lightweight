@@ -77,7 +77,7 @@ SQLRETURN GetColumnUtf16(SQLHSTMT stmt,
     if constexpr (requires { Utf16StringType::Capacity; })
         result->resize(Utf16StringType::Capacity);
     else if (result->size() == 0)
-        result->resize(255);
+        result->resize(1);
 
     return GetArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
 }
@@ -92,7 +92,7 @@ SQLRETURN OutputColumnNonUtf16Unicode(
     if (!result->empty())
         u16String->resize(result->size());
     else
-        u16String->resize(255);
+        u16String->resize(1);
 
     cb.PlanPostProcessOutputColumn([stmt, column, result, indicator, u16String = u16String]() {
         if (*indicator == SQL_NULL_DATA)
@@ -163,16 +163,13 @@ struct SqlDataBinder<AnsiStringType>
                                 nullptr);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(SQLHSTMT stmt,
-                                                           SQLUSMALLINT column,
-                                                           AnsiStringType* result,
-                                                           SQLLEN* indicator,
-                                                           SqlDataBinderCallback& cb) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, AnsiStringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
         if constexpr (requires { AnsiStringType::Capacity; })
             StringTraits::Resize(result, AnsiStringType::Capacity);
         else if (StringTraits::Size(result) == 0)
-            StringTraits::Resize(result, 255);
+            StringTraits::Resize(result, 1);
 
         if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
             cb.PlanPostProcessOutputColumn(
@@ -240,7 +237,7 @@ struct SqlDataBinder<AnsiStringType>
                 if (*indicator == SQL_NULL_DATA)
                     StringTraits::Resize(result, 0);
                 else if (*indicator != SQL_NO_TOTAL)
-                    StringTraits::Resize(result, (std::min)(AnsiStringType::Capacity, static_cast<size_t>(*indicator)));
+                    StringTraits::Resize(result, (std::min) (AnsiStringType::Capacity, static_cast<size_t>(*indicator)));
             }
             if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
                 StringTraits::PostProcessOutputColumn(result, *indicator);
@@ -328,8 +325,7 @@ struct SqlDataBinder<Utf16StringType>
         {
             case SqlServerType::POSTGRESQL: {
                 // PostgreSQL only supports UTF-8 as Unicode encoding
-                auto u8String =
-                    std::make_shared<std::u8string>(ToUtf8(detail::SqlViewHelper<Utf16StringType>::View(value)));
+                auto u8String = std::make_shared<std::u8string>(ToUtf8(detail::SqlViewHelper<Utf16StringType>::View(value)));
                 cb.PlanPostExecuteCallback([u8String = u8String]() {}); // Keep the string alive
                 return SQLBindParameter(stmt,
                                         column,
@@ -353,31 +349,20 @@ struct SqlDataBinder<Utf16StringType>
                 auto const charCount = StringTraits::Size(&value);
                 auto const sqlType =
                     static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
-                return SQLBindParameter(stmt,
-                                        column,
-                                        SQL_PARAM_INPUT,
-                                        CType,
-                                        sqlType,
-                                        charCount,
-                                        0,
-                                        (SQLPOINTER) data,
-                                        sizeInBytes,
-                                        nullptr);
+                return SQLBindParameter(
+                    stmt, column, SQL_PARAM_INPUT, CType, sqlType, charCount, 0, (SQLPOINTER) data, sizeInBytes, nullptr);
             }
         }
         std::unreachable();
     }
 
-    static SQLRETURN OutputColumn(SQLHSTMT stmt,
-                                  SQLUSMALLINT column,
-                                  Utf16StringType* result,
-                                  SQLLEN* indicator,
-                                  SqlDataBinderCallback& cb) noexcept
+    static SQLRETURN OutputColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, Utf16StringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
         if constexpr (requires { Utf16StringType::Capacity; })
             StringTraits::Resize(result, Utf16StringType::Capacity);
         else if (StringTraits::Size(result) == 0)
-            StringTraits::Resize(result, 255);
+            StringTraits::Resize(result, 1);
 
         if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
         {
@@ -407,12 +392,8 @@ struct SqlDataBinder<Utf16StringType>
                 }
             });
         }
-        return SQLBindCol(stmt,
-                          column,
-                          CType,
-                          (SQLPOINTER) StringTraits::Data(result),
-                          (SQLLEN) StringTraits::Size(result),
-                          indicator);
+        return SQLBindCol(
+            stmt, column, CType, (SQLPOINTER) StringTraits::Data(result), (SQLLEN) StringTraits::Size(result), indicator);
     }
 
     static SQLRETURN GetColumn(SQLHSTMT stmt,
@@ -453,8 +434,7 @@ struct SqlDataBinder<Utf32StringType>
         {
             case SqlServerType::POSTGRESQL: {
                 // PostgreSQL only supports UTF-8 as Unicode encoding
-                auto u8String =
-                    std::make_shared<std::u8string>(ToUtf8(detail::SqlViewHelper<Utf32StringType>::View(value)));
+                auto u8String = std::make_shared<std::u8string>(ToUtf8(detail::SqlViewHelper<Utf32StringType>::View(value)));
                 cb.PlanPostExecuteCallback([u8String = u8String]() {}); // Keep the string alive
                 return SQLBindParameter(stmt,
                                         column,
@@ -479,27 +459,17 @@ struct SqlDataBinder<Utf32StringType>
                 auto const charCount = u16String->size();
                 auto const sizeInBytes = u16String->size() * sizeof(char16_t);
                 auto const CType = SQLSMALLINT { SQL_C_WCHAR };
-                auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
-                return SQLBindParameter(stmt,
-                                        column,
-                                        SQL_PARAM_INPUT,
-                                        CType,
-                                        sqlType,
-                                        charCount,
-                                        0,
-                                        (SQLPOINTER) data,
-                                        sizeInBytes,
-                                        nullptr);
+                auto const sqlType =
+                    static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
+                return SQLBindParameter(
+                    stmt, column, SQL_PARAM_INPUT, CType, sqlType, charCount, 0, (SQLPOINTER) data, sizeInBytes, nullptr);
             }
         }
         std::unreachable();
     }
 
-    static SQLRETURN OutputColumn(SQLHSTMT stmt,
-                                  SQLUSMALLINT column,
-                                  Utf32StringType* result,
-                                  SQLLEN* indicator,
-                                  SqlDataBinderCallback& cb) noexcept
+    static SQLRETURN OutputColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, Utf32StringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
         return detail::OutputColumnNonUtf16Unicode<Utf32StringType>(stmt, column, result, indicator, cb);
     }
@@ -572,7 +542,8 @@ struct SqlDataBinder<Utf8StringType>
                 auto const CType = SQL_C_WCHAR;
                 auto const charCount = u16String->size();
                 auto const byteCount = u16String->size() * sizeof(char16_t);
-                auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
+                auto const sqlType =
+                    static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
                 return SQLBindParameter(stmt,
                                         column,
                                         SQL_PARAM_INPUT,
@@ -588,11 +559,8 @@ struct SqlDataBinder<Utf8StringType>
         std::unreachable();
     }
 
-    static SQLRETURN OutputColumn(SQLHSTMT stmt,
-                                  SQLUSMALLINT column,
-                                  Utf8StringType* result,
-                                  SQLLEN* indicator,
-                                  SqlDataBinderCallback& cb) noexcept
+    static SQLRETURN OutputColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, Utf8StringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
         return detail::OutputColumnNonUtf16Unicode<Utf8StringType>(stmt, column, result, indicator, cb);
     }

@@ -1375,4 +1375,46 @@ TEST_CASE_METHOD(SqlTestFixture, "MapForJointStatement", "[DataMapper]")
     }
 }
 
+struct TestDynamicData
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlDynamicAnsiString<1000>> stringAnsi {};
+    Field<SqlDynamicUtf16String<1000>> stringUtf16 {};
+    Field<SqlDynamicUtf32String<1000>> stringUtf32 {};
+    Field<SqlDynamicWideString<1000>> stringWide {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "TestDynamicData", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<TestDynamicData>();
+    TestDynamicData data;
+    data.stringAnsi = std::string(10, 'a');
+    data.stringUtf16 = std::basic_string<char16_t>(10, 'a');
+    data.stringUtf32 = std::basic_string<char32_t>(10, 'a');
+    data.stringWide = std::basic_string<wchar_t>(10, 'a');
+    dm.Create(data);
+
+    const auto checkSize = [&](auto size) {
+        data.stringAnsi = std::string(size, 'a');
+        data.stringUtf16 = std::basic_string<char16_t>(size, 'a');
+        data.stringUtf32 = std::basic_string<char32_t>(size, 'a');
+        data.stringWide = std::basic_string<wchar_t>(size, 'a');
+        dm.Update(data);
+
+        auto const result = dm.QuerySingle<TestDynamicData>(data.id);
+        REQUIRE(result.has_value());
+        CHECK(result.value().stringAnsi.Value().size() == size);
+        CHECK(result.value().stringAnsi.Value() == std::string(size, 'a'));
+        CHECK(result.value().stringUtf16.Value() == std::basic_string<char16_t>(size, 'a'));
+        CHECK(result.value().stringUtf32.Value() == std::basic_string<char32_t>(size, 'a'));
+        CHECK(result.value().stringWide.Value() == std::basic_string<wchar_t>(size, 'a'));
+    };
+
+    for (const auto size: std::views::iota(2ZU, 1000ZU))
+    {
+        checkSize(size);
+    }
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
