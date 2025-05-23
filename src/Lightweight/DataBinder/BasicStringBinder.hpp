@@ -77,7 +77,7 @@ SQLRETURN GetColumnUtf16(SQLHSTMT stmt,
     if constexpr (requires { Utf16StringType::Capacity; })
         result->resize(Utf16StringType::Capacity);
     else if (result->size() == 0)
-        result->resize(255);
+        result->resize(1);
 
     return GetArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
 }
@@ -92,7 +92,7 @@ SQLRETURN OutputColumnNonUtf16Unicode(
     if (!result->empty())
         u16String->resize(result->size());
     else
-        u16String->resize(255);
+        u16String->resize(1);
 
     cb.PlanPostProcessOutputColumn([stmt, column, result, indicator, u16String = u16String]() {
         if (*indicator == SQL_NULL_DATA)
@@ -169,7 +169,7 @@ struct SqlDataBinder<AnsiStringType>
         if constexpr (requires { AnsiStringType::Capacity; })
             StringTraits::Resize(result, AnsiStringType::Capacity);
         else if (StringTraits::Size(result) == 0)
-            StringTraits::Resize(result, 255);
+            StringTraits::Resize(result, 1);
 
         if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
             cb.PlanPostProcessOutputColumn(
@@ -362,7 +362,7 @@ struct SqlDataBinder<Utf16StringType>
         if constexpr (requires { Utf16StringType::Capacity; })
             StringTraits::Resize(result, Utf16StringType::Capacity);
         else if (StringTraits::Size(result) == 0)
-            StringTraits::Resize(result, 255);
+            StringTraits::Resize(result, 1);
 
         if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
         {
