@@ -18,6 +18,6 @@ struct Invoice final
     Field<std::optional<SqlUtf16String<40>>, SqlRealName{"BillingState"}> BillingState;
     Field<std::optional<SqlUtf16String<40>>, SqlRealName{"BillingCountry"}> BillingCountry;
     Field<std::optional<SqlUtf16String<10>>, SqlRealName{"BillingPostalCode"}> BillingPostalCode;
-    Field<SqlNumeric<12, 2>, SqlRealName{"Total"}> Total;
+    Field<SqlNumeric<10, 2>, SqlRealName{"Total"}> Total;
 };
 

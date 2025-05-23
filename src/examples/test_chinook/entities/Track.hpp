@@ -20,6 +20,6 @@ struct Track final
     Field<std::optional<SqlUtf16String<220>>, SqlRealName{"Composer"}> Composer;
     Field<int32_t, SqlRealName{"Milliseconds"}> Milliseconds;
     Field<std::optional<int32_t>, SqlRealName{"Bytes"}> Bytes;
-    Field<SqlNumeric<12, 2>, SqlRealName{"UnitPrice"}> UnitPrice;
+    Field<SqlNumeric<10, 2>, SqlRealName{"UnitPrice"}> UnitPrice;
 };
 
