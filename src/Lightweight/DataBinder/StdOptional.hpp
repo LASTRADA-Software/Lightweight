@@ -26,11 +26,8 @@ struct SqlDataBinder<std::optional<T>>
             return SqlDataBinder<SqlNullType>::InputParameter(stmt, column, SqlNullValue, cb);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(SQLHSTMT stmt,
-                                                           SQLUSMALLINT column,
-                                                           OptionalValue* result,
-                                                           SQLLEN* indicator,
-                                                           SqlDataBinderCallback& cb) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, OptionalValue* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
         if (!result)
             return SQL_ERROR;

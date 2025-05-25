@@ -744,7 +744,7 @@ class DataMapper
 
         std::string fields;
 
-        const auto emplaceRecordsFrom = [&fields]<typename Record>() {
+        auto const emplaceRecordsFrom = [&fields]<typename Record>() {
             Reflection::EnumerateMembers<Record>([&fields]<size_t I, typename Field>() {
                 if (!fields.empty())
                     fields += ", ";
@@ -1116,7 +1116,6 @@ void DataMapper::Update(Record& record)
             std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
     });
 
-
     _stmt.Prepare(query);
 
     // Bind the SET clause
@@ -1305,7 +1304,7 @@ std::vector<std::tuple<FirstRecord, SecondRecord>> DataMapper::Query(SqlSelectQu
     _stmt.Prepare(selectQuery.ToSql());
     _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
 
-    const auto ConfigureFetchAndBind = [this](auto& record) {
+    auto const ConfigureFetchAndBind = [this](auto& record) {
         auto& [recordFirst, recordSecond] = record;
         // clang-cl gives false possitive error that *this*
         // is not used in the lambda, to avoid the warning,

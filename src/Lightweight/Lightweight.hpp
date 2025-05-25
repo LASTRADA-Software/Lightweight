@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "DataMapper/DataMapper.hpp"
 #include "SqlConnection.hpp"
 #include "SqlDataBinder.hpp"
 #include "SqlError.hpp"
@@ -16,5 +17,3 @@
 #include "SqlStatement.hpp"
 #include "SqlTransaction.hpp"
 #include "Utils.hpp"
-
-#include "DataMapper/DataMapper.hpp"

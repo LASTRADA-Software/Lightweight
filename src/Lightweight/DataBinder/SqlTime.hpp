@@ -120,16 +120,8 @@ struct SqlDataBinder<SqlTime>
                                                              SqlTime const& value,
                                                              SqlDataBinderCallback& /*cb*/) noexcept
     {
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                SQL_C_TYPE_TIME,
-                                SQL_TYPE_TIME,
-                                0,
-                                0,
-                                (SQLPOINTER) &value.sqlValue,
-                                0,
-                                nullptr);
+        return SQLBindParameter(
+            stmt, column, SQL_PARAM_INPUT, SQL_C_TYPE_TIME, SQL_TYPE_TIME, 0, 0, (SQLPOINTER) &value.sqlValue, 0, nullptr);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
@@ -138,11 +130,8 @@ struct SqlDataBinder<SqlTime>
         return SQLBindCol(stmt, column, SQL_C_TYPE_TIME, &result->sqlValue, sizeof(result->sqlValue), indicator);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,
-                                                        SQLUSMALLINT column,
-                                                        SqlTime* result,
-                                                        SQLLEN* indicator,
-                                                        SqlDataBinderCallback const& /*cb*/) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, SqlTime* result, SQLLEN* indicator, SqlDataBinderCallback const& /*cb*/) noexcept
     {
         return SQLGetData(stmt, column, SQL_C_TYPE_TIME, &result->sqlValue, sizeof(result->sqlValue), indicator);
     }

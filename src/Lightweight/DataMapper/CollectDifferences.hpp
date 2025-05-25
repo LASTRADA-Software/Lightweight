@@ -10,7 +10,7 @@ template <typename Record>
 struct DifferenceView
 {
 
-    DifferenceView(const Record* lhs, const Record* rhs) noexcept:
+    DifferenceView(Record const* lhs, Record const* rhs) noexcept:
         lhs(lhs),
         rhs(rhs)
     {
@@ -33,8 +33,8 @@ struct DifferenceView
     }
 
     std::vector<size_t> indexes;
-    const Record* lhs;
-    const Record* rhs;
+    Record const* lhs;
+    Record const* rhs;
 };
 
 template <typename Record>
@@ -44,7 +44,9 @@ DifferenceView<Record> CollectDifferences(Record const& left, Record const& righ
     DifferenceView<Record> view { &left, &right };
 
     Reflection::CollectDifferences(
-        left, right, [&](size_t ind, [[maybe_unused]] auto const& left_elem, [[maybe_unused]] auto const& right_elem) { view.push_back(ind); });
+        left, right, [&](size_t ind, [[maybe_unused]] auto const& left_elem, [[maybe_unused]] auto const& right_elem) {
+            view.push_back(ind);
+        });
 
     return view;
 }

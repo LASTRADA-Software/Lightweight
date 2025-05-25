@@ -15,8 +15,7 @@ struct SqlSimpleDataBinder
                                                              T const& value,
                                                              SqlDataBinderCallback& /*cb*/) noexcept
     {
-        return SQLBindParameter(
-            stmt, column, SQL_PARAM_INPUT, TheCType, TheSqlType, 0, 0, (SQLPOINTER) &value, 0, nullptr);
+        return SQLBindParameter(stmt, column, SQL_PARAM_INPUT, TheCType, TheSqlType, 0, 0, (SQLPOINTER) &value, 0, nullptr);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
@@ -25,8 +24,8 @@ struct SqlSimpleDataBinder
         return SQLBindCol(stmt, column, TheCType, result, 0, indicator);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(
-        SQLHSTMT stmt, SQLUSMALLINT column, T* result, SQLLEN* indicator, SqlDataBinderCallback const& /*cb*/) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN
+    GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, T* result, SQLLEN* indicator, SqlDataBinderCallback const& /*cb*/) noexcept
     {
         return SQLGetData(stmt, column, TheCType, result, 0, indicator);
     }
@@ -50,11 +49,8 @@ struct Int64DataBinderHelper
     static LIGHTWEIGHT_API SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, Int64Type* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept;
 
-    static LIGHTWEIGHT_API SQLRETURN GetColumn(SQLHSTMT stmt,
-                                               SQLUSMALLINT column,
-                                               Int64Type* result,
-                                               SQLLEN* indicator,
-                                               SqlDataBinderCallback const& cb) noexcept;
+    static LIGHTWEIGHT_API SQLRETURN GetColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, Int64Type* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept;
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(Int64Type value)
     {

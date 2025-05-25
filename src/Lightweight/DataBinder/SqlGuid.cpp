@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "BasicStringBinder.hpp"
 #include "SqlGuid.hpp"
 #include "StdString.hpp"
-#include "BasicStringBinder.hpp"
 
 #if __has_include(<Windows.h>)
     #include <Windows.h>
@@ -187,7 +187,7 @@ SQLRETURN SqlDataBinder<SqlGuid>::GetColumn(
         }
         case SqlServerType::ORACLE:
             return SQLGetData(stmt, column, SQL_C_BINARY, result->data, sizeof(result->data), indicator);
-        case SqlServerType::MYSQL:  // TODO
+        case SqlServerType::MYSQL: // TODO
         case SqlServerType::MICROSOFT_SQL:
         case SqlServerType::POSTGRESQL:
         case SqlServerType::UNKNOWN:

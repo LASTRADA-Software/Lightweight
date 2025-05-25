@@ -319,11 +319,8 @@ struct SqlDataBinder<Field<T, P1, P2>>
         return SqlDataBinder<T>::OutputColumn(stmt, column, &result->MutableValue(), indicator, cb);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,
-                                                        SQLUSMALLINT column,
-                                                        ValueType* result,
-                                                        SQLLEN* indicator,
-                                                        SqlDataBinderCallback const& cb) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
     {
         return SqlDataBinder<T>::GetColumn(stmt, column, &result->emplace(), indicator, cb);
     }

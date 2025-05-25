@@ -71,8 +71,8 @@ struct SqlDataBinder<SqlBinary>
 
                 auto const totalCharsRequired = *indicator;
                 result->resize(totalCharsRequired + 1);
-                auto const sqlResult = SQLGetData(
-                    stmt, column, SQL_C_BINARY, (SQLPOINTER) result->data(), totalCharsRequired + 1, indicator);
+                auto const sqlResult =
+                    SQLGetData(stmt, column, SQL_C_BINARY, (SQLPOINTER) result->data(), totalCharsRequired + 1, indicator);
                 (void) sqlResult;
                 assert(SQL_SUCCEEDED(sqlResult));
                 assert(*indicator == totalCharsRequired);

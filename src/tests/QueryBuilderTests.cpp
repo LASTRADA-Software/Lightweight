@@ -168,9 +168,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.First", "[SqlQueryBuild
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Range", "[SqlQueryBuilder]")
 {
     checkSqlQueryBuilder(
-        [](SqlQueryBuilder& q) {
-            return q.FromTable("That").Select().Fields("foo", "bar").OrderBy("id").Range(200, 50);
-        },
+        [](SqlQueryBuilder& q) { return q.FromTable("That").Select().Fields("foo", "bar").OrderBy("id").Range(200, 50); },
         QueryExpectations {
             .sqlite = R"(SELECT "foo", "bar" FROM "That"
                          ORDER BY "id" ASC LIMIT 50 OFFSET 200)",
@@ -1262,8 +1260,8 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddForeignKeyColumn", "[SqlQueryBui
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: SqlDateTime formatting", "[SqlQueryBuilder]")
 {
 
-    const auto tp_micros = time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
-    const auto sqlDateTime = SqlDateTime { tp_micros };
+    auto const tp_micros = time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now());
+    auto const sqlDateTime = SqlDateTime { tp_micros };
 
     // ensure that the formatting of sqlDateTime is correct and matches the ISO 8601 format
     // with the only difference that the Z is not in the format

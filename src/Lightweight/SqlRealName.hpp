@@ -46,7 +46,7 @@ struct SqlRealName
         return value + length;
     }
 
-    [[nodiscard]] constexpr auto operator<=>(const SqlRealName&) const = default;
+    [[nodiscard]] constexpr auto operator<=>(SqlRealName const&) const = default;
 
     [[nodiscard]] constexpr std::string_view sv() const noexcept
     {
@@ -58,4 +58,3 @@ struct SqlRealName
         return { value, length };
     }
 };
-

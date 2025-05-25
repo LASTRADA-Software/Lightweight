@@ -67,8 +67,7 @@ class MigrationManager
 
     [[nodiscard]] LIGHTWEIGHT_API std::list<MigrationBase const*> GetPending() const noexcept;
 
-    using ExecuteCallback =
-        std::function<void(MigrationBase const& /*migration*/, size_t /*current*/, size_t /*total*/)>;
+    using ExecuteCallback = std::function<void(MigrationBase const& /*migration*/, size_t /*current*/, size_t /*total*/)>;
 
     LIGHTWEIGHT_API void ApplySingleMigration(MigrationTimestamp timestamp);
     LIGHTWEIGHT_API void ApplySingleMigration(MigrationBase const& migration);

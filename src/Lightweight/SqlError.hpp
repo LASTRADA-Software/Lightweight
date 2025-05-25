@@ -104,7 +104,7 @@ struct SqlErrorCategory: std::error_category
         static SqlErrorCategory const category;
         return category;
     }
-    [[nodiscard]] const char* name() const noexcept override
+    [[nodiscard]] char const* name() const noexcept override
     {
         return "Lightweight";
     }
@@ -158,8 +158,7 @@ struct std::formatter<SqlError>: formatter<std::string>
 {
     auto format(SqlError value, format_context& ctx) const -> format_context::iterator
     {
-        return formatter<std::string>::format(std::format("{}", SqlErrorCategory().message(static_cast<int>(value))),
-                                              ctx);
+        return formatter<std::string>::format(std::format("{}", SqlErrorCategory().message(static_cast<int>(value))), ctx);
     }
 };
 
@@ -168,7 +167,7 @@ struct std::formatter<SqlErrorInfo>: formatter<std::string>
 {
     auto format(SqlErrorInfo const& info, format_context& ctx) const -> format_context::iterator
     {
-        return formatter<std::string>::format(
-            std::format("{} ({}) - {}", info.sqlState, info.nativeErrorCode, info.message), ctx);
+        return formatter<std::string>::format(std::format("{} ({}) - {}", info.sqlState, info.nativeErrorCode, info.message),
+                                              ctx);
     }
 };

@@ -12,31 +12,31 @@ using namespace std::string_view_literals;
 
 SqlQueryFormatter const& SqlQueryFormatter::Sqlite()
 {
-    static const SQLiteQueryFormatter formatter {};
+    static SQLiteQueryFormatter const formatter {};
     return formatter;
 }
 
 SqlQueryFormatter const& SqlQueryFormatter::SqlServer()
 {
-    static const SqlServerQueryFormatter formatter {};
+    static SqlServerQueryFormatter const formatter {};
     return formatter;
 }
 
 SqlQueryFormatter const& SqlQueryFormatter::PostgrSQL()
 {
-    static const PostgreSqlFormatter formatter {};
+    static PostgreSqlFormatter const formatter {};
     return formatter;
 }
 
 SqlQueryFormatter const& SqlQueryFormatter::OracleSQL()
 {
-    static const OracleSqlQueryFormatter formatter {};
+    static OracleSqlQueryFormatter const formatter {};
     return formatter;
 }
 
 SqlQueryFormatter const* SqlQueryFormatter::Get(SqlServerType serverType) noexcept
 {
-    static const std::array<SqlQueryFormatter const*, 6> formatters = {
+    static std::array<SqlQueryFormatter const*, 6> const formatters = {
         nullptr,
         &SqlQueryFormatter::SqlServer(),
         &SqlQueryFormatter::PostgrSQL(),

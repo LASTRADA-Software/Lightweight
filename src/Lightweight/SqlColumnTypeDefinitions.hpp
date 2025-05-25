@@ -6,11 +6,11 @@
     #include <Windows.h>
 #endif
 
-#include <sql.h>
-#include <sqlext.h>
-
 #include <optional>
 #include <variant>
+
+#include <sql.h>
+#include <sqlext.h>
 
 namespace SqlColumnTypeDefinitions
 {
@@ -62,9 +62,7 @@ using SqlColumnTypeDefinition = std::variant<SqlColumnTypeDefinitions::Bigint,
 /// Maps ODBC data type (with given @p size and @p precision) to SqlColumnTypeDefinition
 ///
 /// @return SqlColumnTypeDefinition if the data type is supported, otherwise std::nullopt
-constexpr std::optional<SqlColumnTypeDefinition> MakeColumnTypeFromNative(int value,
-                                                                          std::size_t size,
-                                                                          std::size_t precision)
+constexpr std::optional<SqlColumnTypeDefinition> MakeColumnTypeFromNative(int value, std::size_t size, std::size_t precision)
 {
     // Maps ODBC data types to SqlColumnTypeDefinition
     // See: https://learn.microsoft.com/en-us/sql/odbc/reference/appendixes/sql-data-types?view=sql-server-ver16

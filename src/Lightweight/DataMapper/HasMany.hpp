@@ -168,8 +168,7 @@ void HasMany<OtherRecord>::Each(Callable const& callable)
 }
 
 template <typename OtherRecord>
-inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::ReferencedRecordList const& HasMany<OtherRecord>::All()
-    const noexcept
+inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::ReferencedRecordList const& HasMany<OtherRecord>::All() const noexcept
 {
     RequireLoaded();
     return *_records;

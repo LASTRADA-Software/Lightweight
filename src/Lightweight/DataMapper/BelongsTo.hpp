@@ -47,7 +47,7 @@ class BelongsTo
     /// If not an empty string, this value will be used as the column name in the database.
     static constexpr std::string_view ColumnNameOverride = []() consteval {
         if constexpr (!std::same_as<decltype(ColumnNameOverrideString), std::nullopt_t>)
-            return std::string_view{ColumnNameOverrideString};
+            return std::string_view { ColumnNameOverrideString };
         else
             return std::string_view {};
     }();
@@ -59,8 +59,7 @@ class BelongsTo
                   "The referenced field must be a primary key.");
 
     /// Represents the column type of the foreign key, matching the primary key of the other record.
-    using ValueType =
-        typename std::remove_cvref_t<decltype(std::declval<ReferencedRecord>().*ReferencedField)>::ValueType;
+    using ValueType = typename std::remove_cvref_t<decltype(std::declval<ReferencedRecord>().*ReferencedField)>::ValueType;
 
     static constexpr auto IsOptional = true;
     static constexpr auto IsMandatory = !IsOptional;
@@ -262,17 +261,13 @@ struct SqlDataBinder<BelongsTo<ReferencedField>>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN
     OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback& cb)
     {
-        auto const sqlReturn =
-            SqlDataBinder<InnerType>::OutputColumn(stmt, column, &result->MutableValue(), indicator, cb);
+        auto const sqlReturn = SqlDataBinder<InnerType>::OutputColumn(stmt, column, &result->MutableValue(), indicator, cb);
         cb.PlanPostProcessOutputColumn([result]() { result->SetModified(true); });
         return sqlReturn;
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,
-                                                        SQLUSMALLINT column,
-                                                        SelfType* result,
-                                                        SQLLEN* indicator,
-                                                        SqlDataBinderCallback const& cb) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
     {
         auto const sqlReturn = SqlDataBinder<InnerType>::GetColumn(stmt, column, &result->emplace(), indicator, cb);
         if (SQL_SUCCEEDED(sqlReturn))

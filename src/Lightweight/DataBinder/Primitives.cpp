@@ -39,11 +39,8 @@ struct OracleInt64DataBinderHelper
         return sqlResult;
     }
 
-    static SQLRETURN GetColumn(SQLHSTMT stmt,
-                               SQLUSMALLINT column,
-                               Int64Type* result,
-                               SQLLEN* indicator,
-                               SqlDataBinderCallback const& cb) noexcept
+    static SQLRETURN GetColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, Int64Type* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
     {
         using StringType = SqlFixedString<21>;
         auto buffer = StringType {};

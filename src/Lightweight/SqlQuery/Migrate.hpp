@@ -26,8 +26,7 @@ class [[nodiscard]] SqlCreateTableQueryBuilder final
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& Column(std::string columnName, SqlColumnTypeDefinition columnType);
 
     /// Creates a new column that is non-nullable.
-    LIGHTWEIGHT_API SqlCreateTableQueryBuilder& RequiredColumn(std::string columnName,
-                                                               SqlColumnTypeDefinition columnType);
+    LIGHTWEIGHT_API SqlCreateTableQueryBuilder& RequiredColumn(std::string columnName, SqlColumnTypeDefinition columnType);
 
     /// Adds the created_at and updated_at columns to the table.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& Timestamps();
@@ -110,8 +109,7 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// Renames a column.
     /// @param oldColumnName The old column name.
     /// @param newColumnName The new column name.
-    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& RenameColumn(std::string_view oldColumnName,
-                                                            std::string_view newColumnName);
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& RenameColumn(std::string_view oldColumnName, std::string_view newColumnName);
 
     /// Drops a column from the table.
     /// @param columnName The name of the column to drop.
@@ -217,7 +215,7 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& CommitTransaction();
 
     /// Gets the migration plan.
-    [[nodiscard]] LIGHTWEIGHT_API SqlMigrationPlan const& GetPlan() const &;
+    [[nodiscard]] LIGHTWEIGHT_API SqlMigrationPlan const& GetPlan() const&;
 
     /// Gets the migration plan.
     ///

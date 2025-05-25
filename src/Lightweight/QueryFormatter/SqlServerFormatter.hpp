@@ -78,41 +78,40 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
     [[nodiscard]] std::string ColumnType(SqlColumnTypeDefinition const& type) const override
     {
         using namespace SqlColumnTypeDefinitions;
-        return std::visit(
-            detail::overloaded {
-                [](Bigint const&) -> std::string { return "BIGINT"; },
-                [](Binary const& type) -> std::string { return std::format("VARBINARY({})", type.size); },
-                [](Bool const&) -> std::string { return "BIT"; },
-                [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
-                [](Date const&) -> std::string { return "DATE"; },
-                [](DateTime const&) -> std::string { return "DATETIME"; },
-                [](Decimal const& type) -> std::string {
-                    return std::format("DECIMAL({}, {})", type.precision, type.scale);
-                },
-                [](Guid const&) -> std::string { return "UNIQUEIDENTIFIER"; },
-                [](Integer const&) -> std::string { return "INTEGER"; },
-                [](NChar const& type) -> std::string { return std::format("NCHAR({})", type.size); },
-                [](NVarchar const& type) -> std::string {
-                    if (type.size == 0 || type.size > SqlOptimalMaxColumnSize)
-                        return "NVARCHAR(MAX)";
-                    else
-                        return std::format("NVARCHAR({})", type.size);
-                },
-                [](Real const&) -> std::string { return "REAL"; },
-                [](Smallint const&) -> std::string { return "SMALLINT"; },
-                [](Text const&) -> std::string { return "VARCHAR(MAX)"; },
-                [](Time const&) -> std::string { return "TIME"; },
-                [](Timestamp const&) -> std::string { return "TIMESTAMP"; },
-                [](Tinyint const&) -> std::string { return "TINYINT"; },
-                [](VarBinary const& type) -> std::string { return std::format("VARBINARY({})", type.size); },
-                [](Varchar const& type) -> std::string {
-                    if (type.size == 0 || type.size > SqlOptimalMaxColumnSize)
-                        return "VARCHAR(MAX)";
-                    else
-                        return std::format("VARCHAR({})", type.size);
-                },
-            },
-            type);
+        return std::visit(detail::overloaded {
+                              [](Bigint const&) -> std::string { return "BIGINT"; },
+                              [](Binary const& type) -> std::string { return std::format("VARBINARY({})", type.size); },
+                              [](Bool const&) -> std::string { return "BIT"; },
+                              [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
+                              [](Date const&) -> std::string { return "DATE"; },
+                              [](DateTime const&) -> std::string { return "DATETIME"; },
+                              [](Decimal const& type) -> std::string {
+                                  return std::format("DECIMAL({}, {})", type.precision, type.scale);
+                              },
+                              [](Guid const&) -> std::string { return "UNIQUEIDENTIFIER"; },
+                              [](Integer const&) -> std::string { return "INTEGER"; },
+                              [](NChar const& type) -> std::string { return std::format("NCHAR({})", type.size); },
+                              [](NVarchar const& type) -> std::string {
+                                  if (type.size == 0 || type.size > SqlOptimalMaxColumnSize)
+                                      return "NVARCHAR(MAX)";
+                                  else
+                                      return std::format("NVARCHAR({})", type.size);
+                              },
+                              [](Real const&) -> std::string { return "REAL"; },
+                              [](Smallint const&) -> std::string { return "SMALLINT"; },
+                              [](Text const&) -> std::string { return "VARCHAR(MAX)"; },
+                              [](Time const&) -> std::string { return "TIME"; },
+                              [](Timestamp const&) -> std::string { return "TIMESTAMP"; },
+                              [](Tinyint const&) -> std::string { return "TINYINT"; },
+                              [](VarBinary const& type) -> std::string { return std::format("VARBINARY({})", type.size); },
+                              [](Varchar const& type) -> std::string {
+                                  if (type.size == 0 || type.size > SqlOptimalMaxColumnSize)
+                                      return "VARCHAR(MAX)";
+                                  else
+                                      return std::format("VARCHAR({})", type.size);
+                              },
+                          },
+                          type);
     }
 
     [[nodiscard]] std::string BuildColumnDefinition(SqlColumnDeclaration const& column) const override
@@ -147,8 +146,7 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
             sqlQueryString << std::visit(
                 detail::overloaded {
                     [tableName](RenameTable const& actualCommand) -> std::string {
-                        return std::format(
-                            R"(ALTER TABLE "{}" RENAME TO "{}";)", tableName, actualCommand.newTableName);
+                        return std::format(R"(ALTER TABLE "{}" RENAME TO "{}";)", tableName, actualCommand.newTableName);
                     },
                     [tableName, this](AddColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE "{}" ADD "{}" {} {};)",
@@ -171,8 +169,7 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
                                            actualCommand.newColumnName);
                     },
                     [tableName](DropColumn const& actualCommand) -> std::string {
-                        return std::format(
-                            R"(ALTER TABLE "{}" DROP COLUMN "{}";)", tableName, actualCommand.columnName);
+                        return std::format(R"(ALTER TABLE "{}" DROP COLUMN "{}";)", tableName, actualCommand.columnName);
                     },
                     [tableName](AddIndex const& actualCommand) -> std::string {
                         using namespace std::string_view_literals;

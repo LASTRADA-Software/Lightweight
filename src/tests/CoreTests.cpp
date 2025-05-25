@@ -36,13 +36,13 @@ int main(int argc, char** argv)
 TEST_CASE_METHOD(SqlTestFixture, "NameFormatting", "[Format]")
 {
 
-    const std::array inputNames = {
+    std::array const inputNames = {
         "test"sv, "TEST_NR"sv, "TEST-NR"sv, "TEST NR"sv, "TESTNR"sv, "TestNr"sv,
     };
-    const std::array expectedCamelCase = {
+    std::array const expectedCamelCase = {
         "test"sv, "testNr"sv, "testNr"sv, "testNr"sv, "testnr"sv, "testnr"sv,
     };
-    const std::array expectedSnakeCase = {
+    std::array const expectedSnakeCase = {
         "test"sv, "test_nr"sv, "test_nr"sv, "test_nr"sv, "testnr"sv, "testnr"sv,
     };
 

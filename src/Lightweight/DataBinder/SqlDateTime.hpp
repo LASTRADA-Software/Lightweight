@@ -51,8 +51,7 @@ struct SqlDateTime
             .minute = (SQLUSMALLINT) time.minutes().count(),
             .second = (SQLUSMALLINT) time.seconds().count(),
             .fraction =
-                (SQLUINTEGER) (std::chrono::duration_cast<std::chrono::nanoseconds>(time.to_duration()).count() / 100)
-                * 100,
+                (SQLUINTEGER) (std::chrono::duration_cast<std::chrono::nanoseconds>(time.to_duration()).count() / 100) * 100,
         }
     {
     }
@@ -136,8 +135,8 @@ struct SqlDateTime
         using namespace std::chrono;
         auto const totalDays = floor<days>(value);
         auto const ymd = year_month_day { totalDays };
-        auto const hms = hh_mm_ss<duration_type> { std::chrono::duration_cast<duration_type>(
-            floor<nanoseconds>(value - totalDays)) };
+        auto const hms =
+            hh_mm_ss<duration_type> { std::chrono::duration_cast<duration_type>(floor<nanoseconds>(value - totalDays)) };
         return ConvertToSqlValue(ymd, hms);
     }
 
@@ -218,7 +217,7 @@ struct std::formatter<SqlDateTime>: std::formatter<std::string>
         // that is why we need to use iso standard 8601, also millisecond precision is used for the formatting
         //
         // internally fraction is stored in nanoseconds, here we need to get it in milliseconds
-        const auto milliseconds = value.sqlValue.fraction / 1'000'000;
+        auto const milliseconds = value.sqlValue.fraction / 1'000'000;
         return std::formatter<std::string>::format(std::format("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:03}",
                                                                value.sqlValue.year,
                                                                value.sqlValue.month,
@@ -270,11 +269,8 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
                                 nullptr);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(SQLHSTMT stmt,
-                                                           SQLUSMALLINT column,
-                                                           SqlDateTime* result,
-                                                           SQLLEN* indicator,
-                                                           SqlDataBinderCallback& /*cb*/) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, SqlDateTime* result, SQLLEN* indicator, SqlDataBinderCallback& /*cb*/) noexcept
     {
         // TODO: handle indicator to check for NULL values
         *indicator = sizeof(result->sqlValue);

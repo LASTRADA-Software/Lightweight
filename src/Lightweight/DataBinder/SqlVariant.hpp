@@ -353,11 +353,8 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlVariant>
                                     SqlVariant const& variantValue,
                                     SqlDataBinderCallback& cb) noexcept;
 
-    static SQLRETURN GetColumn(SQLHSTMT stmt,
-                               SQLUSMALLINT column,
-                               SqlVariant* result,
-                               SQLLEN* indicator,
-                               SqlDataBinderCallback const& cb) noexcept;
+    static SQLRETURN GetColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, SqlVariant* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept;
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(SqlVariant const& value) noexcept
     {

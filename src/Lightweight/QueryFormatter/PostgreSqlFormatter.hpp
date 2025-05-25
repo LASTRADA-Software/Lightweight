@@ -89,8 +89,7 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
             sqlQueryString << std::visit(
                 detail::overloaded {
                     [tableName](RenameTable const& actualCommand) -> std::string {
-                        return std::format(
-                            R"(ALTER TABLE "{}" RENAME TO "{}";)", tableName, actualCommand.newTableName);
+                        return std::format(R"(ALTER TABLE "{}" RENAME TO "{}";)", tableName, actualCommand.newTableName);
                     },
                     [tableName, this](AddColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE "{}" ADD COLUMN "{}" {} {};)",
@@ -114,8 +113,7 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
                                            actualCommand.newColumnName);
                     },
                     [tableName](DropColumn const& actualCommand) -> std::string {
-                        return std::format(
-                            R"(ALTER TABLE "{}" DROP COLUMN "{}";)", tableName, actualCommand.columnName);
+                        return std::format(R"(ALTER TABLE "{}" DROP COLUMN "{}";)", tableName, actualCommand.columnName);
                     },
                     [tableName](AddIndex const& actualCommand) -> std::string {
                         using namespace std::string_view_literals;

@@ -52,8 +52,7 @@ std::string SqlConnectionString::SanitizePwd(std::string_view input)
         std::regex_constants::ECMAScript | std::regex_constants::icase,
     };
     std::stringstream outputString;
-    std::regex_replace(
-        std::ostreambuf_iterator<char> { outputString }, input.begin(), input.end(), pwdRegex, "Pwd=***;");
+    std::regex_replace(std::ostreambuf_iterator<char> { outputString }, input.begin(), input.end(), pwdRegex, "Pwd=***;");
     return outputString.str();
 }
 

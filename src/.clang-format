@@ -45,6 +45,7 @@ MaxEmptyLinesToKeep: '1'
 NamespaceIndentation: Inner
 PenaltyBreakAssignment: '0'
 PointerAlignment: Left
+QualifierAlignment: Right
 ReflowComments: 'true'
 SortIncludes: 'true'
 SortUsingDeclarations: 'true'

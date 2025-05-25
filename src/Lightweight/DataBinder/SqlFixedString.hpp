@@ -88,8 +88,7 @@ class SqlFixedString
     LIGHTWEIGHT_FORCE_INLINE void reserve(std::size_t capacity)
     {
         if (capacity > N)
-            throw std::length_error(
-                std::format("SqlFixedString: capacity {} exceeds maximum capacity {}", capacity, N));
+            throw std::length_error(std::format("SqlFixedString: capacity {} exceeds maximum capacity {}", capacity, N));
     }
 
     /// Tests if the string is empty.
@@ -240,15 +239,13 @@ class SqlFixedString
     }
 
     template <std::size_t OtherSize, SqlFixedStringMode OtherMode>
-    LIGHTWEIGHT_FORCE_INLINE constexpr bool operator==(
-        SqlFixedString<OtherSize, T, OtherMode> const& other) const noexcept
+    LIGHTWEIGHT_FORCE_INLINE constexpr bool operator==(SqlFixedString<OtherSize, T, OtherMode> const& other) const noexcept
     {
         return (*this <=> other) == std::weak_ordering::equivalent;
     }
 
     template <std::size_t OtherSize, SqlFixedStringMode OtherMode>
-    LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!=(
-        SqlFixedString<OtherSize, T, OtherMode> const& other) const noexcept
+    LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!=(SqlFixedString<OtherSize, T, OtherMode> const& other) const noexcept
     {
         return !(*this == other);
     }
@@ -267,8 +264,7 @@ class SqlFixedString
 template <std::size_t N, typename CharT, SqlFixedStringMode Mode>
 struct detail::SqlViewHelper<SqlFixedString<N, CharT, Mode>>
 {
-    static LIGHTWEIGHT_FORCE_INLINE std::basic_string_view<CharT> View(
-        SqlFixedString<N, CharT, Mode> const& str) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE std::basic_string_view<CharT> View(SqlFixedString<N, CharT, Mode> const& str) noexcept
     {
         return { str.data(), str.size() };
     }

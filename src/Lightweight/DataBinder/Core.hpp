@@ -111,10 +111,9 @@ struct SqlViewHelper<StringLike>
 // -----------------------------------------------------------------------------------------------
 
 template <typename T>
-concept SqlInputParameterBinder =
-    requires(SQLHSTMT hStmt, SQLUSMALLINT column, T const& value, SqlDataBinderCallback& cb) {
-        { SqlDataBinder<T>::InputParameter(hStmt, column, value, cb) } -> std::same_as<SQLRETURN>;
-    };
+concept SqlInputParameterBinder = requires(SQLHSTMT hStmt, SQLUSMALLINT column, T const& value, SqlDataBinderCallback& cb) {
+    { SqlDataBinder<T>::InputParameter(hStmt, column, value, cb) } -> std::same_as<SQLRETURN>;
+};
 
 template <typename T>
 concept SqlOutputColumnBinder =

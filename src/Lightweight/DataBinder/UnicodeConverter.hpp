@@ -220,7 +220,7 @@ template <typename T>
     requires(std::same_as<T, wchar_t> && sizeof(wchar_t) == 2)
 inline LIGHTWEIGHT_FORCE_INLINE std::u8string ToUtf8(std::basic_string_view<T> u16InputString)
 {
-    return ToUtf8(std::u16string_view(reinterpret_cast<const char16_t*>(u16InputString.data()), u16InputString.size()));
+    return ToUtf8(std::u16string_view(reinterpret_cast<char16_t const*>(u16InputString.data()), u16InputString.size()));
 }
 
 /// Converts a wchar_t-based wide string view to UTF-8.
@@ -230,7 +230,7 @@ template <typename T>
     requires(std::same_as<T, wchar_t> && sizeof(wchar_t) == 4)
 inline LIGHTWEIGHT_FORCE_INLINE std::u8string ToUtf8(std::basic_string_view<T> u32InputString)
 {
-    return ToUtf8(std::u32string_view(reinterpret_cast<const char32_t*>(u32InputString.data()), u32InputString.size()));
+    return ToUtf8(std::u32string_view(reinterpret_cast<char32_t const*>(u32InputString.data()), u32InputString.size()));
 }
 
 /// Converts from UTF-32 to UTF-16.
@@ -238,7 +238,7 @@ inline LIGHTWEIGHT_FORCE_INLINE std::u8string ToUtf8(std::basic_string_view<T> u
 /// @ingroup Unicode
 template <typename T>
     requires std::same_as<T, char32_t> || (std::same_as<T, wchar_t> && sizeof(wchar_t) == 4)
-std::u16string ToUtf16(const std::basic_string_view<T> u32InputString)
+std::u16string ToUtf16(std::basic_string_view<T> const u32InputString)
 {
     std::u16string u16OutputString;
     u16OutputString.reserve(u32InputString.size());
@@ -269,7 +269,6 @@ T ToUtf32(std::u8string_view u8InputString)
         result.push_back(c32);
     return result;
 }
-
 
 /// Converts from UTF-16 to UTF-32.
 ///

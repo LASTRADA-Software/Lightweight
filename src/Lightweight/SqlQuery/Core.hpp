@@ -264,8 +264,9 @@ class [[nodiscard]] SqlWhereClauseBuilder
 
     /// Constructs an `INNER JOIN` clause given two fields from different records
     /// using the field name as join column.
-    /// 
-    /// @tparam LeftField  The field name to join on, such as `JoinTestB::a_id`, which will join on table `JoinTestB` with the column `a_id` to be compared against right field's column.
+    ///
+    /// @tparam LeftField  The field name to join on, such as `JoinTestB::a_id`, which will join on table `JoinTestB` with
+    /// the column `a_id` to be compared against right field's column.
     /// @tparam RightField The other column to compare and join against.
     ///
     /// Example:
@@ -338,9 +339,8 @@ class [[nodiscard]] SqlWhereClauseBuilder
     void AppendWhereJunctor();
 
     template <typename ColumnName>
-        requires(std::same_as<ColumnName, SqlQualifiedTableColumnName>
-                 || std::convertible_to<ColumnName, std::string_view> || std::same_as<ColumnName, SqlRawColumnNameView>
-                 || std::convertible_to<ColumnName, std::string>)
+        requires(std::same_as<ColumnName, SqlQualifiedTableColumnName> || std::convertible_to<ColumnName, std::string_view>
+                 || std::same_as<ColumnName, SqlRawColumnNameView> || std::convertible_to<ColumnName, std::string>)
     void AppendColumnName(ColumnName const& columnName);
 
     template <typename LiteralType>
@@ -526,8 +526,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Not() n
 
 template <typename Derived>
 template <typename ColumnName, typename T>
-inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(ColumnName const& columnName,
-                                                                               T const& value)
+inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(ColumnName const& columnName, T const& value)
 {
     if constexpr (detail::OneOf<T, SqlNullType, std::nullopt_t>)
     {
@@ -719,8 +718,9 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::OrWhere
 }
 
 template <typename Derived>
-inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::InnerJoin(
-    std::string_view joinTable, std::string_view joinColumnName, SqlQualifiedTableColumnName onOtherColumn)
+inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::InnerJoin(std::string_view joinTable,
+                                                                                   std::string_view joinColumnName,
+                                                                                   SqlQualifiedTableColumnName onOtherColumn)
 {
     return Join(JoinType::INNER, joinTable, joinColumnName, onOtherColumn);
 }
@@ -737,11 +737,11 @@ template <typename Derived>
 template <auto LeftField, auto RightField>
 Derived& SqlWhereClauseBuilder<Derived>::InnerJoin()
 {
-    return Join(JoinType::INNER,
-                RecordTableName<Reflection::MemberClassType<LeftField>>,
-                FieldNameOf<LeftField>,
-                SqlQualifiedTableColumnName { RecordTableName<Reflection::MemberClassType<RightField>>,
-                                              FieldNameOf<RightField> });
+    return Join(
+        JoinType::INNER,
+        RecordTableName<Reflection::MemberClassType<LeftField>>,
+        FieldNameOf<LeftField>,
+        SqlQualifiedTableColumnName { RecordTableName<Reflection::MemberClassType<RightField>>, FieldNameOf<RightField> });
 }
 
 template <typename Derived>
@@ -760,8 +760,9 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::LeftOut
 }
 
 template <typename Derived>
-inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::LeftOuterJoin(
-    std::string_view joinTable, std::string_view joinColumnName, std::string_view onMainTableColumn)
+inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::LeftOuterJoin(std::string_view joinTable,
+                                                                                       std::string_view joinColumnName,
+                                                                                       std::string_view onMainTableColumn)
 {
     return Join(JoinType::LEFT, joinTable, joinColumnName, onMainTableColumn);
 }
@@ -769,8 +770,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::LeftOut
 template <typename Derived>
 template <typename OnChainCallable>
     requires std::invocable<OnChainCallable, SqlJoinConditionBuilder>
-Derived& SqlWhereClauseBuilder<Derived>::LeftOuterJoin(std::string_view joinTable,
-                                                       OnChainCallable const& onClauseBuilder)
+Derived& SqlWhereClauseBuilder<Derived>::LeftOuterJoin(std::string_view joinTable, OnChainCallable const& onClauseBuilder)
 {
     return Join(JoinType::LEFT, joinTable, onClauseBuilder);
 }
@@ -783,8 +783,9 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::RightOu
 }
 
 template <typename Derived>
-inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::RightOuterJoin(
-    std::string_view joinTable, std::string_view joinColumnName, std::string_view onMainTableColumn)
+inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::RightOuterJoin(std::string_view joinTable,
+                                                                                        std::string_view joinColumnName,
+                                                                                        std::string_view onMainTableColumn)
 {
     return Join(JoinType::RIGHT, joinTable, joinColumnName, onMainTableColumn);
 }
@@ -792,8 +793,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::RightOu
 template <typename Derived>
 template <typename OnChainCallable>
     requires std::invocable<OnChainCallable, SqlJoinConditionBuilder>
-Derived& SqlWhereClauseBuilder<Derived>::RightOuterJoin(std::string_view joinTable,
-                                                        OnChainCallable const& onClauseBuilder)
+Derived& SqlWhereClauseBuilder<Derived>::RightOuterJoin(std::string_view joinTable, OnChainCallable const& onClauseBuilder)
 {
     return Join(JoinType::RIGHT, joinTable, onClauseBuilder);
 }
@@ -806,8 +806,9 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::FullOut
 }
 
 template <typename Derived>
-inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::FullOuterJoin(
-    std::string_view joinTable, std::string_view joinColumnName, std::string_view onMainTableColumn)
+inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::FullOuterJoin(std::string_view joinTable,
+                                                                                       std::string_view joinColumnName,
+                                                                                       std::string_view onMainTableColumn)
 {
     return Join(JoinType::FULL, joinTable, joinColumnName, onMainTableColumn);
 }
@@ -815,15 +816,13 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::FullOut
 template <typename Derived>
 template <typename OnChainCallable>
     requires std::invocable<OnChainCallable, SqlJoinConditionBuilder>
-Derived& SqlWhereClauseBuilder<Derived>::FullOuterJoin(std::string_view joinTable,
-                                                       OnChainCallable const& onClauseBuilder)
+Derived& SqlWhereClauseBuilder<Derived>::FullOuterJoin(std::string_view joinTable, OnChainCallable const& onClauseBuilder)
 {
     return Join(JoinType::FULL, joinTable, onClauseBuilder);
 }
 
 template <typename Derived>
-inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereRaw(
-    std::string_view sqlConditionExpression)
+inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereRaw(std::string_view sqlConditionExpression)
 {
     AppendWhereJunctor();
 
@@ -892,8 +891,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendLiter
     auto& searchCondition = SearchCondition();
 
     if constexpr (std::is_same_v<LiteralType, SqlQualifiedTableColumnName>
-                  || detail::OneOf<LiteralType, SqlNullType, std::nullopt_t>
-                  || std::is_same_v<LiteralType, SqlWildcardType>
+                  || detail::OneOf<LiteralType, SqlNullType, std::nullopt_t> || std::is_same_v<LiteralType, SqlWildcardType>
                   || std::is_same_v<LiteralType, detail::RawSqlCondition>)
     {
         PopulateLiteralValueInto(value, searchCondition.condition);
@@ -1005,11 +1003,10 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(Jo
                                                                               std::string_view joinColumnName,
                                                                               std::string_view onMainTableColumn)
 {
-    return Join(
-        joinType,
-        joinTable,
-        joinColumnName,
-        SqlQualifiedTableColumnName { .tableName = SearchCondition().tableName, .columnName = onMainTableColumn });
+    return Join(joinType,
+                joinTable,
+                joinColumnName,
+                SqlQualifiedTableColumnName { .tableName = SearchCondition().tableName, .columnName = onMainTableColumn });
 }
 
 template <typename Derived>

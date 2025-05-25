@@ -54,68 +54,70 @@ std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColum
     };
 
     using namespace SqlColumnTypeDefinitions;
-    return optional(std::visit(
-        detail::overloaded {
-            [](Bigint const&) -> std::string { return "int64_t"; },
-            [](Binary const& type) -> std::string { return std::format("SqlBinary", type.size); },
-            [](Bool const&) -> std::string { return "bool"; },
-            [&](Char const& type) -> std::string {
-                if (type.size == 1)
-                {
-                    if (forceUnicodeTextColumn)
-                        return "wchar_t";
-                    else
-                        return "char";
-                }
-                else
-                {
-                    if (forceUnicodeTextColumn)
-                        return std::format("SqlWideString<{}>", type.size);
-                    else
-                        return std::format("SqlAnsiString<{}>", type.size);
-                }
-            },
-            [](Date const&) -> std::string { return "SqlDate"; },
-            [](DateTime const&) -> std::string { return "SqlDateTime"; },
-            [](Decimal const& type) -> std::string { return std::format("SqlNumeric<{}, {}>", type.precision + type.scale, type.precision); },
-            [](Guid const&) -> std::string { return "SqlGuid"; },
-            [](Integer const&) -> std::string { return "int32_t"; },
-            [](NChar const& type) -> std::string {
-                if (type.size == 1)
-                    return "char16_t";
-                return std::format("SqlUtf16String<{}>", type.size);
-            },
-            [](NVarchar const& type) -> std::string { return std::format("SqlUtf16String<{}>", type.size); },
-            [](Real const&) -> std::string { return "float"; },
-            [](Smallint const&) -> std::string { return "int16_t"; },
-            [=](Text const& type) -> std::string {
-                if (forceUnicodeTextColumn)
-                    return std::format("SqlWideString<{}>", type.size);
-                else
-                    return std::format("SqlAnsiString<{}>", type.size);
-            },
-            [](Time const&) -> std::string { return "SqlTime"; },
-            [](Timestamp const&) -> std::string { return "SqlDateTime"; },
-            [](Tinyint const&) -> std::string { return "uint8_t"; },
-            [](VarBinary const& type) -> std::string { return std::format("SqlDynamicBinary<{}>", type.size); },
-            [=](Varchar const& type) -> std::string {
-                if (type.size > 0 && type.size <= SqlOptimalMaxColumnSize)
-                {
-                    if (forceUnicodeTextColumn)
-                        return std::format("SqlWideString<{}>", type.size);
-                    else
-                        return std::format("SqlAnsiString<{}>", type.size);
-                }
-                else
-                {
-                    if (forceUnicodeTextColumn)
-                        return std::format("SqlDynamicWideString<{}>", type.size);
-                    else
-                        return std::format("SqlDynamicAnsiString<{}>", type.size);
-                }
-            },
-        },
-        column.type));
+    return optional(
+        std::visit(detail::overloaded {
+                       [](Bigint const&) -> std::string { return "int64_t"; },
+                       [](Binary const& type) -> std::string { return std::format("SqlBinary", type.size); },
+                       [](Bool const&) -> std::string { return "bool"; },
+                       [&](Char const& type) -> std::string {
+                           if (type.size == 1)
+                           {
+                               if (forceUnicodeTextColumn)
+                                   return "wchar_t";
+                               else
+                                   return "char";
+                           }
+                           else
+                           {
+                               if (forceUnicodeTextColumn)
+                                   return std::format("SqlWideString<{}>", type.size);
+                               else
+                                   return std::format("SqlAnsiString<{}>", type.size);
+                           }
+                       },
+                       [](Date const&) -> std::string { return "SqlDate"; },
+                       [](DateTime const&) -> std::string { return "SqlDateTime"; },
+                       [](Decimal const& type) -> std::string {
+                           return std::format("SqlNumeric<{}, {}>", type.precision + type.scale, type.precision);
+                       },
+                       [](Guid const&) -> std::string { return "SqlGuid"; },
+                       [](Integer const&) -> std::string { return "int32_t"; },
+                       [](NChar const& type) -> std::string {
+                           if (type.size == 1)
+                               return "char16_t";
+                           return std::format("SqlUtf16String<{}>", type.size);
+                       },
+                       [](NVarchar const& type) -> std::string { return std::format("SqlUtf16String<{}>", type.size); },
+                       [](Real const&) -> std::string { return "float"; },
+                       [](Smallint const&) -> std::string { return "int16_t"; },
+                       [=](Text const& type) -> std::string {
+                           if (forceUnicodeTextColumn)
+                               return std::format("SqlWideString<{}>", type.size);
+                           else
+                               return std::format("SqlAnsiString<{}>", type.size);
+                       },
+                       [](Time const&) -> std::string { return "SqlTime"; },
+                       [](Timestamp const&) -> std::string { return "SqlDateTime"; },
+                       [](Tinyint const&) -> std::string { return "uint8_t"; },
+                       [](VarBinary const& type) -> std::string { return std::format("SqlDynamicBinary<{}>", type.size); },
+                       [=](Varchar const& type) -> std::string {
+                           if (type.size > 0 && type.size <= SqlOptimalMaxColumnSize)
+                           {
+                               if (forceUnicodeTextColumn)
+                                   return std::format("SqlWideString<{}>", type.size);
+                               else
+                                   return std::format("SqlAnsiString<{}>", type.size);
+                           }
+                           else
+                           {
+                               if (forceUnicodeTextColumn)
+                                   return std::format("SqlDynamicWideString<{}>", type.size);
+                               else
+                                   return std::format("SqlDynamicAnsiString<{}>", type.size);
+                           }
+                       },
+                   },
+                   column.type));
 }
 
 // "user_id" into "UserId"
@@ -230,7 +232,7 @@ class CxxModelPrinter
     {
         for (auto const& [tableName, definition]: _definitions)
         {
-            const auto fileName = std::format("{}/{}.hpp", outputDirectory, aliasTableName(tableName));
+            auto const fileName = std::format("{}/{}.hpp", outputDirectory, aliasTableName(tableName));
             auto file = std::ofstream(fileName);
             if (!file)
             {
@@ -275,14 +277,14 @@ class CxxModelPrinter
     {
         std::stringstream exampleEntries;
 
-        const auto tableName = aliasTableName(table.name);
+        auto const tableName = aliasTableName(table.name);
         exampleEntries << std::format("auto entries{} = dm.Query<{}>().All();\n", tableName, tableName);
 
         exampleEntries << std::format("for (auto const& entry: entries{})\n", tableName);
         exampleEntries << "{\n";
 
-        const auto column = table.columns[0];
-        const auto memberName = FormatName(column.name, _config.formatType);
+        auto const column = table.columns[0];
+        auto const memberName = FormatName(column.name, _config.formatType);
         if (column.isNullable)
         {
             exampleEntries << std::format("    if (entry.{}.Value())\n", memberName);
@@ -483,7 +485,7 @@ class CxxModelPrinter
             return std::string {};
         };
 
-        auto const selfReferencing = [&](const auto& column) {
+        auto const selfReferencing = [&](auto const& column) {
             if (column.isForeignKey)
             {
                 auto const& foreignKey = GetForeignKey(column, table.foreignKeys);
@@ -830,7 +832,7 @@ void ResolveOrderAndPrintTable(CxxModelPrinter& cxxModelPrinter, std::vector<Sql
     for (auto const& [index, table]: std::views::enumerate(tables))
         numberOfForeignKeys[index] = static_cast<int>(table.foreignKeys.size());
 
-    const auto updateForeignKeyCountAfterPrinted = [&](const auto& tablePrinted) {
+    auto const updateForeignKeyCountAfterPrinted = [&](auto const& tablePrinted) {
         for (auto const [index, table]: std::views::enumerate(tables))
         {
             if (table.name == tablePrinted.name)
@@ -846,7 +848,7 @@ void ResolveOrderAndPrintTable(CxxModelPrinter& cxxModelPrinter, std::vector<Sql
 
     size_t numberOfPrintedTables = 0;
 
-    const auto printTable = [&](size_t index, auto const& table) {
+    auto const printTable = [&](size_t index, auto const& table) {
         cxxModelPrinter.PrintTable(table);
         numberOfPrintedTables++;
         updateForeignKeyCountAfterPrinted(table);
@@ -1034,10 +1036,10 @@ void GenerateExample(Configuration const& config,
                      CxxModelPrinter const& cxxModelPrinter,
                      std::vector<SqlSchema::Table> const& tables)
 {
-    const auto normalizedOutputDir = config.outputDirectory.back() == '/' || config.outputDirectory.back() == '\\'
+    auto const normalizedOutputDir = config.outputDirectory.back() == '/' || config.outputDirectory.back() == '\\'
                                          ? std::string(config.outputDirectory)
                                          : std::string(config.outputDirectory) + '/';
-    const auto sourceFileName = normalizedOutputDir + "example.cpp";
+    auto const sourceFileName = normalizedOutputDir + "example.cpp";
     auto file = std::ofstream(sourceFileName); // NOLINT(bugprone-suspicious-stringview-data-usage)
 
     file << cxxModelPrinter.tableIncludes();
