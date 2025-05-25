@@ -113,7 +113,8 @@ std::u16string ToUtf16(std::string const& localeInputString)
     return { reinterpret_cast<char16_t const*>(wideString.data()),
              reinterpret_cast<char16_t const*>(wideString.data() + wideString.size()) };
 #else
-    return ToUtf16(std::u8string_view{ reinterpret_cast<char8_t const*>(localeInputString.data()), localeInputString.size() } );
+    return ToUtf16(
+        std::u8string_view { reinterpret_cast<char8_t const*>(localeInputString.data()), localeInputString.size() });
 #endif
 }
 
@@ -153,7 +154,8 @@ std::wstring ToStdWideString(std::string const& localeInputString)
     wideString.reserve(localeInputString.size());
 
     // Convert each character to wide character
-    for (char ch : localeInputString) {
+    for (char ch: localeInputString)
+    {
         wideString.push_back(static_cast<wchar_t>(ch));
     }
 

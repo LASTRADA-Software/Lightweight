@@ -12,9 +12,7 @@
 class LIGHTWEIGHT_API SqlDeleteQueryBuilder final: public SqlWhereClauseBuilder<SqlDeleteQueryBuilder>
 {
   public:
-    explicit SqlDeleteQueryBuilder(SqlQueryFormatter const& formatter,
-                                   std::string table,
-                                   std::string tableAlias) noexcept:
+    explicit SqlDeleteQueryBuilder(SqlQueryFormatter const& formatter, std::string table, std::string tableAlias) noexcept:
         SqlWhereClauseBuilder<SqlDeleteQueryBuilder> {},
         m_formatter { formatter }
     {

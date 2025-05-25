@@ -172,8 +172,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
                                        std::source_location location = std::source_location::current());
 
     /// Executes the given query directly.
-    void ExecuteDirect(SqlQueryObject auto const& query,
-                       std::source_location location = std::source_location::current());
+    void ExecuteDirect(SqlQueryObject auto const& query, std::source_location location = std::source_location::current());
 
     /// Executes an SQL migration query, as created b the callback.
     template <typename Callable>
@@ -184,12 +183,12 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// returned.
     template <typename T>
         requires(!std::same_as<T, SqlVariant>)
-    [[nodiscard]] std::optional<T> ExecuteDirectScalar(const std::string_view& query,
+    [[nodiscard]] std::optional<T> ExecuteDirectScalar(std::string_view const& query,
                                                        std::source_location location = std::source_location::current());
 
     template <typename T>
         requires(std::same_as<T, SqlVariant>)
-    [[nodiscard]] T ExecuteDirectScalar(const std::string_view& query,
+    [[nodiscard]] T ExecuteDirectScalar(std::string_view const& query,
                                         std::source_location location = std::source_location::current());
 
     /// Executes the given query, assuming that only one result row and column is affected, that one will be
@@ -628,8 +627,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumn(SQLUSMALLINT
 {
     RequireIndicators();
 
-    RequireSuccess(
-        SqlDataBinder<T>::OutputColumn(m_hStmt, columnIndex, arg, GetIndicatorForColumn(columnIndex), *this));
+    RequireSuccess(SqlDataBinder<T>::OutputColumn(m_hStmt, columnIndex, arg, GetIndicatorForColumn(columnIndex), *this));
 }
 
 template <SqlInputParameterBinder Arg>
@@ -716,7 +714,7 @@ void SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstColumnBatch,
     if (m_expectedParameterCount != 1 + sizeof...(moreColumnBatches))
         throw std::invalid_argument { "Invalid number of columns" };
 
-    const auto rowCount = std::ranges::size(firstColumnBatch);
+    auto const rowCount = std::ranges::size(firstColumnBatch);
     if (!((std::size(moreColumnBatches) == rowCount) && ...))
         throw std::invalid_argument { "Uneven number of rows" };
 
@@ -751,13 +749,12 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::ExecuteBatch(FirstColumnBatch
 }
 
 template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches>
-void SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColumnBatch,
-                                    MoreColumnBatches const&... moreColumnBatches)
+void SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColumnBatch, MoreColumnBatches const&... moreColumnBatches)
 {
     if (m_expectedParameterCount != 1 + sizeof...(moreColumnBatches))
         throw std::invalid_argument { "Invalid number of columns" };
 
-    const auto rowCount = std::ranges::size(firstColumnBatch);
+    auto const rowCount = std::ranges::size(firstColumnBatch);
     if (!((std::size(moreColumnBatches) == rowCount) && ...))
         throw std::invalid_argument { "Uneven number of rows" };
 
@@ -836,7 +833,7 @@ void SqlStatement::MigrateDirect(Callable const& callable, std::source_location 
 
 template <typename T>
     requires(!std::same_as<T, SqlVariant>)
-inline std::optional<T> SqlStatement::ExecuteDirectScalar(const std::string_view& query, std::source_location location)
+inline std::optional<T> SqlStatement::ExecuteDirectScalar(std::string_view const& query, std::source_location location)
 {
     auto const _ = detail::Finally([this] { CloseCursor(); });
     ExecuteDirect(query, location);
@@ -846,7 +843,7 @@ inline std::optional<T> SqlStatement::ExecuteDirectScalar(const std::string_view
 
 template <typename T>
     requires(std::same_as<T, SqlVariant>)
-inline T SqlStatement::ExecuteDirectScalar(const std::string_view& query, std::source_location location)
+inline T SqlStatement::ExecuteDirectScalar(std::string_view const& query, std::source_location location)
 {
     auto const _ = detail::Finally([this] { CloseCursor(); });
     ExecuteDirect(query, location);
@@ -858,8 +855,7 @@ inline T SqlStatement::ExecuteDirectScalar(const std::string_view& query, std::s
 
 template <typename T>
     requires(!std::same_as<T, SqlVariant>)
-inline std::optional<T> SqlStatement::ExecuteDirectScalar(SqlQueryObject auto const& query,
-                                                          std::source_location location)
+inline std::optional<T> SqlStatement::ExecuteDirectScalar(SqlQueryObject auto const& query, std::source_location location)
 {
     return ExecuteDirectScalar<T>(query.ToSql(), location);
 }

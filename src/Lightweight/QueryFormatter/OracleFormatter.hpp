@@ -77,36 +77,35 @@ class OracleSqlQueryFormatter final: public SQLiteQueryFormatter
     [[nodiscard]] std::string ColumnType(SqlColumnTypeDefinition const& type) const override
     {
         using namespace SqlColumnTypeDefinitions;
-        return std::visit(
-            detail::overloaded {
-                [](Bigint const&) -> std::string { return "NUMBER(21, 0)"; },
-                [](Binary const&) -> std::string { return "BLOB"; },
-                [](Bool const&) -> std::string { return "BIT"; },
-                [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
-                [](Date const&) -> std::string { return "DATE"; },
-                [](DateTime const&) -> std::string { return "TIMESTAMP"; },
-                [](Decimal const& type) -> std::string {
-                    return std::format("DECIMAL({}, {})", type.precision, type.scale);
-                },
-                [](Guid const&) -> std::string { return "RAW(16)"; },
-                [](Integer const&) -> std::string { return "INTEGER"; },
-                [](NChar const& type) -> std::string { return std::format("NCHAR({})", type.size); },
-                [](NVarchar const& type) -> std::string { return std::format("NVARCHAR2({})", type.size); },
-                [](Real const&) -> std::string { return "REAL"; },
-                [](Smallint const&) -> std::string { return "SMALLINT"; },
-                [](Text const& type) -> std::string {
-                    if (type.size <= SqlOptimalMaxColumnSize)
-                        return std::format("VARCHAR2({})", type.size);
-                    else
-                        return "CLOB";
-                },
-                [](Time const&) -> std::string { return "TIMESTAMP"; },
-                [](Timestamp const&) -> std::string { return "TIMESTAMP"; },
-                [](Tinyint const&) -> std::string { return "TINYINT"; },
-                [](VarBinary const& type) -> std::string { return std::format("VARBINARY({})", type.size); },
-                [](Varchar const& type) -> std::string { return std::format("VARCHAR({})", type.size); },
-            },
-            type);
+        return std::visit(detail::overloaded {
+                              [](Bigint const&) -> std::string { return "NUMBER(21, 0)"; },
+                              [](Binary const&) -> std::string { return "BLOB"; },
+                              [](Bool const&) -> std::string { return "BIT"; },
+                              [](Char const& type) -> std::string { return std::format("CHAR({})", type.size); },
+                              [](Date const&) -> std::string { return "DATE"; },
+                              [](DateTime const&) -> std::string { return "TIMESTAMP"; },
+                              [](Decimal const& type) -> std::string {
+                                  return std::format("DECIMAL({}, {})", type.precision, type.scale);
+                              },
+                              [](Guid const&) -> std::string { return "RAW(16)"; },
+                              [](Integer const&) -> std::string { return "INTEGER"; },
+                              [](NChar const& type) -> std::string { return std::format("NCHAR({})", type.size); },
+                              [](NVarchar const& type) -> std::string { return std::format("NVARCHAR2({})", type.size); },
+                              [](Real const&) -> std::string { return "REAL"; },
+                              [](Smallint const&) -> std::string { return "SMALLINT"; },
+                              [](Text const& type) -> std::string {
+                                  if (type.size <= SqlOptimalMaxColumnSize)
+                                      return std::format("VARCHAR2({})", type.size);
+                                  else
+                                      return "CLOB";
+                              },
+                              [](Time const&) -> std::string { return "TIMESTAMP"; },
+                              [](Timestamp const&) -> std::string { return "TIMESTAMP"; },
+                              [](Tinyint const&) -> std::string { return "TINYINT"; },
+                              [](VarBinary const& type) -> std::string { return std::format("VARBINARY({})", type.size); },
+                              [](Varchar const& type) -> std::string { return std::format("VARCHAR({})", type.size); },
+                          },
+                          type);
     }
 
     [[nodiscard]] std::string BuildColumnDefinition(SqlColumnDeclaration const& column) const override

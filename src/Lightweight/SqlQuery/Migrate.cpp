@@ -3,7 +3,7 @@
 #include "../SqlQueryFormatter.hpp"
 #include "Migrate.hpp"
 
-SqlMigrationPlan const& SqlMigrationQueryBuilder::GetPlan() const &
+SqlMigrationPlan const& SqlMigrationQueryBuilder::GetPlan() const&
 {
     return _migrationPlan;
 }
@@ -47,8 +47,7 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::RenameTo(std::string_view 
     return *this;
 }
 
-SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddColumn(std::string columnName,
-                                                                SqlColumnTypeDefinition columnType)
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddColumn(std::string columnName, SqlColumnTypeDefinition columnType)
 {
     _plan.commands.emplace_back(SqlAlterTableCommands::AddColumn {
         .columnName = std::move(columnName),
@@ -135,8 +134,9 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddForeignKey(std::string 
     return *this;
 }
 
-SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddForeignKeyColumn(
-    std::string columnName, SqlColumnTypeDefinition columnType, SqlForeignKeyReferenceDefinition referencedColumn)
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddForeignKeyColumn(std::string columnName,
+                                                                          SqlColumnTypeDefinition columnType,
+                                                                          SqlForeignKeyReferenceDefinition referencedColumn)
 {
     return AddColumn(columnName, columnType).AddForeignKey(std::move(columnName), std::move(referencedColumn));
 }
@@ -163,8 +163,7 @@ SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::Column(SqlColumnDeclarat
     return *this;
 }
 
-SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::Column(std::string columnName,
-                                                               SqlColumnTypeDefinition columnType)
+SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::Column(std::string columnName, SqlColumnTypeDefinition columnType)
 {
     return Column(SqlColumnDeclaration {
         .name = std::move(columnName),

@@ -59,8 +59,7 @@ struct SqlDate
         } };
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE constexpr SQL_DATE_STRUCT ConvertToSqlValue(
-        std::chrono::year_month_day value) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE constexpr SQL_DATE_STRUCT ConvertToSqlValue(std::chrono::year_month_day value) noexcept
     {
         return SQL_DATE_STRUCT {
             .year = (SQLSMALLINT) (int) value.year(),
@@ -98,16 +97,8 @@ struct SqlDataBinder<SqlDate>
                                                              SqlDate const& value,
                                                              SqlDataBinderCallback& /*cb*/) noexcept
     {
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                SQL_C_TYPE_DATE,
-                                SQL_TYPE_DATE,
-                                0,
-                                0,
-                                (SQLPOINTER) &value.sqlValue,
-                                0,
-                                nullptr);
+        return SQLBindParameter(
+            stmt, column, SQL_PARAM_INPUT, SQL_C_TYPE_DATE, SQL_TYPE_DATE, 0, 0, (SQLPOINTER) &value.sqlValue, 0, nullptr);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
@@ -116,11 +107,8 @@ struct SqlDataBinder<SqlDate>
         return SQLBindCol(stmt, column, SQL_C_TYPE_DATE, &result->sqlValue, sizeof(result->sqlValue), indicator);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,
-                                                        SQLUSMALLINT column,
-                                                        SqlDate* result,
-                                                        SQLLEN* indicator,
-                                                        SqlDataBinderCallback const& /*cb*/) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, SqlDate* result, SQLLEN* indicator, SqlDataBinderCallback const& /*cb*/) noexcept
     {
         return SQLGetData(stmt, column, SQL_C_TYPE_DATE, &result->sqlValue, sizeof(result->sqlValue), indicator);
     }

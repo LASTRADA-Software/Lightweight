@@ -65,7 +65,7 @@ enum class SqlTransactionMode : std::uint8_t
 class SqlTransactionException: public std::runtime_error
 {
   public:
-    explicit SqlTransactionException(const std::string& message) noexcept:
+    explicit SqlTransactionException(std::string const& message) noexcept:
         std::runtime_error(message)
     {
     }

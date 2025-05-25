@@ -105,7 +105,7 @@ std::ostream& operator<<(std::ostream& os, SqlNumeric<Precision, Scale> const& v
 // - http://www.ch-werner.de/sqliteodbc/
 // - https://github.com/softace/sqliteodbc
 //
-auto const inline DefaultTestConnectionString = SqlConnectionString {
+auto inline const DefaultTestConnectionString = SqlConnectionString {
     .value = std::format("DRIVER={};Database={}",
 #if defined(_WIN32) || defined(_WIN64)
                          "SQLite3 ODBC Driver",
@@ -505,8 +505,8 @@ inline std::ostream& operator<<(std::ostream& os, SqlDateTime const& datetime)
     auto const value = datetime.value();
     auto const totalDays = std::chrono::floor<std::chrono::days>(value);
     auto const ymd = std::chrono::year_month_day { totalDays };
-    auto const hms = std::chrono::hh_mm_ss<std::chrono::nanoseconds> { std::chrono::floor<std::chrono::nanoseconds>(
-        value - totalDays) };
+    auto const hms =
+        std::chrono::hh_mm_ss<std::chrono::nanoseconds> { std::chrono::floor<std::chrono::nanoseconds>(value - totalDays) };
     return os << std::format("SqlDateTime {{ {:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:09} }}",
                              (int) ymd.year(),
                              (unsigned) ymd.month(),

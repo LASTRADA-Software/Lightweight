@@ -165,9 +165,8 @@ HasManyThrough<ReferencedRecordT, ThroughRecordT>::ReferencedRecordList& HasMany
 }
 
 template <typename ReferencedRecordT, typename ThroughRecordT>
-HasManyThrough<ReferencedRecordT, ThroughRecordT>::ReferencedRecordList& HasManyThrough<
-    ReferencedRecordT,
-    ThroughRecordT>::Emplace(ReferencedRecordList&& records) noexcept
+HasManyThrough<ReferencedRecordT, ThroughRecordT>::ReferencedRecordList& HasManyThrough<ReferencedRecordT, ThroughRecordT>::
+    Emplace(ReferencedRecordList&& records) noexcept
 {
     _records = { std::move(records) };
     _count = _records->size();
@@ -201,8 +200,8 @@ HasManyThrough<ReferencedRecordT, ThroughRecordT>::ReferencedRecord const& HasMa
 }
 
 template <typename ReferencedRecordT, typename ThroughRecordT>
-HasManyThrough<ReferencedRecordT, ThroughRecordT>::ReferencedRecord& HasManyThrough<ReferencedRecordT, ThroughRecordT>::
-    At(std::size_t index)
+HasManyThrough<ReferencedRecordT, ThroughRecordT>::ReferencedRecord& HasManyThrough<ReferencedRecordT, ThroughRecordT>::At(
+    std::size_t index)
 {
     return *All().at(index);
 }
@@ -230,22 +229,21 @@ HasManyThrough<ReferencedRecordT, ThroughRecordT>::iterator HasManyThrough<Refer
 }
 
 template <typename ReferencedRecordT, typename ThroughRecordT>
-HasManyThrough<ReferencedRecordT, ThroughRecordT>::iterator HasManyThrough<ReferencedRecordT,
-                                                                           ThroughRecordT>::end() noexcept
+HasManyThrough<ReferencedRecordT, ThroughRecordT>::iterator HasManyThrough<ReferencedRecordT, ThroughRecordT>::end() noexcept
 {
     return All().end();
 }
 
 template <typename ReferencedRecordT, typename ThroughRecordT>
-HasManyThrough<ReferencedRecordT, ThroughRecordT>::const_iterator HasManyThrough<ReferencedRecordT,
-                                                                                 ThroughRecordT>::begin() const noexcept
+HasManyThrough<ReferencedRecordT, ThroughRecordT>::const_iterator HasManyThrough<ReferencedRecordT, ThroughRecordT>::begin()
+    const noexcept
 {
     return All().begin();
 }
 
 template <typename ReferencedRecordT, typename ThroughRecordT>
-HasManyThrough<ReferencedRecordT, ThroughRecordT>::const_iterator HasManyThrough<ReferencedRecordT,
-                                                                                 ThroughRecordT>::end() const noexcept
+HasManyThrough<ReferencedRecordT, ThroughRecordT>::const_iterator HasManyThrough<ReferencedRecordT, ThroughRecordT>::end()
+    const noexcept
 {
     return All().end();
 }

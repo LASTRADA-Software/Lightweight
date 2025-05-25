@@ -30,12 +30,9 @@ struct IsSqlElements<SqlElements<Ints...>>: std::true_type
 };
 } // namespace detail
 
-
 // @brief Helper concept to check if a type is not a specialization of SqlElements
 template <typename T>
 concept NotSqlElements = !detail::IsSqlElements<T>::value;
-
-
 
 /// @brief Represents a record type that can be used with the DataMapper.
 ///

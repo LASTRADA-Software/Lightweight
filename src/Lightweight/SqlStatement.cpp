@@ -153,7 +153,7 @@ void SqlStatement::Prepare(std::string_view query) &
     m_data->indicators.resize(m_expectedParameterCount + 1);
 }
 
-void SqlStatement::ExecuteDirect(const std::string_view& query, std::source_location location)
+void SqlStatement::ExecuteDirect(std::string_view const& query, std::source_location location)
 {
     if (query.empty())
         return;

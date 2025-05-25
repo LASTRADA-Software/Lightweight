@@ -82,9 +82,7 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlBasicSelectQueryBuild
   public:
     using SelectType = detail::SelectType;
 
-    explicit SqlSelectQueryBuilder(SqlQueryFormatter const& formatter,
-                                   std::string table,
-                                   std::string tableAlias) noexcept:
+    explicit SqlSelectQueryBuilder(SqlQueryFormatter const& formatter, std::string table, std::string tableAlias) noexcept:
         SqlBasicSelectQueryBuilder<SqlSelectQueryBuilder> {},
         _formatter { formatter }
     {

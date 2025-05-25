@@ -34,15 +34,14 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
             returnCode = SqlDataBinder<int8_t>::GetColumn(stmt, column, &variant.emplace<int8_t>(), indicator, cb);
             break;
         case SQL_SMALLINT:
-            returnCode = SqlDataBinder<unsigned short>::GetColumn(
-                stmt, column, &variant.emplace<unsigned short>(), indicator, cb);
+            returnCode =
+                SqlDataBinder<unsigned short>::GetColumn(stmt, column, &variant.emplace<unsigned short>(), indicator, cb);
             break;
         case SQL_INTEGER:
             returnCode = SqlDataBinder<int>::GetColumn(stmt, column, &variant.emplace<int>(), indicator, cb);
             break;
         case SQL_BIGINT:
-            returnCode =
-                SqlDataBinder<long long>::GetColumn(stmt, column, &variant.emplace<long long>(), indicator, cb);
+            returnCode = SqlDataBinder<long long>::GetColumn(stmt, column, &variant.emplace<long long>(), indicator, cb);
             break;
         case SQL_REAL:
             returnCode = SqlDataBinder<float>::GetColumn(stmt, column, &variant.emplace<float>(), indicator, cb);
@@ -51,11 +50,10 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
         case SQL_DOUBLE:
             returnCode = SqlDataBinder<double>::GetColumn(stmt, column, &variant.emplace<double>(), indicator, cb);
             break;
-        case SQL_CHAR:          // fixed-length string
-        case SQL_VARCHAR:       // variable-length string
-        case SQL_LONGVARCHAR:   // long string
-            returnCode =
-                SqlDataBinder<std::string>::GetColumn(stmt, column, &variant.emplace<std::string>(), indicator, cb);
+        case SQL_CHAR:        // fixed-length string
+        case SQL_VARCHAR:     // variable-length string
+        case SQL_LONGVARCHAR: // long string
+            returnCode = SqlDataBinder<std::string>::GetColumn(stmt, column, &variant.emplace<std::string>(), indicator, cb);
 
             if (cb.ServerType() == SqlServerType::SQLITE && SQL_SUCCEEDED(returnCode))
             {
@@ -67,22 +65,20 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
                 }
             }
             break;
-        case SQL_WCHAR:         // fixed-length Unicode (UTF-16) string
-        case SQL_WVARCHAR:      // variable-length Unicode (UTF-16) string
-        case SQL_WLONGVARCHAR:  // long Unicode (UTF-16) string
+        case SQL_WCHAR:        // fixed-length Unicode (UTF-16) string
+        case SQL_WVARCHAR:     // variable-length Unicode (UTF-16) string
+        case SQL_WLONGVARCHAR: // long Unicode (UTF-16) string
             returnCode =
                 SqlDataBinder<std::u16string>::GetColumn(stmt, column, &variant.emplace<std::u16string>(), indicator, cb);
             break;
         case SQL_BINARY:        // fixed-length binary
         case SQL_VARBINARY:     // variable-length binary
         case SQL_LONGVARBINARY: // long binary
-            returnCode =
-                SqlDataBinder<std::string>::GetColumn(stmt, column, &variant.emplace<std::string>(), indicator, cb);
+            returnCode = SqlDataBinder<std::string>::GetColumn(stmt, column, &variant.emplace<std::string>(), indicator, cb);
             break;
         case SQL_DATE:
             // Oracle ODBC driver returns SQL_DATE for DATE columns
-            returnCode =
-                SqlDataBinder<SqlDateTime>::GetColumn(stmt, column, &variant.emplace<SqlDateTime>(), indicator, cb);
+            returnCode = SqlDataBinder<SqlDateTime>::GetColumn(stmt, column, &variant.emplace<SqlDateTime>(), indicator, cb);
             break;
         case SQL_TYPE_DATE:
             returnCode = SqlDataBinder<SqlDate>::GetColumn(stmt, column, &variant.emplace<SqlDate>(), indicator, cb);
@@ -96,8 +92,7 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
             returnCode = SqlDataBinder<SqlTime>::GetColumn(stmt, column, &variant.emplace<SqlTime>(), indicator, cb);
             break;
         case SQL_TYPE_TIMESTAMP:
-            returnCode =
-                SqlDataBinder<SqlDateTime>::GetColumn(stmt, column, &variant.emplace<SqlDateTime>(), indicator, cb);
+            returnCode = SqlDataBinder<SqlDateTime>::GetColumn(stmt, column, &variant.emplace<SqlDateTime>(), indicator, cb);
             break;
         case SQL_TYPE_NULL:
             variant = SqlNullValue;

@@ -42,8 +42,10 @@ class [[nodiscard]] SqlInsertQueryBuilder final
     std::vector<SqlVariant>* m_inputBindings;
 };
 
-inline LIGHTWEIGHT_FORCE_INLINE SqlInsertQueryBuilder::SqlInsertQueryBuilder(
-    SqlQueryFormatter const& formatter, std::string tableName, std::vector<SqlVariant>* inputBindings) noexcept:
+inline LIGHTWEIGHT_FORCE_INLINE SqlInsertQueryBuilder::SqlInsertQueryBuilder(SqlQueryFormatter const& formatter,
+                                                                             std::string tableName,
+                                                                             std::vector<SqlVariant>* inputBindings) noexcept
+    :
     m_formatter { formatter },
     m_tableName { std::move(tableName) },
     m_inputBindings { inputBindings }

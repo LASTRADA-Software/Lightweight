@@ -1344,7 +1344,7 @@ TEST_CASE_METHOD(SqlTestFixture, "MapForJointStatement", "[DataMapper]")
     dm.CreateTable<JoinC>();
 
     // fill with some data
-    for (const int i: std::views::iota(1, 100))
+    for (int const i: std::views::iota(1, 100))
     {
         auto a = JoinA { .value_a_first = i, .value_a_second = 10 + i, .value_a_third = 100 + i };
         auto b = JoinB { .a_id = 49 + i, .c_id = i };

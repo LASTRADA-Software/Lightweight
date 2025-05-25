@@ -104,4 +104,3 @@ struct SqlDataBinder<std::u8string_view>
         return std::string { (char const*) value.data(), value.size() };
     }
 };
-

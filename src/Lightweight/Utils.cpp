@@ -37,7 +37,7 @@ std::string FormatName(std::string_view name, FormatType formatType)
     if (formatType == FormatType::preserve)
         return std::string { name };
 
-    const auto IsDelimiter = [](char c) {
+    auto const IsDelimiter = [](char c) {
         return c == '_' || c == '-' || c == ' ';
     };
 

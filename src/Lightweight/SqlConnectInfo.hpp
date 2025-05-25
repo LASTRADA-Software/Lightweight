@@ -59,12 +59,10 @@ struct std::formatter<SqlConnectInfo>: std::formatter<std::string>
     {
         if (auto const* dsn = std::get_if<SqlConnectionDataSource>(&info))
         {
-            return formatter<string>::format(std::format("DSN={};UID={};PWD={};TIMEOUT={}",
-                                                         dsn->datasource,
-                                                         dsn->username,
-                                                         dsn->password,
-                                                         dsn->timeout.count()),
-                                             ctx);
+            return formatter<string>::format(
+                std::format(
+                    "DSN={};UID={};PWD={};TIMEOUT={}", dsn->datasource, dsn->username, dsn->password, dsn->timeout.count()),
+                ctx);
         }
         else if (auto const* connectionString = std::get_if<SqlConnectionString>(&info))
         {
