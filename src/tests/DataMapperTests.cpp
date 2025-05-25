@@ -299,7 +299,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query.All", "[DataMapper]")
     CHECK(records[1] == expectedPersons[2]);
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "Query.First", "[DataMapper]")
+TEST_CASE_METHOD(SqlTestFixture, "Query.First n", "[DataMapper]")
 {
     auto dm = DataMapper {};
 
@@ -319,6 +319,30 @@ TEST_CASE_METHOD(SqlTestFixture, "Query.First", "[DataMapper]")
     CHECK(records.size() == 2);
     CHECK(records[0] == expectedPersons[0]);
     CHECK(records[1] == expectedPersons[2]);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Query.First", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    auto expectedPersons = std::array {
+        Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 },
+        Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 },
+        Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 },
+        Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 },
+    };
+
+    dm.CreateTable<Person>();
+    for (auto& person: expectedPersons)
+        dm.Create(person);
+
+    auto const record = dm.Query<Person>().Where(FieldNameOf<&Person::age>, "<=", 24).First();
+
+    REQUIRE(record.has_value());
+    CHECK(record.value() == expectedPersons[1]);
+
+    auto const impossible = dm.Query<Person>().Where(FieldNameOf<&Person::age>, "=", -5).First();
+    REQUIRE(impossible.has_value() == false);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Query.Range", "[DataMapper]")
@@ -384,7 +408,7 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.All", "[DataMapper]")
     CHECK(records[0].age == 42);
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.First", "[DataMapper]")
+TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.First n", "[DataMapper]")
 {
     auto dm = DataMapper {};
 
@@ -402,6 +426,27 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.First", "[DataMapper]")
     CHECK(records[0].age == 42);
     CHECK(records[1].name == "Jane Doe");
     CHECK(records[1].age == 36);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.First", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    dm.CreateTable<Person>();
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 });
+    dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 });
+
+    auto const record = dm.QuerySparse<Person, &Person::name>().Where(FieldNameOf<&Person::age>, "<=", 24).First();
+
+    REQUIRE(record.has_value());
+    CHECK(record->name == "Jimmy John");
+    CHECK(record->age.Value().has_value() == false); // age is not queried, so it defaults to 0
+    CHECK(record->is_active == true);                // is_active is not queried, so it defaults to false
+
+    auto const impossible = dm.QuerySparse<Person, &Person::name>().Where(FieldNameOf<&Person::age>, "=", -5).First();
+    REQUIRE(impossible.has_value() == false);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.Range", "[DataMapper]")
