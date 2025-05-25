@@ -217,6 +217,21 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         return records;
     }
 
+    [[nodiscard]] std::optional<Record> First()
+    {
+        std::optional<Record> record {};
+        _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+                                                   _fields,
+                                                   RecordTableName<Record>,
+                                                   this->_query.searchCondition.tableAlias,
+                                                   this->_query.searchCondition.tableJoins,
+                                                   this->_query.searchCondition.condition,
+                                                   this->_query.orderBy,
+                                                   1));
+        Derived::ReadResult(_stmt.Connection().ServerType(), _stmt.GetResultCursor(), &record);
+        return record;
+    }
+
     [[nodiscard]] std::vector<Record> First(size_t n)
     {
         auto records = std::vector<Record> {};
@@ -272,26 +287,41 @@ class [[nodiscard]] SqlSparseFieldQueryBuilder final:
     {
     }
 
-    // NB: Required yb SqlCoreDataMapperQueryBuilder
+    // NB: Required by SqlCoreDataMapperQueryBuilder:
+
     static void ReadResults(SqlServerType sqlServerType, SqlResultCursor reader, std::vector<Record>* records)
     {
         while (true)
         {
             auto& record = records->emplace_back();
-
-            auto const outputColumnsBound = detail::CanSafelyBindOutputColumns(sqlServerType, record);
-            if (outputColumnsBound)
-                reader.BindOutputColumns(&(record.*ReferencedFields)...);
-
-            if (!reader.FetchRow())
+            if (!ReadResultImpl(sqlServerType, reader, record))
             {
                 records->pop_back();
                 break;
             }
-
-            if (!outputColumnsBound)
-                detail::GetAllColumns(reader, record);
         }
+    }
+
+    static void ReadResult(SqlServerType sqlServerType, SqlResultCursor reader, std::optional<Record>* optionalRecord)
+    {
+        auto& record = optionalRecord->emplace();
+        if (!ReadResultImpl(sqlServerType, reader, record))
+            optionalRecord->reset();
+    }
+
+    static bool ReadResultImpl(SqlServerType sqlServerType, SqlResultCursor& reader, Record& record)
+    {
+        auto const outputColumnsBound = detail::CanSafelyBindOutputColumns(sqlServerType, record);
+        if (outputColumnsBound)
+            reader.BindOutputColumns(&(record.*ReferencedFields)...);
+
+        if (!reader.FetchRow())
+            return false;
+
+        if (!outputColumnsBound)
+            detail::GetAllColumns(reader, record);
+
+        return true;
     }
 };
 
@@ -334,21 +364,35 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
     {
         while (true)
         {
-            auto& record = records->emplace_back();
-
-            auto const outputColumnsBound = detail::CanSafelyBindOutputColumns(sqlServerType, record);
-            if (outputColumnsBound)
-                BindAllOutputColumns(reader, record);
-
-            if (!reader.FetchRow())
+            Record& record = records->emplace_back();
+            if (!ReadResultImpl(sqlServerType, reader, record))
             {
                 records->pop_back();
                 break;
             }
-
-            if (!outputColumnsBound)
-                detail::GetAllColumns(reader, record);
         }
+    }
+
+    static void ReadResult(SqlServerType sqlServerType, SqlResultCursor reader, std::optional<Record>* optionalRecord)
+    {
+        Record& record = optionalRecord->emplace();
+        if (!ReadResultImpl(sqlServerType, reader, record))
+            optionalRecord->reset();
+    }
+
+    static bool ReadResultImpl(SqlServerType sqlServerType, SqlResultCursor& reader, Record& record)
+    {
+        auto const outputColumnsBound = detail::CanSafelyBindOutputColumns(sqlServerType, record);
+        if (outputColumnsBound)
+            BindAllOutputColumns(reader, record);
+
+        if (!reader.FetchRow())
+            return false;
+
+        if (!outputColumnsBound)
+            detail::GetAllColumns(reader, record);
+
+        return true;
     }
 };
 
