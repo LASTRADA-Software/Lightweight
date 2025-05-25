@@ -21,7 +21,7 @@ var classSqlStatement =
     [ "ExecuteDirect", "df/d17/classSqlStatement.html#a945c53d6f2882289703f9ac98f3f171c", null ],
     [ "ExecuteDirect", "df/d17/classSqlStatement.html#ac37b4a541621dd7b1a6c3a2111c4c027", null ],
     [ "MigrateDirect", "df/d17/classSqlStatement.html#ab1665766fa52c6fcdf8ca06c3895ea2d", null ],
-    [ "ExecuteDirectScalar", "df/d17/classSqlStatement.html#acd12aea32817fef21321a48d3daf7e7a", null ],
+    [ "ExecuteDirectScalar", "df/d17/classSqlStatement.html#a343a3163ad49458affd7689ed20b201c", null ],
     [ "ExecuteDirectScalar", "df/d17/classSqlStatement.html#a0a81e0418f62dcb254f43d868f90c7b8", null ],
     [ "NumRowsAffected", "df/d17/classSqlStatement.html#a798024560a6f680836e08f90dbb7b928", null ],
     [ "NumColumnsAffected", "df/d17/classSqlStatement.html#abdc81e6ac6a5f063a445637b9cd64ee6", null ],

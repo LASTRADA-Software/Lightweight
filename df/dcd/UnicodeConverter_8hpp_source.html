@@ -321,7 +321,7 @@ $(document).ready(function(){initNavTree('df/dcd/UnicodeConverter_8hpp_source.ht
 <div class="foldopen" id="foldopen00221" data-start="{" data-end="}">
 <div class="line"><a id="l00221" name="l00221"></a><span class="lineno"><a class="line" href="../../d1/d7d/group__Unicode.html#ga6695fc4c42b45b95bc185d2a8600de7f">  221</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE std::u8string <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a>(std::basic_string_view&lt;T&gt; u16InputString)</div>
 <div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>{</div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a>(std::u16string_view(<span class="keyword">reinterpret_cast&lt;</span><span class="keyword">const </span><span class="keywordtype">char16_t</span>*<span class="keyword">&gt;</span>(u16InputString.data()), u16InputString.size()));</div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a>(std::u16string_view(<span class="keyword">reinterpret_cast&lt;</span><span class="keywordtype">char16_t</span> const*<span class="keyword">&gt;</span>(u16InputString.data()), u16InputString.size()));</div>
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>}</div>
 </div>
 <div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span><span class="comment"></span> </div>
@@ -332,7 +332,7 @@ $(document).ready(function(){initNavTree('df/dcd/UnicodeConverter_8hpp_source.ht
 <div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>    <span class="keyword">requires</span>(std::same_as&lt;T, wchar_t&gt; &amp;&amp; <span class="keyword">sizeof</span>(wchar_t) == 4)</div>
 <div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE std::u8string <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a>(std::basic_string_view&lt;T&gt; u32InputString)</div>
 <div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>{</div>
-<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a>(std::u32string_view(<span class="keyword">reinterpret_cast&lt;</span><span class="keyword">const </span><span class="keywordtype">char32_t</span>*<span class="keyword">&gt;</span>(u32InputString.data()), u32InputString.size()));</div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a>(std::u32string_view(<span class="keyword">reinterpret_cast&lt;</span><span class="keywordtype">char32_t</span> const*<span class="keyword">&gt;</span>(u32InputString.data()), u32InputString.size()));</div>
 <div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>}</div>
 <div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span><span class="comment"></span> </div>
 <div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span><span class="comment">/// Converts from UTF-32 to UTF-16.</span></div>
@@ -341,7 +341,7 @@ $(document).ready(function(){initNavTree('df/dcd/UnicodeConverter_8hpp_source.ht
 <div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
 <div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>    <span class="keyword">requires</span> std::same_as&lt;T, char32_t&gt; || (std::same_as&lt;T, wchar_t&gt; &amp;&amp; <span class="keyword">sizeof</span>(wchar_t) == 4)</div>
 <div class="foldopen" id="foldopen00241" data-start="{" data-end="}">
-<div class="line"><a id="l00241" name="l00241"></a><span class="lineno"><a class="line" href="../../d1/d7d/group__Unicode.html#gabd2bf0a25881dd4f308c6fa47a63c4f8">  241</a></span>std::u16string <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gabd2bf0a25881dd4f308c6fa47a63c4f8">ToUtf16</a>(<span class="keyword">const</span> std::basic_string_view&lt;T&gt; u32InputString)</div>
+<div class="line"><a id="l00241" name="l00241"></a><span class="lineno"><a class="line" href="../../d1/d7d/group__Unicode.html#ga2c8d606187173511ada0c117403a3a1a">  241</a></span>std::u16string <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#ga2c8d606187173511ada0c117403a3a1a">ToUtf16</a>(std::basic_string_view&lt;T&gt; <span class="keyword">const</span> u32InputString)</div>
 <div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>{</div>
 <div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>    std::u16string u16OutputString;</div>
 <div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>    u16OutputString.reserve(u32InputString.size());</div>
@@ -355,12 +355,12 @@ $(document).ready(function(){initNavTree('df/dcd/UnicodeConverter_8hpp_source.ht
 <div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span><span class="comment">/// Converts from UTF-8 to UTF-16.</span></div>
 <div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span><span class="comment">///</span></div>
 <div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span><span class="comment">/// @ingroup Unicode</span></div>
-<div class="line"><a id="l00254" name="l00254"></a><span class="lineno"><a class="line" href="../../d1/d7d/group__Unicode.html#ga814222973e072ecaae6e0d9f9e4ab3bf">  254</a></span><span class="comment"></span>LIGHTWEIGHT_API std::u16string <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gabd2bf0a25881dd4f308c6fa47a63c4f8">ToUtf16</a>(std::u8string_view u8InputString);</div>
+<div class="line"><a id="l00254" name="l00254"></a><span class="lineno"><a class="line" href="../../d1/d7d/group__Unicode.html#ga814222973e072ecaae6e0d9f9e4ab3bf">  254</a></span><span class="comment"></span>LIGHTWEIGHT_API std::u16string <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#ga2c8d606187173511ada0c117403a3a1a">ToUtf16</a>(std::u8string_view u8InputString);</div>
 <div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span><span class="comment"></span> </div>
 <div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span><span class="comment">/// Converts from local 8-bit string to UTF-16.</span></div>
 <div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span><span class="comment">///</span></div>
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span><span class="comment">/// @ingroup Unicode</span></div>
-<div class="line"><a id="l00259" name="l00259"></a><span class="lineno"><a class="line" href="../../d1/d7d/group__Unicode.html#ga2bae68e92f4ebecd38f4c26c750a9796">  259</a></span><span class="comment"></span>LIGHTWEIGHT_API std::u16string <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gabd2bf0a25881dd4f308c6fa47a63c4f8">ToUtf16</a>(std::string <span class="keyword">const</span>&amp; localeInputString);</div>
+<div class="line"><a id="l00259" name="l00259"></a><span class="lineno"><a class="line" href="../../d1/d7d/group__Unicode.html#ga2bae68e92f4ebecd38f4c26c750a9796">  259</a></span><span class="comment"></span>LIGHTWEIGHT_API std::u16string <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#ga2c8d606187173511ada0c117403a3a1a">ToUtf16</a>(std::string <span class="keyword">const</span>&amp; localeInputString);</div>
 <div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span><span class="comment"></span> </div>
 <div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span><span class="comment">/// Converts from UTF-8 to UTF-32.</span></div>
 <div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span><span class="comment">///</span></div>
@@ -375,40 +375,39 @@ $(document).ready(function(){initNavTree('df/dcd/UnicodeConverter_8hpp_source.ht
 <div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>    <span class="keywordflow">return</span> result;</div>
 <div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>}</div>
 </div>
-<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span> </div>
-<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span><span class="comment"></span> </div>
-<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span><span class="comment">/// Converts from UTF-16 to UTF-32.</span></div>
-<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span><span class="comment">///</span></div>
-<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span><span class="comment">/// @ingroup Unicode</span></div>
-<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T = std::u32<span class="keywordtype">string</span>&gt;</div>
-<div class="foldopen" id="foldopen00278" data-start="{" data-end="}">
-<div class="line"><a id="l00278" name="l00278"></a><span class="lineno"><a class="line" href="../../d1/d7d/group__Unicode.html#gaec3ba9b74cf088e33f4d03470a19a485">  278</a></span>T <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#ga6c3ec34652e689bcfa46800912724a6e">ToUtf32</a>(std::u16string_view u16InputString)</div>
-<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>{</div>
-<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>    <span class="keyword">auto</span> result = T {};</div>
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span> </div>
-<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>    <span class="keywordflow">for</span> (<span class="keywordtype">char16_t</span> <span class="keyword">const</span> c16: u16InputString)</div>
-<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>    {</div>
-<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>        <span class="keywordflow">if</span> (c16 &lt; 0xD800 || c16 &gt;= 0xDC00)</div>
-<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>            result.push_back(c16);</div>
-<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>        <span class="keywordflow">else</span></div>
-<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>            result.push_back(0x10000 + ((c16 &amp; 0x3FF) | ((c16 &amp; 0x3FF) &lt;&lt; 10)));</div>
-<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>    }</div>
-<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span> </div>
-<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>    <span class="keywordflow">return</span> result;</div>
-<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>}</div>
+<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span><span class="comment"></span> </div>
+<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span><span class="comment">/// Converts from UTF-16 to UTF-32.</span></div>
+<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span><span class="comment">///</span></div>
+<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span><span class="comment">/// @ingroup Unicode</span></div>
+<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T = std::u32<span class="keywordtype">string</span>&gt;</div>
+<div class="foldopen" id="foldopen00277" data-start="{" data-end="}">
+<div class="line"><a id="l00277" name="l00277"></a><span class="lineno"><a class="line" href="../../d1/d7d/group__Unicode.html#gaec3ba9b74cf088e33f4d03470a19a485">  277</a></span>T <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#ga6c3ec34652e689bcfa46800912724a6e">ToUtf32</a>(std::u16string_view u16InputString)</div>
+<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>{</div>
+<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>    <span class="keyword">auto</span> result = T {};</div>
+<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span> </div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>    <span class="keywordflow">for</span> (<span class="keywordtype">char16_t</span> <span class="keyword">const</span> c16: u16InputString)</div>
+<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>    {</div>
+<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>        <span class="keywordflow">if</span> (c16 &lt; 0xD800 || c16 &gt;= 0xDC00)</div>
+<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>            result.push_back(c16);</div>
+<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>        <span class="keywordflow">else</span></div>
+<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>            result.push_back(0x10000 + ((c16 &amp; 0x3FF) | ((c16 &amp; 0x3FF) &lt;&lt; 10)));</div>
+<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>    }</div>
+<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span> </div>
+<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>    <span class="keywordflow">return</span> result;</div>
+<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>}</div>
 </div>
-<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span> </div>
-<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span><span class="comment">// Converts a UTF-8 string to wchar_t-based wide string.</span><span class="comment"></span></div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span><span class="comment">///</span></div>
-<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span><span class="comment">/// @ingroup Unicode</span></div>
-<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span><span class="comment"></span>LIGHTWEIGHT_API std::wstring ToStdWideString(std::u8string_view u8InputString);</div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span> </div>
-<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span><span class="comment">// Converts a local 8-bit string to wchar_t-based wide string.</span><span class="comment"></span></div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span><span class="comment">///</span></div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span><span class="comment">/// @ingroup Unicode</span></div>
-<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span><span class="comment"></span>LIGHTWEIGHT_API std::wstring ToStdWideString(std::string <span class="keyword">const</span>&amp; localeInputString);</div>
+<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span> </div>
+<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span><span class="comment">// Converts a UTF-8 string to wchar_t-based wide string.</span><span class="comment"></span></div>
+<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span><span class="comment">///</span></div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span><span class="comment">/// @ingroup Unicode</span></div>
+<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span><span class="comment"></span>LIGHTWEIGHT_API std::wstring ToStdWideString(std::u8string_view u8InputString);</div>
+<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span> </div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span><span class="comment">// Converts a local 8-bit string to wchar_t-based wide string.</span><span class="comment"></span></div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span><span class="comment">///</span></div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span><span class="comment">/// @ingroup Unicode</span></div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span><span class="comment"></span>LIGHTWEIGHT_API std::wstring ToStdWideString(std::string <span class="keyword">const</span>&amp; localeInputString);</div>
+<div class="ttc" id="agroup__Unicode_html_ga2c8d606187173511ada0c117403a3a1a"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#ga2c8d606187173511ada0c117403a3a1a">ToUtf16</a></div><div class="ttdeci">std::u16string ToUtf16(std::basic_string_view&lt; T &gt; const u32InputString)</div><div class="ttdef"><b>Definition</b> <a href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00241">UnicodeConverter.hpp:241</a></div></div>
 <div class="ttc" id="agroup__Unicode_html_ga6c3ec34652e689bcfa46800912724a6e"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#ga6c3ec34652e689bcfa46800912724a6e">ToUtf32</a></div><div class="ttdeci">T ToUtf32(std::u8string_view u8InputString)</div><div class="ttdef"><b>Definition</b> <a href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00265">UnicodeConverter.hpp:265</a></div></div>
-<div class="ttc" id="agroup__Unicode_html_gabd2bf0a25881dd4f308c6fa47a63c4f8"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#gabd2bf0a25881dd4f308c6fa47a63c4f8">ToUtf16</a></div><div class="ttdeci">std::u16string ToUtf16(const std::basic_string_view&lt; T &gt; u32InputString)</div><div class="ttdef"><b>Definition</b> <a href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00241">UnicodeConverter.hpp:241</a></div></div>
 <div class="ttc" id="agroup__Unicode_html_gaf7c1f55d642f4db4d16e5d9e1ec9ddef"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef">ToUtf8</a></div><div class="ttdeci">LIGHTWEIGHT_API std::u8string ToUtf8(std::u32string_view u32InputString)</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->

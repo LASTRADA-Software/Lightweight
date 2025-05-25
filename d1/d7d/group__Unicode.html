@@ -109,10 +109,10 @@ Functions</h2></td></tr>
 requires (std::same_as&lt;T, wchar_t&gt; &amp;&amp; sizeof(wchar_t) == 2)</td></tr>
 <tr class="memitem:ga6695fc4c42b45b95bc185d2a8600de7f"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE std::u8string&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#ga6695fc4c42b45b95bc185d2a8600de7f">ToUtf8</a> (std::basic_string_view&lt; T &gt; u16InputString)</td></tr>
 <tr class="separator:ga6695fc4c42b45b95bc185d2a8600de7f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gabd2bf0a25881dd4f308c6fa47a63c4f8" id="r_gabd2bf0a25881dd4f308c6fa47a63c4f8"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; <br />
+<tr class="memitem:ga2c8d606187173511ada0c117403a3a1a" id="r_ga2c8d606187173511ada0c117403a3a1a"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; <br />
 requires std::same_as&lt;T, char32_t&gt; || (std::same_as&lt;T, wchar_t&gt; &amp;&amp; sizeof(wchar_t) == 4)</td></tr>
-<tr class="memitem:gabd2bf0a25881dd4f308c6fa47a63c4f8"><td class="memTemplItemLeft" align="right" valign="top">std::u16string&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#gabd2bf0a25881dd4f308c6fa47a63c4f8">ToUtf16</a> (const std::basic_string_view&lt; T &gt; u32InputString)</td></tr>
-<tr class="separator:gabd2bf0a25881dd4f308c6fa47a63c4f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2c8d606187173511ada0c117403a3a1a"><td class="memTemplItemLeft" align="right" valign="top">std::u16string&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#ga2c8d606187173511ada0c117403a3a1a">ToUtf16</a> (std::basic_string_view&lt; T &gt; const u32InputString)</td></tr>
+<tr class="separator:ga2c8d606187173511ada0c117403a3a1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga814222973e072ecaae6e0d9f9e4ab3bf" id="r_ga814222973e072ecaae6e0d9f9e4ab3bf"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::u16string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#ga814222973e072ecaae6e0d9f9e4ab3bf">ToUtf16</a> (std::u8string_view u8InputString)</td></tr>
 <tr class="separator:ga814222973e072ecaae6e0d9f9e4ab3bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga2bae68e92f4ebecd38f4c26c750a9796" id="r_ga2bae68e92f4ebecd38f4c26c750a9796"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::u16string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#ga2bae68e92f4ebecd38f4c26c750a9796">ToUtf16</a> (std::string const &amp;localeInputString)</td></tr>
@@ -207,8 +207,8 @@ requires (std::same_as&lt;T, wchar_t&gt; &amp;&amp; sizeof(wchar_t) == 2)</div>
 
 </div>
 </div>
-<a id="gabd2bf0a25881dd4f308c6fa47a63c4f8" name="gabd2bf0a25881dd4f308c6fa47a63c4f8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gabd2bf0a25881dd4f308c6fa47a63c4f8">&#9670;&#160;</a></span>ToUtf16() <span class="overload">[1/3]</span></h2>
+<a id="ga2c8d606187173511ada0c117403a3a1a" name="ga2c8d606187173511ada0c117403a3a1a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga2c8d606187173511ada0c117403a3a1a">&#9670;&#160;</a></span>ToUtf16() <span class="overload">[1/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -219,7 +219,7 @@ requires std::same_as&lt;T, char32_t&gt; || (std::same_as&lt;T, wchar_t&gt; &amp
         <tr>
           <td class="memname">std::u16string ToUtf16 </td>
           <td>(</td>
-          <td class="paramtype">const std::basic_string_view&lt; T &gt;&#160;</td>
+          <td class="paramtype">std::basic_string_view&lt; T &gt; const&#160;</td>
           <td class="paramname"><em>u32InputString</em></td><td>)</td>
           <td></td>
         </tr>
@@ -311,7 +311,7 @@ template&lt;typename T  = std::u32string&gt; </div>
 </div><div class="memdoc">
 <p>Converts from UTF-16 to UTF-32. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00278">278</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00277">277</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
 
 </div>
 </div>

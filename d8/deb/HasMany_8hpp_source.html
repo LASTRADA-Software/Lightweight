@@ -279,113 +279,112 @@ $(document).ready(function(){initNavTree('d8/deb/HasMany_8hpp_source.html','../.
 <div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span> </div>
 <div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
 <div class="foldopen" id="foldopen00171" data-start="{" data-end="}">
-<div class="line"><a id="l00171" name="l00171"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#a4e751f046982df12c95fcb456573426a">  171</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_typedef" href="../../d3/d09/classHasMany.html#a73dac45f1f8e7f72216a1bab062a2439">HasMany&lt;OtherRecord&gt;::ReferencedRecordList</a> <span class="keyword">const</span>&amp; <a class="code hl_function" href="../../d3/d09/classHasMany.html#a4e751f046982df12c95fcb456573426a">HasMany&lt;OtherRecord&gt;::All</a>()</div>
-<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>    const noexcept</div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>{</div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>    RequireLoaded();</div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>    <span class="keywordflow">return</span> *_records;</div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>}</div>
+<div class="line"><a id="l00171" name="l00171"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#a4e751f046982df12c95fcb456573426a">  171</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_typedef" href="../../d3/d09/classHasMany.html#a73dac45f1f8e7f72216a1bab062a2439">HasMany&lt;OtherRecord&gt;::ReferencedRecordList</a> <span class="keyword">const</span>&amp; <a class="code hl_function" href="../../d3/d09/classHasMany.html#a4e751f046982df12c95fcb456573426a">HasMany&lt;OtherRecord&gt;::All</a>() const noexcept</div>
+<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>{</div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>    RequireLoaded();</div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>    <span class="keywordflow">return</span> *_records;</div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>}</div>
 </div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span> </div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
-<div class="foldopen" id="foldopen00179" data-start="{" data-end="}">
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#a612cdb324e204923c2693bd2e53e49fc">  179</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE std::size_t <a class="code hl_function" href="../../d3/d09/classHasMany.html#a612cdb324e204923c2693bd2e53e49fc">HasMany&lt;OtherRecord&gt;::Count</a>() const noexcept</div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>{</div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>    <span class="keywordflow">if</span> (_records)</div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>        <span class="keywordflow">return</span> _records-&gt;size();</div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span> </div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>    <span class="keywordflow">if</span> (!_count)</div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>        <span class="keyword">const_cast&lt;</span><a class="code hl_class" href="../../d3/d09/classHasMany.html">HasMany&lt;OtherRecord&gt;</a>*<span class="keyword">&gt;</span>(<span class="keyword">this</span>)-&gt;_count = _loader.count();</div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span> </div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>    <span class="keywordflow">return</span> *_count;</div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>}</div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span> </div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
+<div class="foldopen" id="foldopen00178" data-start="{" data-end="}">
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#a612cdb324e204923c2693bd2e53e49fc">  178</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE std::size_t <a class="code hl_function" href="../../d3/d09/classHasMany.html#a612cdb324e204923c2693bd2e53e49fc">HasMany&lt;OtherRecord&gt;::Count</a>() const noexcept</div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>{</div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>    <span class="keywordflow">if</span> (_records)</div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>        <span class="keywordflow">return</span> _records-&gt;size();</div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span> </div>
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>    <span class="keywordflow">if</span> (!_count)</div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>        <span class="keyword">const_cast&lt;</span><a class="code hl_class" href="../../d3/d09/classHasMany.html">HasMany&lt;OtherRecord&gt;</a>*<span class="keyword">&gt;</span>(<span class="keyword">this</span>)-&gt;_count = _loader.count();</div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span> </div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>    <span class="keywordflow">return</span> *_count;</div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>}</div>
 </div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span> </div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
-<div class="foldopen" id="foldopen00191" data-start="{" data-end="}">
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#a54200f1623f32404fe361da2f71a95b5">  191</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d3/d09/classHasMany.html#a54200f1623f32404fe361da2f71a95b5">HasMany&lt;OtherRecord&gt;::IsEmpty</a>() const noexcept</div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>{</div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>    <span class="keywordflow">return</span> Count() == 0;</div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>}</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span> </div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
+<div class="foldopen" id="foldopen00190" data-start="{" data-end="}">
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#a54200f1623f32404fe361da2f71a95b5">  190</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d3/d09/classHasMany.html#a54200f1623f32404fe361da2f71a95b5">HasMany&lt;OtherRecord&gt;::IsEmpty</a>() const noexcept</div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>{</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>    <span class="keywordflow">return</span> Count() == 0;</div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>}</div>
 </div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span> </div>
-<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
-<div class="foldopen" id="foldopen00197" data-start="{" data-end="}">
-<div class="line"><a id="l00197" name="l00197"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#adc1044803d58074cbe62ee8e542faf63">  197</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE OtherRecord <span class="keyword">const</span>&amp; <a class="code hl_function" href="../../d3/d09/classHasMany.html#adc1044803d58074cbe62ee8e542faf63">HasMany&lt;OtherRecord&gt;::At</a>(std::size_t index)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span><span class="keyword"></span>{</div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>    RequireLoaded();</div>
-<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>    <span class="keywordflow">return</span> *_records-&gt;at(index);</div>
-<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>}</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span> </div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
+<div class="foldopen" id="foldopen00196" data-start="{" data-end="}">
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#adc1044803d58074cbe62ee8e542faf63">  196</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE OtherRecord <span class="keyword">const</span>&amp; <a class="code hl_function" href="../../d3/d09/classHasMany.html#adc1044803d58074cbe62ee8e542faf63">HasMany&lt;OtherRecord&gt;::At</a>(std::size_t index)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span><span class="keyword"></span>{</div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>    RequireLoaded();</div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>    <span class="keywordflow">return</span> *_records-&gt;at(index);</div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>}</div>
 </div>
-<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span> </div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
-<div class="foldopen" id="foldopen00204" data-start="{" data-end="}">
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#ad4a6a2fe33a9ab3c33042e5459ca0dd9">  204</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE OtherRecord&amp; <a class="code hl_function" href="../../d3/d09/classHasMany.html#adc1044803d58074cbe62ee8e542faf63">HasMany&lt;OtherRecord&gt;::At</a>(std::size_t index)</div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>{</div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>    RequireLoaded();</div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>    <span class="keywordflow">return</span> *_records-&gt;at(index);</div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>}</div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span> </div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
+<div class="foldopen" id="foldopen00203" data-start="{" data-end="}">
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#ad4a6a2fe33a9ab3c33042e5459ca0dd9">  203</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE OtherRecord&amp; <a class="code hl_function" href="../../d3/d09/classHasMany.html#adc1044803d58074cbe62ee8e542faf63">HasMany&lt;OtherRecord&gt;::At</a>(std::size_t index)</div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>{</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>    RequireLoaded();</div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>    <span class="keywordflow">return</span> *_records-&gt;at(index);</div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>}</div>
 </div>
-<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span> </div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
-<div class="foldopen" id="foldopen00211" data-start="{" data-end="}">
-<div class="line"><a id="l00211" name="l00211"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#afc62e829c017a00151a6db5ff4eec771">  211</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE OtherRecord <span class="keyword">const</span>&amp; <a class="code hl_function" href="../../d3/d09/classHasMany.html#afc62e829c017a00151a6db5ff4eec771">HasMany&lt;OtherRecord&gt;::operator[]</a>(std::size_t index)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span><span class="keyword"></span>{</div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>    RequireLoaded();</div>
-<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>    <span class="keywordflow">return</span> *(*_records)[index];</div>
-<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>}</div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span> </div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
+<div class="foldopen" id="foldopen00210" data-start="{" data-end="}">
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#afc62e829c017a00151a6db5ff4eec771">  210</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE OtherRecord <span class="keyword">const</span>&amp; <a class="code hl_function" href="../../d3/d09/classHasMany.html#afc62e829c017a00151a6db5ff4eec771">HasMany&lt;OtherRecord&gt;::operator[]</a>(std::size_t index)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span><span class="keyword"></span>{</div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>    RequireLoaded();</div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>    <span class="keywordflow">return</span> *(*_records)[index];</div>
+<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>}</div>
 </div>
-<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span> </div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
-<div class="foldopen" id="foldopen00218" data-start="{" data-end="}">
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#a4ba3ad1343f1179ca6ae6581970645a5">  218</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE OtherRecord&amp; <a class="code hl_function" href="../../d3/d09/classHasMany.html#afc62e829c017a00151a6db5ff4eec771">HasMany&lt;OtherRecord&gt;::operator[]</a>(std::size_t index)</div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>{</div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    RequireLoaded();</div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>    <span class="keywordflow">return</span> *(*_records)[index];</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>}</div>
+<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span> </div>
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
+<div class="foldopen" id="foldopen00217" data-start="{" data-end="}">
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno"><a class="line" href="../../d3/d09/classHasMany.html#a4ba3ad1343f1179ca6ae6581970645a5">  217</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE OtherRecord&amp; <a class="code hl_function" href="../../d3/d09/classHasMany.html#afc62e829c017a00151a6db5ff4eec771">HasMany&lt;OtherRecord&gt;::operator[]</a>(std::size_t index)</div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>{</div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>    RequireLoaded();</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    <span class="keywordflow">return</span> *(*_records)[index];</div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>}</div>
 </div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span> </div>
-<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
-<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_typedef" href="../../d3/d09/classHasMany.html#a3691f70d4679323b4033439a35578a88">HasMany&lt;OtherRecord&gt;::iterator</a> <a class="code hl_class" href="../../d3/d09/classHasMany.html">HasMany&lt;OtherRecord&gt;::begin</a>() noexcept</div>
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>{</div>
-<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>    RequireLoaded();</div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>    <span class="keywordflow">return</span> _records-&gt;begin();</div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>}</div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span> </div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
-<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_typedef" href="../../d3/d09/classHasMany.html#a3691f70d4679323b4033439a35578a88">HasMany&lt;OtherRecord&gt;::iterator</a> <a class="code hl_class" href="../../d3/d09/classHasMany.html">HasMany&lt;OtherRecord&gt;::end</a>() noexcept</div>
-<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>{</div>
-<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>    RequireLoaded();</div>
-<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>    <span class="keywordflow">return</span> _records-&gt;end();</div>
-<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>}</div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span> </div>
-<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
-<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_typedef" href="../../d3/d09/classHasMany.html#a87328f4569988e57a6b6228d637885bc">HasMany&lt;OtherRecord&gt;::const_iterator</a> <a class="code hl_class" href="../../d3/d09/classHasMany.html">HasMany&lt;OtherRecord&gt;::begin</a>() const noexcept</div>
-<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>{</div>
-<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>    RequireLoaded();</div>
-<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>    <span class="keywordflow">return</span> _records-&gt;begin();</div>
-<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>}</div>
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span> </div>
-<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
-<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_typedef" href="../../d3/d09/classHasMany.html#a87328f4569988e57a6b6228d637885bc">HasMany&lt;OtherRecord&gt;::const_iterator</a> <a class="code hl_class" href="../../d3/d09/classHasMany.html">HasMany&lt;OtherRecord&gt;::end</a>() const noexcept</div>
-<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>{</div>
-<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>    RequireLoaded();</div>
-<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>    <span class="keywordflow">return</span> _records-&gt;end();</div>
-<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>}</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span> </div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
+<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_typedef" href="../../d3/d09/classHasMany.html#a3691f70d4679323b4033439a35578a88">HasMany&lt;OtherRecord&gt;::iterator</a> <a class="code hl_class" href="../../d3/d09/classHasMany.html">HasMany&lt;OtherRecord&gt;::begin</a>() noexcept</div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>{</div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>    RequireLoaded();</div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>    <span class="keywordflow">return</span> _records-&gt;begin();</div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>}</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span> </div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_typedef" href="../../d3/d09/classHasMany.html#a3691f70d4679323b4033439a35578a88">HasMany&lt;OtherRecord&gt;::iterator</a> <a class="code hl_class" href="../../d3/d09/classHasMany.html">HasMany&lt;OtherRecord&gt;::end</a>() noexcept</div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>{</div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>    RequireLoaded();</div>
+<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>    <span class="keywordflow">return</span> _records-&gt;end();</div>
+<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>}</div>
+<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span> </div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_typedef" href="../../d3/d09/classHasMany.html#a87328f4569988e57a6b6228d637885bc">HasMany&lt;OtherRecord&gt;::const_iterator</a> <a class="code hl_class" href="../../d3/d09/classHasMany.html">HasMany&lt;OtherRecord&gt;::begin</a>() const noexcept</div>
+<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>{</div>
+<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>    RequireLoaded();</div>
+<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>    <span class="keywordflow">return</span> _records-&gt;begin();</div>
+<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>}</div>
+<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span> </div>
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherRecord&gt;</div>
+<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_typedef" href="../../d3/d09/classHasMany.html#a87328f4569988e57a6b6228d637885bc">HasMany&lt;OtherRecord&gt;::const_iterator</a> <a class="code hl_class" href="../../d3/d09/classHasMany.html">HasMany&lt;OtherRecord&gt;::end</a>() const noexcept</div>
+<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>{</div>
+<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>    RequireLoaded();</div>
+<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>    <span class="keywordflow">return</span> _records-&gt;end();</div>
+<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>}</div>
 <div class="ttc" id="aclassHasMany_html"><div class="ttname"><a href="../../d3/d09/classHasMany.html">HasMany</a></div><div class="ttdoc">This HasMany&lt;OtherRecord&gt; represents a simple one-to-many relationship between two records.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00030">HasMany.hpp:31</a></div></div>
 <div class="ttc" id="aclassHasMany_html_a3691f70d4679323b4033439a35578a88"><div class="ttname"><a href="../../d3/d09/classHasMany.html#a3691f70d4679323b4033439a35578a88">HasMany::iterator</a></div><div class="ttdeci">typename ReferencedRecordList::iterator iterator</div><div class="ttdoc">Iterator type for the list of records.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00043">HasMany.hpp:43</a></div></div>
 <div class="ttc" id="aclassHasMany_html_a4e751f046982df12c95fcb456573426a"><div class="ttname"><a href="../../d3/d09/classHasMany.html#a4e751f046982df12c95fcb456573426a">HasMany::All</a></div><div class="ttdeci">ReferencedRecordList const &amp; All() const noexcept</div><div class="ttdoc">Retrieves the list of loaded records.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00171">HasMany.hpp:171</a></div></div>
 <div class="ttc" id="aclassHasMany_html_a5208639efe3028064f337811b6bc1bcf"><div class="ttname"><a href="../../d3/d09/classHasMany.html#a5208639efe3028064f337811b6bc1bcf">HasMany::value_type</a></div><div class="ttdeci">OtherRecord value_type</div><div class="ttdoc">Record type of the &quot;many&quot; side of the relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00040">HasMany.hpp:40</a></div></div>
-<div class="ttc" id="aclassHasMany_html_a54200f1623f32404fe361da2f71a95b5"><div class="ttname"><a href="../../d3/d09/classHasMany.html#a54200f1623f32404fe361da2f71a95b5">HasMany::IsEmpty</a></div><div class="ttdeci">bool IsEmpty() const noexcept</div><div class="ttdoc">Checks if this 1-to-many relationship is empty.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00191">HasMany.hpp:191</a></div></div>
-<div class="ttc" id="aclassHasMany_html_a612cdb324e204923c2693bd2e53e49fc"><div class="ttname"><a href="../../d3/d09/classHasMany.html#a612cdb324e204923c2693bd2e53e49fc">HasMany::Count</a></div><div class="ttdeci">std::size_t Count() const noexcept</div><div class="ttdoc">Retrieves the number of records in this 1-to-many relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00179">HasMany.hpp:179</a></div></div>
+<div class="ttc" id="aclassHasMany_html_a54200f1623f32404fe361da2f71a95b5"><div class="ttname"><a href="../../d3/d09/classHasMany.html#a54200f1623f32404fe361da2f71a95b5">HasMany::IsEmpty</a></div><div class="ttdeci">bool IsEmpty() const noexcept</div><div class="ttdoc">Checks if this 1-to-many relationship is empty.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00190">HasMany.hpp:190</a></div></div>
+<div class="ttc" id="aclassHasMany_html_a612cdb324e204923c2693bd2e53e49fc"><div class="ttname"><a href="../../d3/d09/classHasMany.html#a612cdb324e204923c2693bd2e53e49fc">HasMany::Count</a></div><div class="ttdeci">std::size_t Count() const noexcept</div><div class="ttdoc">Retrieves the number of records in this 1-to-many relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00178">HasMany.hpp:178</a></div></div>
 <div class="ttc" id="aclassHasMany_html_a681d4716f9546a5986110749155cac1d"><div class="ttname"><a href="../../d3/d09/classHasMany.html#a681d4716f9546a5986110749155cac1d">HasMany::Each</a></div><div class="ttdeci">void Each(Callable const &amp;callable)</div><div class="ttdoc">Iterates over the list of records and calls the given callable for each record.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00158">HasMany.hpp:158</a></div></div>
 <div class="ttc" id="aclassHasMany_html_a6c9ff094981620457ab0815432454eb4"><div class="ttname"><a href="../../d3/d09/classHasMany.html#a6c9ff094981620457ab0815432454eb4">HasMany::SetAutoLoader</a></div><div class="ttdeci">void SetAutoLoader(Loader loader) noexcept</div><div class="ttdoc">Used internally to configure on-demand loading of the records.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00129">HasMany.hpp:129</a></div></div>
 <div class="ttc" id="aclassHasMany_html_a73dac45f1f8e7f72216a1bab062a2439"><div class="ttname"><a href="../../d3/d09/classHasMany.html#a73dac45f1f8e7f72216a1bab062a2439">HasMany::ReferencedRecordList</a></div><div class="ttdeci">std::vector&lt; std::shared_ptr&lt; OtherRecord &gt; &gt; ReferencedRecordList</div><div class="ttdoc">The list of records on the &quot;many&quot; side of the relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00037">HasMany.hpp:37</a></div></div>
 <div class="ttc" id="aclassHasMany_html_a7ff056401192ae5a1745fc9102b0fb86"><div class="ttname"><a href="../../d3/d09/classHasMany.html#a7ff056401192ae5a1745fc9102b0fb86">HasMany::Emplace</a></div><div class="ttdeci">ReferencedRecordList &amp; Emplace(ReferencedRecordList &amp;&amp;records) noexcept</div><div class="ttdoc">Emplaces the given list of records.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00142">HasMany.hpp:142</a></div></div>
 <div class="ttc" id="aclassHasMany_html_a87328f4569988e57a6b6228d637885bc"><div class="ttname"><a href="../../d3/d09/classHasMany.html#a87328f4569988e57a6b6228d637885bc">HasMany::const_iterator</a></div><div class="ttdeci">typename ReferencedRecordList::const_iterator const_iterator</div><div class="ttdoc">Const iterator type for the list of records.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00046">HasMany.hpp:46</a></div></div>
 <div class="ttc" id="aclassHasMany_html_aca962e88a97245b317de7c64bb2fa230"><div class="ttname"><a href="../../d3/d09/classHasMany.html#aca962e88a97245b317de7c64bb2fa230">HasMany::ReferencedRecord</a></div><div class="ttdeci">OtherRecord ReferencedRecord</div><div class="ttdoc">The record type of the &quot;many&quot; side of the relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00034">HasMany.hpp:34</a></div></div>
-<div class="ttc" id="aclassHasMany_html_adc1044803d58074cbe62ee8e542faf63"><div class="ttname"><a href="../../d3/d09/classHasMany.html#adc1044803d58074cbe62ee8e542faf63">HasMany::At</a></div><div class="ttdeci">OtherRecord const &amp; At(std::size_t index) const</div><div class="ttdoc">Retrieves the record at the given index.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00197">HasMany.hpp:197</a></div></div>
-<div class="ttc" id="aclassHasMany_html_afc62e829c017a00151a6db5ff4eec771"><div class="ttname"><a href="../../d3/d09/classHasMany.html#afc62e829c017a00151a6db5ff4eec771">HasMany::operator[]</a></div><div class="ttdeci">OtherRecord const &amp; operator[](std::size_t index) const</div><div class="ttdoc">Retrieves the record at the given index.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00211">HasMany.hpp:211</a></div></div>
+<div class="ttc" id="aclassHasMany_html_adc1044803d58074cbe62ee8e542faf63"><div class="ttname"><a href="../../d3/d09/classHasMany.html#adc1044803d58074cbe62ee8e542faf63">HasMany::At</a></div><div class="ttdeci">OtherRecord const &amp; At(std::size_t index) const</div><div class="ttdoc">Retrieves the record at the given index.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00196">HasMany.hpp:196</a></div></div>
+<div class="ttc" id="aclassHasMany_html_afc62e829c017a00151a6db5ff4eec771"><div class="ttname"><a href="../../d3/d09/classHasMany.html#afc62e829c017a00151a6db5ff4eec771">HasMany::operator[]</a></div><div class="ttdeci">OtherRecord const &amp; operator[](std::size_t index) const</div><div class="ttdoc">Retrieves the record at the given index.</div><div class="ttdef"><b>Definition</b> <a href="../../d8/deb/HasMany_8hpp_source.html#l00210">HasMany.hpp:210</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
