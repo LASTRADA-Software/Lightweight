@@ -634,3 +634,13 @@ inline auto MakeLargeText(size_t size)
     std::ranges::generate(text, [i = 0]() mutable { return static_cast<T>('A' + (i++ % 26)); });
     return text;
 }
+
+inline bool IsGithubActions()
+{
+#if defined(_WIN32) || defined(_WIN64)
+    char envBuffer[256];
+    return getenv_s(nullptr, envBuffer, sizeof(envBuffer), "GITHUB_ACTIONS") == 0 && std::string_view(envBuffer) == "true";
+#else
+    return std::getenv("GITHUB_ACTIONS") != nullptr && std::string_view(std::getenv("GITHUB_ACTIONS")) == "true";
+#endif
+}
