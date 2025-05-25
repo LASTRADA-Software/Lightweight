@@ -229,19 +229,19 @@ std::ostream& operator<<(std::ostream& os, BelongsTo<ReferencedField> const& bel
 namespace detail
 {
 template <typename T>
-struct IsBelongsTo: std::false_type
+struct IsBelongsToType: std::false_type
 {
 };
 
 template <auto ReferencedField, auto ColumnNameOverrideString>
-struct IsBelongsTo<BelongsTo<ReferencedField, ColumnNameOverrideString>>: std::true_type
+struct IsBelongsToType<BelongsTo<ReferencedField, ColumnNameOverrideString>>: std::true_type
 {
 };
 
 } // namespace detail
 
 template <typename T>
-constexpr bool IsBelongsTo = detail::IsBelongsTo<std::remove_cvref_t<T>>::value;
+constexpr bool IsBelongsTo = detail::IsBelongsToType<std::remove_cvref_t<T>>::value;
 
 template <auto ReferencedField>
 struct SqlDataBinder<BelongsTo<ReferencedField>>
@@ -270,7 +270,7 @@ struct SqlDataBinder<BelongsTo<ReferencedField>>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
     {
-        auto const sqlReturn = SqlDataBinder<InnerType>::GetColumn(stmt, column, &result->emplace(), indicator, cb);
+        auto const sqlReturn = SqlDataBinder<InnerType>::GetColumn(stmt, column, &result->MutableValue(), indicator, cb);
         if (SQL_SUCCEEDED(sqlReturn))
             result->SetModified(true);
         return sqlReturn;
