@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['scale_0',['Scale',['../da/d72/structSqlNumeric.html#a3dd1e2448e9de58a93290ae3c25f07d4',1,'SqlNumeric']]],
-  ['sqlcolumntypedefinitionof_1',['SqlColumnTypeDefinitionOf',['../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002',1,'MigrationPlan.hpp']]],
-  ['sqlnullvalue_2',['SqlNullValue',['../d4/d7c/group__DataTypes.html#ga41dfa03913f1a2ca75e01fcf821c5d9e',1,'SqlNullValue.hpp']]],
-  ['sqlvalue_3',['sqlValue',['../da/d72/structSqlNumeric.html#a05521002d304a11855fc72934431c1a8',1,'SqlNumeric']]]
+  ['recordstoragefieldcount_0',['RecordStorageFieldCount',['../d7/d2f/group__DataMapper.html#ga558b97acf0b93fc85914ac4bb3f9b473',1,'DataMapper.hpp']]],
+  ['recordtablename_1',['RecordTableName',['../d7/d2f/group__DataMapper.html#ga4565e3cf41830db5a08951da5702c776',1,'Utils.hpp']]],
+  ['referencedfield_2',['ReferencedField',['../df/d1a/classBelongsTo.html#a3ada69a2dfb5d37fd9255dfc53ab631d',1,'BelongsTo']]],
+  ['required_3',['required',['../d3/d8a/structSqlColumnDeclaration.html#a596e33a6ad955278812bb8d8f8b61fbd',1,'SqlColumnDeclaration']]]
 ];

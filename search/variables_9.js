@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['tablename_0',['tablename',['../d2/de0/structSqlForeignKeyReferenceDefinition.html#a2747c66e9a950aaee4aa70984a759a89',1,'SqlForeignKeyReferenceDefinition::tableName'],['../dd/ddb/structSqlAlterTablePlan.html#a55904d3d71609a166225e13f6723f6d4',1,'SqlAlterTablePlan::tableName'],['../d5/d6b/structSqlDropTablePlan.html#a58a25bec98024e0d9a523b0788f3d0cd',1,'SqlDropTablePlan::tableName']]],
-  ['type_1',['type',['../d3/d8a/structSqlColumnDeclaration.html#a564790b8f7f95492c11cfeff57dd142b',1,'SqlColumnDeclaration']]]
+  ['scale_0',['Scale',['../da/d72/structSqlNumeric.html#a3dd1e2448e9de58a93290ae3c25f07d4',1,'SqlNumeric']]],
+  ['sqlcolumntypedefinitionof_1',['SqlColumnTypeDefinitionOf',['../d6/daa/group__QueryBuilder.html#ga8e9a30f502046f14ac27ec68a9ded002',1,'MigrationPlan.hpp']]],
+  ['sqlnullvalue_2',['SqlNullValue',['../d4/d7c/group__DataTypes.html#ga41dfa03913f1a2ca75e01fcf821c5d9e',1,'SqlNullValue.hpp']]],
+  ['sqlvalue_3',['sqlValue',['../da/d72/structSqlNumeric.html#a05521002d304a11855fc72934431c1a8',1,'SqlNumeric']]]
 ];

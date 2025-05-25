@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['data_0',['data',['../dd/d83/classSqlDynamicString.html#a33ddfcfb714918434842c077be5d6b45',1,'SqlDynamicString::data() const noexcept'],['../dd/d83/classSqlDynamicString.html#a0b7a8480e66d094bc221f14095a77036',1,'SqlDynamicString::data() noexcept']]],
+  ['data_0',['data',['../dc/db1/classSqlDynamicBinary.html#a47435ac2b4fca822a0e3c1d865e736c2',1,'SqlDynamicBinary::data()'],['../dd/d83/classSqlDynamicString.html#a33ddfcfb714918434842c077be5d6b45',1,'SqlDynamicString::data() const noexcept'],['../dd/d83/classSqlDynamicString.html#a0b7a8480e66d094bc221f14095a77036',1,'SqlDynamicString::data() noexcept']]],
   ['data_20binder_20api_1',['Data Binder API',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html',1,'']]],
   ['data_20mapper_2',['Data Mapper',['../d7/d2f/group__DataMapper.html',1,'']]],
   ['data_20mapping_3',['data mapping',['../index.html#example-crud-style-high-level-data-mapping',1,'Example: CRUD-style High level Data Mapping'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping',1,'High level Data Mapping']]],
@@ -25,5 +25,6 @@ var searchData=
   ['dropdatabase_22',['DropDatabase',['../d3/d15/classSqlMigrationQueryBuilder.html#a5303ecf0e2ba4232f16470e071a61fae',1,'SqlMigrationQueryBuilder']]],
   ['dropforeignkey_23',['DropForeignKey',['../d3/d3f/classSqlAlterTableQueryBuilder.html#abc19754ad52e4ee224138f75139061b2',1,'SqlAlterTableQueryBuilder']]],
   ['dropindex_24',['DropIndex',['../d3/d3f/classSqlAlterTableQueryBuilder.html#acf6c90ae54196bd413ddcae33d24ed7b',1,'SqlAlterTableQueryBuilder']]],
-  ['droptable_25',['droptable',['../dc/df2/classSqlQueryFormatter.html#aa630ad6de1899c6d62ff7d76d37768d9',1,'SqlQueryFormatter::DropTable()'],['../d3/d15/classSqlMigrationQueryBuilder.html#a5789543d34e6d174f81437f8c4ddc441',1,'SqlMigrationQueryBuilder::DropTable()']]]
+  ['droptable_25',['droptable',['../dc/df2/classSqlQueryFormatter.html#aa630ad6de1899c6d62ff7d76d37768d9',1,'SqlQueryFormatter::DropTable()'],['../d3/d15/classSqlMigrationQueryBuilder.html#a5789543d34e6d174f81437f8c4ddc441',1,'SqlMigrationQueryBuilder::DropTable()']]],
+  ['dynamiccapacity_26',['DynamicCapacity',['../dc/db1/classSqlDynamicBinary.html#aa6c76437952aef3c383051bd5eb0597b',1,'SqlDynamicBinary']]]
 ];

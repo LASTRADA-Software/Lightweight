@@ -5,7 +5,7 @@ var searchData=
   ['capacity_2',['capacity',['../dd/d83/classSqlDynamicString.html#a0876e662922885aa167c7d790218553c',1,'SqlDynamicString::capacity()'],['../d8/dcb/classSqlFixedString.html#ac66ba1dac61d49d02f09a91b3971191d',1,'SqlFixedString::capacity()']]],
   ['care_3',['Use transactions with care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]],
   ['challenges_4',['SQL server variation challenges',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges',1,'']]],
-  ['clear_5',['clear',['../dd/d83/classSqlDynamicString.html#a6f87061762938ed30120444f1168873b',1,'SqlDynamicString::clear()'],['../d8/dcb/classSqlFixedString.html#a69c27ac58d0c0e18fab3e34b8a573108',1,'SqlFixedString::clear()']]],
+  ['clear_5',['clear',['../dc/db1/classSqlDynamicBinary.html#a9033160ad997c6ea9bea7deca669b1ef',1,'SqlDynamicBinary::clear()'],['../dd/d83/classSqlDynamicString.html#a6f87061762938ed30120444f1168873b',1,'SqlDynamicString::clear()'],['../d8/dcb/classSqlFixedString.html#a69c27ac58d0c0e18fab3e34b8a573108',1,'SqlFixedString::clear()']]],
   ['clearmodifiedstate_6',['ClearModifiedState',['../dc/dc7/classDataMapper.html#af4a3ac8c8611aec1ce0757a41dda1994',1,'DataMapper']]],
   ['close_7',['Close',['../d7/d7b/classSqlConnection.html#aea37a1f42d804e2310cc12ada35e78dd',1,'SqlConnection']]],
   ['closecursor_8',['CloseCursor',['../df/d17/classSqlStatement.html#a909e53eb14ad5d93f31b6fffc6958d01',1,'SqlStatement']]],

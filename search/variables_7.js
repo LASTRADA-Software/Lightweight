@@ -1,7 +1,6 @@
 var searchData=
 [
-  ['recordstoragefieldcount_0',['RecordStorageFieldCount',['../d7/d2f/group__DataMapper.html#ga558b97acf0b93fc85914ac4bb3f9b473',1,'DataMapper.hpp']]],
-  ['recordtablename_1',['RecordTableName',['../d7/d2f/group__DataMapper.html#ga4565e3cf41830db5a08951da5702c776',1,'Utils.hpp']]],
-  ['referencedfield_2',['ReferencedField',['../df/d1a/classBelongsTo.html#a3ada69a2dfb5d37fd9255dfc53ab631d',1,'BelongsTo']]],
-  ['required_3',['required',['../d3/d8a/structSqlColumnDeclaration.html#a596e33a6ad955278812bb8d8f8b61fbd',1,'SqlColumnDeclaration']]]
+  ['precision_0',['Precision',['../da/d72/structSqlNumeric.html#a1fd3d0e31008e83ced4422a52fec4859',1,'SqlNumeric']]],
+  ['primarykey_1',['primaryKey',['../d3/d8a/structSqlColumnDeclaration.html#a728c1a59b47c63e23c8a0218e95a74f9',1,'SqlColumnDeclaration']]],
+  ['primarykeys_2',['primaryKeys',['../d0/d20/structSqlSchema_1_1Table.html#a61cf4522464775c477a3ec6b5a155d5d',1,'SqlSchema::Table']]]
 ];

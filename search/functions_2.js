@@ -2,7 +2,7 @@ var searchData=
 [
   ['c_5fstr_0',['c_str',['../dd/d83/classSqlDynamicString.html#ab158ec8d8ef355367b8b2d0e597b81d0',1,'SqlDynamicString']]],
   ['capacity_1',['capacity',['../dd/d83/classSqlDynamicString.html#a0876e662922885aa167c7d790218553c',1,'SqlDynamicString::capacity()'],['../d8/dcb/classSqlFixedString.html#ac66ba1dac61d49d02f09a91b3971191d',1,'SqlFixedString::capacity()']]],
-  ['clear_2',['clear',['../dd/d83/classSqlDynamicString.html#a6f87061762938ed30120444f1168873b',1,'SqlDynamicString::clear()'],['../d8/dcb/classSqlFixedString.html#a69c27ac58d0c0e18fab3e34b8a573108',1,'SqlFixedString::clear()']]],
+  ['clear_2',['clear',['../dc/db1/classSqlDynamicBinary.html#a9033160ad997c6ea9bea7deca669b1ef',1,'SqlDynamicBinary::clear()'],['../dd/d83/classSqlDynamicString.html#a6f87061762938ed30120444f1168873b',1,'SqlDynamicString::clear()'],['../d8/dcb/classSqlFixedString.html#a69c27ac58d0c0e18fab3e34b8a573108',1,'SqlFixedString::clear()']]],
   ['clearmodifiedstate_3',['ClearModifiedState',['../dc/dc7/classDataMapper.html#af4a3ac8c8611aec1ce0757a41dda1994',1,'DataMapper']]],
   ['close_4',['Close',['../d7/d7b/classSqlConnection.html#aea37a1f42d804e2310cc12ada35e78dd',1,'SqlConnection']]],
   ['closecursor_5',['CloseCursor',['../df/d17/classSqlStatement.html#a909e53eb14ad5d93f31b6fffc6958d01',1,'SqlStatement']]],

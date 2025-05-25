@@ -30,8 +30,8 @@ var hierarchy =
     [ "Field< SqlFixedString< 200 >, SqlRealName{\"Name\"}>", "df/d27/structField.html", null ],
     [ "Field< SqlFixedString< 40 >, SqlRealName{\"FirstName\"}>", "df/d27/structField.html", null ],
     [ "Field< SqlFixedString< 60 >, SqlRealName{\"Email\"}>", "df/d27/structField.html", null ],
-    [ "Field< SqlNumeric< 12, 2 >, SqlRealName{\"Total\"}>", "df/d27/structField.html", null ],
-    [ "Field< SqlNumeric< 12, 2 >, SqlRealName{\"UnitPrice\"}>", "df/d27/structField.html", null ],
+    [ "Field< SqlNumeric< 10, 2 >, SqlRealName{\"Total\"}>", "df/d27/structField.html", null ],
+    [ "Field< SqlNumeric< 10, 2 >, SqlRealName{\"UnitPrice\"}>", "df/d27/structField.html", null ],
     [ "HasMany< OtherRecord >", "d3/d09/classHasMany.html", null ],
     [ "HasManyThrough< ReferencedRecordT, ThroughRecordT >", "df/dd6/classHasManyThrough.html", null ],
     [ "HasOneThrough< OtherTable, ThroughTable >", "da/d9d/classHasOneThrough.html", null ],
@@ -56,6 +56,7 @@ var hierarchy =
     [ "SqlDateTime", "da/dd7/structSqlDateTime.html", null ],
     [ "SqlDeleteQueryBuilder", "d8/d88/classSqlDeleteQueryBuilder.html", null ],
     [ "SqlDropTablePlan", "d5/d6b/structSqlDropTablePlan.html", null ],
+    [ "SqlDynamicBinary< N >", "dc/db1/classSqlDynamicBinary.html", null ],
     [ "SqlDynamicString< N, T >", "dd/d83/classSqlDynamicString.html", null ],
     [ "SqlErrorInfo", "d3/dbc/structSqlErrorInfo.html", null ],
     [ "SqlFixedString< N, T, Mode >", "d8/dcb/classSqlFixedString.html", null ],
@@ -95,7 +96,6 @@ var hierarchy =
     ] ],
     [ "UniqueNameBuilder", "df/dd4/classUniqueNameBuilder.html", null ],
     [ "std::vector< uint8_t >", null, [
-      [ "SqlBinary", "df/d29/classSqlBinary.html", null ],
-      [ "SqlDynamicBinary< N >", "dc/db1/classSqlDynamicBinary.html", null ]
+      [ "SqlBinary", "df/d29/classSqlBinary.html", null ]
     ] ]
 ];
