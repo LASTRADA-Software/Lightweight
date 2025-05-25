@@ -8,7 +8,6 @@
 
 #include <cassert>
 #include <format>
-#include <span>
 #include <string>
 
 /// SQL dynamic-capacity string that mimicks standard library string.
@@ -17,13 +16,16 @@
 ///
 /// @ingroup DataTypes
 template <std::size_t N>
-class SqlDynamicBinary final: public std::vector<uint8_t>
+class SqlDynamicBinary final
 {
     using BaseType = std::vector<uint8_t>;
+    BaseType _base;
 
   public:
+    using value_type = uint8_t;
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::VarBinary { N };
 
+    /// The maximum size of the underlying data storage.
     static constexpr std::size_t DynamicCapacity = N;
 
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicBinary() noexcept = default;
@@ -36,49 +38,70 @@ class SqlDynamicBinary final: public std::vector<uint8_t>
     /// Constructs a fixed-size string from a string literal.
     template <std::size_t SourceSize>
     constexpr LIGHTWEIGHT_FORCE_INLINE SqlDynamicBinary(value_type const (&text)[SourceSize]):
-        BaseType { text, text + SourceSize }
+        _base { text, text + SourceSize }
     {
         static_assert(SourceSize <= N + 1, "RHS string size must not exceed target string's capacity.");
     }
 
+    /// Constructs the object from an initializer list of bytes.
     template <std::size_t SourceSize>
     constexpr LIGHTWEIGHT_FORCE_INLINE SqlDynamicBinary(std::initializer_list<value_type> data):
-        BaseType { data }
+        _base { data }
     {
         static_assert(SourceSize <= N + 1, "RHS string size must not exceed target string's capacity.");
     }
 
     /// Constructs a fixed-size string from a string pointer and end pointer.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicBinary(value_type const* s, value_type const* e) noexcept:
-        BaseType { s, e }
+        _base { s, e }
     {
     }
 
     /// Constructs a fixed-size string from a string view.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicBinary(std::basic_string_view<value_type> s) noexcept:
-        BaseType { static_cast<uint8_t const*>(s.data()), static_cast<uint8_t const*>(s.data() + s.size()) }
+        _base { static_cast<uint8_t const*>(s.data()), static_cast<uint8_t const*>(s.data() + s.size()) }
     {
     }
 
     /// Retrieves a string view of the string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string_view<value_type> ToStringView() const noexcept
     {
-        return { data(), size() };
-    }
-
-    /// Converts the string to a string view.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::span<value_type const> ToSpan() const noexcept
-    {
-        return { data(), size() };
-    }
-
-    /// Converts the string to a string view.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr explicit operator std::span<value_type const>() const noexcept
-    {
-        return ToSpan();
+        return { _base.data(), _base.size() };
     }
 
     constexpr auto operator<=>(SqlDynamicBinary<N> const&) const noexcept = default;
+
+    /// Retrieves the size of the string.
+    // NOLINTNEXTLINE(readability-identifier-naming)
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::size_t size() const noexcept
+    {
+        return _base.size();
+    }
+
+    /// Resizes the underlying data storage to the given size.
+    void LIGHTWEIGHT_FORCE_INLINE resize(std::size_t newSize) // NOLINT(readability-identifier-naming)
+    {
+        _base.resize(newSize);
+    }
+
+    /// Tests if the stored data is empty.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool empty() const noexcept // NOLINT(readability-identifier-naming)
+    {
+        return _base.empty();
+    }
+
+    /// Retrieves the pointer to the string data.
+    // NOLINTNEXTLINE(readability-identifier-naming)
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr decltype(auto) data(this auto&& self) noexcept
+    {
+        return self._base.data();
+    }
+
+    /// Clears the storad data.
+    LIGHTWEIGHT_FORCE_INLINE void clear() noexcept // NOLINT(readability-identifier-naming)
+    {
+        _base.clear();
+    }
 
   private:
     mutable SQLLEN _indicator = 0;

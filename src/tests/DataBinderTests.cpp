@@ -786,8 +786,8 @@ template <>
 struct TestTypeTraits<std::u8string>
 {
     static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
-    static auto const inline inputValue = u8"Hell\xc3\xb6"s;
-    static auto const inline expectedOutputValue = u8"Hell\xc3\xb6"s;
+    static auto const inline inputValue = u8"Hell\u00F6"s;
+    static auto const inline expectedOutputValue = u8"Hell\u00F6"s;
     static auto const inline outputInitializer = &MakeStringOuputInitializer<std::u8string>;
 };
 
@@ -795,8 +795,8 @@ template <>
 struct TestTypeTraits<std::u8string_view>
 {
     static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 50 };
-    static auto const inline inputValue = std::u8string_view { u8"Hell\xc3\xb6" };
-    static auto const inline expectedOutputValue = std::u8string_view { u8"Hell\xc3\xb6" };
+    static auto const inline inputValue = std::u8string_view { u8"Hell\u00F6" };
+    static auto const inline expectedOutputValue = std::u8string_view { u8"Hell\u00F6" };
     static auto const inline outputInitializer = &MakeStringOuputInitializer<std::u8string>;
     using GetColumnTypeOverride = std::u8string;
 };

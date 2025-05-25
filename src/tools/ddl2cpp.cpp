@@ -54,70 +54,68 @@ std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColum
     };
 
     using namespace SqlColumnTypeDefinitions;
-    return optional(
-        std::visit(detail::overloaded {
-                       [](Bigint const&) -> std::string { return "int64_t"; },
-                       [](Binary const& type) -> std::string { return std::format("SqlBinary", type.size); },
-                       [](Bool const&) -> std::string { return "bool"; },
-                       [&](Char const& type) -> std::string {
-                           if (type.size == 1)
-                           {
-                               if (forceUnicodeTextColumn)
-                                   return "wchar_t";
-                               else
-                                   return "char";
-                           }
-                           else
-                           {
-                               if (forceUnicodeTextColumn)
-                                   return std::format("SqlWideString<{}>", type.size);
-                               else
-                                   return std::format("SqlAnsiString<{}>", type.size);
-                           }
-                       },
-                       [](Date const&) -> std::string { return "SqlDate"; },
-                       [](DateTime const&) -> std::string { return "SqlDateTime"; },
-                       [](Decimal const& type) -> std::string {
-                           return std::format("SqlNumeric<{}, {}>", type.precision + type.scale, type.precision);
-                       },
-                       [](Guid const&) -> std::string { return "SqlGuid"; },
-                       [](Integer const&) -> std::string { return "int32_t"; },
-                       [](NChar const& type) -> std::string {
-                           if (type.size == 1)
-                               return "char16_t";
-                           return std::format("SqlUtf16String<{}>", type.size);
-                       },
-                       [](NVarchar const& type) -> std::string { return std::format("SqlUtf16String<{}>", type.size); },
-                       [](Real const&) -> std::string { return "float"; },
-                       [](Smallint const&) -> std::string { return "int16_t"; },
-                       [=](Text const& type) -> std::string {
-                           if (forceUnicodeTextColumn)
-                               return std::format("SqlWideString<{}>", type.size);
-                           else
-                               return std::format("SqlAnsiString<{}>", type.size);
-                       },
-                       [](Time const&) -> std::string { return "SqlTime"; },
-                       [](Timestamp const&) -> std::string { return "SqlDateTime"; },
-                       [](Tinyint const&) -> std::string { return "uint8_t"; },
-                       [](VarBinary const& type) -> std::string { return std::format("SqlDynamicBinary<{}>", type.size); },
-                       [=](Varchar const& type) -> std::string {
-                           if (type.size > 0 && type.size <= SqlOptimalMaxColumnSize)
-                           {
-                               if (forceUnicodeTextColumn)
-                                   return std::format("SqlWideString<{}>", type.size);
-                               else
-                                   return std::format("SqlAnsiString<{}>", type.size);
-                           }
-                           else
-                           {
-                               if (forceUnicodeTextColumn)
-                                   return std::format("SqlDynamicWideString<{}>", type.size);
-                               else
-                                   return std::format("SqlDynamicAnsiString<{}>", type.size);
-                           }
-                       },
-                   },
-                   column.type));
+    return optional(std::visit(
+        detail::overloaded {
+            [](Bigint const&) -> std::string { return "int64_t"; },
+            [](Binary const& type) -> std::string { return std::format("SqlBinary", type.size); },
+            [](Bool const&) -> std::string { return "bool"; },
+            [&](Char const& type) -> std::string {
+                if (type.size == 1)
+                {
+                    if (forceUnicodeTextColumn)
+                        return "wchar_t";
+                    else
+                        return "char";
+                }
+                else
+                {
+                    if (forceUnicodeTextColumn)
+                        return std::format("SqlWideString<{}>", type.size);
+                    else
+                        return std::format("SqlAnsiString<{}>", type.size);
+                }
+            },
+            [](Date const&) -> std::string { return "SqlDate"; },
+            [](DateTime const&) -> std::string { return "SqlDateTime"; },
+            [](Decimal const& type) -> std::string { return std::format("SqlNumeric<{}, {}>", type.scale, type.precision); },
+            [](Guid const&) -> std::string { return "SqlGuid"; },
+            [](Integer const&) -> std::string { return "int32_t"; },
+            [](NChar const& type) -> std::string {
+                if (type.size == 1)
+                    return "char16_t";
+                return std::format("SqlUtf16String<{}>", type.size);
+            },
+            [](NVarchar const& type) -> std::string { return std::format("SqlUtf16String<{}>", type.size); },
+            [](Real const&) -> std::string { return "float"; },
+            [](Smallint const&) -> std::string { return "int16_t"; },
+            [=](Text const& type) -> std::string {
+                if (forceUnicodeTextColumn)
+                    return std::format("SqlWideString<{}>", type.size);
+                else
+                    return std::format("SqlAnsiString<{}>", type.size);
+            },
+            [](Time const&) -> std::string { return "SqlTime"; },
+            [](Timestamp const&) -> std::string { return "SqlDateTime"; },
+            [](Tinyint const&) -> std::string { return "uint8_t"; },
+            [](VarBinary const& type) -> std::string { return std::format("SqlDynamicBinary<{}>", type.size); },
+            [=](Varchar const& type) -> std::string {
+                if (type.size > 0 && type.size <= SqlOptimalMaxColumnSize)
+                {
+                    if (forceUnicodeTextColumn)
+                        return std::format("SqlWideString<{}>", type.size);
+                    else
+                        return std::format("SqlAnsiString<{}>", type.size);
+                }
+                else
+                {
+                    if (forceUnicodeTextColumn)
+                        return std::format("SqlDynamicWideString<{}>", type.size);
+                    else
+                        return std::format("SqlDynamicAnsiString<{}>", type.size);
+                }
+            },
+        },
+        column.type));
 }
 
 // "user_id" into "UserId"
