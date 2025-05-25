@@ -13,6 +13,7 @@ var classDataMapper =
     [ "CreateExplicit", "dc/dc7/classDataMapper.html#a03200dd1a90fea3a9c166773e8b782f5", null ],
     [ "QuerySingle", "dc/dc7/classDataMapper.html#abc5831d373b3818e7b0dd856e5998209", null ],
     [ "QuerySingle", "dc/dc7/classDataMapper.html#a9cd001a64226389a0803d76b499081e2", null ],
+    [ "QuerySingleWithoutRelationAutoLoading", "dc/dc7/classDataMapper.html#ab0121c2f526197a2cb6d358364f1e172", null ],
     [ "QuerySingle", "dc/dc7/classDataMapper.html#a4f94e2f2ea26e48a64bb6a3c5ca18b53", null ],
     [ "QuerySingleBy", "dc/dc7/classDataMapper.html#a4087831801de0daa9add83cb4e0d7e78", null ],
     [ "Query", "dc/dc7/classDataMapper.html#a06b74e30cf38c79b44615e2fc31f7563", null ],
