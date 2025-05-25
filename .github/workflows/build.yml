@@ -38,20 +38,15 @@ jobs:
 
   check_clang_format:
     name: "Check C++ style"
-    runs-on: ubuntu-22.04
-    env:
-      LLVM_VERSION: 19
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
-    - name: Install clang
-      run: |
-        wget https://apt.llvm.org/llvm.sh
-        chmod +x llvm.sh
-        sudo ./llvm.sh $LLVM_VERSION
-        sudo apt-get install clang-format-$LLVM_VERSION
     - name: "Clang-format"
-      run: find ./src/ \( -name "*.cpp" -o -name "*.h" \) -exec clang-format-19 --Werror --dry-run {} \;
-
+      uses: jidicula/clang-format-action@v4.15.0
+      with:
+        clang-format-version: 19
+        check-path: 'src'
+        exclude-regex: '^src/examples/|^src/benchmark|src/tools/tests/'
 
   check_clang_tidy:
     name: "Check clang-tidy"
