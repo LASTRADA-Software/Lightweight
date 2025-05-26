@@ -23,6 +23,20 @@ using namespace std::string_literals;
 
 // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
+namespace std
+{
+
+template <typename T>
+ostream& operator<<(ostream& os, optional<T> const& opt)
+{
+    if (opt.has_value())
+        return os << *opt;
+    else
+        return os << "nullopt";
+}
+
+} // namespace std
+
 template <typename T, auto P1, auto P2>
 std::ostream& operator<<(std::ostream& os, Field<std::optional<T>, P1, P2> const& field)
 {
@@ -1130,22 +1144,27 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: Partial retriaval of the data", "[DataM
 
     dm.CreateTable<Person>();
 
-    for (int i = 20; i <= 50; ++i)
+    constexpr auto StartAge = 20;
+    constexpr auto EndAge = 21;
+
+    for (auto const age: std::views::iota(StartAge, EndAge + 1))
     {
         auto person = Person {};
-        person.name = std::format("John-{}", i);
-        person.age = i;
+        person.name = std::format("John-{}", age);
+        person.age = age;
         dm.Create(person);
+        INFO("Created person: " << person);
     }
 
-    auto result = dm.Query<SqlElements<1, 3>, Person>(
+    auto records = dm.Query<SqlElements<1, 3>, Person>(
         dm.FromTable(RecordTableName<Person>).Select().Fields({ "name"sv, "age"sv }).All());
 
-    for (int i = 20; i <= 50; ++i)
+    for (auto const [i, record]: records | std::views::enumerate)
     {
-        CAPTURE(i);
-        CHECK(result[i - 20].name.Value() == std::format("John-{}", i));
-        CHECK(result[i - 20].age.Value() == i);
+        auto const age = StartAge + i;
+        CAPTURE(age);
+        REQUIRE(record.name.Value() == std::format("John-{}", age));
+        REQUIRE(record.age.Value() == age);
     }
 }
 
