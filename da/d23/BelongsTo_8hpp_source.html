@@ -335,19 +335,19 @@ $(document).ready(function(){initNavTree('da/d23/BelongsTo_8hpp_source.html','..
 <div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span><span class="keyword">namespace </span>detail</div>
 <div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>{</div>
 <div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span><span class="keyword">struct </span>IsBelongsTo: std::false_type</div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span><span class="keyword">struct </span>IsBelongsToType: std::false_type</div>
 <div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>{</div>
 <div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>};</div>
 <div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span> </div>
 <div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span><span class="keyword">template</span> &lt;auto ReferencedField, auto ColumnNameOverr<span class="keywordtype">id</span>eString&gt;</div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span><span class="keyword">struct </span>IsBelongsTo&lt;<a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt;ReferencedField, ColumnNameOverrideString&gt;&gt;: std::true_type</div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span><span class="keyword">struct </span>IsBelongsToType&lt;<a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt;ReferencedField, ColumnNameOverrideString&gt;&gt;: std::true_type</div>
 <div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>{</div>
 <div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>};</div>
 <div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span> </div>
 <div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>} <span class="comment">// namespace detail</span></div>
 <div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span> </div>
 <div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsBelongsTo = detail::IsBelongsTo&lt;std::remove_cvref_t&lt;T&gt;&gt;::value;</div>
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsBelongsTo = detail::IsBelongsToType&lt;std::remove_cvref_t&lt;T&gt;&gt;::value;</div>
 <div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span> </div>
 <div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span><span class="keyword">template</span> &lt;auto ReferencedField&gt;</div>
 <div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span><span class="keyword">struct </span>SqlDataBinder&lt;<a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt;ReferencedField&gt;&gt;</div>
@@ -376,7 +376,7 @@ $(document).ready(function(){initNavTree('da/d23/BelongsTo_8hpp_source.html','..
 <div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(</div>
 <div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>        SQLHSTMT stmt, SQLUSMALLINT column, SelfType* result, SQLLEN* indicator, <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>    {</div>
-<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;InnerType&gt;::GetColumn(stmt, column, &amp;result-&gt;emplace(), indicator, cb);</div>
+<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>        <span class="keyword">auto</span> <span class="keyword">const</span> sqlReturn = SqlDataBinder&lt;InnerType&gt;::GetColumn(stmt, column, &amp;result-&gt;MutableValue(), indicator, cb);</div>
 <div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(sqlReturn))</div>
 <div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>            result-&gt;SetModified(<span class="keyword">true</span>);</div>
 <div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>        <span class="keywordflow">return</span> sqlReturn;</div>
