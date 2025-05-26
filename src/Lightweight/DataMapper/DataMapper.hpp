@@ -124,6 +124,32 @@ constexpr bool CanSafelyBindOutputColumns(SqlServerType sqlServerType, Record co
 }
 
 template <typename Record>
+void BindAllOutputColumnsWithOffset(SqlResultCursor& reader, Record& record, SQLSMALLINT startOffset)
+{
+    Reflection::EnumerateMembers(record,
+                                 [reader = &reader, i = startOffset]<size_t I, typename Field>(Field& field) mutable {
+                                     if constexpr (IsField<Field>)
+                                     {
+                                         reader->BindOutputColumn(i++, &field.MutableValue());
+                                     }
+                                     else if constexpr (IsBelongsTo<Field>)
+                                     {
+                                         reader->BindOutputColumn(i++, &field.MutableValue());
+                                     }
+                                     else if constexpr (SqlOutputColumnBinder<Field>)
+                                     {
+                                         reader->BindOutputColumn(i++, &field);
+                                     }
+                                 });
+}
+
+template <typename Record>
+void BindAllOutputColumns(SqlResultCursor& reader, Record& record)
+{
+    BindAllOutputColumnsWithOffset(reader, record, 1);
+}
+
+template <typename Record>
 void GetAllColumns(SqlResultCursor& reader, Record& record)
 {
     Reflection::EnumerateMembers(record, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
@@ -341,25 +367,6 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
     {
     }
 
-    static void BindAllOutputColumns(SqlResultCursor& reader, Record& record)
-    {
-        Reflection::EnumerateMembers(
-            record, [reader = &reader, i = SQLSMALLINT { 1 }]<size_t I, typename Field>(Field& field) mutable {
-                if constexpr (IsField<Field>)
-                {
-                    reader->BindOutputColumn(i++, &field.MutableValue());
-                }
-                else if constexpr (IsBelongsTo<Field>)
-                {
-                    reader->BindOutputColumn(i++, &field.MutableValue());
-                }
-                else if constexpr (SqlOutputColumnBinder<Field>)
-                {
-                    reader->BindOutputColumn(i++, &field);
-                }
-            });
-    }
-
     static void ReadResults(SqlServerType sqlServerType, SqlResultCursor reader, std::vector<Record>* records)
     {
         while (true)
@@ -384,7 +391,7 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
     {
         auto const outputColumnsBound = detail::CanSafelyBindOutputColumns(sqlServerType, record);
         if (outputColumnsBound)
-            BindAllOutputColumns(reader, record);
+            detail::BindAllOutputColumns(reader, record);
 
         if (!reader.FetchRow())
             return false;
@@ -415,44 +422,6 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecor
     {
     }
 
-    static void BindAllOutputColumns(SqlResultCursor& reader, RecordType& record)
-    {
-        auto& [firstRecord, secondRecord] = record;
-        Reflection::EnumerateMembers(
-            firstRecord, [reader = &reader, i = SQLSMALLINT { 1 }]<size_t I, typename Field>(Field& field) mutable {
-                if constexpr (IsField<Field>)
-                {
-                    reader->BindOutputColumn(i++, &field.MutableValue());
-                }
-                else if constexpr (IsBelongsTo<Field>)
-                {
-                    reader->BindOutputColumn(i++, &field.MutableValue());
-                }
-                else if constexpr (SqlOutputColumnBinder<Field>)
-                {
-                    reader->BindOutputColumn(i++, &field);
-                }
-            });
-
-        Reflection::EnumerateMembers(
-            secondRecord,
-            [reader = &reader,
-             i = SQLSMALLINT { 1 + Reflection::CountMembers<FirstRecord> }]<size_t I, typename Field>(Field& field) mutable {
-                if constexpr (IsField<Field>)
-                {
-                    reader->BindOutputColumn(i++, &field.MutableValue());
-                }
-                else if constexpr (IsBelongsTo<Field>)
-                {
-                    reader->BindOutputColumn(i++, &field.MutableValue());
-                }
-                else if constexpr (SqlOutputColumnBinder<Field>)
-                {
-                    reader->BindOutputColumn(i++, &field);
-                }
-            });
-    }
-
     static void ReadResults(SqlServerType sqlServerType, SqlResultCursor reader, std::vector<RecordType>* records)
     {
         while (true)
@@ -463,7 +432,10 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecor
             auto const outputColumnsBoundFirst = detail::CanSafelyBindOutputColumns(sqlServerType, firstRecord);
             auto const outputColumnsBoundSecond = detail::CanSafelyBindOutputColumns(sqlServerType, secondRecord);
             if (outputColumnsBoundFirst && outputColumnsBoundSecond)
-                BindAllOutputColumns(reader, record);
+            {
+                detail::BindAllOutputColumnsWithOffset(reader, firstRecord, 1);
+                detail::BindAllOutputColumnsWithOffset(reader, secondRecord, 1 + Reflection::CountMembers<FirstRecord>);
+            }
 
             if (!reader.FetchRow())
             {
@@ -505,25 +477,6 @@ class [[nodiscard]] SqlQuerySingleBuilder: public SqlWhereClauseBuilder<SqlQuery
         return _formatter;
     }
 
-    static void BindAllOutputColumns(SqlResultCursor& reader, Record& record)
-    {
-        Reflection::EnumerateMembers(
-            record, [reader = &reader, i = SQLSMALLINT { 1 }]<size_t I, typename Field>(Field& field) mutable {
-                if constexpr (IsField<Field>)
-                {
-                    reader->BindOutputColumn(i++, &field.MutableValue());
-                }
-                else if constexpr (IsBelongsTo<Field>)
-                {
-                    reader->BindOutputColumn(i++, &field.MutableValue());
-                }
-                else if constexpr (SqlOutputColumnBinder<Field>)
-                {
-                    reader->BindOutputColumn(i++, &field);
-                }
-            });
-    }
-
   protected:
     LIGHTWEIGHT_FORCE_INLINE explicit SqlQuerySingleBuilder(SqlStatement& stmt, std::string fields) noexcept:
         _stmt { stmt },
@@ -551,7 +504,7 @@ class [[nodiscard]] SqlQuerySingleBuilder: public SqlWhereClauseBuilder<SqlQuery
         auto record = Record {};
         auto canBindOutputColumns = detail::CanSafelyBindOutputColumns(_stmt.Connection().ServerType(), record);
         if (canBindOutputColumns)
-            BindAllOutputColumns(reader, record);
+            detail::BindAllOutputColumns(reader, record);
         if (!reader.FetchRow())
             return std::nullopt;
         if (!canBindOutputColumns)
@@ -1260,12 +1213,17 @@ std::optional<Record> DataMapper::QuerySingleWithoutRelationAutoLoading(PrimaryK
     _stmt.Execute(std::forward<PrimaryKeyTypes>(primaryKeys)...);
 
     auto resultRecord = Record {};
-    BindOutputColumns(resultRecord);
 
-    if (!_stmt.FetchRow())
+    auto reader = _stmt.GetResultCursor();
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns(_stmt.Connection().ServerType(), resultRecord);
+    if (outputColumnsBound)
+        detail::BindAllOutputColumns(reader, resultRecord);
+
+    if (!reader.FetchRow())
         return std::nullopt;
 
-    _stmt.CloseCursor();
+    if (!outputColumnsBound)
+        detail::GetAllColumns(reader, resultRecord);
 
     ConfigureRelationAutoLoading(resultRecord);
 

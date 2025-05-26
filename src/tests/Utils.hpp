@@ -638,8 +638,10 @@ inline auto MakeLargeText(size_t size)
 inline bool IsGithubActions()
 {
 #if defined(_WIN32) || defined(_WIN64)
-    char envBuffer[256];
-    return getenv_s(nullptr, envBuffer, sizeof(envBuffer), "GITHUB_ACTIONS") == 0 && std::string_view(envBuffer) == "true";
+    char envBuffer[32] {};
+    size_t requiredCount = 0;
+    return getenv_s(&requiredCount, envBuffer, sizeof(envBuffer), "GITHUB_ACTIONS") == 0
+           && std::string_view(envBuffer) == "true" == 0;
 #else
     return std::getenv("GITHUB_ACTIONS") != nullptr && std::string_view(std::getenv("GITHUB_ACTIONS")) == "true";
 #endif

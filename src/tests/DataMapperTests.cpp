@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <ostream>
+#include <ranges>
 #include <string>
 #include <string_view>
 
@@ -1441,6 +1442,45 @@ TEST_CASE_METHOD(SqlTestFixture, "MapForJointStatement", "[DataMapper]")
         CHECK(elementC.value_c_fourth.Value() == 1000 + i);
         ++i;
     }
+}
+
+struct TestDynamicData
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlDynamicAnsiString<4000>> stringAnsi {};
+    Field<SqlDynamicUtf16String<4000>> stringUtf16 {};
+    Field<SqlDynamicUtf32String<4000>> stringUtf32 {};
+    Field<SqlDynamicWideString<4000>> stringWide {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "TestDynamicData", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<TestDynamicData>();
+    TestDynamicData data {};
+    dm.Create(data);
+
+    auto const checkSize = [&](auto size) {
+        INFO(size);
+
+        data.stringAnsi = std::string(size, 'a');
+        data.stringUtf16 = std::basic_string<char16_t>(size, u'a');
+        data.stringUtf32 = std::basic_string<char32_t>(size, U'a');
+        data.stringWide = std::basic_string<wchar_t>(size, L'a');
+        dm.Update(data);
+
+        auto const result = dm.QuerySingle<TestDynamicData>(data.id);
+        REQUIRE(result.has_value());
+        REQUIRE(result.value().stringAnsi.Value() == std::string(size, 'a'));
+        REQUIRE(result.value().stringUtf16.Value() == std::basic_string<char16_t>(size, u'a'));
+        REQUIRE(result.value().stringUtf32.Value() == std::basic_string<char32_t>(size, U'a'));
+        REQUIRE(result.value().stringWide.Value() == std::basic_string<wchar_t>(size, L'a'));
+    };
+
+    checkSize(5);
+    checkSize(1000);
+    checkSize(2000);
+    checkSize(4000);
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
