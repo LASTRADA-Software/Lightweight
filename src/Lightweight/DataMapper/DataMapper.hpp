@@ -95,7 +95,7 @@ auto ToSharedPtrList(Container<Object, Allocator<Object>> container)
 }
 
 template <typename Record>
-constexpr bool CanSafelyBindOutputColumns(SqlServerType sqlServerType, Record const& record)
+constexpr bool CanSafelyBindOutputColumns(SqlServerType sqlServerType) noexcept
 {
     if (sqlServerType != SqlServerType::MICROSOFT_SQL)
         return true;
@@ -104,7 +104,7 @@ constexpr bool CanSafelyBindOutputColumns(SqlServerType sqlServerType, Record co
     // then don't call BindOutputColumn but SQLFetch to get the result, because
     // regrowing previously bound columns is not supported in MS-SQL's ODBC driver, so it seems.
     bool result = true;
-    Reflection::EnumerateMembers(record, [&result]<size_t I, typename Field>(Field& /*field*/) {
+    Reflection::EnumerateMembers<Record>([&result]<size_t I, typename Field>() {
         if constexpr (IsField<Field>)
         {
             if constexpr (detail::OneOf<typename Field::ValueType,
@@ -149,10 +149,10 @@ void BindAllOutputColumns(SqlResultCursor& reader, Record& record)
     BindAllOutputColumnsWithOffset(reader, record, 1);
 }
 
-template <typename Record>
+template <typename ElementMask, typename Record>
 void GetAllColumns(SqlResultCursor& reader, Record& record)
 {
-    Reflection::EnumerateMembers(record, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
+    Reflection::EnumerateMembers<ElementMask>(record, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
         if constexpr (IsField<Field>)
         {
             field.MutableValue() = reader->GetColumn<typename Field::ValueType>(I + 1);
@@ -162,6 +162,12 @@ void GetAllColumns(SqlResultCursor& reader, Record& record)
             field = reader->GetColumn<Field>(I + 1);
         }
     });
+}
+
+template <typename Record>
+void GetAllColumns(SqlResultCursor& reader, Record& record)
+{
+    return GetAllColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>, Record>(reader, record);
 }
 
 template <typename FirstRecord, typename SecondRecord>
@@ -191,6 +197,23 @@ void GetAllColumns(SqlResultCursor& reader, std::tuple<FirstRecord, SecondRecord
             field = reader->GetColumn<Field>(Reflection::CountMembers<FirstRecord> + I + 1);
         }
     });
+}
+
+template <typename Record>
+bool ReadSingleResult(SqlServerType sqlServerType, SqlResultCursor& reader, Record& record)
+{
+    auto const outputColumnsBound = CanSafelyBindOutputColumns<Record>(sqlServerType);
+
+    if (outputColumnsBound)
+        BindAllOutputColumns(reader, record);
+
+    if (!reader.FetchRow())
+        return false;
+
+    if (!outputColumnsBound)
+        GetAllColumns(reader, record);
+
+    return true;
 }
 
 } // namespace detail
@@ -337,7 +360,7 @@ class [[nodiscard]] SqlSparseFieldQueryBuilder final:
 
     static bool ReadResultImpl(SqlServerType sqlServerType, SqlResultCursor& reader, Record& record)
     {
-        auto const outputColumnsBound = detail::CanSafelyBindOutputColumns(sqlServerType, record);
+        auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(sqlServerType);
         if (outputColumnsBound)
             reader.BindOutputColumns(&(record.*ReferencedFields)...);
 
@@ -372,7 +395,7 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
         while (true)
         {
             Record& record = records->emplace_back();
-            if (!ReadResultImpl(sqlServerType, reader, record))
+            if (!detail::ReadSingleResult(sqlServerType, reader, record))
             {
                 records->pop_back();
                 break;
@@ -383,23 +406,8 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
     static void ReadResult(SqlServerType sqlServerType, SqlResultCursor reader, std::optional<Record>* optionalRecord)
     {
         Record& record = optionalRecord->emplace();
-        if (!ReadResultImpl(sqlServerType, reader, record))
+        if (!detail::ReadSingleResult(sqlServerType, reader, record))
             optionalRecord->reset();
-    }
-
-    static bool ReadResultImpl(SqlServerType sqlServerType, SqlResultCursor& reader, Record& record)
-    {
-        auto const outputColumnsBound = detail::CanSafelyBindOutputColumns(sqlServerType, record);
-        if (outputColumnsBound)
-            detail::BindAllOutputColumns(reader, record);
-
-        if (!reader.FetchRow())
-            return false;
-
-        if (!outputColumnsBound)
-            detail::GetAllColumns(reader, record);
-
-        return true;
     }
 };
 
@@ -429,9 +437,14 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecor
             auto& record = records->emplace_back();
             auto& [firstRecord, secondRecord] = record;
 
-            auto const outputColumnsBoundFirst = detail::CanSafelyBindOutputColumns(sqlServerType, firstRecord);
-            auto const outputColumnsBoundSecond = detail::CanSafelyBindOutputColumns(sqlServerType, secondRecord);
-            if (outputColumnsBoundFirst && outputColumnsBoundSecond)
+            using FirstRecordType = std::remove_cvref_t<decltype(firstRecord)>;
+            using SecondRecordType = std::remove_cvref_t<decltype(secondRecord)>;
+
+            auto const outputColumnsBoundFirst = detail::CanSafelyBindOutputColumns<FirstRecordType>(sqlServerType);
+            auto const outputColumnsBoundSecond = detail::CanSafelyBindOutputColumns<SecondRecordType>(sqlServerType);
+            auto const canSafelyBindAll = outputColumnsBoundFirst && outputColumnsBoundSecond;
+
+            if (canSafelyBindAll)
             {
                 detail::BindAllOutputColumnsWithOffset(reader, firstRecord, 1);
                 detail::BindAllOutputColumnsWithOffset(reader, secondRecord, 1 + Reflection::CountMembers<FirstRecord>);
@@ -443,7 +456,7 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecor
                 break;
             }
 
-            if (!(outputColumnsBoundFirst && outputColumnsBoundSecond))
+            if (!canSafelyBindAll)
                 detail::GetAllColumns(reader, record);
         }
     }
@@ -500,16 +513,11 @@ class [[nodiscard]] SqlQuerySingleBuilder: public SqlWhereClauseBuilder<SqlQuery
                                                    _searchCondition.condition,
                                                    orderBy,
                                                    count));
+        auto record = std::optional<Record> { Record {} };
         auto reader = _stmt.GetResultCursor();
-        auto record = Record {};
-        auto canBindOutputColumns = detail::CanSafelyBindOutputColumns(_stmt.Connection().ServerType(), record);
-        if (canBindOutputColumns)
-            detail::BindAllOutputColumns(reader, record);
-        if (!reader.FetchRow())
+        if (!detail::ReadSingleResult(_stmt.Connection().ServerType(), reader, *record))
             return std::nullopt;
-        if (!canBindOutputColumns)
-            detail::GetAllColumns(reader, record);
-        return std::optional { std::move(record) };
+        return record;
     }
 };
 
@@ -1212,22 +1220,12 @@ std::optional<Record> DataMapper::QuerySingleWithoutRelationAutoLoading(PrimaryK
     _stmt.Prepare(queryBuilder.First());
     _stmt.Execute(std::forward<PrimaryKeyTypes>(primaryKeys)...);
 
-    auto resultRecord = Record {};
-
+    auto resultRecord = std::optional<Record> { Record {} };
     auto reader = _stmt.GetResultCursor();
-    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns(_stmt.Connection().ServerType(), resultRecord);
-    if (outputColumnsBound)
-        detail::BindAllOutputColumns(reader, resultRecord);
-
-    if (!reader.FetchRow())
+    if (!detail::ReadSingleResult(_stmt.Connection().ServerType(), reader, *resultRecord))
         return std::nullopt;
 
-    if (!outputColumnsBound)
-        detail::GetAllColumns(reader, resultRecord);
-
-    ConfigureRelationAutoLoading(resultRecord);
-
-    return { std::move(resultRecord) };
+    return resultRecord;
 }
 
 template <typename Record, typename... PrimaryKeyTypes>
@@ -1251,17 +1249,11 @@ std::optional<Record> DataMapper::QuerySingle(SqlSelectQueryBuilder selectQuery,
     _stmt.Prepare(selectQuery.First().ToSql());
     _stmt.Execute(std::forward<Args>(args)...);
 
-    auto resultRecord = Record {};
-    BindOutputColumns(resultRecord);
-
-    if (!_stmt.FetchRow())
+    auto resultRecord = std::optional<Record> { Record {} };
+    auto reader = _stmt.GetResultCursor();
+    if (!detail::ReadSingleResult(_stmt.Connection().ServerType(), reader, *resultRecord))
         return std::nullopt;
-
-    _stmt.CloseCursor();
-
-    ConfigureRelationAutoLoading(resultRecord);
-
-    return { std::move(resultRecord) };
+    return resultRecord;
 }
 
 // TODO: Provide Query(QueryBuilder, ...) method variant
@@ -1356,13 +1348,34 @@ std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const
     _stmt.Prepare(selectQuery.ToSql());
     _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
 
-    auto result = std::vector<Record> {};
+    auto records = std::vector<Record> {};
 
-    ConfigureRelationAutoLoading(BindOutputColumns<ElementMask>(result.emplace_back()));
-    while (_stmt.FetchRow())
-        ConfigureRelationAutoLoading(BindOutputColumns<ElementMask>(result.emplace_back()));
+    // TODO: We could optimize this further by only considering ElementMask fields in Record.
+    bool const canSafelyBindOutputColumns = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
 
-    return result;
+    auto reader = _stmt.GetResultCursor();
+
+    for (;;)
+    {
+        auto& record = records.emplace_back();
+
+        if (canSafelyBindOutputColumns)
+            BindOutputColumns<ElementMask>(record);
+
+        if (!reader.FetchRow())
+            break;
+
+        if (!canSafelyBindOutputColumns)
+            detail::GetAllColumns<ElementMask>(reader, record);
+    }
+
+    // Drop the last record, which we failed to fetch (End of result set).
+    records.pop_back();
+
+    for (auto& record: records)
+        ConfigureRelationAutoLoading(record);
+
+    return records;
 }
 
 template <typename Record>
