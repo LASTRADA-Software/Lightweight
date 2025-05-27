@@ -8,6 +8,10 @@
 #include <chrono>
 #include <format>
 
+#include <sql.h>
+#include <sqlext.h>
+#include <sqltypes.h>
+
 /// Represents a date and time to efficiently write to or read from a database.
 ///
 /// @see SqlDate, SqlTime
@@ -255,8 +259,38 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              SqlDateTime const& value,
-                                                             SqlDataBinderCallback& /*cb*/) noexcept
+                                                             [[maybe_unused]] SqlDataBinderCallback const& cb) noexcept
     {
+#if defined(_WIN32) || defined(_WIN64)
+        // Microsoft Windows also chips with SQLSRV32.DLL, which is legacy, but seems to be used sometimes.
+        // See: https://learn.microsoft.com/en-us/sql/connect/connect-history
+        if (cb.ServerType() == SqlServerType::MICROSOFT_SQL)
+        {
+            struct
+            {
+                SQLSMALLINT sqlType {};
+                SQLULEN paramSize {};
+                SQLSMALLINT decimalDigits {};
+                SQLSMALLINT nullable {};
+            } hints;
+            auto const sqlDescribeParamResult =
+                SQLDescribeParam(stmt, column, &hints.sqlType, &hints.paramSize, &hints.decimalDigits, &hints.nullable);
+            if (SQL_SUCCEEDED(sqlDescribeParamResult))
+            {
+                return SQLBindParameter(stmt,
+                                        column,
+                                        SQL_PARAM_INPUT,
+                                        SQL_C_TIMESTAMP,
+                                        hints.sqlType,
+                                        hints.paramSize,
+                                        hints.decimalDigits,
+                                        (SQLPOINTER) &value.sqlValue,
+                                        sizeof(value),
+                                        nullptr);
+            }
+        }
+#endif
+
         return SQLBindParameter(stmt,
                                 column,
                                 SQL_PARAM_INPUT,
