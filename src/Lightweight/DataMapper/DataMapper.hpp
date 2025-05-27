@@ -149,10 +149,10 @@ void BindAllOutputColumns(SqlResultCursor& reader, Record& record)
     BindAllOutputColumnsWithOffset(reader, record, 1);
 }
 
-template <typename Record>
+template <typename ElementMask, typename Record>
 void GetAllColumns(SqlResultCursor& reader, Record& record)
 {
-    Reflection::EnumerateMembers(record, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
+    Reflection::EnumerateMembers<ElementMask>(record, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
         if constexpr (IsField<Field>)
         {
             field.MutableValue() = reader->GetColumn<typename Field::ValueType>(I + 1);
@@ -162,6 +162,12 @@ void GetAllColumns(SqlResultCursor& reader, Record& record)
             field = reader->GetColumn<Field>(I + 1);
         }
     });
+}
+
+template <typename Record>
+void GetAllColumns(SqlResultCursor& reader, Record& record)
+{
+    return GetAllColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>, Record>(reader, record);
 }
 
 template <typename FirstRecord, typename SecondRecord>
@@ -1360,8 +1366,7 @@ std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const
             break;
 
         if (!canSafelyBindOutputColumns)
-            detail::GetAllColumns(reader, record); // TODO(pr) should we care about ElementMask here
-            // detail::GetAllColumns<ElementMask>(reader, record);
+            detail::GetAllColumns<ElementMask>(reader, record);
     }
 
     // Drop the last record, which we failed to fetch (End of result set).
