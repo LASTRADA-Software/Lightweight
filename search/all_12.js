@@ -9,7 +9,7 @@ var searchData=
   ['referencedfield_6',['ReferencedField',['../df/d1a/classBelongsTo.html#a3ada69a2dfb5d37fd9255dfc53ab631d',1,'BelongsTo']]],
   ['referencedrecord_7',['referencedrecord',['../d3/d09/classHasMany.html#aca962e88a97245b317de7c64bb2fa230',1,'HasMany::ReferencedRecord'],['../df/dd6/classHasManyThrough.html#a302f58acb9de3b2feebf5a000f08b72e',1,'HasManyThrough::ReferencedRecord'],['../da/d9d/classHasOneThrough.html#a31e51e3589acc4d8dc0da04daf38e992',1,'HasOneThrough::ReferencedRecord'],['../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5',1,'BelongsTo::ReferencedRecord']]],
   ['referencedrecordlist_8',['referencedrecordlist',['../d3/d09/classHasMany.html#a73dac45f1f8e7f72216a1bab062a2439',1,'HasMany::ReferencedRecordList'],['../df/dd6/classHasManyThrough.html#ad933650d8d25c20431da3672f81b7450',1,'HasManyThrough::ReferencedRecordList']]],
-  ['related_20best_20practices_9',['SQL driver related best practices',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-driver-related-best-practices',1,'']]],
+  ['related_20best_20practices_9',['SQL Driver-Related Best Practices',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-driver-related-best-practices',1,'']]],
   ['reload_10',['Reload',['../df/dd6/classHasManyThrough.html#af01e87a889bb14b2aa93401cb013004a',1,'HasManyThrough']]],
   ['renamecolumn_11',['RenameColumn',['../d3/d3f/classSqlAlterTableQueryBuilder.html#aca0ad1e7dc3fc1f17a39246512428dff',1,'SqlAlterTableQueryBuilder']]],
   ['renameto_12',['RenameTo',['../d3/d3f/classSqlAlterTableQueryBuilder.html#ab1b8c373887d75651403c55c742fa3c8',1,'SqlAlterTableQueryBuilder']]],
@@ -20,9 +20,9 @@ var searchData=
   ['requiresuccess_17',['RequireSuccess',['../d7/d7b/classSqlConnection.html#a40df02eaa4dc4a3fb5e646dc6db3c26f',1,'SqlConnection']]],
   ['resetpostconnectedhook_18',['ResetPostConnectedHook',['../d7/d7b/classSqlConnection.html#a0bef34bceacdb82e71bce7cb328b8c41',1,'SqlConnection']]],
   ['resize_19',['resize',['../dd/d83/classSqlDynamicString.html#a51b0060ed3b58e57a86fca29d9356e58',1,'SqlDynamicString::resize()'],['../d8/dcb/classSqlFixedString.html#a40fc4353d3351ad90304248552c4771e',1,'SqlFixedString::resize()'],['../dc/db1/classSqlDynamicBinary.html#addfe160061d76857e0b6bb8cb72908cd',1,'SqlDynamicBinary::resize()']]],
-  ['result_20row_20columns_20in_20order_20',['Query result row columns in order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
+  ['result_20row_20columns_20in_20order_20',['Query Result Row Columns in Order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
   ['retrieval_20via_20structs_21',['retrieval via structs',['../index.html#example-simple-row-retrieval-via-structs',1,'Example: Simple row retrieval via structs'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'Simple row retrieval via structs']]],
   ['rollback_22',['Rollback',['../d1/dc2/classSqlTransaction.html#a1228dcf6a3e6692465a6296702b2d917',1,'SqlTransaction']]],
-  ['row_20columns_20in_20order_23',['Query result row columns in order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
+  ['row_20columns_20in_20order_23',['Query Result Row Columns in Order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
   ['row_20retrieval_20via_20structs_24',['row retrieval via structs',['../index.html#example-simple-row-retrieval-via-structs',1,'Example: Simple row retrieval via structs'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'Simple row retrieval via structs']]]
 ];

@@ -22,7 +22,7 @@ var searchData=
   ['toutf8_19',['toutf8',['../d1/d7d/group__Unicode.html#ga6695fc4c42b45b95bc185d2a8600de7f',1,'ToUtf8(std::basic_string_view&lt; T &gt; u16InputString):&#160;UnicodeConverter.hpp'],['../d1/d7d/group__Unicode.html#ga1a1ff5d7c16125a70bdd62425443fe82',1,'ToUtf8(std::u16string_view u16InputString):&#160;UnicodeConverter.hpp'],['../d1/d7d/group__Unicode.html#gaf7c1f55d642f4db4d16e5d9e1ec9ddef',1,'ToUtf8(std::u32string_view u32InputString):&#160;UnicodeConverter.hpp']]],
   ['tracelogger_20',['TraceLogger',['../d8/d7e/classSqlLogger.html#afb845fed40a9a3de87589304ea8053d8',1,'SqlLogger']]],
   ['transactionactive_21',['TransactionActive',['../d7/d7b/classSqlConnection.html#a6ae1295e5d7226d13787e9ab663652d1',1,'SqlConnection']]],
-  ['transactions_20with_20care_22',['Use transactions with care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]],
+  ['transactions_20with_20care_22',['Use Transactions with Care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]],
   ['transactionsallowed_23',['TransactionsAllowed',['../d7/d7b/classSqlConnection.html#aeaa239269993596de12bdb0edac0c7fc',1,'SqlConnection']]],
   ['trycommit_24',['TryCommit',['../d1/dc2/classSqlTransaction.html#a8d063f24728c22d9586b0c7c5155b327',1,'SqlTransaction']]],
   ['trydeclarename_25',['TryDeclareName',['../df/dd4/classUniqueNameBuilder.html#a164dd648737463a3e334c7693c02ec77',1,'UniqueNameBuilder']]],
@@ -43,5 +43,5 @@ var searchData=
   ['tryrollback_40',['TryRollback',['../d1/dc2/classSqlTransaction.html#a9e8445b170f759ea4d26c24b7f119ef9',1,'SqlTransaction']]],
   ['type_41',['type',['../d3/d8a/structSqlColumnDeclaration.html#a564790b8f7f95492c11cfeff57dd142b',1,'SqlColumnDeclaration']]],
   ['type_20binder_20example_42',['Custom Column Data Type Binder Example',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-column-data-type-binder-example',1,'']]],
-  ['types_43',['types',['../d4/d7c/group__DataTypes.html',1,'Data Types'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types',1,'Use native column types']]]
+  ['types_43',['types',['../d4/d7c/group__DataTypes.html',1,'Data Types'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types',1,'Use Native Column Types']]]
 ];

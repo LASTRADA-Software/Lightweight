@@ -11,7 +11,7 @@ var searchData=
   ['altercolumn_8',['AlterColumn',['../d3/d3f/classSqlAlterTableQueryBuilder.html#aa2baccd183036dd059fffa77520916fe',1,'SqlAlterTableQueryBuilder']]],
   ['altertable_9',['altertable',['../d3/d15/classSqlMigrationQueryBuilder.html#a9a63d493d206c0b74ab053defec372c9',1,'SqlMigrationQueryBuilder::AlterTable()'],['../dc/df2/classSqlQueryFormatter.html#a42667232e97c5b3aebbf1c35a360a962',1,'SqlQueryFormatter::AlterTable()']]],
   ['an_20odbc_20sql_20api_20for_20c_2023_10',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
-  ['and_20business_20logic_20separate_11',['Keep data model and business logic separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]],
+  ['and_20business_20logic_20separate_11',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]],
   ['api_12',['api',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html',1,'Data Binder API'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-the-datamapper-api',1,'Use the DataMapper API']]],
   ['api_20for_20c_2023_13',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
   ['as_14',['As',['../d1/d91/classSqlSelectQueryBuilder.html#a4e0a79bcab97428d4fa74218eacb2127',1,'SqlSelectQueryBuilder']]],

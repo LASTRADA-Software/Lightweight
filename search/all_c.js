@@ -6,5 +6,5 @@ var searchData=
   ['level_20data_20mapping_3',['level data mapping',['../index.html#example-crud-style-high-level-data-mapping',1,'Example: CRUD-style High level Data Mapping'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping',1,'High level Data Mapping']]],
   ['lightweight_20an_20odbc_20sql_20api_20for_20c_2023_4',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
   ['loadrelations_5',['LoadRelations',['../dc/dc7/classDataMapper.html#a172f8cd80c33f627fa30927e9fff378f',1,'DataMapper']]],
-  ['logic_20separate_6',['Keep data model and business logic separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]]
+  ['logic_20separate_6',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]]
 ];
