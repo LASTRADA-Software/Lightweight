@@ -56,6 +56,11 @@ SqlServerType SqlStatement::ServerType() const noexcept
     return m_connection->ServerType();
 }
 
+std::string const& SqlStatement::DriverName() const noexcept
+{
+    return m_connection->DriverName();
+}
+
 SqlStatement::SqlStatement():
     m_data { new Data {
                  .ownedConnection = SqlConnection(),
