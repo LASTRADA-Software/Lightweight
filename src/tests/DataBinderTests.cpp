@@ -448,7 +448,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode mixed", "[SqlDataBinder
     });
 
     {
-        auto constexpr inputValue = "The \xc3\xb6"sv;
+        auto constexpr inputValue = u8"The \u00f6"sv;
         auto constexpr expectedWideValue = WTEXT("The \u00f6");
 
         // Write value: UTF-8 encoded
