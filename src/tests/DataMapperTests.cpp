@@ -12,9 +12,11 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <deque>
 #include <iostream>
 #include <ostream>
 #include <ranges>
+#include <set>
 #include <string>
 #include <string_view>
 
@@ -603,9 +605,16 @@ TEST_CASE_METHOD(SqlTestFixture, "iterate over database", "[SqlRowIterator]")
         dm.Create(person);
     }
 
+    auto retrievedPersons = std::vector<Person> {};
+    for (auto&& person: SqlRowIterator<Person>(dm.Connection()))
+        retrievedPersons.emplace_back(person);
+
+    std::ranges::sort(retrievedPersons, [](Person const& a, Person const& b) { return a.age.Value() < b.age.Value(); });
+
     int age = 40;
     size_t count = 0;
-    for (auto&& person: SqlRowIterator<Person>(dm.Connection()))
+
+    for (auto const& person: retrievedPersons)
     {
         CHECK(person.name.Value() == std::format("John-{}", age));
         CHECK(person.age.Value() == age);
@@ -800,20 +809,25 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
 
     SECTION("At")
     {
-        CHECK(johnDoe.emails.At(0) == email1);
-        CHECK(johnDoe.emails.At(1) == email2);
+        auto const& email1Retrieved = johnDoe.emails.At(0);
+        auto const& email2Retrieved = johnDoe.emails.At(1);
+        auto const emailsSet = std::set<Email> { email1Retrieved, email2Retrieved };
+        CHECK(emailsSet.size() == 2);
+        CHECK(emailsSet.contains(email1));
+        CHECK(emailsSet.contains(email2));
     }
 
     SECTION("Each")
     {
-        auto collectedEmails = std::vector<Email> {};
+        auto collectedEmails = std::set<Email> {};
         johnDoe.emails.Each([&](Email const& email) {
             INFO("Email: " << DataMapper::Inspect(email));
-            collectedEmails.emplace_back(email);
+            collectedEmails.emplace(email);
         });
+
         CHECK(collectedEmails.size() == 2);
-        CHECK(collectedEmails.at(0) == email1);
-        CHECK(collectedEmails.at(1) == email2);
+        CHECK(collectedEmails.contains(email1));
+        CHECK(collectedEmails.contains(email2));
     }
 }
 
@@ -907,6 +921,17 @@ struct Physician
     Field<SqlAnsiString<30>> name;
     HasMany<Appointment> appointments;
     HasManyThrough<Patient, Appointment> patients;
+
+    constexpr std::weak_ordering operator<=>(Physician const& other) const
+    {
+        if (auto result = id.Value() <=> other.id.Value(); result != std::weak_ordering::equivalent)
+            return result;
+
+        if (auto result = name.Value() <=> other.name.Value(); result != std::weak_ordering::equivalent)
+            return result;
+
+        return std::weak_ordering::equivalent;
+    }
 };
 
 struct Patient
@@ -916,6 +941,20 @@ struct Patient
     Field<SqlAnsiString<30>> comment;
     HasMany<Appointment> appointments;
     HasManyThrough<Physician, Appointment> physicians;
+
+    constexpr std::weak_ordering operator<=>(Patient const& other) const
+    {
+        if (auto result = id.Value() <=> other.id.Value(); result != std::weak_ordering::equivalent)
+            return result;
+
+        if (auto result = name.Value() <=> other.name.Value(); result != std::weak_ordering::equivalent)
+            return result;
+
+        if (auto result = comment.Value() <=> other.comment.Value(); result != std::weak_ordering::equivalent)
+            return result;
+
+        return std::weak_ordering::equivalent;
+    }
 };
 
 struct Appointment
@@ -925,7 +964,40 @@ struct Appointment
     Field<SqlAnsiString<80>> comment;
     BelongsTo<&Physician::id> physician;
     BelongsTo<&Patient::id> patient;
+
+    constexpr std::weak_ordering operator<=>(Appointment const& other) const
+    {
+        if (auto const result = id.Value() <=> other.id.Value(); result != std::weak_ordering::equivalent)
+            return result;
+
+        if (auto const result = date.Value() <=> other.date.Value(); result != std::weak_ordering::equivalent)
+            return result;
+
+        if (auto const result = comment.Value() <=> other.comment.Value(); result != std::weak_ordering::equivalent)
+            return result;
+
+        if (auto const result = physician.Value() <=> other.physician.Value(); result != std::weak_ordering::equivalent)
+            return result;
+
+        if (auto const result = patient.Value() <=> other.patient.Value(); result != std::weak_ordering::equivalent)
+            return result;
+
+        return std::weak_ordering::equivalent;
+    }
 };
+
+template <typename T>
+std::set<T> MakeSetFromRange(std::ranges::range auto&& range)
+{
+#if defined(__cpp_lib_from_range)
+    return std::set<T>(std::from_range, std::forward<decltype(range)>(range));
+#else
+    auto set = std::set<T> {};
+    for (auto&& item: range)
+        set.emplace(std::forward<decltype(item)>(item));
+    return set;
+#endif
+}
 
 TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough", "[DataMapper][relations]")
 {
@@ -972,37 +1044,50 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough", "[DataMapper][relations]")
     patient2Apointment1.comment = "Patient is funny";
     dm.Create(patient2Apointment1);
 
-    auto const queriedCount = physician1.patients.Count();
-    REQUIRE(queriedCount == 2);
-    CHECK(DataMapper::Inspect(physician1.patients.At(0)) == DataMapper::Inspect(patient1));
-    CHECK(DataMapper::Inspect(physician1.patients.At(1)) == DataMapper::Inspect(patient2));
+    {
+        auto const queriedCount = physician1.patients.Count();
+        REQUIRE(queriedCount == 2);
+        auto const physician1Patiens = std::set<Patient> { physician1.patients.At(0), physician1.patients.At(1) };
+        CHECK(physician1Patiens.contains(patient1));
+        CHECK(physician1Patiens.contains(patient2));
+    }
 
-    CHECK(patient1.physicians.Count() == 2);
-    CHECK(DataMapper::Inspect(patient1.physicians.At(0)) == DataMapper::Inspect(physician2));
-    CHECK(DataMapper::Inspect(patient1.physicians.At(1)) == DataMapper::Inspect(physician1));
+    {
+        CHECK(patient1.physicians.Count() == 2);
+        auto const patient1Physicians = std::set<Physician> { patient1.physicians.At(0), patient1.physicians.At(1) };
+        CHECK(patient1Physicians.contains(physician1));
+        CHECK(patient1Physicians.contains(physician2));
+    }
 
     CHECK(patient2.physicians.Count() == 1);
     CHECK(DataMapper::Inspect(patient2.physicians.At(0)) == DataMapper::Inspect(physician1));
 
     // Test Each() method
-    size_t numPatientsIterated = 0;
-    std::vector<Patient> retrievedPatients;
-    physician2.patients.Each([&](Patient const& patient) {
-        REQUIRE(numPatientsIterated == 0);
-        ++numPatientsIterated;
-        INFO("Patient: " << DataMapper::Inspect(patient));
-        retrievedPatients.emplace_back(patient);
+    {
+        size_t numPatientsIterated = 0;
+        std::deque<Patient> retrievedPatients;
+        physician2.patients.Each([&](Patient const& patient) {
+            REQUIRE(numPatientsIterated == 0);
+            ++numPatientsIterated;
+            INFO("Patient: " << DataMapper::Inspect(patient));
+            retrievedPatients.emplace_back(patient);
 
-        // Load the relations of the patient
-        dm.ConfigureRelationAutoLoading(retrievedPatients.back());
-    });
+            // Load the relations of the patient
+            dm.ConfigureRelationAutoLoading(retrievedPatients.back());
+        });
+        auto const physician2Patients = MakeSetFromRange<Patient>(retrievedPatients);
+        CHECK(physician2Patients.size() == 1);
+        CHECK(physician2Patients.contains(patient1));
 
-    Patient const& patient = retrievedPatients.at(0);
-    CHECK(DataMapper::Inspect(patient) == DataMapper::Inspect(patient1)); // Blooper
-    CHECK(patient.comment.Value() == "Prefers morning times");
-    CHECK(patient.physicians.Count() == 2);
-    CHECK(patient.physicians.At(0).name.Value() == "Granny");
-    CHECK(DataMapper::Inspect(patient.physicians.At(0)) == DataMapper::Inspect(physician2));
+        // Check that the relations of the patient are loaded (on-demand, and correctly)
+        Patient& patient = retrievedPatients.at(0);
+        REQUIRE(patient.physicians.Count() == 2);
+        auto const patient1Physicians = MakeSetFromRange<Physician>(
+            patient.physicians.All() | std::views::transform([](std::shared_ptr<Physician>& p) { return std::move(*p); }));
+        CHECK(patient1Physicians.size() == 2);
+        CHECK(patient1Physicians.contains(physician1));
+        CHECK(patient1Physicians.contains(physician2));
+    }
 
     if (dm.Connection().ServerType() == SqlServerType::SQLITE)
     {
@@ -1169,8 +1254,11 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: Partial retriaval of the data", "[DataM
         INFO("Created person: " << person);
     }
 
-    auto records = dm.Query<SqlElements<1, 3>, Person>(
-        dm.FromTable(RecordTableName<Person>).Select().Fields({ "name"sv, "age"sv }).All());
+    auto records = dm.Query<SqlElements<1, 3>, Person>(dm.FromTable(RecordTableName<Person>)
+                                                           .Select()
+                                                           .Fields({ "name"sv, "age"sv })
+                                                           .OrderBy(FieldNameOf<&Person::age>, SqlResultOrdering::ASCENDING)
+                                                           .All());
 
     for (auto const [i, record]: records | std::views::enumerate)
     {

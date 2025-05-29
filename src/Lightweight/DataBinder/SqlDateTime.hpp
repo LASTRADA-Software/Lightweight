@@ -34,9 +34,13 @@ struct SqlDateTime
     constexpr SqlDateTime& operator=(SqlDateTime const& other) noexcept = default;
     constexpr ~SqlDateTime() noexcept = default;
 
+    constexpr std::weak_ordering operator<=>(SqlDateTime const& other) const noexcept
+    {
+        return value() <=> other.value();
+    }
     constexpr bool operator==(SqlDateTime const& other) const noexcept
     {
-        return value() == other.value();
+        return (*this <=> other) == std::weak_ordering::equivalent;
     }
 
     constexpr bool operator!=(SqlDateTime const& other) const noexcept
