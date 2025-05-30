@@ -16,7 +16,7 @@ var searchData=
   ['introduction_13',['Introduction',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#introduction',1,'']]],
   ['is_14',['Is',['../d0/df8/structSqlVariant.html#a6a3a8acb604aac26eee474337475546b',1,'SqlVariant']]],
   ['is_20key_15',['Performance Is Key',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#performance-is-key',1,'']]],
-  ['isalive_16',['IsAlive',['../d7/d7b/classSqlConnection.html#ab0ffa86b235846196d55554a005ba05f',1,'SqlConnection']]],
+  ['isalive_16',['IsAlive',['../d7/d7b/classSqlConnection.html#a9761034b34f63fc2e58bb1ba4abe5c72',1,'SqlConnection']]],
   ['isautoassignprimarykey_17',['IsAutoAssignPrimaryKey',['../df/d27/structField.html#adcb10511beea5a739b1ac4bfe32c6477',1,'Field']]],
   ['isautoincrementprimarykey_18',['IsAutoIncrementPrimaryKey',['../df/d27/structField.html#a6ded374ead9cfb4195c910c3878650c9',1,'Field']]],
   ['iscolliding_19',['IsColliding',['../df/dd4/classUniqueNameBuilder.html#a147b20b2c644849c3a9b4948bcadaae1',1,'UniqueNameBuilder']]],

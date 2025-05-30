@@ -9,8 +9,8 @@ var searchData=
   ['requiredcolumn_6',['RequiredColumn',['../d4/d4a/classSqlCreateTableQueryBuilder.html#ab420789b39bcca68c90a572fbd6102d6',1,'SqlCreateTableQueryBuilder']]],
   ['requiredforeignkey_7',['RequiredForeignKey',['../d4/d4a/classSqlCreateTableQueryBuilder.html#ac53b30a0e5df011418f0264090ce49c5',1,'SqlCreateTableQueryBuilder']]],
   ['requirestatementsuccess_8',['RequireStatementSuccess',['../d3/dbc/structSqlErrorInfo.html#a7818658b44c27da0ca3d5bfaee63d4a2',1,'SqlErrorInfo']]],
-  ['requiresuccess_9',['RequireSuccess',['../d7/d7b/classSqlConnection.html#a40df02eaa4dc4a3fb5e646dc6db3c26f',1,'SqlConnection']]],
-  ['resetpostconnectedhook_10',['ResetPostConnectedHook',['../d7/d7b/classSqlConnection.html#a0bef34bceacdb82e71bce7cb328b8c41',1,'SqlConnection']]],
+  ['requiresuccess_9',['RequireSuccess',['../d7/d7b/classSqlConnection.html#ae442712bea48b425b2c1582293143fc5',1,'SqlConnection']]],
+  ['resetpostconnectedhook_10',['ResetPostConnectedHook',['../d7/d7b/classSqlConnection.html#a6f06b63a0ea1fd7f6c0db7180bdf8bb7',1,'SqlConnection']]],
   ['resize_11',['resize',['../dc/db1/classSqlDynamicBinary.html#addfe160061d76857e0b6bb8cb72908cd',1,'SqlDynamicBinary::resize()'],['../dd/d83/classSqlDynamicString.html#a51b0060ed3b58e57a86fca29d9356e58',1,'SqlDynamicString::resize()'],['../d8/dcb/classSqlFixedString.html#a40fc4353d3351ad90304248552c4771e',1,'SqlFixedString::resize()']]],
   ['rollback_12',['Rollback',['../d1/dc2/classSqlTransaction.html#a1228dcf6a3e6692465a6296702b2d917',1,'SqlTransaction']]]
 ];

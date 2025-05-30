@@ -55,7 +55,7 @@ var searchData=
   ['for_20c_2023_52',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
   ['for_20testing_20on_20windows_20operating_20system_53',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]],
   ['for_20the_20existing_20database_54',['Generate example for the existing database',['../index.html#generate-example-for-the-existing-database',1,'']]],
-  ['foreignkey_55',['foreignkey',['../d4/d4a/classSqlCreateTableQueryBuilder.html#a0072543c2affaa06d3ddf5b1a2d632b7',1,'SqlCreateTableQueryBuilder::ForeignKey()'],['../d3/d8a/structSqlColumnDeclaration.html#a5c9673d6bf4bd66a972a6753a52ddfb7',1,'SqlColumnDeclaration::foreignKey']]],
+  ['foreignkey_55',['foreignkey',['../d3/d8a/structSqlColumnDeclaration.html#a5c9673d6bf4bd66a972a6753a52ddfb7',1,'SqlColumnDeclaration::foreignKey'],['../d4/d4a/classSqlCreateTableQueryBuilder.html#a0072543c2affaa06d3ddf5b1a2d632b7',1,'SqlCreateTableQueryBuilder::ForeignKey()']]],
   ['foreignkeys_56',['foreignKeys',['../d0/d20/structSqlSchema_1_1Table.html#a009d28a53154f4ef2c336c82766438cd',1,'SqlSchema::Table']]],
   ['formatter_57',['Formatter',['../db/d2a/classSqlUpdateQueryBuilder.html#a571c810c61e362894786a20d427b5a0d',1,'SqlUpdateQueryBuilder']]],
   ['fromconnectionhandle_58',['fromConnectionHandle',['../d3/dbc/structSqlErrorInfo.html#a3c751203bd9c041162147b388681cf73',1,'SqlErrorInfo']]],

@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"dd/d83/classSqlDynamicString.html#afd962347dc0547d23947dde43bcebe7b":[5,0,4,3],
 "dd/d94/SqlBinary_8hpp_source.html":[8,0,2,0,4],
 "dd/dad/SqlText_8hpp_source.html":[8,0,2,0,13],
 "dd/dbd/classSqlInsertQueryBuilder.html":[5,3,5],

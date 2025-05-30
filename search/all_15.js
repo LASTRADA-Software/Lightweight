@@ -13,6 +13,6 @@ var searchData=
   ['use_20prepared_20statements_10',['Use Prepared Statements',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements',1,'']]],
   ['use_20the_20datamapper_20api_11',['Use the DataMapper API',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-the-datamapper-api',1,'']]],
   ['use_20transactions_20with_20care_12',['Use Transactions with Care',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-transactions-with-care',1,'']]],
-  ['username_13',['UserName',['../d7/d7b/classSqlConnection.html#a4ee1f952a185fbf4bcd6666c3ed2f746',1,'SqlConnection']]],
+  ['username_13',['UserName',['../d7/d7b/classSqlConnection.html#a7b392b222dbe0e0ea4e4bc7858be5f2d',1,'SqlConnection']]],
   ['using_20sqlite_20for_20testing_20on_20windows_20operating_20system_14',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]]
 ];
