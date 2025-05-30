@@ -38,7 +38,9 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
 
     virtual void PlanPostExecuteCallback(std::function<void()>&&) = 0;
     virtual void PlanPostProcessOutputColumn(std::function<void()>&&) = 0;
+
     [[nodiscard]] virtual SqlServerType ServerType() const noexcept = 0;
+    [[nodiscard]] virtual std::string const& DriverName() const noexcept = 0;
 };
 
 template <typename>

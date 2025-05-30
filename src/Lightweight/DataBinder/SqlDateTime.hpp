@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <format>
+#include <string_view>
 
 #include <sql.h>
 #include <sqlext.h>
@@ -268,13 +269,14 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
 #if defined(_WIN32) || defined(_WIN64)
         // Microsoft Windows also chips with SQLSRV32.DLL, which is legacy, but seems to be used sometimes.
         // See: https://learn.microsoft.com/en-us/sql/connect/connect-history
-        if (cb.ServerType() == SqlServerType::MICROSOFT_SQL)
+        using namespace std::string_view_literals;
+        if (cb.ServerType() == SqlServerType::MICROSOFT_SQL && cb.DriverName() == "SQLSRV32.DLL"sv)
         {
             struct
             {
-                SQLSMALLINT sqlType {};
-                SQLULEN paramSize {};
-                SQLSMALLINT decimalDigits {};
+                SQLSMALLINT sqlType { SQL_TYPE_TIMESTAMP };
+                SQLULEN paramSize { 23 };
+                SQLSMALLINT decimalDigits { 3 };
                 SQLSMALLINT nullable {};
             } hints;
             auto const sqlDescribeParamResult =

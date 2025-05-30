@@ -225,6 +225,16 @@ void SqlConnection::PostConnect()
     }
 
     m_queryFormatter = SqlQueryFormatter::Get(m_serverType);
+
+    // Get the driver name from the connection handle.
+    {
+        SQLCHAR driverName[128] {};
+        SQLSMALLINT driverNameLen = 0;
+
+        if (auto ret = SQLGetInfo(m_hDbc, SQL_DRIVER_NAME, driverName, sizeof(driverName), &driverNameLen);
+            SQL_SUCCEEDED(ret))
+            m_driverName = std::string(reinterpret_cast<char const*>(driverName), driverNameLen);
+    }
 }
 
 SqlErrorInfo SqlConnection::LastError() const
