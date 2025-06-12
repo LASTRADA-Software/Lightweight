@@ -45,7 +45,7 @@ constexpr auto finally(auto&& cleanupRoutine) noexcept // NOLINT(readability-ide
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColumn)
+std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColumn, size_t sqlFixedStringMaxSize)
 {
     auto optional = [&]<typename T>(T&& type) {
         if (column.isNullable)
@@ -67,12 +67,19 @@ std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColum
                     else
                         return "char";
                 }
-                else
+                else if (type.size <= sqlFixedStringMaxSize)
                 {
                     if (forceUnicodeTextColumn)
                         return std::format("SqlWideString<{}>", type.size);
                     else
                         return std::format("SqlAnsiString<{}>", type.size);
+                }
+                else
+                {
+                    if (forceUnicodeTextColumn)
+                        return std::format("SqlDynamicWideString<{}>", type.size);
+                    else
+                        return std::format("SqlDynamicAnsiString<{}>", type.size);
                 }
             },
             [](Date const&) -> std::string { return "SqlDate"; },
@@ -80,26 +87,29 @@ std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColum
             [](Decimal const& type) -> std::string { return std::format("SqlNumeric<{}, {}>", type.scale, type.precision); },
             [](Guid const&) -> std::string { return "SqlGuid"; },
             [](Integer const&) -> std::string { return "int32_t"; },
-            [](NChar const& type) -> std::string {
+            [=](NChar const& type) -> std::string {
                 if (type.size == 1)
                     return "char16_t";
-                return std::format("SqlUtf16String<{}>", type.size);
+                else if (type.size <= sqlFixedStringMaxSize)
+                    return std::format("SqlUtf16String<{}>", type.size);
+                else
+                    return std::format("SqlDynamicUtf16String<{}>", type.size);
             },
-            [](NVarchar const& type) -> std::string { return std::format("SqlUtf16String<{}>", type.size); },
+            [](NVarchar const& type) -> std::string { return std::format("SqlDynamicUtf16String<{}>", type.size); },
             [](Real const&) -> std::string { return "float"; },
             [](Smallint const&) -> std::string { return "int16_t"; },
             [=](Text const& type) -> std::string {
                 if (forceUnicodeTextColumn)
-                    return std::format("SqlWideString<{}>", type.size);
+                    return std::format("SqlDynamicWideString<{}>", type.size);
                 else
-                    return std::format("SqlAnsiString<{}>", type.size);
+                    return std::format("SqlDynamicAnsiString<{}>", type.size);
             },
             [](Time const&) -> std::string { return "SqlTime"; },
             [](Timestamp const&) -> std::string { return "SqlDateTime"; },
             [](Tinyint const&) -> std::string { return "uint8_t"; },
             [](VarBinary const& type) -> std::string { return std::format("SqlDynamicBinary<{}>", type.size); },
             [=](Varchar const& type) -> std::string {
-                if (type.size > 0 && type.size <= SqlOptimalMaxColumnSize)
+                if (type.size > 0 && type.size <= sqlFixedStringMaxSize)
                 {
                     if (forceUnicodeTextColumn)
                         return std::format("SqlWideString<{}>", type.size);
@@ -162,6 +172,7 @@ class CxxModelPrinter
         ColumnNameOverrides columnNameOverrides;
         bool forceUnicodeTextColumns = false;
         bool suppressWarnings = false;
+        size_t sqlFixedStringMaxSize = SqlOptimalMaxColumnSize;
     };
 
     explicit CxxModelPrinter(Config config) noexcept:
@@ -502,7 +513,7 @@ class CxxModelPrinter
 
         for (auto const& column: table.columns)
         {
-            std::string type = MakeType(column, _config.forceUnicodeTextColumns);
+            std::string type = MakeType(column, _config.forceUnicodeTextColumns, _config.sqlFixedStringMaxSize);
             auto const memberName =
                 MapColumnNameOverride(tableName, column.name)
                     .or_else([&] { return std::optional { SanitizeName(FormatName(column.name, _config.formatType)) }; })
@@ -678,6 +689,7 @@ struct Configuration
     std::string outputDirectory;
     std::string cumulativeHeaderFile;
     ColumnNameOverrides columnNameOverrides;
+    size_t sqlFixedStringMaxSize = SqlOptimalMaxColumnSize;
     bool forceUnicodeTextColumns = false;
     PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
     bool createTestTables = false;
@@ -913,6 +925,7 @@ std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path c
     TryLoadNode(loadedYaml["Database"], config.database);
     TryLoadNode(loadedYaml["Schema"], config.schema);
     TryLoadNode(loadedYaml["ModelNamespace"], config.modelNamespace);
+    TryLoadNode(loadedYaml["SqlFixedStringMaxSize"], config.sqlFixedStringMaxSize);
     TryLoadNode(loadedYaml["OutputDirectory"], config.outputDirectory);
     TryLoadNode(loadedYaml["CumulativeHeaderFile"], config.cumulativeHeaderFile);
     TryLoadNode(loadedYaml["ForceUnicodeTextColumns"], config.forceUnicodeTextColumns);
@@ -1103,6 +1116,7 @@ int main(int argc, char const* argv[])
         .columnNameOverrides = config.columnNameOverrides,
         .forceUnicodeTextColumns = config.forceUnicodeTextColumns,
         .suppressWarnings = config.suppressWarnings,
+        .sqlFixedStringMaxSize = config.sqlFixedStringMaxSize,
     } };
 
     TimedExecution("Resolving Order and print tables", [&] { ResolveOrderAndPrintTable(cxxModelPrinter, tables); });
