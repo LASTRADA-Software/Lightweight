@@ -36,6 +36,7 @@ var group__DataTypes =
       [ "SqlDynamicString", "dd/d83/classSqlDynamicString.html#a64085d9b8dc217cf7aa6b132c3ee9022", null ],
       [ "SqlDynamicString", "dd/d83/classSqlDynamicString.html#a778a4e44aba5b41c257f3a30bab4dcd7", null ],
       [ "SqlDynamicString", "dd/d83/classSqlDynamicString.html#afd962347dc0547d23947dde43bcebe7b", null ],
+      [ "str", "dd/d83/classSqlDynamicString.html#a8cbf4f1ae505d6dbdcdbe2ecf4156d2e", null ],
       [ "value", "dd/d83/classSqlDynamicString.html#a3e36e493a786e36c8525ad517390c006", null ],
       [ "value", "dd/d83/classSqlDynamicString.html#a21e23652121674ee87109464b1641f51", null ],
       [ "data", "dd/d83/classSqlDynamicString.html#a33ddfcfb714918434842c077be5d6b45", null ],
