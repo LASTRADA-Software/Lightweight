@@ -11,7 +11,7 @@ struct Album final
     static constexpr std::string_view TableName = "Album";
 
     Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"AlbumId"}> AlbumId;
-    Field<SqlUtf16String<160>, SqlRealName{"Title"}> Title;
+    Field<SqlDynamicUtf16String<160>, SqlRealName{"Title"}> Title;
     BelongsTo<&Artist::ArtistId, SqlRealName{"ArtistId"}> ArtistId;
 };
 
