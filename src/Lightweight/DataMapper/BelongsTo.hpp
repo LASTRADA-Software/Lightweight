@@ -40,6 +40,8 @@
 template <auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt>
 class BelongsTo
 {
+    using SelfType = BelongsTo<TheReferencedField, ColumnNameOverrideString>;
+
   public:
     /// The field in the other record that references the current record.
     static constexpr auto ReferencedField = TheReferencedField;
@@ -76,8 +78,27 @@ class BelongsTo
     constexpr BelongsTo(ReferencedRecord const& other) noexcept:
         _referencedFieldValue { (other.*ReferencedField).Value() },
         _loaded { true },
-        _record { other }
+        _record { std::make_unique<ReferencedRecord>(other) }
     {
+    }
+
+    constexpr BelongsTo(SelfType const& other) noexcept:
+        _referencedFieldValue(other._referencedFieldValue),
+        _loader(std::move(other._loader)),
+        _loaded(other._loaded),
+        _modified(other._modified),
+        _record(other._record ? std::make_unique<ReferencedRecord>(*other._record) : nullptr)
+    {
+    }
+
+    constexpr BelongsTo(SelfType&& other) noexcept:
+        _referencedFieldValue(std::move(other._referencedFieldValue)),
+        _loader(std::move(other._loader)),
+        _loaded(other._loaded),
+        _modified(other._modified),
+        _record(std::move(other._record))
+    {
+        other._loaded = false;
     }
 
     BelongsTo& operator=(SqlNullType /*nullValue*/) noexcept
@@ -96,9 +117,23 @@ class BelongsTo
         if (_referencedFieldValue == (other.*ReferencedField).Value())
             return *this;
         _loaded = true;
-        _record.emplace(other);
+        _record = std::make_unique<ReferencedRecord>(other);
         _referencedFieldValue = (other.*ReferencedField).Value();
         _modified = true;
+        return *this;
+    }
+
+    BelongsTo& operator=(SelfType const& other)
+    {
+        if (this == &other)
+            return *this;
+
+        _referencedFieldValue = other._referencedFieldValue;
+        _loader = std::move(other._loader);
+        _loaded = other._loaded;
+        _modified = other._modified;
+        _record = other._record ? std::make_unique<ReferencedRecord>(*other._record) : nullptr;
+
         return *this;
     }
 
@@ -117,28 +152,28 @@ class BelongsTo
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ValueType& MutableValue() noexcept { return _referencedFieldValue; }
 
     /// Retrieves a record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& Record() { RequireLoaded(); return _record.value(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& Record() { RequireLoaded(); return *_record; }
 
     /// Retrieves an immutable reference to the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& Record() const { RequireLoaded(); return _record.value(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& Record() const { RequireLoaded(); return *_record; }
 
     /// Checks if the record is loaded into memory.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool IsLoaded() const noexcept { return _loaded; }
 
     /// Unloads the record from memory.
-    LIGHTWEIGHT_FORCE_INLINE void Unload() noexcept { _record = std::nullopt; _loaded = false; }
+    LIGHTWEIGHT_FORCE_INLINE void Unload() noexcept { _record = nullptr; _loaded = false; }
 
     /// Retrieves the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& operator*() noexcept { RequireLoaded(); return _record.value(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& operator*() noexcept { RequireLoaded(); return *_record; }
 
     /// Retrieves the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& operator*() const noexcept { RequireLoaded(); return _record.value(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& operator*() const noexcept { RequireLoaded(); return *_record; }
 
     /// Retrieves the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* operator->() { RequireLoaded(); return &_record.value(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* operator->() { RequireLoaded(); return _record.get(); }
 
     /// Retrieves the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* operator->() const { RequireLoaded(); return &_record.value(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* operator->() const { RequireLoaded(); return _record.get(); }
 
     /// Checks if the field value is NULL.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!() const noexcept { return !_referencedFieldValue; }
@@ -146,12 +181,20 @@ class BelongsTo
     /// Checks if the field value is not NULL.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr explicit operator bool() const noexcept { return static_cast<bool>(_referencedFieldValue); }
 
-    /// Emplaces a record into the relationship. This will mark the relationship as loaded.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& EmplaceRecord() { _loaded = true; return _record.emplace(); }
-
-    LIGHTWEIGHT_FORCE_INLINE void BindOutputColumn(SQLSMALLINT outputIndex, SqlStatement& stmt) { stmt.BindOutputColumn(outputIndex, &_referencedFieldValue); }
-
     // clang-format on
+
+    /// Emplaces a record into the relationship. This will mark the relationship as loaded.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& EmplaceRecord()
+    {
+        _loaded = true;
+        _record = std::make_unique<ReferencedRecord>();
+        return *_record;
+    }
+
+    LIGHTWEIGHT_FORCE_INLINE void BindOutputColumn(SQLSMALLINT outputIndex, SqlStatement& stmt)
+    {
+        stmt.BindOutputColumn(outputIndex, &_referencedFieldValue);
+    }
 
     template <auto OtherReferencedField>
     std::weak_ordering operator<=>(BelongsTo<OtherReferencedField> const& other) const noexcept
@@ -217,7 +260,7 @@ class BelongsTo
     Loader _loader {};
     bool _loaded = false;
     bool _modified = false;
-    std::optional<ReferencedRecord> _record {};
+    std::unique_ptr<ReferencedRecord> _record {};
 };
 
 template <auto ReferencedField>
@@ -243,10 +286,10 @@ struct IsBelongsToType<BelongsTo<ReferencedField, ColumnNameOverrideString>>: st
 template <typename T>
 constexpr bool IsBelongsTo = detail::IsBelongsToType<std::remove_cvref_t<T>>::value;
 
-template <auto ReferencedField>
-struct SqlDataBinder<BelongsTo<ReferencedField>>
+template <auto ReferencedField, auto ColumnNameOverrideString>
+struct SqlDataBinder<BelongsTo<ReferencedField, ColumnNameOverrideString>>
 {
-    using SelfType = BelongsTo<ReferencedField>;
+    using SelfType = BelongsTo<ReferencedField, ColumnNameOverrideString>;
     using InnerType = typename SelfType::ValueType;
 
     static constexpr auto ColumnType = SqlDataBinder<InnerType>::ColumnType;
