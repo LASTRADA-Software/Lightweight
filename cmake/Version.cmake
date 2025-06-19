@@ -20,7 +20,7 @@ function(GetVersionInformation VersionTripleVar VersionStringVar)
     # {{{
     # Check if Git is available
     find_package(Git QUIET)
-    if (GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    if (GIT_FOUND)
         # Try to get the latest annotated tag (e.g., v1.2.34)
         # --tags: prefers tags
         # --abbrev=0: only show the tag name, not the commit hash
@@ -33,7 +33,6 @@ function(GetVersionInformation VersionTripleVar VersionStringVar)
             ERROR_QUIET
             RESULT_VARIABLE GIT_RESULT
         )
-
         if (GIT_RESULT EQUAL 0 AND NOT "${GIT_TAG}" STREQUAL "")
             # Remove the 'v' prefix if it exists
             string(REGEX REPLACE "^v" "" VERSION_FROM_GIT "${GIT_TAG}")

@@ -54,6 +54,8 @@ jobs:
     if: github.ref != 'refs/heads/master'
     steps:
     - uses: actions/checkout@v4
+    - name: Fetch tags
+      run: git fetch --prune --unshallow --tags
     - name: ccache
       uses: hendrikmuhs/ccache-action@v1.2
       with:
@@ -95,6 +97,8 @@ jobs:
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch tags
+        run: git fetch --prune --unshallow --tags
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
       - name: "vcpkg: Install dependencies"
@@ -138,6 +142,8 @@ jobs:
       id: "${{ matrix.compiler }} (C++${{ matrix.cxx }}, ${{ matrix.build_type }})"
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch tags
+        run: git fetch --prune --unshallow --tags
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
@@ -224,6 +230,8 @@ jobs:
     needs: [ubuntu_build_cc_matrix]
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch tags
+        run: git fetch --prune --unshallow --tags
       - name: "Download binaries"
         uses: actions/download-artifact@v4
         with:
