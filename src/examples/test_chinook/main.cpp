@@ -12,7 +12,7 @@ int main()
 {
 
     SqlConnection::SetDefaultConnectionString(SqlConnectionString {
-        "DRIVER={ODBC Driver 17 for SQL "
+        "DRIVER={ODBC Driver 18 for SQL "
           "Server};SERVER=localhost;UID=SA;PWD=Qwerty1.;TrustServerCertificate=yes;DATABASE=LightweightTest" });
    //"Server};SERVER=localhost;UID=SA;PWD=BlahThat.;TrustServerCertificate=yes;DATABASE=LightweightTest" });
     auto dm = DataMapper();
