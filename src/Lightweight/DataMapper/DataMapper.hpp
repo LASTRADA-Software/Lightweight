@@ -149,19 +149,25 @@ void BindAllOutputColumns(SqlResultCursor& reader, Record& record)
     BindAllOutputColumnsWithOffset(reader, record, 1);
 }
 
+// when we iterate over all columns using element mask
+// indexes of the mask corresponds to the indexe of the field
+// inside the structure, not inside the SQL result set
 template <typename ElementMask, typename Record>
 void GetAllColumns(SqlResultCursor& reader, Record& record)
 {
-    Reflection::EnumerateMembers<ElementMask>(record, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
-        if constexpr (IsField<Field>)
-        {
-            field.MutableValue() = reader->GetColumn<typename Field::ValueType>(I + 1);
-        }
-        else if constexpr (SqlGetColumnNativeType<Field>)
-        {
-            field = reader->GetColumn<Field>(I + 1);
-        }
-    });
+    SQLUSMALLINT indexFromQuery = 0;
+    Reflection::EnumerateMembers<ElementMask>(
+        record, [reader = &reader, &indexFromQuery]<size_t I, typename Field>(Field& field) mutable {
+            ++indexFromQuery;
+            if constexpr (IsField<Field>)
+            {
+                field.MutableValue() = reader->GetColumn<typename Field::ValueType>(indexFromQuery);
+            }
+            else if constexpr (SqlGetColumnNativeType<Field>)
+            {
+                field = reader->GetColumn<Field>(indexFromQuery);
+            }
+        });
 }
 
 template <typename Record>
@@ -326,6 +332,8 @@ template <typename Record, auto... ReferencedFields>
 class [[nodiscard]] SqlSparseFieldQueryBuilder final:
     public SqlCoreDataMapperQueryBuilder<Record, SqlSparseFieldQueryBuilder<Record, ReferencedFields...>>
 {
+    using ElementMask = std::integer_sequence<size_t, Reflection::MemberIndexOf<ReferencedFields>...>;
+
   private:
     friend class DataMapper;
     friend class SqlCoreDataMapperQueryBuilder<Record, SqlSparseFieldQueryBuilder<Record, ReferencedFields...>>;
@@ -368,7 +376,7 @@ class [[nodiscard]] SqlSparseFieldQueryBuilder final:
             return false;
 
         if (!outputColumnsBound)
-            detail::GetAllColumns(reader, record);
+            detail::GetAllColumns<ElementMask>(reader, record);
 
         return true;
     }
