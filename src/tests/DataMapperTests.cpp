@@ -1603,4 +1603,87 @@ TEST_CASE_METHOD(SqlTestFixture, "TestDynamicData", "[DataMapper]")
     checkSize(4000);
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "TestQuerySparseDynamicData", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<TestDynamicData>();
+    TestDynamicData data {};
+    data.stringAnsi = std::string(10, 'a');
+    data.stringUtf32 = std::basic_string<char32_t>(10, U'a');
+    data.stringWide = std::basic_string<wchar_t>(10, L'a');
+    dm.Create(data);
+
+    auto const checkSize = [&](auto size) {
+        INFO(size);
+        data.stringUtf16 = std::basic_string<char16_t>(size, u'a');
+        dm.Update(data);
+        auto const result = dm.QuerySparse<TestDynamicData, &TestDynamicData::stringUtf16>()
+                                .Where(FieldNameOf<&TestDynamicData::id>, "=", data.id.Value())
+                                .First();
+        REQUIRE(result.has_value());
+        REQUIRE(result.value().stringUtf16.Value() == std::basic_string<char16_t>(size, u'a'));
+    };
+
+    checkSize(5);
+    checkSize(1000);
+    checkSize(2000);
+    checkSize(4000);
+}
+
+struct TestOptionalDynamicData
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<std::optional<SqlDynamicAnsiString<4000>>> stringAnsi {};
+    Field<std::optional<SqlDynamicUtf16String<4000>>> stringUtf16 {};
+    Field<std::optional<SqlDynamicUtf32String<4000>>> stringUtf32 {};
+    Field<std::optional<SqlDynamicWideString<4000>>> stringWide {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "TestOptionalDynamicData", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<TestOptionalDynamicData>();
+    TestOptionalDynamicData data {};
+    dm.Create(data);
+
+    auto const checkSize = [&](auto size) {
+        INFO(size);
+
+        if (size / 5 == 0)
+            data.stringAnsi = std::string(size, 'a');
+        else
+            data.stringAnsi = std::nullopt;
+
+        data.stringUtf16 = std::basic_string<char16_t>(size, u'a');
+        data.stringUtf32 = std::basic_string<char32_t>(size, U'a');
+
+        if (size / 2 == 0)
+            data.stringWide = std::basic_string<wchar_t>(size, L'a');
+        else
+            data.stringWide = std::nullopt;
+
+        dm.Update(data);
+
+        auto const result = dm.QuerySingle<TestOptionalDynamicData>(data.id);
+        REQUIRE(result.has_value());
+        if (size / 5 == 0)
+            REQUIRE(result.value().stringAnsi.Value().value_or("") == std::string(size, 'a'));
+        else
+            REQUIRE(!result.value().stringAnsi.Value().has_value());
+        REQUIRE(result.value().stringUtf16.Value().value_or(u"") == std::basic_string<char16_t>(size, u'a'));
+        REQUIRE(result.value().stringUtf32.Value().value_or(U"") == std::basic_string<char32_t>(size, U'a'));
+        if (size / 2 == 0)
+            REQUIRE(result.value().stringWide.Value().value_or(L"") == std::basic_string<wchar_t>(size, L'a'));
+        else
+            REQUIRE(!result.value().stringWide.Value().has_value());
+    };
+
+    checkSize(5);
+    checkSize(5 * 2);
+    checkSize(5 * 2 + 1);
+    checkSize(1000);
+    checkSize(2000);
+    checkSize(4000);
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
