@@ -9,6 +9,6 @@ struct Mediatype final
     static constexpr std::string_view TableName = "MediaType";
 
     Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"MediaTypeId"}> MediaTypeId;
-    Field<std::optional<SqlUtf16String<120>>, SqlRealName{"Name"}> Name;
+    Field<std::optional<SqlDynamicUtf16String<120>>, SqlRealName{"Name"}> Name;
 };
 
