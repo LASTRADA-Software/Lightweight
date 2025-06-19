@@ -109,6 +109,29 @@ class SqlDynamicBinary final
     friend struct SqlDataBinder<SqlDynamicBinary<N>>;
 };
 
+namespace detail
+{
+
+template <typename>
+struct IsSqlDynamicBinaryImpl: std::false_type
+{
+};
+
+template <size_t T>
+struct IsSqlDynamicBinaryImpl<SqlDynamicBinary<T>>: std::true_type
+{
+};
+
+template <size_t T>
+struct IsSqlDynamicBinaryImpl<std::optional<SqlDynamicBinary<T>>>: std::true_type
+{
+};
+
+} // namespace detail
+
+template <typename T>
+constexpr bool IsSqlDynamicBinary = detail::IsSqlDynamicBinaryImpl<T>::value;
+
 template <std::size_t N>
 struct std::formatter<SqlDynamicBinary<N>>: std::formatter<std::string>
 {

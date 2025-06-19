@@ -200,6 +200,11 @@ struct IsSqlDynamicStringImpl<SqlDynamicString<N, T>>: std::true_type
 {
 };
 
+template <std::size_t N, typename T>
+struct IsSqlDynamicStringImpl<std::optional<SqlDynamicString<N, T>>>: std::true_type
+{
+};
+
 } // namespace detail
 
 template <typename T>

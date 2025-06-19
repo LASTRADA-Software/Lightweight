@@ -113,7 +113,7 @@ constexpr bool CanSafelyBindOutputColumns(SqlServerType sqlServerType) noexcept
                                         std::u16string,
                                         std::u32string,
                                         SqlBinary>
-                          || IsSqlDynamicString<typename Field::ValueType>)
+                          || IsSqlDynamicString<typename Field::ValueType> || IsSqlDynamicBinary<typename Field::ValueType>)
             {
                 // Known types that MAY require growing due to truncation.
                 result = false;
