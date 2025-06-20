@@ -7,20 +7,18 @@
 # 3.) /metainfo.xml with the first line's version number and optional (suffix) string
 #
 function(GetVersionInformation VersionTripleVar VersionStringVar)
-    # 1.) /version.txt file
+    # Check if Git is available
+    find_package(Git QUIET)
+
     if(EXISTS "${CMAKE_SOURCE_DIR}/version.txt")
+        # 1.) /version.txt file
         file(READ "${CMAKE_SOURCE_DIR}/version.txt" version_text)
         string(STRIP "${version_text}" version_text)
-        string(REGEX MATCH "^v?([0-9]*\\.[0-9]+\\.[0-9]+\\.[0-9]+).*$" _ ${version_text})
+        string(REGEX MATCH "^v?([0-9]*\\.[0-9]+\\.[0-9]+).*$" _ ${version_text})
         set(THE_VERSION ${CMAKE_MATCH_1})
         set(THE_VERSION_STRING "${version_text}")
         set(THE_SOURCE "${CMAKE_SOURCE_DIR}/version.txt")
-    endif()
-
-    # {{{
-    # Check if Git is available
-    find_package(Git QUIET)
-    if (GIT_FOUND)
+    elseif(GIT_FOUND)
         # Try to get the latest annotated tag (e.g., v1.2.34)
         # --tags: prefers tags
         # --abbrev=0: only show the tag name, not the commit hash
@@ -43,13 +41,8 @@ function(GetVersionInformation VersionTripleVar VersionStringVar)
         else()
             message(STATUS "Info: No suitable Git tag (e.g., 'v1.2.34') found.")
         endif()
-    else()
-        message(STATUS "Info: Git not found or not a Git repository.")
-    endif()
-    # }}}
-
-    # 2.) .git directory with the output of `git describe ...`)
-    if(("${THE_VERSION}" STREQUAL "" OR "${THE_VERSION_STRING}" STREQUAL "") AND (EXISTS "${CMAKE_SOURCE_DIR}/.git"))
+    elseif(EXISTS "${CMAKE_SOURCE_DIR}/.git")
+        # 2.) .git directory with the output of `git describe ...`)
         execute_process(COMMAND git describe --all
             OUTPUT_VARIABLE git_branch
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -64,26 +57,8 @@ function(GetVersionInformation VersionTripleVar VersionStringVar)
             OUTPUT_STRIP_TRAILING_WHITESPACE)
         set(THE_GIT_SHA_SHORT "${git_sha_short}")
         message(STATUS "[Version] Git SHA: ${THE_GIT_SHA_SHORT}")
-
-        # file(READ "${CMAKE_SOURCE_DIR}/metainfo.xml" changelog_contents)
-        # string(REGEX MATCH "<release version=\"([0-9]*\\.[0-9]+\\.[0-9]+)\".*$" _ "${changelog_contents}")
-        # # extract and construct version triple
-        # set(THE_VERSION ${CMAKE_MATCH_1})
-
-        # maybe append CI run-ID.
-        if (NOT("$ENV{RUN_ID}" STREQUAL ""))
-            string(CONCAT THE_VERSION "${THE_VERSION}." $ENV{RUN_ID})
-        endif()
-
-        # extract suffix, construct full version string
-        string(REGEX MATCH "<release version=\"([0-9]*\\.[0-9]+\\.[0-9]+)\".*$" _ "${changelog_contents}")
-
-        set(THE_VERSION_STRING "${THE_VERSION}-${THE_GIT_BRANCH}-${THE_GIT_SHA_SHORT}")
-        set(THE_SOURCE "git & ${CMAKE_SOURCE_DIR}/metainfo.xml")
-    endif()
-
-    # 3.) /metainfo.xml with the first line's version number and optional (suffix) string
-    if(("${THE_VERSION}" STREQUAL "" OR "${THE_VERSION_STRING}" STREQUAL "") AND (EXISTS "${CMAKE_SOURCE_DIR}/metainfo.xml"))
+    elseif(EXISTS "${CMAKE_SOURCE_DIR}/metainfo.xml")
+        # 3.) /metainfo.xml with the first line's version number and optional (suffix) string
         file(READ "${CMAKE_SOURCE_DIR}/metainfo.xml" changelog_contents)
         # extract and construct version triple
         string(REGEX MATCH "<release version=\"([0-9]*\\.[0-9]+\\.[0-9]+)\".*$" _ "${changelog_contents}")
@@ -99,7 +74,7 @@ function(GetVersionInformation VersionTripleVar VersionStringVar)
     endif()
 
     if("${THE_VERSION}" STREQUAL "" OR "${THE_VERSION_STRING}" STREQUAL "")
-        message(FATAL_ERROR "Cannot extract version information.")
+        message(FATAL_ERROR "Cannot extract version information. No version.txt or .git directory or metainfo.xml found.")
     endif()
 
     message(STATUS "[Version] version source: ${THE_SOURCE}")
