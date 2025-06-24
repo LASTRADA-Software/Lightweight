@@ -911,6 +911,31 @@ TEST_CASE_METHOD(SqlTestFixture, "HasOneThrough", "[DataMapper][relations]")
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "BelongsToChain", "[DataMapper][relations]")
+{
+    auto dm = DataMapper();
+
+    dm.CreateTables<Suppliers, Account, AccountHistory>();
+
+    auto supplier1 = Suppliers { .name = "Supplier 1" };
+    dm.Create(supplier1);
+
+    auto account1 = Account { .iban = "DE89370400440532013000", .supplier = supplier1 };
+    dm.Create(account1);
+
+    auto accountHistory1 = AccountHistory { .credit_rating = 100, .account = account1 };
+    dm.Create(accountHistory1);
+
+    SECTION("Query single with relation auto loading")
+    {
+        auto queriedAccountHistory = dm.QuerySingle<AccountHistory>(accountHistory1.id).value();
+        REQUIRE(queriedAccountHistory.account.Value() == account1.id.Value());
+        REQUIRE(queriedAccountHistory.account->id.Value() == account1.id.Value());
+        REQUIRE(queriedAccountHistory.account->supplier->id.Value() == supplier1.id.Value());
+        REQUIRE(queriedAccountHistory.account->supplier->name.Value() == supplier1.name.Value());
+    }
+}
+
 struct Physician;
 struct Appointment;
 struct Patient;
@@ -1406,6 +1431,9 @@ struct BelongsToAliasedRecord
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     BelongsTo<&AliasedRecord::id> record;
 };
+
+static_assert(std::same_as<typename BelongsTo<&AliasedRecord::id>::ReferencedRecord, AliasedRecord>);
+static_assert(std::same_as<typename BelongsTo<&AliasedRecord::id>::ValueType, uint64_t>);
 
 std::ostream& operator<<(std::ostream& os, AliasedRecord const& record)
 {
