@@ -1,3 +1,4 @@
+
 ---
 Checks: >-
   -*,
@@ -42,6 +43,7 @@ Checks: >-
   -readability-braces-around-statements,
   -readability-else-after-return,
   -readability-identifier-length,
+  -readability-identifier-naming,
   -readability-implicit-bool-conversion,
   -readability-magic-numbers,
   -readability-redundant-access-specifiers,
