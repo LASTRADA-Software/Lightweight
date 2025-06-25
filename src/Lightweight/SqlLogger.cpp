@@ -26,6 +26,25 @@
 namespace
 {
 
+std::string JoinBinds(std::vector<std::pair<std::string_view, std::string>> const& binds)
+{
+    std::stringstream output;
+    size_t count = 0;
+
+    for (auto const& [name, value]: binds)
+    {
+        if (count)
+            output << ", ";
+        ++count;
+
+        if (name.empty())
+            output << std::format("{}", value);
+        else
+            output << std::format("{}={}", name, value);
+    }
+    return output.str();
+}
+
 class SqlStandardLogger: public SqlLogger
 {
   private:
@@ -277,22 +296,7 @@ class SqlTraceLogger: public SqlStandardLogger
         }
         else
         {
-            std::stringstream output;
-            size_t count = 0;
-
-            for (auto const& [name, value]: _binds)
-            {
-                if (count)
-                    output << ", ";
-                ++count;
-
-                if (name.empty())
-                    output << std::format("{}", value);
-                else
-                    output << std::format("{}={}", name, value);
-            }
-
-            WriteMessage("[{}]{} {} WITH [{}]", durationStr, rowCountStr, _lastPreparedQuery, output.str());
+            WriteMessage("[{}]{} {} WITH [{}]", durationStr, rowCountStr, _lastPreparedQuery, JoinBinds(_binds));
         }
 
         _lastPreparedQuery.clear();
@@ -354,4 +358,169 @@ SqlLogger& SqlLogger::GetLogger()
 void SqlLogger::SetLogger(SqlLogger& logger)
 {
     theDefaultLogger = &logger;
+}
+
+struct SqlStructuredLogger::Data
+{
+    std::vector<LogMessage> messages;
+    std::string lastPreparedQuery;
+    std::chrono::steady_clock::time_point queryStartedAt;
+    size_t fetchRowCount = 0;
+    std::vector<std::pair<std::string_view, std::string>> binds;
+};
+
+SqlStructuredLogger::SqlStructuredLogger(): _data(new Data {}, [](Data* data) { delete data; })
+{
+}
+
+std::vector<SqlStructuredLogger::LogMessage> const& SqlStructuredLogger::PeekMessages()
+{
+    return _data->messages;
+}
+
+std::vector<SqlStructuredLogger::LogMessage> SqlStructuredLogger::TakeMessages()
+{
+    auto result = std::move(_data->messages);
+    _data->messages.clear();
+    return result;
+}
+
+void SqlStructuredLogger::ClearMessages()
+{
+    _data->messages.clear();
+}
+
+void SqlStructuredLogger::OnConnectionOpened(SqlConnection const& connection)
+{
+    std::ignore = connection;
+}
+
+void SqlStructuredLogger::OnConnectionClosed(SqlConnection const& connection)
+{
+    std::ignore = connection;
+}
+
+void SqlStructuredLogger::OnConnectionIdle(SqlConnection const& connection)
+{
+    std::ignore = connection;
+}
+
+void SqlStructuredLogger::OnConnectionReuse(SqlConnection const& connection)
+{
+    std::ignore = connection;
+}
+
+void SqlStructuredLogger::OnWarning(std::string_view const& message)
+{
+    _data->messages.emplace_back(LogMessage {
+        .timestamp = std::chrono::system_clock::now(),
+        .message = std::string(message),
+        .sourceLocation = std::nullopt,
+    });
+}
+
+void SqlStructuredLogger::OnError(SqlError errorCode, std::source_location sourceLocation)
+{
+    _data->messages.emplace_back(LogMessage {
+        .timestamp = std::chrono::system_clock::now(),
+        .message = std::format("SQL Error: {}", errorCode),
+        .sourceLocation = std::nullopt,
+    });
+}
+
+void SqlStructuredLogger::OnError(SqlErrorInfo const& errorInfo, std::source_location sourceLocation)
+{
+    _data->messages.emplace_back(LogMessage {
+        .timestamp = std::chrono::system_clock::now(),
+        .message = std::format("SQL Error: SQLSTATE={}, NativeError={}, Message={}",
+                               errorInfo.sqlState,
+                               errorInfo.nativeErrorCode, errorInfo.message),
+        .sourceLocation = std::optional { sourceLocation },
+    });
+}
+
+void SqlStructuredLogger::OnScopedTimerStart(std::string const& tag)
+{
+    std::ignore = tag; // not sure yet if we want to log this
+}
+
+void SqlStructuredLogger::OnScopedTimerStop(std::string const& tag)
+{
+    std::ignore = tag; // not sure yet if we want to log this
+}
+
+void SqlStructuredLogger::OnExecuteDirect(std::string_view const& query)
+{
+    _data->lastPreparedQuery = query;
+    _data->queryStartedAt = std::chrono::steady_clock::now();
+    _data->fetchRowCount = 0;
+}
+
+void SqlStructuredLogger::OnPrepare(std::string_view const& query)
+{
+    _data->lastPreparedQuery = query;
+    _data->queryStartedAt = std::chrono::steady_clock::now();
+    _data->fetchRowCount = 0;
+}
+
+void SqlStructuredLogger::OnBind(std::string_view const& name, std::string value)
+{
+    _data->binds.emplace_back(name, std::move(value));
+}
+
+void SqlStructuredLogger::OnExecute(std::string_view const& query)
+{
+    _data->lastPreparedQuery = query;
+    _data->queryStartedAt = std::chrono::steady_clock::now();
+    _data->fetchRowCount = 0;
+}
+
+void SqlStructuredLogger::OnExecuteBatch()
+{
+    _data->queryStartedAt = std::chrono::steady_clock::now();
+    _data->fetchRowCount = 0;
+}
+
+void SqlStructuredLogger::OnFetchRow()
+{
+    ++_data->fetchRowCount;
+}
+
+void SqlStructuredLogger::OnFetchEnd()
+{
+    auto const stoppedAt = std::chrono::steady_clock::now();
+    auto const duration = std::chrono::duration_cast<std::chrono::microseconds>(stoppedAt - _data->queryStartedAt);
+    auto const seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+    auto const microseconds = std::chrono::duration_cast<std::chrono::microseconds>(duration - seconds);
+    auto const durationStr = std::format("{}.{:06}", seconds.count(), microseconds.count());
+
+    auto const rowCountStr = [&]() -> std::string {
+        if (_data->fetchRowCount == 0)
+            return "";
+        if (_data->fetchRowCount == 1)
+            return " [1 row]";
+        return std::format(" [{} rows]", _data->fetchRowCount);
+    }();
+
+    if (_data->binds.empty())
+    {
+        _data->messages.emplace_back(LogMessage {
+            .timestamp = std::chrono::system_clock::now(),
+            .message = std::format("[{}]{} {}", durationStr, rowCountStr, _data->lastPreparedQuery),
+            .sourceLocation = std::nullopt,
+        });
+    }
+    else
+    {
+        _data->messages.emplace_back(LogMessage {
+            .timestamp = std::chrono::system_clock::now(),
+            .message = std::format("[{}]{} {} WITH [{}]", durationStr, rowCountStr, _data->lastPreparedQuery,
+                                   JoinBinds(_data->binds)),
+            .sourceLocation = std::nullopt,
+        });
+    }
+
+    _data->lastPreparedQuery.clear();
+    _data->fetchRowCount = 0;
+    _data->binds.clear();
 }

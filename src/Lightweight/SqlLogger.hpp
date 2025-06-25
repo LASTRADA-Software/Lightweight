@@ -146,6 +146,44 @@ class SqlLogger::Null: public SqlLogger
     void OnFetchEnd() override {}
 };
 
+class SqlStructuredLogger: public SqlLogger
+{
+  public:
+    SqlStructuredLogger();
+
+    struct LogMessage
+    {
+        std::chrono::system_clock::time_point timestamp;
+        std::string message;
+        std::optional<std::source_location> sourceLocation;
+    };
+
+    std::vector<LogMessage> const& PeekMessages();
+    std::vector<LogMessage> TakeMessages();
+    void ClearMessages();
+
+    void OnWarning(std::string_view const& message) override;
+    void OnError(SqlError errorCode, std::source_location sourceLocation) override;
+    void OnError(SqlErrorInfo const& errorInfo, std::source_location sourceLocation) override;
+    void OnScopedTimerStart(std::string const& tag) override;
+    void OnScopedTimerStop(std::string const& tag) override;
+    void OnConnectionOpened(SqlConnection const& connection) override;
+    void OnConnectionClosed(SqlConnection const& ) override;
+    void OnConnectionIdle(SqlConnection const& ) override;
+    void OnConnectionReuse(SqlConnection const& ) override;
+    void OnExecuteDirect(std::string_view const& query) override;
+    void OnPrepare(std::string_view const& query) override;
+    void OnBind(std::string_view const& name, std::string value) override;
+    void OnExecute(std::string_view const& query) override;
+    void OnExecuteBatch() override;
+    void OnFetchRow() override;
+    void OnFetchEnd() override;
+
+  private:
+    struct Data;
+    std::unique_ptr<Data, void (*)(Data*)> _data;
+};
+
 /// A scoped timer for logging.
 ///
 /// This class is used to measure the time spent in a code region and log it.
