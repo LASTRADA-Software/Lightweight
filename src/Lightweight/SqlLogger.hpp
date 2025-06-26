@@ -15,7 +15,7 @@ class SqlConnection;
 struct SqlVariant;
 
 /// Represents a logger for SQL operations.
-class LIGHTWEIGHT_API SqlLogger
+class SqlLogger
 {
   public:
     /// Mandates the support for logging bind operations.
@@ -25,12 +25,12 @@ class LIGHTWEIGHT_API SqlLogger
         Yes
     };
 
-    SqlLogger();
-    SqlLogger(SqlLogger const& /*other*/) = default;
-    SqlLogger(SqlLogger&& /*other*/) = default;
-    SqlLogger& operator=(SqlLogger const& /*other*/) = default;
-    SqlLogger& operator=(SqlLogger&& /*other*/) = default;
-    virtual ~SqlLogger() = default;
+    LIGHTWEIGHT_API SqlLogger();
+    LIGHTWEIGHT_API SqlLogger(SqlLogger const& /*other*/) = default;
+    LIGHTWEIGHT_API SqlLogger(SqlLogger&& /*other*/) = default;
+    LIGHTWEIGHT_API SqlLogger& operator=(SqlLogger const& /*other*/) = default;
+    LIGHTWEIGHT_API SqlLogger& operator=(SqlLogger&& /*other*/) = default;
+    LIGHTWEIGHT_API virtual ~SqlLogger() = default;
 
     /// Type definition for a function that writes messages.
     using MessageWriter = std::function<void(std::string /*message*/)>;
@@ -38,12 +38,12 @@ class LIGHTWEIGHT_API SqlLogger
     /// Constructs a new logger.
     ///
     /// @param supportBindLogging Indicates if the logger should support bind logging.
-    explicit SqlLogger(SupportBindLogging supportBindLogging, MessageWriter writer = {});
+    LIGHTWEIGHT_API explicit SqlLogger(SupportBindLogging supportBindLogging, MessageWriter writer = {});
 
     /// Sets the logging sink for the logger.
     ///
     /// @param writer A function that takes a message string and writes it to the desired output.
-    void SetLoggingSink(MessageWriter writer = {});
+    LIGHTWEIGHT_API void SetLoggingSink(MessageWriter writer = {});
 
     /// Invoked on a warning.
     virtual void OnWarning(std::string_view const& message) = 0;
@@ -111,21 +111,21 @@ class LIGHTWEIGHT_API SqlLogger
     class Null;
 
     /// Retrieves a null logger that does nothing.
-    static Null& NullLogger() noexcept;
+    LIGHTWEIGHT_API static Null& NullLogger() noexcept;
 
     /// Retrieves a logger that logs to standard output.
-    static SqlLogger& StandardLogger();
+    LIGHTWEIGHT_API static SqlLogger& StandardLogger();
 
     /// Retrieves a logger that logs to the trace logger.
-    static SqlLogger& TraceLogger();
+    LIGHTWEIGHT_API static SqlLogger& TraceLogger();
 
     /// Retrieves the currently configured logger.
-    static SqlLogger& GetLogger();
+    LIGHTWEIGHT_API static SqlLogger& GetLogger();
 
     /// Sets the current logger.
     ///
     /// The ownership of the logger is not transferred and remains with the caller.
-    static void SetLogger(SqlLogger& logger);
+    LIGHTWEIGHT_API static void SetLogger(SqlLogger& logger);
 
   protected:
     MessageWriter _messageWriter;

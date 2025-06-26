@@ -53,7 +53,6 @@ class SqlStandardLogger: public SqlLogger
     SqlStandardLogger(SupportBindLogging supportBindLogging = SupportBindLogging::No):
         SqlLogger { supportBindLogging }
     {
-        ConfigureConsole();
     }
 
     void OnWarning(std::string_view const& message) override
@@ -75,21 +74,6 @@ class SqlStandardLogger: public SqlLogger
                      errorInfo.sqlState,
                      errorInfo.nativeErrorCode,
                      errorInfo.message);
-    }
-
-    void ConfigureConsole()
-    {
-#if defined(_WIN32) || defined(_WIN64)
-        if (AttachConsole(ATTACH_PARENT_PROCESS) || AllocConsole())
-        {
-            freopen("CONIN$", "r", stdin);
-            freopen("CONOUT$", "w", stdout);
-            freopen("CONOUT$", "w", stderr);
-            SqlLogger::SetLogger(SqlLogger::TraceLogger());
-        }
-#else
-        // Assume that we'll always have access to stdout on Unix-like systems.
-#endif
     }
 
     void OnScopedTimerStart(std::string const& /*tag*/) override {}
