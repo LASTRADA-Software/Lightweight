@@ -98,7 +98,6 @@ class BelongsTo
         _modified(other._modified),
         _record(std::move(other._record))
     {
-        other._loaded = false;
     }
 
     BelongsTo& operator=(SqlNullType /*nullValue*/) noexcept
@@ -234,7 +233,7 @@ class BelongsTo
 
     struct Loader
     {
-        std::function<void()> loadReference {};
+        std::function<std::optional<ReferencedRecord>()> loadReference {};
     };
 
     /// Used internally to configure on-demand loading of the record.
@@ -250,7 +249,14 @@ class BelongsTo
             return;
 
         if (_loader.loadReference)
-            _loader.loadReference();
+        {
+            auto value = _loader.loadReference();
+            if (value)
+            {
+                _record = std::make_unique<ReferencedRecord>(std::move(value.value()));
+                _loaded = true;
+            }
+        }
 
         if (!_loaded)
             throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>);

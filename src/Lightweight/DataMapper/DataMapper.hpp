@@ -904,8 +904,8 @@ class DataMapper
     template <typename ElementMask, typename Record, size_t InitialOffset = 1>
     Record& BindOutputColumns(Record& record, SqlStatement* stmt);
 
-    template <auto ReferencedRecordField, auto BelongsToAlias>
-    void LoadBelongsTo(BelongsTo<ReferencedRecordField, BelongsToAlias>& field);
+    template <typename FieldType>
+    std::optional<typename FieldType::ReferencedRecord> LoadBelongsTo(typename FieldType::ValueType value);
 
     template <size_t FieldIndex, typename Record, typename OtherRecord>
     void LoadHasMany(Record& record, HasMany<OtherRecord>& field);
@@ -1445,19 +1445,20 @@ inline LIGHTWEIGHT_FORCE_INLINE void CallOnBelongsTo(Callable const& callable)
     });
 }
 
-template <auto ReferencedRecordField, auto BelongsToAlias>
-void DataMapper::LoadBelongsTo(BelongsTo<ReferencedRecordField, BelongsToAlias>& field)
+template <typename FieldType>
+std::optional<typename FieldType::ReferencedRecord> DataMapper::LoadBelongsTo(typename FieldType::ValueType value)
 {
-    using FieldType = BelongsTo<ReferencedRecordField>;
     using ReferencedRecord = typename FieldType::ReferencedRecord;
 
+    std::optional<ReferencedRecord> record { std::nullopt };
     CallOnPrimaryKey<ReferencedRecord>([&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>() {
-        if (auto result = QuerySingle<ReferencedRecord>(field.Value()); result)
-            field.EmplaceRecord() = std::move(*result);
+        if (auto result = QuerySingle<ReferencedRecord>(value); result)
+            record = std::move(result);
         else
             SqlLogger::GetLogger().OnWarning(
-                std::format("Loading BelongsTo failed for {} ({})", RecordTableName<ReferencedRecord>, field.Value()));
+                std::format("Loading BelongsTo failed for {}", RecordTableName<ReferencedRecord>));
     });
+    return record;
 }
 
 template <size_t FieldIndex, typename Record, typename OtherRecord, typename Callable>
@@ -1622,7 +1623,7 @@ void DataMapper::LoadRelations(Record& record)
     Reflection::EnumerateMembers(record, [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
         if constexpr (IsBelongsTo<FieldType>)
         {
-            LoadBelongsTo(field);
+            field = LoadBelongsTo<FieldType>(field.Value());
         }
         else if constexpr (IsHasMany<FieldType>)
         {
@@ -1709,7 +1710,9 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         if constexpr (IsBelongsTo<FieldType>)
         {
             field.SetAutoLoader(typename FieldType::Loader {
-                .loadReference = [this, &field]() { LoadBelongsTo(field); },
+                .loadReference = [this, value = field.Value()]() -> std::optional<typename FieldType::ReferencedRecord> {
+                    return LoadBelongsTo<FieldType>(value);
+                },
             });
         }
         else if constexpr (IsHasMany<FieldType>)
