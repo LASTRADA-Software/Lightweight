@@ -6,6 +6,7 @@
 #include "SqlDataBinder.hpp"
 #include "SqlError.hpp"
 
+#include <functional>
 #include <source_location>
 #include <string_view>
 
@@ -24,20 +25,25 @@ class LIGHTWEIGHT_API SqlLogger
         Yes
     };
 
-    SqlLogger() = default;
+    SqlLogger();
     SqlLogger(SqlLogger const& /*other*/) = default;
     SqlLogger(SqlLogger&& /*other*/) = default;
     SqlLogger& operator=(SqlLogger const& /*other*/) = default;
     SqlLogger& operator=(SqlLogger&& /*other*/) = default;
     virtual ~SqlLogger() = default;
 
+    /// Type definition for a function that writes messages.
+    using MessageWriter = std::function<void(std::string /*message*/)>;
+
     /// Constructs a new logger.
     ///
     /// @param supportBindLogging Indicates if the logger should support bind logging.
-    explicit SqlLogger(SupportBindLogging supportBindLogging):
-        _supportsBindLogging { supportBindLogging == SupportBindLogging::Yes }
-    {
-    }
+    explicit SqlLogger(SupportBindLogging supportBindLogging, MessageWriter writer = {});
+
+    /// Sets the logging sink for the logger.
+    ///
+    /// @param writer A function that takes a message string and writes it to the desired output.
+    void SetLoggingSink(MessageWriter writer = {});
 
     /// Invoked on a warning.
     virtual void OnWarning(std::string_view const& message) = 0;
@@ -120,6 +126,9 @@ class LIGHTWEIGHT_API SqlLogger
     ///
     /// The ownership of the logger is not transferred and remains with the caller.
     static void SetLogger(SqlLogger& logger);
+
+  protected:
+    MessageWriter _messageWriter;
 
   private:
     bool _supportsBindLogging = false;

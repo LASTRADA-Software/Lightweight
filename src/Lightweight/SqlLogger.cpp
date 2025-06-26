@@ -45,9 +45,8 @@ class SqlStandardLogger: public SqlLogger
     template <typename... Args>
     void WriteMessage(std::format_string<Args...> const& fmt, Args&&... args)
     {
-        auto const _ = std::lock_guard { _mutex };
-        // TODO: Use the new logging mechanism from Felix here, once merged.
-        std::println("[{}] {}", _currentTimeStr, std::format(fmt, std::forward<Args>(args)...));
+        if (_messageWriter)
+            _messageWriter(std::format(fmt, std::forward<Args>(args)...));
     }
 
   public:
@@ -59,23 +58,23 @@ class SqlStandardLogger: public SqlLogger
 
     void OnWarning(std::string_view const& message) override
     {
-        Tick();
         WriteMessage("Warning: {}", message);
     }
 
     void OnError(SqlError error, std::source_location /*sourceLocation*/) override
     {
-        Tick();
         WriteMessage("SQL Error: {}", error);
     }
 
     void OnError(SqlErrorInfo const& errorInfo, std::source_location /*sourceLocation*/) override
     {
-        Tick();
-        WriteMessage("SQL Error:");
-        WriteMessage("  SQLSTATE: {}", errorInfo.sqlState);
-        WriteMessage("  Native error code: {}", errorInfo.nativeErrorCode);
-        WriteMessage("  Message: {}", errorInfo.message);
+        WriteMessage("SQL Error:\n"
+                     "  SQLSTATE: {}\n"
+                     "  Native error code: {}\n"
+                     "  Message: {}",
+                     errorInfo.sqlState,
+                     errorInfo.nativeErrorCode,
+                     errorInfo.message);
     }
 
     void ConfigureConsole()
@@ -154,7 +153,6 @@ class SqlTraceLogger: public SqlStandardLogger
     {
         _scopedTimers[tag] = std::chrono::steady_clock::now();
 
-        Tick();
         WriteMessage("[{}] Scoped timer started", tag);
     }
 
@@ -166,21 +164,18 @@ class SqlTraceLogger: public SqlStandardLogger
 
         auto const duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
-        Tick();
         WriteMessage("[{}] Scoped timer finished: Took {}ms", tag, duration.count());
     }
 
     void OnConnectionOpened(SqlConnection const& connection) override
     {
         _state = State::Idle;
-        Tick();
         WriteMessage("Connection {} opened: {}", connection.ConnectionId(), connection.ConnectionString().Sanitized());
     }
 
     void OnConnectionClosed(SqlConnection const& connection) override
     {
         _state = State::Idle;
-        Tick();
         WriteMessage("Connection {} closed.", connection.ConnectionId());
     }
 
@@ -223,8 +218,6 @@ class SqlTraceLogger: public SqlStandardLogger
 
     void OnExecute(std::string_view const& query) override
     {
-        Tick();
-
         if (_state == State::Executing)
             OnFetchEnd();
 
@@ -236,7 +229,6 @@ class SqlTraceLogger: public SqlStandardLogger
 
     void OnExecuteBatch() override
     {
-        Tick();
         WriteMessage("ExecuteBatch: {}", _lastPreparedQuery);
         _state = State::Executing;
         _startedAt = std::chrono::steady_clock::now();
@@ -245,7 +237,6 @@ class SqlTraceLogger: public SqlStandardLogger
 
     void OnFetchRow() override
     {
-        Tick();
         _state = State::Fetching;
         ++_fetchRowCount;
     }
@@ -254,8 +245,6 @@ class SqlTraceLogger: public SqlStandardLogger
     {
         if (_state != State::Executing && _state != State::Fetching)
             return;
-
-        Tick();
 
         auto const stoppedAt = std::chrono::steady_clock::now();
         auto const duration = std::chrono::duration_cast<std::chrono::microseconds>(stoppedAt - _startedAt);
@@ -304,20 +293,48 @@ class SqlTraceLogger: public SqlStandardLogger
   private:
     void WriteDetails(std::source_location sourceLocation)
     {
-        WriteMessage("  Source: {}:{}", sourceLocation.file_name(), sourceLocation.line());
+        auto stream = std::ostringstream {};
+
+        stream << std::format("  Source: {}:{}", sourceLocation.file_name(), sourceLocation.line());
         if (!_lastPreparedQuery.empty())
-            WriteMessage("  Query: {}", _lastPreparedQuery);
-        WriteMessage("  Stack trace:");
+            stream << std::format("  Query: {}", _lastPreparedQuery);
 
 #if __has_include(<stacktrace>)
+        stream << std::format("  Stack trace:");
         auto stackTrace = std::stacktrace::current(1, 25);
         for (std::size_t const i: std::views::iota(std::size_t(0), stackTrace.size()))
-            WriteMessage("    [{:>2}] {}", i, stackTrace[i]);
+            stream << std::format("    [{:>2}] {}", i, stackTrace[i]);
 #endif
+
+        WriteMessage("{}", stream.str());
     }
 };
 
 } // namespace
+
+SqlLogger::SqlLogger():
+    SqlLogger(SupportBindLogging::No)
+{
+}
+
+SqlLogger::SqlLogger(SupportBindLogging supportBindLogging, MessageWriter writer):
+    _supportsBindLogging { supportBindLogging == SupportBindLogging::Yes }
+{
+    if (writer)
+        _messageWriter = std::move(writer);
+    else
+        _messageWriter = [](std::string const& message) mutable {
+            auto const currentTime = std::chrono::system_clock::now();
+            auto const nowMs = time_point_cast<std::chrono::milliseconds>(currentTime);
+            auto const currentTimeStr = std::format("{:%F %X}.{:03}", currentTime, nowMs.time_since_epoch().count() % 1'000);
+            std::println("[{}] {}", currentTimeStr, message);
+        };
+}
+
+void SqlLogger::SetLoggingSink(MessageWriter writer)
+{
+    _messageWriter = std::move(writer);
+}
 
 SqlLogger::Null& SqlLogger::NullLogger() noexcept
 {
