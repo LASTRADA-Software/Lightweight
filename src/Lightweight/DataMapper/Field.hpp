@@ -98,7 +98,8 @@ struct Field
 
     /// Assigns a new value to the field.
     template <typename S>
-        requires std::constructible_from<T, S>
+        requires std::constructible_from<T, S> && (!std::same_as<std::remove_cvref_t<S>, Field>)
+    // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr Field& operator=(S&& value) noexcept;
 
     /// Indicates if the field is optional, i.e., it can be NULL.
@@ -210,7 +211,7 @@ constexpr LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::Field(S&&... value) noexcep
 
 template <detail::FieldElementType T, auto P1, auto P2>
 template <typename S>
-    requires std::constructible_from<T, S>
+    requires std::constructible_from<T, S> && (!std::same_as<std::remove_cvref_t<S>, Field<T, P1, P2>>)
 constexpr LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>& Field<T, P1, P2>::operator=(S&& value) noexcept
 {
     _value = std::forward<S>(value);

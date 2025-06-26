@@ -164,6 +164,10 @@ class SqlLogger::Null: public SqlLogger
 class SqlScopedTimeLogger
 {
   public:
+    SqlScopedTimeLogger(SqlScopedTimeLogger const&) = default;
+    SqlScopedTimeLogger(SqlScopedTimeLogger&&) = delete;
+    SqlScopedTimeLogger& operator=(SqlScopedTimeLogger const&) = default;
+    SqlScopedTimeLogger& operator=(SqlScopedTimeLogger&&) = delete;
     explicit SqlScopedTimeLogger(std::string tag):
         _tag { std::move(tag) }
     {

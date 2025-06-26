@@ -103,7 +103,7 @@ struct BelongsToNameImpl
     static constexpr auto baseName = Reflection::MemberNameOf<I, Record>;
     static constexpr auto storage = []() -> std::array<char, baseName.size() + 4>
     {
-        std::array<char, baseName.size() + 4> storage;
+        std::array<char, baseName.size() + 4> storage {};
         std::copy_n(baseName.begin(), baseName.size(), storage.begin());
         std::copy_n("_id", 3, storage.begin() + baseName.size());
         storage.back() = '\0';

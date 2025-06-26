@@ -136,6 +136,21 @@ class BelongsTo
         return *this;
     }
 
+    BelongsTo& operator=(SelfType&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+        _referencedFieldValue = std::move(other._referencedFieldValue);
+        _loader = std::move(other._loader);
+        _loaded = other._loaded;
+        _modified = other._modified;
+        _record = std::move(other._record);
+        other._loaded = false;
+        return *this;
+    }
+
+    ~BelongsTo() noexcept = default;
+
     // clang-format off
 
     /// Marks the field as modified or unmodified.

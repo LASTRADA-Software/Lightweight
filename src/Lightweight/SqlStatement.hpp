@@ -50,8 +50,8 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// Construct a new SqlStatement object, using a new connection, and connect to the default database.
     LIGHTWEIGHT_API SqlStatement();
 
-    LIGHTWEIGHT_API SqlStatement(SqlStatement&&) noexcept;
-    LIGHTWEIGHT_API SqlStatement& operator=(SqlStatement&&) noexcept;
+    LIGHTWEIGHT_API SqlStatement(SqlStatement&& other) noexcept;
+    LIGHTWEIGHT_API SqlStatement& operator=(SqlStatement&& other) noexcept;
 
     SqlStatement(SqlStatement const&) noexcept = delete;
     SqlStatement& operator=(SqlStatement const&) noexcept = delete;

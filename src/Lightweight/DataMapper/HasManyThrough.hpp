@@ -77,10 +77,10 @@ class HasManyThrough
     /// @note This method will NOT throw if the index is out of bounds. The behaviour is undefined.
     [[nodiscard]] ReferencedRecord& operator[](std::size_t index);
 
-    iterator begin() noexcept;
-    iterator end() noexcept;
-    const_iterator begin() const noexcept;
-    const_iterator end() const noexcept;
+    [[nodiscard]] iterator begin() noexcept;
+    [[nodiscard]] iterator end() noexcept;
+    [[nodiscard]] const_iterator begin() const noexcept;
+    [[nodiscard]] const_iterator end() const noexcept;
 
     std::weak_ordering operator<=>(HasManyThrough const& other) const noexcept = default;
 
@@ -161,7 +161,7 @@ HasManyThrough<ReferencedRecordT, ThroughRecordT>::ReferencedRecordList& HasMany
 {
     RequireLoaded();
 
-    return _records.value();
+    return _records.value(); // NOLINT(bugprone-unchecked-optional-access)
 }
 
 template <typename ReferencedRecordT, typename ThroughRecordT>
@@ -182,7 +182,7 @@ std::size_t HasManyThrough<ReferencedRecordT, ThroughRecordT>::Count() const
     if (!_count)
         const_cast<HasManyThrough<ReferencedRecordT, ThroughRecordT>*>(this)->_count = _loader.count();
 
-    return *_count;
+    return _count.value_or(0);
 }
 
 template <typename ReferencedRecordT, typename ThroughRecordT>
