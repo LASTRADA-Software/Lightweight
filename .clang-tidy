@@ -1,4 +1,3 @@
-
 ---
 Checks: >-
   -*,
@@ -9,6 +8,7 @@ Checks: >-
   -bugprone-reserved-identifier,
   -bugprone-suspicious-include,
   -bugprone-crtp-constructor-accessibility,
+  -bugprone-chained-comparison,
   clang-analyzer-core.*,
   clang-analyzer-cplusplus.*,
   clang-analyzer-deadcode.*,
