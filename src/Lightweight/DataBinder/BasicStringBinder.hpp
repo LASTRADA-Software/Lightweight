@@ -99,7 +99,7 @@ SQLRETURN OutputColumnNonUtf16Unicode(
             u16String->clear();
         else if (*indicator == SQL_NO_TOTAL)
             ; // We don't know the size of the data
-        else if (*indicator <= static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)))
+        else if (std::cmp_less_equal(*indicator, u16String->size() * sizeof(char16_t)))
             u16String->resize(*indicator / sizeof(char16_t));
         else
         {
@@ -109,7 +109,7 @@ SQLRETURN OutputColumnNonUtf16Unicode(
             auto const sqlResult = SQLGetData(stmt, column, SQL_C_WCHAR, u16String->data(), *indicator, indicator);
             (void) sqlResult;
             assert(SQL_SUCCEEDED(sqlResult));
-            assert(*indicator == static_cast<SQLLEN>(totalCharsRequired * sizeof(char16_t)));
+            assert(std::cmp_equal(*indicator, totalCharsRequired * sizeof(char16_t)));
         }
 
         if constexpr (sizeof(typename StringType::value_type) == 1)
@@ -237,7 +237,7 @@ struct SqlDataBinder<AnsiStringType>
                 if (*indicator == SQL_NULL_DATA)
                     StringTraits::Resize(result, 0);
                 else if (*indicator != SQL_NO_TOTAL)
-                    StringTraits::Resize(result, (std::min)(AnsiStringType::Capacity, static_cast<size_t>(*indicator)));
+                    StringTraits::Resize(result, (std::min) (AnsiStringType::Capacity, static_cast<size_t>(*indicator)));
             }
             if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
                 StringTraits::PostProcessOutputColumn(result, *indicator);
@@ -388,7 +388,7 @@ struct SqlDataBinder<Utf16StringType>
                     auto const sqlResult = SQLGetData(stmt, column, SQL_C_WCHAR, result->data(), *indicator, indicator);
                     (void) sqlResult;
                     assert(SQL_SUCCEEDED(sqlResult));
-                    assert(*indicator == static_cast<SQLLEN>(totalCharsRequired * sizeof(char16_t)));
+                    assert(std::cmp_equal(*indicator, totalCharsRequired * sizeof(char16_t)));
                 }
             });
         }

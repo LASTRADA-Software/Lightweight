@@ -553,6 +553,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into SqlVariantRowIterator", "[SqlState
                     CHECK(row.size() == 3);
                     if (rowCount == 1)
                     {
+                        // NOLINTBEGIN(bugprone-unchecked-optional-access)
                         CHECK(row[0].TryGetULongLong().value() == 1);
                         CHECK(row[1].TryGetStringView().value() == "a");
                         CHECK(row[2].TryGetStringView().value() == "b");
@@ -562,6 +563,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into SqlVariantRowIterator", "[SqlState
                         CHECK(row[0].TryGetULongLong().value() == 2);
                         CHECK(row[1].TryGetStringView().value() == "A");
                         CHECK(row[2].TryGetStringView().value() == "B");
+                        // NOLINTEND(bugprone-unchecked-optional-access)
                     }
                 }
                 CHECK(rowCount == 2);

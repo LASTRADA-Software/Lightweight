@@ -11,6 +11,7 @@
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <format>
 #include <ostream>
@@ -54,7 +55,9 @@ struct std::formatter<std::u8string>: std::formatter<std::string>
 {
     auto format(std::u8string const& value, std::format_context& ctx) const -> std::format_context::iterator
     {
-        return std::formatter<std::string>::format(std::format("{}", (char const*) value.c_str()), ctx);
+        return std::formatter<std::string>::format(
+            std::format("{}", (char const*) value.c_str()), // NOLINT(readability-redundant-string-cstr)
+            ctx);
     }
 };
 
@@ -535,7 +538,7 @@ inline std::ostream& operator<<(std::ostream& os, SqlFixedString<N, T, Mode> con
                                      N,
                                      Reflection::TypeNameOf<T>,
                                      value.size(),
-                                     (char const*) u8String.c_str());
+                                     (char const*) u8String.c_str()); // NOLINT(readability-redundant-string-cstr)
         }
     }
     else
@@ -554,7 +557,7 @@ inline std::ostream& operator<<(std::ostream& os, SqlDynamicString<N, T> const& 
                                  N,
                                  Reflection::TypeNameOf<T>,
                                  value.size(),
-                                 (char const*) u8String.c_str());
+                                 (char const*) u8String.c_str()); // NOLINT(readability-redundant-string-cstr)
     }
 }
 
@@ -563,9 +566,10 @@ inline std::ostream& operator<<(std::ostream& os, SqlDynamicString<N, T> const& 
     auto result = std::string(text);
 
     // Remove any newlines and reduce all whitespace to a single space
-    result.erase(
-        std::unique(result.begin(), result.end(), [](char a, char b) { return std::isspace(a) && std::isspace(b); }),
-        result.end());
+    result.erase(std::unique(result.begin(), // NOLINT(modernize-use-ranges)
+                             result.end(),
+                             [](char a, char b) { return std::isspace(a) && std::isspace(b); }),
+                 result.end());
 
     // trim lading and trailing whitespace
     while (!result.empty() && std::isspace(result.front()))

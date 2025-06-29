@@ -13,8 +13,8 @@ int main()
 
     SqlConnection::SetDefaultConnectionString(SqlConnectionString {
         "DRIVER={ODBC Driver 18 for SQL "
-    //       "Server};SERVER=localhost;UID=SA;PWD=Qwerty1.;TrustServerCertificate=yes;DATABASE=LightweightTest" });
-  "Server};SERVER=localhost;UID=SA;PWD=BlahThat.;TrustServerCertificate=yes;DATABASE=LightweightTest" });
+        //"Server};SERVER=localhost;UID=SA;PWD=Qwerty1.;TrustServerCertificate=yes;DATABASE=LightweightTest" });
+        "Server};SERVER=localhost;UID=SA;PWD=BlahThat.;TrustServerCertificate=yes;DATABASE=LightweightTest" });
     auto dm = DataMapper();
 
     // helper function to create std::string from string_view<char16_t>
@@ -43,7 +43,10 @@ int main()
     std::println("Iterated over {} Albums", numberOfAlbums);
 
     // select album with the title "Mozart Gala: Famous Arias"
-    auto album = dm.QuerySingle<Album>().Where(FieldNameOf<&Album::Title>, "=", "Mozart Gala: Famous Arias").Get().value();
+    auto album = dm.QuerySingle<Album>() // NOLINT(bugprone-unchecked-optional-access)
+                     .Where(FieldNameOf<&Album::Title>, "=", "Mozart Gala: Famous Arias")
+                     .Get()
+                     .value();
 
     std::println("AlbumId: {}, Title: {}", album.AlbumId.Value(), album.ArtistId.Value());
 
@@ -51,12 +54,18 @@ int main()
     // to get access to the artist entry in the database, using dereference operator
     // after configuring the relations
     dm.ConfigureRelationAutoLoading(album);
-    std::println("Artist name: {}", toString(album.ArtistId->Name.Value().value().c_str()));
+    std::println("Artist name: {}",
+                 toString(album.ArtistId->Name.Value().value().c_str())); // NOLINT(bugprone-unchecked-optional-access)
 
     {
         // get an artist with the name "Sir Georg Solti, Sumi Jo & Wiener Philharmoniker"
-        auto artist = dm.QuerySingle<Artist>().Where(FieldNameOf<&Artist::Name>, "=", "Red Hot Chili Peppers").Get().value();
-        std::println("ArtistId: {}, Name: {}", artist.ArtistId.Value(), toString(artist.Name.Value().value().c_str()));
+        auto artist = dm.QuerySingle<Artist>() // NOLINT(bugprone-unchecked-optional-access)
+                          .Where(FieldNameOf<&Artist::Name>, "=", "Red Hot Chili Peppers")
+                          .Get()
+                          .value();
+        std::println("ArtistId: {}, Name: {}", // NOLINT(bugprone-unchecked-optional-access)
+                     artist.ArtistId.Value(),
+                     toString(artist.Name.Value().value().c_str())); // NOLINT(bugprone-unchecked-optional-access)
 
         // get albums of the artist
         auto albums = dm.Query<Album>().Where(FieldNameOf<&Album::ArtistId>, "=", artist.ArtistId.Value()).All();
@@ -68,7 +77,7 @@ int main()
         std::println("got {} tracks", tracks.size());
 
         // iterate over all tracks and print song names
-        for (const auto& track: tracks)
+        for (auto const& track: tracks)
         {
             std::println("TrackId: {}, Name: {}, Bytes: {} , UnitPrice: {}",
                          track.TrackId.Value(),
@@ -97,8 +106,8 @@ int main()
 
     {
         // get one employee
-        auto employee = dm.QuerySingle<Employee>(1).value();
-        std::println(" {} ", employee.HireDate.Value().value());
+        auto employee = dm.QuerySingle<Employee>(1).value();     // NOLINT(bugprone-unchecked-optional-access)
+        std::println(" {} ", employee.HireDate.Value().value()); // NOLINT(bugprone-unchecked-optional-access)
         // update hiring date to current date
         employee.HireDate = SqlDateTime::Now();
         dm.Update(employee);

@@ -44,7 +44,7 @@ jobs:
     - name: "Clang-format"
       uses: jidicula/clang-format-action@v4.15.0
       with:
-        clang-format-version: 19
+        clang-format-version: 20
         check-path: 'src'
         exclude-regex: '^src/examples/|^src/benchmark|src/tools/tests/'
 
@@ -67,20 +67,18 @@ jobs:
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 19
-        sudo apt -qy install clang-tidy-19
-        which clang-tidy-19
+        sudo ./llvm.sh 20
+        sudo apt -qy install clang-tidy-20
+        which clang-tidy-20
     - name: "install dependencies"
       run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14
     - name: "cmake"
       run: |
         cmake --preset linux-clang-debug \
-              -D ENABLE_TIDY=ON \
-              -D CMAKE_CXX_COMPILER=clang++-19 \
-              -D CMAKE_C_COMPILER=clang-19 \
-              -D CLANG_TIDY_EXE="/usr/bin/clang-tidy-19"
-    - name: "build with clang-tidy"
-      run: cmake --build --preset linux-clang-debug
+              -D CMAKE_CXX_COMPILER=clang++-20 \
+              -D CMAKE_C_COMPILER=clang-20
+    - name: "run clang-tidy"
+      run: run-clang-tidy -p ./out/build/linux-clang-debug -clang-tidy-binary clang-tidy-20
 
   # }}}
   # {{{ Windows

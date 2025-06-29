@@ -37,6 +37,10 @@ struct MigrationTimestamp
 class SqlMigrationExecutor
 {
   public:
+    SqlMigrationExecutor(SqlMigrationExecutor const&) = default;
+    SqlMigrationExecutor(SqlMigrationExecutor&&) = delete;
+    SqlMigrationExecutor& operator=(SqlMigrationExecutor const&) = default;
+    SqlMigrationExecutor& operator=(SqlMigrationExecutor&&) = delete;
     virtual ~SqlMigrationExecutor() = default;
 
     virtual void OnCreateTable(SqlCreateTablePlan const& createTable) = 0;
@@ -96,6 +100,10 @@ class MigrationManager
 class MigrationBase
 {
   public:
+    MigrationBase(MigrationBase const&) = default;
+    MigrationBase(MigrationBase&&) = delete;
+    MigrationBase& operator=(MigrationBase const&) = default;
+    MigrationBase& operator=(MigrationBase&&) = delete;
     MigrationBase(MigrationTimestamp timestamp, std::string_view title):
         _timestamp { timestamp },
         _title { title }

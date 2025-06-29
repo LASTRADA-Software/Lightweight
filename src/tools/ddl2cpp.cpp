@@ -15,6 +15,7 @@
 #include <print>
 #include <sstream>
 #include <unordered_map>
+#include <utility>
 
 #include <yaml-cpp/yaml.h>
 
@@ -176,7 +177,7 @@ class CxxModelPrinter
     };
 
     explicit CxxModelPrinter(Config config) noexcept:
-        _config(config)
+        _config(std::move(std::move(config)))
     {
     }
 
@@ -433,8 +434,10 @@ class CxxModelPrinter
         if (it != foreignKeys.end())
             return *it;
 
-        throw std::runtime_error(std::format(
-            "Foreign key not found for {} in table {}", column.name, column.foreignKeyConstraint->foreignKey.table));
+        throw std::runtime_error(
+            std::format("Foreign key not found for {} in table {}",
+                        column.name,
+                        column.foreignKeyConstraint->foreignKey.table)); // NOLINT(bugprone-unchecked-optional-access)
     }
 
     std::optional<std::string> MapColumnNameOverride(SqlSchema::FullyQualifiedTableName const& tableName,
@@ -515,7 +518,7 @@ class CxxModelPrinter
         {
             std::string type = MakeType(column, _config.forceUnicodeTextColumns, _config.sqlFixedStringMaxSize);
             auto const memberName =
-                MapColumnNameOverride(tableName, column.name)
+                MapColumnNameOverride(tableName, column.name) // NOLINT(bugprone-unchecked-optional-access)
                     .or_else([&] { return std::optional { SanitizeName(FormatName(column.name, _config.formatType)) }; })
                     .value();
 
@@ -526,9 +529,10 @@ class CxxModelPrinter
                 auto const& foreignKey = GetForeignKey(column, table.foreignKeys);
                 if (foreignKey.primaryKey.columns.size() == 1)
                 {
-                    auto foreignTableName = aliasTableName(foreignKey.primaryKey.table.table);
+                    auto foreignTableName =
+                        aliasTableName(foreignKey.primaryKey.table.table); // NOLINT(bugprone-unchecked-optional-access)
                     auto const relationName =
-                        MapColumnNameOverride(tableName, column.name)
+                        MapColumnNameOverride(tableName, column.name) // NOLINT(bugprone-unchecked-optional-access)
                             .or_else([&] {
                                 return std::optional { SanitizeName(
                                     FormatName(StripSuffix(foreignKey.foreignKey.columns.at(0)), _config.formatType)) };
@@ -716,8 +720,7 @@ void PrintInfo(Configuration const& config)
 std::expected<FormatType, std::string> ToFormatType(std::string_view formatType)
 {
     auto lowerString = std::string(formatType);
-    std::transform(
-        lowerString.begin(), lowerString.end(), lowerString.begin(), [](unsigned char c) { return std::tolower(c); });
+    std::ranges::transform(lowerString, lowerString.begin(), [](unsigned char c) { return std::tolower(c); });
 
     if (lowerString == "none")
         return FormatType::preserve;
@@ -869,9 +872,9 @@ void ResolveOrderAndPrintTable(CxxModelPrinter& cxxModelPrinter, std::vector<Sql
     {
         for (auto const [index, table]: std::views::enumerate(tables))
         {
-            if (!numberOfForeignKeys[index])
+            if (!numberOfForeignKeys[index]) // NOLINT(bugprone-unchecked-optional-access)
                 continue;
-            if (numberOfForeignKeys[index].value() == 0)
+            if (numberOfForeignKeys[index].value() == 0) //  NOLINT(bugprone-unchecked-optional-access)
             {
                 printTable(index, table);
             }
@@ -1029,6 +1032,14 @@ auto TimedExecution(std::string_view title, auto&& func)
 {
     struct ScopeExit
     {
+        ScopeExit(ScopeExit const&) = delete;
+        ScopeExit(ScopeExit&&) = delete;
+        ScopeExit& operator=(ScopeExit const&) = delete;
+        ScopeExit& operator=(ScopeExit&&) = delete;
+        explicit ScopeExit(std::string_view title):
+            title(title)
+        {
+        }
         std::string_view title;
         std::chrono::high_resolution_clock::time_point const start = std::chrono::high_resolution_clock::now();
         ~ScopeExit()
@@ -1100,7 +1111,7 @@ int main(int argc, char const* argv[])
         return SqlSchema::ReadAllTables(
             config.database, config.schema, [](std::string_view tableName, size_t current, size_t total) {
                 std::print("\r\033[K {:>3}% [{}/{}] Reading table schema {}",
-                           static_cast<int>((current * 100.0) / total),
+                           static_cast<int>((current * 100) / total),
                            current,
                            total,
                            tableName);

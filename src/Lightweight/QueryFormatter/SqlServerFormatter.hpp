@@ -24,6 +24,7 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
     }
 
     [[nodiscard]] std::string SelectFirst(bool distinct,
+                                          // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                                           std::string_view fields,
                                           std::string_view fromTable,
                                           std::string_view fromTableAlias,
@@ -49,6 +50,7 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
     }
 
     [[nodiscard]] std::string SelectRange(bool distinct,
+                                          // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                                           std::string_view fields,
                                           std::string_view fromTable,
                                           std::string_view fromTableAlias,

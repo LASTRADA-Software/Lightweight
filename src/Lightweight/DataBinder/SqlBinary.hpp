@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 /// @brief Represents a binary data type.
@@ -62,7 +63,7 @@ struct SqlDataBinder<SqlBinary>
             else if (*indicator == SQL_NO_TOTAL)
                 // We have a truncation and the server does not know how much data is left.
                 result->resize(result->size() - 1);
-            else if (*indicator <= static_cast<SQLLEN>(result->size()))
+            else if (std::cmp_less_equal(*indicator, static_cast<SQLLEN>(result->size())))
                 result->resize(*indicator);
             else
             {
