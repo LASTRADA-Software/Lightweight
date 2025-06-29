@@ -205,7 +205,6 @@ struct SqlDateTime
     {
         auto tmp = dateTime.value() + duration;
         return { tmp };
-        // return SqlDateTime { dateTime.value() + duration };
     }
 
     friend LIGHTWEIGHT_FORCE_INLINE SqlDateTime operator-(SqlDateTime dateTime, duration_type duration) noexcept

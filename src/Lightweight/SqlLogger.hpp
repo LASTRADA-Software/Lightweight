@@ -128,7 +128,7 @@ class SqlLogger
     LIGHTWEIGHT_API static void SetLogger(SqlLogger& logger);
 
   protected:
-    MessageWriter _messageWriter;
+    MessageWriter _messageWriter; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
 
   private:
     bool _supportsBindLogging = false;

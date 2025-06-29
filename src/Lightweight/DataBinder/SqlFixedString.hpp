@@ -7,6 +7,7 @@
 #include "UnicodeConverter.hpp"
 
 #include <format>
+#include <ranges>
 #include <stdexcept>
 #include <utility>
 
@@ -232,7 +233,7 @@ class SqlFixedString
         if ((void*) this == (void*) &other) [[unlikely]]
             return std::weak_ordering::equivalent;
 
-        for (std::size_t i = 0; i < (std::min) (size(), other.size()); ++i)
+        for (auto const i: std::views::iota(0U, (std::min) (size(), other.size())))
             if (auto const cmp = _data[i] <=> other._data[i]; cmp != std::weak_ordering::equivalent) [[unlikely]]
                 return cmp;
         return size() <=> other.size();

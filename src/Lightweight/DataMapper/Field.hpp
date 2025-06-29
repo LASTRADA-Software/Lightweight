@@ -98,7 +98,7 @@ struct Field
 
     /// Assigns a new value to the field.
     template <typename S>
-        requires std::constructible_from<T, S> && (!std::same_as<std::remove_cvref_t<S>, Field>)
+        requires std::constructible_from<T, S> && (!std::same_as<std::remove_cvref_t<S>, Field<T, P1, P2>>)
     // NOLINTNEXTLINE(cppcoreguidelines-c-copy-assignment-signature)
     constexpr Field& operator=(S&& value) noexcept;
 
