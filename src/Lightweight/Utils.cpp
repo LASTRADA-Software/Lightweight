@@ -76,7 +76,7 @@ std::string FormatName(std::string_view name, FormatType formatType)
 
 bool UniqueNameBuilder::IsColliding(std::string const& name) const noexcept
 {
-    return _collisionMap.find(name) != _collisionMap.end();
+    return _collisionMap.contains(name);
 }
 
 std::optional<std::string> UniqueNameBuilder::TryDeclareName(std::string name)

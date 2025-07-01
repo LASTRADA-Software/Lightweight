@@ -40,8 +40,6 @@
 template <auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt>
 class BelongsTo
 {
-    using SelfType = BelongsTo<TheReferencedField, ColumnNameOverrideString>;
-
   public:
     /// The field in the other record that references the current record.
     static constexpr auto ReferencedField = TheReferencedField;
@@ -82,7 +80,7 @@ class BelongsTo
     {
     }
 
-    constexpr BelongsTo(SelfType const& other) noexcept:
+    constexpr BelongsTo(BelongsTo const& other) noexcept:
         _referencedFieldValue(other._referencedFieldValue),
         _loader(std::move(other._loader)),
         _loaded(other._loaded),
@@ -91,7 +89,7 @@ class BelongsTo
     {
     }
 
-    constexpr BelongsTo(SelfType&& other) noexcept:
+    constexpr BelongsTo(BelongsTo&& other) noexcept:
         _referencedFieldValue(std::move(other._referencedFieldValue)),
         _loader(std::move(other._loader)),
         _loaded(other._loaded),
@@ -122,7 +120,7 @@ class BelongsTo
         return *this;
     }
 
-    BelongsTo& operator=(SelfType const& other)
+    BelongsTo& operator=(BelongsTo const& other)
     {
         if (this == &other)
             return *this;
@@ -135,6 +133,21 @@ class BelongsTo
 
         return *this;
     }
+
+    BelongsTo& operator=(BelongsTo&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+        _referencedFieldValue = std::move(other._referencedFieldValue);
+        _loader = std::move(other._loader);
+        _loaded = other._loaded;
+        _modified = other._modified;
+        _record = std::move(other._record);
+        other._loaded = false;
+        return *this;
+    }
+
+    ~BelongsTo() noexcept = default;
 
     // clang-format off
 

@@ -128,7 +128,7 @@ class SqlLogger
     LIGHTWEIGHT_API static void SetLogger(SqlLogger& logger);
 
   protected:
-    MessageWriter _messageWriter;
+    MessageWriter _messageWriter; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
 
   private:
     bool _supportsBindLogging = false;
@@ -164,6 +164,10 @@ class SqlLogger::Null: public SqlLogger
 class SqlScopedTimeLogger
 {
   public:
+    SqlScopedTimeLogger(SqlScopedTimeLogger const&) = default;
+    SqlScopedTimeLogger(SqlScopedTimeLogger&&) = delete;
+    SqlScopedTimeLogger& operator=(SqlScopedTimeLogger const&) = default;
+    SqlScopedTimeLogger& operator=(SqlScopedTimeLogger&&) = delete;
     explicit SqlScopedTimeLogger(std::string tag):
         _tag { std::move(tag) }
     {

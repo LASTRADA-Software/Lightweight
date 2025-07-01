@@ -283,7 +283,7 @@ struct SqlBasicStringOperations<SqlDynamicString<N, T>>
 
     static void Reserve(ValueType* str, size_t capacity) noexcept
     {
-        str->value().resize((std::min)(N, capacity));
+        str->value().resize((std::min) (N, capacity));
     }
 
     static void Resize(ValueType* str, SQLLEN indicator) noexcept

@@ -220,7 +220,7 @@ struct SqlVariant
         // clang-format off
         return std::visit(detail::overloaded {
             []<typename T>(T v) -> ResultType requires(std::is_integral_v<T>) { return static_cast<ResultType>(v); },
-            [](auto) -> ResultType { throw std::bad_variant_access(); }
+            [](auto) -> ResultType { throw std::bad_variant_access(); } // NOLINT(performance-unnecessary-value-param)
         }, value);
         // clang-format on
     }

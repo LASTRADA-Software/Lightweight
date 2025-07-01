@@ -95,10 +95,10 @@ class HasMany
     /// @note This method will NOT throw if the index is out of bounds. The behaviour is undefined.
     [[nodiscard]] OtherRecord& operator[](std::size_t index);
 
-    iterator begin() noexcept;
-    iterator end() noexcept;
-    const_iterator begin() const noexcept;
-    const_iterator end() const noexcept;
+    [[nodiscard]] iterator begin() noexcept;
+    [[nodiscard]] iterator end() noexcept;
+    [[nodiscard]] const_iterator begin() const noexcept;
+    [[nodiscard]] const_iterator end() const noexcept;
 
     constexpr std::weak_ordering operator<=>(HasMany<OtherRecord> const& other) const noexcept = default;
     constexpr bool operator==(HasMany<OtherRecord> const& other) const noexcept = default;
@@ -150,7 +150,7 @@ template <typename OtherRecord>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::ReferencedRecordList& HasMany<OtherRecord>::All() noexcept
 {
     RequireLoaded();
-    return *_records;
+    return *_records; // NOLINT(bugprone-unchecked-optional-access)
 }
 
 template <typename OtherRecord>
@@ -183,7 +183,7 @@ inline LIGHTWEIGHT_FORCE_INLINE std::size_t HasMany<OtherRecord>::Count() const 
     if (!_count)
         const_cast<HasMany<OtherRecord>*>(this)->_count = _loader.count();
 
-    return *_count;
+    return _count.value_or(0);
 }
 
 template <typename OtherRecord>
@@ -196,28 +196,28 @@ template <typename OtherRecord>
 inline LIGHTWEIGHT_FORCE_INLINE OtherRecord const& HasMany<OtherRecord>::At(std::size_t index) const
 {
     RequireLoaded();
-    return *_records->at(index);
+    return *_records->at(index); // NOLINT(bugprone-unchecked-optional-access)
 }
 
 template <typename OtherRecord>
 inline LIGHTWEIGHT_FORCE_INLINE OtherRecord& HasMany<OtherRecord>::At(std::size_t index)
 {
     RequireLoaded();
-    return *_records->at(index);
+    return *_records->at(index); // NOLINT(bugprone-unchecked-optional-access)
 }
 
 template <typename OtherRecord>
 inline LIGHTWEIGHT_FORCE_INLINE OtherRecord const& HasMany<OtherRecord>::operator[](std::size_t index) const
 {
     RequireLoaded();
-    return *(*_records)[index];
+    return *(*_records)[index]; // NOLINT(bugprone-unchecked-optional-access)
 }
 
 template <typename OtherRecord>
 inline LIGHTWEIGHT_FORCE_INLINE OtherRecord& HasMany<OtherRecord>::operator[](std::size_t index)
 {
     RequireLoaded();
-    return *(*_records)[index];
+    return *(*_records)[index]; // NOLINT(bugprone-unchecked-optional-access)
 }
 
 template <typename OtherRecord>

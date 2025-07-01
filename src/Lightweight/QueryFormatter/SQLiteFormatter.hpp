@@ -59,6 +59,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
     [[nodiscard]] std::string SelectAll(bool distinct,
+                                        // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                                         std::string_view fields,
                                         std::string_view fromTable,
                                         std::string_view fromTableAlias,
@@ -84,6 +85,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
     [[nodiscard]] std::string SelectFirst(bool distinct,
+                                          // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                                           std::string_view fields,
                                           std::string_view fromTable,
                                           std::string_view fromTableAlias,
@@ -107,6 +109,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
     [[nodiscard]] std::string SelectRange(bool distinct,
+                                          // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                                           std::string_view fields,
                                           std::string_view fromTable,
                                           std::string_view fromTableAlias,
@@ -186,6 +189,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                            referencedColumn.columnName);
     }
 
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     [[nodiscard]] StringList CreateTable(std::string_view tableName,
                                          std::vector<SqlColumnDeclaration> const& columns) const override
     {

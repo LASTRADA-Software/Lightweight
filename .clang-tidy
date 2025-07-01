@@ -7,6 +7,8 @@ Checks: >-
   -bugprone-implicit-widening-of-multiplication-result,
   -bugprone-reserved-identifier,
   -bugprone-suspicious-include,
+  -bugprone-crtp-constructor-accessibility,
+  -bugprone-chained-comparison,
   clang-analyzer-core.*,
   clang-analyzer-cplusplus.*,
   clang-analyzer-deadcode.*,
@@ -42,16 +44,13 @@ Checks: >-
   -readability-braces-around-statements,
   -readability-else-after-return,
   -readability-identifier-length,
+  -readability-identifier-naming,
   -readability-implicit-bool-conversion,
   -readability-magic-numbers,
   -readability-redundant-access-specifiers,
   -readability-redundant-member-init,
   -readability-simplify-boolean-expr,
-WarningsAsErrors: >-
-  modernize-use-nullptr,
-  performance-move-const-arg,
-  readability-function-cognitive-complexity,
-  cppcoreguidelines-rvalue-reference-param-not-moved,
+WarningsAsErrors: "*"
 UseColor: true
 HeaderFilterRegex: 'src/'
 FormatStyle:     none

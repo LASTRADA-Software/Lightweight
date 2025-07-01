@@ -1300,7 +1300,7 @@ struct SimpleStruct2
     int age;
 };
 
-static_assert(RecordPrimaryKeyIndex<SimpleStruct2> == static_cast<size_t>(-1));
+static_assert(std::cmp_equal(RecordPrimaryKeyIndex<SimpleStruct2>, static_cast<size_t>(-1)));
 static_assert(std::same_as<RecordPrimaryKeyType<SimpleStruct2>, void>);
 
 std::ostream& operator<<(std::ostream& os, SimpleStruct2 const& record)
@@ -1579,8 +1579,8 @@ TEST_CASE_METHOD(SqlTestFixture, "MapForJointStatement", "[DataMapper]")
     int i = 1;
     for (auto const& [elementA, elementC]: records)
     {
-        CHECK(elementA.id.Value() == static_cast<uint64_t>(49 + i));
-        CHECK(elementC.id.Value() == static_cast<uint64_t>(i));
+        CHECK(std::cmp_equal(elementA.id.Value(), 49 + i));
+        CHECK(std::cmp_equal(elementC.id.Value(), i));
         CHECK(elementA.value_a_first.Value() == 49 + i);
         CHECK(elementA.value_a_second.Value() == 10 + 49 + i);
         CHECK(elementA.value_a_third.Value() == 100 + 49 + i);
@@ -1708,7 +1708,7 @@ TEST_CASE_METHOD(SqlTestFixture, "TestOptionalDynamicData", "[DataMapper]")
 
     checkSize(5);
     checkSize(5 * 2);
-    checkSize(5 * 2 + 1);
+    checkSize((5 * 2) + 1);
     checkSize(1000);
     checkSize(2000);
     checkSize(4000);

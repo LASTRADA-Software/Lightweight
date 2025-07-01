@@ -17,7 +17,7 @@ struct DifferenceView
     }
 
     template <typename Callback>
-    void iterate(Callback&& callback) noexcept
+    void iterate(Callback const& callback) noexcept
     {
         Reflection::template_for<0, Reflection::CountMembers<Record>>([&]<auto I>() {
             if (std::find(indexes.begin(), indexes.end(), I) != indexes.end())
