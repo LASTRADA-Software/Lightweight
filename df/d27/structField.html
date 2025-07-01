@@ -26,7 +26,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.1.0</span>
+   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20250627.0</span>
    </div>
   </td>
  </tr>
@@ -129,12 +129,12 @@ requires std::constructible_from&lt;T, S...&gt;</td></tr>
 <tr class="memitem:a3e91e89b39678f33662d75ec1fc13674"><td class="memTemplItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memTemplItemRight" valign="bottom"><b>Field</b> (S &amp;&amp;... value) noexcept</td></tr>
 <tr class="memdesc:a3e91e89b39678f33662d75ec1fc13674"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a new field with the given value. <br /></td></tr>
 <tr class="separator:a3e91e89b39678f33662d75ec1fc13674"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a72afb9891ad3136a31477b5f11266c23" id="r_a72afb9891ad3136a31477b5f11266c23"><td class="memTemplParams" colspan="2"><a id="a72afb9891ad3136a31477b5f11266c23" name="a72afb9891ad3136a31477b5f11266c23"></a>
+<tr class="memitem:aa73c8ba842d77563d6187986e2755156" id="r_aa73c8ba842d77563d6187986e2755156"><td class="memTemplParams" colspan="2"><a id="aa73c8ba842d77563d6187986e2755156" name="aa73c8ba842d77563d6187986e2755156"></a>
 template&lt;typename S &gt; <br />
-requires std::constructible_from&lt;T, S&gt;</td></tr>
-<tr class="memitem:a72afb9891ad3136a31477b5f11266c23"><td class="memTemplItemLeft" align="right" valign="top">constexpr <a class="el" href="../../df/d27/structField.html">Field</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>operator=</b> (S &amp;&amp;value) noexcept</td></tr>
-<tr class="memdesc:a72afb9891ad3136a31477b5f11266c23"><td class="mdescLeft">&#160;</td><td class="mdescRight">Assigns a new value to the field. <br /></td></tr>
-<tr class="separator:a72afb9891ad3136a31477b5f11266c23"><td class="memSeparator" colspan="2">&#160;</td></tr>
+requires std::constructible_from&lt;T, S&gt; &amp;&amp; (!std::same_as&lt;std::remove_cvref_t&lt;S&gt;, <a class="el" href="../../df/d27/structField.html">Field</a>&lt;T, P1, P2&gt;&gt;)</td></tr>
+<tr class="memitem:aa73c8ba842d77563d6187986e2755156"><td class="memTemplItemLeft" align="right" valign="top">constexpr <a class="el" href="../../df/d27/structField.html">Field</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>operator=</b> (S &amp;&amp;value) noexcept</td></tr>
+<tr class="memdesc:aa73c8ba842d77563d6187986e2755156"><td class="mdescLeft">&#160;</td><td class="mdescRight">Assigns a new value to the field. <br /></td></tr>
+<tr class="separator:aa73c8ba842d77563d6187986e2755156"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a76855e701d40405838208ce5d2d13973" id="r_a76855e701d40405838208ce5d2d13973"><td class="memItemLeft" align="right" valign="top">constexpr std::weak_ordering&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d27/structField.html#a76855e701d40405838208ce5d2d13973">operator&lt;=&gt;</a> (<a class="el" href="../../df/d27/structField.html">Field</a> const &amp;other) const noexcept</td></tr>
 <tr class="memdesc:a76855e701d40405838208ce5d2d13973"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compares two fields for equality.  <br /></td></tr>
 <tr class="separator:a76855e701d40405838208ce5d2d13973"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -176,10 +176,10 @@ requires std::convertible_to&lt;S, T&gt;</td></tr>
 requires std::constructible_from&lt;T, S...&gt;</td></tr>
 <tr class="memitem:a65b504d7ee8c6d70e5a5915f88603184"><td class="memTemplItemLeft" align="right" valign="top">constexpr LIGHTWEIGHT_FORCE_INLINE&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d27/structField.html#a65b504d7ee8c6d70e5a5915f88603184">Field</a> (S &amp;&amp;... value) noexcept</td></tr>
 <tr class="separator:a65b504d7ee8c6d70e5a5915f88603184"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a54576e159ba047015b1e250fa6d87c21" id="r_a54576e159ba047015b1e250fa6d87c21"><td class="memTemplParams" colspan="2">template&lt;typename S &gt; <br />
-requires std::constructible_from&lt;T, S&gt;</td></tr>
-<tr class="memitem:a54576e159ba047015b1e250fa6d87c21"><td class="memTemplItemLeft" align="right" valign="top">constexpr LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, P1, P2 &gt; &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d27/structField.html#a54576e159ba047015b1e250fa6d87c21">operator=</a> (S &amp;&amp;value) noexcept</td></tr>
-<tr class="separator:a54576e159ba047015b1e250fa6d87c21"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a46a8887e3132b22dc35d2ff1767f2682" id="r_a46a8887e3132b22dc35d2ff1767f2682"><td class="memTemplParams" colspan="2">template&lt;typename S &gt; <br />
+requires std::constructible_from&lt;T, S&gt; &amp;&amp; (!std::same_as&lt;std::remove_cvref_t&lt;S&gt;, <a class="el" href="../../df/d27/structField.html">Field</a>&lt;T, P1, P2&gt;&gt;)</td></tr>
+<tr class="memitem:a46a8887e3132b22dc35d2ff1767f2682"><td class="memTemplItemLeft" align="right" valign="top">constexpr LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, P1, P2 &gt; &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d27/structField.html#a46a8887e3132b22dc35d2ff1767f2682">operator=</a> (S &amp;&amp;value) noexcept</td></tr>
+<tr class="separator:a46a8887e3132b22dc35d2ff1767f2682"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9c7270abb93e17938da0e28fa837cdec" id="r_a9c7270abb93e17938da0e28fa837cdec"><td class="memTemplParams" colspan="2">template&lt;typename S &gt; <br />
 requires std::convertible_to&lt;S, T&gt;</td></tr>
 <tr class="memitem:a9c7270abb93e17938da0e28fa837cdec"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d27/structField.html#a9c7270abb93e17938da0e28fa837cdec">operator==</a> (S const &amp;value) const noexcept</td></tr>
@@ -268,7 +268,7 @@ requires std::constructible_from&lt;T, S...&gt;</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00206">206</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00207">207</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -301,7 +301,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Compares two fields for equality. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00222">222</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00223">223</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -332,7 +332,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Returns a string representation of the value, suitable for use in debugging and logging. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00244">244</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00245">245</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -364,7 +364,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Sets the modified state of the field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00278">278</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00279">279</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -395,7 +395,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Checks if the field has been modified. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00284">284</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00285">285</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01110">DataMapper::IsModified()</a>.</p>
 
@@ -428,7 +428,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Returns the value of the field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00290">290</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00291">291</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01165">DataMapper::Delete()</a>.</p>
 
@@ -461,12 +461,12 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 <p>Returns a mutable reference to the value of the field.</p>
 <dl class="section note"><dt>Note</dt><dd>If the field value is changed through this method, it will not be automatically marked as modified. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00296">296</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00297">297</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a54576e159ba047015b1e250fa6d87c21" name="a54576e159ba047015b1e250fa6d87c21"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a54576e159ba047015b1e250fa6d87c21">&#9670;&#160;</a></span>operator=()</h2>
+<a id="a46a8887e3132b22dc35d2ff1767f2682" name="a46a8887e3132b22dc35d2ff1767f2682"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a46a8887e3132b22dc35d2ff1767f2682">&#9670;&#160;</a></span>operator=()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -474,7 +474,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::nullopt&gt; </div>
 <div class="memtemplate">
 template&lt;typename S &gt; <br />
-requires std::constructible_from&lt;T, S&gt;</div>
+requires std::constructible_from&lt;T, S&gt; &amp;&amp; (!std::same_as&lt;std::remove_cvref_t&lt;S&gt;, <a class="el" href="../../df/d27/structField.html">Field</a>&lt;T, P1, P2&gt;&gt;)</div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -494,7 +494,7 @@ requires std::constructible_from&lt;T, S&gt;</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00214">214</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00215">215</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -527,7 +527,7 @@ requires std::convertible_to&lt;S, T&gt;</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00230">230</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00231">231</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -560,7 +560,7 @@ requires std::convertible_to&lt;S, T&gt;</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00238">238</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00239">239</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -641,7 +641,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if the field is optional, i.e., it can be NULL. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00105">105</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00106">106</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -669,7 +669,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if the field is mandatory, i.e., it cannot be NULL. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00108">108</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00109">109</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -697,7 +697,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if the field is a primary key. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00111">111</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00112">112</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -725,7 +725,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if this is a primary key, it also is auto-assigned by the client. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00114">114</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00115">115</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -753,7 +753,7 @@ template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::n
 
 <p>Indicates if this is a primary key, it also is auto-incremented by the database. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00117">117</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00118">118</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>

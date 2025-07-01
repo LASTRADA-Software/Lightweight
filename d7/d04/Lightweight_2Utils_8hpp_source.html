@@ -26,7 +26,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.1.0</span>
+   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20250627.0</span>
    </div>
   </td>
  </tr>
@@ -203,7 +203,7 @@ $(document).ready(function(){initNavTree('d7/d04/Lightweight_2Utils_8hpp_source.
 <div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> baseName = Reflection::MemberNameOf&lt;I, Record&gt;;</div>
 <div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> storage = []() -&gt; std::array&lt;<span class="keywordtype">char</span>, baseName.size() + 4&gt;</div>
 <div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>    {</div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>        std::array&lt;char, baseName.size() + 4&gt; storage;</div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>        std::array&lt;char, baseName.size() + 4&gt; storage {};</div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>        std::copy_n(baseName.begin(), baseName.size(), storage.begin());</div>
 <div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>        std::copy_n(<span class="stringliteral">&quot;_id&quot;</span>, 3, storage.begin() + baseName.size());</div>
 <div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>        storage.back() = <span class="charliteral">&#39;\0&#39;</span>;</div>

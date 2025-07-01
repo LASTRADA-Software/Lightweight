@@ -26,7 +26,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.1.0</span>
+   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20250627.0</span>
    </div>
   </td>
  </tr>
@@ -94,6 +94,7 @@ $(document).ready(function(){initNavTree('d8/d7e/classSqlLogger.html','../../');
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-static-methods">Static Public Member Functions</a> &#124;
+<a href="#pro-attribs">Protected Attributes</a> &#124;
 <a href="../../db/df8/classSqlLogger-members.html">List of all members</a>  </div>
   <div class="headertitle"><div class="title">SqlLogger Class Reference<span class="mlabels"><span class="mlabel">abstract</span></span></div></div>
 </div><!--header-->
@@ -113,23 +114,28 @@ Public Types</h2></td></tr>
  }</td></tr>
 <tr class="memdesc:a8aa70a4d9069cb6ebc226621c2352d4c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Mandates the support for logging bind operations.  <a href="../../d8/d7e/classSqlLogger.html#a8aa70a4d9069cb6ebc226621c2352d4c">More...</a><br /></td></tr>
 <tr class="separator:a8aa70a4d9069cb6ebc226621c2352d4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3263147e77969997f4e3b2100aba3dbd" id="r_a3263147e77969997f4e3b2100aba3dbd"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d7e/classSqlLogger.html#a3263147e77969997f4e3b2100aba3dbd">MessageWriter</a> = std::function&lt; void(std::string)&gt;</td></tr>
+<tr class="memdesc:a3263147e77969997f4e3b2100aba3dbd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type definition for a function that writes messages.  <br /></td></tr>
+<tr class="separator:a3263147e77969997f4e3b2100aba3dbd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a81190c9021abe1bb719db51e9806131f" id="r_a81190c9021abe1bb719db51e9806131f"><td class="memItemLeft" align="right" valign="top"><a id="a81190c9021abe1bb719db51e9806131f" name="a81190c9021abe1bb719db51e9806131f"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>SqlLogger</b> (<a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> const &amp;)=default</td></tr>
-<tr class="separator:a81190c9021abe1bb719db51e9806131f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2ef4e2eac0fdeceac5494daec04ab284" id="r_a2ef4e2eac0fdeceac5494daec04ab284"><td class="memItemLeft" align="right" valign="top"><a id="a2ef4e2eac0fdeceac5494daec04ab284" name="a2ef4e2eac0fdeceac5494daec04ab284"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>SqlLogger</b> (<a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&amp;)=default</td></tr>
-<tr class="separator:a2ef4e2eac0fdeceac5494daec04ab284"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab81cb3390e34ce22e3431a39e8effc60" id="r_ab81cb3390e34ce22e3431a39e8effc60"><td class="memItemLeft" align="right" valign="top"><a id="ab81cb3390e34ce22e3431a39e8effc60" name="ab81cb3390e34ce22e3431a39e8effc60"></a>
-<a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> const &amp;)=default</td></tr>
-<tr class="separator:ab81cb3390e34ce22e3431a39e8effc60"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6b1b4169ae2948f323d703a69bad2e7b" id="r_a6b1b4169ae2948f323d703a69bad2e7b"><td class="memItemLeft" align="right" valign="top"><a id="a6b1b4169ae2948f323d703a69bad2e7b" name="a6b1b4169ae2948f323d703a69bad2e7b"></a>
-<a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&amp;)=default</td></tr>
-<tr class="separator:a6b1b4169ae2948f323d703a69bad2e7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a13d2224bfd4f6dc2411046a0275d46cc" id="r_a13d2224bfd4f6dc2411046a0275d46cc"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d7e/classSqlLogger.html#a13d2224bfd4f6dc2411046a0275d46cc">SqlLogger</a> (<a class="el" href="../../d8/d7e/classSqlLogger.html#a8aa70a4d9069cb6ebc226621c2352d4c">SupportBindLogging</a> supportBindLogging)</td></tr>
-<tr class="separator:a13d2224bfd4f6dc2411046a0275d46cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a168b57259277559d74b55a34c87c20db" id="r_a168b57259277559d74b55a34c87c20db"><td class="memItemLeft" align="right" valign="top"><a id="a168b57259277559d74b55a34c87c20db" name="a168b57259277559d74b55a34c87c20db"></a>
+LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><b>SqlLogger</b> (<a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> const &amp;)=default</td></tr>
+<tr class="separator:a168b57259277559d74b55a34c87c20db"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a471c237866d63a1a55c0182b800e457b" id="r_a471c237866d63a1a55c0182b800e457b"><td class="memItemLeft" align="right" valign="top"><a id="a471c237866d63a1a55c0182b800e457b" name="a471c237866d63a1a55c0182b800e457b"></a>
+LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><b>SqlLogger</b> (<a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&amp;)=default</td></tr>
+<tr class="separator:a471c237866d63a1a55c0182b800e457b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a03b6c9dffc97ec2fe244333fd60f6819" id="r_a03b6c9dffc97ec2fe244333fd60f6819"><td class="memItemLeft" align="right" valign="top"><a id="a03b6c9dffc97ec2fe244333fd60f6819" name="a03b6c9dffc97ec2fe244333fd60f6819"></a>
+LIGHTWEIGHT_API <a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> const &amp;)=default</td></tr>
+<tr class="separator:a03b6c9dffc97ec2fe244333fd60f6819"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acc8a58e4131c7663735cea765d0b5e93" id="r_acc8a58e4131c7663735cea765d0b5e93"><td class="memItemLeft" align="right" valign="top"><a id="acc8a58e4131c7663735cea765d0b5e93" name="acc8a58e4131c7663735cea765d0b5e93"></a>
+LIGHTWEIGHT_API <a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&amp;)=default</td></tr>
+<tr class="separator:acc8a58e4131c7663735cea765d0b5e93"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab4a5edea5ebae3310b1ff3b1c8e8bb77" id="r_ab4a5edea5ebae3310b1ff3b1c8e8bb77"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d7e/classSqlLogger.html#ab4a5edea5ebae3310b1ff3b1c8e8bb77">SqlLogger</a> (<a class="el" href="../../d8/d7e/classSqlLogger.html#a8aa70a4d9069cb6ebc226621c2352d4c">SupportBindLogging</a> supportBindLogging, <a class="el" href="../../d8/d7e/classSqlLogger.html#a3263147e77969997f4e3b2100aba3dbd">MessageWriter</a> writer={})</td></tr>
+<tr class="separator:ab4a5edea5ebae3310b1ff3b1c8e8bb77"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af8bed9041aa0f3de8536e196ac9e57bd" id="r_af8bed9041aa0f3de8536e196ac9e57bd"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d7e/classSqlLogger.html#af8bed9041aa0f3de8536e196ac9e57bd">SetLoggingSink</a> (<a class="el" href="../../d8/d7e/classSqlLogger.html#a3263147e77969997f4e3b2100aba3dbd">MessageWriter</a> writer={})</td></tr>
+<tr class="separator:af8bed9041aa0f3de8536e196ac9e57bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af8c543e3b315aa73d32707443c265dd2" id="r_af8c543e3b315aa73d32707443c265dd2"><td class="memItemLeft" align="right" valign="top"><a id="af8c543e3b315aa73d32707443c265dd2" name="af8c543e3b315aa73d32707443c265dd2"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnWarning</b> (std::string_view const &amp;message)=0</td></tr>
 <tr class="memdesc:af8c543e3b315aa73d32707443c265dd2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked on a warning. <br /></td></tr>
@@ -201,30 +207,54 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnFetchEnd</b
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:a5951444ad37594aa2d4e972a7dd598ba" id="r_a5951444ad37594aa2d4e972a7dd598ba"><td class="memItemLeft" align="right" valign="top"><a id="a5951444ad37594aa2d4e972a7dd598ba" name="a5951444ad37594aa2d4e972a7dd598ba"></a>
-static Null &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>NullLogger</b> () noexcept</td></tr>
-<tr class="memdesc:a5951444ad37594aa2d4e972a7dd598ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a null logger that does nothing. <br /></td></tr>
-<tr class="separator:a5951444ad37594aa2d4e972a7dd598ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aca4de43dbc3eb58fbcb698e1119ad4bb" id="r_aca4de43dbc3eb58fbcb698e1119ad4bb"><td class="memItemLeft" align="right" valign="top"><a id="aca4de43dbc3eb58fbcb698e1119ad4bb" name="aca4de43dbc3eb58fbcb698e1119ad4bb"></a>
-static <a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>StandardLogger</b> ()</td></tr>
-<tr class="memdesc:aca4de43dbc3eb58fbcb698e1119ad4bb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a logger that logs to standard output. <br /></td></tr>
-<tr class="separator:aca4de43dbc3eb58fbcb698e1119ad4bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afb845fed40a9a3de87589304ea8053d8" id="r_afb845fed40a9a3de87589304ea8053d8"><td class="memItemLeft" align="right" valign="top"><a id="afb845fed40a9a3de87589304ea8053d8" name="afb845fed40a9a3de87589304ea8053d8"></a>
-static <a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>TraceLogger</b> ()</td></tr>
-<tr class="memdesc:afb845fed40a9a3de87589304ea8053d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a logger that logs to the trace logger. <br /></td></tr>
-<tr class="separator:afb845fed40a9a3de87589304ea8053d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad4fb423ef4baab3b543ca4201b6ae83a" id="r_ad4fb423ef4baab3b543ca4201b6ae83a"><td class="memItemLeft" align="right" valign="top"><a id="ad4fb423ef4baab3b543ca4201b6ae83a" name="ad4fb423ef4baab3b543ca4201b6ae83a"></a>
-static <a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>GetLogger</b> ()</td></tr>
-<tr class="memdesc:ad4fb423ef4baab3b543ca4201b6ae83a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the currently configured logger. <br /></td></tr>
-<tr class="separator:ad4fb423ef4baab3b543ca4201b6ae83a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6f58dd38fccd2cffe22d7d49dadaefc9" id="r_a6f58dd38fccd2cffe22d7d49dadaefc9"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d7e/classSqlLogger.html#a6f58dd38fccd2cffe22d7d49dadaefc9">SetLogger</a> (<a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;logger)</td></tr>
-<tr class="separator:a6f58dd38fccd2cffe22d7d49dadaefc9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a43d7e60ef60699bbbc5333328e1bea85" id="r_a43d7e60ef60699bbbc5333328e1bea85"><td class="memItemLeft" align="right" valign="top"><a id="a43d7e60ef60699bbbc5333328e1bea85" name="a43d7e60ef60699bbbc5333328e1bea85"></a>
+static LIGHTWEIGHT_API Null &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>NullLogger</b> () noexcept</td></tr>
+<tr class="memdesc:a43d7e60ef60699bbbc5333328e1bea85"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a null logger that does nothing. <br /></td></tr>
+<tr class="separator:a43d7e60ef60699bbbc5333328e1bea85"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab22663b3401312400c53f0c6837ea89b" id="r_ab22663b3401312400c53f0c6837ea89b"><td class="memItemLeft" align="right" valign="top"><a id="ab22663b3401312400c53f0c6837ea89b" name="ab22663b3401312400c53f0c6837ea89b"></a>
+static LIGHTWEIGHT_API <a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>StandardLogger</b> ()</td></tr>
+<tr class="memdesc:ab22663b3401312400c53f0c6837ea89b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a logger that logs to standard output. <br /></td></tr>
+<tr class="separator:ab22663b3401312400c53f0c6837ea89b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abf53ff4ffae8f376276d2e6adefe0f19" id="r_abf53ff4ffae8f376276d2e6adefe0f19"><td class="memItemLeft" align="right" valign="top"><a id="abf53ff4ffae8f376276d2e6adefe0f19" name="abf53ff4ffae8f376276d2e6adefe0f19"></a>
+static LIGHTWEIGHT_API <a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>TraceLogger</b> ()</td></tr>
+<tr class="memdesc:abf53ff4ffae8f376276d2e6adefe0f19"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a logger that logs to the trace logger. <br /></td></tr>
+<tr class="separator:abf53ff4ffae8f376276d2e6adefe0f19"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a58f467a49452516c566b2978f0c861d8" id="r_a58f467a49452516c566b2978f0c861d8"><td class="memItemLeft" align="right" valign="top"><a id="a58f467a49452516c566b2978f0c861d8" name="a58f467a49452516c566b2978f0c861d8"></a>
+static LIGHTWEIGHT_API <a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>GetLogger</b> ()</td></tr>
+<tr class="memdesc:a58f467a49452516c566b2978f0c861d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the currently configured logger. <br /></td></tr>
+<tr class="separator:a58f467a49452516c566b2978f0c861d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a064d925b4957aa542ec9f5635261d42b" id="r_a064d925b4957aa542ec9f5635261d42b"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d7e/classSqlLogger.html#a064d925b4957aa542ec9f5635261d42b">SetLogger</a> (<a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;logger)</td></tr>
+<tr class="separator:a064d925b4957aa542ec9f5635261d42b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
+Protected Attributes</h2></td></tr>
+<tr class="memitem:a0474fd7319abd166e42ec766ce608fb5" id="r_a0474fd7319abd166e42ec766ce608fb5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d8/d7e/classSqlLogger.html#a3263147e77969997f4e3b2100aba3dbd">MessageWriter</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d7e/classSqlLogger.html#a0474fd7319abd166e42ec766ce608fb5">_messageWriter</a></td></tr>
+<tr class="separator:a0474fd7319abd166e42ec766ce608fb5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a logger for SQL operations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00017">17</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
-</div><h2 class="groupheader">Member Enumeration Documentation</h2>
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00018">18</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+</div><h2 class="groupheader">Member Typedef Documentation</h2>
+<a id="a3263147e77969997f4e3b2100aba3dbd" name="a3263147e77969997f4e3b2100aba3dbd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3263147e77969997f4e3b2100aba3dbd">&#9670;&#160;</a></span>MessageWriter</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="../../d8/d7e/classSqlLogger.html#a3263147e77969997f4e3b2100aba3dbd">SqlLogger::MessageWriter</a> =  std::function&lt;void(std::string )&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Type definition for a function that writes messages. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00036">36</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+
+</div>
+</div>
+<h2 class="groupheader">Member Enumeration Documentation</h2>
 <a id="a8aa70a4d9069cb6ebc226621c2352d4c" name="a8aa70a4d9069cb6ebc226621c2352d4c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a8aa70a4d9069cb6ebc226621c2352d4c">&#9670;&#160;</a></span>SupportBindLogging</h2>
 
@@ -247,13 +277,13 @@ static <a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;
 
 <p>Mandates the support for logging bind operations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00021">21</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00022">22</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a13d2224bfd4f6dc2411046a0275d46cc" name="a13d2224bfd4f6dc2411046a0275d46cc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a13d2224bfd4f6dc2411046a0275d46cc">&#9670;&#160;</a></span>SqlLogger()</h2>
+<a id="ab4a5edea5ebae3310b1ff3b1c8e8bb77" name="ab4a5edea5ebae3310b1ff3b1c8e8bb77"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab4a5edea5ebae3310b1ff3b1c8e8bb77">&#9670;&#160;</a></span>SqlLogger()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -262,16 +292,26 @@ static <a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">SqlLogger::SqlLogger </td>
+          <td class="memname">LIGHTWEIGHT_API SqlLogger::SqlLogger </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="../../d8/d7e/classSqlLogger.html#a8aa70a4d9069cb6ebc226621c2352d4c">SupportBindLogging</a>&#160;</td>
-          <td class="paramname"><em>supportBindLogging</em></td><td>)</td>
+          <td class="paramname"><em>supportBindLogging</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype"><a class="el" href="../../d8/d7e/classSqlLogger.html#a3263147e77969997f4e3b2100aba3dbd">MessageWriter</a>&#160;</td>
+          <td class="paramname"><em>writer</em> = <code>{}</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
         </tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">explicit</span></span>  </td>
+<span class="mlabels"><span class="mlabel">explicit</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -283,11 +323,34 @@ static <a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
-
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="af8bed9041aa0f3de8536e196ac9e57bd" name="af8bed9041aa0f3de8536e196ac9e57bd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af8bed9041aa0f3de8536e196ac9e57bd">&#9670;&#160;</a></span>SetLoggingSink()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API void SqlLogger::SetLoggingSink </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d8/d7e/classSqlLogger.html#a3263147e77969997f4e3b2100aba3dbd">MessageWriter</a>&#160;</td>
+          <td class="paramname"><em>writer</em> = <code>{}</code></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Sets the logging sink for the logger.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">writer</td><td>A function that takes a message string and writes it to the desired output. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="a6ea41f1d149d5a95c3605af746b5bb98" name="a6ea41f1d149d5a95c3605af746b5bb98"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6ea41f1d149d5a95c3605af746b5bb98">&#9670;&#160;</a></span>OnBindInputParameter()</h2>
 
@@ -326,14 +389,16 @@ template&lt;typename T &gt; </div>
 
 <p>Invoked when an input parameter is bound. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00078">78</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00084">84</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d8/d7e/classSqlLogger.html#a7b8b64d2788c914a9e9b342a8b447c86">OnBind()</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00652">SqlStatement::Execute()</a>.</p>
 
 </div>
 </div>
-<a id="a6f58dd38fccd2cffe22d7d49dadaefc9" name="a6f58dd38fccd2cffe22d7d49dadaefc9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6f58dd38fccd2cffe22d7d49dadaefc9">&#9670;&#160;</a></span>SetLogger()</h2>
+<a id="a064d925b4957aa542ec9f5635261d42b" name="a064d925b4957aa542ec9f5635261d42b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a064d925b4957aa542ec9f5635261d42b">&#9670;&#160;</a></span>SetLogger()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -342,7 +407,7 @@ template&lt;typename T &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">static void SqlLogger::SetLogger </td>
+          <td class="memname">static LIGHTWEIGHT_API void SqlLogger::SetLogger </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="../../d8/d7e/classSqlLogger.html">SqlLogger</a> &amp;&#160;</td>
           <td class="paramname"><em>logger</em></td><td>)</td>
@@ -357,6 +422,33 @@ template&lt;typename T &gt; </div>
 </div><div class="memdoc">
 <p>Sets the current logger.</p>
 <p>The ownership of the logger is not transferred and remains with the caller. </p>
+
+<p class="reference">References <a class="el" href="../../d8/d7e/classSqlLogger.html#a7b8b64d2788c914a9e9b342a8b447c86">OnBind()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#adced81db7a128ad6a4dd469db599f6c3">OnConnectionClosed()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#a7dcbfe266089e3f7d046658bb62b3853">OnConnectionIdle()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#ac85b570b6db926ce202d178838bba2e9">OnConnectionOpened()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#ae689c97ddc976e53f37f3de58c05be28">OnConnectionReuse()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#a6467d528f2d30af9076b94fe19d58a99">OnError()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#a34067c0bc7798ce1e59466210bd6bf0c">OnExecute()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#ad35a5ad0bb586ffb967933b539baa93d">OnExecuteBatch()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#ad446f6fd310af783783a5d2a7cd48977">OnExecuteDirect()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#ac720982980acdea160239738c1fe9af5">OnFetchEnd()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#a237e38a07eaab11e8f20e0afd1440b5b">OnFetchRow()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#a53976cbc87b3c4b1742bb6ad95eab877">OnPrepare()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#a1318b43b54ebf8b021dbb45e92737424">OnScopedTimerStart()</a>, <a class="el" href="../../d8/d7e/classSqlLogger.html#a2b6e92ec53246aafff5193a01b6f245f">OnScopedTimerStop()</a>, and <a class="el" href="../../d8/d7e/classSqlLogger.html#af8c543e3b315aa73d32707443c265dd2">OnWarning()</a>.</p>
+
+</div>
+</div>
+<h2 class="groupheader">Member Data Documentation</h2>
+<a id="a0474fd7319abd166e42ec766ce608fb5" name="a0474fd7319abd166e42ec766ce608fb5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0474fd7319abd166e42ec766ce608fb5">&#9670;&#160;</a></span>_messageWriter</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="../../d8/d7e/classSqlLogger.html#a3263147e77969997f4e3b2100aba3dbd">MessageWriter</a> SqlLogger::_messageWriter</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00131">131</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
 
 </div>
 </div>

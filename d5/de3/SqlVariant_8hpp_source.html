@@ -26,7 +26,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.1.0</span>
+   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20250627.0</span>
    </div>
   </td>
  </tr>
@@ -349,7 +349,7 @@ $(document).ready(function(){initNavTree('d5/de3/SqlVariant_8hpp_source.html','.
 <div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>        <span class="comment">// clang-format off</span></div>
 <div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>        <span class="keywordflow">return</span> std::visit(detail::overloaded {</div>
 <div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>            []&lt;<span class="keyword">typename</span> T&gt;(T v) -&gt; ResultType <span class="keyword">requires</span>(std::is_integral_v&lt;T&gt;) { <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>ResultType<span class="keyword">&gt;</span>(v); },</div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>            [](<span class="keyword">auto</span>) -&gt; ResultType { <span class="keywordflow">throw</span> std::bad_variant_access(); }</div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>            [](<span class="keyword">auto</span>) -&gt; ResultType { <span class="keywordflow">throw</span> std::bad_variant_access(); } <span class="comment">// NOLINT(performance-unnecessary-value-param)</span></div>
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>        }, value);</div>
 <div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>        <span class="comment">// clang-format on</span></div>
 <div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>    }</div>
@@ -502,7 +502,7 @@ $(document).ready(function(){initNavTree('d5/de3/SqlVariant_8hpp_source.html','.
 <div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>    }</div>
 <div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>};</div>
 <div class="ttc" id="aclassSqlDataBinderCallback_html"><div class="ttname"><a href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a></div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00028">Core.hpp:29</a></div></div>
-<div class="ttc" id="aclassSqlFixedString_html"><div class="ttname"><a href="../../d8/dcb/classSqlFixedString.html">SqlFixedString</a></div><div class="ttdef"><b>Definition</b> <a href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00028">SqlFixedString.hpp:29</a></div></div>
+<div class="ttc" id="aclassSqlFixedString_html"><div class="ttname"><a href="../../d8/dcb/classSqlFixedString.html">SqlFixedString</a></div><div class="ttdef"><b>Definition</b> <a href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00029">SqlFixedString.hpp:30</a></div></div>
 <div class="ttc" id="agroup__DataTypes_html_ga41dfa03913f1a2ca75e01fcf821c5d9e"><div class="ttname"><a href="../../d4/d7c/group__DataTypes.html#ga41dfa03913f1a2ca75e01fcf821c5d9e">SqlNullValue</a></div><div class="ttdeci">constexpr auto SqlNullValue</div><div class="ttdef"><b>Definition</b> <a href="../../d3/de6/SqlNullValue_8hpp_source.html#l00018">SqlNullValue.hpp:18</a></div></div>
 <div class="ttc" id="astructSqlDateTime_html"><div class="ttname"><a href="../../da/dd7/structSqlDateTime.html">SqlDateTime</a></div><div class="ttdef"><b>Definition</b> <a href="../../d4/d52/SqlDateTime_8hpp_source.html#l00020">SqlDateTime.hpp:21</a></div></div>
 <div class="ttc" id="astructSqlDate_html"><div class="ttname"><a href="../../d3/d0e/structSqlDate.html">SqlDate</a></div><div class="ttdef"><b>Definition</b> <a href="../../da/d1a/SqlDate_8hpp_source.html#l00014">SqlDate.hpp:15</a></div></div>
