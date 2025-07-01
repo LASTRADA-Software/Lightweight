@@ -1714,4 +1714,26 @@ TEST_CASE_METHOD(SqlTestFixture, "TestOptionalDynamicData", "[DataMapper]")
     checkSize(4000);
 }
 
+struct MessagesStruct
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign, SqlRealName { "primary_key" }> id;
+    Field<SqlDateTime, SqlRealName { "time_stamp" }> timeStamp;
+    Field<SqlDynamicWideString<4000>, SqlRealName { "Message" }> message;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "TestMessageStruct", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<MessagesStruct>();
+
+    MessagesStruct message {
+        .id = SqlGuid::Create(),
+        .timeStamp = SqlDateTime::Now(),
+        .message = L"Hello, World!",
+    };
+
+    dm.Create(message);
+    REQUIRE(message.id.Value());
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
