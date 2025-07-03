@@ -6,6 +6,8 @@
 #include "../DataBinder/SqlDateTime.hpp"
 #include "../DataBinder/SqlText.hpp"
 #include "../DataBinder/SqlTime.hpp"
+#include "Lightweight/DataBinder/SqlNumeric.hpp"
+#include "Lightweight/Utils.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -262,6 +264,8 @@ inline LIGHTWEIGHT_FORCE_INLINE std::string Field<T, P1, P2>::InspectValue() con
         return std::format("\'{}\'", _value.value);
     else if constexpr (std::is_same_v<T, SqlDateTime>)
         return std::format("\'{}\'", _value.value());
+    else if constexpr (SqlNumericType<T>)
+        return std::format("{}", _value.ToString());
     else if constexpr (requires { _value.has_value(); })
     {
         if (_value.has_value())

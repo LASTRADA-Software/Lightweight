@@ -3,6 +3,7 @@
 #include "entities/Customer.hpp"
 #include "entities/Employee.hpp"
 #include "entities/Track.hpp"
+#include "iterate.hpp"
 
 #include <Lightweight/Lightweight.hpp>
 
@@ -112,4 +113,6 @@ int main()
         employee.HireDate = SqlDateTime::Now();
         dm.Update(employee);
     }
+
+    iterate();
 }

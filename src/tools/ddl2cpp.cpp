@@ -288,25 +288,12 @@ class CxxModelPrinter
         std::stringstream exampleEntries;
 
         auto const tableName = aliasTableName(table.name);
-        exampleEntries << std::format("auto entries{} = dm.Query<{}>().All();\n", tableName, tableName);
+        exampleEntries << std::format("auto entries{} = dm.Query<{}>().First(10);\n", tableName, tableName);
 
         exampleEntries << std::format("for (auto const& entry: entries{})\n", tableName);
         exampleEntries << "{\n";
 
-        auto const column = table.columns[0];
-        auto const memberName = FormatName(column.name, _config.formatType);
-        if (column.isNullable)
-        {
-            exampleEntries << std::format("    if (entry.{}.Value())\n", memberName);
-            exampleEntries << "    {\n";
-            exampleEntries << std::format(
-                "        std::println(\"{}: {{}}\", entry.{}.Value().value());\n", memberName, memberName);
-            exampleEntries << "    }\n";
-        }
-        else
-        {
-            exampleEntries << std::format("    std::println(\"{{}}\", entry.{}.Value());\n", memberName);
-        }
+        exampleEntries << std::format("    std::println(\"{{}}\", DataMapper::Inspect(entry));\n");
 
         exampleEntries << "}\n";
 
