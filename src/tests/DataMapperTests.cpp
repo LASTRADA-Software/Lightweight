@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "Lightweight/DataBinder/SqlGuid.hpp"
 #include "Utils.hpp"
 
 #include <Lightweight/Lightweight.hpp>
@@ -1712,6 +1713,67 @@ TEST_CASE_METHOD(SqlTestFixture, "TestOptionalDynamicData", "[DataMapper]")
     checkSize(1000);
     checkSize(2000);
     checkSize(4000);
+}
+
+struct MessagesStruct
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign, SqlRealName { "primary_key" }> id;
+    Field<SqlDateTime, SqlRealName { "time_stamp" }> timeStamp;
+    Field<SqlDynamicWideString<4000>, SqlRealName { "Message" }> message;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "TestMessageStruct", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<MessagesStruct>();
+
+    MessagesStruct message {
+        .id = SqlGuid::Create(),
+        .timeStamp = SqlDateTime::Now(),
+        .message = L"Hello, World!",
+    };
+
+    dm.Create(message);
+    REQUIRE(message.id.Value());
+}
+
+struct MessageStructTo
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign, SqlRealName { "primary_key" }> id;
+    BelongsTo<&MessagesStruct::id, SqlRealName { "log_key" }> log_message {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "TestMessageStructTo", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    dm.CreateTable<MessagesStruct>();
+    // create a table for MessageStructTo
+    // where foreign key can be null
+    SqlStatement(dm.Connection()).ExecuteDirect(R"SQL(
+                             CREATE TABLE MessageStructTo (
+                                 "primary_key" GUID PRIMARY KEY,
+                                 "log_key" GUID,
+                                 FOREIGN KEY ("log_key") REFERENCES MessagesStruct ("primary_key")
+                             ))SQL");
+
+    MessagesStruct message {
+        .id = SqlGuid::TryParse("B16BEF38-5839-11F0-D290-74563C35FB03").value(),
+        .timeStamp = SqlDateTime::Now(),
+        .message = L"Hello, World!",
+    };
+    dm.Create(message);
+
+    MessageStructTo to1 { .id = SqlGuid::Create(), .log_message = message.id.Value() };
+    dm.Create(to1);
+    SqlStatement(dm.Connection())
+        .ExecuteDirect(
+            R"SQL( INSERT INTO MessageStructTo (primary_key, log_key) VALUES ("B16BEF38-5839-11F0-D290-74563C35FB03", NULL) )SQL");
+
+    REQUIRE(dm.QuerySingle<MessageStructTo>(to1.id).value().log_message->id.Value() == message.id.Value());
+
+    auto const guid = SqlGuid::TryParse("B16BEF38-5839-11F0-D290-74563C35FB03").value();
+    REQUIRE(dm.QuerySingle<MessageStructTo>(guid).value().id.Value() == guid);
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
