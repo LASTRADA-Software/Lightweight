@@ -238,6 +238,18 @@ struct std::formatter<SqlDateTime>: std::formatter<std::string>
 };
 
 template <>
+struct std::formatter<std::optional<SqlDateTime>>: std::formatter<std::string>
+{
+    LIGHTWEIGHT_FORCE_INLINE auto format(std::optional<SqlDateTime> const& value, std::format_context& ctx) const
+        -> std::format_context::iterator
+    {
+        if (!value.has_value())
+            return std::formatter<std::string>::format("nullopt", ctx);
+        return std::formatter<std::string>::format(std::format("{}", value.value()), ctx);
+    }
+};
+
+template <>
 struct SqlDataBinder<SqlDateTime::native_type>
 {
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,

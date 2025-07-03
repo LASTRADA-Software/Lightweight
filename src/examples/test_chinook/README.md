@@ -28,5 +28,5 @@ sqlcmd -S localhost -U sa -P "Qwerty1." -C -d LightweightTest -i ./src/examples/
 Create header file for every table in the directory `./src/examples/test_chinook/entities` 
 
 ``` sh
-./build/src/tools/ddl2cpp --connection-string "DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost;UID=sa;PWD=QWERT1.qwerty;TrustServerCertificate=yes;DATABASE=LightweightExample" --make-aliases --database LightweightExample --schema dbo --output ./src/examples/test_chinook/entities
+./build/src/tools/ddl2cpp --connection-string "DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost;UID=sa;PWD=Qwerty1.;TrustServerCertificate=yes;DATABASE=LightweightExample" --make-aliases --database LightweightExample --schema dbo --output ./src/examples/test_chinook/entities
 ```

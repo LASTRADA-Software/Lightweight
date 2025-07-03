@@ -249,6 +249,19 @@ struct std::formatter<SqlDynamicString<N, T>>: std::formatter<std::string>
 };
 
 template <std::size_t N, typename T>
+struct std::formatter<std::optional<SqlDynamicString<N, T>>>: std::formatter<string>
+{
+    using value_type = std::optional<SqlDynamicString<N, T>>;
+
+    auto format(value_type const& text, format_context& ctx) const
+    {
+        if (!text.has_value())
+            return std::formatter<std::string>::format("nullopt", ctx);
+        return std::formatter<std::string>::format(std::format("{}", text.value()), ctx);
+    }
+};
+
+template <std::size_t N, typename T>
 struct SqlBasicStringOperations<SqlDynamicString<N, T>>
 {
     using CharType = T;
