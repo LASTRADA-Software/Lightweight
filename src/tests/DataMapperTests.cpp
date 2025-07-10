@@ -1748,14 +1748,15 @@ TEST_CASE_METHOD(SqlTestFixture, "TestMessageStructTo", "[DataMapper]")
     auto dm = DataMapper {};
 
     dm.CreateTable<MessagesStruct>();
-    // create a table for MessageStructTo
-    // where foreign key can be null
-    SqlStatement(dm.Connection()).ExecuteDirect(R"SQL(
-                             CREATE TABLE MessageStructTo (
-                                 "primary_key" GUID PRIMARY KEY,
-                                 "log_key" GUID,
-                                 FOREIGN KEY ("log_key") REFERENCES MessagesStruct ("primary_key")
-                             ))SQL");
+
+    SqlStatement(dm.Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        using namespace SqlColumnTypeDefinitions;
+        migration.CreateTable("MessageStructTo")
+            .PrimaryKey("primary_key", Guid {})
+            .ForeignKey("log_key",
+                        Guid {},
+                        SqlForeignKeyReferenceDefinition { .tableName = "MessagesStruct", .columnName = "primary_key" });
+    });
 
     MessagesStruct message {
         .id = SqlGuid::TryParse("B16BEF38-5839-11F0-D290-74563C35FB03").value(),
