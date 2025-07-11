@@ -304,7 +304,10 @@ class [[nodiscard]] SqlResultCursor
     LIGHTWEIGHT_FORCE_INLINE ~SqlResultCursor()
     {
         if (m_stmt)
-            SQLCloseCursor(m_stmt->NativeHandle());
+        {
+            m_stmt->CloseCursor();
+            m_stmt = nullptr;
+        }
     }
 
     /// Retrieves the number of rows affected by the last query.
