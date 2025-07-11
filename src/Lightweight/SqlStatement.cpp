@@ -167,6 +167,9 @@ void SqlStatement::ExecuteDirect(std::string_view const& query, std::source_loca
     m_preparedQuery.clear();
     m_numColumns.reset();
 
+    // Unbinds the columns, if any
+    RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
+
     SqlLogger::GetLogger().OnExecuteDirect(query);
 
     RequireSuccess(SQLExecDirectA(m_hStmt, (SQLCHAR*) query.data(), (SQLINTEGER) query.size()), location);
