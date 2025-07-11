@@ -268,6 +268,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     SqlConnection* m_connection {};                // Pointer to the connection object
     SQLHSTMT m_hStmt {};                           // The native oDBC statement handle
     std::string m_preparedQuery;                   // The last prepared query
+    std::optional<SQLSMALLINT> m_numColumns;       // The number of columns in the result set, if known
     SQLSMALLINT m_expectedParameterCount {};       // The number of parameters expected by the query
 };
 

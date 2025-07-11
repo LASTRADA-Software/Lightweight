@@ -145,6 +145,7 @@ void SqlStatement::Prepare(std::string_view query) &
     SqlLogger::GetLogger().OnPrepare(query);
 
     m_preparedQuery = std::string(query);
+    const_cast<SqlStatement*>(this)->m_numColumns.reset();
 
     m_data->postExecuteCallbacks.clear();
     m_data->postProcessOutputColumnCallbacks.clear();
@@ -164,6 +165,8 @@ void SqlStatement::ExecuteDirect(std::string_view const& query, std::source_loca
         return;
 
     m_preparedQuery.clear();
+    m_numColumns.reset();
+
     SqlLogger::GetLogger().OnExecuteDirect(query);
 
     RequireSuccess(SQLExecDirectA(m_hStmt, (SQLCHAR*) query.data(), (SQLINTEGER) query.size()), location);
@@ -195,9 +198,14 @@ size_t SqlStatement::NumRowsAffected() const
 // Retrieves the number of columns affected by the last query.
 size_t SqlStatement::NumColumnsAffected() const
 {
-    SQLSMALLINT numColumns {};
-    RequireSuccess(SQLNumResultCols(m_hStmt, &numColumns));
-    return numColumns;
+    if (!m_numColumns)
+    {
+        SQLSMALLINT numColumns {};
+        RequireSuccess(SQLNumResultCols(m_hStmt, &numColumns));
+        const_cast<SqlStatement*>(this)->m_numColumns = numColumns;
+    }
+
+    return *m_numColumns;
 }
 
 // Retrieves the last insert ID of the last query's primary key.
