@@ -14,9 +14,9 @@ struct Track final
 
     Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"TrackId"}> TrackId;
     Field<SqlDynamicUtf16String<200>, SqlRealName{"Name"}> Name;
-    BelongsTo<&Album::AlbumId, SqlRealName{"AlbumId"}> AlbumId;
+    BelongsTo<&Album::AlbumId, SqlRealName{"AlbumId"}, SqlNullable::Null> AlbumId;
     BelongsTo<&Mediatype::MediaTypeId, SqlRealName{"MediaTypeId"}> MediaTypeId;
-    BelongsTo<&Genre::GenreId, SqlRealName{"GenreId"}> GenreId;
+    BelongsTo<&Genre::GenreId, SqlRealName{"GenreId"}, SqlNullable::Null> GenreId;
     Field<std::optional<SqlDynamicUtf16String<220>>, SqlRealName{"Composer"}> Composer;
     Field<int32_t, SqlRealName{"Milliseconds"}> Milliseconds;
     Field<std::optional<int32_t>, SqlRealName{"Bytes"}> Bytes;

@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "Lightweight/DataBinder/SqlGuid.hpp"
 #include "Utils.hpp"
 
 #include <Lightweight/Lightweight.hpp>
