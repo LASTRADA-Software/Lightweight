@@ -1736,4 +1736,53 @@ TEST_CASE_METHOD(SqlTestFixture, "TestMessageStruct", "[DataMapper]")
     REQUIRE(message.id.Value());
 }
 
+struct MessageStructTo
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign, SqlRealName { "primary_key" }> id;
+    BelongsTo<&MessagesStruct::id, SqlRealName { "log_key" }, SqlNullable::Null> log_message {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "TestMessageStructTo", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+
+    dm.CreateTable<MessagesStruct>();
+
+    SqlStatement(dm.Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        using namespace SqlColumnTypeDefinitions;
+        migration.CreateTable("MessageStructTo")
+            .PrimaryKey("primary_key", Guid {})
+            .ForeignKey("log_key",
+                        Guid {},
+                        SqlForeignKeyReferenceDefinition { .tableName = "MessagesStruct", .columnName = "primary_key" });
+    });
+
+    // Create a message to test the BelongsTo relation
+    auto const message = MessagesStruct {
+        .id = SqlGuid::TryParse("B16BEF38-5839-11F0-D290-74563C35FB03").value(),
+        .timeStamp = SqlDateTime::Now(),
+        .message = L"Hello, World!",
+    };
+    dm.CreateExplicit(message);
+
+    SECTION("Test BelongsTo with non-NULL relation")
+    {
+        auto const to = MessageStructTo { .id = SqlGuid::Create(), .log_message = message.id.Value() };
+        dm.CreateExplicit(to);
+        auto const queriedTo = dm.QuerySingle<MessageStructTo>(to.id).value();
+        REQUIRE(queriedTo.id.Value() == to.id.Value());
+        REQUIRE(queriedTo.log_message.Value().value() == message.id.Value());
+    }
+
+    SECTION("Test BelongsTo with NULL relation")
+    {
+        MessageStructTo to { .id = SqlGuid::Create(), .log_message = std::nullopt };
+        dm.Create(to);
+        auto const queriedTo = dm.QuerySingle<MessageStructTo>(to.id).value();
+        REQUIRE(queriedTo.id.Value() == to.id.Value());
+        REQUIRE(!queriedTo.log_message.IsLoaded());
+        REQUIRE(!queriedTo.log_message.Value().has_value());
+    }
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)

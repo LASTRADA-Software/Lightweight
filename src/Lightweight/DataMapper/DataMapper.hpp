@@ -940,7 +940,7 @@ std::string DataMapper::Inspect(Record const& record)
 
         if constexpr (FieldWithStorage<Value>)
         {
-            if constexpr (Value::IsOptional && !(IsBelongsTo<Value>) )
+            if constexpr (Value::IsOptional)
             {
                 if (!value.Value().has_value())
                 {

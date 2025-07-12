@@ -100,15 +100,20 @@ class HasMany
     [[nodiscard]] const_iterator begin() const noexcept;
     [[nodiscard]] const_iterator end() const noexcept;
 
-    constexpr std::weak_ordering operator<=>(HasMany<OtherRecord> const& other) const noexcept = default;
-    constexpr bool operator==(HasMany<OtherRecord> const& other) const noexcept = default;
-    constexpr bool operator!=(HasMany<OtherRecord> const& other) const noexcept = default;
+    constexpr std::weak_ordering operator<=>(HasMany const& other) const noexcept = default;
+    constexpr bool operator==(HasMany const& other) const noexcept = default;
+    constexpr bool operator!=(HasMany const& other) const noexcept = default;
 
     struct Loader
     {
         std::function<size_t()> count {};
         std::function<void()> all {};
         std::function<void(std::function<void(ReferencedRecord const&)>)> each {};
+
+        std::weak_ordering operator<=>(Loader const& /*other*/) const noexcept
+        {
+            return std::weak_ordering::equivalent; // Loader is not comparable, so we return equivalent
+        }
     };
 
     /// Used internally to configure on-demand loading of the records.

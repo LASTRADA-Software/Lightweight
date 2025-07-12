@@ -453,10 +453,14 @@ class CxxModelPrinter
         // corresponds to the column name in the sql table
         auto aliasName = [&](std::string_view name) {
             if (_config.makeAliases)
-            {
                 return std::format(", SqlRealName{{\"{}\"}}", name);
-            }
             return std::string {};
+        };
+
+        auto aliasNameOrNullopt = [&](std::string_view name) {
+            if (_config.makeAliases)
+                return std::format(", SqlRealName{{\"{}\"}}", name);
+            return std::string { ", std::nullopt" };
         };
 
         auto const primaryKeyPart = [this]() {
@@ -526,13 +530,19 @@ class CxxModelPrinter
                             })
                             .value();
                     definition.text << std::format(
-                        "    BelongsTo<&{}{}> {};\n",
-                        [&]() {
+                        "    BelongsTo<&{}{}{}> {};\n",
+                        [&] {
                             return std::format("{}::{}",
                                                foreignTableName,
                                                FormatName(foreignKey.primaryKey.columns.at(0), _config.formatType));
                         }(),
-                        aliasName(foreignKey.foreignKey.columns.at(0)),
+                        aliasNameOrNullopt(foreignKey.foreignKey.columns.at(0)),
+                        [&] {
+                            if (column.isNullable)
+                                return ", SqlNullable::Null"sv;
+                            else
+                                return ""sv;
+                        }(),
                         uniqueMemberNameBuilder.DeclareName(relationName));
                     definition.requiredTables.emplace_back(std::move(foreignTableName));
                     ++_numberOfForeignKeysListed;

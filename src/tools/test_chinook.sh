@@ -10,7 +10,12 @@ DDL2CPP="${DDL2CPP:-${BUILD_DIR}/src/tools/ddl2cpp}"
 
 run_test_chinook() {
     # run ddl2cpp to create files
-    ${DDL2CPP} --connection-string "${ODBC_CONNECTION_STRING}" --make-aliases --database LightweightTest --schema dbo  --output "${PROJECT_ROOT}/src/examples/test_chinook/entities_compare"
+    ${DDL2CPP} \
+        --connection-string "${ODBC_CONNECTION_STRING}" \
+        --make-aliases \
+        --database LightweightTest \
+        --schema dbo \
+        --output "${PROJECT_ROOT}/src/examples/test_chinook/entities_compare"
 
     # check the diff between the generated files and the expected files
     # list of files to check Album.hpp Artist.hpp Customer.hpp Employee.hpp Genre.hpp Invoice.hpp InvoiceLine.hpp MediaType.hpp Playlist.hpp PlaylistTrack.hpp Track.hpp
@@ -45,9 +50,6 @@ run_test_chinook() {
             echo "File ${file} not found"
         fi
     done
-
-
-
 }
 
 run_test_chinook

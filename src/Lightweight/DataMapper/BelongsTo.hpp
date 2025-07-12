@@ -34,10 +34,11 @@
 ///     Field<SqlGuid, PrimaryKey::AutoAssign> id;
 ///     Field<SqlAnsiString<40>> address;
 ///     BelongsTo<&User::id> user;
-///     BelongsTo<&User::id, SqlRealName<"the_user_id">> user; // also possible to customize the column name
+///     // Also possible to customize the column name
+///     BelongsTo<&User::id, SqlRealName<"the_user_id">, SqlNullable::Null> maybe_user;
 /// };
 /// @endcode
-template <auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt>
+template <auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull>
 class BelongsTo
 {
   public:
@@ -58,10 +59,14 @@ class BelongsTo
     static_assert(std::remove_cvref_t<decltype(std::declval<ReferencedRecord>().*ReferencedField)>::IsPrimaryKey,
                   "The referenced field must be a primary key.");
 
-    /// Represents the column type of the foreign key, matching the primary key of the other record.
-    using ValueType = typename std::remove_cvref_t<decltype(std::declval<ReferencedRecord>().*ReferencedField)>::ValueType;
+    /// Represents the base column type of the foreign key, matching the primary key of the other record.
+    using BaseType = typename std::remove_cvref_t<decltype(std::declval<ReferencedRecord>().*ReferencedField)>::ValueType;
 
-    static constexpr auto IsOptional = true;
+    /// Represents the value type of the foreign key,
+    /// which can be either an optional or a non-optional type of the referenced field,
+    using ValueType = std::conditional_t<Nullable == SqlNullable::Null, std::optional<BaseType>, BaseType>;
+
+    static constexpr auto IsOptional = Nullable == SqlNullable::Null;
     static constexpr auto IsMandatory = !IsOptional;
     static constexpr auto IsPrimaryKey = false;
     static constexpr auto IsAutoIncrementPrimaryKey = false;
@@ -208,8 +213,7 @@ class BelongsTo
         stmt.BindOutputColumn(outputIndex, &_referencedFieldValue);
     }
 
-    template <auto OtherReferencedField>
-    std::weak_ordering operator<=>(BelongsTo<OtherReferencedField> const& other) const noexcept
+    std::weak_ordering operator<=>(BelongsTo const& other) const noexcept
     {
         return _referencedFieldValue <=> other.Value();
     }
@@ -220,14 +224,12 @@ class BelongsTo
         return _referencedFieldValue <=> other.Value();
     }
 
-    template <auto OtherReferencedField>
-    bool operator==(BelongsTo<OtherReferencedField> const& other) const noexcept
+    bool operator==(BelongsTo const& other) const noexcept
     {
         return (_referencedFieldValue <=> other.Value()) == std::weak_ordering::equivalent;
     }
 
-    template <auto OtherReferencedField>
-    bool operator!=(BelongsTo<OtherReferencedField> const& other) const noexcept
+    bool operator!=(BelongsTo const& other) const noexcept
     {
         return (_referencedFieldValue <=> other.Value()) != std::weak_ordering::equivalent;
     }
@@ -282,8 +284,8 @@ class BelongsTo
     std::unique_ptr<ReferencedRecord> _record {};
 };
 
-template <auto ReferencedField>
-std::ostream& operator<<(std::ostream& os, BelongsTo<ReferencedField> const& belongsTo)
+template <auto ReferencedField, auto ColumnNameOverrideString, SqlNullable Nullable>
+std::ostream& operator<<(std::ostream& os, BelongsTo<ReferencedField, ColumnNameOverrideString, Nullable> const& belongsTo)
 {
     return os << belongsTo.Value();
 }
@@ -295,8 +297,8 @@ struct IsBelongsToType: std::false_type
 {
 };
 
-template <auto ReferencedField, auto ColumnNameOverrideString>
-struct IsBelongsToType<BelongsTo<ReferencedField, ColumnNameOverrideString>>: std::true_type
+template <auto ReferencedField, auto ColumnNameOverrideString, SqlNullable Nullable>
+struct IsBelongsToType<BelongsTo<ReferencedField, ColumnNameOverrideString, Nullable>>: std::true_type
 {
 };
 
@@ -305,10 +307,10 @@ struct IsBelongsToType<BelongsTo<ReferencedField, ColumnNameOverrideString>>: st
 template <typename T>
 constexpr bool IsBelongsTo = detail::IsBelongsToType<std::remove_cvref_t<T>>::value;
 
-template <auto ReferencedField, auto ColumnNameOverrideString>
-struct SqlDataBinder<BelongsTo<ReferencedField, ColumnNameOverrideString>>
+template <auto ReferencedField, auto ColumnNameOverrideString, SqlNullable Nullable>
+struct SqlDataBinder<BelongsTo<ReferencedField, ColumnNameOverrideString, Nullable>>
 {
-    using SelfType = BelongsTo<ReferencedField, ColumnNameOverrideString>;
+    using SelfType = BelongsTo<ReferencedField, ColumnNameOverrideString, Nullable>;
     using InnerType = typename SelfType::ValueType;
 
     static constexpr auto ColumnType = SqlDataBinder<InnerType>::ColumnType;
