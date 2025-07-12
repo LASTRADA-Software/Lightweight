@@ -208,7 +208,7 @@ size_t SqlStatement::NumColumnsAffected() const
         const_cast<SqlStatement*>(this)->m_numColumns = numColumns;
     }
 
-    return *m_numColumns;
+    return m_numColumns.value(); // NOLINT(bugprone-unchecked-optional-access)
 }
 
 // Retrieves the last insert ID of the last query's primary key.
