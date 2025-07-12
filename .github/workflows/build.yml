@@ -79,7 +79,7 @@ jobs:
               -D CMAKE_C_COMPILER=clang-20 \
               -B build
     - name: "run clang-tidy"
-      run: run-clang-tidy -p ./build -clang-tidy-binary clang-tidy-20
+      run: run-clang-tidy -p ./build -clang-tidy-binary clang-tidy-20 -config-file ./.clang-tidy
 
   # }}}
   # {{{ Windows
