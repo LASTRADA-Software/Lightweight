@@ -268,6 +268,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     SqlConnection* m_connection {};                // Pointer to the connection object
     SQLHSTMT m_hStmt {};                           // The native oDBC statement handle
     std::string m_preparedQuery;                   // The last prepared query
+    std::optional<SQLSMALLINT> m_numColumns;       // The number of columns in the result set, if known
     SQLSMALLINT m_expectedParameterCount {};       // The number of parameters expected by the query
 };
 
@@ -303,7 +304,10 @@ class [[nodiscard]] SqlResultCursor
     LIGHTWEIGHT_FORCE_INLINE ~SqlResultCursor()
     {
         if (m_stmt)
-            SQLCloseCursor(m_stmt->NativeHandle());
+        {
+            m_stmt->CloseCursor();
+            m_stmt = nullptr;
+        }
     }
 
     /// Retrieves the number of rows affected by the last query.

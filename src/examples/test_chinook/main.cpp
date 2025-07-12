@@ -1,20 +1,63 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include "Lightweight/SqlLogger.hpp"
+
 #include "entities/Album.hpp"
+#include "entities/Artist.hpp"
 #include "entities/Customer.hpp"
 #include "entities/Employee.hpp"
+#include "entities/Genre.hpp"
+#include "entities/Invoice.hpp"
+#include "entities/Invoiceline.hpp"
+#include "entities/Mediatype.hpp"
+#include "entities/Playlist.hpp"
+#include "entities/Playlisttrack.hpp"
 #include "entities/Track.hpp"
 
 #include <Lightweight/Lightweight.hpp>
 
 #include <print>
 
+static std::string GetEnvironmentVariable(std::string const& name)
+{
+#if defined(_MSC_VER)
+    char* envBuffer = nullptr;
+    size_t envBufferLen = 0;
+    _dupenv_s(&envBuffer, &envBufferLen, name.data());
+    if (envBuffer && *envBuffer)
+    {
+        std::string result { envBuffer };
+        free(envBuffer); // free the allocated memory
+        return result;
+    }
+#else
+    if (auto const* s = std::getenv(name.data()); s && *s)
+        return std::string { s };
+#endif
+    return {};
+}
+
+template <typename Entity>
+void dumpTable(DataMapper& dm, size_t limit = 1)
+{
+    auto entries = dm.Query<Entity>().First(limit);
+    for (auto const& entry: entries)
+        std::println("{}", DataMapper::Inspect(entry));
+}
+
 int main()
 {
+    if (auto const odbcConnectionString = GetEnvironmentVariable("ODBC_CONNECTION_STRING"); !odbcConnectionString.empty())
+    {
+        SqlConnection::SetDefaultConnectionString(SqlConnectionString { odbcConnectionString });
+    }
+    else
+    {
+        SqlConnection::SetDefaultConnectionString(SqlConnectionString {
+            "DRIVER={ODBC Driver 18 for SQL "
+            "Server};SERVER=localhost;UID=SA;PWD=BlahThat.;TrustServerCertificate=yes;DATABASE=LightweightTest" });
+    }
 
-    SqlConnection::SetDefaultConnectionString(SqlConnectionString {
-        "DRIVER={ODBC Driver 18 for SQL "
-        //"Server};SERVER=localhost;UID=SA;PWD=Qwerty1.;TrustServerCertificate=yes;DATABASE=LightweightTest" });
-        "Server};SERVER=localhost;UID=SA;PWD=BlahThat.;TrustServerCertificate=yes;DATABASE=LightweightTest" });
     auto dm = DataMapper();
 
     // helper function to create std::string from string_view<char16_t>
@@ -112,4 +155,17 @@ int main()
         employee.HireDate = SqlDateTime::Now();
         dm.Update(employee);
     }
+
+    // Iterate over all entities in the database and print ther content
+    dumpTable<Album>(dm);
+    dumpTable<Artist>(dm);
+    dumpTable<Customer>(dm);
+    dumpTable<Employee>(dm);
+    dumpTable<Genre>(dm);
+    dumpTable<Invoice>(dm);
+    dumpTable<Invoiceline>(dm);
+    dumpTable<Mediatype>(dm);
+    dumpTable<Playlist>(dm);
+    dumpTable<Playlisttrack>(dm);
+    dumpTable<Track>(dm);
 }

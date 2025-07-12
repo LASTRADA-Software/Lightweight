@@ -160,6 +160,12 @@ struct SqlNumeric
     }
 };
 
+template <typename T>
+concept SqlNumericType = requires(T t) {
+    { T::Precision } -> std::convertible_to<std::size_t>;
+    { T::Scale } -> std::convertible_to<std::size_t>;
+} && std::same_as<T, SqlNumeric<T::Precision, T::Scale>>;
+
 // clang-format off
 template <std::size_t Precision, std::size_t Scale>
 struct SqlDataBinder<SqlNumeric<Precision, Scale>>
@@ -213,12 +219,12 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
 // clang-format off
 
 
-template <std::size_t Precision, std::size_t Scale>
-struct std::formatter<SqlNumeric<Precision, Scale>>: std::formatter<double>
+template <SqlNumericType Type>
+struct std::formatter<Type>: std::formatter<std::string>
 {
     template <typename FormatContext>
-    auto format(SqlNumeric<Precision, Scale> const& value, FormatContext& ctx)
+    auto format(Type const& value, FormatContext& ctx)
     {
-        return formatter<double>::format(value.ToDouble(), ctx);
+        return formatter<std::string>::format(value.ToString(), ctx);
     }
 };

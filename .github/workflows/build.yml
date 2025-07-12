@@ -76,9 +76,10 @@ jobs:
       run: |
         cmake --preset linux-clang-debug \
               -D CMAKE_CXX_COMPILER=clang++-20 \
-              -D CMAKE_C_COMPILER=clang-20
+              -D CMAKE_C_COMPILER=clang-20 \
+              -B build
     - name: "run clang-tidy"
-      run: run-clang-tidy -p ./out/build/linux-clang-debug -clang-tidy-binary clang-tidy-20
+      run: run-clang-tidy -p ./build -clang-tidy-binary clang-tidy-20
 
   # }}}
   # {{{ Windows

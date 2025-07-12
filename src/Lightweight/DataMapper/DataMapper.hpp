@@ -939,11 +939,34 @@ std::string DataMapper::Inspect(Record const& record)
             str += '\n';
 
         if constexpr (FieldWithStorage<Value>)
-            str += std::format("{} {} := {}", Reflection::TypeNameOf<Value>, name, value.Value());
+        {
+            if constexpr (Value::IsOptional && !(IsBelongsTo<Value>) )
+            {
+                if (!value.Value().has_value())
+                {
+                    str += std::format("{} {} := <nullopt>", Reflection::TypeNameOf<Value>, name);
+                }
+                else
+                {
+                    str += std::format("{} {} := {}", Reflection::TypeNameOf<Value>, name, value.Value().value());
+                }
+            }
+            else if constexpr (IsBelongsTo<Value>)
+            {
+                str += std::format("{} {} := {}", Reflection::TypeNameOf<Value>, name, value.Value());
+            }
+            else if constexpr (std::same_as<typename Value::ValueType, char>)
+            {
+            }
+            else
+            {
+                str += std::format("{} {} := {}", Reflection::TypeNameOf<Value>, name, value.InspectValue());
+            }
+        }
         else if constexpr (!IsHasMany<Value> && !IsHasManyThrough<Value> && !IsHasOneThrough<Value> && !IsBelongsTo<Value>)
             str += std::format("{} {} := {}", Reflection::TypeNameOf<Value>, name, value);
     });
-    return "{" + std::move(str) + "}";
+    return "{\n" + std::move(str) + "\n}";
 }
 
 template <typename Record>
