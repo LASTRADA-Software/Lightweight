@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Lightweight: BelongsTo&lt; TheReferencedField, ColumnNameOverrideString &gt; Class Template Reference</title>
+<title>Lightweight: BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt; Class Template Reference</title>
 <link href="../../tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="../../jquery.js"></script>
 <script type="text/javascript" src="../../dynsections.js"></script>
@@ -95,7 +95,7 @@ $(document).ready(function(){initNavTree('df/d1a/classBelongsTo.html','../../');
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-static-attribs">Static Public Attributes</a> &#124;
 <a href="../../d4/d8a/classBelongsTo-members.html">List of all members</a>  </div>
-  <div class="headertitle"><div class="title">BelongsTo&lt; TheReferencedField, ColumnNameOverrideString &gt; Class Template Reference<div class="ingroups"><a class="el" href="../../d7/d2f/group__DataMapper.html">Data Mapper</a></div></div></div>
+  <div class="headertitle"><div class="title">BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt; Class Template Reference<div class="ingroups"><a class="el" href="../../d7/d2f/group__DataMapper.html">Data Mapper</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -106,122 +106,121 @@ $(document).ready(function(){initNavTree('df/d1a/classBelongsTo.html','../../');
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a2e4821463dc06b9e767e374453734eb5" id="r_a2e4821463dc06b9e767e374453734eb5"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> = MemberClassType&lt; decltype(TheReferencedField)&gt;</td></tr>
-<tr class="memdesc:a2e4821463dc06b9e767e374453734eb5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents the record type of the other field.  <br /></td></tr>
-<tr class="separator:a2e4821463dc06b9e767e374453734eb5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab0544087140dd09c3d4ccfc0b762cc26" id="r_ab0544087140dd09c3d4ccfc0b762cc26"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#ab0544087140dd09c3d4ccfc0b762cc26">ValueType</a> = typename std::remove_cvref_t&lt; decltype(std::declval&lt; <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> &gt;().*<a class="el" href="../../df/d1a/classBelongsTo.html#a3ada69a2dfb5d37fd9255dfc53ab631d">ReferencedField</a>)&gt;::ValueType</td></tr>
-<tr class="memdesc:ab0544087140dd09c3d4ccfc0b762cc26"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents the column type of the foreign key, matching the primary key of the other record.  <br /></td></tr>
-<tr class="separator:ab0544087140dd09c3d4ccfc0b762cc26"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa1e2df817ebecdfb5899171e9caa6b91" id="r_aa1e2df817ebecdfb5899171e9caa6b91"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> = MemberClassType&lt; decltype(TheReferencedField)&gt;</td></tr>
+<tr class="memdesc:aa1e2df817ebecdfb5899171e9caa6b91"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents the record type of the other field.  <br /></td></tr>
+<tr class="separator:aa1e2df817ebecdfb5899171e9caa6b91"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a497ac53490a5885ee875f207aadfcbf5" id="r_a497ac53490a5885ee875f207aadfcbf5"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a497ac53490a5885ee875f207aadfcbf5">BaseType</a> = typename std::remove_cvref_t&lt; decltype(std::declval&lt; <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> &gt;().*<a class="el" href="../../df/d1a/classBelongsTo.html#a02c7d95200bb6fd9925ad798f2c9fadc">ReferencedField</a>)&gt;<a class="el" href="../../df/d1a/classBelongsTo.html#aefdb12798153b5dbc70f7e7f7d07edb5">::ValueType</a></td></tr>
+<tr class="memdesc:a497ac53490a5885ee875f207aadfcbf5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents the base column type of the foreign key, matching the primary key of the other record.  <br /></td></tr>
+<tr class="separator:a497ac53490a5885ee875f207aadfcbf5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aefdb12798153b5dbc70f7e7f7d07edb5" id="r_aefdb12798153b5dbc70f7e7f7d07edb5"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#aefdb12798153b5dbc70f7e7f7d07edb5">ValueType</a> = std::conditional_t&lt; Nullable==SqlNullable::Null, std::optional&lt; <a class="el" href="../../df/d1a/classBelongsTo.html#a497ac53490a5885ee875f207aadfcbf5">BaseType</a> &gt;, <a class="el" href="../../df/d1a/classBelongsTo.html#a497ac53490a5885ee875f207aadfcbf5">BaseType</a> &gt;</td></tr>
+<tr class="separator:aefdb12798153b5dbc70f7e7f7d07edb5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:aa63f1ba995e64c8437cadeb19b9f8df9" id="r_aa63f1ba995e64c8437cadeb19b9f8df9"><td class="memTemplParams" colspan="2">template&lt;typename... S&gt; <br />
-requires std::constructible_from&lt;<a class="el" href="../../df/d1a/classBelongsTo.html#ab0544087140dd09c3d4ccfc0b762cc26">ValueType</a>, S...&gt;</td></tr>
-<tr class="memitem:aa63f1ba995e64c8437cadeb19b9f8df9"><td class="memTemplItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#aa63f1ba995e64c8437cadeb19b9f8df9">BelongsTo</a> (S &amp;&amp;... value) noexcept</td></tr>
-<tr class="separator:aa63f1ba995e64c8437cadeb19b9f8df9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a98d657fb15631a9a07fea7dd4b296bd5" id="r_a98d657fb15631a9a07fea7dd4b296bd5"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a98d657fb15631a9a07fea7dd4b296bd5">BelongsTo</a> (<a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> const &amp;other) noexcept</td></tr>
-<tr class="separator:a98d657fb15631a9a07fea7dd4b296bd5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a453994151136f8e6aba9150f688b0c48" id="r_a453994151136f8e6aba9150f688b0c48"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a453994151136f8e6aba9150f688b0c48">BelongsTo</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> const &amp;other) noexcept</td></tr>
-<tr class="separator:a453994151136f8e6aba9150f688b0c48"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a72e5fe7ca7aff032c941aba99e9bf7ba" id="r_a72e5fe7ca7aff032c941aba99e9bf7ba"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a72e5fe7ca7aff032c941aba99e9bf7ba">BelongsTo</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp;&amp;other) noexcept</td></tr>
-<tr class="separator:a72e5fe7ca7aff032c941aba99e9bf7ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac5213a1c9ac109831b49fa2f922f5545" id="r_ac5213a1c9ac109831b49fa2f922f5545"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#ac5213a1c9ac109831b49fa2f922f5545">operator=</a> (<a class="el" href="../../de/d07/structSqlNullType.html">SqlNullType</a>) noexcept</td></tr>
-<tr class="separator:ac5213a1c9ac109831b49fa2f922f5545"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af362fd4f876feb25f37b6be73cfbb186" id="r_af362fd4f876feb25f37b6be73cfbb186"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#af362fd4f876feb25f37b6be73cfbb186">operator=</a> (<a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> &amp;other)</td></tr>
-<tr class="separator:af362fd4f876feb25f37b6be73cfbb186"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8edd6773dc6e4cc4f2c239ca312e7158" id="r_a8edd6773dc6e4cc4f2c239ca312e7158"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a8edd6773dc6e4cc4f2c239ca312e7158">operator=</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> const &amp;other)</td></tr>
-<tr class="separator:a8edd6773dc6e4cc4f2c239ca312e7158"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8164297ed27d719a7989f74993f8bced" id="r_a8164297ed27d719a7989f74993f8bced"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a8164297ed27d719a7989f74993f8bced">operator=</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp;&amp;other) noexcept</td></tr>
-<tr class="separator:a8164297ed27d719a7989f74993f8bced"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a41938be21d4b6f8c09312fe98afbe51a" id="r_a41938be21d4b6f8c09312fe98afbe51a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a41938be21d4b6f8c09312fe98afbe51a">SetModified</a> (bool value) noexcept</td></tr>
-<tr class="memdesc:a41938be21d4b6f8c09312fe98afbe51a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Marks the field as modified or unmodified.  <br /></td></tr>
-<tr class="separator:a41938be21d4b6f8c09312fe98afbe51a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ada9a20754dd3011d89885970b6cc1900" id="r_ada9a20754dd3011d89885970b6cc1900"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#ada9a20754dd3011d89885970b6cc1900">IsModified</a> () const noexcept</td></tr>
-<tr class="memdesc:ada9a20754dd3011d89885970b6cc1900"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if the field is modified.  <br /></td></tr>
-<tr class="separator:ada9a20754dd3011d89885970b6cc1900"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a94d93fc122c629feb1064fca89cc23a0" id="r_a94d93fc122c629feb1064fca89cc23a0"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#ab0544087140dd09c3d4ccfc0b762cc26">ValueType</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a94d93fc122c629feb1064fca89cc23a0">Value</a> () const noexcept</td></tr>
-<tr class="memdesc:a94d93fc122c629feb1064fca89cc23a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the reference to the value of the field.  <br /></td></tr>
-<tr class="separator:a94d93fc122c629feb1064fca89cc23a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1ad1e97d0321af12aa44ef5bd96d6129" id="r_a1ad1e97d0321af12aa44ef5bd96d6129"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#ab0544087140dd09c3d4ccfc0b762cc26">ValueType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a1ad1e97d0321af12aa44ef5bd96d6129">MutableValue</a> () noexcept</td></tr>
-<tr class="memdesc:a1ad1e97d0321af12aa44ef5bd96d6129"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the mutable reference to the value of the field.  <br /></td></tr>
-<tr class="separator:a1ad1e97d0321af12aa44ef5bd96d6129"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a88231bb5a18b1592ac404a44dd9a0243" id="r_a88231bb5a18b1592ac404a44dd9a0243"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a88231bb5a18b1592ac404a44dd9a0243">Record</a> ()</td></tr>
-<tr class="memdesc:a88231bb5a18b1592ac404a44dd9a0243"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a record from the relationship.  <br /></td></tr>
-<tr class="separator:a88231bb5a18b1592ac404a44dd9a0243"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2d497124e6fd7fbecb2152ee33f51826" id="r_a2d497124e6fd7fbecb2152ee33f51826"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a2d497124e6fd7fbecb2152ee33f51826">Record</a> () const</td></tr>
-<tr class="memdesc:a2d497124e6fd7fbecb2152ee33f51826"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves an immutable reference to the record from the relationship.  <br /></td></tr>
-<tr class="separator:a2d497124e6fd7fbecb2152ee33f51826"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abe2488edbe14628219d0f33c21984ebf" id="r_abe2488edbe14628219d0f33c21984ebf"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#abe2488edbe14628219d0f33c21984ebf">IsLoaded</a> () const noexcept</td></tr>
-<tr class="memdesc:abe2488edbe14628219d0f33c21984ebf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if the record is loaded into memory.  <br /></td></tr>
-<tr class="separator:abe2488edbe14628219d0f33c21984ebf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a83ec5bd75e4d193746869a315ff05389" id="r_a83ec5bd75e4d193746869a315ff05389"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a83ec5bd75e4d193746869a315ff05389">Unload</a> () noexcept</td></tr>
-<tr class="memdesc:a83ec5bd75e4d193746869a315ff05389"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unloads the record from memory.  <br /></td></tr>
-<tr class="separator:a83ec5bd75e4d193746869a315ff05389"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a23df177fd6463443179951219c008783" id="r_a23df177fd6463443179951219c008783"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a23df177fd6463443179951219c008783">operator*</a> () noexcept</td></tr>
-<tr class="memdesc:a23df177fd6463443179951219c008783"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record from the relationship.  <br /></td></tr>
-<tr class="separator:a23df177fd6463443179951219c008783"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac362762554593a37f3f98e82109d95ae" id="r_ac362762554593a37f3f98e82109d95ae"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#ac362762554593a37f3f98e82109d95ae">operator*</a> () const noexcept</td></tr>
-<tr class="memdesc:ac362762554593a37f3f98e82109d95ae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record from the relationship.  <br /></td></tr>
-<tr class="separator:ac362762554593a37f3f98e82109d95ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a51e5be1e05ffe10b341619a31ccfeef4" id="r_a51e5be1e05ffe10b341619a31ccfeef4"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a51e5be1e05ffe10b341619a31ccfeef4">operator-&gt;</a> ()</td></tr>
-<tr class="memdesc:a51e5be1e05ffe10b341619a31ccfeef4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record from the relationship.  <br /></td></tr>
-<tr class="separator:a51e5be1e05ffe10b341619a31ccfeef4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4252a55623ddbd4833bacfa2473e1213" id="r_a4252a55623ddbd4833bacfa2473e1213"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> const *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a4252a55623ddbd4833bacfa2473e1213">operator-&gt;</a> () const</td></tr>
-<tr class="memdesc:a4252a55623ddbd4833bacfa2473e1213"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record from the relationship.  <br /></td></tr>
-<tr class="separator:a4252a55623ddbd4833bacfa2473e1213"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad8dd108a620b398897a610edf3aa2746" id="r_ad8dd108a620b398897a610edf3aa2746"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#ad8dd108a620b398897a610edf3aa2746">operator!</a> () const noexcept</td></tr>
-<tr class="memdesc:ad8dd108a620b398897a610edf3aa2746"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if the field value is NULL.  <br /></td></tr>
-<tr class="separator:ad8dd108a620b398897a610edf3aa2746"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a30eb552a115fe938e4f4a4a45a614d25" id="r_a30eb552a115fe938e4f4a4a45a614d25"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a30eb552a115fe938e4f4a4a45a614d25">operator bool</a> () const noexcept</td></tr>
-<tr class="memdesc:a30eb552a115fe938e4f4a4a45a614d25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if the field value is not NULL.  <br /></td></tr>
-<tr class="separator:a30eb552a115fe938e4f4a4a45a614d25"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a80cdd134276af4c8bf91d96ef93aa65e" id="r_a80cdd134276af4c8bf91d96ef93aa65e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a80cdd134276af4c8bf91d96ef93aa65e">EmplaceRecord</a> ()</td></tr>
-<tr class="memdesc:a80cdd134276af4c8bf91d96ef93aa65e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Emplaces a record into the relationship. This will mark the relationship as loaded.  <br /></td></tr>
-<tr class="separator:a80cdd134276af4c8bf91d96ef93aa65e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa410102609817a452415e37ca46060d2" id="r_aa410102609817a452415e37ca46060d2"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#aa410102609817a452415e37ca46060d2">BindOutputColumn</a> (SQLSMALLINT outputIndex, <a class="el" href="../../df/d17/classSqlStatement.html">SqlStatement</a> &amp;stmt)</td></tr>
-<tr class="separator:aa410102609817a452415e37ca46060d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a187ad7fd0ba26ce4ffc1d0502ef148a0" id="r_a187ad7fd0ba26ce4ffc1d0502ef148a0"><td class="memTemplParams" colspan="2">template&lt;auto OtherReferencedField&gt; </td></tr>
-<tr class="memitem:a187ad7fd0ba26ce4ffc1d0502ef148a0"><td class="memTemplItemLeft" align="right" valign="top">std::weak_ordering&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a187ad7fd0ba26ce4ffc1d0502ef148a0">operator&lt;=&gt;</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; OtherReferencedField &gt; const &amp;other) const noexcept</td></tr>
-<tr class="separator:a187ad7fd0ba26ce4ffc1d0502ef148a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aca8e1e14f5f51cddd51a16359a0a15e3" id="r_aca8e1e14f5f51cddd51a16359a0a15e3"><td class="memTemplParams" colspan="2">template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt; </td></tr>
-<tr class="memitem:aca8e1e14f5f51cddd51a16359a0a15e3"><td class="memTemplItemLeft" align="right" valign="top">std::weak_ordering&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#aca8e1e14f5f51cddd51a16359a0a15e3">operator&lt;=&gt;</a> (<a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, IsPrimaryKeyValue &gt; const &amp;other) const noexcept</td></tr>
-<tr class="separator:aca8e1e14f5f51cddd51a16359a0a15e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1c29fb6f6cb0607bb33dca74a4845250" id="r_a1c29fb6f6cb0607bb33dca74a4845250"><td class="memTemplParams" colspan="2">template&lt;auto OtherReferencedField&gt; </td></tr>
-<tr class="memitem:a1c29fb6f6cb0607bb33dca74a4845250"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a1c29fb6f6cb0607bb33dca74a4845250">operator==</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; OtherReferencedField &gt; const &amp;other) const noexcept</td></tr>
-<tr class="separator:a1c29fb6f6cb0607bb33dca74a4845250"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa35fd86b55fd6a7197c042c28c3e1bad" id="r_aa35fd86b55fd6a7197c042c28c3e1bad"><td class="memTemplParams" colspan="2">template&lt;auto OtherReferencedField&gt; </td></tr>
-<tr class="memitem:aa35fd86b55fd6a7197c042c28c3e1bad"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#aa35fd86b55fd6a7197c042c28c3e1bad">operator!=</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; OtherReferencedField &gt; const &amp;other) const noexcept</td></tr>
-<tr class="separator:aa35fd86b55fd6a7197c042c28c3e1bad"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0e6739cb4dc06cbee0cbdb66c32df20d" id="r_a0e6739cb4dc06cbee0cbdb66c32df20d"><td class="memTemplParams" colspan="2">template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt; </td></tr>
-<tr class="memitem:a0e6739cb4dc06cbee0cbdb66c32df20d"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a0e6739cb4dc06cbee0cbdb66c32df20d">operator==</a> (<a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, IsPrimaryKeyValue &gt; const &amp;other) const noexcept</td></tr>
-<tr class="separator:a0e6739cb4dc06cbee0cbdb66c32df20d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a740593ce9372d0e90a0169f2d5946227" id="r_a740593ce9372d0e90a0169f2d5946227"><td class="memTemplParams" colspan="2">template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt; </td></tr>
-<tr class="memitem:a740593ce9372d0e90a0169f2d5946227"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a740593ce9372d0e90a0169f2d5946227">operator!=</a> (<a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, IsPrimaryKeyValue &gt; const &amp;other) const noexcept</td></tr>
-<tr class="separator:a740593ce9372d0e90a0169f2d5946227"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a33e8b5b9bec68d5c8a527e5fdea8ef4a" id="r_a33e8b5b9bec68d5c8a527e5fdea8ef4a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a33e8b5b9bec68d5c8a527e5fdea8ef4a">SetAutoLoader</a> (Loader loader) noexcept</td></tr>
-<tr class="memdesc:a33e8b5b9bec68d5c8a527e5fdea8ef4a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used internally to configure on-demand loading of the record.  <br /></td></tr>
-<tr class="separator:a33e8b5b9bec68d5c8a527e5fdea8ef4a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a02939b58b5e9fe9cad5c56556926cf9c" id="r_a02939b58b5e9fe9cad5c56556926cf9c"><td class="memTemplParams" colspan="2">template&lt;typename... S&gt; <br />
+requires std::constructible_from&lt;<a class="el" href="../../df/d1a/classBelongsTo.html#aefdb12798153b5dbc70f7e7f7d07edb5">ValueType</a>, S...&gt;</td></tr>
+<tr class="memitem:a02939b58b5e9fe9cad5c56556926cf9c"><td class="memTemplItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a02939b58b5e9fe9cad5c56556926cf9c">BelongsTo</a> (S &amp;&amp;... value) noexcept</td></tr>
+<tr class="separator:a02939b58b5e9fe9cad5c56556926cf9c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9991dc7f033e1542fb4ca6f2e8ca6644" id="r_a9991dc7f033e1542fb4ca6f2e8ca6644"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a9991dc7f033e1542fb4ca6f2e8ca6644">BelongsTo</a> (<a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> const &amp;other) noexcept</td></tr>
+<tr class="separator:a9991dc7f033e1542fb4ca6f2e8ca6644"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab104d360a4aab35dc779ffa51a8d8b1a" id="r_ab104d360a4aab35dc779ffa51a8d8b1a"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#ab104d360a4aab35dc779ffa51a8d8b1a">BelongsTo</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> const &amp;other) noexcept</td></tr>
+<tr class="separator:ab104d360a4aab35dc779ffa51a8d8b1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad5c5a59451371025a23858f98ade7124" id="r_ad5c5a59451371025a23858f98ade7124"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#ad5c5a59451371025a23858f98ade7124">BelongsTo</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp;&amp;other) noexcept</td></tr>
+<tr class="separator:ad5c5a59451371025a23858f98ade7124"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2c169e46f540b58eae2d60f9b2a4ab46" id="r_a2c169e46f540b58eae2d60f9b2a4ab46"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a2c169e46f540b58eae2d60f9b2a4ab46">operator=</a> (<a class="el" href="../../de/d07/structSqlNullType.html">SqlNullType</a>) noexcept</td></tr>
+<tr class="separator:a2c169e46f540b58eae2d60f9b2a4ab46"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aadfc48076973afcd96e7e04864e2fd75" id="r_aadfc48076973afcd96e7e04864e2fd75"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#aadfc48076973afcd96e7e04864e2fd75">operator=</a> (<a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> &amp;other)</td></tr>
+<tr class="separator:aadfc48076973afcd96e7e04864e2fd75"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a715432d6685cfb88396052f4103a1260" id="r_a715432d6685cfb88396052f4103a1260"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a715432d6685cfb88396052f4103a1260">operator=</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> const &amp;other)</td></tr>
+<tr class="separator:a715432d6685cfb88396052f4103a1260"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afb85c02e19dd4078ba3eca7b42534944" id="r_afb85c02e19dd4078ba3eca7b42534944"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#afb85c02e19dd4078ba3eca7b42534944">operator=</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp;&amp;other) noexcept</td></tr>
+<tr class="separator:afb85c02e19dd4078ba3eca7b42534944"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6e9d861b5a148bc99d68f85418a67f0a" id="r_a6e9d861b5a148bc99d68f85418a67f0a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a6e9d861b5a148bc99d68f85418a67f0a">SetModified</a> (bool value) noexcept</td></tr>
+<tr class="memdesc:a6e9d861b5a148bc99d68f85418a67f0a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Marks the field as modified or unmodified.  <br /></td></tr>
+<tr class="separator:a6e9d861b5a148bc99d68f85418a67f0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a37b278d8c53a20554123ce5a7c9707b8" id="r_a37b278d8c53a20554123ce5a7c9707b8"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a37b278d8c53a20554123ce5a7c9707b8">IsModified</a> () const noexcept</td></tr>
+<tr class="memdesc:a37b278d8c53a20554123ce5a7c9707b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if the field is modified.  <br /></td></tr>
+<tr class="separator:a37b278d8c53a20554123ce5a7c9707b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afcb0dd3657cc854618ce1566063149d3" id="r_afcb0dd3657cc854618ce1566063149d3"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aefdb12798153b5dbc70f7e7f7d07edb5">ValueType</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#afcb0dd3657cc854618ce1566063149d3">Value</a> () const noexcept</td></tr>
+<tr class="memdesc:afcb0dd3657cc854618ce1566063149d3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the reference to the value of the field.  <br /></td></tr>
+<tr class="separator:afcb0dd3657cc854618ce1566063149d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a15ac48687d860a55044c4794983de0f2" id="r_a15ac48687d860a55044c4794983de0f2"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aefdb12798153b5dbc70f7e7f7d07edb5">ValueType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a15ac48687d860a55044c4794983de0f2">MutableValue</a> () noexcept</td></tr>
+<tr class="memdesc:a15ac48687d860a55044c4794983de0f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the mutable reference to the value of the field.  <br /></td></tr>
+<tr class="separator:a15ac48687d860a55044c4794983de0f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a534a0209a6308ad1dcfb539720bac88f" id="r_a534a0209a6308ad1dcfb539720bac88f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a534a0209a6308ad1dcfb539720bac88f">Record</a> ()</td></tr>
+<tr class="memdesc:a534a0209a6308ad1dcfb539720bac88f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a record from the relationship.  <br /></td></tr>
+<tr class="separator:a534a0209a6308ad1dcfb539720bac88f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1dfcb8ff861461a635d1b7c54a917dac" id="r_a1dfcb8ff861461a635d1b7c54a917dac"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a1dfcb8ff861461a635d1b7c54a917dac">Record</a> () const</td></tr>
+<tr class="memdesc:a1dfcb8ff861461a635d1b7c54a917dac"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves an immutable reference to the record from the relationship.  <br /></td></tr>
+<tr class="separator:a1dfcb8ff861461a635d1b7c54a917dac"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3ace28c2cc186d10bafb211a2571ca79" id="r_a3ace28c2cc186d10bafb211a2571ca79"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a3ace28c2cc186d10bafb211a2571ca79">IsLoaded</a> () const noexcept</td></tr>
+<tr class="memdesc:a3ace28c2cc186d10bafb211a2571ca79"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if the record is loaded into memory.  <br /></td></tr>
+<tr class="separator:a3ace28c2cc186d10bafb211a2571ca79"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0df07533c86cd5e746709f7ce2beac69" id="r_a0df07533c86cd5e746709f7ce2beac69"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a0df07533c86cd5e746709f7ce2beac69">Unload</a> () noexcept</td></tr>
+<tr class="memdesc:a0df07533c86cd5e746709f7ce2beac69"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unloads the record from memory.  <br /></td></tr>
+<tr class="separator:a0df07533c86cd5e746709f7ce2beac69"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3d1297f33130c2ba183bb72f332c6d37" id="r_a3d1297f33130c2ba183bb72f332c6d37"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a3d1297f33130c2ba183bb72f332c6d37">operator*</a> () noexcept</td></tr>
+<tr class="memdesc:a3d1297f33130c2ba183bb72f332c6d37"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record from the relationship.  <br /></td></tr>
+<tr class="separator:a3d1297f33130c2ba183bb72f332c6d37"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac5ad78ceea4b6e56cc3a00c000fb682e" id="r_ac5ad78ceea4b6e56cc3a00c000fb682e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#ac5ad78ceea4b6e56cc3a00c000fb682e">operator*</a> () const noexcept</td></tr>
+<tr class="memdesc:ac5ad78ceea4b6e56cc3a00c000fb682e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record from the relationship.  <br /></td></tr>
+<tr class="separator:ac5ad78ceea4b6e56cc3a00c000fb682e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a58d2ffbe2172f28c4de9d06f62422ca4" id="r_a58d2ffbe2172f28c4de9d06f62422ca4"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a58d2ffbe2172f28c4de9d06f62422ca4">operator-&gt;</a> ()</td></tr>
+<tr class="memdesc:a58d2ffbe2172f28c4de9d06f62422ca4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record from the relationship.  <br /></td></tr>
+<tr class="separator:a58d2ffbe2172f28c4de9d06f62422ca4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7bc9b5c7aeae918208031a6a6d696da3" id="r_a7bc9b5c7aeae918208031a6a6d696da3"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> const *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a7bc9b5c7aeae918208031a6a6d696da3">operator-&gt;</a> () const</td></tr>
+<tr class="memdesc:a7bc9b5c7aeae918208031a6a6d696da3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the record from the relationship.  <br /></td></tr>
+<tr class="separator:a7bc9b5c7aeae918208031a6a6d696da3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2229bb206245c4137cb61a124fe366b1" id="r_a2229bb206245c4137cb61a124fe366b1"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a2229bb206245c4137cb61a124fe366b1">operator!</a> () const noexcept</td></tr>
+<tr class="memdesc:a2229bb206245c4137cb61a124fe366b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if the field value is NULL.  <br /></td></tr>
+<tr class="separator:a2229bb206245c4137cb61a124fe366b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a75921c1ac40bf35355f03cd6ab92fd29" id="r_a75921c1ac40bf35355f03cd6ab92fd29"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a75921c1ac40bf35355f03cd6ab92fd29">operator bool</a> () const noexcept</td></tr>
+<tr class="memdesc:a75921c1ac40bf35355f03cd6ab92fd29"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks if the field value is not NULL.  <br /></td></tr>
+<tr class="separator:a75921c1ac40bf35355f03cd6ab92fd29"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a25c5fee4eee8c07fef09ed4d5c6cb1c2" id="r_a25c5fee4eee8c07fef09ed4d5c6cb1c2"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a25c5fee4eee8c07fef09ed4d5c6cb1c2">EmplaceRecord</a> ()</td></tr>
+<tr class="memdesc:a25c5fee4eee8c07fef09ed4d5c6cb1c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Emplaces a record into the relationship. This will mark the relationship as loaded.  <br /></td></tr>
+<tr class="separator:a25c5fee4eee8c07fef09ed4d5c6cb1c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a39e6e780a7bdcbfb1cfd4b2b08840767" id="r_a39e6e780a7bdcbfb1cfd4b2b08840767"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a39e6e780a7bdcbfb1cfd4b2b08840767">BindOutputColumn</a> (SQLSMALLINT outputIndex, <a class="el" href="../../df/d17/classSqlStatement.html">SqlStatement</a> &amp;stmt)</td></tr>
+<tr class="separator:a39e6e780a7bdcbfb1cfd4b2b08840767"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a03749d419b474785b6c24a056b24d3e5" id="r_a03749d419b474785b6c24a056b24d3e5"><td class="memItemLeft" align="right" valign="top">std::weak_ordering&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a03749d419b474785b6c24a056b24d3e5">operator&lt;=&gt;</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> const &amp;other) const noexcept</td></tr>
+<tr class="separator:a03749d419b474785b6c24a056b24d3e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a177068fc7d00c3e562098fae41598f67" id="r_a177068fc7d00c3e562098fae41598f67"><td class="memTemplParams" colspan="2">template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt; </td></tr>
+<tr class="memitem:a177068fc7d00c3e562098fae41598f67"><td class="memTemplItemLeft" align="right" valign="top">std::weak_ordering&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a177068fc7d00c3e562098fae41598f67">operator&lt;=&gt;</a> (<a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, IsPrimaryKeyValue &gt; const &amp;other) const noexcept</td></tr>
+<tr class="separator:a177068fc7d00c3e562098fae41598f67"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a46f1c51d4c524045b5aca55492c8d0b5" id="r_a46f1c51d4c524045b5aca55492c8d0b5"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a46f1c51d4c524045b5aca55492c8d0b5">operator==</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> const &amp;other) const noexcept</td></tr>
+<tr class="separator:a46f1c51d4c524045b5aca55492c8d0b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aec4dc27a679960bd8f8cd28c3975c24c" id="r_aec4dc27a679960bd8f8cd28c3975c24c"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#aec4dc27a679960bd8f8cd28c3975c24c">operator!=</a> (<a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> const &amp;other) const noexcept</td></tr>
+<tr class="separator:aec4dc27a679960bd8f8cd28c3975c24c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7f004234f2f4460b001813ba881a7c1e" id="r_a7f004234f2f4460b001813ba881a7c1e"><td class="memTemplParams" colspan="2">template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt; </td></tr>
+<tr class="memitem:a7f004234f2f4460b001813ba881a7c1e"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a7f004234f2f4460b001813ba881a7c1e">operator==</a> (<a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, IsPrimaryKeyValue &gt; const &amp;other) const noexcept</td></tr>
+<tr class="separator:a7f004234f2f4460b001813ba881a7c1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa62d8522ff8e7674c004a7daf19069fe" id="r_aa62d8522ff8e7674c004a7daf19069fe"><td class="memTemplParams" colspan="2">template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt; </td></tr>
+<tr class="memitem:aa62d8522ff8e7674c004a7daf19069fe"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#aa62d8522ff8e7674c004a7daf19069fe">operator!=</a> (<a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, IsPrimaryKeyValue &gt; const &amp;other) const noexcept</td></tr>
+<tr class="separator:aa62d8522ff8e7674c004a7daf19069fe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a81ed56343e398ac9fe291066a7982f69" id="r_a81ed56343e398ac9fe291066a7982f69"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a81ed56343e398ac9fe291066a7982f69">SetAutoLoader</a> (Loader loader) noexcept</td></tr>
+<tr class="memdesc:a81ed56343e398ac9fe291066a7982f69"><td class="mdescLeft">&#160;</td><td class="mdescRight">Used internally to configure on-demand loading of the record.  <br /></td></tr>
+<tr class="separator:a81ed56343e398ac9fe291066a7982f69"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
-<tr class="memitem:a3ada69a2dfb5d37fd9255dfc53ab631d" id="r_a3ada69a2dfb5d37fd9255dfc53ab631d"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a3ada69a2dfb5d37fd9255dfc53ab631d">ReferencedField</a> = TheReferencedField</td></tr>
-<tr class="memdesc:a3ada69a2dfb5d37fd9255dfc53ab631d"><td class="mdescLeft">&#160;</td><td class="mdescRight">The field in the other record that references the current record.  <br /></td></tr>
-<tr class="separator:a3ada69a2dfb5d37fd9255dfc53ab631d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0e0395997be796b515cf5ecd37d048f8" id="r_a0e0395997be796b515cf5ecd37d048f8"><td class="memItemLeft" align="right" valign="top">static constexpr std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a0e0395997be796b515cf5ecd37d048f8">ColumnNameOverride</a></td></tr>
-<tr class="memdesc:a0e0395997be796b515cf5ecd37d048f8"><td class="mdescLeft">&#160;</td><td class="mdescRight">If not an empty string, this value will be used as the column name in the database.  <br /></td></tr>
-<tr class="separator:a0e0395997be796b515cf5ecd37d048f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaa257e211c235b6157d283656ac37662" id="r_aaa257e211c235b6157d283656ac37662"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#aaa257e211c235b6157d283656ac37662">IsOptional</a> = true</td></tr>
-<tr class="separator:aaa257e211c235b6157d283656ac37662"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:add4938f6f86a10dbcb7e80f8a2302369" id="r_add4938f6f86a10dbcb7e80f8a2302369"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#add4938f6f86a10dbcb7e80f8a2302369">IsMandatory</a> = !IsOptional</td></tr>
-<tr class="separator:add4938f6f86a10dbcb7e80f8a2302369"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6d0de698bd803f590dcf2d714b5e8d18" id="r_a6d0de698bd803f590dcf2d714b5e8d18"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a6d0de698bd803f590dcf2d714b5e8d18">IsPrimaryKey</a> = false</td></tr>
-<tr class="separator:a6d0de698bd803f590dcf2d714b5e8d18"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8cf72e2bfda810b9eb9162ece5505132" id="r_a8cf72e2bfda810b9eb9162ece5505132"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a8cf72e2bfda810b9eb9162ece5505132">IsAutoIncrementPrimaryKey</a> = false</td></tr>
-<tr class="separator:a8cf72e2bfda810b9eb9162ece5505132"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a02c7d95200bb6fd9925ad798f2c9fadc" id="r_a02c7d95200bb6fd9925ad798f2c9fadc"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a02c7d95200bb6fd9925ad798f2c9fadc">ReferencedField</a> = TheReferencedField</td></tr>
+<tr class="memdesc:a02c7d95200bb6fd9925ad798f2c9fadc"><td class="mdescLeft">&#160;</td><td class="mdescRight">The field in the other record that references the current record.  <br /></td></tr>
+<tr class="separator:a02c7d95200bb6fd9925ad798f2c9fadc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a69acbbcd1d01460c122b4b7d6446b507" id="r_a69acbbcd1d01460c122b4b7d6446b507"><td class="memItemLeft" align="right" valign="top">static constexpr std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a69acbbcd1d01460c122b4b7d6446b507">ColumnNameOverride</a></td></tr>
+<tr class="memdesc:a69acbbcd1d01460c122b4b7d6446b507"><td class="mdescLeft">&#160;</td><td class="mdescRight">If not an empty string, this value will be used as the column name in the database.  <br /></td></tr>
+<tr class="separator:a69acbbcd1d01460c122b4b7d6446b507"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab54ec445985006680d8f0976ac070719" id="r_ab54ec445985006680d8f0976ac070719"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#ab54ec445985006680d8f0976ac070719">IsOptional</a> = Nullable == SqlNullable::Null</td></tr>
+<tr class="separator:ab54ec445985006680d8f0976ac070719"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af4311281c0b64b8c9ee1ac0e55f5dd9e" id="r_af4311281c0b64b8c9ee1ac0e55f5dd9e"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#af4311281c0b64b8c9ee1ac0e55f5dd9e">IsMandatory</a> = !IsOptional</td></tr>
+<tr class="separator:af4311281c0b64b8c9ee1ac0e55f5dd9e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9731e70020b19db7e3dea2c9f04ca8d9" id="r_a9731e70020b19db7e3dea2c9f04ca8d9"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#a9731e70020b19db7e3dea2c9f04ca8d9">IsPrimaryKey</a> = false</td></tr>
+<tr class="separator:a9731e70020b19db7e3dea2c9f04ca8d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abe980a523b5beb411079170867e187d9" id="r_abe980a523b5beb411079170867e187d9"><td class="memItemLeft" align="right" valign="top">static constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/classBelongsTo.html#abe980a523b5beb411079170867e187d9">IsAutoIncrementPrimaryKey</a> = false</td></tr>
+<tr class="separator:abe980a523b5beb411079170867e187d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><div class="compoundTemplParams">template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt;<br />
-class BelongsTo&lt; TheReferencedField, ColumnNameOverrideString &gt;</div><p>Represents a one-to-one relationship. </p>
+<div class="textblock"><div class="compoundTemplParams">template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt;<br />
+class BelongsTo&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;</div><p>Represents a one-to-one relationship. </p>
 <p>The <code>TheReferencedField</code> parameter is the field in the other record that references the current record, in the form of <code>&amp;OtherRecord::Field</code>. Other <a class="el" href="../../df/d27/structField.html" title="Represents a single column in a table.">Field</a> must be a primary key.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
@@ -238,104 +237,94 @@ class BelongsTo&lt; TheReferencedField, ColumnNameOverrideString &gt;</div><p>Re
 <div class="line">    <a class="code hl_struct" href="../../df/d27/structField.html">Field&lt;SqlGuid, PrimaryKey::AutoAssign&gt;</a> id;</div>
 <div class="line">    <a class="code hl_struct" href="../../df/d27/structField.html">Field&lt;SqlAnsiString&lt;40&gt;</a>&gt; address;</div>
 <div class="line">    <a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo&lt;&amp;User::id&gt;</a> user;</div>
-<div class="line">    <a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt;&amp;User::id, <a class="code hl_struct" href="../../dc/dda/structSqlRealName.html">SqlRealName</a>&lt;<span class="stringliteral">&quot;the_user_id&quot;</span>&gt;&gt; user; <span class="comment">// also possible to customize the column name</span></div>
+<div class="line">    <span class="comment">// Also possible to customize the column name</span></div>
+<div class="line">    <a class="code hl_class" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt;&amp;User::id, <a class="code hl_struct" href="../../dc/dda/structSqlRealName.html">SqlRealName</a>&lt;<span class="stringliteral">&quot;the_user_id&quot;</span>&gt;, SqlNullable::Null&gt; maybe_user;</div>
 <div class="line">};</div>
-<div class="ttc" id="aclassBelongsTo_html"><div class="ttname"><a href="../../df/d1a/classBelongsTo.html">BelongsTo</a></div><div class="ttdoc">Represents a one-to-one relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00041">BelongsTo.hpp:42</a></div></div>
+<div class="ttc" id="aclassBelongsTo_html"><div class="ttname"><a href="../../df/d1a/classBelongsTo.html">BelongsTo</a></div><div class="ttdoc">Represents a one-to-one relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../da/d23/BelongsTo_8hpp_source.html#l00042">BelongsTo.hpp:43</a></div></div>
 <div class="ttc" id="astructField_html"><div class="ttname"><a href="../../df/d27/structField.html">Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00079">Field.hpp:80</a></div></div>
 <div class="ttc" id="astructSqlRealName_html"><div class="ttname"><a href="../../dc/dda/structSqlRealName.html">SqlRealName</a></div><div class="ttdoc">Helper class, used to represent a real SQL column names as template arguments.</div><div class="ttdef"><b>Definition</b> <a href="../../d0/dd1/SqlRealName_8hpp_source.html#l00011">SqlRealName.hpp:12</a></div></div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00041">41</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00042">42</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
-<a id="a2e4821463dc06b9e767e374453734eb5" name="a2e4821463dc06b9e767e374453734eb5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2e4821463dc06b9e767e374453734eb5">&#9670;&#160;</a></span>ReferencedRecord</h2>
+<a id="aa1e2df817ebecdfb5899171e9caa6b91" name="aa1e2df817ebecdfb5899171e9caa6b91"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa1e2df817ebecdfb5899171e9caa6b91">&#9670;&#160;</a></span>ReferencedRecord</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::ReferencedRecord =  MemberClassType&lt;decltype(TheReferencedField)&gt;</td>
+          <td class="memname">using <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::ReferencedRecord =  MemberClassType&lt;decltype(TheReferencedField)&gt;</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>Represents the record type of the other field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00056">56</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00057">57</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="ab0544087140dd09c3d4ccfc0b762cc26" name="ab0544087140dd09c3d4ccfc0b762cc26"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab0544087140dd09c3d4ccfc0b762cc26">&#9670;&#160;</a></span>ValueType</h2>
+<a id="a497ac53490a5885ee875f207aadfcbf5" name="a497ac53490a5885ee875f207aadfcbf5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a497ac53490a5885ee875f207aadfcbf5">&#9670;&#160;</a></span>BaseType</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::ValueType =  typename std::remove_cvref_t&lt;decltype(std::declval&lt;<a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a>&gt;().*<a class="el" href="../../df/d1a/classBelongsTo.html#a3ada69a2dfb5d37fd9255dfc53ab631d">ReferencedField</a>)&gt;::ValueType</td>
+          <td class="memname">using <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::BaseType =  typename std::remove_cvref_t&lt;decltype(std::declval&lt;<a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a>&gt;().*<a class="el" href="../../df/d1a/classBelongsTo.html#a02c7d95200bb6fd9925ad798f2c9fadc">ReferencedField</a>)&gt;<a class="el" href="../../df/d1a/classBelongsTo.html#aefdb12798153b5dbc70f7e7f7d07edb5">::ValueType</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Represents the column type of the foreign key, matching the primary key of the other record. </p>
+<p>Represents the base column type of the foreign key, matching the primary key of the other record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00062">62</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00063">63</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+
+</div>
+</div>
+<a id="aefdb12798153b5dbc70f7e7f7d07edb5" name="aefdb12798153b5dbc70f7e7f7d07edb5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aefdb12798153b5dbc70f7e7f7d07edb5">&#9670;&#160;</a></span>ValueType</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::ValueType =  std::conditional_t&lt;Nullable == SqlNullable::Null, std::optional&lt;<a class="el" href="../../df/d1a/classBelongsTo.html#a497ac53490a5885ee875f207aadfcbf5">BaseType</a>&gt;, <a class="el" href="../../df/d1a/classBelongsTo.html#a497ac53490a5885ee875f207aadfcbf5">BaseType</a>&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Represents the value type of the foreign key, which can be either an optional or a non-optional type of the referenced field, </p>
+
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00067">67</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="aa63f1ba995e64c8437cadeb19b9f8df9" name="aa63f1ba995e64c8437cadeb19b9f8df9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa63f1ba995e64c8437cadeb19b9f8df9">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[1/4]</span></h2>
+<a id="a02939b58b5e9fe9cad5c56556926cf9c" name="a02939b58b5e9fe9cad5c56556926cf9c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a02939b58b5e9fe9cad5c56556926cf9c">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[1/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <div class="memtemplate">
 template&lt;typename... S&gt; <br />
-requires std::constructible_from&lt;<a class="el" href="../../df/d1a/classBelongsTo.html#ab0544087140dd09c3d4ccfc0b762cc26">ValueType</a>, S...&gt;</div>
+requires std::constructible_from&lt;<a class="el" href="../../df/d1a/classBelongsTo.html#aefdb12798153b5dbc70f7e7f7d07edb5">ValueType</a>, S...&gt;</div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;<a class="el" href="../../df/d1a/classBelongsTo.html">::BelongsTo</a> </td>
+          <td class="memname">constexpr <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;<a class="el" href="../../df/d1a/classBelongsTo.html">::BelongsTo</a> </td>
           <td>(</td>
           <td class="paramtype">S &amp;&amp;...&#160;</td>
           <td class="paramname"><em>value</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00071">71</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a98d657fb15631a9a07fea7dd4b296bd5" name="a98d657fb15631a9a07fea7dd4b296bd5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a98d657fb15631a9a07fea7dd4b296bd5">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[2/4]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">constexpr <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;<a class="el" href="../../df/d1a/classBelongsTo.html">::BelongsTo</a> </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> const &amp;&#160;</td>
-          <td class="paramname"><em>other</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -350,21 +339,21 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 </div>
 </div>
-<a id="a453994151136f8e6aba9150f688b0c48" name="a453994151136f8e6aba9150f688b0c48"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a453994151136f8e6aba9150f688b0c48">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[3/4]</span></h2>
+<a id="a9991dc7f033e1542fb4ca6f2e8ca6644" name="a9991dc7f033e1542fb4ca6f2e8ca6644"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9991dc7f033e1542fb4ca6f2e8ca6644">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[2/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;<a class="el" href="../../df/d1a/classBelongsTo.html">::BelongsTo</a> </td>
+          <td class="memname">constexpr <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;<a class="el" href="../../df/d1a/classBelongsTo.html">::BelongsTo</a> </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt; const &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> const &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
           <td></td>
         </tr>
@@ -376,25 +365,25 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00083">83</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00081">81</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a72e5fe7ca7aff032c941aba99e9bf7ba" name="a72e5fe7ca7aff032c941aba99e9bf7ba"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a72e5fe7ca7aff032c941aba99e9bf7ba">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[4/4]</span></h2>
+<a id="ab104d360a4aab35dc779ffa51a8d8b1a" name="ab104d360a4aab35dc779ffa51a8d8b1a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab104d360a4aab35dc779ffa51a8d8b1a">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[3/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;<a class="el" href="../../df/d1a/classBelongsTo.html">::BelongsTo</a> </td>
+          <td class="memname">constexpr <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;<a class="el" href="../../df/d1a/classBelongsTo.html">::BelongsTo</a> </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt; &amp;&amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt; const &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
           <td></td>
         </tr>
@@ -406,24 +395,54 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00092">92</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00088">88</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ad5c5a59451371025a23858f98ade7124" name="ad5c5a59451371025a23858f98ade7124"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad5c5a59451371025a23858f98ade7124">&#9670;&#160;</a></span>BelongsTo() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;<a class="el" href="../../df/d1a/classBelongsTo.html">::BelongsTo</a> </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt; &amp;&amp;&#160;</td>
+          <td class="paramname"><em>other</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00097">97</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="ac5213a1c9ac109831b49fa2f922f5545" name="ac5213a1c9ac109831b49fa2f922f5545"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac5213a1c9ac109831b49fa2f922f5545">&#9670;&#160;</a></span>operator=() <span class="overload">[1/4]</span></h2>
+<a id="a2c169e46f540b58eae2d60f9b2a4ab46" name="a2c169e46f540b58eae2d60f9b2a4ab46"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2c169e46f540b58eae2d60f9b2a4ab46">&#9670;&#160;</a></span>operator=() <span class="overload">[1/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator= </td>
+          <td class="memname"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator= </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="../../de/d07/structSqlNullType.html">SqlNullType</a>&#160;</td>
           <td class="paramname"></td><td>)</td>
@@ -437,25 +456,25 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00101">101</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00106">106</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="af362fd4f876feb25f37b6be73cfbb186" name="af362fd4f876feb25f37b6be73cfbb186"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af362fd4f876feb25f37b6be73cfbb186">&#9670;&#160;</a></span>operator=() <span class="overload">[2/4]</span></h2>
+<a id="aadfc48076973afcd96e7e04864e2fd75" name="aadfc48076973afcd96e7e04864e2fd75"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aadfc48076973afcd96e7e04864e2fd75">&#9670;&#160;</a></span>operator=() <span class="overload">[2/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator= </td>
+          <td class="memname"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator= </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
           <td></td>
         </tr>
@@ -467,25 +486,25 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00112">112</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00117">117</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a8edd6773dc6e4cc4f2c239ca312e7158" name="a8edd6773dc6e4cc4f2c239ca312e7158"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8edd6773dc6e4cc4f2c239ca312e7158">&#9670;&#160;</a></span>operator=() <span class="overload">[3/4]</span></h2>
+<a id="a715432d6685cfb88396052f4103a1260" name="a715432d6685cfb88396052f4103a1260"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a715432d6685cfb88396052f4103a1260">&#9670;&#160;</a></span>operator=() <span class="overload">[3/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator= </td>
+          <td class="memname"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator= </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt; const &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt; const &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
           <td></td>
         </tr>
@@ -497,25 +516,25 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00123">123</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00128">128</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a8164297ed27d719a7989f74993f8bced" name="a8164297ed27d719a7989f74993f8bced"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8164297ed27d719a7989f74993f8bced">&#9670;&#160;</a></span>operator=() <span class="overload">[4/4]</span></h2>
+<a id="afb85c02e19dd4078ba3eca7b42534944" name="afb85c02e19dd4078ba3eca7b42534944"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afb85c02e19dd4078ba3eca7b42534944">&#9670;&#160;</a></span>operator=() <span class="overload">[4/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator= </td>
+          <td class="memname"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator= </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt; &amp;&amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt; &amp;&amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
           <td></td>
         </tr>
@@ -527,23 +546,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00137">137</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00142">142</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a41938be21d4b6f8c09312fe98afbe51a" name="a41938be21d4b6f8c09312fe98afbe51a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a41938be21d4b6f8c09312fe98afbe51a">&#9670;&#160;</a></span>SetModified()</h2>
+<a id="a6e9d861b5a148bc99d68f85418a67f0a" name="a6e9d861b5a148bc99d68f85418a67f0a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6e9d861b5a148bc99d68f85418a67f0a">&#9670;&#160;</a></span>SetModified()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr void <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::SetModified </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr void <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::SetModified </td>
           <td>(</td>
           <td class="paramtype">bool&#160;</td>
           <td class="paramname"><em>value</em></td><td>)</td>
@@ -559,23 +578,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Marks the field as modified or unmodified. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00155">155</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00160">160</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="ada9a20754dd3011d89885970b6cc1900" name="ada9a20754dd3011d89885970b6cc1900"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ada9a20754dd3011d89885970b6cc1900">&#9670;&#160;</a></span>IsModified()</h2>
+<a id="a37b278d8c53a20554123ce5a7c9707b8" name="a37b278d8c53a20554123ce5a7c9707b8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a37b278d8c53a20554123ce5a7c9707b8">&#9670;&#160;</a></span>IsModified()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::IsModified </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::IsModified </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -590,23 +609,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Checks if the field is modified. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00158">158</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00163">163</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a94d93fc122c629feb1064fca89cc23a0" name="a94d93fc122c629feb1064fca89cc23a0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a94d93fc122c629feb1064fca89cc23a0">&#9670;&#160;</a></span>Value()</h2>
+<a id="afcb0dd3657cc854618ce1566063149d3" name="afcb0dd3657cc854618ce1566063149d3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afcb0dd3657cc854618ce1566063149d3">&#9670;&#160;</a></span>Value()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#ab0544087140dd09c3d4ccfc0b762cc26">ValueType</a> const  &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::Value </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aefdb12798153b5dbc70f7e7f7d07edb5">ValueType</a> const  &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::Value </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -621,23 +640,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Retrieves the reference to the value of the field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00161">161</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00166">166</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a1ad1e97d0321af12aa44ef5bd96d6129" name="a1ad1e97d0321af12aa44ef5bd96d6129"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1ad1e97d0321af12aa44ef5bd96d6129">&#9670;&#160;</a></span>MutableValue()</h2>
+<a id="a15ac48687d860a55044c4794983de0f2" name="a15ac48687d860a55044c4794983de0f2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a15ac48687d860a55044c4794983de0f2">&#9670;&#160;</a></span>MutableValue()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#ab0544087140dd09c3d4ccfc0b762cc26">ValueType</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::MutableValue </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aefdb12798153b5dbc70f7e7f7d07edb5">ValueType</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::MutableValue </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -652,23 +671,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Retrieves the mutable reference to the value of the field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00164">164</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00169">169</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a88231bb5a18b1592ac404a44dd9a0243" name="a88231bb5a18b1592ac404a44dd9a0243"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a88231bb5a18b1592ac404a44dd9a0243">&#9670;&#160;</a></span>Record() <span class="overload">[1/2]</span></h2>
+<a id="a534a0209a6308ad1dcfb539720bac88f" name="a534a0209a6308ad1dcfb539720bac88f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a534a0209a6308ad1dcfb539720bac88f">&#9670;&#160;</a></span>Record() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::Record </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::Record </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -683,23 +702,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Retrieves a record from the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00167">167</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00172">172</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a2d497124e6fd7fbecb2152ee33f51826" name="a2d497124e6fd7fbecb2152ee33f51826"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2d497124e6fd7fbecb2152ee33f51826">&#9670;&#160;</a></span>Record() <span class="overload">[2/2]</span></h2>
+<a id="a1dfcb8ff861461a635d1b7c54a917dac" name="a1dfcb8ff861461a635d1b7c54a917dac"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1dfcb8ff861461a635d1b7c54a917dac">&#9670;&#160;</a></span>Record() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> const  &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::Record </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> const  &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::Record </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -714,23 +733,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Retrieves an immutable reference to the record from the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00170">170</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00175">175</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="abe2488edbe14628219d0f33c21984ebf" name="abe2488edbe14628219d0f33c21984ebf"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abe2488edbe14628219d0f33c21984ebf">&#9670;&#160;</a></span>IsLoaded()</h2>
+<a id="a3ace28c2cc186d10bafb211a2571ca79" name="a3ace28c2cc186d10bafb211a2571ca79"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3ace28c2cc186d10bafb211a2571ca79">&#9670;&#160;</a></span>IsLoaded()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::IsLoaded </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::IsLoaded </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -745,23 +764,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Checks if the record is loaded into memory. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00173">173</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00178">178</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a83ec5bd75e4d193746869a315ff05389" name="a83ec5bd75e4d193746869a315ff05389"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a83ec5bd75e4d193746869a315ff05389">&#9670;&#160;</a></span>Unload()</h2>
+<a id="a0df07533c86cd5e746709f7ce2beac69" name="a0df07533c86cd5e746709f7ce2beac69"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0df07533c86cd5e746709f7ce2beac69">&#9670;&#160;</a></span>Unload()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE void <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::Unload </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE void <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::Unload </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -776,23 +795,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Unloads the record from memory. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00176">176</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00181">181</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a23df177fd6463443179951219c008783" name="a23df177fd6463443179951219c008783"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a23df177fd6463443179951219c008783">&#9670;&#160;</a></span>operator*() <span class="overload">[1/2]</span></h2>
+<a id="a3d1297f33130c2ba183bb72f332c6d37" name="a3d1297f33130c2ba183bb72f332c6d37"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3d1297f33130c2ba183bb72f332c6d37">&#9670;&#160;</a></span>operator*() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator* </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator* </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -807,23 +826,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Retrieves the record from the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00179">179</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00184">184</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="ac362762554593a37f3f98e82109d95ae" name="ac362762554593a37f3f98e82109d95ae"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac362762554593a37f3f98e82109d95ae">&#9670;&#160;</a></span>operator*() <span class="overload">[2/2]</span></h2>
+<a id="ac5ad78ceea4b6e56cc3a00c000fb682e" name="ac5ad78ceea4b6e56cc3a00c000fb682e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac5ad78ceea4b6e56cc3a00c000fb682e">&#9670;&#160;</a></span>operator*() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> const  &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator* </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> const  &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator* </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -838,23 +857,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Retrieves the record from the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00182">182</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00187">187</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a51e5be1e05ffe10b341619a31ccfeef4" name="a51e5be1e05ffe10b341619a31ccfeef4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a51e5be1e05ffe10b341619a31ccfeef4">&#9670;&#160;</a></span>operator-&gt;() <span class="overload">[1/2]</span></h2>
+<a id="a58d2ffbe2172f28c4de9d06f62422ca4" name="a58d2ffbe2172f28c4de9d06f62422ca4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a58d2ffbe2172f28c4de9d06f62422ca4">&#9670;&#160;</a></span>operator-&gt;() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> * <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator-&gt; </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> * <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator-&gt; </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -869,23 +888,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Retrieves the record from the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00185">185</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00190">190</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a4252a55623ddbd4833bacfa2473e1213" name="a4252a55623ddbd4833bacfa2473e1213"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4252a55623ddbd4833bacfa2473e1213">&#9670;&#160;</a></span>operator-&gt;() <span class="overload">[2/2]</span></h2>
+<a id="a7bc9b5c7aeae918208031a6a6d696da3" name="a7bc9b5c7aeae918208031a6a6d696da3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7bc9b5c7aeae918208031a6a6d696da3">&#9670;&#160;</a></span>operator-&gt;() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> const  * <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator-&gt; </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> const  * <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator-&gt; </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -900,23 +919,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Retrieves the record from the relationship. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00188">188</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00193">193</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="ad8dd108a620b398897a610edf3aa2746" name="ad8dd108a620b398897a610edf3aa2746"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad8dd108a620b398897a610edf3aa2746">&#9670;&#160;</a></span>operator!()</h2>
+<a id="a2229bb206245c4137cb61a124fe366b1" name="a2229bb206245c4137cb61a124fe366b1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2229bb206245c4137cb61a124fe366b1">&#9670;&#160;</a></span>operator!()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator! </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator! </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -931,23 +950,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Checks if the field value is NULL. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00191">191</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00196">196</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a30eb552a115fe938e4f4a4a45a614d25" name="a30eb552a115fe938e4f4a4a45a614d25"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a30eb552a115fe938e4f4a4a45a614d25">&#9670;&#160;</a></span>operator bool()</h2>
+<a id="a75921c1ac40bf35355f03cd6ab92fd29" name="a75921c1ac40bf35355f03cd6ab92fd29"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a75921c1ac40bf35355f03cd6ab92fd29">&#9670;&#160;</a></span>operator bool()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator bool </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator bool </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -962,23 +981,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Checks if the field value is not NULL. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00194">194</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00199">199</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a80cdd134276af4c8bf91d96ef93aa65e" name="a80cdd134276af4c8bf91d96ef93aa65e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a80cdd134276af4c8bf91d96ef93aa65e">&#9670;&#160;</a></span>EmplaceRecord()</h2>
+<a id="a25c5fee4eee8c07fef09ed4d5c6cb1c2" name="a25c5fee4eee8c07fef09ed4d5c6cb1c2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a25c5fee4eee8c07fef09ed4d5c6cb1c2">&#9670;&#160;</a></span>EmplaceRecord()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#a2e4821463dc06b9e767e374453734eb5">ReferencedRecord</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::EmplaceRecord </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../df/d1a/classBelongsTo.html#aa1e2df817ebecdfb5899171e9caa6b91">ReferencedRecord</a> &amp; <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::EmplaceRecord </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -993,23 +1012,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Emplaces a record into the relationship. This will mark the relationship as loaded. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00199">199</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00204">204</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="aa410102609817a452415e37ca46060d2" name="aa410102609817a452415e37ca46060d2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa410102609817a452415e37ca46060d2">&#9670;&#160;</a></span>BindOutputColumn()</h2>
+<a id="a39e6e780a7bdcbfb1cfd4b2b08840767" name="a39e6e780a7bdcbfb1cfd4b2b08840767"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a39e6e780a7bdcbfb1cfd4b2b08840767">&#9670;&#160;</a></span>BindOutputColumn()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE void <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::BindOutputColumn </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE void <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::BindOutputColumn </td>
           <td>(</td>
           <td class="paramtype">SQLSMALLINT&#160;</td>
           <td class="paramname"><em>outputIndex</em>, </td>
@@ -1033,27 +1052,25 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00206">206</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00211">211</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a187ad7fd0ba26ce4ffc1d0502ef148a0" name="a187ad7fd0ba26ce4ffc1d0502ef148a0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a187ad7fd0ba26ce4ffc1d0502ef148a0">&#9670;&#160;</a></span>operator&lt;=&gt;() <span class="overload">[1/2]</span></h2>
+<a id="a03749d419b474785b6c24a056b24d3e5" name="a03749d419b474785b6c24a056b24d3e5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a03749d419b474785b6c24a056b24d3e5">&#9670;&#160;</a></span>operator&lt;=&gt;() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
-<div class="memtemplate">
-template&lt;auto OtherReferencedField&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::weak_ordering <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator&lt;=&gt; </td>
+          <td class="memname">std::weak_ordering <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator&lt;=&gt; </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; OtherReferencedField &gt; const &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt; const &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
           <td> const</td>
         </tr>
@@ -1065,17 +1082,17 @@ template&lt;auto OtherReferencedField&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00212">212</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00216">216</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="aca8e1e14f5f51cddd51a16359a0a15e3" name="aca8e1e14f5f51cddd51a16359a0a15e3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aca8e1e14f5f51cddd51a16359a0a15e3">&#9670;&#160;</a></span>operator&lt;=&gt;() <span class="overload">[2/2]</span></h2>
+<a id="a177068fc7d00c3e562098fae41598f67" name="a177068fc7d00c3e562098fae41598f67"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a177068fc7d00c3e562098fae41598f67">&#9670;&#160;</a></span>operator&lt;=&gt;() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <div class="memtemplate">
 template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt; </div>
 <table class="mlabels">
@@ -1083,7 +1100,7 @@ template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKe
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">std::weak_ordering <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator&lt;=&gt; </td>
+          <td class="memname">std::weak_ordering <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator&lt;=&gt; </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, IsPrimaryKeyValue &gt; const &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
@@ -1097,27 +1114,25 @@ template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKe
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00218">218</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00222">222</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a1c29fb6f6cb0607bb33dca74a4845250" name="a1c29fb6f6cb0607bb33dca74a4845250"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1c29fb6f6cb0607bb33dca74a4845250">&#9670;&#160;</a></span>operator==() <span class="overload">[1/2]</span></h2>
+<a id="a46f1c51d4c524045b5aca55492c8d0b5" name="a46f1c51d4c524045b5aca55492c8d0b5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a46f1c51d4c524045b5aca55492c8d0b5">&#9670;&#160;</a></span>operator==() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
-<div class="memtemplate">
-template&lt;auto OtherReferencedField&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator== </td>
+          <td class="memname">bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator== </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; OtherReferencedField &gt; const &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt; const &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
           <td> const</td>
         </tr>
@@ -1129,27 +1144,25 @@ template&lt;auto OtherReferencedField&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00224">224</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00227">227</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="aa35fd86b55fd6a7197c042c28c3e1bad" name="aa35fd86b55fd6a7197c042c28c3e1bad"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa35fd86b55fd6a7197c042c28c3e1bad">&#9670;&#160;</a></span>operator!=() <span class="overload">[1/2]</span></h2>
+<a id="aec4dc27a679960bd8f8cd28c3975c24c" name="aec4dc27a679960bd8f8cd28c3975c24c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aec4dc27a679960bd8f8cd28c3975c24c">&#9670;&#160;</a></span>operator!=() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
-<div class="memtemplate">
-template&lt;auto OtherReferencedField&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;<a class="el" href="../../df/d1a/classBelongsTo.html#ad8dd108a620b398897a610edf3aa2746">::operator!</a>= </td>
+          <td class="memname">bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;<a class="el" href="../../df/d1a/classBelongsTo.html#a2229bb206245c4137cb61a124fe366b1">::operator!</a>= </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; OtherReferencedField &gt; const &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt; const &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
           <td> const</td>
         </tr>
@@ -1161,17 +1174,17 @@ template&lt;auto OtherReferencedField&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00230">230</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00232">232</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a0e6739cb4dc06cbee0cbdb66c32df20d" name="a0e6739cb4dc06cbee0cbdb66c32df20d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0e6739cb4dc06cbee0cbdb66c32df20d">&#9670;&#160;</a></span>operator==() <span class="overload">[2/2]</span></h2>
+<a id="a7f004234f2f4460b001813ba881a7c1e" name="a7f004234f2f4460b001813ba881a7c1e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7f004234f2f4460b001813ba881a7c1e">&#9670;&#160;</a></span>operator==() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <div class="memtemplate">
 template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt; </div>
 <table class="mlabels">
@@ -1179,7 +1192,7 @@ template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKe
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::operator== </td>
+          <td class="memname">bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::operator== </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, IsPrimaryKeyValue &gt; const &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
@@ -1193,17 +1206,17 @@ template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKe
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00236">236</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00238">238</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a740593ce9372d0e90a0169f2d5946227" name="a740593ce9372d0e90a0169f2d5946227"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a740593ce9372d0e90a0169f2d5946227">&#9670;&#160;</a></span>operator!=() <span class="overload">[2/2]</span></h2>
+<a id="aa62d8522ff8e7674c004a7daf19069fe" name="aa62d8522ff8e7674c004a7daf19069fe"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa62d8522ff8e7674c004a7daf19069fe">&#9670;&#160;</a></span>operator!=() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <div class="memtemplate">
 template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No&gt; </div>
 <table class="mlabels">
@@ -1211,7 +1224,7 @@ template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKe
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;<a class="el" href="../../df/d1a/classBelongsTo.html#ad8dd108a620b398897a610edf3aa2746">::operator!</a>= </td>
+          <td class="memname">bool <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;<a class="el" href="../../df/d1a/classBelongsTo.html#a2229bb206245c4137cb61a124fe366b1">::operator!</a>= </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="../../df/d27/structField.html">Field</a>&lt; T, IsPrimaryKeyValue &gt; const &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
@@ -1225,23 +1238,23 @@ template&lt;detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKe
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00242">242</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00244">244</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a33e8b5b9bec68d5c8a527e5fdea8ef4a" name="a33e8b5b9bec68d5c8a527e5fdea8ef4a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a33e8b5b9bec68d5c8a527e5fdea8ef4a">&#9670;&#160;</a></span>SetAutoLoader()</h2>
+<a id="a81ed56343e398ac9fe291066a7982f69" name="a81ed56343e398ac9fe291066a7982f69"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a81ed56343e398ac9fe291066a7982f69">&#9670;&#160;</a></span>SetAutoLoader()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::SetAutoLoader </td>
+          <td class="memname">void <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::SetAutoLoader </td>
           <td>(</td>
           <td class="paramtype">Loader&#160;</td>
           <td class="paramname"><em>loader</em></td><td>)</td>
@@ -1257,24 +1270,24 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>Used internally to configure on-demand loading of the record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00253">253</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00255">255</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Data Documentation</h2>
-<a id="a3ada69a2dfb5d37fd9255dfc53ab631d" name="a3ada69a2dfb5d37fd9255dfc53ab631d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3ada69a2dfb5d37fd9255dfc53ab631d">&#9670;&#160;</a></span>ReferencedField</h2>
+<a id="a02c7d95200bb6fd9925ad798f2c9fadc" name="a02c7d95200bb6fd9925ad798f2c9fadc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a02c7d95200bb6fd9925ad798f2c9fadc">&#9670;&#160;</a></span>ReferencedField</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::ReferencedField = TheReferencedField</td>
+          <td class="memname">constexpr auto <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::ReferencedField = TheReferencedField</td>
         </tr>
       </table>
   </td>
@@ -1286,23 +1299,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 <p>The field in the other record that references the current record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00045">45</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00046">46</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a0e0395997be796b515cf5ecd37d048f8" name="a0e0395997be796b515cf5ecd37d048f8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0e0395997be796b515cf5ecd37d048f8">&#9670;&#160;</a></span>ColumnNameOverride</h2>
+<a id="a69acbbcd1d01460c122b4b7d6446b507" name="a69acbbcd1d01460c122b4b7d6446b507"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a69acbbcd1d01460c122b4b7d6446b507">&#9670;&#160;</a></span>ColumnNameOverride</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr std::string_view <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::ColumnNameOverride</td>
+          <td class="memname">constexpr std::string_view <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::ColumnNameOverride</td>
         </tr>
       </table>
   </td>
@@ -1320,23 +1333,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </div><!-- fragment -->
 <p>If not an empty string, this value will be used as the column name in the database. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00048">48</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00049">49</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="aaa257e211c235b6157d283656ac37662" name="aaa257e211c235b6157d283656ac37662"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aaa257e211c235b6157d283656ac37662">&#9670;&#160;</a></span>IsOptional</h2>
+<a id="ab54ec445985006680d8f0976ac070719" name="ab54ec445985006680d8f0976ac070719"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab54ec445985006680d8f0976ac070719">&#9670;&#160;</a></span>IsOptional</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::IsOptional = true</td>
+          <td class="memname">constexpr auto <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::IsOptional = Nullable == SqlNullable::Null</td>
         </tr>
       </table>
   </td>
@@ -1346,23 +1359,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00064">64</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00069">69</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="add4938f6f86a10dbcb7e80f8a2302369" name="add4938f6f86a10dbcb7e80f8a2302369"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#add4938f6f86a10dbcb7e80f8a2302369">&#9670;&#160;</a></span>IsMandatory</h2>
+<a id="af4311281c0b64b8c9ee1ac0e55f5dd9e" name="af4311281c0b64b8c9ee1ac0e55f5dd9e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af4311281c0b64b8c9ee1ac0e55f5dd9e">&#9670;&#160;</a></span>IsMandatory</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::IsMandatory = !IsOptional</td>
+          <td class="memname">constexpr auto <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::IsMandatory = !IsOptional</td>
         </tr>
       </table>
   </td>
@@ -1372,23 +1385,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00065">65</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a6d0de698bd803f590dcf2d714b5e8d18" name="a6d0de698bd803f590dcf2d714b5e8d18"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6d0de698bd803f590dcf2d714b5e8d18">&#9670;&#160;</a></span>IsPrimaryKey</h2>
+<a id="a9731e70020b19db7e3dea2c9f04ca8d9" name="a9731e70020b19db7e3dea2c9f04ca8d9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9731e70020b19db7e3dea2c9f04ca8d9">&#9670;&#160;</a></span>IsPrimaryKey</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::IsPrimaryKey = false</td>
+          <td class="memname">constexpr auto <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::IsPrimaryKey = false</td>
         </tr>
       </table>
   </td>
@@ -1398,23 +1411,23 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00066">66</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00071">71</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a8cf72e2bfda810b9eb9162ece5505132" name="a8cf72e2bfda810b9eb9162ece5505132"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8cf72e2bfda810b9eb9162ece5505132">&#9670;&#160;</a></span>IsAutoIncrementPrimaryKey</h2>
+<a id="abe980a523b5beb411079170867e187d9" name="abe980a523b5beb411079170867e187d9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abe980a523b5beb411079170867e187d9">&#9670;&#160;</a></span>IsAutoIncrementPrimaryKey</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt&gt; </div>
+template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString &gt;::IsAutoIncrementPrimaryKey = false</td>
+          <td class="memname">constexpr auto <a class="el" href="../../df/d1a/classBelongsTo.html">BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::IsAutoIncrementPrimaryKey = false</td>
         </tr>
       </table>
   </td>
@@ -1424,7 +1437,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00067">67</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html#l00072">72</a> of file <a class="el" href="../../da/d23/BelongsTo_8hpp_source.html">BelongsTo.hpp</a>.</p>
 
 </div>
 </div>

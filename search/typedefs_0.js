@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['const_5fiterator_0',['const_iterator',['../d3/d09/classHasMany.html#a87328f4569988e57a6b6228d637885bc',1,'HasMany']]]
+  ['basetype_0',['BaseType',['../df/d1a/classBelongsTo.html#a497ac53490a5885ee875f207aadfcbf5',1,'BelongsTo']]]
 ];

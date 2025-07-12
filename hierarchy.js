@@ -1,11 +1,11 @@
 var hierarchy =
 [
-    [ "BelongsTo< TheReferencedField, ColumnNameOverrideString >", "df/d1a/classBelongsTo.html", null ],
-    [ "BelongsTo<&Album::AlbumId, SqlRealName{\"AlbumId\"}>", "df/d1a/classBelongsTo.html", null ],
+    [ "BelongsTo< TheReferencedField, ColumnNameOverrideString, Nullable >", "df/d1a/classBelongsTo.html", null ],
+    [ "BelongsTo<&Album::AlbumId, SqlRealName{\"AlbumId\"}, SqlNullable::Null >", "df/d1a/classBelongsTo.html", null ],
     [ "BelongsTo<&Artist::ArtistId, SqlRealName{\"ArtistId\"}>", "df/d1a/classBelongsTo.html", null ],
     [ "BelongsTo<&Customer::CustomerId, SqlRealName{\"CustomerId\"}>", "df/d1a/classBelongsTo.html", null ],
-    [ "BelongsTo<&Employee::EmployeeId, SqlRealName{\"SupportRepId\"}>", "df/d1a/classBelongsTo.html", null ],
-    [ "BelongsTo<&Genre::GenreId, SqlRealName{\"GenreId\"}>", "df/d1a/classBelongsTo.html", null ],
+    [ "BelongsTo<&Employee::EmployeeId, SqlRealName{\"SupportRepId\"}, SqlNullable::Null >", "df/d1a/classBelongsTo.html", null ],
+    [ "BelongsTo<&Genre::GenreId, SqlRealName{\"GenreId\"}, SqlNullable::Null >", "df/d1a/classBelongsTo.html", null ],
     [ "BelongsTo<&Invoice::InvoiceId, SqlRealName{\"InvoiceId\"}>", "df/d1a/classBelongsTo.html", null ],
     [ "BelongsTo<&Mediatype::MediaTypeId, SqlRealName{\"MediaTypeId\"}>", "df/d1a/classBelongsTo.html", null ],
     [ "BelongsTo<&Track::TrackId, SqlRealName{\"TrackId\"}>", "df/d1a/classBelongsTo.html", null ],
