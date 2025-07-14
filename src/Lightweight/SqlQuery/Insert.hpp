@@ -32,7 +32,7 @@ class [[nodiscard]] SqlInsertQueryBuilder final
     inline SqlInsertQueryBuilder& Set(std::string_view columnName, MFCStringLike auto const* value);
 
     // Finalizes building the query as INSERT INTO ... query.
-    [[nodiscard]] LIGHTWEIGHT_API std::string ToSql() const;
+    [[nodiscard]] inline std::string ToSql() const;
 
   private:
     SqlQueryFormatter const& m_formatter;
