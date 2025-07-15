@@ -148,9 +148,15 @@ set_target_properties(Lightweight PROPERTIES
     OUTPUT_NAME Lightweight
     COMPILE_PDB_NAME Lightweight
     COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}" # The directory where the PDB file is generated
-    VERSION "${CMAKE_PROJECT_VERSION}"
-    SOVERSION "${CMAKE_PROJECT_VERSION_MAJOR}"
 )
+
+# We want to set version and soversion not on windows since linker does not like the version that we are using
+if(NOT WIN32)
+    set_target_properties(Lightweight PROPERTIES
+        VERSION "${CMAKE_PROJECT_VERSION}"
+        SOVERSION "${CMAKE_PROJECT_VERSION_MAJOR}"
+    )
+endif()
 
 # ==================================================================================================
 
