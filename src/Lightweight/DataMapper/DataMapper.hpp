@@ -165,7 +165,10 @@ void GetAllColumns(SqlResultCursor& reader, Record& record)
             }
             else if constexpr (SqlGetColumnNativeType<Field>)
             {
-                field = reader->GetColumn<Field>(indexFromQuery);
+                if constexpr (IsOptionalBelongsTo<Field>)
+                    field = reader->GetNullableColumn<typename Field::BaseType>(indexFromQuery);
+                else
+                    field = reader->GetColumn<Field>(indexFromQuery);
             }
         });
 }
