@@ -307,6 +307,15 @@ struct IsBelongsToType<BelongsTo<ReferencedField, ColumnNameOverrideString, Null
 template <typename T>
 constexpr bool IsBelongsTo = detail::IsBelongsToType<std::remove_cvref_t<T>>::value;
 
+template <typename T>
+concept is_belongs_to = IsBelongsTo<T>;
+
+template <typename T>
+constexpr bool IsOptionalBelongsTo = false;
+
+template <is_belongs_to T>
+constexpr bool IsOptionalBelongsTo<T> = T::IsOptional;
+
 template <auto ReferencedField, auto ColumnNameOverrideString, SqlNullable Nullable>
 struct SqlDataBinder<BelongsTo<ReferencedField, ColumnNameOverrideString, Nullable>>
 {
