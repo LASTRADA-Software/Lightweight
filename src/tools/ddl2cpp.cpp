@@ -15,6 +15,7 @@
 #include <print>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 #include <yaml-cpp/yaml.h>
@@ -46,12 +47,23 @@ constexpr auto finally(auto&& cleanupRoutine) noexcept // NOLINT(readability-ide
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColumn, size_t sqlFixedStringMaxSize)
+std::string MakeType(
+    SqlSchema::Column const& column,
+    std::string const& tableName,
+    bool forceUnicodeTextColumn,
+    std::unordered_map<std::string /*table*/, std::unordered_set<std::string /*column*/>> const& unicodeTextColumnOverrides,
+    size_t sqlFixedStringMaxSize)
 {
-    auto optional = [&]<typename T>(T&& type) {
+    auto const optional = [&]<typename T>(T&& type) {
         if (column.isNullable)
             return std::format("std::optional<{}>", type);
         return std::string { std::forward<T>(type) };
+    };
+
+    auto const shouldForceUnicodeTextColumn = [=] {
+        return forceUnicodeTextColumn
+               || (unicodeTextColumnOverrides.contains(tableName)
+                   && unicodeTextColumnOverrides.at(tableName).contains(column.name));
     };
 
     using namespace SqlColumnTypeDefinitions;
@@ -63,21 +75,21 @@ std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColum
             [&](Char const& type) -> std::string {
                 if (type.size == 1)
                 {
-                    if (forceUnicodeTextColumn)
+                    if (shouldForceUnicodeTextColumn())
                         return "wchar_t";
                     else
                         return "char";
                 }
                 else if (type.size <= sqlFixedStringMaxSize)
                 {
-                    if (forceUnicodeTextColumn)
+                    if (shouldForceUnicodeTextColumn())
                         return std::format("SqlWideString<{}>", type.size);
                     else
                         return std::format("SqlAnsiString<{}>", type.size);
                 }
                 else
                 {
-                    if (forceUnicodeTextColumn)
+                    if (shouldForceUnicodeTextColumn())
                         return std::format("SqlDynamicWideString<{}>", type.size);
                     else
                         return std::format("SqlDynamicAnsiString<{}>", type.size);
@@ -100,7 +112,7 @@ std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColum
             [](Real const&) -> std::string { return "float"; },
             [](Smallint const&) -> std::string { return "int16_t"; },
             [=](Text const& type) -> std::string {
-                if (forceUnicodeTextColumn)
+                if (shouldForceUnicodeTextColumn())
                     return std::format("SqlDynamicWideString<{}>", type.size);
                 else
                     return std::format("SqlDynamicAnsiString<{}>", type.size);
@@ -109,17 +121,17 @@ std::string MakeType(SqlSchema::Column const& column, bool forceUnicodeTextColum
             [](Timestamp const&) -> std::string { return "SqlDateTime"; },
             [](Tinyint const&) -> std::string { return "uint8_t"; },
             [](VarBinary const& type) -> std::string { return std::format("SqlDynamicBinary<{}>", type.size); },
-            [=](Varchar const& type) -> std::string {
+            [&](Varchar const& type) -> std::string {
                 if (type.size > 0 && type.size <= sqlFixedStringMaxSize)
                 {
-                    if (forceUnicodeTextColumn)
+                    if (shouldForceUnicodeTextColumn())
                         return std::format("SqlWideString<{}>", type.size);
                     else
                         return std::format("SqlAnsiString<{}>", type.size);
                 }
                 else
                 {
-                    if (forceUnicodeTextColumn)
+                    if (shouldForceUnicodeTextColumn())
                         return std::format("SqlDynamicWideString<{}>", type.size);
                     else
                         return std::format("SqlDynamicAnsiString<{}>", type.size);
@@ -172,6 +184,7 @@ class CxxModelPrinter
         PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
         ColumnNameOverrides columnNameOverrides;
         bool forceUnicodeTextColumns = false;
+        std::unordered_map<std::string /*table*/, std::unordered_set<std::string /*column*/>> unicodeTextColumnOverrides;
         bool suppressWarnings = false;
         size_t sqlFixedStringMaxSize = SqlOptimalMaxColumnSize;
     };
@@ -507,7 +520,11 @@ class CxxModelPrinter
 
         for (auto const& column: table.columns)
         {
-            std::string type = MakeType(column, _config.forceUnicodeTextColumns, _config.sqlFixedStringMaxSize);
+            std::string type = MakeType(column,
+                                        table.name,
+                                        _config.forceUnicodeTextColumns,
+                                        _config.unicodeTextColumnOverrides,
+                                        _config.sqlFixedStringMaxSize);
             auto const memberName =
                 MapColumnNameOverride(tableName, column.name) // NOLINT(bugprone-unchecked-optional-access)
                     .or_else([&] { return std::optional { SanitizeName(FormatName(column.name, _config.formatType)) }; })
@@ -692,6 +709,7 @@ struct Configuration
     ColumnNameOverrides columnNameOverrides;
     size_t sqlFixedStringMaxSize = SqlOptimalMaxColumnSize;
     bool forceUnicodeTextColumns = false;
+    std::unordered_map<std::string /*table*/, std::unordered_set<std::string /*column*/>> unicodeTextColumnOverrides;
     PrimaryKey primaryKeyAssignment = PrimaryKey::ServerSideAutoIncrement;
     bool createTestTables = false;
     bool makeAliases = false;
@@ -922,17 +940,34 @@ std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path c
     auto config = Configuration {};
 
     TryLoadNode(loadedYaml["ConnectionString"], config.connectionString);
-    TryLoadNode(loadedYaml["Database"], config.database);
-    TryLoadNode(loadedYaml["Schema"], config.schema);
-    TryLoadNode(loadedYaml["ModelNamespace"], config.modelNamespace);
-    TryLoadNode(loadedYaml["SqlFixedStringMaxSize"], config.sqlFixedStringMaxSize);
-    TryLoadNode(loadedYaml["OutputDirectory"], config.outputDirectory);
-    TryLoadNode(loadedYaml["CumulativeHeaderFile"], config.cumulativeHeaderFile);
-    TryLoadNode(loadedYaml["ForceUnicodeTextColumns"], config.forceUnicodeTextColumns);
     TryLoadNode(loadedYaml["CreateTestTables"], config.createTestTables);
-    TryLoadNode(loadedYaml["MakeAliases"], config.makeAliases);
-    TryLoadNode(loadedYaml["SuppressWarnings"], config.suppressWarnings);
+    TryLoadNode(loadedYaml["CumulativeHeaderFile"], config.cumulativeHeaderFile);
+    TryLoadNode(loadedYaml["Database"], config.database);
+    TryLoadNode(loadedYaml["ForceUnicodeTextColumns"], config.forceUnicodeTextColumns);
     TryLoadNode(loadedYaml["GenerateExample"], config.generateExample);
+    TryLoadNode(loadedYaml["MakeAliases"], config.makeAliases);
+    TryLoadNode(loadedYaml["ModelNamespace"], config.modelNamespace);
+    TryLoadNode(loadedYaml["OutputDirectory"], config.outputDirectory);
+    TryLoadNode(loadedYaml["Schema"], config.schema);
+    TryLoadNode(loadedYaml["SqlFixedStringMaxSize"], config.sqlFixedStringMaxSize);
+    TryLoadNode(loadedYaml["SuppressWarnings"], config.suppressWarnings);
+
+    if (auto const unicodeOverridesOn = loadedYaml["ForceUnicodeTextColumnsOn"]; unicodeOverridesOn.IsMap())
+    {
+        for (auto const& tableNode: unicodeOverridesOn)
+        {
+            auto const tableName = tableNode.first.as<std::string>();
+            auto const tableColumnsNode = tableNode.second;
+            auto& unicodeTextColumnOverrides = config.unicodeTextColumnOverrides[tableName];
+            for (auto const& columnNode: tableColumnsNode)
+                unicodeTextColumnOverrides.emplace(columnNode.as<std::string>());
+        }
+
+        if (!config.unicodeTextColumnOverrides.empty())
+            for (auto const& [name, columns]: config.unicodeTextColumnOverrides)
+                for (auto const& column: columns)
+                    std::println("Override {}.{}", name, column);
+    }
 
     if (auto const columnNameOverridesYaml = loadedYaml["ColumnNameOverrides"]; columnNameOverridesYaml.IsMap())
     {
@@ -1123,6 +1158,7 @@ int main(int argc, char const* argv[])
         .primaryKeyAssignment = config.primaryKeyAssignment,
         .columnNameOverrides = config.columnNameOverrides,
         .forceUnicodeTextColumns = config.forceUnicodeTextColumns,
+        .unicodeTextColumnOverrides = config.unicodeTextColumnOverrides,
         .suppressWarnings = config.suppressWarnings,
         .sqlFixedStringMaxSize = config.sqlFixedStringMaxSize,
     } };
