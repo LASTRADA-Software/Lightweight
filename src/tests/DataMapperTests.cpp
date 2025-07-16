@@ -1709,8 +1709,10 @@ TEST_CASE_METHOD(SqlTestFixture, "TestOptionalDynamicData", "[DataMapper]")
     checkSize(5);
     checkSize(5 * 2);
     checkSize((5 * 2) + 1);
+    checkSize(97);
     checkSize(1000);
     checkSize(2000);
+    checkSize(2001);
     checkSize(4000);
 }
 

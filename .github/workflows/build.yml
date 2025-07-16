@@ -119,9 +119,20 @@ jobs:
           VCPKG_ROOT: "${{ runner.workspace }}/vcpkg"
       - name: "Build"
         run: cmake --build --preset ${{ matrix.preset }}
+      - name: Setup SQL Server
+        if: ${{ endsWith(matrix.preset, 'windows-cl-debug') }}
+        shell: powershell
+        run: |
+          sqllocaldb info
+          sqllocaldb start MSSQLLocalDB
+          sqlcmd -S "(LocalDB)\MSSQLLocalDB" -Q "CREATE DATABASE TestDB;"
+          sqlcmd -S "(LocalDB)\MSSQLLocalDB" -Q "SELECT name FROM sys.databases WHERE name = 'TestDB';"
       - name: "Test"
-        if: false # TODO: Make sure sqliteodbc is found
-        run: ./out/build/${{ matrix.preset }}/target/Debug/LightweightTest.exe --trace-sql --trace-odbc -- -s -a
+        if: ${{ endsWith(matrix.preset, 'windows-cl-debug') }}
+        run: ./out/build/${{ matrix.preset }}/target/Debug/LightweightTest.exe --trace-sql --trace-odbc
+        env:
+          ODBC_CONNECTION_STRING: "Driver={ODBC Driver 17 for SQL Server};Server=(LocalDB)\\MSSQLLocalDB;Database=TestDB;Trusted_Connection=Yes;"
+
   # }}}
   # {{{ Ubuntu build CC matrix
   ubuntu_build_cc_matrix:
