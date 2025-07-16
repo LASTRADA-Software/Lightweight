@@ -8,6 +8,11 @@ var NAVTREEINDEX1 =
 "d7/d13/classSqlResultCursor.html#aea40e5a1b2d59766112bb8a8316471b5":[7,0,41,0],
 "d7/d24/SqlConnectInfo_8hpp_source.html":[8,0,2,7],
 "d7/d28/classSqlCoreDataMapperQueryBuilder.html":[5,2,3],
+"d7/d28/classSqlCoreDataMapperQueryBuilder.html#a949f261903a6ece695e516ad13f018f6":[5,2,3,2],
+"d7/d28/classSqlCoreDataMapperQueryBuilder.html#ac403d89afcb38a04b4431856bd13153e":[5,2,3,3],
+"d7/d28/classSqlCoreDataMapperQueryBuilder.html#ad84cf7d8ec99ea2f3f0630858e13794c":[5,2,3,0],
+"d7/d28/classSqlCoreDataMapperQueryBuilder.html#ae9e6b101e47ace152835cff935044514":[5,2,3,1],
+"d7/d28/classSqlCoreDataMapperQueryBuilder.html#aec44ba49e868bed26508020de3fd397c":[5,2,3,4],
 "d7/d2f/group__DataMapper.html":[5,2],
 "d7/d2f/group__DataMapper.html#ga2cbee85281351782c747be3caf17271c":[5,2,14],
 "d7/d2f/group__DataMapper.html#ga4565e3cf41830db5a08951da5702c776":[5,2,19],
@@ -244,10 +249,5 @@ var NAVTREEINDEX1 =
 "dd/d83/classSqlDynamicString.html#a33ddfcfb714918434842c077be5d6b45":[5,0,4,7],
 "dd/d83/classSqlDynamicString.html#a3e36e493a786e36c8525ad517390c006":[5,0,4,5],
 "dd/d83/classSqlDynamicString.html#a51b0060ed3b58e57a86fca29d9356e58":[5,0,4,14],
-"dd/d83/classSqlDynamicString.html#a64085d9b8dc217cf7aa6b132c3ee9022":[5,0,4,1],
-"dd/d83/classSqlDynamicString.html#a6f87061762938ed30120444f1168873b":[5,0,4,13],
-"dd/d83/classSqlDynamicString.html#a778a4e44aba5b41c257f3a30bab4dcd7":[5,0,4,2],
-"dd/d83/classSqlDynamicString.html#a8cbf4f1ae505d6dbdcdbe2ecf4156d2e":[5,0,4,4],
-"dd/d83/classSqlDynamicString.html#a96462cd834a7a9f95b3d069dcb6b264c":[5,0,4,11],
-"dd/d83/classSqlDynamicString.html#aacc6030f62b95c44268bacc732892514":[5,0,4,15]
+"dd/d83/classSqlDynamicString.html#a64085d9b8dc217cf7aa6b132c3ee9022":[5,0,4,1]
 };

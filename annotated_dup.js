@@ -19,7 +19,7 @@ var annotated_dup =
     [ "SqlConnection", "d7/d7b/classSqlConnection.html", "d7/d7b/classSqlConnection" ],
     [ "SqlConnectionDataSource", "df/dde/structSqlConnectionDataSource.html", null ],
     [ "SqlConnectionString", "d0/d8e/structSqlConnectionString.html", null ],
-    [ "SqlCoreDataMapperQueryBuilder", "d7/d28/classSqlCoreDataMapperQueryBuilder.html", null ],
+    [ "SqlCoreDataMapperQueryBuilder", "d7/d28/classSqlCoreDataMapperQueryBuilder.html", "d7/d28/classSqlCoreDataMapperQueryBuilder" ],
     [ "SqlCreateTableQueryBuilder", "d4/d4a/classSqlCreateTableQueryBuilder.html", "d4/d4a/classSqlCreateTableQueryBuilder" ],
     [ "SqlDataBinderCallback", "d5/d40/classSqlDataBinderCallback.html", null ],
     [ "SqlDate", "d3/d0e/structSqlDate.html", "d3/d0e/structSqlDate" ],

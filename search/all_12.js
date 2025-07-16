@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['range_0',['Range',['../d1/d91/classSqlSelectQueryBuilder.html#aa8b8176ba3661ceb0a0a2ac0d5f71c4e',1,'SqlSelectQueryBuilder']]],
+  ['range_0',['range',['../d1/d91/classSqlSelectQueryBuilder.html#aa8b8176ba3661ceb0a0a2ac0d5f71c4e',1,'SqlSelectQueryBuilder::Range()'],['../d7/d28/classSqlCoreDataMapperQueryBuilder.html#aec44ba49e868bed26508020de3fd397c',1,'SqlCoreDataMapperQueryBuilder::Range()']]],
   ['raw_20sql_20queries_1',['Raw SQL Queries',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries',1,'']]],
   ['rawsql_2',['RawSql',['../d3/d15/classSqlMigrationQueryBuilder.html#a8683edf676e2527718619232ce6d62e3',1,'SqlMigrationQueryBuilder']]],
   ['record_3',['record',['../df/d1a/classBelongsTo.html#a534a0209a6308ad1dcfb539720bac88f',1,'BelongsTo::Record()'],['../df/d1a/classBelongsTo.html#a1dfcb8ff861461a635d1b7c54a917dac',1,'BelongsTo::Record() const'],['../da/d9d/classHasOneThrough.html#ac261baddcaee4cb00ed24c7fe970192c',1,'HasOneThrough::Record() noexcept'],['../da/d9d/classHasOneThrough.html#abec6b0405d0e183f80d06165c8fdfb73',1,'HasOneThrough::Record() const noexcept']]],
@@ -19,7 +19,7 @@ var searchData=
   ['requirestatementsuccess_16',['RequireStatementSuccess',['../d3/dbc/structSqlErrorInfo.html#a7818658b44c27da0ca3d5bfaee63d4a2',1,'SqlErrorInfo']]],
   ['requiresuccess_17',['RequireSuccess',['../d7/d7b/classSqlConnection.html#ae442712bea48b425b2c1582293143fc5',1,'SqlConnection']]],
   ['resetpostconnectedhook_18',['ResetPostConnectedHook',['../d7/d7b/classSqlConnection.html#a6f06b63a0ea1fd7f6c0db7180bdf8bb7',1,'SqlConnection']]],
-  ['resize_19',['resize',['../dd/d83/classSqlDynamicString.html#a51b0060ed3b58e57a86fca29d9356e58',1,'SqlDynamicString::resize()'],['../d8/dcb/classSqlFixedString.html#a40fc4353d3351ad90304248552c4771e',1,'SqlFixedString::resize()'],['../dc/db1/classSqlDynamicBinary.html#addfe160061d76857e0b6bb8cb72908cd',1,'SqlDynamicBinary::resize()']]],
+  ['resize_19',['resize',['../dc/db1/classSqlDynamicBinary.html#addfe160061d76857e0b6bb8cb72908cd',1,'SqlDynamicBinary::resize()'],['../dd/d83/classSqlDynamicString.html#a51b0060ed3b58e57a86fca29d9356e58',1,'SqlDynamicString::resize()'],['../d8/dcb/classSqlFixedString.html#a40fc4353d3351ad90304248552c4771e',1,'SqlFixedString::resize()']]],
   ['result_20row_20columns_20in_20order_20',['Query Result Row Columns in Order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
   ['retrieval_20via_20structs_21',['retrieval via structs',['../index.html#example-simple-row-retrieval-via-structs',1,'Example: Simple row retrieval via structs'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'Simple row retrieval via structs']]],
   ['rollback_22',['Rollback',['../d1/dc2/classSqlTransaction.html#a1228dcf6a3e6692465a6296702b2d917',1,'SqlTransaction']]],
