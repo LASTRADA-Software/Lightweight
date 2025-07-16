@@ -260,6 +260,21 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     }
 
   public:
+    /// Executes a SELECT COUNT query and returns the number of records found.
+    [[nodiscard]] size_t Count()
+    {
+        _stmt.ExecuteDirect(_formatter.SelectCount(this->_query.distinct,
+                                                   RecordTableName<Record>,
+                                                   this->_query.searchCondition.tableAlias,
+                                                   this->_query.searchCondition.tableJoins,
+                                                   this->_query.searchCondition.condition));
+        auto reader = _stmt.GetResultCursor();
+        if (reader.FetchRow())
+            return reader.GetColumn<size_t>(1);
+        return 0;
+    }
+
+    /// Executes a SELECT query and returns all records found.
     [[nodiscard]] std::vector<Record> All()
     {
         auto records = std::vector<Record> {};
@@ -275,6 +290,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         return records;
     }
 
+    /// Executes a SELECT query for the first record found and returns it.
     [[nodiscard]] std::optional<Record> First()
     {
         std::optional<Record> record {};
@@ -290,6 +306,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         return record;
     }
 
+    /// Executes a SELECT query for the first n records found and returns them.
     [[nodiscard]] std::vector<Record> First(size_t n)
     {
         auto records = std::vector<Record> {};
@@ -306,6 +323,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         return records;
     }
 
+    /// Executes a SELECT query for a range of records and returns them.
     [[nodiscard]] std::vector<Record> Range(size_t offset, size_t limit)
     {
         auto records = std::vector<Record> {};
