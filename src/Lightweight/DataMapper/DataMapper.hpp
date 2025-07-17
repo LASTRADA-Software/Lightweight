@@ -161,7 +161,10 @@ void GetAllColumns(SqlResultCursor& reader, Record& record)
             ++indexFromQuery;
             if constexpr (IsField<Field>)
             {
-                field.MutableValue() = reader->GetColumn<typename Field::ValueType>(indexFromQuery);
+                if constexpr (Field::IsOptional)
+                    field.MutableValue() = reader->GetNullableColumn<typename Field::ValueType::value_type>(indexFromQuery);
+                else
+                    field.MutableValue() = reader->GetColumn<typename Field::ValueType>(indexFromQuery);
             }
             else if constexpr (SqlGetColumnNativeType<Field>)
             {
@@ -187,23 +190,36 @@ void GetAllColumns(SqlResultCursor& reader, std::tuple<FirstRecord, SecondRecord
     Reflection::EnumerateMembers(firstRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
         if constexpr (IsField<Field>)
         {
-            field.MutableValue() = reader->GetColumn<typename Field::ValueType>(I + 1);
+            if constexpr (Field::IsOptional)
+                field.MutableValue() = reader->GetNullableColumn<typename Field::ValueType::value_type>(I + 1);
+            else
+                field.MutableValue() = reader->GetColumn<typename Field::ValueType>(I + 1);
         }
         else if constexpr (SqlGetColumnNativeType<Field>)
         {
-            field = reader->GetColumn<Field>(I + 1);
+            if constexpr (Field::IsOptional)
+                field = reader->GetNullableColumn<typename Field::BaseType>(I + 1);
+            else
+                field = reader->GetColumn<Field>(I + 1);
         }
     });
 
     Reflection::EnumerateMembers(secondRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
         if constexpr (IsField<Field>)
         {
-            field.MutableValue() =
-                reader->GetColumn<typename Field::ValueType>(Reflection::CountMembers<FirstRecord> + I + 1);
+            if constexpr (Field::IsOptional)
+                field.MutableValue() = reader->GetNullableColumn<typename Field::ValueType::value_type>(
+                    Reflection::CountMembers<FirstRecord> + I + 1);
+            else
+                field.MutableValue() =
+                    reader->GetColumn<typename Field::ValueType>(Reflection::CountMembers<FirstRecord> + I + 1);
         }
         else if constexpr (SqlGetColumnNativeType<Field>)
         {
-            field = reader->GetColumn<Field>(Reflection::CountMembers<FirstRecord> + I + 1);
+            if constexpr (Field::IsOptional)
+                field = reader->GetNullableColumn<typename Field::BaseType>(Reflection::CountMembers<FirstRecord> + I + 1);
+            else
+                field = reader->GetColumn<Field>(Reflection::CountMembers<FirstRecord> + I + 1);
         }
     });
 }

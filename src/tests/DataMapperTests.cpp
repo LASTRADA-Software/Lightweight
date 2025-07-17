@@ -1760,4 +1760,33 @@ TEST_CASE_METHOD(SqlTestFixture, "TestMessageStructTo", "[DataMapper]")
     }
 }
 
+struct OptionalFields
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign> id;
+    std::optional<int> a;
+};
+
+template <>
+constexpr bool detail::CanSafelyBindOutputColumns<OptionalFields>(SqlServerType /*sqlServerType*/) noexcept
+{
+    // Force disabling the output column binding for this type
+    return false;
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Retrieve optional value without output-binding", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+    SqlStatement(dm.Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        using namespace SqlColumnTypeDefinitions;
+        migration.CreateTable(RecordTableName<OptionalFields>).Column("id", Guid {}).RequiredColumn("a", Integer {});
+    });
+
+    dm.CreateExplicit(OptionalFields { .id = SqlGuid::Create(), .a = 42 });
+
+    auto const result = dm.Query<OptionalFields>().OrderBy(FieldNameOf<&OptionalFields::a>).First();
+    REQUIRE(result.has_value());
+    REQUIRE(result.value().a.has_value());
+    REQUIRE(result.value().a.value() == 42);
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
