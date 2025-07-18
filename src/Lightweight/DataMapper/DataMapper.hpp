@@ -898,10 +898,6 @@ class DataMapper
         return SqlSparseFieldQueryBuilder<Record, ReferencedFields...>(_stmt, std::move(fields));
     }
 
-    /// Checks if the record has any modified fields.
-    template <typename Record>
-    bool IsModified(Record const& record) const noexcept;
-
     /// Updates the record in the database.
     template <typename Record>
     void Update(Record& record);
@@ -930,6 +926,10 @@ class DataMapper
     {
         return _connection.Query(tableName);
     }
+
+    /// Checks if the record has any modified fields.
+    template <typename Record>
+    bool IsModified(Record const& record) const noexcept;
 
     /// Clears the modified state of the record.
     template <typename Record>
