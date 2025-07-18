@@ -736,9 +736,37 @@ class DataMapper
     template <typename Record, typename... InputParameters>
     std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters);
 
-    /// Queries multiple records from the database, based on the given query.
+    /// Queries multiple records from the database, based on the given raw query.
+    ///
+    /// @param sqlQueryString The SQL query string to execute.
+    /// @param inputParameters The input parameters for the query to be bound before executing.
+    /// @return A vector of records of the given type that were found via the query.
+    ///
+    /// example:
+    /// @code
+    /// struct Person
+    /// {
+    ///     int id;
+    ///     std::string name;
+    ///     std::string email;
+    ///     std::string phone;
+    ///     std::string address;
+    ///     std::string city;
+    ///     std::string country;
+    /// };
+    ///
+    /// void example(DataMapper& dm)
+    /// {
+    ///     auto const sqlQueryString = R"(SELECT * FROM "Person" WHERE "city" = ? AND "country" = ?)";
+    ///     auto const records = dm.QueryRaw<Person>(sqlQueryString, "Berlin", "Germany");
+    ///     for (auto const& record: records)
+    ///     {
+    ///         std::println("Person: {}", DataMapper::Inspect(record));
+    ///     }
+    /// }
+    /// @endcode
     template <typename Record, typename... InputParameters>
-    std::vector<Record> Query(std::string_view sqlQueryString, InputParameters&&... inputParameters);
+    std::vector<Record> QueryRaw(std::string_view sqlQueryString, InputParameters&&... inputParameters);
 
     /// Queries records from the database, based on the given query and can be used to retrieve only part of the record
     /// by specifying the ElementMask.
@@ -1332,11 +1360,11 @@ inline LIGHTWEIGHT_FORCE_INLINE std::vector<Record> DataMapper::Query(
 {
     static_assert(DataMapperRecord<Record> || std::same_as<Record, SqlVariantRow>, "Record must satisfy DataMapperRecord");
 
-    return Query<Record>(selectQuery.ToSql(), std::forward<InputParameters>(inputParameters)...);
+    return QueryRaw<Record>(selectQuery.ToSql(), std::forward<InputParameters>(inputParameters)...);
 }
 
 template <typename Record, typename... InputParameters>
-std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputParameters&&... inputParameters)
+std::vector<Record> DataMapper::QueryRaw(std::string_view sqlQueryString, InputParameters&&... inputParameters)
 {
     auto result = std::vector<Record> {};
 

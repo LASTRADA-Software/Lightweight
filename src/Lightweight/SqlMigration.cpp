@@ -61,11 +61,7 @@ std::vector<MigrationTimestamp> MigrationManager::GetAppliedMigrationIds() const
     auto result = std::vector<MigrationTimestamp> {};
 
     auto& mapper = GetDataMapper();
-    auto const records = mapper.Query<SchemaMigration>(mapper.FromTable(RecordTableName<SchemaMigration>)
-                                                           .Select()
-                                                           .Fields<SchemaMigration>()
-                                                           .OrderBy("version", SqlResultOrdering::ASCENDING)
-                                                           .All());
+    auto const records = mapper.Query<SchemaMigration>().OrderBy("version", SqlResultOrdering::ASCENDING).All();
     for (auto const& record: records)
         result.emplace_back(MigrationTimestamp { record.version.Value() });
 
