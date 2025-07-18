@@ -910,10 +910,6 @@ class DataMapper
     template <typename Record>
     std::size_t Count();
 
-    /// Loads all records from the database for the given record type.
-    template <typename Record>
-    std::vector<Record> All();
-
     /// Constructs an SQL query builder for the given record type.
     template <typename Record>
     auto BuildQuery() -> SqlQueryBuilder
@@ -1281,12 +1277,6 @@ size_t DataMapper::Count()
     std::ignore = _stmt.FetchRow();
     _stmt.CloseCursor();
     return result;
-}
-
-template <typename Record>
-std::vector<Record> DataMapper::All()
-{
-    return Query<Record>(_connection.Query(RecordTableName<Record>).Select().template Fields<Record>().All());
 }
 
 template <typename Record, typename... PrimaryKeyTypes>

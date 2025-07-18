@@ -528,16 +528,6 @@ struct UserView
     Field<SqlAnsiString<30>> name {};
 };
 
-TEST_CASE_METHOD(SqlTestFixture, "All", "[DataMapper]")
-{
-    auto dm = DataMapper();
-    dm.CreateTables<UserView>();
-    dm.CreateExplicit(UserView { .name = "John Doe" });
-    dm.CreateExplicit(UserView { .name = "Jane Doe" });
-    dm.CreateExplicit(UserView { .name = "Jim Doe" });
-    CHECK(dm.All<UserView>().size() == 3);
-}
-
 TEST_CASE_METHOD(SqlTestFixture, "Count", "[DataMapper]")
 {
     auto dm = DataMapper();
@@ -1448,7 +1438,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with aliased column names", "[DataMapper
 
     SECTION("All")
     {
-        auto records = dm.All<AliasedRecord>();
+        auto const records = dm.Query<AliasedRecord>().All();
         CHECK(records.size() == 1);
         CHECK(records.at(0) == record);
     }
