@@ -816,7 +816,7 @@ class DataMapper
     std::vector<std::tuple<FirstRecord, NextRecord>> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
                                                            InputParameters&&... inputParameters);
 
-    /// Similar to previous one but quiery is builded from the object return by the quiery
+    /// Queries records of different types from the database, based on the given query.
     template <typename FirstRecord, typename NextRecord>
         requires DataMapperRecord<FirstRecord> && DataMapperRecord<NextRecord>
     SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>> Query()
@@ -840,9 +840,10 @@ class DataMapper
 
     /// Queries records of given Record type.
     ///
-    /// @returns A query builder for the given Record type. The query builder can be used to further refine the
-    /// query.
-    ///          The query builder will execute the query when a method like All(), First(n), etc. is called.
+    /// The query builder can be used to further refine the query.
+    /// The query builder will execute the query when a method like All(), First(n), etc. is called.
+    ///
+    /// @returns A query builder for the given Record type.
     ///
     /// @code
     /// auto const records = dm.Query<Person>()
