@@ -906,10 +906,6 @@ class DataMapper
     template <typename Record>
     std::size_t Delete(Record const& record);
 
-    /// Counts the total number of records in the database for the given record type.
-    template <typename Record>
-    std::size_t Count();
-
     /// Constructs an SQL query builder for the given record type.
     template <typename Record>
     auto BuildQuery() -> SqlQueryBuilder
@@ -1264,19 +1260,6 @@ std::size_t DataMapper::Delete(Record const& record)
     _stmt.Execute();
 
     return _stmt.NumRowsAffected();
-}
-
-template <typename Record>
-size_t DataMapper::Count()
-{
-    _stmt.Prepare(_connection.Query(RecordTableName<Record>).Select().Count().ToSql());
-    _stmt.Execute();
-
-    auto result = size_t {};
-    _stmt.BindOutputColumns(&result);
-    std::ignore = _stmt.FetchRow();
-    _stmt.CloseCursor();
-    return result;
 }
 
 template <typename Record, typename... PrimaryKeyTypes>

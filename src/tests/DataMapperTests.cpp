@@ -528,17 +528,6 @@ struct UserView
     Field<SqlAnsiString<30>> name {};
 };
 
-TEST_CASE_METHOD(SqlTestFixture, "Count", "[DataMapper]")
-{
-    auto dm = DataMapper();
-    dm.CreateTable<UserView>();
-    CHECK(dm.Count<UserView>() == 0);
-    dm.CreateExplicit(UserView { .name = "John Doe" });
-    dm.CreateExplicit(UserView { .name = "Jane Doe" });
-    dm.CreateExplicit(UserView { .name = "Jim Doe" });
-    CHECK(dm.Count<UserView>() == 3);
-}
-
 TEST_CASE_METHOD(SqlTestFixture, "partial row retrieval", "[DataMapper]")
 {
     auto dm = DataMapper();
