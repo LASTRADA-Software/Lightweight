@@ -151,12 +151,14 @@ struct SqlDataBinder<AnsiStringType>
                                                              AnsiStringType const& value,
                                                              SqlDataBinderCallback& /*cb*/) noexcept
     {
+        auto const charCount = StringTraits::Size(&value);
+        auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_LONGVARCHAR : SQL_VARCHAR);
         return SQLBindParameter(stmt,
                                 column,
                                 SQL_PARAM_INPUT,
                                 SQL_C_CHAR,
-                                SQL_VARCHAR,
-                                StringTraits::Size(&value),
+                                sqlType,
+                                charCount,
                                 0,
                                 (SQLPOINTER) StringTraits::Data(&value),
                                 sizeof(AnsiStringType),
