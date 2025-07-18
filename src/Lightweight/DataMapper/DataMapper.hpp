@@ -724,14 +724,6 @@ class DataMapper
         return SqlQuerySingleBuilder<Record>(_stmt, std::move(fields));
     }
 
-    /// @brief Queries a single record by the given column name and value.
-    ///
-    /// @param columnName The name of the column to search.
-    /// @param value The value to search for.
-    /// @return The record if found, otherwise std::nullopt.
-    template <typename Record, typename ColumnName, typename T>
-    std::optional<Record> QuerySingleBy(ColumnName const& columnName, T const& value);
-
     /// Queries multiple records from the database, based on the given query.
     template <typename Record, typename... InputParameters>
     std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters);
