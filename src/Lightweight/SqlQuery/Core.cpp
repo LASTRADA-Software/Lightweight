@@ -1,6 +1,6 @@
 #include "Core.hpp"
 
-std::string detail::ComposedQuery::ToSql() const
+std::string Lightweight::detail::ComposedQuery::ToSql() const
 {
     switch (selectType)
     {

@@ -9,6 +9,9 @@
 #include <string_view>
 #include <vector>
 
+namespace Lightweight
+{
+
 /// @brief Query builder for building INSERT INTO ... queries.
 ///
 /// @see SqlQueryBuilder
@@ -109,3 +112,5 @@ inline std::string SqlInsertQueryBuilder::ToSql() const
 {
     return m_formatter.Insert(m_tableName, m_fields, m_values);
 }
+
+} // namespace Lightweight

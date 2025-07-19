@@ -10,6 +10,9 @@
 
 using namespace std::string_view_literals;
 
+namespace Lightweight
+{
+
 SqlQueryFormatter const& SqlQueryFormatter::Sqlite()
 {
     static SQLiteQueryFormatter const formatter {};
@@ -46,3 +49,5 @@ SqlQueryFormatter const* SqlQueryFormatter::Get(SqlServerType serverType) noexce
     };
     return formatters[static_cast<size_t>(serverType)];
 }
+
+} // namespace Lightweight

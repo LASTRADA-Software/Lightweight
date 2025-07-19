@@ -7,6 +7,9 @@
 
 #include <concepts>
 
+namespace Lightweight
+{
+
 template <std::size_t N>
 struct SqlDataBinder<char[N]>
 {
@@ -52,3 +55,5 @@ struct SqlDataBinder<T[N]>
         return std::string((char const*) u8String.data(), u8String.size());
     }
 };
+
+} // namespace Lightweight

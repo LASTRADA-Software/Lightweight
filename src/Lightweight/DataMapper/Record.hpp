@@ -10,6 +10,9 @@
 #include <concepts>
 #include <limits>
 
+namespace Lightweight
+{
+
 /// @brief Represents a sequence of indexes that can be used alongside Query() to retrieve only part of the record.
 ///
 /// @ingroup DataMapper
@@ -18,16 +21,16 @@ using SqlElements = std::integer_sequence<size_t, Ints...>;
 
 namespace detail
 {
-// Helper trait to detect specializations of SqlElements
-template <typename T>
-struct IsSqlElements: std::false_type
-{
-};
+    // Helper trait to detect specializations of SqlElements
+    template <typename T>
+    struct IsSqlElements: std::false_type
+    {
+    };
 
-template <size_t... Ints>
-struct IsSqlElements<SqlElements<Ints...>>: std::true_type
-{
-};
+    template <size_t... Ints>
+    struct IsSqlElements<SqlElements<Ints...>>: std::true_type
+    {
+    };
 } // namespace detail
 
 // @brief Helper concept to check if a type is not a specialization of SqlElements
@@ -46,19 +49,19 @@ concept DataMapperRecord = std::is_aggregate_v<Record> && NotSqlElements<Record>
 namespace detail
 {
 
-template <std::size_t I, typename Record>
-constexpr std::optional<size_t> FindPrimaryKeyIndex()
-{
-    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-    if constexpr (I < Reflection::CountMembers<Record>)
+    template <std::size_t I, typename Record>
+    constexpr std::optional<size_t> FindPrimaryKeyIndex()
     {
-        if constexpr (IsPrimaryKey<Reflection::MemberTypeOf<I, Record>>)
-            return { I };
-        else
-            return FindPrimaryKeyIndex<I + 1, Record>();
+        static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+        if constexpr (I < Reflection::CountMembers<Record>)
+        {
+            if constexpr (IsPrimaryKey<Reflection::MemberTypeOf<I, Record>>)
+                return { I };
+            else
+                return FindPrimaryKeyIndex<I + 1, Record>();
+        }
+        return std::nullopt;
     }
-    return std::nullopt;
-}
 
 } // namespace detail
 
@@ -79,18 +82,18 @@ decltype(auto) RecordPrimaryKeyOf(Record&& record)
 namespace details
 {
 
-template <typename Record>
-struct RecordPrimaryKeyTypeHelper
-{
-    using type = void;
-};
+    template <typename Record>
+    struct RecordPrimaryKeyTypeHelper
+    {
+        using type = void;
+    };
 
-template <typename Record>
-    requires(RecordPrimaryKeyIndex<Record> < Reflection::CountMembers<Record>)
-struct RecordPrimaryKeyTypeHelper<Record>
-{
-    using type = typename Reflection::MemberTypeOf<RecordPrimaryKeyIndex<Record>, Record>::ValueType;
-};
+    template <typename Record>
+        requires(RecordPrimaryKeyIndex<Record> < Reflection::CountMembers<Record>)
+    struct RecordPrimaryKeyTypeHelper<Record>
+    {
+        using type = typename Reflection::MemberTypeOf<RecordPrimaryKeyIndex<Record>, Record>::ValueType;
+    };
 
 } // namespace details
 
@@ -110,3 +113,5 @@ void MapFromRecordFields(Record&& record, TargetMappable& target)
         target[I] = field.Value();
     });
 }
+
+} // namespace Lightweight

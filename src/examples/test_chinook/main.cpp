@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "Lightweight/SqlLogger.hpp"
-
 #include "entities/Album.hpp"
 #include "entities/Artist.hpp"
 #include "entities/Customer.hpp"
@@ -15,8 +13,11 @@
 #include "entities/Track.hpp"
 
 #include <Lightweight/Lightweight.hpp>
+#include <Lightweight/SqlLogger.hpp>
 
 #include <print>
+
+using namespace Lightweight;
 
 static std::string GetEnvironmentVariable(std::string const& name)
 {

@@ -10,6 +10,9 @@
 #include <string>
 #include <variant>
 
+namespace Lightweight
+{
+
 /// Represents an ODBC connection string.
 struct SqlConnectionString
 {
@@ -52,19 +55,21 @@ struct [[nodiscard]] SqlConnectionDataSource
 
 using SqlConnectInfo = std::variant<SqlConnectionDataSource, SqlConnectionString>;
 
+} // namespace Lightweight
+
 template <>
-struct std::formatter<SqlConnectInfo>: std::formatter<std::string>
+struct std::formatter<Lightweight::SqlConnectInfo>: std::formatter<std::string>
 {
-    auto format(SqlConnectInfo const& info, format_context& ctx) const -> format_context::iterator
+    auto format(Lightweight::SqlConnectInfo const& info, format_context& ctx) const -> format_context::iterator
     {
-        if (auto const* dsn = std::get_if<SqlConnectionDataSource>(&info))
+        if (auto const* dsn = std::get_if<Lightweight::SqlConnectionDataSource>(&info))
         {
             return formatter<string>::format(
                 std::format(
                     "DSN={};UID={};PWD={};TIMEOUT={}", dsn->datasource, dsn->username, dsn->password, dsn->timeout.count()),
                 ctx);
         }
-        else if (auto const* connectionString = std::get_if<SqlConnectionString>(&info))
+        else if (auto const* connectionString = std::get_if<Lightweight::SqlConnectionString>(&info))
         {
             return formatter<string>::format(connectionString->value, ctx);
         }

@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 using namespace std::string_view_literals;
+using namespace Lightweight;
 
 TEST_CASE("UTF-32 to UTF-16 conversion", "[Unicode]")
 {

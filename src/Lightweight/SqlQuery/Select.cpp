@@ -2,6 +2,9 @@
 
 #include "Select.hpp"
 
+namespace Lightweight
+{
+
 SqlSelectQueryBuilder& SqlSelectQueryBuilder::Field(std::string_view const& fieldName)
 {
     if (!_query.fields.empty())
@@ -184,3 +187,5 @@ SqlSelectQueryBuilder::ComposedQuery SqlSelectQueryBuilder::Range(std::size_t of
     else
         return _query;
 }
+
+} // namespace Lightweight

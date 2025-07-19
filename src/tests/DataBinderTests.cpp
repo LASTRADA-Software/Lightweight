@@ -31,6 +31,7 @@
 using namespace std::chrono_literals;
 using namespace std::string_literals;
 using namespace std::string_view_literals;
+using namespace Lightweight;
 
 struct CustomType
 {
@@ -60,7 +61,7 @@ std::ostream& operator<<(std::ostream& os, std::u8string_view value)
 } // namespace std
 
 template <>
-struct SqlDataBinder<CustomType>
+struct Lightweight::SqlDataBinder<CustomType>
 {
     static constexpr auto ColumnType = SqlDataBinder<decltype(CustomType::value)>::ColumnType;
 

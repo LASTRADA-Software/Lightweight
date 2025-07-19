@@ -10,6 +10,9 @@
 #include <string>
 #include <string_view>
 
+namespace Lightweight
+{
+
 struct SqlQualifiedTableColumnName;
 
 /// API to format SQL queries for different SQL dialects.
@@ -128,3 +131,5 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// Retrieves the SQL query formatter for the given SqlServerType.
     static SqlQueryFormatter const* Get(SqlServerType serverType) noexcept;
 };
+
+} // namespace Lightweight

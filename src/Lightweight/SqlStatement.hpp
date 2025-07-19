@@ -27,6 +27,9 @@
 #include <sqlspi.h>
 #include <sqltypes.h>
 
+namespace Lightweight
+{
+
 /// @brief Represents an SQL query object, that provides a ToSql() method.
 template <typename QueryObject>
 concept SqlQueryObject = requires(QueryObject const& queryObject) {
@@ -788,8 +791,8 @@ inline bool SqlStatement::GetColumn(SQLUSMALLINT column, T* result) const
 namespace detail
 {
 
-template <typename T>
-concept SqlNullableType = (std::same_as<T, SqlVariant> || IsSpecializationOf<std::optional, T>);
+    template <typename T>
+    concept SqlNullableType = (std::same_as<T, SqlVariant> || IsSpecializationOf<std::optional, T>);
 
 } // end namespace detail
 
@@ -890,3 +893,5 @@ inline LIGHTWEIGHT_FORCE_INLINE SqlVariantRowCursor SqlStatement::GetVariantRowC
 }
 
 // }}}
+
+} // namespace Lightweight

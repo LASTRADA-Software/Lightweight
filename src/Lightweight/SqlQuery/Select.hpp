@@ -8,6 +8,9 @@
 
 #include <reflection-cpp/reflection.hpp>
 
+namespace Lightweight
+{
+
 enum class SqlQueryBuilderMode : uint8_t
 {
     Fluent,
@@ -22,55 +25,55 @@ struct [[nodiscard]] SqlFieldExpression final
 namespace Aggregate
 {
 
-inline SqlFieldExpression Count(std::string const& field = "*") noexcept
-{
-    return SqlFieldExpression { .expression = std::format("COUNT(\"{}\")", field) };
-}
+    inline SqlFieldExpression Count(std::string const& field = "*") noexcept
+    {
+        return SqlFieldExpression { .expression = std::format("COUNT(\"{}\")", field) };
+    }
 
-inline SqlFieldExpression Count(SqlQualifiedTableColumnName const& field) noexcept
-{
-    return SqlFieldExpression { .expression = std::format(R"(COUNT("{}"."{}"))", field.tableName, field.columnName) };
-}
+    inline SqlFieldExpression Count(SqlQualifiedTableColumnName const& field) noexcept
+    {
+        return SqlFieldExpression { .expression = std::format(R"(COUNT("{}"."{}"))", field.tableName, field.columnName) };
+    }
 
-inline SqlFieldExpression Sum(std::string const& field) noexcept
-{
-    return SqlFieldExpression { .expression = std::format("SUM(\"{}\")", field) };
-}
+    inline SqlFieldExpression Sum(std::string const& field) noexcept
+    {
+        return SqlFieldExpression { .expression = std::format("SUM(\"{}\")", field) };
+    }
 
-inline SqlFieldExpression Sum(SqlQualifiedTableColumnName const& field) noexcept
-{
-    return SqlFieldExpression { .expression = std::format(R"(SUM("{}"."{}"))", field.tableName, field.columnName) };
-}
+    inline SqlFieldExpression Sum(SqlQualifiedTableColumnName const& field) noexcept
+    {
+        return SqlFieldExpression { .expression = std::format(R"(SUM("{}"."{}"))", field.tableName, field.columnName) };
+    }
 
-inline SqlFieldExpression Avg(std::string const& field) noexcept
-{
-    return SqlFieldExpression { .expression = std::format("AVG(\"{}\")", field) };
-}
+    inline SqlFieldExpression Avg(std::string const& field) noexcept
+    {
+        return SqlFieldExpression { .expression = std::format("AVG(\"{}\")", field) };
+    }
 
-inline SqlFieldExpression Avg(SqlQualifiedTableColumnName const& field) noexcept
-{
-    return SqlFieldExpression { .expression = std::format(R"(AVG("{}"."{}"))", field.tableName, field.columnName) };
-}
+    inline SqlFieldExpression Avg(SqlQualifiedTableColumnName const& field) noexcept
+    {
+        return SqlFieldExpression { .expression = std::format(R"(AVG("{}"."{}"))", field.tableName, field.columnName) };
+    }
 
-inline SqlFieldExpression Min(std::string const& field) noexcept
-{
-    return SqlFieldExpression { .expression = std::format("MIN(\"{}\")", field) };
-}
+    inline SqlFieldExpression Min(std::string const& field) noexcept
+    {
+        return SqlFieldExpression { .expression = std::format("MIN(\"{}\")", field) };
+    }
 
-inline SqlFieldExpression Min(SqlQualifiedTableColumnName const& field) noexcept
-{
-    return SqlFieldExpression { .expression = std::format(R"(MIN("{}"."{}"))", field.tableName, field.columnName) };
-}
+    inline SqlFieldExpression Min(SqlQualifiedTableColumnName const& field) noexcept
+    {
+        return SqlFieldExpression { .expression = std::format(R"(MIN("{}"."{}"))", field.tableName, field.columnName) };
+    }
 
-inline SqlFieldExpression Max(std::string const& field) noexcept
-{
-    return SqlFieldExpression { .expression = std::format("MAX(\"{}\")", field) };
-}
+    inline SqlFieldExpression Max(std::string const& field) noexcept
+    {
+        return SqlFieldExpression { .expression = std::format("MAX(\"{}\")", field) };
+    }
 
-inline SqlFieldExpression Max(SqlQualifiedTableColumnName const& field) noexcept
-{
-    return SqlFieldExpression { .expression = std::format(R"(MAX("{}"."{}"))", field.tableName, field.columnName) };
-}
+    inline SqlFieldExpression Max(SqlQualifiedTableColumnName const& field) noexcept
+    {
+        return SqlFieldExpression { .expression = std::format(R"(MAX("{}"."{}"))", field.tableName, field.columnName) };
+    }
 
 } // namespace Aggregate
 
@@ -222,3 +225,5 @@ inline LIGHTWEIGHT_FORCE_INLINE SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fi
     }
     return *this;
 }
+
+} // namespace Lightweight

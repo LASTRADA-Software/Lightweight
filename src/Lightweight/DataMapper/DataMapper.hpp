@@ -23,6 +23,9 @@
 #include <type_traits>
 #include <utility>
 
+namespace Lightweight
+{
+
 /// @defgroup DataMapper Data Mapper
 ///
 /// @brief The data mapper is a high level API for mapping records to and from the database using high level C++ syntax.
@@ -58,13 +61,13 @@ concept RecordWithStorageFields = (RecordStorageFieldCount<Record> > 0);
 namespace detail
 {
 
-template <auto Test, typename T>
-constexpr bool CheckFieldProperty = Reflection::FoldMembers<T>(false, []<size_t I, typename Field>(bool const accum) {
-    if constexpr (Test.template operator()<Field>())
-        return true;
-    else
-        return accum;
-});
+    template <auto Test, typename T>
+    constexpr bool CheckFieldProperty = Reflection::FoldMembers<T>(false, []<size_t I, typename Field>(bool const accum) {
+        if constexpr (Test.template operator()<Field>())
+            return true;
+        else
+            return accum;
+    });
 
 } // namespace detail
 
@@ -84,162 +87,165 @@ constexpr bool HasAutoIncrementPrimaryKey =
 namespace detail
 {
 
-template <template <typename> class Allocator, template <typename, typename> class Container, typename Object>
-auto ToSharedPtrList(Container<Object, Allocator<Object>> container)
-{
-    using SharedPtrRecord = std::shared_ptr<Object>;
-    auto sharedPtrContainer = Container<SharedPtrRecord, Allocator<SharedPtrRecord>> {};
-    for (auto& object: container)
-        sharedPtrContainer.emplace_back(std::make_shared<Object>(std::move(object)));
-    return sharedPtrContainer;
-}
+    template <template <typename> class Allocator, template <typename, typename> class Container, typename Object>
+    auto ToSharedPtrList(Container<Object, Allocator<Object>> container)
+    {
+        using SharedPtrRecord = std::shared_ptr<Object>;
+        auto sharedPtrContainer = Container<SharedPtrRecord, Allocator<SharedPtrRecord>> {};
+        for (auto& object: container)
+            sharedPtrContainer.emplace_back(std::make_shared<Object>(std::move(object)));
+        return sharedPtrContainer;
+    }
 
-template <typename Record>
-constexpr bool CanSafelyBindOutputColumns(SqlServerType sqlServerType) noexcept
-{
-    if (sqlServerType != SqlServerType::MICROSOFT_SQL)
-        return true;
+    template <typename Record>
+    constexpr bool CanSafelyBindOutputColumns(SqlServerType sqlServerType) noexcept
+    {
+        if (sqlServerType != SqlServerType::MICROSOFT_SQL)
+            return true;
 
-    // Test if we have some columns that might not be sufficient to store the result (e.g. string truncation),
-    // then don't call BindOutputColumn but SQLFetch to get the result, because
-    // regrowing previously bound columns is not supported in MS-SQL's ODBC driver, so it seems.
-    bool result = true;
-    Reflection::EnumerateMembers<Record>([&result]<size_t I, typename Field>() {
-        if constexpr (IsField<Field>)
-        {
-            if constexpr (detail::OneOf<typename Field::ValueType,
-                                        std::string,
-                                        std::wstring,
-                                        std::u16string,
-                                        std::u32string,
-                                        SqlBinary>
-                          || IsSqlDynamicString<typename Field::ValueType> || IsSqlDynamicBinary<typename Field::ValueType>)
+        // Test if we have some columns that might not be sufficient to store the result (e.g. string truncation),
+        // then don't call BindOutputColumn but SQLFetch to get the result, because
+        // regrowing previously bound columns is not supported in MS-SQL's ODBC driver, so it seems.
+        bool result = true;
+        Reflection::EnumerateMembers<Record>([&result]<size_t I, typename Field>() {
+            if constexpr (IsField<Field>)
             {
-                // Known types that MAY require growing due to truncation.
-                result = false;
+                if constexpr (detail::OneOf<typename Field::ValueType,
+                                            std::string,
+                                            std::wstring,
+                                            std::u16string,
+                                            std::u32string,
+                                            SqlBinary>
+                              || IsSqlDynamicString<typename Field::ValueType>
+                              || IsSqlDynamicBinary<typename Field::ValueType>)
+                {
+                    // Known types that MAY require growing due to truncation.
+                    result = false;
+                }
             }
-        }
-    });
-    return result;
-}
+        });
+        return result;
+    }
 
-template <typename Record>
-void BindAllOutputColumnsWithOffset(SqlResultCursor& reader, Record& record, SQLSMALLINT startOffset)
-{
-    Reflection::EnumerateMembers(record,
-                                 [reader = &reader, i = startOffset]<size_t I, typename Field>(Field& field) mutable {
-                                     if constexpr (IsField<Field>)
-                                     {
-                                         reader->BindOutputColumn(i++, &field.MutableValue());
-                                     }
-                                     else if constexpr (IsBelongsTo<Field>)
-                                     {
-                                         reader->BindOutputColumn(i++, &field.MutableValue());
-                                     }
-                                     else if constexpr (SqlOutputColumnBinder<Field>)
-                                     {
-                                         reader->BindOutputColumn(i++, &field);
-                                     }
-                                 });
-}
+    template <typename Record>
+    void BindAllOutputColumnsWithOffset(SqlResultCursor& reader, Record& record, SQLSMALLINT startOffset)
+    {
+        Reflection::EnumerateMembers(record,
+                                     [reader = &reader, i = startOffset]<size_t I, typename Field>(Field& field) mutable {
+                                         if constexpr (IsField<Field>)
+                                         {
+                                             reader->BindOutputColumn(i++, &field.MutableValue());
+                                         }
+                                         else if constexpr (IsBelongsTo<Field>)
+                                         {
+                                             reader->BindOutputColumn(i++, &field.MutableValue());
+                                         }
+                                         else if constexpr (SqlOutputColumnBinder<Field>)
+                                         {
+                                             reader->BindOutputColumn(i++, &field);
+                                         }
+                                     });
+    }
 
-template <typename Record>
-void BindAllOutputColumns(SqlResultCursor& reader, Record& record)
-{
-    BindAllOutputColumnsWithOffset(reader, record, 1);
-}
+    template <typename Record>
+    void BindAllOutputColumns(SqlResultCursor& reader, Record& record)
+    {
+        BindAllOutputColumnsWithOffset(reader, record, 1);
+    }
 
-// when we iterate over all columns using element mask
-// indexes of the mask corresponds to the indexe of the field
-// inside the structure, not inside the SQL result set
-template <typename ElementMask, typename Record>
-void GetAllColumns(SqlResultCursor& reader, Record& record)
-{
-    SQLUSMALLINT indexFromQuery = 0;
-    Reflection::EnumerateMembers<ElementMask>(
-        record, [reader = &reader, &indexFromQuery]<size_t I, typename Field>(Field& field) mutable {
-            ++indexFromQuery;
+    // when we iterate over all columns using element mask
+    // indexes of the mask corresponds to the indexe of the field
+    // inside the structure, not inside the SQL result set
+    template <typename ElementMask, typename Record>
+    void GetAllColumns(SqlResultCursor& reader, Record& record)
+    {
+        SQLUSMALLINT indexFromQuery = 0;
+        Reflection::EnumerateMembers<ElementMask>(
+            record, [reader = &reader, &indexFromQuery]<size_t I, typename Field>(Field& field) mutable {
+                ++indexFromQuery;
+                if constexpr (IsField<Field>)
+                {
+                    if constexpr (Field::IsOptional)
+                        field.MutableValue() =
+                            reader->GetNullableColumn<typename Field::ValueType::value_type>(indexFromQuery);
+                    else
+                        field.MutableValue() = reader->GetColumn<typename Field::ValueType>(indexFromQuery);
+                }
+                else if constexpr (SqlGetColumnNativeType<Field>)
+                {
+                    if constexpr (IsOptionalBelongsTo<Field>)
+                        field = reader->GetNullableColumn<typename Field::BaseType>(indexFromQuery);
+                    else
+                        field = reader->GetColumn<Field>(indexFromQuery);
+                }
+            });
+    }
+
+    template <typename Record>
+    void GetAllColumns(SqlResultCursor& reader, Record& record)
+    {
+        return GetAllColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>, Record>(reader, record);
+    }
+
+    template <typename FirstRecord, typename SecondRecord>
+    void GetAllColumns(SqlResultCursor& reader, std::tuple<FirstRecord, SecondRecord>& record)
+    {
+        auto& [firstRecord, secondRecord] = record;
+
+        Reflection::EnumerateMembers(firstRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
             if constexpr (IsField<Field>)
             {
                 if constexpr (Field::IsOptional)
-                    field.MutableValue() = reader->GetNullableColumn<typename Field::ValueType::value_type>(indexFromQuery);
+                    field.MutableValue() = reader->GetNullableColumn<typename Field::ValueType::value_type>(I + 1);
                 else
-                    field.MutableValue() = reader->GetColumn<typename Field::ValueType>(indexFromQuery);
+                    field.MutableValue() = reader->GetColumn<typename Field::ValueType>(I + 1);
             }
             else if constexpr (SqlGetColumnNativeType<Field>)
             {
-                if constexpr (IsOptionalBelongsTo<Field>)
-                    field = reader->GetNullableColumn<typename Field::BaseType>(indexFromQuery);
+                if constexpr (Field::IsOptional)
+                    field = reader->GetNullableColumn<typename Field::BaseType>(I + 1);
                 else
-                    field = reader->GetColumn<Field>(indexFromQuery);
+                    field = reader->GetColumn<Field>(I + 1);
             }
         });
-}
 
-template <typename Record>
-void GetAllColumns(SqlResultCursor& reader, Record& record)
-{
-    return GetAllColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>, Record>(reader, record);
-}
+        Reflection::EnumerateMembers(secondRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
+            if constexpr (IsField<Field>)
+            {
+                if constexpr (Field::IsOptional)
+                    field.MutableValue() = reader->GetNullableColumn<typename Field::ValueType::value_type>(
+                        Reflection::CountMembers<FirstRecord> + I + 1);
+                else
+                    field.MutableValue() =
+                        reader->GetColumn<typename Field::ValueType>(Reflection::CountMembers<FirstRecord> + I + 1);
+            }
+            else if constexpr (SqlGetColumnNativeType<Field>)
+            {
+                if constexpr (Field::IsOptional)
+                    field =
+                        reader->GetNullableColumn<typename Field::BaseType>(Reflection::CountMembers<FirstRecord> + I + 1);
+                else
+                    field = reader->GetColumn<Field>(Reflection::CountMembers<FirstRecord> + I + 1);
+            }
+        });
+    }
 
-template <typename FirstRecord, typename SecondRecord>
-void GetAllColumns(SqlResultCursor& reader, std::tuple<FirstRecord, SecondRecord>& record)
-{
-    auto& [firstRecord, secondRecord] = record;
+    template <typename Record>
+    bool ReadSingleResult(SqlServerType sqlServerType, SqlResultCursor& reader, Record& record)
+    {
+        auto const outputColumnsBound = CanSafelyBindOutputColumns<Record>(sqlServerType);
 
-    Reflection::EnumerateMembers(firstRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
-        if constexpr (IsField<Field>)
-        {
-            if constexpr (Field::IsOptional)
-                field.MutableValue() = reader->GetNullableColumn<typename Field::ValueType::value_type>(I + 1);
-            else
-                field.MutableValue() = reader->GetColumn<typename Field::ValueType>(I + 1);
-        }
-        else if constexpr (SqlGetColumnNativeType<Field>)
-        {
-            if constexpr (Field::IsOptional)
-                field = reader->GetNullableColumn<typename Field::BaseType>(I + 1);
-            else
-                field = reader->GetColumn<Field>(I + 1);
-        }
-    });
+        if (outputColumnsBound)
+            BindAllOutputColumns(reader, record);
 
-    Reflection::EnumerateMembers(secondRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
-        if constexpr (IsField<Field>)
-        {
-            if constexpr (Field::IsOptional)
-                field.MutableValue() = reader->GetNullableColumn<typename Field::ValueType::value_type>(
-                    Reflection::CountMembers<FirstRecord> + I + 1);
-            else
-                field.MutableValue() =
-                    reader->GetColumn<typename Field::ValueType>(Reflection::CountMembers<FirstRecord> + I + 1);
-        }
-        else if constexpr (SqlGetColumnNativeType<Field>)
-        {
-            if constexpr (Field::IsOptional)
-                field = reader->GetNullableColumn<typename Field::BaseType>(Reflection::CountMembers<FirstRecord> + I + 1);
-            else
-                field = reader->GetColumn<Field>(Reflection::CountMembers<FirstRecord> + I + 1);
-        }
-    });
-}
+        if (!reader.FetchRow())
+            return false;
 
-template <typename Record>
-bool ReadSingleResult(SqlServerType sqlServerType, SqlResultCursor& reader, Record& record)
-{
-    auto const outputColumnsBound = CanSafelyBindOutputColumns<Record>(sqlServerType);
+        if (!outputColumnsBound)
+            GetAllColumns(reader, record);
 
-    if (outputColumnsBound)
-        BindAllOutputColumns(reader, record);
-
-    if (!reader.FetchRow())
-        return false;
-
-    if (!outputColumnsBound)
-        GetAllColumns(reader, record);
-
-    return true;
-}
+        return true;
+    }
 
 } // namespace detail
 
@@ -1868,3 +1874,5 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         }
     });
 }
+
+} // namespace Lightweight

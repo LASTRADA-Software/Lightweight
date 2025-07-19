@@ -23,3 +23,9 @@
 #else
     #define LIGHTWEIGHT_API /*!*/
 #endif
+
+namespace Lightweight
+{
+}
+
+namespace Light = Lightweight;

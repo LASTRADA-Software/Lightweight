@@ -4,6 +4,9 @@
 #include <algorithm>
 #include <string_view>
 
+namespace Lightweight
+{
+
 /// @brief Helper class, used to represent a real SQL column names as template arguments.
 ///
 /// @see Field, BelongsTo
@@ -58,3 +61,5 @@ struct SqlRealName
         return { value, length };
     }
 };
+
+} // namespace Lightweight

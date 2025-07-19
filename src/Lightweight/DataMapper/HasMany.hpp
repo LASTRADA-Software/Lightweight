@@ -17,6 +17,9 @@
 #include <type_traits>
 #include <vector>
 
+namespace Lightweight
+{
+
 /// @brief This HasMany<OtherRecord> represents a simple one-to-many relationship between two records.
 ///
 /// The HasMany<OtherRecord> is a member of the "one" side of the relationship.
@@ -252,3 +255,5 @@ inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::const_iterator HasMany<Oth
     RequireLoaded();
     return _records->end();
 }
+
+} // namespace Lightweight

@@ -14,6 +14,9 @@
 #include <optional>
 #include <sstream>
 
+namespace Lightweight
+{
+
 /// @brief Tells the data mapper that this field is a primary key with given semantics, or not a primary key.
 enum class PrimaryKey : uint8_t
 {
@@ -38,7 +41,7 @@ enum class PrimaryKey : uint8_t
 namespace detail
 {
 
-// clang-format off
+    // clang-format off
 
 template <typename T>
 struct IsStdOptionalType: std::false_type {};
@@ -52,18 +55,18 @@ constexpr bool IsStdOptional = IsStdOptionalType<T>::value;
 template <typename T>
 concept FieldElementType = SqlInputParameterBinder<T> && SqlOutputColumnBinder<T>;
 
-// clang-format on
+    // clang-format on
 
-template <typename TargetType, typename P1, typename P2>
-consteval auto Choose(TargetType defaultValue, P1 p1, P2 p2) noexcept
-{
-    if constexpr (!std::same_as<P1, std::nullopt_t> && requires { TargetType { p1 }; })
-        return p1;
-    else if constexpr (!std::same_as<P2, std::nullopt_t> && requires { TargetType { p2 }; })
-        return p2;
-    else
-        return defaultValue;
-}
+    template <typename TargetType, typename P1, typename P2>
+    consteval auto Choose(TargetType defaultValue, P1 p1, P2 p2) noexcept
+    {
+        if constexpr (!std::same_as<P1, std::nullopt_t> && requires { TargetType { p1 }; })
+            return p1;
+        else if constexpr (!std::same_as<P2, std::nullopt_t> && requires { TargetType { p2 }; })
+            return p2;
+        else
+            return defaultValue;
+    }
 } // namespace detail
 
 /// @brief Represents a single column in a table.
@@ -213,7 +216,7 @@ constexpr LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::Field(S&&... value) noexcep
 template <detail::FieldElementType T, auto P1, auto P2>
 template <typename S>
     requires std::constructible_from<T, S> && (!std::same_as<std::remove_cvref_t<S>, Field<T, P1, P2>>)
-constexpr LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>& Field<T, P1, P2>::operator=(S&& value) noexcept
+constexpr LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>& Field<T, P1, P2>::operator=(S && value) noexcept
 {
     _value = std::forward<S>(value);
     SetModified(true);
@@ -335,11 +338,13 @@ struct SqlDataBinder<Field<T, P1, P2>>
     }
 };
 
-template <detail::FieldElementType T, auto P1, auto P2>
-struct std::formatter<Field<T, P1, P2>>: std::formatter<T>
+} // namespace Lightweight
+
+template <Lightweight::detail::FieldElementType T, auto P1, auto P2>
+struct std::formatter<Lightweight::Field<T, P1, P2>>: std::formatter<T>
 {
     template <typename FormatContext>
-    auto format(Field<T, P1, P2> const& field, FormatContext& ctx)
+    auto format(Lightweight::Field<T, P1, P2> const& field, FormatContext& ctx)
     {
         return formatter<T>::format(field.InspectValue(), ctx);
     }

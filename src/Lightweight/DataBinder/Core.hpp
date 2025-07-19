@@ -16,6 +16,9 @@
 #include <sqlext.h>
 #include <sqltypes.h>
 
+namespace Lightweight
+{
+
 /// @defgroup DataTypes Data Types
 ///
 /// @brief Special purpose data types for SQL data binding.
@@ -58,7 +61,7 @@ struct SqlBasicStringOperations;
 namespace detail
 {
 
-// clang-format off
+    // clang-format off
 template <typename T>
 concept HasGetStringAndGetLength = requires(T const& t) {
     { t.GetLength() } -> std::same_as<int>;
@@ -71,42 +74,42 @@ concept HasGetStringAndLength = requires(T const& t)
     { t.Length() } -> std::same_as<int>;
     { t.GetString() } -> std::same_as<char const*>;
 };
-// clang-format on
+    // clang-format on
 
-template <typename>
-struct SqlViewHelper;
+    template <typename>
+    struct SqlViewHelper;
 
-template <typename T>
-concept HasSqlViewHelper = requires(T const& t) {
-    { SqlViewHelper<T>::View(t) } -> std::convertible_to<std::string_view>;
-};
+    template <typename T>
+    concept HasSqlViewHelper = requires(T const& t) {
+        { SqlViewHelper<T>::View(t) } -> std::convertible_to<std::string_view>;
+    };
 
-template <typename CharT>
-struct SqlViewHelper<std::basic_string<CharT>>
-{
-    static LIGHTWEIGHT_FORCE_INLINE std::basic_string_view<CharT> View(std::basic_string<CharT> const& str) noexcept
+    template <typename CharT>
+    struct SqlViewHelper<std::basic_string<CharT>>
     {
-        return { str.data(), str.size() };
-    }
-};
+        static LIGHTWEIGHT_FORCE_INLINE std::basic_string_view<CharT> View(std::basic_string<CharT> const& str) noexcept
+        {
+            return { str.data(), str.size() };
+        }
+    };
 
-template <detail::HasGetStringAndGetLength CStringLike>
-struct SqlViewHelper<CStringLike>
-{
-    static LIGHTWEIGHT_FORCE_INLINE std::string_view View(CStringLike const& str) noexcept
+    template <detail::HasGetStringAndGetLength CStringLike>
+    struct SqlViewHelper<CStringLike>
     {
-        return { str.GetString(), static_cast<size_t>(str.GetLength()) };
-    }
-};
+        static LIGHTWEIGHT_FORCE_INLINE std::string_view View(CStringLike const& str) noexcept
+        {
+            return { str.GetString(), static_cast<size_t>(str.GetLength()) };
+        }
+    };
 
-template <detail::HasGetStringAndLength StringLike>
-struct SqlViewHelper<StringLike>
-{
-    static LIGHTWEIGHT_FORCE_INLINE std::string_view View(StringLike const& str) noexcept
+    template <detail::HasGetStringAndLength StringLike>
+    struct SqlViewHelper<StringLike>
     {
-        return { str.GetString(), static_cast<size_t>(str.Length()) };
-    }
-};
+        static LIGHTWEIGHT_FORCE_INLINE std::string_view View(StringLike const& str) noexcept
+        {
+            return { str.GetString(), static_cast<size_t>(str.Length()) };
+        }
+    };
 
 } // namespace detail
 
@@ -153,3 +156,5 @@ concept SqlBasicStringBinderConcept = requires(StringType* str) {
     { SqlBasicStringOperations<StringType>::Clear(str) } -> std::same_as<void>;
 };
 // clang-format on
+
+} // namespace Lightweight

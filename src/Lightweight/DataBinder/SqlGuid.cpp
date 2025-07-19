@@ -16,6 +16,9 @@
 #include <random>
 #include <ranges>
 
+namespace Lightweight
+{
+
 SqlGuid SqlGuid::Create() noexcept
 {
     SqlGuid guid {};
@@ -195,3 +198,5 @@ SQLRETURN SqlDataBinder<SqlGuid>::GetColumn(
     }
     std::unreachable();
 }
+
+} // namespace Lightweight

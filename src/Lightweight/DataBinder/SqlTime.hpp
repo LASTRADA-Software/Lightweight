@@ -33,6 +33,9 @@ static_assert(
 #endif
 // clang-format on
 
+namespace Lightweight
+{
+
 /// Stores the time (of the day) to efficiently write to or read from a database.
 ///
 /// @ingroup DataTypes
@@ -146,10 +149,12 @@ struct SqlDataBinder<SqlTime>
     }
 };
 
+} // namespace Lightweight
+
 template <>
-struct std::formatter<SqlTime>: std::formatter<std::string>
+struct std::formatter<Lightweight::SqlTime>: std::formatter<std::string>
 {
-    auto format(SqlTime const& value, std::format_context& ctx) const -> std::format_context::iterator
+    auto format(Lightweight::SqlTime const& value, std::format_context& ctx) const -> std::format_context::iterator
     {
         return std::formatter<std::string>::format(std::format("{:02}:{:02}:{:02}:{:06}",
                                                                value.sqlValue.hour,
