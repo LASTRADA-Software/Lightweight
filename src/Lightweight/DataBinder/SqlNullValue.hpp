@@ -4,6 +4,9 @@
 
 #include "Core.hpp"
 
+namespace Lightweight
+{
+
 /// Helper binder type to indicate NULL values in SQL queries.
 ///
 /// @ingroup DataTypes
@@ -59,3 +62,5 @@ struct SqlDataBinder<SqlNullType>
         return "NULL";
     }
 };
+
+} // namespace Lightweight

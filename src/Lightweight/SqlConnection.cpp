@@ -6,6 +6,9 @@
 
 #include <sql.h>
 
+namespace Lightweight
+{
+
 using namespace std::chrono_literals;
 using namespace std::string_view_literals;
 
@@ -339,3 +342,5 @@ SqlMigrationQueryBuilder SqlConnection::Migration() const
 {
     return SqlMigrationQueryBuilder(QueryFormatter());
 }
+
+} // namespace Lightweight

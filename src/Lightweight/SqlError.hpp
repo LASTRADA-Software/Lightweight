@@ -18,6 +18,9 @@
 #include <sqlspi.h>
 #include <sqltypes.h>
 
+namespace Lightweight
+{
+
 /// @brief Represents an ODBC SQL error.
 ///
 /// NOTE: This is a simple wrapper around the SQL return codes. It is not meant to be
@@ -141,31 +144,34 @@ struct SqlErrorCategory: std::error_category
     }
 };
 
+} // namespace Lightweight
+
 // Register our enum as an error code so we can constructor error_code from it
 template <>
-struct std::is_error_code_enum<SqlError>: public std::true_type
+struct std::is_error_code_enum<Lightweight::SqlError>: public std::true_type
 {
 };
 
 // Tells the compiler that MyErr pairs with MyCategory
-inline std::error_code make_error_code(SqlError e)
+inline std::error_code make_error_code(Lightweight::SqlError e)
 {
-    return { static_cast<int>(e), SqlErrorCategory::get() };
+    return { static_cast<int>(e), Lightweight::SqlErrorCategory::get() };
 }
 
 template <>
-struct std::formatter<SqlError>: formatter<std::string>
+struct std::formatter<Lightweight::SqlError>: formatter<std::string>
 {
-    auto format(SqlError value, format_context& ctx) const -> format_context::iterator
+    auto format(Lightweight::SqlError value, format_context& ctx) const -> format_context::iterator
     {
-        return formatter<std::string>::format(std::format("{}", SqlErrorCategory().message(static_cast<int>(value))), ctx);
+        return formatter<std::string>::format(
+            std::format("{}", Lightweight::SqlErrorCategory().message(static_cast<int>(value))), ctx);
     }
 };
 
 template <>
-struct std::formatter<SqlErrorInfo>: formatter<std::string>
+struct std::formatter<Lightweight::SqlErrorInfo>: formatter<std::string>
 {
-    auto format(SqlErrorInfo const& info, format_context& ctx) const -> format_context::iterator
+    auto format(Lightweight::SqlErrorInfo const& info, format_context& ctx) const -> format_context::iterator
     {
         return formatter<std::string>::format(std::format("{} ({}) - {}", info.sqlState, info.nativeErrorCode, info.message),
                                               ctx);

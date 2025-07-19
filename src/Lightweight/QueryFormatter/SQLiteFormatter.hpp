@@ -7,6 +7,9 @@
 
 #include <format>
 
+namespace Lightweight
+{
+
 class SQLiteQueryFormatter: public SqlQueryFormatter
 {
   public:
@@ -355,3 +358,5 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return { std::format(R"(DROP TABLE "{}";)", tableName) };
     }
 };
+
+} // namespace Lightweight

@@ -11,6 +11,9 @@
 #include <string>
 #include <type_traits>
 
+namespace Lightweight
+{
+
 // Specialized traits for std::basic_string<> as output string parameter
 template <typename CharT>
 struct SqlBasicStringOperations<std::basic_string<CharT>>
@@ -55,3 +58,5 @@ struct SqlBasicStringOperations<std::basic_string<CharT>>
             str->resize(indicator);
     }
 };
+
+} // namespace Lightweight

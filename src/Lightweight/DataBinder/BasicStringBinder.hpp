@@ -9,6 +9,9 @@
 #include <memory>
 #include <utility>
 
+namespace Lightweight
+{
+
 /// @brief Magic number, which is used to determine the optimal maximum size of a column.
 ///
 /// Columns may be larger than this value, but this is the optimal maximum size for performance,
@@ -18,120 +21,120 @@ constexpr std::size_t SqlOptimalMaxColumnSize = 4000;
 namespace detail
 {
 
-template <auto CType, typename ArrayType>
-static SQLRETURN GetArrayData(SQLHSTMT stmt, SQLUSMALLINT column, ArrayType* result, SQLLEN* indicator) noexcept
-{
-    using CharType = typename ArrayType::value_type;
-
-    *indicator = 0;
-
-    // Resize the string to the size of the data
-    // Get the data (take care of SQL_NULL_DATA and SQL_NO_TOTAL)
-    auto sqlResult = SQLGetData(
-        stmt, column, CType, (SQLPOINTER) result->data(), (SQLLEN) (result->size() * sizeof(CharType)), indicator);
-
-    if (sqlResult == SQL_SUCCESS || sqlResult == SQL_NO_DATA)
+    template <auto CType, typename ArrayType>
+    static SQLRETURN GetArrayData(SQLHSTMT stmt, SQLUSMALLINT column, ArrayType* result, SQLLEN* indicator) noexcept
     {
-        // Data has been read successfully on first call to SQLGetData, or there is no data to read.
-        if (*indicator == SQL_NULL_DATA)
-            result->clear();
-        else
-            result->resize(*indicator / sizeof(CharType));
+        using CharType = typename ArrayType::value_type;
+
+        *indicator = 0;
+
+        // Resize the string to the size of the data
+        // Get the data (take care of SQL_NULL_DATA and SQL_NO_TOTAL)
+        auto sqlResult = SQLGetData(
+            stmt, column, CType, (SQLPOINTER) result->data(), (SQLLEN) (result->size() * sizeof(CharType)), indicator);
+
+        if (sqlResult == SQL_SUCCESS || sqlResult == SQL_NO_DATA)
+        {
+            // Data has been read successfully on first call to SQLGetData, or there is no data to read.
+            if (*indicator == SQL_NULL_DATA)
+                result->clear();
+            else
+                result->resize(*indicator / sizeof(CharType));
+            return sqlResult;
+        }
+
+        if (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator > static_cast<SQLLEN>(result->size()))
+        {
+            // We have a truncation and the server knows how much data is left.
+            auto const totalCharCount = *indicator / sizeof(CharType);
+            auto const charsWritten = result->size() - 1;
+            result->resize(totalCharCount + 1);
+            auto* bufferCont = result->data() + charsWritten;
+            auto const bufferCharsAvailable = (totalCharCount + 1) - charsWritten;
+            sqlResult = SQLGetData(stmt, column, CType, bufferCont, bufferCharsAvailable * sizeof(CharType), indicator);
+            if (SQL_SUCCEEDED(sqlResult))
+                result->resize(charsWritten + (*indicator / sizeof(CharType)));
+            return sqlResult;
+        }
+
+        size_t writeIndex = 0;
+        while (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator == SQL_NO_TOTAL)
+        {
+            // We have a truncation and the server does not know how much data is left.
+            writeIndex += result->size() - 1;
+            result->resize(result->size() * 2);
+            auto* const bufferStart = result->data() + writeIndex;
+            size_t const bufferCharsAvailable = result->size() - writeIndex;
+            sqlResult = SQLGetData(stmt, column, CType, bufferStart, bufferCharsAvailable, indicator);
+        }
         return sqlResult;
     }
 
-    if (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator > static_cast<SQLLEN>(result->size()))
+    template <typename Utf16StringType>
+    SQLRETURN GetColumnUtf16(SQLHSTMT stmt,
+                             SQLUSMALLINT column,
+                             Utf16StringType* result,
+                             SQLLEN* indicator,
+                             SqlDataBinderCallback const& /*cb*/) noexcept
     {
-        // We have a truncation and the server knows how much data is left.
-        auto const totalCharCount = *indicator / sizeof(CharType);
-        auto const charsWritten = result->size() - 1;
-        result->resize(totalCharCount + 1);
-        auto* bufferCont = result->data() + charsWritten;
-        auto const bufferCharsAvailable = (totalCharCount + 1) - charsWritten;
-        sqlResult = SQLGetData(stmt, column, CType, bufferCont, bufferCharsAvailable * sizeof(CharType), indicator);
-        if (SQL_SUCCEEDED(sqlResult))
-            result->resize(charsWritten + (*indicator / sizeof(CharType)));
-        return sqlResult;
+        if constexpr (requires { Utf16StringType::Capacity; })
+            result->resize(Utf16StringType::Capacity);
+        else if (result->size() == 0)
+            result->resize(255);
+
+        return GetArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
     }
 
-    size_t writeIndex = 0;
-    while (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator == SQL_NO_TOTAL)
+    template <typename StringType>
+    SQLRETURN OutputColumnNonUtf16Unicode(
+        SQLHSTMT stmt, SQLUSMALLINT column, StringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
-        // We have a truncation and the server does not know how much data is left.
-        writeIndex += result->size() - 1;
-        result->resize(result->size() * 2);
-        auto* const bufferStart = result->data() + writeIndex;
-        size_t const bufferCharsAvailable = result->size() - writeIndex;
-        sqlResult = SQLGetData(stmt, column, CType, bufferStart, bufferCharsAvailable, indicator);
-    }
-    return sqlResult;
-}
+        using CharType = typename StringType::value_type;
 
-template <typename Utf16StringType>
-SQLRETURN GetColumnUtf16(SQLHSTMT stmt,
-                         SQLUSMALLINT column,
-                         Utf16StringType* result,
-                         SQLLEN* indicator,
-                         SqlDataBinderCallback const& /*cb*/) noexcept
-{
-    if constexpr (requires { Utf16StringType::Capacity; })
-        result->resize(Utf16StringType::Capacity);
-    else if (result->size() == 0)
-        result->resize(255);
-
-    return GetArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
-}
-
-template <typename StringType>
-SQLRETURN OutputColumnNonUtf16Unicode(
-    SQLHSTMT stmt, SQLUSMALLINT column, StringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
-{
-    using CharType = typename StringType::value_type;
-
-    auto u16String = std::make_shared<std::u16string>();
-    if (!result->empty())
-        u16String->resize(result->size());
-    else
-        u16String->resize(255);
-
-    cb.PlanPostProcessOutputColumn([stmt, column, result, indicator, u16String = u16String]() {
-        if (*indicator == SQL_NULL_DATA)
-            u16String->clear();
-        else if (*indicator == SQL_NO_TOTAL)
-            ; // We don't know the size of the data
-        else if (std::cmp_less_equal(*indicator, u16String->size() * sizeof(char16_t)))
-            u16String->resize(*indicator / sizeof(char16_t));
+        auto u16String = std::make_shared<std::u16string>();
+        if (!result->empty())
+            u16String->resize(result->size());
         else
-        {
-            auto const totalCharsRequired = static_cast<SQLLEN>(*indicator / sizeof(char16_t));
-            *indicator += sizeof(char16_t); // Add space to hold the null terminator
-            u16String->resize(totalCharsRequired);
-            auto const sqlResult = SQLGetData(stmt, column, SQL_C_WCHAR, u16String->data(), *indicator, indicator);
-            (void) sqlResult;
-            assert(SQL_SUCCEEDED(sqlResult));
-            assert(std::cmp_equal(*indicator, totalCharsRequired * sizeof(char16_t)));
-        }
+            u16String->resize(255);
 
-        if constexpr (sizeof(typename StringType::value_type) == 1)
-            *result = ToUtf8(*u16String);
-        else if constexpr (sizeof(typename StringType::value_type) == 4)
-        {
-            // *result = ToUtf32(*u16String);
-            auto const u32String = ToUtf32(*u16String);
-            *result = StringType {
-                (CharType const*) u32String.data(),
-                (CharType const*) u32String.data() + u32String.size(),
-            };
-        }
-    });
+        cb.PlanPostProcessOutputColumn([stmt, column, result, indicator, u16String = u16String]() {
+            if (*indicator == SQL_NULL_DATA)
+                u16String->clear();
+            else if (*indicator == SQL_NO_TOTAL)
+                ; // We don't know the size of the data
+            else if (std::cmp_less_equal(*indicator, u16String->size() * sizeof(char16_t)))
+                u16String->resize(*indicator / sizeof(char16_t));
+            else
+            {
+                auto const totalCharsRequired = static_cast<SQLLEN>(*indicator / sizeof(char16_t));
+                *indicator += sizeof(char16_t); // Add space to hold the null terminator
+                u16String->resize(totalCharsRequired);
+                auto const sqlResult = SQLGetData(stmt, column, SQL_C_WCHAR, u16String->data(), *indicator, indicator);
+                (void) sqlResult;
+                assert(SQL_SUCCEEDED(sqlResult));
+                assert(std::cmp_equal(*indicator, totalCharsRequired * sizeof(char16_t)));
+            }
 
-    return SQLBindCol(stmt,
-                      column,
-                      SQL_C_WCHAR,
-                      static_cast<SQLPOINTER>(u16String->data()),
-                      static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)),
-                      indicator);
-}
+            if constexpr (sizeof(typename StringType::value_type) == 1)
+                *result = ToUtf8(*u16String);
+            else if constexpr (sizeof(typename StringType::value_type) == 4)
+            {
+                // *result = ToUtf32(*u16String);
+                auto const u32String = ToUtf32(*u16String);
+                *result = StringType {
+                    (CharType const*) u32String.data(),
+                    (CharType const*) u32String.data() + u32String.size(),
+                };
+            }
+        });
+
+        return SQLBindCol(stmt,
+                          column,
+                          SQL_C_WCHAR,
+                          static_cast<SQLPOINTER>(u16String->data()),
+                          static_cast<SQLLEN>(u16String->size() * sizeof(char16_t)),
+                          indicator);
+    }
 
 } // namespace detail
 
@@ -239,7 +242,7 @@ struct SqlDataBinder<AnsiStringType>
                 if (*indicator == SQL_NULL_DATA)
                     StringTraits::Resize(result, 0);
                 else if (*indicator != SQL_NO_TOTAL)
-                    StringTraits::Resize(result, (std::min) (AnsiStringType::Capacity, static_cast<size_t>(*indicator)));
+                    StringTraits::Resize(result, (std::min)(AnsiStringType::Capacity, static_cast<size_t>(*indicator)));
             }
             if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
                 StringTraits::PostProcessOutputColumn(result, *indicator);
@@ -587,3 +590,5 @@ struct SqlDataBinder<Utf8StringType>
         return std::string(reinterpret_cast<char const*>(value.data()), value.size());
     }
 };
+
+} // namespace Lightweight

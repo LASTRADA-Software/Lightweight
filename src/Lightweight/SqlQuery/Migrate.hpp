@@ -7,6 +7,9 @@
 
 #include <reflection-cpp/reflection.hpp>
 
+namespace Lightweight
+{
+
 /// @brief Query builder for building CREATE TABLE queries.
 ///
 /// @see SqlQueryBuilder
@@ -226,3 +229,5 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     SqlQueryFormatter const& _formatter;
     SqlMigrationPlan _migrationPlan;
 };
+
+} // namespace Lightweight

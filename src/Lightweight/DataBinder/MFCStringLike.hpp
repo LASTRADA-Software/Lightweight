@@ -6,6 +6,9 @@
 
 #include <concepts>
 
+namespace Lightweight
+{
+
 template <typename T>
 concept MFCStringLike = requires(T const& t) {
     { t.GetLength() } -> std::same_as<int>;
@@ -77,3 +80,5 @@ struct SqlDataBinder<T>
 //         //     str->resize(indicator);
 //     }
 // };
+
+} // namespace Lightweight

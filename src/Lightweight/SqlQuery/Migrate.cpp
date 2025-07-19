@@ -3,6 +3,9 @@
 #include "../SqlQueryFormatter.hpp"
 #include "Migrate.hpp"
 
+namespace Lightweight
+{
+
 SqlMigrationPlan const& SqlMigrationQueryBuilder::GetPlan() const&
 {
     return _migrationPlan;
@@ -256,3 +259,5 @@ SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::UniqueIndex()
     _plan.columns.back().unique = true;
     return *this;
 }
+
+} // namespace Lightweight

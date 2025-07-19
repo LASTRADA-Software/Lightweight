@@ -11,6 +11,9 @@
 #include <limits>
 #include <string>
 
+namespace Lightweight
+{
+
 constexpr size_t SqlMaxColumnSize = (std::numeric_limits<uint32_t>::max)();
 
 /// SQL dynamic-capacity string that mimmicks standard library string.
@@ -190,20 +193,20 @@ struct detail::SqlViewHelper<SqlDynamicString<N, CharT>>
 namespace detail
 {
 
-template <typename>
-struct IsSqlDynamicStringImpl: std::false_type
-{
-};
+    template <typename>
+    struct IsSqlDynamicStringImpl: std::false_type
+    {
+    };
 
-template <std::size_t N, typename T>
-struct IsSqlDynamicStringImpl<SqlDynamicString<N, T>>: std::true_type
-{
-};
+    template <std::size_t N, typename T>
+    struct IsSqlDynamicStringImpl<SqlDynamicString<N, T>>: std::true_type
+    {
+    };
 
-template <std::size_t N, typename T>
-struct IsSqlDynamicStringImpl<std::optional<SqlDynamicString<N, T>>>: std::true_type
-{
-};
+    template <std::size_t N, typename T>
+    struct IsSqlDynamicStringImpl<std::optional<SqlDynamicString<N, T>>>: std::true_type
+    {
+    };
 
 } // namespace detail
 
@@ -234,24 +237,26 @@ using SqlDynamicUtf32String = SqlDynamicString<N, char32_t>;
 template <std::size_t N>
 using SqlDynamicWideString = SqlDynamicString<N, wchar_t>;
 
+} // namespace Lightweight
+
 template <std::size_t N, typename T>
-struct std::formatter<SqlDynamicString<N, T>>: std::formatter<std::string>
+struct std::formatter<Lightweight::SqlDynamicString<N, T>>: std::formatter<std::string>
 {
-    using value_type = SqlDynamicString<N, T>;
+    using value_type = Lightweight::SqlDynamicString<N, T>;
 
     auto format(value_type const& text, format_context& ctx) const
     {
-        if constexpr (detail::OneOf<T, wchar_t, char32_t, char16_t>)
-            return std::formatter<std::string>::format((char const*) ToUtf8(text.ToStringView()).c_str(), ctx);
+        if constexpr (Lightweight::detail::OneOf<T, wchar_t, char32_t, char16_t>)
+            return std::formatter<std::string>::format((char const*) Lightweight::ToUtf8(text.ToStringView()).c_str(), ctx);
         else
             return std::formatter<std::string>::format((char const*) text.data(), ctx);
     }
 };
 
 template <std::size_t N, typename T>
-struct std::formatter<std::optional<SqlDynamicString<N, T>>>: std::formatter<string>
+struct std::formatter<std::optional<Lightweight::SqlDynamicString<N, T>>>: std::formatter<string>
 {
-    using value_type = std::optional<SqlDynamicString<N, T>>;
+    using value_type = std::optional<Lightweight::SqlDynamicString<N, T>>;
 
     auto format(value_type const& text, format_context& ctx) const
     {
@@ -260,6 +265,9 @@ struct std::formatter<std::optional<SqlDynamicString<N, T>>>: std::formatter<str
         return std::formatter<std::string>::format(std::format("{}", text.value()), ctx);
     }
 };
+
+namespace Lightweight
+{
 
 template <std::size_t N, typename T>
 struct SqlBasicStringOperations<SqlDynamicString<N, T>>
@@ -296,7 +304,7 @@ struct SqlBasicStringOperations<SqlDynamicString<N, T>>
 
     static void Reserve(ValueType* str, size_t capacity) noexcept
     {
-        str->value().resize((std::min) (N, capacity));
+        str->value().resize((std::min)(N, capacity));
     }
 
     static void Resize(ValueType* str, SQLLEN indicator) noexcept
@@ -304,3 +312,5 @@ struct SqlBasicStringOperations<SqlDynamicString<N, T>>
         str->value().resize(indicator);
     }
 };
+
+} // namespace Lightweight

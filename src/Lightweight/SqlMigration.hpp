@@ -11,146 +11,151 @@
 #include <list>
 #include <optional>
 
+namespace Lightweight
+{
+
 class SqlConnection;
 
 namespace SqlMigration
 {
+    class MigrationBase;
 
-class MigrationBase;
-
-struct MigrationTimestamp
-{
-    uint64_t value {};
-
-    constexpr bool operator==(MigrationTimestamp const& other) const noexcept
+    struct MigrationTimestamp
     {
-        return value == other.value;
-    }
+        uint64_t value {};
 
-    constexpr bool operator!=(MigrationTimestamp const& other) const noexcept
+        constexpr bool operator==(MigrationTimestamp const& other) const noexcept
+        {
+            return value == other.value;
+        }
+
+        constexpr bool operator!=(MigrationTimestamp const& other) const noexcept
+        {
+            return !(*this == other);
+        }
+    };
+
+    // Interface to be implemented by the user to execute SQL migrations
+    class SqlMigrationExecutor
     {
-        return !(*this == other);
-    }
-};
+      public:
+        SqlMigrationExecutor(SqlMigrationExecutor const&) = default;
+        SqlMigrationExecutor(SqlMigrationExecutor&&) = delete;
+        SqlMigrationExecutor& operator=(SqlMigrationExecutor const&) = default;
+        SqlMigrationExecutor& operator=(SqlMigrationExecutor&&) = delete;
+        virtual ~SqlMigrationExecutor() = default;
 
-// Interface to be implemented by the user to execute SQL migrations
-class SqlMigrationExecutor
-{
-  public:
-    SqlMigrationExecutor(SqlMigrationExecutor const&) = default;
-    SqlMigrationExecutor(SqlMigrationExecutor&&) = delete;
-    SqlMigrationExecutor& operator=(SqlMigrationExecutor const&) = default;
-    SqlMigrationExecutor& operator=(SqlMigrationExecutor&&) = delete;
-    virtual ~SqlMigrationExecutor() = default;
+        virtual void OnCreateTable(SqlCreateTablePlan const& createTable) = 0;
+        virtual void OnAlterTable(SqlAlterTablePlan const& alterTable) = 0;
 
-    virtual void OnCreateTable(SqlCreateTablePlan const& createTable) = 0;
-    virtual void OnAlterTable(SqlAlterTablePlan const& alterTable) = 0;
+        virtual void OnDropTable(std::string_view tableName) = 0;
+    };
 
-    virtual void OnDropTable(std::string_view tableName) = 0;
-};
-
-// Main API to use for managing SQL migrations
-class MigrationManager
-{
-  public:
-    using MigrationList = std::list<MigrationBase const*>;
-
-    LIGHTWEIGHT_API static MigrationManager& GetInstance()
+    // Main API to use for managing SQL migrations
+    class MigrationManager
     {
-        static MigrationManager instance;
-        return instance;
-    }
+      public:
+        using MigrationList = std::list<MigrationBase const*>;
 
-    LIGHTWEIGHT_API void AddMigration(MigrationBase const* migration);
+        LIGHTWEIGHT_API static MigrationManager& GetInstance()
+        {
+            static MigrationManager instance;
+            return instance;
+        }
 
-    [[nodiscard]] LIGHTWEIGHT_API MigrationList const& GetAllMigrations() const noexcept;
+        LIGHTWEIGHT_API void AddMigration(MigrationBase const* migration);
 
-    [[nodiscard]] LIGHTWEIGHT_API MigrationBase const* GetMigration(MigrationTimestamp timestamp) const;
+        [[nodiscard]] LIGHTWEIGHT_API MigrationList const& GetAllMigrations() const noexcept;
 
-    LIGHTWEIGHT_API void RemoveAllMigrations();
+        [[nodiscard]] LIGHTWEIGHT_API MigrationBase const* GetMigration(MigrationTimestamp timestamp) const;
 
-    [[nodiscard]] LIGHTWEIGHT_API std::list<MigrationBase const*> GetPending() const noexcept;
+        LIGHTWEIGHT_API void RemoveAllMigrations();
 
-    using ExecuteCallback = std::function<void(MigrationBase const& /*migration*/, size_t /*current*/, size_t /*total*/)>;
+        [[nodiscard]] LIGHTWEIGHT_API std::list<MigrationBase const*> GetPending() const noexcept;
 
-    LIGHTWEIGHT_API void ApplySingleMigration(MigrationTimestamp timestamp);
-    LIGHTWEIGHT_API void ApplySingleMigration(MigrationBase const& migration);
-    LIGHTWEIGHT_API size_t ApplyPendingMigrations(ExecuteCallback const& feedbackCallback = {});
+        using ExecuteCallback =
+            std::function<void(MigrationBase const& /*migration*/, size_t /*current*/, size_t /*total*/)>;
 
-    LIGHTWEIGHT_API void CreateMigrationHistory();
-    [[nodiscard]] LIGHTWEIGHT_API std::vector<MigrationTimestamp> GetAppliedMigrationIds() const;
+        LIGHTWEIGHT_API void ApplySingleMigration(MigrationTimestamp timestamp);
+        LIGHTWEIGHT_API void ApplySingleMigration(MigrationBase const& migration);
+        LIGHTWEIGHT_API size_t ApplyPendingMigrations(ExecuteCallback const& feedbackCallback = {});
 
-    [[nodiscard]] LIGHTWEIGHT_API DataMapper& GetDataMapper();
+        LIGHTWEIGHT_API void CreateMigrationHistory();
+        [[nodiscard]] LIGHTWEIGHT_API std::vector<MigrationTimestamp> GetAppliedMigrationIds() const;
 
-    [[nodiscard]] LIGHTWEIGHT_API DataMapper& GetDataMapper() const
+        [[nodiscard]] LIGHTWEIGHT_API DataMapper& GetDataMapper();
+
+        [[nodiscard]] LIGHTWEIGHT_API DataMapper& GetDataMapper() const
+        {
+            return const_cast<MigrationManager*>(this)->GetDataMapper();
+        }
+
+        LIGHTWEIGHT_API void CloseDataMapper();
+
+        LIGHTWEIGHT_API SqlTransaction Transaction();
+
+      private:
+        MigrationList _migrations;
+        mutable std::optional<DataMapper> _mapper;
+    };
+
+    // Represents a single unique SQL migration
+    class MigrationBase
     {
-        return const_cast<MigrationManager*>(this)->GetDataMapper();
-    }
+      public:
+        MigrationBase(MigrationBase const&) = default;
+        MigrationBase(MigrationBase&&) = delete;
+        MigrationBase& operator=(MigrationBase const&) = default;
+        MigrationBase& operator=(MigrationBase&&) = delete;
+        MigrationBase(MigrationTimestamp timestamp, std::string_view title):
+            _timestamp { timestamp },
+            _title { title }
+        {
+            MigrationManager::GetInstance().AddMigration(this);
+        }
 
-    LIGHTWEIGHT_API void CloseDataMapper();
+        virtual ~MigrationBase() = default;
 
-    LIGHTWEIGHT_API SqlTransaction Transaction();
+        virtual void Execute(SqlMigrationQueryBuilder& planer) const = 0;
 
-  private:
-    MigrationList _migrations;
-    mutable std::optional<DataMapper> _mapper;
-};
+        [[nodiscard]] MigrationTimestamp GetTimestamp() const noexcept
+        {
+            return _timestamp;
+        }
 
-// Represents a single unique SQL migration
-class MigrationBase
-{
-  public:
-    MigrationBase(MigrationBase const&) = default;
-    MigrationBase(MigrationBase&&) = delete;
-    MigrationBase& operator=(MigrationBase const&) = default;
-    MigrationBase& operator=(MigrationBase&&) = delete;
-    MigrationBase(MigrationTimestamp timestamp, std::string_view title):
-        _timestamp { timestamp },
-        _title { title }
+        [[nodiscard]] std::string_view GetTitle() const noexcept
+        {
+            return _title;
+        }
+
+      private:
+        MigrationTimestamp _timestamp;
+        std::string_view _title;
+    };
+
+    class Migration: public MigrationBase
     {
-        MigrationManager::GetInstance().AddMigration(this);
-    }
+      public:
+        Migration(MigrationTimestamp timestamp,
+                  std::string_view title,
+                  std::function<void(SqlMigrationQueryBuilder&)> const& plan):
+            MigrationBase(timestamp, title),
+            _plan { plan }
+        {
+        }
 
-    virtual ~MigrationBase() = default;
+        void Execute(SqlMigrationQueryBuilder& planer) const override
+        {
+            _plan(planer);
+        }
 
-    virtual void Execute(SqlMigrationQueryBuilder& planer) const = 0;
-
-    [[nodiscard]] MigrationTimestamp GetTimestamp() const noexcept
-    {
-        return _timestamp;
-    }
-
-    [[nodiscard]] std::string_view GetTitle() const noexcept
-    {
-        return _title;
-    }
-
-  private:
-    MigrationTimestamp _timestamp;
-    std::string_view _title;
-};
-
-class Migration: public MigrationBase
-{
-  public:
-    Migration(MigrationTimestamp timestamp,
-              std::string_view title,
-              std::function<void(SqlMigrationQueryBuilder&)> const& plan):
-        MigrationBase(timestamp, title),
-        _plan { plan }
-    {
-    }
-
-    void Execute(SqlMigrationQueryBuilder& planer) const override
-    {
-        _plan(planer);
-    }
-
-  private:
-    std::function<void(SqlMigrationQueryBuilder&)> _plan;
-};
+      private:
+        std::function<void(SqlMigrationQueryBuilder&)> _plan;
+    };
 
 } // namespace SqlMigration
+
+} // namespace Lightweight
 
 #define LIGHTWEIGHT_CONCATENATE(s1, s2) s1##s2
 
@@ -162,17 +167,18 @@ class Migration: public MigrationBase
 // {
 //     // ...
 // }
-#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)                              \
-    struct Migration_##timestamp: public SqlMigration::MigrationBase                   \
-    {                                                                                  \
-        explicit Migration_##timestamp():                                              \
-            MigrationBase(SqlMigration::MigrationTimestamp { timestamp }, description) \
-        {                                                                              \
-        }                                                                              \
-                                                                                       \
-        void Execute(SqlMigrationQueryBuilder& planer) const override;                 \
-    };                                                                                 \
-                                                                                       \
-    static Migration_##timestamp LIGHTWEIGHT_CONCATENATE(migration_, timestamp);       \
-                                                                                       \
-    void Migration_##timestamp::Execute(SqlMigrationQueryBuilder& plan) const
+#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)                                                         \
+    struct Migration_##timestamp: public Lightweight::SqlMigration::MigrationBase                                 \
+    {                                                                                                             \
+        explicit Migration_##timestamp():                                                                         \
+            Lightweight::SqlMigration::MigrationBase(Lightweight::SqlMigration::MigrationTimestamp { timestamp }, \
+                                                     description)                                                 \
+        {                                                                                                         \
+        }                                                                                                         \
+                                                                                                                  \
+        void Execute(Lightweight::SqlMigrationQueryBuilder& planer) const override;                               \
+    };                                                                                                            \
+                                                                                                                  \
+    static Migration_##timestamp LIGHTWEIGHT_CONCATENATE(migration_, timestamp);                                  \
+                                                                                                                  \
+    void Migration_##timestamp::Execute(Lightweight::SqlMigrationQueryBuilder& plan) const

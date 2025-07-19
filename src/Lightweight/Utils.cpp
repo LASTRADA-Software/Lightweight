@@ -4,6 +4,9 @@
 #include "SqlLogger.hpp"
 #include "Utils.hpp"
 
+namespace Lightweight
+{
+
 void LogIfFailed(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLocation)
 {
     if (SQL_SUCCEEDED(error))
@@ -100,3 +103,5 @@ std::string UniqueNameBuilder::DeclareName(std::string name)
         return std::format("{}_{}", iter->first, iter->second);
     }
 }
+
+} // namespace Lightweight

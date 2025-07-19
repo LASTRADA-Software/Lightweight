@@ -13,6 +13,9 @@
 #include <sqlext.h>
 #include <sqltypes.h>
 
+namespace Lightweight
+{
+
 /// Represents a date and time to efficiently write to or read from a database.
 ///
 /// @see SqlDate, SqlTime
@@ -214,10 +217,12 @@ struct SqlDateTime
     SQL_TIMESTAMP_STRUCT sqlValue {};
 };
 
+} // namespace Lightweight
+
 template <>
-struct std::formatter<SqlDateTime>: std::formatter<std::string>
+struct std::formatter<Lightweight::SqlDateTime>: std::formatter<std::string>
 {
-    LIGHTWEIGHT_FORCE_INLINE auto format(SqlDateTime const& value, std::format_context& ctx) const
+    LIGHTWEIGHT_FORCE_INLINE auto format(Lightweight::SqlDateTime const& value, std::format_context& ctx) const
         -> std::format_context::iterator
     {
         // This can be used manually to format the date and time inside sql query builder,
@@ -238,16 +243,19 @@ struct std::formatter<SqlDateTime>: std::formatter<std::string>
 };
 
 template <>
-struct std::formatter<std::optional<SqlDateTime>>: std::formatter<std::string>
+struct std::formatter<std::optional<Lightweight::SqlDateTime>>: std::formatter<std::string>
 {
-    LIGHTWEIGHT_FORCE_INLINE auto format(std::optional<SqlDateTime> const& value, std::format_context& ctx) const
-        -> std::format_context::iterator
+    LIGHTWEIGHT_FORCE_INLINE auto format(std::optional<Lightweight::SqlDateTime> const& value,
+                                         std::format_context& ctx) const -> std::format_context::iterator
     {
         if (!value.has_value())
             return std::formatter<std::string>::format("nullopt", ctx);
         return std::formatter<std::string>::format(std::format("{}", value.value()), ctx);
     }
 };
+
+namespace Lightweight
+{
 
 template <>
 struct SqlDataBinder<SqlDateTime::native_type>
@@ -341,3 +349,5 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
         return std::format("{}", value);
     }
 };
+
+} // namespace Lightweight

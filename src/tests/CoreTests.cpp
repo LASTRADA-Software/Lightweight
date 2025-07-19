@@ -48,15 +48,15 @@ TEST_CASE_METHOD(SqlTestFixture, "NameFormatting", "[Format]")
 
     for (size_t i = 0; i < inputNames.size(); ++i)
     {
-        CHECK(FormatName(inputNames[i], FormatType::camelCase) == expectedCamelCase[i]);
-        CHECK(FormatName(inputNames[i], FormatType::snakeCase) == expectedSnakeCase[i]);
-        CHECK(FormatName(inputNames[i], FormatType::preserve) == inputNames[i]);
+        CHECK(FormatName(inputNames[i], Lightweight::FormatType::camelCase) == expectedCamelCase[i]);
+        CHECK(FormatName(inputNames[i], Lightweight::FormatType::snakeCase) == expectedSnakeCase[i]);
+        CHECK(FormatName(inputNames[i], Lightweight::FormatType::preserve) == inputNames[i]);
     }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "UniqueNameBuilder", "[Utils]")
 {
-    UniqueNameBuilder uniqueNameBuilder;
+    Lightweight::UniqueNameBuilder uniqueNameBuilder;
     REQUIRE(!uniqueNameBuilder.IsColliding("foo"));
     REQUIRE(uniqueNameBuilder.DeclareName("foo") == "foo");
     REQUIRE(uniqueNameBuilder.IsColliding("foo"));
@@ -75,8 +75,8 @@ TEST_CASE_METHOD(SqlTestFixture, "UniqueNameBuilder", "[Utils]")
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnectionDataSource.FromConnectionString", "[SqlConnection]")
 {
-    auto const connectionString = SqlConnectionString { "Dsn=Test;UID=TestUser;Pwd=TestPassword;Timeout=10" };
-    auto const dataSource = SqlConnectionDataSource::FromConnectionString(connectionString);
+    auto const connectionString = Lightweight::SqlConnectionString { "Dsn=Test;UID=TestUser;Pwd=TestPassword;Timeout=10" };
+    auto const dataSource = Lightweight::SqlConnectionDataSource::FromConnectionString(connectionString);
     CHECK(dataSource.datasource == "Test");
     CHECK(dataSource.username == "TestUser");
     CHECK(dataSource.password == "TestPassword");
@@ -86,7 +86,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnectionDataSource.FromConnectionString",
 TEST_CASE_METHOD(SqlTestFixture, "SqlStatement: ctor std::nullopt")
 {
     // Construct an empty SqlStatement, not referencing any SqlConnection.
-    auto stmt = SqlStatement { std::nullopt };
+    auto stmt = Lightweight::SqlStatement { std::nullopt };
     REQUIRE(!stmt.IsAlive());
     {
         // We expect an error to be logged, as stmt is not attached to any active connection,
@@ -96,14 +96,14 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement: ctor std::nullopt")
     }
 
     // Get `stmt` valid by assigning it a valid SqlStatement
-    stmt = SqlStatement {};
+    stmt = Lightweight::SqlStatement {};
     REQUIRE(stmt.IsAlive());
     CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42").value_or(-1) == 42);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "select: get columns")
 {
-    auto stmt = SqlStatement {};
+    auto stmt = Lightweight::SqlStatement {};
     stmt.ExecuteDirect("SELECT 42");
     (void) stmt.FetchRow();
     REQUIRE(stmt.GetColumn<int>(1) == 42);
@@ -114,14 +114,14 @@ TEST_CASE_METHOD(SqlTestFixture, "move semantics", "[SqlConnection]")
 {
     // NOLINTBEGIN(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
 
-    auto a = SqlConnection {};
+    auto a = Lightweight::SqlConnection {};
     CHECK(a.IsAlive());
 
     auto b = std::move(a);
     CHECK(!a.IsAlive());
     CHECK(b.IsAlive());
 
-    auto c = SqlConnection(std::move(b));
+    auto c = Lightweight::SqlConnection(std::move(b));
     CHECK(!a.IsAlive());
     CHECK(!b.IsAlive());
     CHECK(c.IsAlive());
@@ -133,13 +133,13 @@ TEST_CASE_METHOD(SqlTestFixture, "move semantics", "[SqlStatement]")
 {
     // NOLINTBEGIN(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
 
-    auto conn = SqlConnection {};
+    auto conn = Lightweight::SqlConnection {};
 
-    auto const TestRun = [](SqlStatement& stmt) {
+    auto const TestRun = [](Lightweight::SqlStatement& stmt) {
         CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42").value_or(-1) == 42);
     };
 
-    auto a = SqlStatement { conn };
+    auto a = Lightweight::SqlStatement { conn };
     CHECK(&conn == &a.Connection());
     CHECK(a.Connection().IsAlive());
     TestRun(a);
@@ -150,7 +150,7 @@ TEST_CASE_METHOD(SqlTestFixture, "move semantics", "[SqlStatement]")
     CHECK(b.IsAlive());
     TestRun(b);
 
-    auto c = SqlStatement(std::move(b));
+    auto c = Lightweight::SqlStatement(std::move(b));
     CHECK(&conn == &c.Connection());
     CHECK(!a.IsAlive());
     CHECK(!b.IsAlive());
@@ -162,7 +162,7 @@ TEST_CASE_METHOD(SqlTestFixture, "move semantics", "[SqlStatement]")
 
 TEST_CASE_METHOD(SqlTestFixture, "select: get column (invalid index)")
 {
-    auto stmt = SqlStatement {};
+    auto stmt = Lightweight::SqlStatement {};
     stmt.ExecuteDirect("SELECT 42");
     (void) stmt.FetchRow();
 
@@ -174,7 +174,7 @@ TEST_CASE_METHOD(SqlTestFixture, "select: get column (invalid index)")
 
 TEST_CASE_METHOD(SqlTestFixture, "execute bound parameters and select back: VARCHAR, INT")
 {
-    auto stmt = SqlStatement {};
+    auto stmt = Lightweight::SqlStatement {};
     CreateEmployeesTable(stmt);
 
     REQUIRE(!stmt.IsPrepared());
@@ -211,12 +211,12 @@ TEST_CASE_METHOD(SqlTestFixture, "execute bound parameters and select back: VARC
 
 TEST_CASE_METHOD(SqlTestFixture, "transaction: auto-rollback")
 {
-    auto stmt = SqlStatement {};
+    auto stmt = Lightweight::SqlStatement {};
     REQUIRE(stmt.Connection().TransactionsAllowed());
     CreateEmployeesTable(stmt);
 
     {
-        auto transaction = SqlTransaction { stmt.Connection(), SqlTransactionMode::ROLLBACK };
+        auto transaction = Lightweight::SqlTransaction { stmt.Connection(), Lightweight::SqlTransactionMode::ROLLBACK };
         stmt.Prepare(R"(INSERT INTO "Employees" ("FirstName", "LastName", "Salary") VALUES (?, ?, ?))");
         stmt.Execute("Alice", "Smith", 50'000);
         REQUIRE(stmt.Connection().TransactionActive());
@@ -231,12 +231,12 @@ TEST_CASE_METHOD(SqlTestFixture, "transaction: auto-rollback")
 
 TEST_CASE_METHOD(SqlTestFixture, "transaction: auto-commit")
 {
-    auto stmt = SqlStatement {};
+    auto stmt = Lightweight::SqlStatement {};
     REQUIRE(stmt.Connection().TransactionsAllowed());
     CreateEmployeesTable(stmt);
 
     {
-        auto transaction = SqlTransaction { stmt.Connection(), SqlTransactionMode::COMMIT };
+        auto transaction = Lightweight::SqlTransaction { stmt.Connection(), Lightweight::SqlTransactionMode::COMMIT };
         stmt.Prepare(R"(INSERT INTO "Employees" ("FirstName", "LastName", "Salary") VALUES (?, ?, ?))");
         stmt.Execute("Alice", "Smith", 50'000);
         REQUIRE(stmt.Connection().TransactionActive());
@@ -251,7 +251,7 @@ TEST_CASE_METHOD(SqlTestFixture, "transaction: auto-commit")
 
 TEST_CASE_METHOD(SqlTestFixture, "execute binding output parameters (direct)")
 {
-    auto stmt = SqlStatement {};
+    auto stmt = Lightweight::SqlStatement {};
     CreateEmployeesTable(stmt);
     FillEmployeesTable(stmt);
 
@@ -273,7 +273,7 @@ TEST_CASE_METHOD(SqlTestFixture, "execute binding output parameters (direct)")
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch", "[SqlStatement]")
 {
-    auto stmt = SqlStatement {};
+    auto stmt = Lightweight::SqlStatement {};
 
     CreateEmployeesTable(stmt);
 
@@ -310,20 +310,20 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch", "[SqlStatement]")
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatchNative", "[SqlStatement]")
 {
-    auto stmt = SqlStatement {};
-    UNSUPPORTED_DATABASE(stmt, SqlServerType::ORACLE);
+    auto stmt = Lightweight::SqlStatement {};
+    UNSUPPORTED_DATABASE(stmt, Lightweight::SqlServerType::ORACLE);
 
-    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+    stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("Test")
-            .Column("A", SqlColumnTypeDefinitions::Varchar { 8 })
-            .Column("B", SqlColumnTypeDefinitions::Real {})
-            .Column("C", SqlColumnTypeDefinitions::Integer {});
+            .Column("A", Lightweight::SqlColumnTypeDefinitions::Varchar { 8 })
+            .Column("B", Lightweight::SqlColumnTypeDefinitions::Real {})
+            .Column("C", Lightweight::SqlColumnTypeDefinitions::Integer {});
     });
 
     stmt.Prepare(R"(INSERT INTO "Test" ("A", "B", "C") VALUES (?, ?, ?))");
 
     // Ensure that the batch insert works with different types of contiguous containers
-    auto const first = std::array<SqlFixedString<8>, 3> { "Hello", "World", "!" };
+    auto const first = std::array<Lightweight::SqlFixedString<8>, 3> { "Hello", "World", "!" };
     auto const second = std::vector { 1.3, 2.3, 3.3 };
     unsigned const third[3] = { 50'000, 60'000, 70'000 };
 
@@ -351,21 +351,21 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatchNative", "[SqlStateme
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect", "[SqlConnection]")
 {
-    auto conn = SqlConnection { std::nullopt };
+    auto conn = Lightweight::SqlConnection { std::nullopt };
     REQUIRE(!conn.IsAlive());
 
-    CHECK(conn.Connect(SqlConnection::DefaultConnectionString()));
+    CHECK(conn.Connect(Lightweight::SqlConnection::DefaultConnectionString()));
     CHECK(conn.IsAlive());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect (invalid)", "[SqlConnection]")
 {
-    auto conn = SqlConnection { std::nullopt };
+    auto conn = Lightweight::SqlConnection { std::nullopt };
     REQUIRE(!conn.IsAlive());
 
-    SqlConnectionDataSource const shouldNotExist { .datasource = "shouldNotExist",
-                                                   .username = "shouldNotExist",
-                                                   .password = "shouldNotExist" };
+    Lightweight::SqlConnectionDataSource const shouldNotExist { .datasource = "shouldNotExist",
+                                                                .username = "shouldNotExist",
+                                                                .password = "shouldNotExist" };
 
     auto const _ = ScopedSqlNullLogger {}; // suppress the error message, we are testing for it
     CHECK(!conn.Connect(shouldNotExist));
@@ -374,9 +374,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect (invalid)", "[Sq
 
 TEST_CASE_METHOD(SqlTestFixture, "LastInsertId", "[SqlStatement]")
 {
-    auto stmt = SqlStatement {};
+    auto stmt = Lightweight::SqlStatement {};
 
-    UNSUPPORTED_DATABASE(stmt, SqlServerType::ORACLE);
+    UNSUPPORTED_DATABASE(stmt, Lightweight::SqlServerType::ORACLE);
 
     CreateEmployeesTable(stmt);
     FillEmployeesTable(stmt);
@@ -387,7 +387,7 @@ TEST_CASE_METHOD(SqlTestFixture, "LastInsertId", "[SqlStatement]")
 
 TEST_CASE_METHOD(SqlTestFixture, "SELECT * FROM Table", "[SqlStatement]")
 {
-    auto stmt = SqlStatement {};
+    auto stmt = Lightweight::SqlStatement {};
     CreateEmployeesTable(stmt);
     FillEmployeesTable(stmt);
 
@@ -420,14 +420,14 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT * FROM Table", "[SqlStatement]")
 
 TEST_CASE_METHOD(SqlTestFixture, "GetNullableColumn", "[SqlStatement]")
 {
-    auto stmt = SqlStatement {};
-    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+    auto stmt = Lightweight::SqlStatement {};
+    stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("Test")
-            .Column("Remarks1", SqlColumnTypeDefinitions::Varchar { 50 })
-            .Column("Remarks2", SqlColumnTypeDefinitions::Varchar { 50 });
+            .Column("Remarks1", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 })
+            .Column("Remarks2", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 });
     });
     stmt.Prepare(R"(INSERT INTO "Test" ("Remarks1", "Remarks2") VALUES (?, ?))");
-    stmt.Execute("Blurb", SqlNullValue);
+    stmt.Execute("Blurb", Lightweight::SqlNullValue);
 
     stmt.ExecuteDirect(R"(SELECT "Remarks1", "Remarks2" FROM "Test")");
     auto result = stmt.GetResultCursor();
@@ -440,8 +440,8 @@ TEST_CASE_METHOD(SqlTestFixture, "GetNullableColumn", "[SqlStatement]")
 
 TEST_CASE_METHOD(SqlTestFixture, "Prepare and move", "[SqlStatement]")
 {
-    SqlStatement stmt;
-    stmt = SqlStatement().Prepare("SELECT 42");
+    Lightweight::SqlStatement stmt;
+    stmt = Lightweight::SqlStatement().Prepare("SELECT 42");
     stmt.Execute();
     REQUIRE(stmt.FetchRow());
     CHECK(stmt.GetColumn<int>(1) == 42);
@@ -450,31 +450,31 @@ TEST_CASE_METHOD(SqlTestFixture, "Prepare and move", "[SqlStatement]")
 struct Simple1
 {
     uint64_t pk;
-    SqlAnsiString<30> c1;
-    SqlAnsiString<30> c2;
+    Lightweight::SqlAnsiString<30> c1;
+    Lightweight::SqlAnsiString<30> c2;
 };
 
 struct Simple2
 {
     uint64_t pk;
-    SqlAnsiString<30> c1;
-    SqlAnsiString<30> c2;
+    Lightweight::SqlAnsiString<30> c1;
+    Lightweight::SqlAnsiString<30> c2;
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "SELECT into two structs", "[SqlStatement]")
 {
-    auto conn = SqlConnection {};
-    auto stmt = SqlStatement { conn };
+    auto conn = Lightweight::SqlConnection {};
+    auto stmt = Lightweight::SqlStatement { conn };
 
     GIVEN("two tables")
     {
-        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-            using namespace SqlColumnTypeDefinitions;
-            migration.CreateTable(RecordTableName<Simple1>)
+        stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
+            using namespace Lightweight::SqlColumnTypeDefinitions;
+            migration.CreateTable(Lightweight::RecordTableName<Simple1>)
                 .PrimaryKeyWithAutoIncrement("pk", Bigint {})
                 .Column("c1", Varchar { 30 })
                 .Column("c2", Varchar { 30 });
-            migration.CreateTable(RecordTableName<Simple2>)
+            migration.CreateTable(Lightweight::RecordTableName<Simple2>)
                 .PrimaryKeyWithAutoIncrement("pk", Bigint {})
                 .Column("c1", Varchar { 30 })
                 .Column("c2", Varchar { 30 });
@@ -482,15 +482,15 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into two structs", "[SqlStatement]")
 
         WHEN("inserting some data and getting it via multi struct query building")
         {
-            stmt.ExecuteDirect(conn.Query(RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
-            stmt.ExecuteDirect(conn.Query(RecordTableName<Simple2>).Insert().Set("c1", "a").Set("c2", "c"));
+            stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
+            stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple2>).Insert().Set("c1", "a").Set("c2", "c"));
 
             // clang-format off
             stmt.Prepare(
-                conn.Query(RecordTableName<Simple1>)
+                conn.Query(Lightweight::RecordTableName<Simple1>)
                     .Select()
                     .Fields<Simple1, Simple2>()
-                    .LeftOuterJoin(RecordTableName<Simple2>, "c1", "c1").All());
+                    .LeftOuterJoin(Lightweight::RecordTableName<Simple2>, "c1", "c1").All());
             // clang-format on
 
             stmt.Execute();
@@ -515,14 +515,14 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into two structs", "[SqlStatement]")
 
 TEST_CASE_METHOD(SqlTestFixture, "SELECT into SqlVariantRowIterator", "[SqlStatement]")
 {
-    auto conn = SqlConnection {};
-    auto stmt = SqlStatement { conn };
+    auto conn = Lightweight::SqlConnection {};
+    auto stmt = Lightweight::SqlStatement { conn };
 
     GIVEN("two tables")
     {
-        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-            using namespace SqlColumnTypeDefinitions;
-            migration.CreateTable(RecordTableName<Simple1>)
+        stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
+            using namespace Lightweight::SqlColumnTypeDefinitions;
+            migration.CreateTable(Lightweight::RecordTableName<Simple1>)
                 .PrimaryKeyWithAutoIncrement("pk", Bigint {})
                 .Column("c1", Varchar { 30 })
                 .Column("c2", Varchar { 30 });
@@ -530,12 +530,12 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into SqlVariantRowIterator", "[SqlState
 
         WHEN("inserting some data and getting it via multi struct query building")
         {
-            stmt.ExecuteDirect(conn.Query(RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
-            stmt.ExecuteDirect(conn.Query(RecordTableName<Simple1>).Insert().Set("c1", "A").Set("c2", "B"));
+            stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
+            stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "A").Set("c2", "B"));
 
             // clang-format off
             stmt.Prepare(
-                conn.Query(RecordTableName<Simple1>)
+                conn.Query(Lightweight::RecordTableName<Simple1>)
                     .Select()
                     .Fields<Simple1>()
                     .All());

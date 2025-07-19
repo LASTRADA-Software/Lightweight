@@ -9,6 +9,9 @@
 #include <cassert>
 #include <format>
 
+namespace Lightweight
+{
+
 class OracleSqlQueryFormatter final: public SQLiteQueryFormatter
 {
   public:
@@ -129,3 +132,5 @@ class OracleSqlQueryFormatter final: public SQLiteQueryFormatter
         return sqlQueryString.str();
     }
 };
+
+} // namespace Lightweight

@@ -13,6 +13,9 @@
 #include <memory>
 #include <vector>
 
+namespace Lightweight
+{
+
 /// @brief This API represents a many-to-many relationship between two records through a third record.
 ///
 /// @see DataMapper, Field, HasMany
@@ -247,3 +250,5 @@ HasManyThrough<ReferencedRecordT, ThroughRecordT>::const_iterator HasManyThrough
 {
     return All().end();
 }
+
+} // namespace Lightweight
