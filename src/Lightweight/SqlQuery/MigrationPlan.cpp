@@ -3,12 +3,15 @@
 #include "../SqlQueryFormatter.hpp"
 #include "MigrationPlan.hpp"
 
+namespace Lightweight
+{
+
 std::vector<std::string> SqlMigrationPlan::ToSql() const
 {
     std::vector<std::string> result;
     for (auto const& step: steps)
     {
-        auto subSteps = ::ToSql(formatter, step);
+        auto subSteps = Lightweight::ToSql(formatter, step);
         result.insert(result.end(), subSteps.begin(), subSteps.end());
     }
     return result;
@@ -38,3 +41,5 @@ std::vector<std::string> ToSql(SqlQueryFormatter const& formatter, SqlMigrationP
         },
         element);
 }
+
+} // namespace Lightweight

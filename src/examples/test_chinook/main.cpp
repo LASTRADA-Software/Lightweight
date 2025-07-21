@@ -18,6 +18,8 @@
 
 #include <print>
 
+using namespace Lightweight;
+
 static std::string GetEnvironmentVariable(std::string const& name)
 {
 #if defined(_MSC_VER)

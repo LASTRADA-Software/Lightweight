@@ -10,6 +10,9 @@
 #include <format>
 #include <string>
 
+namespace Lightweight
+{
+
 /// SQL dynamic-capacity string that mimicks standard library string.
 ///
 /// The underlying memory is allocated dynamically and the string can grow up to the maximum size of a SQL column.
@@ -112,30 +115,32 @@ class SqlDynamicBinary final
 namespace detail
 {
 
-template <typename>
-struct IsSqlDynamicBinaryImpl: std::false_type
-{
-};
+    template <typename>
+    struct IsSqlDynamicBinaryImpl: std::false_type
+    {
+    };
 
-template <size_t T>
-struct IsSqlDynamicBinaryImpl<SqlDynamicBinary<T>>: std::true_type
-{
-};
+    template <size_t T>
+    struct IsSqlDynamicBinaryImpl<SqlDynamicBinary<T>>: std::true_type
+    {
+    };
 
-template <size_t T>
-struct IsSqlDynamicBinaryImpl<std::optional<SqlDynamicBinary<T>>>: std::true_type
-{
-};
+    template <size_t T>
+    struct IsSqlDynamicBinaryImpl<std::optional<SqlDynamicBinary<T>>>: std::true_type
+    {
+    };
 
 } // namespace detail
 
 template <typename T>
 constexpr bool IsSqlDynamicBinary = detail::IsSqlDynamicBinaryImpl<T>::value;
 
+} // namespace Lightweight
+
 template <std::size_t N>
-struct std::formatter<SqlDynamicBinary<N>>: std::formatter<std::string>
+struct std::formatter<Lightweight::SqlDynamicBinary<N>>: std::formatter<std::string>
 {
-    auto format(SqlDynamicBinary<N> const& text, format_context& ctx) const
+    auto format(Lightweight::SqlDynamicBinary<N> const& text, format_context& ctx) const
     {
         std::string humanReadableText;
         for (auto byte: text)
@@ -148,6 +153,9 @@ struct std::formatter<SqlDynamicBinary<N>>: std::formatter<std::string>
         return std::formatter<std::string>::format(humanReadableText.data(), ctx);
     }
 };
+
+namespace Lightweight
+{
 
 template <std::size_t N>
 struct SqlDataBinder<SqlDynamicBinary<N>>
@@ -225,3 +233,5 @@ struct SqlDataBinder<SqlDynamicBinary<N>>
         return std::format("SqlBinary<{}>(size={})", N, value.size());
     }
 };
+
+} // namespace Lightweight

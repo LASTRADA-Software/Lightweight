@@ -8,6 +8,9 @@
 #include <string_view>
 #include <vector>
 
+namespace Lightweight
+{
+
 /// @brief Query builder for building UPDATE ... queries.
 ///
 /// @ingroup QueryBuilder
@@ -117,3 +120,5 @@ inline LIGHTWEIGHT_FORCE_INLINE std::string SqlUpdateQueryBuilder::ToSql() const
     return m_formatter.Update(
         m_searchCondition.tableName, m_searchCondition.tableAlias, m_values, m_searchCondition.condition);
 }
+
+} // namespace Lightweight

@@ -8,6 +8,9 @@
 #include <chrono>
 #include <format>
 
+namespace Lightweight
+{
+
 /// Represents a date to efficiently write to or read from a database.
 ///
 /// @ingroup DataTypes
@@ -77,15 +80,20 @@ struct SqlDate
     }
 };
 
+} // namespace Lightweight
+
 template <>
-struct std::formatter<SqlDate>: std::formatter<std::string>
+struct std::formatter<Lightweight::SqlDate>: std::formatter<std::string>
 {
-    auto format(SqlDate const& value, std::format_context& ctx) const -> std::format_context::iterator
+    auto format(Lightweight::SqlDate const& value, std::format_context& ctx) const -> std::format_context::iterator
     {
         return std::formatter<std::string>::format(
             std::format("{:04}-{:02}-{:02}", value.sqlValue.year, value.sqlValue.month, value.sqlValue.day), ctx);
     }
 };
+
+namespace Lightweight
+{
 
 template <>
 struct SqlDataBinder<SqlDate>
@@ -118,3 +126,5 @@ struct SqlDataBinder<SqlDate>
         return std::format("{}", value);
     }
 };
+
+} // namespace Lightweight

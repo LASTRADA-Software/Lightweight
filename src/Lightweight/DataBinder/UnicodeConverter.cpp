@@ -8,6 +8,9 @@
     #include <Windows.h>
 #endif
 
+namespace Lightweight
+{
+
 std::u8string ToUtf8(std::u32string_view u32InputString)
 {
     std::u8string u8String;
@@ -162,3 +165,5 @@ std::wstring ToStdWideString(std::string const& localeInputString)
     return wideString;
 #endif
 }
+
+} // namespace Lightweight

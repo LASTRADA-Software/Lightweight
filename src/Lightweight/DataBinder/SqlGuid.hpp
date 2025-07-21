@@ -9,6 +9,9 @@
 #include <optional>
 #include <string>
 
+namespace Lightweight
+{
+
 /// Represents a GUID (Globally Unique Identifier).
 ///
 /// @ingroup DataTypes
@@ -92,10 +95,13 @@ constexpr SqlGuid SqlGuid::UnsafeParse(std::string_view const& text) noexcept
     return guid;
 }
 
+} // namespace Lightweight
+
 template <>
-struct std::formatter<SqlGuid>: std::formatter<std::string>
+struct std::formatter<Lightweight::SqlGuid>: std::formatter<std::string>
 {
-    LIGHTWEIGHT_FORCE_INLINE auto format(SqlGuid const& guid, format_context& ctx) const -> format_context::iterator
+    LIGHTWEIGHT_FORCE_INLINE auto format(Lightweight::SqlGuid const& guid, format_context& ctx) const
+        -> format_context::iterator
     {
         // clang-format off
         return formatter<std::string>::format(std::format(
@@ -114,6 +120,9 @@ struct std::formatter<SqlGuid>: std::formatter<std::string>
         // clang-format on
     }
 };
+
+namespace Lightweight
+{
 
 inline LIGHTWEIGHT_FORCE_INLINE std::string to_string(SqlGuid const& guid)
 {
@@ -141,3 +150,5 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlGuid>
         return std::format("{}", value);
     }
 };
+
+} // namespace Lightweight

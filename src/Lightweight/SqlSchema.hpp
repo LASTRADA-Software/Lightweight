@@ -10,189 +10,197 @@
 #include <tuple>
 #include <vector>
 
+namespace Lightweight
+{
+
 class SqlStatement;
 
 namespace SqlSchema
 {
 
-namespace detail
-{
-    constexpr std::string_view rtrim(std::string_view value) noexcept
+    namespace detail
     {
-        while (!value.empty() && (std::isspace(value.back()) || value.back() == '\0'))
-            value.remove_suffix(1);
-        return value;
-    }
-} // namespace detail
+        constexpr std::string_view rtrim(std::string_view value) noexcept
+        {
+            while (!value.empty() && (std::isspace(value.back()) || value.back() == '\0'))
+                value.remove_suffix(1);
+            return value;
+        }
+    } // namespace detail
 
-struct FullyQualifiedTableName
-{
-    std::string catalog;
-    std::string schema;
-    std::string table;
-
-    bool operator==(FullyQualifiedTableName const& other) const noexcept
+    struct FullyQualifiedTableName
     {
-        return catalog == other.catalog && schema == other.schema && table == other.table;
-    }
+        std::string catalog;
+        std::string schema;
+        std::string table;
 
-    bool operator!=(FullyQualifiedTableName const& other) const noexcept
+        bool operator==(FullyQualifiedTableName const& other) const noexcept
+        {
+            return catalog == other.catalog && schema == other.schema && table == other.table;
+        }
+
+        bool operator!=(FullyQualifiedTableName const& other) const noexcept
+        {
+            return !(*this == other);
+        }
+
+        bool operator<(FullyQualifiedTableName const& other) const noexcept
+        {
+            return std::tie(catalog, schema, table) < std::tie(other.catalog, other.schema, other.table);
+        }
+    };
+
+    struct FullyQualifiedTableColumn
     {
-        return !(*this == other);
-    }
+        FullyQualifiedTableName table;
+        std::string column;
 
-    bool operator<(FullyQualifiedTableName const& other) const noexcept
+        bool operator==(FullyQualifiedTableColumn const& other) const noexcept
+        {
+            return table == other.table && column == other.column;
+        }
+
+        bool operator!=(FullyQualifiedTableColumn const& other) const noexcept
+        {
+            return !(*this == other);
+        }
+
+        bool operator<(FullyQualifiedTableColumn const& other) const noexcept
+        {
+            return std::tie(table, column) < std::tie(other.table, other.column);
+        }
+    };
+
+    struct FullyQualifiedTableColumnSequence
     {
-        return std::tie(catalog, schema, table) < std::tie(other.catalog, other.schema, other.table);
-    }
-};
+        FullyQualifiedTableName table;
+        std::vector<std::string> columns;
+    };
 
-struct FullyQualifiedTableColumn
-{
-    FullyQualifiedTableName table;
-    std::string column;
-
-    bool operator==(FullyQualifiedTableColumn const& other) const noexcept
+    inline bool operator<(FullyQualifiedTableColumnSequence const& a, FullyQualifiedTableColumnSequence const& b) noexcept
     {
-        return table == other.table && column == other.column;
+        return std::tie(a.table, a.columns) < std::tie(b.table, b.columns);
     }
 
-    bool operator!=(FullyQualifiedTableColumn const& other) const noexcept
+    struct ForeignKeyConstraint
     {
-        return !(*this == other);
-    }
+        FullyQualifiedTableColumnSequence foreignKey;
+        FullyQualifiedTableColumnSequence primaryKey;
+    };
 
-    bool operator<(FullyQualifiedTableColumn const& other) const noexcept
+    inline bool operator<(ForeignKeyConstraint const& a, ForeignKeyConstraint const& b) noexcept
     {
-        return std::tie(table, column) < std::tie(other.table, other.column);
+        return std::tie(a.foreignKey, a.primaryKey) < std::tie(b.foreignKey, b.primaryKey);
     }
-};
 
-struct FullyQualifiedTableColumnSequence
-{
-    FullyQualifiedTableName table;
-    std::vector<std::string> columns;
-};
+    /// Holds the definition of a column in a SQL table as read from the database schema.
+    struct Column
+    {
+        std::string name = {};
+        SqlColumnTypeDefinition type = {};
+        std::string dialectDependantTypeString = {};
+        bool isNullable = true;
+        bool isUnique = false;
+        size_t size = 0;
+        unsigned short decimalDigits = 0;
+        bool isAutoIncrement = false;
+        bool isPrimaryKey = false;
+        bool isForeignKey = false;
+        std::optional<ForeignKeyConstraint> foreignKeyConstraint {};
+        std::string defaultValue = {};
+    };
 
-inline bool operator<(FullyQualifiedTableColumnSequence const& a, FullyQualifiedTableColumnSequence const& b) noexcept
-{
-    return std::tie(a.table, a.columns) < std::tie(b.table, b.columns);
-}
+    /// Callback interface for handling events while reading a database schema.
+    class EventHandler
+    {
+      public:
+        EventHandler() = default;
+        EventHandler(EventHandler&&) = default;
+        EventHandler(EventHandler const&) = default;
+        EventHandler& operator=(EventHandler&&) = default;
+        EventHandler& operator=(EventHandler const&) = default;
+        virtual ~EventHandler() = default;
 
-struct ForeignKeyConstraint
-{
-    FullyQualifiedTableColumnSequence foreignKey;
-    FullyQualifiedTableColumnSequence primaryKey;
-};
+        /// Called when the names of all tables are read.
+        virtual void OnTables(std::vector<std::string> const& tables) = 0;
 
-inline bool operator<(ForeignKeyConstraint const& a, ForeignKeyConstraint const& b) noexcept
-{
-    return std::tie(a.foreignKey, a.primaryKey) < std::tie(b.foreignKey, b.primaryKey);
-}
+        virtual bool OnTable(std::string_view table) = 0;
+        virtual void OnPrimaryKeys(std::string_view table, std::vector<std::string> const& columns) = 0;
+        virtual void OnForeignKey(ForeignKeyConstraint const& foreignKeyConstraint) = 0;
+        virtual void OnColumn(Column const& column) = 0;
+        virtual void OnExternalForeignKey(ForeignKeyConstraint const& foreignKeyConstraint) = 0;
+        virtual void OnTableEnd() = 0;
+    };
 
-/// Holds the definition of a column in a SQL table as read from the database schema.
-struct Column
-{
-    std::string name = {};
-    SqlColumnTypeDefinition type = {};
-    std::string dialectDependantTypeString = {};
-    bool isNullable = true;
-    bool isUnique = false;
-    size_t size = 0;
-    unsigned short decimalDigits = 0;
-    bool isAutoIncrement = false;
-    bool isPrimaryKey = false;
-    bool isForeignKey = false;
-    std::optional<ForeignKeyConstraint> foreignKeyConstraint {};
-    std::string defaultValue = {};
-};
+    /// Reads all tables in the given database and schema and calls the event handler for each table.
+    LIGHTWEIGHT_API void ReadAllTables(std::string_view database, std::string_view schema, EventHandler& eventHandler);
 
-/// Callback interface for handling events while reading a database schema.
-class EventHandler
-{
-  public:
-    EventHandler() = default;
-    EventHandler(EventHandler&&) = default;
-    EventHandler(EventHandler const&) = default;
-    EventHandler& operator=(EventHandler&&) = default;
-    EventHandler& operator=(EventHandler const&) = default;
-    virtual ~EventHandler() = default;
+    /// Holds the definition of a table in a SQL database as read from the database schema.
+    struct Table
+    {
+        // FullyQualifiedTableName name;
 
-    /// Called when the names of all tables are read.
-    virtual void OnTables(std::vector<std::string> const& tables) = 0;
+        /// The name of the table.
+        std::string name;
 
-    virtual bool OnTable(std::string_view table) = 0;
-    virtual void OnPrimaryKeys(std::string_view table, std::vector<std::string> const& columns) = 0;
-    virtual void OnForeignKey(ForeignKeyConstraint const& foreignKeyConstraint) = 0;
-    virtual void OnColumn(Column const& column) = 0;
-    virtual void OnExternalForeignKey(ForeignKeyConstraint const& foreignKeyConstraint) = 0;
-    virtual void OnTableEnd() = 0;
-};
+        /// The columns of the table.
+        std::vector<Column> columns {};
 
-/// Reads all tables in the given database and schema and calls the event handler for each table.
-LIGHTWEIGHT_API void ReadAllTables(std::string_view database, std::string_view schema, EventHandler& eventHandler);
+        /// The foreign keys of the table.
+        std::vector<ForeignKeyConstraint> foreignKeys {};
 
-/// Holds the definition of a table in a SQL database as read from the database schema.
-struct Table
-{
-    // FullyQualifiedTableName name;
+        /// The foreign keys of other tables that reference this table.
+        std::vector<ForeignKeyConstraint> externalForeignKeys {};
 
-    /// The name of the table.
-    std::string name;
+        /// The primary keys of the table.
+        std::vector<std::string> primaryKeys {};
+    };
 
-    /// The columns of the table.
-    std::vector<Column> columns {};
+    /// A list of tables.
+    using TableList = std::vector<Table>;
 
-    /// The foreign keys of the table.
-    std::vector<ForeignKeyConstraint> foreignKeys {};
+    using ReadAllTablesCallback = std::function<void(std::string_view /*tableName*/, size_t /*current*/, size_t /*total*/)>;
 
-    /// The foreign keys of other tables that reference this table.
-    std::vector<ForeignKeyConstraint> externalForeignKeys {};
+    /// Retrieves all tables in the given @p database and @p schema.
+    LIGHTWEIGHT_API TableList ReadAllTables(std::string_view database,
+                                            std::string_view schema = {},
+                                            ReadAllTablesCallback callback = {});
 
-    /// The primary keys of the table.
-    std::vector<std::string> primaryKeys {};
-};
+    /// Retrieves all tables in the given database and schema that have a foreign key to the given table.
+    LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt,
+                                                                       FullyQualifiedTableName const& table);
 
-/// A list of tables.
-using TableList = std::vector<Table>;
-
-using ReadAllTablesCallback = std::function<void(std::string_view /*tableName*/, size_t /*current*/, size_t /*total*/)>;
-
-/// Retrieves all tables in the given @p database and @p schema.
-LIGHTWEIGHT_API TableList ReadAllTables(std::string_view database,
-                                        std::string_view schema = {},
-                                        ReadAllTablesCallback callback = {});
-
-/// Retrieves all tables in the given database and schema that have a foreign key to the given table.
-LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt, FullyQualifiedTableName const& table);
-
-/// Retrieves all tables in the given database and schema that have a foreign key from the given table.
-LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysFrom(SqlStatement& stmt,
-                                                                     FullyQualifiedTableName const& table);
+    /// Retrieves all tables in the given database and schema that have a foreign key from the given table.
+    LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysFrom(SqlStatement& stmt,
+                                                                         FullyQualifiedTableName const& table);
 
 } // namespace SqlSchema
 
+} // namespace Lightweight
+
 template <>
-struct std::formatter<SqlSchema::FullyQualifiedTableName>: std::formatter<std::string>
+struct std::formatter<Lightweight::SqlSchema::FullyQualifiedTableName>: std::formatter<std::string>
 {
-    auto format(SqlSchema::FullyQualifiedTableName const& value, format_context& ctx) const -> format_context::iterator
+    auto format(Lightweight::SqlSchema::FullyQualifiedTableName const& value, format_context& ctx) const
+        -> format_context::iterator
     {
-        string output = std::string(SqlSchema::detail::rtrim(value.schema));
+        string output = std::string(Lightweight::SqlSchema::detail::rtrim(value.schema));
         if (!output.empty())
             output += '.';
-        auto const trimmedSchema = SqlSchema::detail::rtrim(value.catalog);
+        auto const trimmedSchema = Lightweight::SqlSchema::detail::rtrim(value.catalog);
         output += trimmedSchema;
         if (!output.empty() && !trimmedSchema.empty())
             output += '.';
-        output += SqlSchema::detail::rtrim(value.table);
+        output += Lightweight::SqlSchema::detail::rtrim(value.table);
         return formatter<string>::format(output, ctx);
     }
 };
 
 template <>
-struct std::formatter<SqlSchema::FullyQualifiedTableColumn>: std::formatter<std::string>
+struct std::formatter<Lightweight::SqlSchema::FullyQualifiedTableColumn>: std::formatter<std::string>
 {
-    auto format(SqlSchema::FullyQualifiedTableColumn const& value, format_context& ctx) const -> format_context::iterator
+    auto format(Lightweight::SqlSchema::FullyQualifiedTableColumn const& value, format_context& ctx) const
+        -> format_context::iterator
     {
         auto const table = std::format("{}", value.table);
         if (table.empty())
@@ -203,9 +211,9 @@ struct std::formatter<SqlSchema::FullyQualifiedTableColumn>: std::formatter<std:
 };
 
 template <>
-struct std::formatter<SqlSchema::FullyQualifiedTableColumnSequence>: std::formatter<std::string>
+struct std::formatter<Lightweight::SqlSchema::FullyQualifiedTableColumnSequence>: std::formatter<std::string>
 {
-    auto format(SqlSchema::FullyQualifiedTableColumnSequence const& value, format_context& ctx) const
+    auto format(Lightweight::SqlSchema::FullyQualifiedTableColumnSequence const& value, format_context& ctx) const
         -> format_context::iterator
     {
         auto const resolvedTableName = std::format("{}", value.table);

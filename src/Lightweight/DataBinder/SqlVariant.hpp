@@ -21,16 +21,19 @@
 #include <print>
 #include <variant>
 
+namespace Lightweight
+{
+
 namespace detail
 {
-template <class... Ts>
-struct overloaded: Ts... // NOLINT(readability-identifier-naming)
-{
-    using Ts::operator()...;
-};
+    template <class... Ts>
+    struct overloaded: Ts... // NOLINT(readability-identifier-naming)
+    {
+        using Ts::operator()...;
+    };
 
-template <class... Ts>
-overloaded(Ts...) -> overloaded<Ts...>;
+    template <class... Ts>
+    overloaded(Ts...) -> overloaded<Ts...>;
 
 } // namespace detail
 
@@ -337,15 +340,6 @@ struct SqlVariant
 using SqlVariantRow = std::vector<SqlVariant>;
 
 template <>
-struct std::formatter<SqlVariant>: formatter<string>
-{
-    auto format(SqlVariant const& value, format_context& ctx) const -> format_context::iterator
-    {
-        return std::formatter<string>::format(value.ToString(), ctx);
-    }
-};
-
-template <>
 struct LIGHTWEIGHT_API SqlDataBinder<SqlVariant>
 {
     static SQLRETURN InputParameter(SQLHSTMT stmt,
@@ -359,5 +353,16 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlVariant>
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(SqlVariant const& value) noexcept
     {
         return value.ToString();
+    }
+};
+
+} // namespace Lightweight
+
+template <>
+struct std::formatter<Lightweight::SqlVariant>: formatter<string>
+{
+    auto format(Lightweight::SqlVariant const& value, format_context& ctx) const -> format_context::iterator
+    {
+        return std::formatter<string>::format(value.ToString(), ctx);
     }
 };

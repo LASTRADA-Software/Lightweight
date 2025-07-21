@@ -8,36 +8,38 @@
 #include <string>
 #include <string_view>
 
+namespace Lightweight
+{
+
 namespace
 {
-
-constexpr std::string_view DropQuotation(std::string_view value) noexcept
-{
-    if (!value.empty() && value.front() == '{' && value.back() == '}')
+    constexpr std::string_view DropQuotation(std::string_view value) noexcept
     {
-        value.remove_prefix(1);
-        value.remove_suffix(1);
+        if (!value.empty() && value.front() == '{' && value.back() == '}')
+        {
+            value.remove_prefix(1);
+            value.remove_suffix(1);
+        }
+        return value;
     }
-    return value;
-}
 
-constexpr std::string_view Trim(std::string_view value) noexcept
-{
-    while (!value.empty() && std::isspace(value.front()))
-        value.remove_prefix(1);
+    constexpr std::string_view Trim(std::string_view value) noexcept
+    {
+        while (!value.empty() && std::isspace(value.front()))
+            value.remove_prefix(1);
 
-    while (!value.empty() && std::isspace(value.back()))
-        value.remove_suffix(1);
+        while (!value.empty() && std::isspace(value.back()))
+            value.remove_suffix(1);
 
-    return value;
-}
+        return value;
+    }
 
-std::string ToUpperCaseString(std::string_view input)
-{
-    std::string result { input };
-    std::ranges::transform(result, result.begin(), [](char c) { return (char) std::toupper(c); });
-    return result;
-}
+    std::string ToUpperCaseString(std::string_view input)
+    {
+        std::string result { input };
+        std::ranges::transform(result, result.begin(), [](char c) { return (char) std::toupper(c); });
+        return result;
+    }
 
 } // end namespace
 std::string SqlConnectionString::Sanitized() const
@@ -110,3 +112,5 @@ SqlConnectionDataSource SqlConnectionDataSource::FromConnectionString(SqlConnect
 
     return result;
 }
+
+} // namespace Lightweight

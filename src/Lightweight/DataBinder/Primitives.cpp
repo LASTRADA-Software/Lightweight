@@ -6,6 +6,9 @@
 
 #include <array>
 
+namespace Lightweight
+{
+
 template <typename Int64Type, SQLSMALLINT TheCType>
 struct OracleInt64DataBinderHelper
 {
@@ -118,3 +121,5 @@ template struct Int64DataBinderHelper<uint64_t, SQL_C_UBIGINT>;
 template struct Int64DataBinderHelper<long long, SQL_C_SBIGINT>;
 template struct Int64DataBinderHelper<unsigned long long, SQL_C_UBIGINT>;
 #endif
+
+} // namespace Lightweight

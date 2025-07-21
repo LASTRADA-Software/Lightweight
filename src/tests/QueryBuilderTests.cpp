@@ -15,6 +15,8 @@
 #include <set>
 #include <source_location>
 
+using namespace Lightweight;
+
 struct QueryExpectations
 {
     std::string_view sqlite;

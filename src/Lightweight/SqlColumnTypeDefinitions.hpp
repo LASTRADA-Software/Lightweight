@@ -12,10 +12,13 @@
 #include <sql.h>
 #include <sqlext.h>
 
+namespace Lightweight
+{
+
 namespace SqlColumnTypeDefinitions
 {
 
-// clang-format off
+    // clang-format off
 struct Bigint {};
 struct Binary { std::size_t size = 255; };
 struct Bool {};
@@ -35,7 +38,7 @@ struct Timestamp {};
 struct Tinyint {};
 struct VarBinary { std::size_t size = 255; };
 struct Varchar { std::size_t size = 255; };
-// clang-format on
+    // clang-format on
 
 } // namespace SqlColumnTypeDefinitions
 
@@ -101,3 +104,5 @@ constexpr std::optional<SqlColumnTypeDefinition> MakeColumnTypeFromNative(int va
     }
     // clang-format on
 }
+
+} // namespace Lightweight

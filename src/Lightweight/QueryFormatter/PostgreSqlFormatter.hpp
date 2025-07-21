@@ -8,6 +8,9 @@
 
 #include <format>
 
+namespace Lightweight
+{
+
 class PostgreSqlFormatter final: public SQLiteQueryFormatter
 {
   public:
@@ -144,3 +147,5 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         return { sqlQueryString.str() };
     }
 };
+
+} // namespace Lightweight

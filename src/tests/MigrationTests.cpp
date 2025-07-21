@@ -14,7 +14,7 @@ using namespace std::string_view_literals;
 
 namespace std
 {
-std::ostream& operator<<(std::ostream& os, SqlMigration::MigrationTimestamp const& timestamp)
+std::ostream& operator<<(std::ostream& os, Lightweight::SqlMigration::MigrationTimestamp const& timestamp)
 {
     return os << "MigrationTimestamp(" << timestamp.value << ")";
 }
@@ -26,7 +26,7 @@ class SqlMigrationTestFixture: public SqlTestFixture
     SqlMigrationTestFixture():
         SqlTestFixture()
     {
-        SqlMigration::MigrationManager::GetInstance().RemoveAllMigrations();
+        Lightweight::SqlMigration::MigrationManager::GetInstance().RemoveAllMigrations();
     }
     SqlMigrationTestFixture(SqlMigrationTestFixture&&) = delete;
     SqlMigrationTestFixture(SqlMigrationTestFixture const&) = delete;
@@ -35,14 +35,14 @@ class SqlMigrationTestFixture: public SqlTestFixture
 
     ~SqlMigrationTestFixture() override
     {
-        SqlMigration::MigrationManager::GetInstance().CloseDataMapper();
+        Lightweight::SqlMigration::MigrationManager::GetInstance().CloseDataMapper();
     }
 };
 
 // This is how a migration could look like
 LIGHTWEIGHT_SQL_MIGRATION(20170816112233, "create users")
 {
-    using namespace SqlColumnTypeDefinitions;
+    using namespace Lightweight::SqlColumnTypeDefinitions;
 
     // clang-format off
     plan.CreateTable("users")

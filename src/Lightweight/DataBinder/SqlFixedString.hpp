@@ -11,6 +11,9 @@
 #include <stdexcept>
 #include <utility>
 
+namespace Lightweight
+{
+
 enum class SqlFixedStringMode : uint8_t
 {
     FIXED_SIZE,
@@ -274,15 +277,15 @@ struct detail::SqlViewHelper<SqlFixedString<N, CharT, Mode>>
 namespace detail
 {
 
-template <typename>
-struct IsSqlFixedStringTypeImpl: std::false_type
-{
-};
+    template <typename>
+    struct IsSqlFixedStringTypeImpl: std::false_type
+    {
+    };
 
-template <std::size_t N, typename T, SqlFixedStringMode Mode>
-struct IsSqlFixedStringTypeImpl<SqlFixedString<N, T, Mode>>: std::true_type
-{
-};
+    template <std::size_t N, typename T, SqlFixedStringMode Mode>
+    struct IsSqlFixedStringTypeImpl<SqlFixedString<N, T, Mode>>: std::true_type
+    {
+    };
 
 } // namespace detail
 
@@ -407,10 +410,12 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
     }
 };
 
-template <std::size_t N, typename T, SqlFixedStringMode P>
-struct std::formatter<SqlFixedString<N, T, P>>: std::formatter<std::string>
+} // namespace Lightweight
+
+template <std::size_t N, typename T, Lightweight::SqlFixedStringMode P>
+struct std::formatter<Lightweight::SqlFixedString<N, T, P>>: std::formatter<std::string>
 {
-    using value_type = SqlFixedString<N, T, P>;
+    using value_type = Lightweight::SqlFixedString<N, T, P>;
     auto format(value_type const& text, format_context& ctx) const -> format_context::iterator
     {
         if constexpr (std::same_as<T, wchar_t>)

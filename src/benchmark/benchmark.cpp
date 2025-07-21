@@ -8,9 +8,10 @@
 #include <Lightweight/SqlStatement.hpp>
 
 #include <print>
-#include <regex>
 
-auto const inline DefaultTestConnectionString = SqlConnectionString {
+using namespace Lightweight;
+
+auto inline const DefaultTestConnectionString = SqlConnectionString {
     .value = std::format("DRIVER=SQLite3;Database={}", SqlConnectionString::SanitizePwd("mubi_db.sqlite")),
 };
 
@@ -215,7 +216,7 @@ void iterate()
 {
     auto dm = DataMapper();
     [[maybe_unused]] int count = 0;
-    for ([[maybe_unused]] const auto& movie: SqlRowIterator<movies>(dm.Connection()))
+    for ([[maybe_unused]] auto const& movie: SqlRowIterator<movies>(dm.Connection()))
     {
         ++count;
     }

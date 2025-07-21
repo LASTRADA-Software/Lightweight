@@ -3,6 +3,9 @@
 #include "BasicStringBinder.hpp"
 #include "SqlVariant.hpp"
 
+namespace Lightweight
+{
+
 SQLRETURN SqlDataBinder<SqlVariant>::InputParameter(SQLHSTMT stmt,
                                                     SQLUSMALLINT column,
                                                     SqlVariant const& variantValue,
@@ -169,3 +172,5 @@ std::string SqlVariant::ToString() const
     }, value);
     // clang-format on
 }
+
+} // namespace Lightweight

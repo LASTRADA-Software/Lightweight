@@ -10,6 +10,9 @@
 #include <memory>
 #include <type_traits>
 
+namespace Lightweight
+{
+
 /// @brief Represents a one-to-one relationship through a join table.
 ///
 /// The `OtherField` parameter is the field in the join table that references the other record.
@@ -94,16 +97,18 @@ class HasOneThrough
 
 namespace detail
 {
-template <typename T>
-struct IsHasOneThrough: std::false_type
-{
-};
+    template <typename T>
+    struct IsHasOneThrough: std::false_type
+    {
+    };
 
-template <typename OtherTable, typename ThroughTable>
-struct IsHasOneThrough<HasOneThrough<OtherTable, ThroughTable>>: std::true_type
-{
-};
+    template <typename OtherTable, typename ThroughTable>
+    struct IsHasOneThrough<HasOneThrough<OtherTable, ThroughTable>>: std::true_type
+    {
+    };
 } // namespace detail
 
 template <typename T>
 constexpr bool IsHasOneThrough = detail::IsHasOneThrough<std::remove_cvref_t<T>>::value;
+
+} // namespace Lightweight

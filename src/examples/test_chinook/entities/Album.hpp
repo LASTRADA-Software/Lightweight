@@ -1,17 +1,17 @@
 // File is automatically generated using ddl2cpp.
 #pragma once
 
-#include <Lightweight/DataMapper/DataMapper.hpp>
-
 #include "Artist.hpp"
+
+#include <Lightweight/DataMapper/DataMapper.hpp>
 
 
 struct Album final
 {
     static constexpr std::string_view TableName = "Album";
 
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"AlbumId"}> AlbumId;
-    Field<SqlDynamicUtf16String<160>, SqlRealName{"Title"}> Title;
-    BelongsTo<&Artist::ArtistId, SqlRealName{"ArtistId"}> ArtistId;
+    Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "AlbumId" }> AlbumId;
+    Light::Field<Light::SqlDynamicUtf16String<160>, Light::SqlRealName { "Title" }> Title;
+    Light::BelongsTo<&Artist::ArtistId, Light::SqlRealName { "ArtistId" }> ArtistId;
 };
 
