@@ -102,7 +102,7 @@ Introduction</h1>
 Common Best Practices</h1>
 <h2><a class="anchor" id="use-the-datamapper-api"></a>
 Use the DataMapper API</h2>
-<p>The <code><a class="el" href="../../dc/dc7/classDataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code> API provides a high-level abstraction for working with database tables. <br  />
+<p>The <code>DataMapper</code> API provides a high-level abstraction for working with database tables. <br  />
  It simplifies the process of querying, inserting, updating, and deleting data from the database while retaining performance and flexibility.</p>
 <h2><a class="anchor" id="keep-data-model-and-business-logic-separate"></a>
 Keep Data Model and Business Logic Separate</h2>
@@ -115,62 +115,53 @@ Use Transactions with Care</h2>
 <p>However, be careful when using transactions, as they can affect performance severely if not used properly.</p>
 <h2><a class="anchor" id="binding-output-parameters"></a>
 Binding Output Parameters</h2>
-<p>First things first, always favor using the <code><a class="el" href="../../dc/dc7/classDataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code> API over manual querying and binding of columns.</p>
-<p>However, when not using the <code><a class="el" href="../../dc/dc7/classDataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code> API, you need to retrieve the result manually, either via <code><a class="el" href="../../df/d17/classSqlStatement.html#ad1b732b98002ac13a593a2c09b057e48">SqlStatement::BindOutputColumns()</a></code> or afterwards by fetching the columns individually. <br  />
+<p>First things first, always favor using the <code>DataMapper</code> API over manual querying and binding of columns.</p>
+<p>However, when not using the <code>DataMapper</code> API, you need to retrieve the result manually, either via <code>SqlStatement::BindOutputColumns()</code> or afterwards by fetching the columns individually. <br  />
  It is always highly recommended to pre-bind to avoid unnecessary memory allocations and copying.</p>
-<p>With this, it is sufficient to call <code><a class="el" href="../../df/d17/classSqlStatement.html#ad1b732b98002ac13a593a2c09b057e48">SqlStatement::BindOutputColumns()</a></code> once, and then you can reuse the result throughout many <code><a class="el" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow()</a></code> calls.</p>
+<p>With this, it is sufficient to call <code>SqlStatement::BindOutputColumns()</code> once, and then you can reuse the result throughout many <code>SqlStatement::FetchRow()</code> calls.</p>
 <p>The pitfall here is that if you are using <code>std::optional&lt;T&gt;</code> column types, you <b>MUST</b> rebind the result columns before each fetch operation. If there are no nullable values, you do not have to.</p>
 <div class="fragment"><div class="line"><span class="keyword">struct </span>MixedNullRow</div>
 <div class="line">{</div>
-<div class="line">    <a class="code hl_struct" href="../../df/d27/structField.html">Field&lt;SqlGuid, PrimaryKey::AutoAssign&gt;</a> <span class="keywordtype">id</span> {};</div>
-<div class="line">    <a class="code hl_struct" href="../../df/d27/structField.html">Field&lt;std::optional&lt;SqlAnsiString&lt;30&gt;</a>&gt;&gt; name;</div>
-<div class="line">    <a class="code hl_struct" href="../../df/d27/structField.html">Field&lt;std::optional&lt;int&gt;</a>&gt; age;</div>
+<div class="line">    Field&lt;SqlGuid, PrimaryKey::AutoAssign&gt; <span class="keywordtype">id</span> {};</div>
+<div class="line">    Field&lt;std::optional&lt;SqlAnsiString&lt;30&gt;&gt;&gt; name;</div>
+<div class="line">    Field&lt;std::optional&lt;int&gt;&gt; age;</div>
 <div class="line">};</div>
 <div class="line"> </div>
-<div class="line"><span class="keywordtype">void</span> ForEachData(<a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a>&amp; stmt, <span class="keyword">auto</span>&amp;&amp; onRow)</div>
+<div class="line"><span class="keywordtype">void</span> ForEachData(SqlStatement&amp; stmt, <span class="keyword">auto</span>&amp;&amp; onRow)</div>
 <div class="line">{</div>
-<div class="line">    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#a945c53d6f2882289703f9ac98f3f171c">ExecuteDirect</a>(stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ad4db979c5f830dcc838f9b2d9ae8b212">Query</a>(RecordTableName&lt;MixedNullRow&gt;)</div>
-<div class="line">                           .<a class="code hl_function" href="../../d0/d78/classSqlQueryBuilder.html#a540942748905edd6045fe8c3fb16a124">Select</a>()</div>
-<div class="line">                           .<a class="code hl_function" href="../../d1/d91/classSqlSelectQueryBuilder.html#aa58e6a65bcca55afe0316bcfa1dd60bd">Fields</a>({ <span class="stringliteral">&quot;id&quot;</span>sv, <span class="stringliteral">&quot;name&quot;</span>sv, <span class="stringliteral">&quot;age&quot;</span>sv })</div>
-<div class="line">                           .<a class="code hl_function" href="../../d1/d91/classSqlSelectQueryBuilder.html#ab6b6bbe36ee51d4de422c8681266da3d">All</a>());</div>
+<div class="line">    stmt.ExecuteDirect(stmt.Query(RecordTableName&lt;MixedNullRow&gt;)</div>
+<div class="line">                           .Select()</div>
+<div class="line">                           .Fields({ <span class="stringliteral">&quot;id&quot;</span>sv, <span class="stringliteral">&quot;name&quot;</span>sv, <span class="stringliteral">&quot;age&quot;</span>sv })</div>
+<div class="line">                           .All());</div>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">auto</span> currentRow = MixedNullRow {};</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Bind output columns for the first time</span></div>
-<div class="line">    stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ad1b732b98002ac13a593a2c09b057e48">BindOutputColumns</a>(&amp;currentRow.id, &amp;currentRow.name, &amp;currentRow.age);</div>
+<div class="line">    stmt.BindOutputColumns(&amp;currentRow.id, &amp;currentRow.name, &amp;currentRow.age);</div>
 <div class="line"> </div>
-<div class="line">    <span class="keywordflow">while</span> (stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">FetchRow</a>())</div>
+<div class="line">    <span class="keywordflow">while</span> (stmt.FetchRow())</div>
 <div class="line">    {</div>
 <div class="line">        onRow(currentRow);</div>
 <div class="line"> </div>
 <div class="line">        <span class="comment">// Bind output columns for the next fetch.</span></div>
 <div class="line">        <span class="comment">// (ONLY necessary when using std::optional&lt;T&gt; in the columns)</span></div>
-<div class="line">        stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ad1b732b98002ac13a593a2c09b057e48">BindOutputColumns</a>(&amp;currentRow.id, &amp;currentRow.name, &amp;currentRow.age);</div>
+<div class="line">        stmt.BindOutputColumns(&amp;currentRow.id, &amp;currentRow.name, &amp;currentRow.age);</div>
 <div class="line">    }</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassSqlQueryBuilder_html_a540942748905edd6045fe8c3fb16a124"><div class="ttname"><a href="../../d0/d78/classSqlQueryBuilder.html#a540942748905edd6045fe8c3fb16a124">SqlQueryBuilder::Select</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlSelectQueryBuilder Select() noexcept</div><div class="ttdoc">Initiates SELECT query building.</div></div>
-<div class="ttc" id="aclassSqlSelectQueryBuilder_html_aa58e6a65bcca55afe0316bcfa1dd60bd"><div class="ttname"><a href="../../d1/d91/classSqlSelectQueryBuilder.html#aa58e6a65bcca55afe0316bcfa1dd60bd">SqlSelectQueryBuilder::Fields</a></div><div class="ttdeci">SqlSelectQueryBuilder &amp; Fields(std::string_view const &amp;firstField, MoreFields &amp;&amp;... moreFields)</div><div class="ttdoc">Adds a sequence of columns to the SELECT clause.</div><div class="ttdef"><b>Definition</b> <a href="../../d2/d51/Select_8hpp_source.html#l00173">Select.hpp:173</a></div></div>
-<div class="ttc" id="aclassSqlSelectQueryBuilder_html_ab6b6bbe36ee51d4de422c8681266da3d"><div class="ttname"><a href="../../d1/d91/classSqlSelectQueryBuilder.html#ab6b6bbe36ee51d4de422c8681266da3d">SqlSelectQueryBuilder::All</a></div><div class="ttdeci">LIGHTWEIGHT_API ComposedQuery All()</div><div class="ttdoc">Finalizes building the query as SELECT field names FROM ... query.</div></div>
-<div class="ttc" id="aclassSqlStatement_html"><div class="ttname"><a href="../../df/d17/classSqlStatement.html">SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00047">SqlStatement.hpp:48</a></div></div>
-<div class="ttc" id="aclassSqlStatement_html_a945c53d6f2882289703f9ac98f3f171c"><div class="ttname"><a href="../../df/d17/classSqlStatement.html#a945c53d6f2882289703f9ac98f3f171c">SqlStatement::ExecuteDirect</a></div><div class="ttdeci">LIGHTWEIGHT_API void ExecuteDirect(std::string_view const &amp;query, std::source_location location=std::source_location::current())</div><div class="ttdoc">Executes the given query directly.</div></div>
-<div class="ttc" id="aclassSqlStatement_html_accc6455ab0d267c65ca911711314c9ec"><div class="ttname"><a href="../../df/d17/classSqlStatement.html#accc6455ab0d267c65ca911711314c9ec">SqlStatement::FetchRow</a></div><div class="ttdeci">LIGHTWEIGHT_API bool FetchRow()</div></div>
-<div class="ttc" id="aclassSqlStatement_html_ad1b732b98002ac13a593a2c09b057e48"><div class="ttname"><a href="../../df/d17/classSqlStatement.html#ad1b732b98002ac13a593a2c09b057e48">SqlStatement::BindOutputColumns</a></div><div class="ttdeci">void BindOutputColumns(Args *... args)</div></div>
-<div class="ttc" id="aclassSqlStatement_html_ad4db979c5f830dcc838f9b2d9ae8b212"><div class="ttname"><a href="../../df/d17/classSqlStatement.html#ad4db979c5f830dcc838f9b2d9ae8b212">SqlStatement::Query</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlQueryBuilder Query(std::string_view const &amp;table={}) const</div><div class="ttdoc">Creates a new query builder for the given table, compatible with the SQL server being connected.</div></div>
-<div class="ttc" id="astructField_html"><div class="ttname"><a href="../../df/d27/structField.html">Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00079">Field.hpp:80</a></div></div>
 </div><!-- fragment --><h1><a class="anchor" id="sql-driver-related-best-practices"></a>
 SQL Driver-Related Best Practices</h1>
 <h2><a class="anchor" id="query-result-row-columns-in-order"></a>
 Query Result Row Columns in Order</h2>
 <p>When querying the result set, always access the columns in the order they are returned by the query. <br  />
  At least the MS SQL Server driver has issues when accessing columns out of order. Carefully check the driver documentation for the specific behavior of the driver you are using.</p>
-<p>This can be avoided when using the <code><a class="el" href="../../dc/dc7/classDataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code> API, which always maps the result in order and as efficiently as possible.</p>
+<p>This can be avoided when using the <code>DataMapper</code> API, which always maps the result in order and as efficiently as possible.</p>
 <h1><a class="anchor" id="performance-is-key"></a>
 Performance Is Key</h1>
 <h2><a class="anchor" id="use-native-column-types"></a>
 Use Native Column Types</h2>
 <p>Use the native column types provided by the API for the columns in your tables. <br  />
  This will help to improve the performance of your application by reducing the overhead of data conversion.</p>
-<p>The existence of <code><a class="el" href="../../d0/df8/structSqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a></code> in the API allows you to store any type of data in a single column, but it is recommended to use the native column types whenever possible.</p>
+<p>The existence of <code>SqlVariant</code> in the API allows you to store any type of data in a single column, but it is recommended to use the native column types whenever possible.</p>
 <h2><a class="anchor" id="use-prepared-statements"></a>
 Use Prepared Statements</h2>
 <p>Prepared statements are precompiled SQL statements that can be executed multiple times with different parameters. <br  />
@@ -184,7 +175,7 @@ SQL Server Variation Challenges</h1>
 <h2><a class="anchor" id="autotoc_md64-bit-integer-handling-in-oracle-database"></a>
 64-bit Integer Handling in Oracle Database</h2>
 <p>Oracle database does not support 64-bit integers natively. <br  />
- When working with 64-bit integers in Oracle database, you need to use the <code><a class="el" href="../../da/d72/structSqlNumeric.html">SqlNumeric</a></code> column types. </p>
+ When working with 64-bit integers in Oracle database, you need to use the <code>SqlNumeric</code> column types. </p>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->

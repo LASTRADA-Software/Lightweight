@@ -105,82 +105,86 @@ $(document).ready(function(){initNavTree('d2/d5e/Primitives_8hpp_source.html','.
 <div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="preprocessor">#include &quot;../SqlColumnTypeDefinitions.hpp&quot;</span></div>
 <div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span><span class="preprocessor">#include &quot;Core.hpp&quot;</span></div>
 <div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span> </div>
-<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T, SQLSMALLINT TheCType, SQLINTEGER TheSqlType, auto TheColumnType&gt;</div>
-<div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span><span class="keyword">struct </span>SqlSimpleDataBinder</div>
-<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span>{</div>
-<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> SqlColumnTypeDefinition ColumnType = TheColumnType;</div>
-<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span> </div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span>                                                             SQLUSMALLINT column,</div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span>                                                             T <span class="keyword">const</span>&amp; value,</div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span>                                                             <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; <span class="comment">/*cb*/</span>) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>    {</div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>        <span class="keywordflow">return</span> SQLBindParameter(stmt, column, SQL_PARAM_INPUT, TheCType, TheSqlType, 0, 0, (SQLPOINTER) &amp;value, 0, <span class="keyword">nullptr</span>);</div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>    }</div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span> </div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(</div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>        SQLHSTMT stmt, SQLUSMALLINT column, T* result, SQLLEN* indicator, <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; <span class="comment">/*unused*/</span>) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>    {</div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>        <span class="keywordflow">return</span> SQLBindCol(stmt, column, TheCType, result, 0, indicator);</div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>    }</div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span> </div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN</div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, T* result, SQLLEN* indicator, <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> <span class="keyword">const</span>&amp; <span class="comment">/*cb*/</span>) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    {</div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>        <span class="keywordflow">return</span> SQLGetData(stmt, column, TheCType, result, 0, indicator);</div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>    }</div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span> </div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(T value)</div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>    {</div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>        <span class="keywordflow">return</span> std::to_string(value);</div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>    }</div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>};</div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Int64Type, SQLSMALLINT TheCType&gt;</div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="keyword">struct </span>Int64DataBinderHelper</div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>{</div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> SqlColumnTypeDefinition ColumnType = SqlColumnTypeDefinitions::Bigint {};</div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span> </div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>    <span class="keyword">static</span> LIGHTWEIGHT_API SQLRETURN InputParameter(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>                                                    SQLUSMALLINT column,</div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>                                                    Int64Type <span class="keyword">const</span>&amp; value,</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>                                                    <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb) <span class="keyword">noexcept</span>;</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span> </div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>    <span class="keyword">static</span> LIGHTWEIGHT_API SQLRETURN OutputColumn(</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>        SQLHSTMT stmt, SQLUSMALLINT column, Int64Type* result, SQLLEN* indicator, <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb) <span class="keyword">noexcept</span>;</div>
+<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="keyword">namespace </span>Lightweight</div>
+<div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span>{</div>
+<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span> </div>
+<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T, SQLSMALLINT TheCType, SQLINTEGER TheSqlType, auto TheColumnType&gt;</div>
+<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="keyword">struct </span>SqlSimpleDataBinder</div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span>{</div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> SqlColumnTypeDefinition ColumnType = TheColumnType;</div>
+<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span> </div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>                                                             SQLUSMALLINT column,</div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>                                                             T <span class="keyword">const</span>&amp; value,</div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>                                                             SqlDataBinderCallback&amp; <span class="comment">/*cb*/</span>) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>    {</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>        <span class="keywordflow">return</span> SQLBindParameter(stmt, column, SQL_PARAM_INPUT, TheCType, TheSqlType, 0, 0, (SQLPOINTER) &amp;value, 0, <span class="keyword">nullptr</span>);</div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>    }</div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span> </div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(</div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>        SQLHSTMT stmt, SQLUSMALLINT column, T* result, SQLLEN* indicator, SqlDataBinderCallback&amp; <span class="comment">/*unused*/</span>) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>    {</div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>        <span class="keywordflow">return</span> SQLBindCol(stmt, column, TheCType, result, 0, indicator);</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    }</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span> </div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN</div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>    GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, T* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; <span class="comment">/*cb*/</span>) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>    {</div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>        <span class="keywordflow">return</span> SQLGetData(stmt, column, TheCType, result, 0, indicator);</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>    }</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span> </div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(T value)</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>    {</div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>        <span class="keywordflow">return</span> std::to_string(value);</div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>    }</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>};</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span> </div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Int64Type, SQLSMALLINT TheCType&gt;</div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span><span class="keyword">struct </span>Int64DataBinderHelper</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>{</div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> SqlColumnTypeDefinition ColumnType = SqlColumnTypeDefinitions::Bigint {};</div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span> </div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>    <span class="keyword">static</span> LIGHTWEIGHT_API SQLRETURN InputParameter(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>                                                    SQLUSMALLINT column,</div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>                                                    Int64Type <span class="keyword">const</span>&amp; value,</div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>                                                    SqlDataBinderCallback&amp; cb) <span class="keyword">noexcept</span>;</div>
 <div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span> </div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>    <span class="keyword">static</span> LIGHTWEIGHT_API SQLRETURN GetColumn(</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>        SQLHSTMT stmt, SQLUSMALLINT column, Int64Type* result, SQLLEN* indicator, <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span>;</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>    <span class="keyword">static</span> LIGHTWEIGHT_API SQLRETURN OutputColumn(</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>        SQLHSTMT stmt, SQLUSMALLINT column, Int64Type* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb) <span class="keyword">noexcept</span>;</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span> </div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(Int64Type value)</div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>    {</div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>        <span class="keywordflow">return</span> std::to_string(value);</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    }</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>};</div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span> </div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="comment">// clang-format off</span></div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;bool&gt;: SqlSimpleDataBinder&lt;bool, SQL_BIT, SQL_BIT, SqlColumnTypeDefinitions::Bool {}&gt; {};</div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;char&gt;: SqlSimpleDataBinder&lt;char, SQL_C_CHAR, SQL_CHAR, SqlColumnTypeDefinitions::Char {}&gt; {};</div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;int8_t&gt;: SqlSimpleDataBinder&lt;int8_t, SQL_C_STINYINT, SQL_TINYINT, SqlColumnTypeDefinitions::Tinyint {}&gt; {};</div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;uint8_t&gt;: SqlSimpleDataBinder&lt;uint8_t, SQL_C_UTINYINT, SQL_TINYINT, SqlColumnTypeDefinitions::Tinyint {}&gt; {};</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;int16_t&gt;: SqlSimpleDataBinder&lt;int16_t, SQL_C_SSHORT, SQL_SMALLINT, SqlColumnTypeDefinitions::Smallint {}&gt; {};</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;uint16_t&gt;: SqlSimpleDataBinder&lt;uint16_t, SQL_C_USHORT, SQL_SMALLINT, SqlColumnTypeDefinitions::Smallint {}&gt; {};</div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;int32_t&gt;: SqlSimpleDataBinder&lt;int32_t, SQL_C_SLONG, SQL_INTEGER, SqlColumnTypeDefinitions::Integer {}&gt; {};</div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;uint32_t&gt;: SqlSimpleDataBinder&lt;uint32_t, SQL_C_ULONG, SQL_INTEGER, SqlColumnTypeDefinitions::Integer {}&gt; {};</div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;int64_t&gt;: Int64DataBinderHelper&lt;int64_t, SQL_C_SBIGINT&gt; {};</div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;uint64_t&gt;: Int64DataBinderHelper&lt;uint64_t, SQL_C_UBIGINT&gt; {};</div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="comment">//template &lt;&gt; struct SqlDataBinder&lt;uint64_t&gt;: Int64DataBinderHelper&lt;uint64_t, SQL_C_UBIGINT&gt; {};</span></div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;float&gt;: SqlSimpleDataBinder&lt;float, SQL_C_FLOAT, SQL_REAL, SqlColumnTypeDefinitions::Real {}&gt; {};</div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;double&gt;: SqlSimpleDataBinder&lt;double, SQL_C_DOUBLE, SQL_DOUBLE, SqlColumnTypeDefinitions::Real {}&gt; {};</div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="preprocessor">#if !defined(_WIN32) &amp;&amp; !defined(__APPLE__)</span></div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;long long&gt;: Int64DataBinderHelper&lt;long long, SQL_C_SBIGINT&gt; {};</div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;unsigned long long&gt;: Int64DataBinderHelper&lt;unsigned long long, SQL_C_UBIGINT&gt; {};</div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><span class="preprocessor">#if defined(__APPLE__) </span><span class="comment">// size_t is a different type on macOS</span></div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;std::size_t&gt;: SqlSimpleDataBinder&lt;std::size_t, SQL_C_SBIGINT, SqlColumnTypeDefinitions::Bigint {}&gt; {};</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>    <span class="keyword">static</span> LIGHTWEIGHT_API SQLRETURN GetColumn(</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>        SQLHSTMT stmt, SQLUSMALLINT column, Int64Type* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span>;</div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span> </div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(Int64Type value)</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>    {</div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>        <span class="keywordflow">return</span> std::to_string(value);</div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>    }</div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>};</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span> </div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="comment">// clang-format off</span></div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;bool&gt;: SqlSimpleDataBinder&lt;bool, SQL_BIT, SQL_BIT, SqlColumnTypeDefinitions::Bool {}&gt; {};</div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;char&gt;: SqlSimpleDataBinder&lt;char, SQL_C_CHAR, SQL_CHAR, SqlColumnTypeDefinitions::Char {}&gt; {};</div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;int8_t&gt;: SqlSimpleDataBinder&lt;int8_t, SQL_C_STINYINT, SQL_TINYINT, SqlColumnTypeDefinitions::Tinyint {}&gt; {};</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;uint8_t&gt;: SqlSimpleDataBinder&lt;uint8_t, SQL_C_UTINYINT, SQL_TINYINT, SqlColumnTypeDefinitions::Tinyint {}&gt; {};</div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;int16_t&gt;: SqlSimpleDataBinder&lt;int16_t, SQL_C_SSHORT, SQL_SMALLINT, SqlColumnTypeDefinitions::Smallint {}&gt; {};</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;uint16_t&gt;: SqlSimpleDataBinder&lt;uint16_t, SQL_C_USHORT, SQL_SMALLINT, SqlColumnTypeDefinitions::Smallint {}&gt; {};</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;int32_t&gt;: SqlSimpleDataBinder&lt;int32_t, SQL_C_SLONG, SQL_INTEGER, SqlColumnTypeDefinitions::Integer {}&gt; {};</div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;uint32_t&gt;: SqlSimpleDataBinder&lt;uint32_t, SQL_C_ULONG, SQL_INTEGER, SqlColumnTypeDefinitions::Integer {}&gt; {};</div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;int64_t&gt;: Int64DataBinderHelper&lt;int64_t, SQL_C_SBIGINT&gt; {};</div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;uint64_t&gt;: Int64DataBinderHelper&lt;uint64_t, SQL_C_UBIGINT&gt; {};</div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="comment">//template &lt;&gt; struct SqlDataBinder&lt;uint64_t&gt;: Int64DataBinderHelper&lt;uint64_t, SQL_C_UBIGINT&gt; {};</span></div>
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;float&gt;: SqlSimpleDataBinder&lt;float, SQL_C_FLOAT, SQL_REAL, SqlColumnTypeDefinitions::Real {}&gt; {};</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;double&gt;: SqlSimpleDataBinder&lt;double, SQL_C_DOUBLE, SQL_DOUBLE, SqlColumnTypeDefinitions::Real {}&gt; {};</div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span><span class="preprocessor">#if !defined(_WIN32) &amp;&amp; !defined(__APPLE__)</span></div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;long long&gt;: Int64DataBinderHelper&lt;long long, SQL_C_SBIGINT&gt; {};</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;unsigned long long&gt;: Int64DataBinderHelper&lt;unsigned long long, SQL_C_UBIGINT&gt; {};</div>
 <div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="comment">// clang-format on</span></div>
-<div class="ttc" id="aclassSqlDataBinderCallback_html"><div class="ttname"><a href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a></div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00028">Core.hpp:29</a></div></div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="preprocessor">#if defined(__APPLE__) </span><span class="comment">// size_t is a different type on macOS</span></div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="keyword">template</span> &lt;&gt; <span class="keyword">struct </span>SqlDataBinder&lt;std::size_t&gt;: SqlSimpleDataBinder&lt;std::size_t, SQL_C_SBIGINT, SqlColumnTypeDefinitions::Bigint {}&gt; {};</div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><span class="comment">// clang-format on</span></div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span> </div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>} <span class="comment">// namespace Lightweight</span></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

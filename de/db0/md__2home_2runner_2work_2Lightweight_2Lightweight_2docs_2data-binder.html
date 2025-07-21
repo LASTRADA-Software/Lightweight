@@ -115,7 +115,7 @@ Custom Column Data Type Binder Example</h1>
 <div class="line"><span class="comment"></span>    <span class="keyword">static</span> SQLRETURN InputParameter(SQLHSTMT hStmt,</div>
 <div class="line">                                    SQLUSMALLINT column,</div>
 <div class="line">                                    CustomType <span class="keyword">const</span>&amp; value,</div>
-<div class="line">                                    <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line">                                    SqlDataBinderCallback&amp; cb) <span class="keyword">noexcept</span></div>
 <div class="line">    {</div>
 <div class="line">        <span class="keywordflow">return</span> SqlDataBinder&lt;int&gt;::InputParameter(hStmt, column, value.value, cb);</div>
 <div class="line">    }</div>
@@ -136,7 +136,7 @@ Custom Column Data Type Binder Example</h1>
 <div class="line">                                  SQLUSMALLINT column,</div>
 <div class="line">                                  CustomType* result,</div>
 <div class="line">                                  SQLLEN* indicator,</div>
-<div class="line">                                  <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a>&amp; callback) <span class="keyword">noexcept</span></div>
+<div class="line">                                  SqlDataBinderCallback&amp; callback) <span class="keyword">noexcept</span></div>
 <div class="line">    {</div>
 <div class="line">        <span class="keywordflow">return</span> SqlDataBinder&lt;int&gt;::OutputColumn(hStmt, column, &amp;result-&gt;value, indicator, callback);</div>
 <div class="line">    }</div>
@@ -156,7 +156,7 @@ Custom Column Data Type Binder Example</h1>
 <div class="line">                               SQLUSMALLINT column,</div>
 <div class="line">                               CustomType* result,</div>
 <div class="line">                               SQLLEN* indicator,</div>
-<div class="line">                               <a class="code hl_class" href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a> <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line">                               SqlDataBinderCallback <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
 <div class="line">    {</div>
 <div class="line">        <span class="keywordflow">return</span> SqlDataBinder&lt;int&gt;::GetColumn(hStmt, column, &amp;result-&gt;value, indicator, cb);</div>
 <div class="line">    }</div>
@@ -169,7 +169,6 @@ Custom Column Data Type Binder Example</h1>
 <div class="line">        <span class="keywordflow">return</span> std::format(<span class="stringliteral">&quot;CustomType({})&quot;</span>, value.value);</div>
 <div class="line">    }</div>
 <div class="line">};</div>
-<div class="ttc" id="aclassSqlDataBinderCallback_html"><div class="ttname"><a href="../../d5/d40/classSqlDataBinderCallback.html">SqlDataBinderCallback</a></div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00028">Core.hpp:29</a></div></div>
 </div><!-- fragment --><h1><a class="anchor" id="inputparameter"></a>
 InputParameter()</h1>
 <p>The <code>InputParameter()</code> function binds the custom type to the SQL statement as an input parameter.</p>

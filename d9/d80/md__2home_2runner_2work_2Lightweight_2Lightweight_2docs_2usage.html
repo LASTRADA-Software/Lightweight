@@ -96,25 +96,21 @@ $(document).ready(function(){initNavTree('d9/d80/md__2home_2runner_2work_2Lightw
 <div class="textblock"><p><a class="anchor" id="usage-examples"></a> </p>
 <h1><a class="anchor" id="configure-default-connection-information-to-the-database"></a>
 Configure default connection information to the database</h1>
-<p>To connect to the database you need to provide connection string that library uses to establish connection and you can check if it is alive in the following way </p><div class="fragment"><div class="line"><a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#a2f538dc2d3ee6cc9871c52d6b56ec887">SqlConnection::SetDefaultConnectionString</a>(<a class="code hl_struct" href="../../d0/d8e/structSqlConnectionString.html">SqlConnectionString</a> { </div>
+<p>To connect to the database you need to provide connection string that library uses to establish connection and you can check if it is alive in the following way </p><div class="fragment"><div class="line">SqlConnection::SetDefaultConnectionString(SqlConnectionString { </div>
 <div class="line">    .value = std::format(<span class="stringliteral">&quot;DRIVER=SQLite3;Database=test.sqlite&quot;</span>)</div>
 <div class="line">});</div>
 <div class="line"> </div>
-<div class="line"><span class="keyword">auto</span> sqlConnection = <a class="code hl_class" href="../../d7/d7b/classSqlConnection.html">SqlConnection</a> {};</div>
+<div class="line"><span class="keyword">auto</span> sqlConnection = SqlConnection {};</div>
 <div class="line"><span class="keywordflow">if</span> (!sqlConnection.IsAlive())</div>
 <div class="line">{</div>
 <div class="line">    std::println(<span class="stringliteral">&quot;Failed to connect to the database: {}&quot;</span>,</div>
-<div class="line">                 <a class="code hl_function" href="../../d3/dbc/structSqlErrorInfo.html#a3c751203bd9c041162147b388681cf73">SqlErrorInfo::fromConnectionHandle</a>(sqlConnection.NativeHandle()));</div>
+<div class="line">                 SqlErrorInfo::fromConnectionHandle(sqlConnection.NativeHandle()));</div>
 <div class="line">    std::abort();</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassSqlConnection_html"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html">SqlConnection</a></div><div class="ttdoc">Represents a connection to a SQL database.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00036">SqlConnection.hpp:37</a></div></div>
-<div class="ttc" id="aclassSqlConnection_html_a2f538dc2d3ee6cc9871c52d6b56ec887"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#a2f538dc2d3ee6cc9871c52d6b56ec887">SqlConnection::SetDefaultConnectionString</a></div><div class="ttdeci">static LIGHTWEIGHT_API void SetDefaultConnectionString(SqlConnectionString const &amp;connectionString) noexcept</div></div>
-<div class="ttc" id="astructSqlConnectionString_html"><div class="ttname"><a href="../../d0/d8e/structSqlConnectionString.html">SqlConnectionString</a></div><div class="ttdoc">Represents an ODBC connection string.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00014">SqlConnectInfo.hpp:15</a></div></div>
-<div class="ttc" id="astructSqlErrorInfo_html_a3c751203bd9c041162147b388681cf73"><div class="ttname"><a href="../../d3/dbc/structSqlErrorInfo.html#a3c751203bd9c041162147b388681cf73">SqlErrorInfo::fromConnectionHandle</a></div><div class="ttdeci">static SqlErrorInfo fromConnectionHandle(SQLHDBC hDbc)</div><div class="ttdoc">Constructs an ODBC error info object from the given ODBC connection handle.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d02/SqlError_8hpp_source.html#l00035">SqlError.hpp:35</a></div></div>
 </div><!-- fragment --><h1><a class="anchor" id="raw-sql-queries"></a>
 Raw SQL Queries</h1>
-<p>To directly make a call to the database use <code>ExecuteDirect</code> function, for example </p><div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = <a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a> {};</div>
-<div class="line">stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#a945c53d6f2882289703f9ac98f3f171c">ExecuteDirect</a>(R<span class="stringliteral">&quot;(&quot;SELECT &quot;a&quot;, &quot;b&quot;, &quot;c&quot; FROM &quot;That&quot; ORDER BY &quot;That&quot;.&quot;b&quot; DESC)&quot;));</span></div>
+<p>To directly make a call to the database use <code>ExecuteDirect</code> function, for example </p><div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = SqlStatement {};</div>
+<div class="line">stmt.ExecuteDirect(R<span class="stringliteral">&quot;(&quot;SELECT &quot;a&quot;, &quot;b&quot;, &quot;c&quot; FROM &quot;That&quot; ORDER BY &quot;That&quot;.&quot;b&quot; DESC)&quot;));</span></div>
 <div class="line"><span class="stringliteral"></span><span class="keywordflow">while</span> (stmt.FetchRow())</div>
 <div class="line">{</div>
 <div class="line">   <span class="keyword">auto</span> a = stmt.GetColumn&lt;<span class="keywordtype">int</span>&gt;(1);</div>
@@ -122,33 +118,27 @@ Raw SQL Queries</h1>
 <div class="line">   <span class="keyword">auto</span> c = stmt.GetColumn&lt;<span class="keywordtype">int</span>&gt;(3);</div>
 <div class="line">   std::println(<span class="stringliteral">&quot;{}|{}|{}&quot;</span>, a, b,c);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassSqlStatement_html"><div class="ttname"><a href="../../df/d17/classSqlStatement.html">SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00047">SqlStatement.hpp:48</a></div></div>
-<div class="ttc" id="aclassSqlStatement_html_a945c53d6f2882289703f9ac98f3f171c"><div class="ttname"><a href="../../df/d17/classSqlStatement.html#a945c53d6f2882289703f9ac98f3f171c">SqlStatement::ExecuteDirect</a></div><div class="ttdeci">LIGHTWEIGHT_API void ExecuteDirect(std::string_view const &amp;query, std::source_location location=std::source_location::current())</div><div class="ttdoc">Executes the given query directly.</div></div>
 </div><!-- fragment --><h1><a class="anchor" id="prepared-statements"></a>
 Prepared Statements</h1>
 <p>You can also use prepared statements to execute queries, for example </p><div class="fragment"><div class="line"><span class="keyword">struct </span>Record { <span class="keywordtype">int</span> a; <span class="keywordtype">int</span> b; <span class="keywordtype">int</span> c; };</div>
-<div class="line"><span class="keyword">auto</span> conn = <a class="code hl_class" href="../../d7/d7b/classSqlConnection.html">SqlConnection</a> {};</div>
-<div class="line"><span class="keyword">auto</span> stmt = <a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a> { conn };</div>
-<div class="line">stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">Prepare</a>(<span class="stringliteral">&quot;SELECT a, b, c FROM That WHERE a = ? OR b = ?&quot;</span>);</div>
+<div class="line"><span class="keyword">auto</span> conn = SqlConnection {};</div>
+<div class="line"><span class="keyword">auto</span> stmt = SqlStatement { conn };</div>
+<div class="line">stmt.Prepare(<span class="stringliteral">&quot;SELECT a, b, c FROM That WHERE a = ? OR b = ?&quot;</span>);</div>
 <div class="line">stmt.Execute(42, 43);</div>
 <div class="line"> </div>
-<div class="line"><a class="code hl_class" href="../../d7/d13/classSqlResultCursor.html">SqlResultCursor</a> cursor = stmt.GetResultCursor();</div>
+<div class="line">SqlResultCursor cursor = stmt.GetResultCursor();</div>
 <div class="line"><span class="keyword">auto</span> record = Record {};</div>
-<div class="line">cursor.<a class="code hl_function" href="../../d7/d13/classSqlResultCursor.html#a4153151b990ce9f7b85f1c9f7f3ed629">BindOutputColumns</a>&lt;Record&gt;(&amp;record.a, &amp;rcord.b, &amp;record.c);</div>
-<div class="line"><span class="keywordflow">while</span> (cursor.<a class="code hl_function" href="../../d7/d13/classSqlResultCursor.html#a4cf78ea9924918a4ea318bb1dc45fe2c">FetchRow</a>())</div>
+<div class="line">cursor.BindOutputColumns&lt;Record&gt;(&amp;record.a, &amp;rcord.b, &amp;record.c);</div>
+<div class="line"><span class="keywordflow">while</span> (cursor.FetchRow())</div>
 <div class="line">    std::println(<span class="stringliteral">&quot;{}|{}|{}&quot;</span>, a, b, c);</div>
-<div class="ttc" id="aclassSqlResultCursor_html"><div class="ttname"><a href="../../d7/d13/classSqlResultCursor.html">SqlResultCursor</a></div><div class="ttdoc">API for reading an SQL query result set.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00276">SqlStatement.hpp:277</a></div></div>
-<div class="ttc" id="aclassSqlResultCursor_html_a4153151b990ce9f7b85f1c9f7f3ed629"><div class="ttname"><a href="../../d7/d13/classSqlResultCursor.html#a4153151b990ce9f7b85f1c9f7f3ed629">SqlResultCursor::BindOutputColumns</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE void BindOutputColumns(Args *... args)</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00329">SqlStatement.hpp:329</a></div></div>
-<div class="ttc" id="aclassSqlResultCursor_html_a4cf78ea9924918a4ea318bb1dc45fe2c"><div class="ttname"><a href="../../d7/d13/classSqlResultCursor.html#a4cf78ea9924918a4ea318bb1dc45fe2c">SqlResultCursor::FetchRow</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE bool FetchRow()</div><div class="ttdoc">Fetches the next row of the result set.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00341">SqlStatement.hpp:341</a></div></div>
-<div class="ttc" id="aclassSqlStatement_html_ad1f82687b79ea6c3027839204818e9da"><div class="ttname"><a href="../../df/d17/classSqlStatement.html#ad1f82687b79ea6c3027839204818e9da">SqlStatement::Prepare</a></div><div class="ttdeci">LIGHTWEIGHT_API void Prepare(std::string_view query) &amp;</div></div>
 </div><!-- fragment --><h1><a class="anchor" id="sql-query-builder"></a>
 SQL Query Builder</h1>
-<p>Or construct statement using <code><a class="el" href="../../d0/d78/classSqlQueryBuilder.html" title="API Entry point for building SQL queries.">SqlQueryBuilder</a></code> </p><div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = <a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a> { };</div>
-<div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> sqlQuery =  stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#ad4db979c5f830dcc838f9b2d9ae8b212">Query</a>(<span class="stringliteral">&quot;That&quot;</span>)</div>
-<div class="line">                .<a class="code hl_function" href="../../d0/d78/classSqlQueryBuilder.html#a540942748905edd6045fe8c3fb16a124">Select</a>()</div>
-<div class="line">                .<a class="code hl_function" href="../../d1/d91/classSqlSelectQueryBuilder.html#aa58e6a65bcca55afe0316bcfa1dd60bd">Fields</a>(<span class="stringliteral">&quot;a&quot;</span>, <span class="stringliteral">&quot;b&quot;</span>)</div>
-<div class="line">                .<a class="code hl_function" href="../../d1/d91/classSqlSelectQueryBuilder.html#acd9a64863ff8499b7d762f3ced2d3be1">Field</a>(<span class="stringliteral">&quot;c&quot;</span>)</div>
-<div class="line">                .OrderBy(<a class="code hl_struct" href="../../d1/de4/structSqlQualifiedTableColumnName.html">SqlQualifiedTableColumnName</a> { .tableName = <span class="stringliteral">&quot;That&quot;</span>, .columnName = <span class="stringliteral">&quot;b&quot;</span> },</div>
+<p>Or construct statement using <code>SqlQueryBuilder</code> </p><div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = SqlStatement { };</div>
+<div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> sqlQuery =  stmt.Query(<span class="stringliteral">&quot;That&quot;</span>)</div>
+<div class="line">                .Select()</div>
+<div class="line">                .Fields(<span class="stringliteral">&quot;a&quot;</span>, <span class="stringliteral">&quot;b&quot;</span>)</div>
+<div class="line">                .Field(<span class="stringliteral">&quot;c&quot;</span>)</div>
+<div class="line">                .OrderBy(SqlQualifiedTableColumnName { .tableName = <span class="stringliteral">&quot;That&quot;</span>, .columnName = <span class="stringliteral">&quot;b&quot;</span> },</div>
 <div class="line">                         SqlResultOrdering::DESCENDING)</div>
 <div class="line">                .All()</div>
 <div class="line">stmt.Prepare(sqlQuery);</div>
@@ -160,91 +150,74 @@ SQL Query Builder</h1>
 <div class="line">    <span class="keyword">auto</span> b = stmt.GetColumn&lt;<span class="keywordtype">int</span>&gt;(2);</div>
 <div class="line">    <span class="keyword">auto</span> c = stmt.GetColumn&lt;<span class="keywordtype">int</span>&gt;(3);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassSqlQueryBuilder_html_a540942748905edd6045fe8c3fb16a124"><div class="ttname"><a href="../../d0/d78/classSqlQueryBuilder.html#a540942748905edd6045fe8c3fb16a124">SqlQueryBuilder::Select</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlSelectQueryBuilder Select() noexcept</div><div class="ttdoc">Initiates SELECT query building.</div></div>
-<div class="ttc" id="aclassSqlSelectQueryBuilder_html_aa58e6a65bcca55afe0316bcfa1dd60bd"><div class="ttname"><a href="../../d1/d91/classSqlSelectQueryBuilder.html#aa58e6a65bcca55afe0316bcfa1dd60bd">SqlSelectQueryBuilder::Fields</a></div><div class="ttdeci">SqlSelectQueryBuilder &amp; Fields(std::string_view const &amp;firstField, MoreFields &amp;&amp;... moreFields)</div><div class="ttdoc">Adds a sequence of columns to the SELECT clause.</div><div class="ttdef"><b>Definition</b> <a href="../../d2/d51/Select_8hpp_source.html#l00173">Select.hpp:173</a></div></div>
-<div class="ttc" id="aclassSqlSelectQueryBuilder_html_acd9a64863ff8499b7d762f3ced2d3be1"><div class="ttname"><a href="../../d1/d91/classSqlSelectQueryBuilder.html#acd9a64863ff8499b7d762f3ced2d3be1">SqlSelectQueryBuilder::Field</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlSelectQueryBuilder &amp; Field(std::string_view const &amp;fieldName)</div><div class="ttdoc">Adds a single column to the SELECT clause.</div></div>
-<div class="ttc" id="aclassSqlStatement_html_ad4db979c5f830dcc838f9b2d9ae8b212"><div class="ttname"><a href="../../df/d17/classSqlStatement.html#ad4db979c5f830dcc838f9b2d9ae8b212">SqlStatement::Query</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlQueryBuilder Query(std::string_view const &amp;table={}) const</div><div class="ttdoc">Creates a new query builder for the given table, compatible with the SQL server being connected.</div></div>
-<div class="ttc" id="astructSqlQualifiedTableColumnName_html"><div class="ttname"><a href="../../d1/de4/structSqlQualifiedTableColumnName.html">SqlQualifiedTableColumnName</a></div><div class="ttdoc">SqlQualifiedTableColumnName represents a column name qualified with a table name.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00039">Core.hpp:40</a></div></div>
-</div><!-- fragment --><p>For more info see <code>SqlQuery</code> and <code><a class="el" href="../../dc/df2/classSqlQueryFormatter.html" title="API to format SQL queries for different SQL dialects.">SqlQueryFormatter</a></code> documentation</p>
+</div><!-- fragment --><p>For more info see <code>SqlQuery</code> and <code>SqlQueryFormatter</code> documentation</p>
 <h1><a class="anchor" id="high-level-data-mapping"></a>
 High level Data Mapping</h1>
-<p>The <code><a class="el" href="../../dc/dc7/classDataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code> provides a higher-level abstraction for interacting with databases. It simplifies operations by automatically creating tables based on the specified type and enabling data retrieval through straightforward method calls. For more info see <code><a class="el" href="../../dc/dc7/classDataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code> documentation </p><div class="fragment"><div class="line"><span class="comment">// Define a person structure, mapping to a table</span></div>
+<p>The <code>DataMapper</code> provides a higher-level abstraction for interacting with databases. It simplifies operations by automatically creating tables based on the specified type and enabling data retrieval through straightforward method calls. For more info see <code>DataMapper</code> documentation </p><div class="fragment"><div class="line"><span class="comment">// Define a person structure, mapping to a table</span></div>
 <div class="line"><span class="comment">// The field members are mapped to the columns in the table,</span></div>
 <div class="line"><span class="comment">// and the Field&lt;&gt; template parameter specifies the type of the column.</span></div>
 <div class="line"><span class="comment">// Field&lt;&gt; is also used to track what fields are modified and need to be updated.</span></div>
 <div class="line"><span class="keyword">struct </span>Person</div>
 <div class="line">{</div>
-<div class="line">    <a class="code hl_struct" href="../../df/d27/structField.html">Field&lt;SqlGuid, PrimaryKey::AutoAssign&gt;</a> id;</div>
-<div class="line">    <a class="code hl_struct" href="../../df/d27/structField.html">Field&lt;SqlAnsiString&lt;25&gt;</a>&gt; name;</div>
-<div class="line">    <a class="code hl_struct" href="../../df/d27/structField.html">Field&lt;bool&gt;</a> is_active { <span class="keyword">true</span> };</div>
-<div class="line">    <a class="code hl_struct" href="../../df/d27/structField.html">Field&lt;std::optional&lt;int&gt;</a>&gt; age;</div>
+<div class="line">    Field&lt;SqlGuid, PrimaryKey::AutoAssign&gt; id;</div>
+<div class="line">    Field&lt;SqlAnsiString&lt;25&gt;&gt; name;</div>
+<div class="line">    Field&lt;bool&gt; is_active { <span class="keyword">true</span> };</div>
+<div class="line">    Field&lt;std::optional&lt;int&gt;&gt; age;</div>
 <div class="line">};</div>
 <div class="line"> </div>
-<div class="line"><span class="keywordtype">void</span> CRUD(<a class="code hl_class" href="../../dc/dc7/classDataMapper.html">DataMapper</a>&amp; dm)</div>
+<div class="line"><span class="keywordtype">void</span> CRUD(DataMapper&amp; dm)</div>
 <div class="line">{</div>
 <div class="line">    <span class="comment">// Creates the table if it does not exist</span></div>
-<div class="line">    dm.<a class="code hl_function" href="../../dc/dc7/classDataMapper.html#a6a2df09ef7735f0d0e07886ef1b27457">CreateTable</a>&lt;Person&gt;();</div>
+<div class="line">    dm.CreateTable&lt;Person&gt;();</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Create a new person</span></div>
 <div class="line">    <span class="keyword">auto</span> person = Person {};</div>
 <div class="line">    person.name = <span class="stringliteral">&quot;John Doe&quot;</span>;</div>
 <div class="line">    person.is_active = <span class="keyword">true</span>;</div>
-<div class="line">    dm.<a class="code hl_function" href="../../dc/dc7/classDataMapper.html#a8dee2c6839d663d2178bf4054edb653b">Create</a>(person);</div>
+<div class="line">    dm.Create(person);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Update the person</span></div>
 <div class="line">    person.age = 25;</div>
-<div class="line">    dm.<a class="code hl_function" href="../../dc/dc7/classDataMapper.html#acb83d80931e5cd6259290bc795e362f7">Update</a>(person);</div>
+<div class="line">    dm.Update(person);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Query the person</span></div>
-<div class="line">    <span class="keywordflow">if</span> (<span class="keyword">auto</span> <span class="keyword">const</span> po = dm.<a class="code hl_function" href="../../dc/dc7/classDataMapper.html#abc5831d373b3818e7b0dd856e5998209">QuerySingle</a>&lt;Person&gt;(person.id); po)</div>
-<div class="line">        std::println(<span class="stringliteral">&quot;Person: {} ({})&quot;</span>, po-&gt;name, <a class="code hl_function" href="../../dc/dc7/classDataMapper.html#a4b974aa78414c5dec9a60c13a35516b0">DataMapper::Inspect</a>(*po));</div>
+<div class="line">    <span class="keywordflow">if</span> (<span class="keyword">auto</span> <span class="keyword">const</span> po = dm.QuerySingle&lt;Person&gt;(person.id); po)</div>
+<div class="line">        std::println(<span class="stringliteral">&quot;Person: {} ({})&quot;</span>, po-&gt;name, DataMapper::Inspect(*po));</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Query all persons</span></div>
-<div class="line">    <span class="keyword">auto</span> <span class="keyword">const</span> persons = dm.<a class="code hl_function" href="../../dc/dc7/classDataMapper.html#a06b74e30cf38c79b44615e2fc31f7563">Query</a>&lt;Person&gt;(); </div>
+<div class="line">    <span class="keyword">auto</span> <span class="keyword">const</span> persons = dm.Query&lt;Person&gt;(); </div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Iterate over all persons </span></div>
-<div class="line">    <span class="keyword">auto</span> stmt = <a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a> { dm.<a class="code hl_function" href="../../dc/dc7/classDataMapper.html#a4401e6c9bf930091061e7e43f798686d">Connection</a>() };</div>
-<div class="line">    <span class="keywordflow">for</span>(<span class="keyword">const</span> <span class="keyword">auto</span>&amp; person: <a class="code hl_class" href="../../d7/db1/classSqlRowIterator.html">SqlRowIterator</a>&lt;Person&gt;(stmt))</div>
+<div class="line">    <span class="keyword">auto</span> stmt = SqlStatement { dm.Connection() };</div>
+<div class="line">    <span class="keywordflow">for</span>(<span class="keyword">const</span> <span class="keyword">auto</span>&amp; person: SqlRowIterator&lt;Person&gt;(stmt))</div>
 <div class="line">        std::println(<span class="stringliteral">&quot;|{}|{}|&quot;</span>, person.name, person.age);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Delete the person</span></div>
-<div class="line">    dm.<a class="code hl_function" href="../../dc/dc7/classDataMapper.html#acfcb03b2a7b0534cfd27287b93e7b907">Delete</a>(person);</div>
+<div class="line">    dm.Delete(person);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassDataMapper_html"><div class="ttname"><a href="../../dc/dc7/classDataMapper.html">DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00595">DataMapper.hpp:596</a></div></div>
-<div class="ttc" id="aclassDataMapper_html_a06b74e30cf38c79b44615e2fc31f7563"><div class="ttname"><a href="../../dc/dc7/classDataMapper.html#a06b74e30cf38c79b44615e2fc31f7563">DataMapper::Query</a></div><div class="ttdeci">std::vector&lt; Record &gt; Query(SqlSelectQueryBuilder::ComposedQuery const &amp;selectQuery, InputParameters &amp;&amp;... inputParameters)</div><div class="ttdoc">Queries multiple records from the database, based on the given query.</div></div>
-<div class="ttc" id="aclassDataMapper_html_a4401e6c9bf930091061e7e43f798686d"><div class="ttname"><a href="../../dc/dc7/classDataMapper.html#a4401e6c9bf930091061e7e43f798686d">DataMapper::Connection</a></div><div class="ttdeci">SqlConnection const &amp; Connection() const noexcept</div><div class="ttdoc">Returns the connection reference used by this data mapper.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00626">DataMapper.hpp:626</a></div></div>
-<div class="ttc" id="aclassDataMapper_html_a4b974aa78414c5dec9a60c13a35516b0"><div class="ttname"><a href="../../dc/dc7/classDataMapper.html#a4b974aa78414c5dec9a60c13a35516b0">DataMapper::Inspect</a></div><div class="ttdeci">static std::string Inspect(Record const &amp;record)</div><div class="ttdoc">Constructs a human readable string representation of the given record.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00982">DataMapper.hpp:982</a></div></div>
-<div class="ttc" id="aclassDataMapper_html_a6a2df09ef7735f0d0e07886ef1b27457"><div class="ttname"><a href="../../dc/dc7/classDataMapper.html#a6a2df09ef7735f0d0e07886ef1b27457">DataMapper::CreateTable</a></div><div class="ttdeci">void CreateTable()</div><div class="ttdoc">Creates the table for the given record type.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l01084">DataMapper.hpp:1084</a></div></div>
-<div class="ttc" id="aclassDataMapper_html_a8dee2c6839d663d2178bf4054edb653b"><div class="ttname"><a href="../../dc/dc7/classDataMapper.html#a8dee2c6839d663d2178bf4054edb653b">DataMapper::Create</a></div><div class="ttdeci">RecordPrimaryKeyType&lt; Record &gt; Create(Record &amp;record)</div><div class="ttdoc">Creates a new record in the database.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l01142">DataMapper.hpp:1142</a></div></div>
-<div class="ttc" id="aclassDataMapper_html_abc5831d373b3818e7b0dd856e5998209"><div class="ttname"><a href="../../dc/dc7/classDataMapper.html#abc5831d373b3818e7b0dd856e5998209">DataMapper::QuerySingle</a></div><div class="ttdeci">std::optional&lt; Record &gt; QuerySingle(SqlSelectQueryBuilder selectQuery, Args &amp;&amp;... args)</div><div class="ttdoc">Queries a single record from the database based on the given query.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l01303">DataMapper.hpp:1303</a></div></div>
-<div class="ttc" id="aclassDataMapper_html_acb83d80931e5cd6259290bc795e362f7"><div class="ttname"><a href="../../dc/dc7/classDataMapper.html#acb83d80931e5cd6259290bc795e362f7">DataMapper::Update</a></div><div class="ttdeci">void Update(Record &amp;record)</div><div class="ttdoc">Updates the record in the database.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l01200">DataMapper.hpp:1200</a></div></div>
-<div class="ttc" id="aclassDataMapper_html_acfcb03b2a7b0534cfd27287b93e7b907"><div class="ttname"><a href="../../dc/dc7/classDataMapper.html#acfcb03b2a7b0534cfd27287b93e7b907">DataMapper::Delete</a></div><div class="ttdeci">std::size_t Delete(Record const &amp;record)</div><div class="ttdoc">Deletes the record from the database.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l01238">DataMapper.hpp:1238</a></div></div>
-<div class="ttc" id="aclassSqlRowIterator_html"><div class="ttname"><a href="../../d7/db1/classSqlRowIterator.html">SqlRowIterator</a></div><div class="ttdoc">SQL query result row iterator.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00476">SqlStatement.hpp:477</a></div></div>
-<div class="ttc" id="astructField_html"><div class="ttname"><a href="../../df/d27/structField.html">Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00079">Field.hpp:80</a></div></div>
 </div><!-- fragment --><h1><a class="anchor" id="simple-row-retrieval-via-structs"></a>
 Simple row retrieval via structs</h1>
-<p>When only read access is needed, you can use a simple <code>struct</code> to represent the row, and also do not need to wrap the fields into <code><a class="el" href="../../df/d27/structField.html" title="Represents a single column in a table.">Field</a>&lt;&gt;</code> template. The <code>struct</code> must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
+<p>When only read access is needed, you can use a simple <code>struct</code> to represent the row, and also do not need to wrap the fields into <code>Field&lt;&gt;</code> template. The <code>struct</code> must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
 <div class="fragment"><div class="line"><span class="keyword">struct </span>SimpleStruct</div>
 <div class="line">{</div>
 <div class="line">    uint64_t pkFromA;</div>
 <div class="line">    uint64_t pkFromB;</div>
-<div class="line">    <a class="code hl_class" href="../../d8/dcb/classSqlFixedString.html">SqlAnsiString&lt;30&gt;</a> c1FromA;</div>
-<div class="line">    <a class="code hl_class" href="../../d8/dcb/classSqlFixedString.html">SqlAnsiString&lt;30&gt;</a> c2FromA;</div>
-<div class="line">    <a class="code hl_class" href="../../d8/dcb/classSqlFixedString.html">SqlAnsiString&lt;30&gt;</a> c1FromB;</div>
-<div class="line">    <a class="code hl_class" href="../../d8/dcb/classSqlFixedString.html">SqlAnsiString&lt;30&gt;</a> c2FromB;</div>
+<div class="line">    SqlAnsiString&lt;30&gt; c1FromA;</div>
+<div class="line">    SqlAnsiString&lt;30&gt; c2FromA;</div>
+<div class="line">    SqlAnsiString&lt;30&gt; c1FromB;</div>
+<div class="line">    SqlAnsiString&lt;30&gt; c2FromB;</div>
 <div class="line">};</div>
 <div class="line"> </div>
-<div class="line"><span class="keywordtype">void</span> SimpleStructExample(<a class="code hl_class" href="../../dc/dc7/classDataMapper.html">DataMapper</a>&amp; dm)</div>
+<div class="line"><span class="keywordtype">void</span> SimpleStructExample(DataMapper&amp; dm)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keywordflow">if</span> (<span class="keyword">auto</span> maybeObject = dm.<a class="code hl_function" href="../../dc/dc7/classDataMapper.html#a06b74e30cf38c79b44615e2fc31f7563">Query</a>&lt;SimpleString&gt;(</div>
+<div class="line">    <span class="keywordflow">if</span> (<span class="keyword">auto</span> maybeObject = dm.Query&lt;SimpleString&gt;(</div>
 <div class="line">        <span class="stringliteral">&quot;SELECT A.pk, B.pk, A.c1, A.c2, B.c1, B.c2 FROM A LEFT JOIN B ON A.pk = B.pk&quot;</span>); maybeObject)</div>
 <div class="line">    ))</div>
 <div class="line">    {</div>
 <div class="line">        <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; obj : *maybeObject)</div>
-<div class="line">            std::println(<span class="stringliteral">&quot;{}&quot;</span>, <a class="code hl_class" href="../../dc/dc7/classDataMapper.html">DataMapper</a>::Inspect(obj));</div>
+<div class="line">            std::println(<span class="stringliteral">&quot;{}&quot;</span>, DataMapper::Inspect(obj));</div>
 <div class="line">    }</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassSqlFixedString_html"><div class="ttname"><a href="../../d8/dcb/classSqlFixedString.html">SqlFixedString</a></div><div class="ttdef"><b>Definition</b> <a href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00029">SqlFixedString.hpp:30</a></div></div>
 </div><!-- fragment --> </div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->

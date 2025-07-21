@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['hasautoincrementprimarykey_0',['HasAutoIncrementPrimaryKey',['../d7/d2f/group__DataMapper.html#gacf4cfc35b4bab422bb7351d766f0eb98',1,'DataMapper.hpp']]],
-  ['hasprimarykey_1',['HasPrimaryKey',['../d7/d2f/group__DataMapper.html#gace402d02f34595be6afc813311b93ea7',1,'DataMapper.hpp']]]
+  ['hasautoincrementprimarykey_0',['HasAutoIncrementPrimaryKey',['../d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0',1,'Lightweight']]],
+  ['hasprimarykey_1',['HasPrimaryKey',['../d7/d2f/group__DataMapper.html#gae0874e29a73741a5badb14bacafae06e',1,'Lightweight']]]
 ];

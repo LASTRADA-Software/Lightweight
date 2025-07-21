@@ -107,63 +107,68 @@ $(document).ready(function(){initNavTree('d6/d4a/SqlScopedTraceLogger_8hpp_sourc
 <div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#include &quot;SqlStatement.hpp&quot;</span></div>
 <div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span> </div>
 <div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span><span class="preprocessor">#include &lt;filesystem&gt;</span></div>
-<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="comment"></span> </div>
-<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="comment">/// @brief Enables protocol-level ODBC trace logging for the given connection.</span></div>
-<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="comment">///</span></div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="comment">/// The trace logging is active for the lifetime of this object.</span></div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="comment">///</span></div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="comment">/// The logging output is sent to the standard output stream.</span></div>
-<div class="foldopen" id="foldopen00016" data-start="{" data-end="};">
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno"><a class="line" href="../../d5/d21/classSqlScopedTraceLogger.html">   16</a></span><span class="comment"></span><span class="keyword">class </span>LIGHTWEIGHT_API <a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a></div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>{</div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>    SQLHDBC m_nativeConnection;</div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span> </div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>  <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>    <span class="keyword">explicit</span> <a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(<a class="code hl_class" href="../../d7/d7b/classSqlConnection.html">SqlConnection</a>&amp; connection):</div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>        <a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(connection.<a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#a431d3c5f9fa65867b64f825b01735642">NativeHandle</a>(),</div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>#<span class="keywordflow">if</span> defined(_WIN32) || defined(_WIN64)</div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>                             <span class="stringliteral">&quot;CONOUT$&quot;</span></div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>#<span class="keywordflow">else</span></div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>                             <span class="stringliteral">&quot;/dev/stdout&quot;</span></div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>#endif</div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>        )</div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    {</div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>    }</div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span> </div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>    <span class="keyword">explicit</span> <a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(<a class="code hl_class" href="../../df/d17/classSqlStatement.html">SqlStatement</a>&amp; stmt):</div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>        <a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(stmt.<a class="code hl_function" href="../../df/d17/classSqlStatement.html#a2da1393cb05328b1c0e4187bece9c019">Connection</a>().<a class="code hl_function" href="../../d7/d7b/classSqlConnection.html#a431d3c5f9fa65867b64f825b01735642">NativeHandle</a>(),</div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>#<span class="keywordflow">if</span> defined(_WIN32) || defined(_WIN64)</div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>                             <span class="stringliteral">&quot;CONOUT$&quot;</span></div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>#<span class="keywordflow">else</span></div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>                             <span class="stringliteral">&quot;/dev/stdout&quot;</span></div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>#endif</div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>        )</div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>    {</div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>    }</div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span> </div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>    <span class="keyword">explicit</span> <a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(SQLHDBC hDbc, std::filesystem::path <span class="keyword">const</span>&amp; logFile):</div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>        m_nativeConnection { hDbc }</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>    {</div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>        SQLSetConnectAttrA(m_nativeConnection, SQL_ATTR_TRACEFILE, (SQLPOINTER) logFile.string().c_str(), SQL_NTS);</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>        SQLSetConnectAttrA(m_nativeConnection, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_ON, SQL_IS_UINTEGER);</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>    }</div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span> </div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>    <a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(<a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a>&amp;&amp;) = <span class="keyword">delete</span>;</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>    <a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a>&amp; operator=(<a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a>&amp;&amp;) = <span class="keyword">delete</span>;</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>    <a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(<a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a> <span class="keyword">const</span>&amp;) = <span class="keyword">delete</span>;</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>    <a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a>&amp; operator=(<a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a> <span class="keyword">const</span>&amp;) = <span class="keyword">delete</span>;</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span> </div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>    <a class="code hl_class" href="../../d5/d21/classSqlScopedTraceLogger.html">~SqlScopedTraceLogger</a>()</div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>    {</div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>        SQLSetConnectAttrA(m_nativeConnection, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_OFF, SQL_IS_UINTEGER);</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    }</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>};</div>
+<div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span> </div>
+<div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="keyword">namespace </span>Lightweight</div>
+<div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span>{</div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="comment"></span> </div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="comment">/// @brief Enables protocol-level ODBC trace logging for the given connection.</span></div>
+<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="comment">///</span></div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="comment">/// The trace logging is active for the lifetime of this object.</span></div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="comment">///</span></div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment">/// The logging output is sent to the standard output stream.</span></div>
+<div class="foldopen" id="foldopen00019" data-start="{" data-end="};">
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno"><a class="line" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">   19</a></span><span class="comment"></span><span class="keyword">class </span>LIGHTWEIGHT_API <a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a></div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>{</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>    SQLHDBC m_nativeConnection;</div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span> </div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>  <span class="keyword">public</span>:</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>    <span class="keyword">explicit</span> <a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(<a class="code hl_class" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a>&amp; connection):</div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>        <a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(connection.<a class="code hl_function" href="../../da/da8/classLightweight_1_1SqlConnection.html#ad72f0aad1bc6075e7a91bd29d0ac3e2f">NativeHandle</a>(),</div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>#<span class="keywordflow">if</span> defined(_WIN32) || defined(_WIN64)</div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>                             <span class="stringliteral">&quot;CONOUT$&quot;</span></div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>#<span class="keywordflow">else</span></div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>                             <span class="stringliteral">&quot;/dev/stdout&quot;</span></div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>#endif</div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>        )</div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>    {</div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>    }</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span> </div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>    <span class="keyword">explicit</span> <a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(<a class="code hl_class" href="../../db/dad/classLightweight_1_1SqlStatement.html">SqlStatement</a>&amp; stmt):</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>        <a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(stmt.<a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a34d2659a84a934d2c67c6b31f64a7d4a">Connection</a>().<a class="code hl_function" href="../../da/da8/classLightweight_1_1SqlConnection.html#ad72f0aad1bc6075e7a91bd29d0ac3e2f">NativeHandle</a>(),</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>#<span class="keywordflow">if</span> defined(_WIN32) || defined(_WIN64)</div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>                             <span class="stringliteral">&quot;CONOUT$&quot;</span></div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>#<span class="keywordflow">else</span></div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>                             <span class="stringliteral">&quot;/dev/stdout&quot;</span></div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>#endif</div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>        )</div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>    {</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>    }</div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span> </div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>    <span class="keyword">explicit</span> <a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(SQLHDBC hDbc, std::filesystem::path <span class="keyword">const</span>&amp; logFile):</div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>        m_nativeConnection { hDbc }</div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>    {</div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>        SQLSetConnectAttrA(m_nativeConnection, SQL_ATTR_TRACEFILE, (SQLPOINTER) logFile.string().c_str(), SQL_NTS);</div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>        SQLSetConnectAttrA(m_nativeConnection, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_ON, SQL_IS_UINTEGER);</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>    }</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span> </div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>    <a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(<a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a>&amp;&amp;) = <span class="keyword">delete</span>;</div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>    <a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a>&amp; operator=(<a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a>&amp;&amp;) = <span class="keyword">delete</span>;</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>    <a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a>(<a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a> <span class="keyword">const</span>&amp;) = <span class="keyword">delete</span>;</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>    <a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a>&amp; operator=(<a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">SqlScopedTraceLogger</a> <span class="keyword">const</span>&amp;) = <span class="keyword">delete</span>;</div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span> </div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    <a class="code hl_class" href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">~SqlScopedTraceLogger</a>()</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>    {</div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>        SQLSetConnectAttrA(m_nativeConnection, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_OFF, SQL_IS_UINTEGER);</div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>    }</div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>};</div>
 </div>
-<div class="ttc" id="aclassSqlConnection_html"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html">SqlConnection</a></div><div class="ttdoc">Represents a connection to a SQL database.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00036">SqlConnection.hpp:37</a></div></div>
-<div class="ttc" id="aclassSqlConnection_html_a431d3c5f9fa65867b64f825b01735642"><div class="ttname"><a href="../../d7/d7b/classSqlConnection.html#a431d3c5f9fa65867b64f825b01735642">SqlConnection::NativeHandle</a></div><div class="ttdeci">SQLHDBC NativeHandle() const noexcept</div><div class="ttdoc">Retrieves the native handle.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00154">SqlConnection.hpp:154</a></div></div>
-<div class="ttc" id="aclassSqlScopedTraceLogger_html"><div class="ttname"><a href="../../d5/d21/classSqlScopedTraceLogger.html">SqlScopedTraceLogger</a></div><div class="ttdoc">Enables protocol-level ODBC trace logging for the given connection.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d4a/SqlScopedTraceLogger_8hpp_source.html#l00016">SqlScopedTraceLogger.hpp:17</a></div></div>
-<div class="ttc" id="aclassSqlStatement_html"><div class="ttname"><a href="../../df/d17/classSqlStatement.html">SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00047">SqlStatement.hpp:48</a></div></div>
-<div class="ttc" id="aclassSqlStatement_html_a2da1393cb05328b1c0e4187bece9c019"><div class="ttname"><a href="../../df/d17/classSqlStatement.html#a2da1393cb05328b1c0e4187bece9c019">SqlStatement::Connection</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlConnection &amp; Connection() noexcept</div><div class="ttdoc">Retrieves the connection associated with this statement.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00570">SqlStatement.hpp:570</a></div></div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span> </div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="ttc" id="aclassLightweight_1_1SqlConnection_html"><div class="ttname"><a href="../../da/da8/classLightweight_1_1SqlConnection.html">Lightweight::SqlConnection</a></div><div class="ttdoc">Represents a connection to a SQL database.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00039">SqlConnection.hpp:40</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlConnection_html_ad72f0aad1bc6075e7a91bd29d0ac3e2f"><div class="ttname"><a href="../../da/da8/classLightweight_1_1SqlConnection.html#ad72f0aad1bc6075e7a91bd29d0ac3e2f">Lightweight::SqlConnection::NativeHandle</a></div><div class="ttdeci">SQLHDBC NativeHandle() const noexcept</div><div class="ttdoc">Retrieves the native handle.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00157">SqlConnection.hpp:157</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlScopedTraceLogger_html"><div class="ttname"><a href="../../df/d9c/classLightweight_1_1SqlScopedTraceLogger.html">Lightweight::SqlScopedTraceLogger</a></div><div class="ttdoc">Enables protocol-level ODBC trace logging for the given connection.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d4a/SqlScopedTraceLogger_8hpp_source.html#l00019">SqlScopedTraceLogger.hpp:20</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlStatement_html"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html">Lightweight::SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00050">SqlStatement.hpp:51</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlStatement_html_a34d2659a84a934d2c67c6b31f64a7d4a"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#a34d2659a84a934d2c67c6b31f64a7d4a">Lightweight::SqlStatement::Connection</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlConnection &amp; Connection() noexcept</div><div class="ttdoc">Retrieves the connection associated with this statement.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00573">SqlStatement.hpp:573</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

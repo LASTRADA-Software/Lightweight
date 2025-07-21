@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['dynamiccapacity_0',['DynamicCapacity',['../dc/db1/classSqlDynamicBinary.html#aa6c76437952aef3c383051bd5eb0597b',1,'SqlDynamicBinary']]]
+  ['dynamiccapacity_0',['DynamicCapacity',['../d6/db6/classLightweight_1_1SqlDynamicBinary.html#ababc7f508bb66c88f96847906bc6fff3',1,'Lightweight::SqlDynamicBinary']]]
 ];

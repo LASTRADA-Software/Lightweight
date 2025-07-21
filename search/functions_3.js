@@ -1,16 +1,16 @@
 var searchData=
 [
-  ['data_0',['data',['../dd/d83/classSqlDynamicString.html#a33ddfcfb714918434842c077be5d6b45',1,'SqlDynamicString::data() const noexcept'],['../dd/d83/classSqlDynamicString.html#a0b7a8480e66d094bc221f14095a77036',1,'SqlDynamicString::data() noexcept'],['../dc/db1/classSqlDynamicBinary.html#a47435ac2b4fca822a0e3c1d865e736c2',1,'SqlDynamicBinary::data()']]],
-  ['databasename_1',['DatabaseName',['../d7/d7b/classSqlConnection.html#ab82ab9531acfdcf871f7b556a7b14b2e',1,'SqlConnection']]],
-  ['datamapper_2',['datamapper',['../dc/dc7/classDataMapper.html#aeca0c52b22597fb398863360dd125c56',1,'DataMapper::DataMapper()'],['../dc/dc7/classDataMapper.html#a0f57f1c5152a4924e7a9373f0ea9d366',1,'DataMapper::DataMapper(SqlConnection &amp;&amp;connection)'],['../dc/dc7/classDataMapper.html#a4bf788e5441855943cd9e6ba9b22c357',1,'DataMapper::DataMapper(SqlConnectionString connectionString)']]],
-  ['day_3',['day',['../da/dd7/structSqlDateTime.html#a24d916c3c026f22351861785ed244220',1,'SqlDateTime']]],
-  ['declarename_4',['DeclareName',['../df/dd4/classUniqueNameBuilder.html#a2cca5641d4401f0045dc54ed652d800e',1,'UniqueNameBuilder']]],
-  ['defaultconnectionstring_5',['DefaultConnectionString',['../d7/d7b/classSqlConnection.html#aa69004fb7b69f8d67a54e601cb88b9a9',1,'SqlConnection']]],
-  ['delete_6',['delete',['../dc/dc7/classDataMapper.html#acfcb03b2a7b0534cfd27287b93e7b907',1,'DataMapper::Delete()'],['../dc/df2/classSqlQueryFormatter.html#acb760d8f25e9e3f7a38036068c82b863',1,'SqlQueryFormatter::Delete()'],['../d0/d78/classSqlQueryBuilder.html#a4b67b677befdd73664827d292e2fac61',1,'SqlQueryBuilder::Delete()']]],
-  ['drivername_7',['DriverName',['../d7/d7b/classSqlConnection.html#ab509e39bd6d922c2e5a722a303a3e891',1,'SqlConnection']]],
-  ['dropcolumn_8',['DropColumn',['../d3/d3f/classSqlAlterTableQueryBuilder.html#a0bd2dc01e143714dcf52c14210736cde',1,'SqlAlterTableQueryBuilder']]],
-  ['dropdatabase_9',['DropDatabase',['../d3/d15/classSqlMigrationQueryBuilder.html#a5303ecf0e2ba4232f16470e071a61fae',1,'SqlMigrationQueryBuilder']]],
-  ['dropforeignkey_10',['DropForeignKey',['../d3/d3f/classSqlAlterTableQueryBuilder.html#abc19754ad52e4ee224138f75139061b2',1,'SqlAlterTableQueryBuilder']]],
-  ['dropindex_11',['DropIndex',['../d3/d3f/classSqlAlterTableQueryBuilder.html#acf6c90ae54196bd413ddcae33d24ed7b',1,'SqlAlterTableQueryBuilder']]],
-  ['droptable_12',['droptable',['../d3/d15/classSqlMigrationQueryBuilder.html#a5789543d34e6d174f81437f8c4ddc441',1,'SqlMigrationQueryBuilder::DropTable()'],['../dc/df2/classSqlQueryFormatter.html#aa630ad6de1899c6d62ff7d76d37768d9',1,'SqlQueryFormatter::DropTable()']]]
+  ['data_0',['data',['../d7/d9a/classLightweight_1_1SqlDynamicString.html#a456fc412b4faa603580046fdb3b91044',1,'Lightweight::SqlDynamicString::data() const noexcept'],['../d7/d9a/classLightweight_1_1SqlDynamicString.html#a867af39389032aa37de23ae4bc898ad6',1,'Lightweight::SqlDynamicString::data() noexcept'],['../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a24e4f9758ae81670b16fdb7a422c44a6',1,'Lightweight::SqlDynamicBinary::data()']]],
+  ['databasename_1',['DatabaseName',['../da/da8/classLightweight_1_1SqlConnection.html#ac29fe83ca60448002d451dbd707be955',1,'Lightweight::SqlConnection']]],
+  ['datamapper_2',['datamapper',['../de/d61/classLightweight_1_1DataMapper.html#a2169593bd11e17f7d602a5246b0ce5ea',1,'Lightweight::DataMapper::DataMapper()'],['../de/d61/classLightweight_1_1DataMapper.html#a7a2b0a0ae77abf48a640bed4ae2ec5e4',1,'Lightweight::DataMapper::DataMapper(SqlConnection &amp;&amp;connection)'],['../de/d61/classLightweight_1_1DataMapper.html#acc8bc05a730ed1ad295070cf25d6e041',1,'Lightweight::DataMapper::DataMapper(SqlConnectionString connectionString)']]],
+  ['day_3',['day',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a1cc6eb89a127b62c44a7cce37131c657',1,'Lightweight::SqlDateTime']]],
+  ['declarename_4',['DeclareName',['../da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26',1,'Lightweight::UniqueNameBuilder']]],
+  ['defaultconnectionstring_5',['DefaultConnectionString',['../da/da8/classLightweight_1_1SqlConnection.html#aacb5762b7b16fd9ff551ed0e5e443998',1,'Lightweight::SqlConnection']]],
+  ['delete_6',['delete',['../de/d61/classLightweight_1_1DataMapper.html#a708db890dfc02b9ad4183ee9c7ea2512',1,'Lightweight::DataMapper::Delete()'],['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a747bb2c6c82c186199ebfc698e4d5c3a',1,'Lightweight::SqlQueryFormatter::Delete()'],['../de/da0/classLightweight_1_1SqlQueryBuilder.html#a9220ec49d875faa49983e9a53a507ef3',1,'Lightweight::SqlQueryBuilder::Delete()']]],
+  ['drivername_7',['DriverName',['../da/da8/classLightweight_1_1SqlConnection.html#ae8e906b9e44522971275823056bc5a5e',1,'Lightweight::SqlConnection']]],
+  ['dropcolumn_8',['DropColumn',['../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a3c64acce0293fce41e3f39a0aaee883e',1,'Lightweight::SqlAlterTableQueryBuilder']]],
+  ['dropdatabase_9',['DropDatabase',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#ad329c2ef7e306dee1f21351e264ad412',1,'Lightweight::SqlMigrationQueryBuilder']]],
+  ['dropforeignkey_10',['DropForeignKey',['../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aae78f7a3b9c5ab16e1c530458a1b9d70',1,'Lightweight::SqlAlterTableQueryBuilder']]],
+  ['dropindex_11',['DropIndex',['../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a059bdf98d69fde660cd3527172a2cc62',1,'Lightweight::SqlAlterTableQueryBuilder']]],
+  ['droptable_12',['droptable',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6814368089abf7691cdd525806db0ae6',1,'Lightweight::SqlMigrationQueryBuilder::DropTable()'],['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad3dac3bc0f6b00ef7edab0d77f9131d7',1,'Lightweight::SqlQueryFormatter::DropTable()']]]
 ];

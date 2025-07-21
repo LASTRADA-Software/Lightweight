@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['messagewriter_0',['MessageWriter',['../d8/d7e/classSqlLogger.html#a3263147e77969997f4e3b2100aba3dbd',1,'SqlLogger']]]
+  ['messagewriter_0',['MessageWriter',['../db/dfd/classLightweight_1_1SqlLogger.html#a9fa72e1dc66122e2b611a6806e77063b',1,'Lightweight::SqlLogger']]]
 ];

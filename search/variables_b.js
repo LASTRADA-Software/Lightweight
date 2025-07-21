@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['unique_0',['unique',['../d3/d8a/structSqlColumnDeclaration.html#ac8fdbff04f053622ca941e301b8f5b83',1,'SqlColumnDeclaration']]]
+  ['unique_0',['unique',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#ac7edfc2036f6d77ebce95c4a17d39fd8',1,'Lightweight::SqlColumnDeclaration']]]
 ];

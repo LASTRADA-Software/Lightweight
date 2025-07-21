@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['_7esqlconnection_0',['~SqlConnection',['../d7/d7b/classSqlConnection.html#a8f7c41297ee8054c6635d9676126bf79',1,'SqlConnection']]],
-  ['_7esqltransaction_1',['~SqlTransaction',['../d1/dc2/classSqlTransaction.html#ad67f57d0d3a27e4d4f26a15d61c0db5d',1,'SqlTransaction']]],
-  ['_7esqlvariant_2',['~SqlVariant',['../d0/df8/structSqlVariant.html#a0fe5e1d1fee4be550c4ac3e35627ede1',1,'SqlVariant']]]
+  ['_7esqlconnection_0',['~SqlConnection',['../da/da8/classLightweight_1_1SqlConnection.html#a62a9dd35027a98c52b3fcb66fcf2e731',1,'Lightweight::SqlConnection']]],
+  ['_7esqltransaction_1',['~SqlTransaction',['../d0/ddc/classLightweight_1_1SqlTransaction.html#a08cd992cb104b7a6f40e71c6956d2c93',1,'Lightweight::SqlTransaction']]],
+  ['_7esqlvariant_2',['~SqlVariant',['../df/d3f/structLightweight_1_1SqlVariant.html#adf3c49cf96b4f0dca466e6a2d56088ff',1,'Lightweight::SqlVariant']]]
 ];
