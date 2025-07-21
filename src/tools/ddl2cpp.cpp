@@ -720,11 +720,27 @@ struct Configuration
     bool showHelpAndExit = false;
 };
 
+constexpr std::string_view ToString(FormatType value) noexcept
+{
+    switch (value)
+    {
+        case FormatType::preserve:
+            return "preserve";
+        case FormatType::camelCase:
+            return "CamelCase";
+        case FormatType::snakeCase:
+            return "snake_case";
+    }
+    return "unknown";
+}
+
 void PrintInfo(Configuration const& config)
 {
     auto c = SqlConnection();
     assert(c.IsAlive());
     std::println("Output directory name : {}", config.outputDirectory);
+    std::println("Naming convention     : {}", ToString(config.formatType));
+    std::println("Model namespace       : {}", config.modelNamespace);
     std::println("Connected to          : {}", c.DatabaseName());
     std::println("Server name           : {}", c.ServerName());
     std::println("Server version        : {}", c.ServerVersion());
