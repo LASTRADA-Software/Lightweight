@@ -242,7 +242,7 @@ struct SqlDataBinder<AnsiStringType>
                 if (*indicator == SQL_NULL_DATA)
                     StringTraits::Resize(result, 0);
                 else if (*indicator != SQL_NO_TOTAL)
-                    StringTraits::Resize(result, (std::min)(AnsiStringType::Capacity, static_cast<size_t>(*indicator)));
+                    StringTraits::Resize(result, (std::min) (AnsiStringType::Capacity, static_cast<size_t>(*indicator)));
             }
             if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
                 StringTraits::PostProcessOutputColumn(result, *indicator);

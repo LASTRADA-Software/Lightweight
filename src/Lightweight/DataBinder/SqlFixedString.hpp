@@ -63,28 +63,28 @@ class SqlFixedString
 
     /// Constructs a fixed-size string from a string view.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlFixedString(std::basic_string_view<T> s) noexcept:
-        _size { (std::min)(N, s.size()) }
+        _size { (std::min) (N, s.size()) }
     {
         std::copy_n(s.data(), _size, _data); // NOLINT(bugprone-suspicious-stringview-data-usage)
     }
 
     /// Constructs a fixed-size string from a string.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlFixedString(std::basic_string<T> const& s) noexcept:
-        _size { (std::min)(N, s.size()) }
+        _size { (std::min) (N, s.size()) }
     {
         std::copy_n(s.data(), _size, _data);
     }
 
     /// Constructs a fixed-size string from a string pointer and length.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlFixedString(T const* s, std::size_t len) noexcept:
-        _size { (std::min)(N, len) }
+        _size { (std::min) (N, len) }
     {
         std::copy_n(s, _size, _data);
     }
 
     /// Constructs a fixed-size string from a string pointer and end pointer.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlFixedString(T const* s, T const* e) noexcept:
-        _size { (std::min)(N, static_cast<std::size_t>(e - s)) }
+        _size { (std::min) (N, static_cast<std::size_t>(e - s)) }
     {
         std::copy(s, e, _data);
     }
@@ -109,7 +109,7 @@ class SqlFixedString
 
     LIGHTWEIGHT_FORCE_INLINE /*TODO constexpr*/ void setsize(std::size_t n) noexcept
     {
-        auto const newSize = (std::min)(n, N);
+        auto const newSize = (std::min) (n, N);
         _size = newSize;
         _data[newSize] = '\0';
     }
@@ -120,7 +120,7 @@ class SqlFixedString
     /// capped at the maximum capacity.
     LIGHTWEIGHT_FORCE_INLINE constexpr void resize(std::size_t n) noexcept
     {
-        auto const newSize = (std::min)(n, N);
+        auto const newSize = (std::min) (n, N);
         _size = newSize;
         _data[newSize] = '\0';
     }
@@ -149,7 +149,7 @@ class SqlFixedString
     /// Assigns a string view to the string.
     LIGHTWEIGHT_FORCE_INLINE constexpr void assign(std::basic_string_view<T> s) noexcept
     {
-        _size = (std::min)(N, s.size());
+        _size = (std::min) (N, s.size());
         std::copy_n(s.data(), _size, _data); // NOLINT(bugprone-suspicious-stringview-data-usage)
     }
 
@@ -236,7 +236,7 @@ class SqlFixedString
         if ((void*) this == (void*) &other) [[unlikely]]
             return std::weak_ordering::equivalent;
 
-        for (auto const i: std::views::iota(0U, (std::min)(size(), other.size())))
+        for (auto const i: std::views::iota(0U, (std::min) (size(), other.size())))
             if (auto const cmp = _data[i] <=> other._data[i]; cmp != std::weak_ordering::equivalent) [[unlikely]]
                 return cmp;
         return size() <=> other.size();
@@ -369,8 +369,8 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
 
     static void Reserve(ValueType* str, size_t capacity) noexcept
     {
-        str->reserve((std::min)(N, capacity));
-        str->resize((std::min)(N, capacity));
+        str->reserve((std::min) (N, capacity));
+        str->resize((std::min) (N, capacity));
     }
 
     static void Resize(ValueType* str, SQLLEN indicator) noexcept
@@ -389,7 +389,7 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
                 result->resize(N);
                 break;
             default: {
-                auto const len = (std::min)(N, static_cast<std::size_t>(indicator) / sizeof(CharType));
+                auto const len = (std::min) (N, static_cast<std::size_t>(indicator) / sizeof(CharType));
                 result->setsize(len);
 
                 if constexpr (Mode == SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED)
@@ -403,7 +403,7 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
 
     LIGHTWEIGHT_FORCE_INLINE static void TrimRight(ValueType* boundOutputString, SQLLEN indicator) noexcept
     {
-        size_t n = (std::min)((size_t) indicator, N - 1);
+        size_t n = (std::min) ((size_t) indicator, N - 1);
         while (n > 0 && std::isspace((*boundOutputString)[n - 1]))
             --n;
         boundOutputString->setsize(n);

@@ -1,23 +1,23 @@
 // File is automatically generated using ddl2cpp.
 #pragma once
 
-#include <Lightweight/DataMapper/DataMapper.hpp>
-
 #include "Customer.hpp"
+
+#include <Lightweight/DataMapper/DataMapper.hpp>
 
 
 struct Invoice final
 {
     static constexpr std::string_view TableName = "Invoice";
 
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName{"InvoiceId"}> InvoiceId;
-    BelongsTo<&Customer::CustomerId, SqlRealName{"CustomerId"}> CustomerId;
-    Field<SqlDateTime, SqlRealName{"InvoiceDate"}> InvoiceDate;
-    Field<std::optional<SqlDynamicUtf16String<70>>, SqlRealName{"BillingAddress"}> BillingAddress;
-    Field<std::optional<SqlDynamicUtf16String<40>>, SqlRealName{"BillingCity"}> BillingCity;
-    Field<std::optional<SqlDynamicUtf16String<40>>, SqlRealName{"BillingState"}> BillingState;
-    Field<std::optional<SqlDynamicUtf16String<40>>, SqlRealName{"BillingCountry"}> BillingCountry;
-    Field<std::optional<SqlDynamicUtf16String<10>>, SqlRealName{"BillingPostalCode"}> BillingPostalCode;
-    Field<SqlNumeric<10, 2>, SqlRealName{"Total"}> Total;
+    Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "InvoiceId" }> InvoiceId;
+    Light::BelongsTo<&Customer::CustomerId, Light::SqlRealName { "CustomerId" }> CustomerId;
+    Light::Field<Light::SqlDateTime, Light::SqlRealName { "InvoiceDate" }> InvoiceDate;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<70>>, Light::SqlRealName { "BillingAddress" }> BillingAddress;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<40>>, Light::SqlRealName { "BillingCity" }> BillingCity;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<40>>, Light::SqlRealName { "BillingState" }> BillingState;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<40>>, Light::SqlRealName { "BillingCountry" }> BillingCountry;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<10>>, Light::SqlRealName { "BillingPostalCode" }> BillingPostalCode;
+    Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "Total" }> Total;
 };
 
