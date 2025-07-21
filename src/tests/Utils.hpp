@@ -16,7 +16,6 @@
 #include <format>
 #include <ostream>
 #include <ranges>
-#include <regex>
 #include <string>
 #include <string_view>
 #include <tuple>
@@ -68,30 +67,32 @@ namespace std
 // so that we can get them pretty-printed in REQUIRE() and CHECK() macros.
 
 template <typename WideStringT>
-    requires(detail::OneOf<WideStringT,
-                           std::wstring,
-                           std::wstring_view,
-                           std::u16string,
-                           std::u16string_view,
-                           std::u32string,
-                           std::u32string_view>)
+    requires(Lightweight::detail::OneOf<WideStringT,
+                                        std::wstring,
+                                        std::wstring_view,
+                                        std::u16string,
+                                        std::u16string_view,
+                                        std::u32string,
+                                        std::u32string_view>)
 ostream& operator<<(ostream& os, WideStringT const& str)
 {
     auto constexpr BitsPerChar = sizeof(typename WideStringT::value_type) * 8;
-    auto const u8String = ToUtf8(str);
+    auto const u8String = Lightweight::ToUtf8(str);
     return os << "UTF-" << BitsPerChar << '{' << "length: " << str.size() << ", characters: " << '"'
               << string_view((char const*) u8String.data(), u8String.size()) << '"' << '}';
 }
 
-inline ostream& operator<<(ostream& os, SqlGuid const& guid)
+inline ostream& operator<<(ostream& os, Lightweight::SqlGuid const& guid)
 {
     return os << format("SqlGuid({})", guid);
 }
 
 } // namespace std
 
+namespace std
+{
 template <std::size_t Precision, std::size_t Scale>
-std::ostream& operator<<(std::ostream& os, SqlNumeric<Precision, Scale> const& value)
+std::ostream& operator<<(std::ostream& os, Lightweight::SqlNumeric<Precision, Scale> const& value)
 {
     return os << std::format("SqlNumeric<{}, {}>({}, {}, {}, {})",
                              Precision,
@@ -101,6 +102,7 @@ std::ostream& operator<<(std::ostream& os, SqlNumeric<Precision, Scale> const& v
                              value.sqlValue.scale,
                              value.ToUnscaledValue());
 }
+} // namespace std
 
 // Refer to an in-memory SQLite database (and assuming the sqliteodbc driver is installed)
 // See:
@@ -108,7 +110,7 @@ std::ostream& operator<<(std::ostream& os, SqlNumeric<Precision, Scale> const& v
 // - http://www.ch-werner.de/sqliteodbc/
 // - https://github.com/softace/sqliteodbc
 //
-auto inline const DefaultTestConnectionString = SqlConnectionString {
+auto inline const DefaultTestConnectionString = Lightweight::SqlConnectionString {
     .value = std::format("DRIVER={};Database={}",
 #if defined(_WIN32) || defined(_WIN64)
                          "SQLite3 ODBC Driver",
@@ -118,7 +120,7 @@ auto inline const DefaultTestConnectionString = SqlConnectionString {
                          "file::memory:"),
 };
 
-class TestSuiteSqlLogger: public SqlLogger::Null
+class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
 {
   private:
     std::string m_lastPreparedQuery;
@@ -151,13 +153,13 @@ class TestSuiteSqlLogger: public SqlLogger::Null
         return theLogger;
     }
 
-    void OnError(SqlError error, std::source_location sourceLocation) override
+    void OnError(Lightweight::SqlError error, std::source_location sourceLocation) override
     {
         WriteWarning("SQL Error: {}", error);
         WriteDetails(sourceLocation);
     }
 
-    void OnError(SqlErrorInfo const& errorInfo, std::source_location sourceLocation) override
+    void OnError(Lightweight::SqlErrorInfo const& errorInfo, std::source_location sourceLocation) override
     {
         WriteWarning("SQL Error: {}", errorInfo);
         WriteDetails(sourceLocation);
@@ -216,7 +218,7 @@ class TestSuiteSqlLogger: public SqlLogger::Null
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
-class ScopedSqlNullLogger: public SqlLogger::Null
+class ScopedSqlNullLogger: public Lightweight::SqlLogger::Null
 {
   private:
     SqlLogger& m_previousLogger = SqlLogger::GetLogger();
@@ -258,14 +260,14 @@ class SqlTestFixture
 
     static std::variant<MainProgramArgs, int> Initialize(int argc, char** argv)
     {
-        SqlLogger::SetLogger(TestSuiteSqlLogger::GetLogger());
+        Lightweight::SqlLogger::SetLogger(TestSuiteSqlLogger::GetLogger());
 
         using namespace std::string_view_literals;
         int i = 1;
         for (; i < argc; ++i)
         {
             if (argv[i] == "--trace-sql"sv)
-                SqlLogger::SetLogger(SqlLogger::TraceLogger());
+                Lightweight::SqlLogger::SetLogger(Lightweight::SqlLogger::TraceLogger());
             else if (argv[i] == "--trace-odbc"sv)
                 odbcTrace = true;
             else if (argv[i] == "--help"sv || argv[i] == "-h"sv)
@@ -295,19 +297,19 @@ class SqlTestFixture
 #endif
 
         {
-            std::println("Using ODBC connection string: '{}'", SqlConnectionString::SanitizePwd(s));
-            SqlConnection::SetDefaultConnectionString(SqlConnectionString { s });
+            std::println("Using ODBC connection string: '{}'", Lightweight::SqlConnectionString::SanitizePwd(s));
+            Lightweight::SqlConnection::SetDefaultConnectionString(Lightweight::SqlConnectionString { s });
         }
         else
         {
             // Use an in-memory SQLite3 database by default (for testing purposes)
             std::println("Using default ODBC connection string: '{}'", DefaultTestConnectionString.value);
-            SqlConnection::SetDefaultConnectionString(DefaultTestConnectionString);
+            Lightweight::SqlConnection::SetDefaultConnectionString(DefaultTestConnectionString);
         }
 
-        SqlConnection::SetPostConnectedHook(&SqlTestFixture::PostConnectedHook);
+        Lightweight::SqlConnection::SetPostConnectedHook(&SqlTestFixture::PostConnectedHook);
 
-        auto sqlConnection = SqlConnection();
+        auto sqlConnection = Lightweight::SqlConnection();
         if (!sqlConnection.IsAlive())
         {
             std::println("Failed to connect to the database: {}", sqlConnection.LastError());
@@ -322,7 +324,7 @@ class SqlTestFixture
         return MainProgramArgs { argc - (i - 1), argv + (i - 1) };
     }
 
-    static void PostConnectedHook(SqlConnection& connection)
+    static void PostConnectedHook(Lightweight::SqlConnection& connection)
     {
         if (odbcTrace)
         {
@@ -339,10 +341,11 @@ class SqlTestFixture
             SQLSetConnectAttrA(handle, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_ON, SQL_IS_UINTEGER);
         }
 
+        using Lightweight::SqlServerType;
         switch (connection.ServerType())
         {
             case SqlServerType::SQLITE: {
-                auto stmt = SqlStatement { connection };
+                auto stmt = Lightweight::SqlStatement { connection };
                 // Enable foreign key constraints for SQLite
                 stmt.ExecuteDirect("PRAGMA foreign_keys = ON");
                 break;
@@ -358,7 +361,7 @@ class SqlTestFixture
 
     SqlTestFixture()
     {
-        auto stmt = SqlStatement();
+        auto stmt = Lightweight::SqlStatement();
         REQUIRE(stmt.IsAlive());
 
         // On Github CI, we use the pre-created database "FREEPDB1" for Oracle
@@ -367,7 +370,7 @@ class SqlTestFixture
         SQLGetInfo(stmt.Connection().NativeHandle(), SQL_DATABASE_NAME, dbName, sizeof(dbName), &dbNameLen);
         if (dbNameLen > 0)
             testDatabaseName = dbName;
-        else if (stmt.Connection().ServerType() == SqlServerType::ORACLE)
+        else if (stmt.Connection().ServerType() == Lightweight::SqlServerType::ORACLE)
             testDatabaseName = "FREEPDB1";
 
         DropAllTablesInDatabase(stmt);
@@ -387,16 +390,18 @@ class SqlTestFixture
         return result;
     }
 
-    static void DropTableRecursively(SqlStatement& stmt, SqlSchema::FullyQualifiedTableName const& table)
+    static void DropTableRecursively(Lightweight::SqlStatement& stmt,
+                                     Lightweight::SqlSchema::FullyQualifiedTableName const& table)
     {
-        auto const dependantTables = SqlSchema::AllForeignKeysTo(stmt, table);
+        auto const dependantTables = Lightweight::SqlSchema::AllForeignKeysTo(stmt, table);
         for (auto const& dependantTable: dependantTables)
             DropTableRecursively(stmt, dependantTable.foreignKey.table);
         stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS \"{}\"", table.table));
     }
 
-    static void DropAllTablesInDatabase(SqlStatement& stmt)
+    static void DropAllTablesInDatabase(Lightweight::SqlStatement& stmt)
     {
+        using Lightweight::SqlServerType;
         switch (stmt.Connection().ServerType())
         {
             case SqlServerType::MICROSOFT_SQL:
@@ -409,7 +414,7 @@ class SqlTestFixture
                 auto const tableNames = GetAllTableNames(stmt);
                 for (auto const& tableName: tableNames)
                     DropTableRecursively(stmt,
-                                         SqlSchema::FullyQualifiedTableName {
+                                         Lightweight::SqlSchema::FullyQualifiedTableName {
                                              .catalog = {},
                                              .schema = {},
                                              .table = tableName,
@@ -427,7 +432,7 @@ class SqlTestFixture
     }
 
   private:
-    static std::vector<std::string> GetAllTableNamesForOracle(SqlStatement& stmt)
+    static std::vector<std::string> GetAllTableNamesForOracle(Lightweight::SqlStatement& stmt)
     {
         auto result = std::vector<std::string> {};
         stmt.Prepare(R"SQL(SELECT table_name
@@ -443,9 +448,9 @@ class SqlTestFixture
         return result;
     }
 
-    static std::vector<std::string> GetAllTableNames(SqlStatement& stmt)
+    static std::vector<std::string> GetAllTableNames(Lightweight::SqlStatement& stmt)
     {
-        if (stmt.Connection().ServerType() == SqlServerType::ORACLE)
+        if (stmt.Connection().ServerType() == Lightweight::SqlServerType::ORACLE)
             return GetAllTableNamesForOracle(stmt);
 
         using namespace std::string_literals;
@@ -453,7 +458,7 @@ class SqlTestFixture
         auto const schemaName = [&] {
             switch (stmt.Connection().ServerType())
             {
-                case SqlServerType::MICROSOFT_SQL:
+                case Lightweight::SqlServerType::MICROSOFT_SQL:
                     return "dbo"s;
                 default:
                     return ""s;
@@ -482,18 +487,18 @@ class SqlTestFixture
 };
 
 // {{{ ostream support for Lightweight, for debugging purposes
-inline std::ostream& operator<<(std::ostream& os, SqlText const& value)
+inline std::ostream& operator<<(std::ostream& os, Lightweight::SqlText const& value)
 {
     return os << std::format("SqlText({})", value.value);
 }
 
-inline std::ostream& operator<<(std::ostream& os, SqlDate const& date)
+inline std::ostream& operator<<(std::ostream& os, Lightweight::SqlDate const& date)
 {
     auto const ymd = date.value();
     return os << std::format("SqlDate {{ {}-{}-{} }}", ymd.year(), ymd.month(), ymd.day());
 }
 
-inline std::ostream& operator<<(std::ostream& os, SqlTime const& time)
+inline std::ostream& operator<<(std::ostream& os, Lightweight::SqlTime const& time)
 {
     auto const value = time.value();
     return os << std::format("SqlTime {{ {:02}:{:02}:{:02}.{:06} }}",
@@ -503,7 +508,7 @@ inline std::ostream& operator<<(std::ostream& os, SqlTime const& time)
                              value.subseconds().count());
 }
 
-inline std::ostream& operator<<(std::ostream& os, SqlDateTime const& datetime)
+inline std::ostream& operator<<(std::ostream& os, Lightweight::SqlDateTime const& datetime)
 {
     auto const value = datetime.value();
     auto const totalDays = std::chrono::floor<std::chrono::days>(value);
@@ -520,14 +525,14 @@ inline std::ostream& operator<<(std::ostream& os, SqlDateTime const& datetime)
                              hms.subseconds().count());
 }
 
-template <std::size_t N, typename T, SqlFixedStringMode Mode>
-inline std::ostream& operator<<(std::ostream& os, SqlFixedString<N, T, Mode> const& value)
+template <std::size_t N, typename T, Lightweight::SqlFixedStringMode Mode>
+inline std::ostream& operator<<(std::ostream& os, Lightweight::SqlFixedString<N, T, Mode> const& value)
 {
-    if constexpr (Mode == SqlFixedStringMode::FIXED_SIZE)
+    if constexpr (Mode == Lightweight::SqlFixedStringMode::FIXED_SIZE)
         return os << std::format("SqlFixedString<{}> {{ size: {}, data: '{}' }}", N, value.size(), value.data());
-    else if constexpr (Mode == SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED)
+    else if constexpr (Mode == Lightweight::SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED)
         return os << std::format("SqlTrimmedFixedString<{}> {{ '{}' }}", N, value.data());
-    else if constexpr (Mode == SqlFixedStringMode::VARIABLE_SIZE)
+    else if constexpr (Mode == Lightweight::SqlFixedStringMode::VARIABLE_SIZE)
     {
         if constexpr (std::same_as<T, char>)
             return os << std::format("SqlVariableString<{}> {{ size: {}, '{}' }}", N, value.size(), value.data());
@@ -546,7 +551,7 @@ inline std::ostream& operator<<(std::ostream& os, SqlFixedString<N, T, Mode> con
 }
 
 template <std::size_t N, typename T>
-inline std::ostream& operator<<(std::ostream& os, SqlDynamicString<N, T> const& value)
+inline std::ostream& operator<<(std::ostream& os, Lightweight::SqlDynamicString<N, T> const& value)
 {
     if constexpr (std::same_as<T, char>)
         return os << std::format("SqlDynamicString<{}> {{ size: {}, '{}' }}", N, value.size(), value.data());
@@ -595,37 +600,38 @@ inline std::ostream& operator<<(std::ostream& os, SqlDynamicString<N, T> const& 
 
 // }}}
 
-inline void CreateEmployeesTable(SqlStatement& stmt, std::source_location location = std::source_location::current())
+inline void CreateEmployeesTable(Lightweight::SqlStatement& stmt,
+                                 std::source_location location = std::source_location::current())
 {
     stmt.MigrateDirect(
-        [](SqlMigrationQueryBuilder& migration) {
+        [](Lightweight::SqlMigrationQueryBuilder& migration) {
             migration.CreateTable("Employees")
                 .PrimaryKeyWithAutoIncrement("EmployeeID")
-                .RequiredColumn("FirstName", SqlColumnTypeDefinitions::Varchar { 50 })
-                .Column("LastName", SqlColumnTypeDefinitions::Varchar { 50 })
-                .RequiredColumn("Salary", SqlColumnTypeDefinitions::Integer {});
+                .RequiredColumn("FirstName", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 })
+                .Column("LastName", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 })
+                .RequiredColumn("Salary", Lightweight::SqlColumnTypeDefinitions::Integer {});
         },
         location);
 }
 
-inline void CreateLargeTable(SqlStatement& stmt)
+inline void CreateLargeTable(Lightweight::SqlStatement& stmt)
 {
-    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+    stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
         auto table = migration.CreateTable("LargeTable");
         for (char c = 'A'; c <= 'Z'; ++c)
         {
-            table.Column(std::string(1, c), SqlColumnTypeDefinitions::Varchar { 50 });
+            table.Column(std::string(1, c), Lightweight::SqlColumnTypeDefinitions::Varchar { 50 });
         }
     });
 }
 
-inline void FillEmployeesTable(SqlStatement& stmt)
+inline void FillEmployeesTable(Lightweight::SqlStatement& stmt)
 {
     stmt.Prepare(stmt.Query("Employees")
                      .Insert()
-                     .Set("FirstName", SqlWildcard)
-                     .Set("LastName", SqlWildcard)
-                     .Set("Salary", SqlWildcard));
+                     .Set("FirstName", Lightweight::SqlWildcard)
+                     .Set("LastName", Lightweight::SqlWildcard)
+                     .Set("Salary", Lightweight::SqlWildcard));
     stmt.Execute("Alice", "Smith", 50'000);
     stmt.Execute("Bob", "Johnson", 60'000);
     stmt.Execute("Charlie", "Brown", 70'000);

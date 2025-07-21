@@ -8,6 +8,9 @@
 #include "SqlQuery/Select.hpp"
 #include "SqlQuery/Update.hpp"
 
+namespace Lightweight
+{
+
 struct [[nodiscard]] SqlLastInsertIdQuery
 {
     std::string tableName;
@@ -86,3 +89,5 @@ inline LIGHTWEIGHT_FORCE_INLINE SqlQueryBuilder::SqlQueryBuilder(SqlQueryFormatt
     m_tableAlias { std::move(alias) }
 {
 }
+
+} // namespace Lightweight

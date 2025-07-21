@@ -8,6 +8,9 @@
 #include <concepts>
 #include <ranges>
 
+namespace Lightweight
+{
+
 /// @defgroup QueryBuilder Query Builder
 ///
 /// @brief The query builder is a high level API for building SQL queries using high level C++ syntax.
@@ -27,10 +30,10 @@ static constexpr inline auto SqlWildcard = SqlWildcardType {};
 namespace detail
 {
 
-struct RawSqlCondition
-{
-    std::string condition;
-};
+    struct RawSqlCondition
+    {
+        std::string condition;
+    };
 
 } // namespace detail
 
@@ -45,54 +48,54 @@ struct SqlQualifiedTableColumnName
 namespace detail
 {
 
-template <typename ColumnName>
-std::string MakeSqlColumnName(ColumnName const& columnName)
-{
-    using namespace std::string_view_literals;
-    std::string output;
+    template <typename ColumnName>
+    std::string MakeSqlColumnName(ColumnName const& columnName)
+    {
+        using namespace std::string_view_literals;
+        std::string output;
 
-    if constexpr (std::is_same_v<ColumnName, SqlQualifiedTableColumnName>)
-    {
-        output.reserve(columnName.tableName.size() + columnName.columnName.size() + 5);
-        output += '"';
-        output += columnName.tableName;
-        output += R"(".")"sv;
-        output += columnName.columnName;
-        output += '"';
+        if constexpr (std::is_same_v<ColumnName, SqlQualifiedTableColumnName>)
+        {
+            output.reserve(columnName.tableName.size() + columnName.columnName.size() + 5);
+            output += '"';
+            output += columnName.tableName;
+            output += R"(".")"sv;
+            output += columnName.columnName;
+            output += '"';
+        }
+        else if constexpr (std::is_same_v<ColumnName, SqlRawColumnNameView>)
+        {
+            output += columnName.value;
+        }
+        else if constexpr (std::is_same_v<ColumnName, SqlWildcardType>)
+        {
+            output += '?';
+        }
+        else
+        {
+            output += '"';
+            output += columnName;
+            output += '"';
+        }
+        return output;
     }
-    else if constexpr (std::is_same_v<ColumnName, SqlRawColumnNameView>)
-    {
-        output += columnName.value;
-    }
-    else if constexpr (std::is_same_v<ColumnName, SqlWildcardType>)
-    {
-        output += '?';
-    }
-    else
-    {
-        output += '"';
-        output += columnName;
-        output += '"';
-    }
-    return output;
-}
 
-template <typename T>
-std::string MakeEscapedSqlString(T const& value)
-{
-    std::string escapedValue;
-    escapedValue += '\'';
-
-    for (auto const ch: value)
+    template <typename T>
+    std::string MakeEscapedSqlString(T const& value)
     {
-        // In SQL strings, single quotes are escaped by doubling them.
-        if (ch == '\'')
-            escapedValue += '\'';
-        escapedValue += ch;
+        std::string escapedValue;
+        escapedValue += '\'';
+
+        for (auto const ch: value)
+        {
+            // In SQL strings, single quotes are escaped by doubling them.
+            if (ch == '\'')
+                escapedValue += '\'';
+            escapedValue += ch;
+        }
+        escapedValue += '\'';
+        return escapedValue;
     }
-    escapedValue += '\'';
-    return escapedValue;
-}
 
 } // namespace detail
 
@@ -385,33 +388,33 @@ enum class SqlResultOrdering : uint8_t
 
 namespace detail
 {
-enum class SelectType : std::uint8_t
-{
-    Undefined,
-    Count,
-    All,
-    First,
-    Range
-};
+    enum class SelectType : std::uint8_t
+    {
+        Undefined,
+        Count,
+        All,
+        First,
+        Range
+    };
 
-struct ComposedQuery
-{
-    SelectType selectType = SelectType::Undefined;
-    SqlQueryFormatter const* formatter = nullptr;
+    struct ComposedQuery
+    {
+        SelectType selectType = SelectType::Undefined;
+        SqlQueryFormatter const* formatter = nullptr;
 
-    bool distinct = false;
-    SqlSearchCondition searchCondition {};
+        bool distinct = false;
+        SqlSearchCondition searchCondition {};
 
-    std::string fields;
+        std::string fields;
 
-    std::string orderBy;
-    std::string groupBy;
+        std::string orderBy;
+        std::string groupBy;
 
-    size_t offset = 0;
-    size_t limit = (std::numeric_limits<size_t>::max)();
+        size_t offset = 0;
+        size_t limit = (std::numeric_limits<size_t>::max)();
 
-    [[nodiscard]] LIGHTWEIGHT_API std::string ToSql() const;
-};
+        [[nodiscard]] LIGHTWEIGHT_API std::string ToSql() const;
+    };
 } // namespace detail
 
 template <typename Derived>
@@ -1033,3 +1036,5 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(Jo
 
     return static_cast<Derived&>(*this);
 }
+
+} // namespace Lightweight

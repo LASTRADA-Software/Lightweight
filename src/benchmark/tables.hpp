@@ -15,6 +15,9 @@ struct movies;
 struct ratings;
 struct ratings_users;
 
+using Lightweight::Field;
+using Lightweight::SqlText;
+
 struct movies final
 {
     Field<std::optional<int>> movie_id;
@@ -89,4 +92,3 @@ struct ratings final
     Field<std::optional<int>> user_eligible_for_trial;
     Field<std::optional<int>> user_has_payment_method;
 };
-

@@ -28,6 +28,9 @@
 #include <sqlspi.h>
 #include <sqltypes.h>
 
+namespace Lightweight
+{
+
 class SqlQueryBuilder;
 class SqlMigrationQueryBuilder;
 class SqlQueryFormatter;
@@ -195,3 +198,5 @@ inline SqlQueryFormatter const& SqlConnection::QueryFormatter() const noexcept
 {
     return *m_queryFormatter;
 }
+
+} // namespace Lightweight

@@ -10,6 +10,9 @@
 #include <source_location>
 #include <string_view>
 
+namespace Lightweight
+{
+
 class SqlConnection;
 
 struct SqlVariant;
@@ -182,3 +185,5 @@ class SqlScopedTimeLogger
   private:
     std::string _tag;
 };
+
+} // namespace Lightweight

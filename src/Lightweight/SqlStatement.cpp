@@ -4,6 +4,9 @@
 #include "SqlStatement.hpp"
 #include "Utils.hpp"
 
+namespace Lightweight
+{
+
 struct SqlStatement::Data
 {
     std::optional<SqlConnection> ownedConnection; // The connection object (if owned)
@@ -256,7 +259,7 @@ std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location
 
 void SqlStatement::RequireSuccess(SQLRETURN error, std::source_location sourceLocation) const
 {
-    ::RequireSuccess(m_hStmt, error, sourceLocation);
+    Lightweight::RequireSuccess(m_hStmt, error, sourceLocation);
 }
 
 SqlQueryBuilder SqlStatement::Query(std::string_view const& table) const
@@ -268,3 +271,5 @@ SqlQueryBuilder SqlStatement::QueryAs(std::string_view const& table, std::string
 {
     return Connection().QueryAs(table, tableAlias);
 }
+
+} // namespace Lightweight

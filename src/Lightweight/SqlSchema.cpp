@@ -14,7 +14,7 @@
 #include <sqlspi.h>
 #include <sqltypes.h>
 
-namespace SqlSchema
+namespace Lightweight::SqlSchema
 {
 
 using namespace std::string_literals;
@@ -388,4 +388,4 @@ std::vector<ForeignKeyConstraint> AllForeignKeysFrom(SqlStatement& stmt, FullyQu
     return AllForeignKeys(stmt, FullyQualifiedTableName {}, table);
 }
 
-} // namespace SqlSchema
+} // namespace Lightweight::SqlSchema

@@ -26,6 +26,7 @@
 // TODO: get inspired by .NET's Dapper, and EF Core APIs
 
 using namespace std::string_view_literals;
+using namespace Lightweight;
 
 using ColumnNameOverrides = std::map<SqlSchema::FullyQualifiedTableColumn, std::string>;
 
@@ -70,7 +71,7 @@ std::string MakeType(
     return optional(std::visit(
         detail::overloaded {
             [](Bigint const&) -> std::string { return "int64_t"; },
-            [](Binary const& type) -> std::string { return std::format("SqlBinary", type.size); },
+            [](Binary const& type) -> std::string { return std::format("Light::SqlBinary", type.size); },
             [](Bool const&) -> std::string { return "bool"; },
             [&](Char const& type) -> std::string {
                 if (type.size == 1)
@@ -83,58 +84,60 @@ std::string MakeType(
                 else if (type.size <= sqlFixedStringMaxSize)
                 {
                     if (shouldForceUnicodeTextColumn())
-                        return std::format("SqlWideString<{}>", type.size);
+                        return std::format("Light::SqlWideString<{}>", type.size);
                     else
-                        return std::format("SqlAnsiString<{}>", type.size);
+                        return std::format("Light::SqlAnsiString<{}>", type.size);
                 }
                 else
                 {
                     if (shouldForceUnicodeTextColumn())
-                        return std::format("SqlDynamicWideString<{}>", type.size);
+                        return std::format("Light::SqlDynamicWideString<{}>", type.size);
                     else
-                        return std::format("SqlDynamicAnsiString<{}>", type.size);
+                        return std::format("Light::SqlDynamicAnsiString<{}>", type.size);
                 }
             },
-            [](Date const&) -> std::string { return "SqlDate"; },
-            [](DateTime const&) -> std::string { return "SqlDateTime"; },
-            [](Decimal const& type) -> std::string { return std::format("SqlNumeric<{}, {}>", type.scale, type.precision); },
-            [](Guid const&) -> std::string { return "SqlGuid"; },
+            [](Date const&) -> std::string { return "Light::SqlDate"; },
+            [](DateTime const&) -> std::string { return "Light::SqlDateTime"; },
+            [](Decimal const& type) -> std::string {
+                return std::format("Light::SqlNumeric<{}, {}>", type.scale, type.precision);
+            },
+            [](Guid const&) -> std::string { return "Light::SqlGuid"; },
             [](Integer const&) -> std::string { return "int32_t"; },
             [=](NChar const& type) -> std::string {
                 if (type.size == 1)
                     return "char16_t";
                 else if (type.size <= sqlFixedStringMaxSize)
-                    return std::format("SqlUtf16String<{}>", type.size);
+                    return std::format("Light::SqlUtf16String<{}>", type.size);
                 else
-                    return std::format("SqlDynamicUtf16String<{}>", type.size);
+                    return std::format("Light::SqlDynamicUtf16String<{}>", type.size);
             },
-            [](NVarchar const& type) -> std::string { return std::format("SqlDynamicUtf16String<{}>", type.size); },
+            [](NVarchar const& type) -> std::string { return std::format("Light::SqlDynamicUtf16String<{}>", type.size); },
             [](Real const&) -> std::string { return "float"; },
             [](Smallint const&) -> std::string { return "int16_t"; },
             [=](Text const& type) -> std::string {
                 if (shouldForceUnicodeTextColumn())
-                    return std::format("SqlDynamicWideString<{}>", type.size);
+                    return std::format("Light::SqlDynamicWideString<{}>", type.size);
                 else
-                    return std::format("SqlDynamicAnsiString<{}>", type.size);
+                    return std::format("Light::SqlDynamicAnsiString<{}>", type.size);
             },
-            [](Time const&) -> std::string { return "SqlTime"; },
-            [](Timestamp const&) -> std::string { return "SqlDateTime"; },
+            [](Time const&) -> std::string { return "Light::SqlTime"; },
+            [](Timestamp const&) -> std::string { return "Light::SqlDateTime"; },
             [](Tinyint const&) -> std::string { return "uint8_t"; },
-            [](VarBinary const& type) -> std::string { return std::format("SqlDynamicBinary<{}>", type.size); },
+            [](VarBinary const& type) -> std::string { return std::format("Light::SqlDynamicBinary<{}>", type.size); },
             [&](Varchar const& type) -> std::string {
                 if (type.size > 0 && type.size <= sqlFixedStringMaxSize)
                 {
                     if (shouldForceUnicodeTextColumn())
-                        return std::format("SqlWideString<{}>", type.size);
+                        return std::format("Light::SqlWideString<{}>", type.size);
                     else
-                        return std::format("SqlAnsiString<{}>", type.size);
+                        return std::format("Light::SqlAnsiString<{}>", type.size);
                 }
                 else
                 {
                     if (shouldForceUnicodeTextColumn())
-                        return std::format("SqlDynamicWideString<{}>", type.size);
+                        return std::format("Light::SqlDynamicWideString<{}>", type.size);
                     else
-                        return std::format("SqlDynamicAnsiString<{}>", type.size);
+                        return std::format("Light::SqlDynamicAnsiString<{}>", type.size);
                 }
             },
         },
@@ -274,16 +277,16 @@ class CxxModelPrinter
         output << "// File is automatically generated using ddl2cpp.\n";
         output << "#pragma once\n";
         output << "\n";
-        output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
-        output << "\n";
 
         auto requiredTables = _definitions[tableName].requiredTables;
         std::ranges::sort(requiredTables);
         for (auto const& requiredTable: requiredTables)
             output << std::format("#include \"{}.hpp\"\n", requiredTable);
-
         if (!std::empty(requiredTables))
             output << '\n';
+
+        output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
+        output << "\n";
 
         if (!modelNamespace.empty())
             output << std::format("namespace {}\n{{\n", modelNamespace);
@@ -306,7 +309,7 @@ class CxxModelPrinter
         exampleEntries << std::format("for (auto const& entry: entries{})\n", tableName);
         exampleEntries << "{\n";
 
-        exampleEntries << std::format("    std::println(\"{{}}\", DataMapper::Inspect(entry));\n");
+        exampleEntries << std::format("    std::println(\"{{}}\", Lightweight::DataMapper::Inspect(entry));\n");
 
         exampleEntries << "}\n";
 
@@ -466,21 +469,21 @@ class CxxModelPrinter
         // corresponds to the column name in the sql table
         auto aliasName = [&](std::string_view name) {
             if (_config.makeAliases)
-                return std::format(", SqlRealName{{\"{}\"}}", name);
+                return std::format(", Light::SqlRealName {{ \"{}\" }}", name);
             return std::string {};
         };
 
         auto aliasNameOrNullopt = [&](std::string_view name) {
             if (_config.makeAliases)
-                return std::format(", SqlRealName{{\"{}\"}}", name);
+                return std::format(", Light::SqlRealName {{ \"{}\" }}", name);
             return std::string { ", std::nullopt" };
         };
 
         auto const primaryKeyPart = [this]() {
             if (_config.primaryKeyAssignment == PrimaryKey::ServerSideAutoIncrement)
-                return ", PrimaryKey::ServerSideAutoIncrement"sv;
+                return ", Light::PrimaryKey::ServerSideAutoIncrement"sv;
             else if (_config.primaryKeyAssignment == PrimaryKey::AutoAssign)
-                return ", PrimaryKey::AutoAssign"sv;
+                return ", Light::PrimaryKey::AutoAssign"sv;
             else
                 return ""sv;
         };
@@ -547,7 +550,7 @@ class CxxModelPrinter
                             })
                             .value();
                     definition.text << std::format(
-                        "    BelongsTo<&{}{}{}> {};\n",
+                        "    Light::BelongsTo<&{}{}{}> {};\n",
                         [&] {
                             return std::format("{}::{}",
                                                foreignTableName,
@@ -556,7 +559,7 @@ class CxxModelPrinter
                         aliasNameOrNullopt(foreignKey.foreignKey.columns.at(0)),
                         [&] {
                             if (column.isNullable)
-                                return ", SqlNullable::Null"sv;
+                                return ", Light::SqlNullable::Null"sv;
                             else
                                 return ""sv;
                         }(),
@@ -570,7 +573,7 @@ class CxxModelPrinter
 
             if (column.isPrimaryKey)
             {
-                definition.text << std::format("    Field<{}{}{}> {};",
+                definition.text << std::format("    Light::Field<{}{}{}> {};",
                                                type,
                                                primaryKeyPart(),
                                                aliasName(column.name),
@@ -583,7 +586,7 @@ class CxxModelPrinter
 
             // Fallback: Handle the column as a regular field.
             definition.text << std::format(
-                "    Field<{}{}> {};", type, aliasName(column.name), uniqueMemberNameBuilder.DeclareName(memberName));
+                "    Light::Field<{}{}> {};", type, aliasName(column.name), uniqueMemberNameBuilder.DeclareName(memberName));
             if (column.isForeignKey)
                 definition.text << std::format(" // NB: This is also a foreign key");
             definition.text << '\n';
@@ -936,6 +939,7 @@ void TryLoadNode(YAML::Node const& node, T& value)
         value = node.as<T>();
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path const& path)
 {
     YAML::Node loadedYaml;
@@ -1120,10 +1124,10 @@ void GenerateExample(Configuration const& config,
     file << "\n";
     file << "int main()\n";
     file << "{\n";
-    file << std::format("SqlConnection::SetDefaultConnectionString(SqlConnectionString {{ \"{}\" }});\n",
+    file << std::format("Lightweight::SqlConnection::SetDefaultConnectionString(SqlConnectionString {{ \"{}\" }});\n",
                         std::string(config.connectionString));
     file << "\n";
-    file << "auto dm = DataMapper{};";
+    file << "auto dm = Lightweight::DataMapper{};";
     file << "\n";
     for (auto const& table: tables)
     {

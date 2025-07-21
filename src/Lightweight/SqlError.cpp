@@ -3,6 +3,9 @@
 #include "SqlError.hpp"
 #include "SqlLogger.hpp"
 
+namespace Lightweight
+{
+
 SqlException::SqlException(SqlErrorInfo info, std::source_location sourceLocation):
     std::runtime_error(std::format("{}", info)),
     _info { std::move(info) }
@@ -17,3 +20,5 @@ void SqlErrorInfo::RequireStatementSuccess(SQLRETURN result, SQLHSTMT hStmt, std
 
     throw std::runtime_error { std::format("{}: {}", message, fromStatementHandle(hStmt)) };
 }
+
+} // namespace Lightweight

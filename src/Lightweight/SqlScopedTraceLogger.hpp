@@ -8,6 +8,9 @@
 
 #include <filesystem>
 
+namespace Lightweight
+{
+
 /// @brief Enables protocol-level ODBC trace logging for the given connection.
 ///
 /// The trace logging is active for the lifetime of this object.
@@ -57,3 +60,5 @@ class LIGHTWEIGHT_API SqlScopedTraceLogger
         SQLSetConnectAttrA(m_nativeConnection, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_OFF, SQL_IS_UINTEGER);
     }
 };
+
+} // namespace Lightweight

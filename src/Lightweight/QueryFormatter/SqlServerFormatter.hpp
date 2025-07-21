@@ -9,6 +9,9 @@
 #include <cassert>
 #include <format>
 
+namespace Lightweight
+{
+
 class SqlServerQueryFormatter final: public SQLiteQueryFormatter
 {
   public:
@@ -202,3 +205,5 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
         return { sqlQueryString.str() };
     }
 };
+
+} // namespace Lightweight

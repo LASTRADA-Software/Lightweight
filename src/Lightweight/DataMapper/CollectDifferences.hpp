@@ -6,6 +6,9 @@
 #include <any>
 #include <iostream>
 
+namespace Lightweight
+{
+
 template <typename Record>
 struct DifferenceView
 {
@@ -50,3 +53,5 @@ DifferenceView<Record> CollectDifferences(Record const& left, Record const& righ
 
     return view;
 }
+
+} // namespace Lightweight

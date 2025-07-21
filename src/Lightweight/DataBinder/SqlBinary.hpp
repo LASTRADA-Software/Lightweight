@@ -9,6 +9,9 @@
 #include <utility>
 #include <vector>
 
+namespace Lightweight
+{
+
 /// @brief Represents a binary data type.
 ///
 /// This class is a thin wrapper around std::vector<uint8_t> to represent binary data types efficiently.
@@ -101,3 +104,5 @@ struct SqlDataBinder<SqlBinary>
         return std::format("SqlBinary(size={})", value.size());
     }
 };
+
+} // namespace Lightweight

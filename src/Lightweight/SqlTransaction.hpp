@@ -18,6 +18,9 @@
 #include <sqlspi.h>
 #include <sqltypes.h>
 
+namespace Lightweight
+{
+
 /// Represents the isolation level of a SQL transaction.
 ///
 /// The isolation level determines the degree of isolation of data between concurrent transactions.
@@ -150,9 +153,12 @@ inline SqlConnection& SqlTransaction::Connection() noexcept
     return *m_connection;
 }
 
+} // namespace Lightweight
+
 template <>
-struct std::formatter<SqlTransactionMode>: std::formatter<std::string_view>
+struct std::formatter<Lightweight::SqlTransactionMode>: std::formatter<std::string_view>
 {
+    using SqlTransactionMode = Lightweight::SqlTransactionMode;
     auto format(SqlTransactionMode value, format_context& ctx) const -> format_context::iterator
     {
         using namespace std::string_view_literals;
@@ -174,8 +180,9 @@ struct std::formatter<SqlTransactionMode>: std::formatter<std::string_view>
 };
 
 template <>
-struct std::formatter<SqlIsolationMode>: std::formatter<std::string_view>
+struct std::formatter<Lightweight::SqlIsolationMode>: std::formatter<std::string_view>
 {
+    using SqlIsolationMode = Lightweight::SqlIsolationMode;
     auto format(SqlIsolationMode value, format_context& ctx) const -> format_context::iterator
     {
         using namespace std::string_view_literals;

@@ -3,6 +3,9 @@
 #include "SqlConnection.hpp"
 #include "SqlTransaction.hpp"
 
+namespace Lightweight
+{
+
 SqlTransaction::SqlTransaction(SqlConnection& connection,
                                SqlTransactionMode defaultMode,
                                SqlIsolationMode isolationMode,
@@ -101,3 +104,5 @@ void SqlTransaction::Commit()
         throw SqlTransactionException("Failed to commit the transaction");
     }
 }
+
+} // namespace Lightweight

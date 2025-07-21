@@ -5,6 +5,9 @@
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "Core.hpp"
 
+namespace Lightweight
+{
+
 template <typename T, SQLSMALLINT TheCType, SQLINTEGER TheSqlType, auto TheColumnType>
 struct SqlSimpleDataBinder
 {
@@ -80,3 +83,5 @@ template <> struct SqlDataBinder<unsigned long long>: Int64DataBinderHelper<unsi
 template <> struct SqlDataBinder<std::size_t>: SqlSimpleDataBinder<std::size_t, SQL_C_SBIGINT, SqlColumnTypeDefinitions::Bigint {}> {};
 #endif
 // clang-format on
+
+} // namespace Lightweight

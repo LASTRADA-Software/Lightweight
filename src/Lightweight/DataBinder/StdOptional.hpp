@@ -8,6 +8,9 @@
 #include <format>
 #include <optional>
 
+namespace Lightweight
+{
+
 template <typename T>
 struct SqlDataBinder<std::optional<T>>
 {
@@ -60,3 +63,5 @@ struct SqlDataBinder<std::optional<T>>
             return std::string(SqlDataBinder<T>::Inspect(*value));
     }
 };
+
+} // namespace Lightweight

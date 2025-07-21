@@ -14,6 +14,9 @@
 #include <string_view>
 #include <type_traits>
 
+namespace Lightweight
+{
+
 /// @brief Represents a one-to-one relationship.
 ///
 /// The `TheReferencedField` parameter is the field in the other record that references the current record,
@@ -292,15 +295,15 @@ std::ostream& operator<<(std::ostream& os, BelongsTo<ReferencedField, ColumnName
 
 namespace detail
 {
-template <typename T>
-struct IsBelongsToType: std::false_type
-{
-};
+    template <typename T>
+    struct IsBelongsToType: std::false_type
+    {
+    };
 
-template <auto ReferencedField, auto ColumnNameOverrideString, SqlNullable Nullable>
-struct IsBelongsToType<BelongsTo<ReferencedField, ColumnNameOverrideString, Nullable>>: std::true_type
-{
-};
+    template <auto ReferencedField, auto ColumnNameOverrideString, SqlNullable Nullable>
+    struct IsBelongsToType<BelongsTo<ReferencedField, ColumnNameOverrideString, Nullable>>: std::true_type
+    {
+    };
 
 } // namespace detail
 
@@ -349,3 +352,5 @@ struct SqlDataBinder<BelongsTo<ReferencedField, ColumnNameOverrideString, Nullab
         return sqlReturn;
     }
 };
+
+} // namespace Lightweight

@@ -2,6 +2,9 @@
 
 #include "SqlQuery.hpp"
 
+namespace Lightweight
+{
+
 SqlQueryBuilder& SqlQueryBuilder::FromTable(std::string table)
 {
     m_table = std::move(table);
@@ -50,3 +53,5 @@ SqlLastInsertIdQuery SqlQueryBuilder::LastInsertId()
 {
     return SqlLastInsertIdQuery { .tableName = std::move(m_table), .formatter = &m_formatter };
 }
+
+} // namespace Lightweight

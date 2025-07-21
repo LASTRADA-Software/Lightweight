@@ -14,6 +14,9 @@
 #include <print>
 #include <source_location>
 
+namespace Lightweight
+{
+
 // clang-cl doesn't support __int128_t but defines __SIZEOF_INT128__
 // and also since it pretends to be MSVC, it also defines _MSC_VER
 // clang-format off
@@ -218,8 +221,9 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
 };
 // clang-format off
 
+} // namespace Lightweight
 
-template <SqlNumericType Type>
+template <Lightweight::SqlNumericType Type>
 struct std::formatter<Type>: std::formatter<std::string>
 {
     template <typename FormatContext>

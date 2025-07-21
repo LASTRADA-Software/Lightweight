@@ -5,7 +5,7 @@
 #include "SqlMigration.hpp"
 #include "SqlTransaction.hpp"
 
-namespace SqlMigration
+namespace Lightweight::SqlMigration
 {
 
 void MigrationManager::AddMigration(MigrationBase const* migration)
@@ -123,4 +123,4 @@ SqlTransaction MigrationManager::Transaction()
     return SqlTransaction { GetDataMapper().Connection() };
 }
 
-} // namespace SqlMigration
+} // namespace Lightweight::SqlMigration

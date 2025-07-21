@@ -9,6 +9,9 @@
 #include <memory>
 #include <string_view>
 
+namespace Lightweight
+{
+
 template <>
 struct SqlDataBinder<std::basic_string_view<char>>
 {
@@ -104,3 +107,5 @@ struct SqlDataBinder<std::u8string_view>
         return std::string { (char const*) value.data(), value.size() };
     }
 };
+
+} // namespace Lightweight

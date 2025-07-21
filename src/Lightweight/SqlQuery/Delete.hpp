@@ -6,6 +6,9 @@
 
 #include <string>
 
+namespace Lightweight
+{
+
 /// @brief Query builder for building DELETE FROM ... queries.
 ///
 /// @ingroup QueryBuilder
@@ -45,3 +48,5 @@ inline LIGHTWEIGHT_FORCE_INLINE std::string SqlDeleteQueryBuilder::ToSql() const
                               m_searchCondition.tableJoins,
                               m_searchCondition.condition);
 }
+
+} // namespace Lightweight

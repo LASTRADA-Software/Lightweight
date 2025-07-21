@@ -10,192 +10,195 @@
 #include <string>
 #include <string_view>
 
+namespace Lightweight
+{
+
 namespace detail
 {
 
-template <typename>
-struct UnicodeConverter;
+    template <typename>
+    struct UnicodeConverter;
 
-template <>
-struct LIGHTWEIGHT_API UnicodeConverter<char8_t>
-{
-    // Converts a UTF-32 code point to one to four UTF-8 code units.
-    template <typename OutputIterator>
-    static constexpr OutputIterator Convert(char32_t input, OutputIterator output) noexcept
+    template <>
+    struct LIGHTWEIGHT_API UnicodeConverter<char8_t>
     {
-        if (input <= 0x7F)
+        // Converts a UTF-32 code point to one to four UTF-8 code units.
+        template <typename OutputIterator>
+        static constexpr OutputIterator Convert(char32_t input, OutputIterator output) noexcept
         {
-            *output++ = static_cast<char8_t>(input & 0b0111'1111);
-        }
-        else if (input <= 0x07FF)
-        {
-            *output++ = static_cast<char8_t>(((input >> 6) & 0b0001'1111) | 0b1100'0000);
-            *output++ = static_cast<char8_t>(((input >> 0) & 0b0011'1111) | 0b1000'0000);
-        }
-        else if (input <= 0xFFFF)
-        {
-            *output++ = static_cast<char8_t>(((input >> 12) & 0b0000'1111) | 0b1110'0000);
-            *output++ = static_cast<char8_t>(((input >> 6) & 0b0011'1111) | 0b1000'0000);
-            *output++ = static_cast<char8_t>(((input >> 0) & 0b0011'1111) | 0b1000'0000);
-        }
-        else
-        {
-            *output++ = static_cast<char8_t>(((input >> 18) & 0b0000'0111) | 0b1111'0000);
-            *output++ = static_cast<char8_t>(((input >> 12) & 0b0011'1111) | 0b1000'0000);
-            *output++ = static_cast<char8_t>(((input >> 6) & 0b0011'1111) | 0b1000'0000);
-            *output++ = static_cast<char8_t>(((input >> 0) & 0b0011'1111) | 0b1000'0000);
-        }
-        return output;
-    }
-};
-
-template <>
-struct LIGHTWEIGHT_API UnicodeConverter<char16_t>
-{
-    // Converts a UTF-32 code point to one or two UTF-16 code units.
-    template <typename OutputIterator>
-    static constexpr OutputIterator Convert(char32_t input, OutputIterator output) noexcept
-    {
-        if (input < 0xD800) // [0x0000 .. 0xD7FF]
-        {
-            *output++ = char16_t(input);
+            if (input <= 0x7F)
+            {
+                *output++ = static_cast<char8_t>(input & 0b0111'1111);
+            }
+            else if (input <= 0x07FF)
+            {
+                *output++ = static_cast<char8_t>(((input >> 6) & 0b0001'1111) | 0b1100'0000);
+                *output++ = static_cast<char8_t>(((input >> 0) & 0b0011'1111) | 0b1000'0000);
+            }
+            else if (input <= 0xFFFF)
+            {
+                *output++ = static_cast<char8_t>(((input >> 12) & 0b0000'1111) | 0b1110'0000);
+                *output++ = static_cast<char8_t>(((input >> 6) & 0b0011'1111) | 0b1000'0000);
+                *output++ = static_cast<char8_t>(((input >> 0) & 0b0011'1111) | 0b1000'0000);
+            }
+            else
+            {
+                *output++ = static_cast<char8_t>(((input >> 18) & 0b0000'0111) | 0b1111'0000);
+                *output++ = static_cast<char8_t>(((input >> 12) & 0b0011'1111) | 0b1000'0000);
+                *output++ = static_cast<char8_t>(((input >> 6) & 0b0011'1111) | 0b1000'0000);
+                *output++ = static_cast<char8_t>(((input >> 0) & 0b0011'1111) | 0b1000'0000);
+            }
             return output;
-        }
-        else if (input < 0x10000)
-        {
-            if (input < 0xE000)
-                return output; // The UTF-16 code point can not be in surrogate range.
-
-            // [0xE000 .. 0xFFFF]
-            *output++ = char16_t(input);
-            return output;
-        }
-        else if (input < 0x110000) // [0xD800 .. 0xDBFF] [0xDC00 .. 0xDFFF]
-        {
-            *output++ = char16_t(0xD7C0 + (input >> 10));
-            *output++ = char16_t(0xDC00 + (input & 0x3FF));
-            return output;
-        }
-        else
-            return output; // Too large UTF-16 code point.
-    }
-};
-
-struct Utf32Converter
-{
-    char32_t codePoint = 0;
-    int codeUnits = 0;
-
-    static constexpr auto InvalidCodePoint = char32_t { 0xFFFD };
-
-    constexpr std::optional<char32_t> Process(char8_t c8) noexcept
-    {
-        if ((c8 & 0b1100'0000) == 0b1000'0000)
-        {
-            if (codeUnits == 0)
-                return InvalidCodePoint;
-            codePoint <<= 6;
-            codePoint |= c8 & 0b0011'1111;
-            if (--codeUnits == 0)
-            {
-                auto result = codePoint;
-                codePoint = 0;
-                return result;
-            }
-            return std::nullopt;
-        }
-        if (codeUnits == 0)
-        {
-            if ((c8 & 0b1000'0000) == 0)
-                return c8;
-            if ((c8 & 0b1110'0000) == 0b1100'0000)
-            {
-                codePoint = c8 & 0b0001'1111;
-                codeUnits = 1;
-                return std::nullopt;
-            }
-            if ((c8 & 0b1111'0000) == 0b1110'0000)
-            {
-                codePoint = c8 & 0b0000'1111;
-                codeUnits = 2;
-                return std::nullopt;
-            }
-            if ((c8 & 0b1111'1000) == 0b1111'0000)
-            {
-                codePoint = c8 & 0b0000'0111;
-                codeUnits = 3;
-                return std::nullopt;
-            }
-            return InvalidCodePoint;
-        }
-        return InvalidCodePoint;
-    }
-};
-
-struct [[nodiscard]] Utf32Iterator
-{
-    std::u8string_view u8InputString;
-
-    struct [[nodiscard]] iterator
-    {
-        std::u8string_view::iterator current {};
-        std::u8string_view::iterator end {};
-        char32_t codePoint = Utf32Converter::InvalidCodePoint;
-
-        constexpr explicit iterator(std::u8string_view::iterator current, std::u8string_view::iterator end) noexcept:
-            current { current },
-            end { end }
-        {
-            if (current != end)
-                operator++();
-        }
-
-        constexpr char32_t operator*() const noexcept
-        {
-            return codePoint;
-        }
-
-        constexpr iterator& operator++() noexcept
-        {
-            auto converter = Utf32Converter {};
-            codePoint = Utf32Converter::InvalidCodePoint;
-            while (current != end)
-            {
-                if (auto const result = converter.Process(*current++); result.has_value())
-                {
-                    codePoint = *result;
-                    break;
-                }
-            }
-            return *this;
-        }
-
-        constexpr iterator& operator++(int) noexcept
-        {
-            return ++*this;
-        }
-
-        constexpr bool operator==(iterator const& other) const noexcept
-        {
-            return current == other.current && codePoint == other.codePoint;
-        }
-
-        constexpr bool operator!=(iterator const& other) const noexcept
-        {
-            return !(*this == other);
         }
     };
 
-    iterator begin() const noexcept
+    template <>
+    struct LIGHTWEIGHT_API UnicodeConverter<char16_t>
     {
-        return iterator { u8InputString.begin(), u8InputString.end() };
-    }
+        // Converts a UTF-32 code point to one or two UTF-16 code units.
+        template <typename OutputIterator>
+        static constexpr OutputIterator Convert(char32_t input, OutputIterator output) noexcept
+        {
+            if (input < 0xD800) // [0x0000 .. 0xD7FF]
+            {
+                *output++ = char16_t(input);
+                return output;
+            }
+            else if (input < 0x10000)
+            {
+                if (input < 0xE000)
+                    return output; // The UTF-16 code point can not be in surrogate range.
 
-    iterator end() const noexcept
+                // [0xE000 .. 0xFFFF]
+                *output++ = char16_t(input);
+                return output;
+            }
+            else if (input < 0x110000) // [0xD800 .. 0xDBFF] [0xDC00 .. 0xDFFF]
+            {
+                *output++ = char16_t(0xD7C0 + (input >> 10));
+                *output++ = char16_t(0xDC00 + (input & 0x3FF));
+                return output;
+            }
+            else
+                return output; // Too large UTF-16 code point.
+        }
+    };
+
+    struct Utf32Converter
     {
-        return iterator { u8InputString.end(), u8InputString.end() };
-    }
-};
+        char32_t codePoint = 0;
+        int codeUnits = 0;
+
+        static constexpr auto InvalidCodePoint = char32_t { 0xFFFD };
+
+        constexpr std::optional<char32_t> Process(char8_t c8) noexcept
+        {
+            if ((c8 & 0b1100'0000) == 0b1000'0000)
+            {
+                if (codeUnits == 0)
+                    return InvalidCodePoint;
+                codePoint <<= 6;
+                codePoint |= c8 & 0b0011'1111;
+                if (--codeUnits == 0)
+                {
+                    auto result = codePoint;
+                    codePoint = 0;
+                    return result;
+                }
+                return std::nullopt;
+            }
+            if (codeUnits == 0)
+            {
+                if ((c8 & 0b1000'0000) == 0)
+                    return c8;
+                if ((c8 & 0b1110'0000) == 0b1100'0000)
+                {
+                    codePoint = c8 & 0b0001'1111;
+                    codeUnits = 1;
+                    return std::nullopt;
+                }
+                if ((c8 & 0b1111'0000) == 0b1110'0000)
+                {
+                    codePoint = c8 & 0b0000'1111;
+                    codeUnits = 2;
+                    return std::nullopt;
+                }
+                if ((c8 & 0b1111'1000) == 0b1111'0000)
+                {
+                    codePoint = c8 & 0b0000'0111;
+                    codeUnits = 3;
+                    return std::nullopt;
+                }
+                return InvalidCodePoint;
+            }
+            return InvalidCodePoint;
+        }
+    };
+
+    struct [[nodiscard]] Utf32Iterator
+    {
+        std::u8string_view u8InputString;
+
+        struct [[nodiscard]] iterator
+        {
+            std::u8string_view::iterator current {};
+            std::u8string_view::iterator end {};
+            char32_t codePoint = Utf32Converter::InvalidCodePoint;
+
+            constexpr explicit iterator(std::u8string_view::iterator current, std::u8string_view::iterator end) noexcept:
+                current { current },
+                end { end }
+            {
+                if (current != end)
+                    operator++();
+            }
+
+            constexpr char32_t operator*() const noexcept
+            {
+                return codePoint;
+            }
+
+            constexpr iterator& operator++() noexcept
+            {
+                auto converter = Utf32Converter {};
+                codePoint = Utf32Converter::InvalidCodePoint;
+                while (current != end)
+                {
+                    if (auto const result = converter.Process(*current++); result.has_value())
+                    {
+                        codePoint = *result;
+                        break;
+                    }
+                }
+                return *this;
+            }
+
+            constexpr iterator& operator++(int) noexcept
+            {
+                return ++*this;
+            }
+
+            constexpr bool operator==(iterator const& other) const noexcept
+            {
+                return current == other.current && codePoint == other.codePoint;
+            }
+
+            constexpr bool operator!=(iterator const& other) const noexcept
+            {
+                return !(*this == other);
+            }
+        };
+
+        iterator begin() const noexcept
+        {
+            return iterator { u8InputString.begin(), u8InputString.end() };
+        }
+
+        iterator end() const noexcept
+        {
+            return iterator { u8InputString.end(), u8InputString.end() };
+        }
+    };
 
 } // namespace detail
 
@@ -298,3 +301,5 @@ LIGHTWEIGHT_API std::wstring ToStdWideString(std::u8string_view u8InputString);
 ///
 /// @ingroup Unicode
 LIGHTWEIGHT_API std::wstring ToStdWideString(std::string const& localeInputString);
+
+} // namespace Lightweight

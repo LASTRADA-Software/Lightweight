@@ -7,6 +7,9 @@
 #include <cstdint>
 #include <format>
 
+namespace Lightweight
+{
+
 enum class SqlServerType : uint8_t
 {
     UNKNOWN,
@@ -17,9 +20,12 @@ enum class SqlServerType : uint8_t
     MYSQL,
 };
 
+} // namespace Lightweight
+
 template <>
-struct std::formatter<SqlServerType>: std::formatter<std::string_view>
+struct std::formatter<Lightweight::SqlServerType>: std::formatter<std::string_view>
 {
+    using SqlServerType = Lightweight::SqlServerType;
     auto format(SqlServerType type, format_context& ctx) const -> format_context::iterator
     {
         using namespace std::string_view_literals;
