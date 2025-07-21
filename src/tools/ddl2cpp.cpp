@@ -999,10 +999,13 @@ std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path c
             return std::unexpected(std::format("Unknown primary key assignment: {}", primaryKey));
     }
 
-    auto const formatType = ToFormatType(loadedYaml["NamingConvention"].as<std::string>());
-    if (!formatType)
-        return std::unexpected(formatType.error());
-    config.formatType = formatType.value();
+    if (loadedYaml["NamingConvention"].IsDefined())
+    {
+        auto const formatType = ToFormatType(loadedYaml["NamingConvention"].as<std::string>());
+        if (!formatType)
+            return std::unexpected(formatType.error());
+        config.formatType = formatType.value();
+    }
 
     return config;
 }
