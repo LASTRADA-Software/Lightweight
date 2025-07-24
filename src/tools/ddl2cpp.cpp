@@ -11,7 +11,6 @@
 #include <cassert>
 #include <filesystem>
 #include <fstream>
-#include <ostream>
 #include <print>
 #include <sstream>
 #include <unordered_map>
@@ -112,7 +111,12 @@ std::string MakeType(
                     return std::format("Light::SqlDynamicUtf16String<{}>", type.size);
             },
             [](NVarchar const& type) -> std::string { return std::format("Light::SqlDynamicUtf16String<{}>", type.size); },
-            [](Real const&) -> std::string { return "float"; },
+            [](Real const& v) -> std::string {
+                if (v.precision <= 24)
+                    return "float";
+                else
+                    return "double";
+            },
             [](Smallint const&) -> std::string { return "int16_t"; },
             [=](Text const& type) -> std::string {
                 if (shouldForceUnicodeTextColumn())
