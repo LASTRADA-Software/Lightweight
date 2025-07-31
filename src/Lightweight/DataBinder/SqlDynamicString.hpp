@@ -65,7 +65,7 @@ class SqlDynamicString
     /// Returns a string view of the string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string_view<T> str() const noexcept
     {
-        return std::basic_string_view<T> { data(), size() };
+        return std::basic_string_view<T> { data() };
     }
 
     /// Retrieves the string's inner value (std::basic_string<T>).
@@ -131,7 +131,7 @@ class SqlDynamicString
     /// Retrieves a string view of the string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string_view<T> ToStringView() const noexcept
     {
-        return { _value.data(), _value.size() };
+        return { _value };
     }
 
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr T& operator[](std::size_t index) noexcept
