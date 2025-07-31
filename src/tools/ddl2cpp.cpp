@@ -82,10 +82,12 @@ std::string MakeType(
                 }
                 else if (type.size <= sqlFixedStringMaxSize)
                 {
+                    // CHAR(n) seems to be always right-side whitespace trimmed,
+                    // so we use SqlTrimmedFixedString for it.
                     if (shouldForceUnicodeTextColumn())
-                        return std::format("Light::SqlWideString<{}>", type.size);
+                        return std::format("Light::SqlTrimmedFixedString<{}, wchar_t>", type.size);
                     else
-                        return std::format("Light::SqlAnsiString<{}>", type.size);
+                        return std::format("Light::SqlTrimmedFixedString<{}>", type.size);
                 }
                 else
                 {
