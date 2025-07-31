@@ -110,8 +110,18 @@ if(LIGHTWEIGHT_BUILD_SHARED)
     set_target_properties(Lightweight PROPERTIES CXX_VISIBILITY_PRESET hidden)
 endif()
 
+add_library(LightweightTools STATIC)
+add_library(Lightweight::Tools ALIAS LightweightTools)
+target_compile_features(LightweightTools PUBLIC cxx_std_23)
+target_sources(LightweightTools PRIVATE
+    Tools/CxxModelPrinter.cpp
+    Tools/CxxModelPrinter.hpp
+)
+target_link_libraries(LightweightTools PUBLIC Lightweight)
+
 if(CLANG_TIDY_EXE)
     set_target_properties(Lightweight PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+    set_target_properties(LightweightTools PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
 endif()
 
 target_include_directories(Lightweight PUBLIC
