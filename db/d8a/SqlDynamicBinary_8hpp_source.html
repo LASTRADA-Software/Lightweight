@@ -347,7 +347,7 @@ $(document).ready(function(){initNavTree('db/d8a/SqlDynamicBinary_8hpp_source.ht
 <div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>        <span class="keywordflow">if</span> (result-&gt;empty())</div>
 <div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>            result-&gt;resize(255);</div>
 <div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span> </div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>        <span class="keywordflow">return</span> detail::GetArrayData&lt;SQL_C_BINARY&gt;(stmt, column, result, indicator);</div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>        <span class="keywordflow">return</span> detail::GetRawColumnArrayData&lt;SQL_C_BINARY&gt;(stmt, column, result, indicator);</div>
 <div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>    }</div>
 <div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span> </div>
 <div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(ValueType <span class="keyword">const</span>&amp; value)</div>
