@@ -20,9 +20,21 @@ constexpr std::size_t SqlOptimalMaxColumnSize = 4000;
 
 namespace detail
 {
-
+    /// Helper function to get raw column data of an array-like type.
+    ///
+    /// @param stmt The SQL statement handle.
+    /// @param column The column number to retrieve data from.
+    /// @param result The array-like type to store the data in.
+    /// @param indicator The indicator to store the length of the data.
+    ///
+    /// @return SQLRETURN indicating the result of the operation.
     template <auto CType, typename ArrayType>
-    static SQLRETURN GetArrayData(SQLHSTMT stmt, SQLUSMALLINT column, ArrayType* result, SQLLEN* indicator) noexcept
+        requires requires(ArrayType& arr) {
+            { arr.data() } -> std::convertible_to<typename ArrayType::value_type*>;
+            { arr.size() } -> std::convertible_to<std::size_t>;
+            { arr.resize(std::declval<std::size_t>()) };
+        }
+    static SQLRETURN GetRawColumnArrayData(SQLHSTMT stmt, SQLUSMALLINT column, ArrayType* result, SQLLEN* indicator) noexcept
     {
         using CharType = typename ArrayType::value_type;
 
@@ -30,8 +42,12 @@ namespace detail
 
         // Resize the string to the size of the data
         // Get the data (take care of SQL_NULL_DATA and SQL_NO_TOTAL)
-        auto sqlResult = SQLGetData(
-            stmt, column, CType, (SQLPOINTER) result->data(), (SQLLEN) (result->size() * sizeof(CharType)), indicator);
+        auto sqlResult = SQLGetData(stmt,
+                                    column,
+                                    CType,
+                                    static_cast<SQLPOINTER>(result->data()),
+                                    static_cast<SQLLEN>(result->size() * sizeof(CharType)),
+                                    indicator);
 
         if (sqlResult == SQL_SUCCESS || sqlResult == SQL_NO_DATA)
         {
@@ -82,11 +98,11 @@ namespace detail
         else if (result->size() == 0)
             result->resize(255);
 
-        return GetArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
+        return GetRawColumnArrayData<SQL_C_WCHAR>(stmt, column, result, indicator);
     }
 
     template <typename StringType>
-    SQLRETURN OutputColumnNonUtf16Unicode(
+    SQLRETURN BindOutputColumnNonUtf16Unicode(
         SQLHSTMT stmt, SQLUSMALLINT column, StringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
         using CharType = typename StringType::value_type;
@@ -476,7 +492,7 @@ struct SqlDataBinder<Utf32StringType>
     static SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, Utf32StringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
-        return detail::OutputColumnNonUtf16Unicode<Utf32StringType>(stmt, column, result, indicator, cb);
+        return detail::BindOutputColumnNonUtf16Unicode<Utf32StringType>(stmt, column, result, indicator, cb);
     }
 
     static SQLRETURN GetColumn(SQLHSTMT stmt,
@@ -567,7 +583,7 @@ struct SqlDataBinder<Utf8StringType>
     static SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, Utf8StringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
-        return detail::OutputColumnNonUtf16Unicode<Utf8StringType>(stmt, column, result, indicator, cb);
+        return detail::BindOutputColumnNonUtf16Unicode<Utf8StringType>(stmt, column, result, indicator, cb);
     }
 
     static SQLRETURN GetColumn(SQLHSTMT stmt,

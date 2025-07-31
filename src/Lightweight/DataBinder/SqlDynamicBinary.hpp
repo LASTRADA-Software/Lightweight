@@ -225,7 +225,7 @@ struct SqlDataBinder<SqlDynamicBinary<N>>
         if (result->empty())
             result->resize(255);
 
-        return detail::GetArrayData<SQL_C_BINARY>(stmt, column, result, indicator);
+        return detail::GetRawColumnArrayData<SQL_C_BINARY>(stmt, column, result, indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(ValueType const& value)
