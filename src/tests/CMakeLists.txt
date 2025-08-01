@@ -9,7 +9,7 @@ find_package(Catch2 REQUIRED)
 add_executable(LightweightTest)
 target_compile_features(LightweightTest PUBLIC cxx_std_23)
 
-set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight)
+set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools)
 if(MSVC)
     # clang-cl does not support /MP
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -27,6 +27,7 @@ endif()
 
 set(SOURCE_FILES
     CoreTests.cpp
+    CxxModelPrinterTests.cpp
     DataBinderTests.cpp
     DataMapperTests.cpp
     MigrationTests.cpp
