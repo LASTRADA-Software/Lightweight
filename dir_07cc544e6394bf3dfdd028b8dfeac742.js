@@ -4,6 +4,7 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "DataMapper", "dir_928313e3f834eaf7c2b65386b629cfde.html", "dir_928313e3f834eaf7c2b65386b629cfde" ],
     [ "QueryFormatter", "dir_20a36fc8a4949d7efb0c8c5bf02352ee.html", "dir_20a36fc8a4949d7efb0c8c5bf02352ee" ],
     [ "SqlQuery", "dir_bd1ea25228cf56b99f3317a58dd9f8fb.html", "dir_bd1ea25228cf56b99f3317a58dd9f8fb" ],
+    [ "Tools", "dir_4beb59c78768ffa1a54c55803c4c35c2.html", "dir_4beb59c78768ffa1a54c55803c4c35c2" ],
     [ "Api.hpp", "d1/de4/Api_8hpp_source.html", null ],
     [ "Lightweight.hpp", "d3/d69/Lightweight_8hpp_source.html", null ],
     [ "SqlColumnTypeDefinitions.hpp", "d8/db2/SqlColumnTypeDefinitions_8hpp_source.html", null ],
