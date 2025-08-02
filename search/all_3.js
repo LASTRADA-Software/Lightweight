@@ -20,6 +20,5 @@ var searchData=
   ['bit_20integer_20handling_20in_20oracle_20database_17',['64-bit Integer Handling in Oracle Database',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database',1,'']]],
   ['booleanliteral_18',['BooleanLiteral',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad14092f4293a641b18b103a233b37a8f',1,'Lightweight::SqlQueryFormatter']]],
   ['builder_19',['SQL Query Builder',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder',1,'']]],
-  ['buildquery_20',['BuildQuery',['../de/d61/classLightweight_1_1DataMapper.html#aa05dfba406aa70766dce65eec12e60c4',1,'Lightweight::DataMapper']]],
-  ['business_20logic_20separate_21',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]]
+  ['business_20logic_20separate_20',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]]
 ];

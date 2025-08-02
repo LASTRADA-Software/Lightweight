@@ -2,7 +2,7 @@ var searchData=
 [
   ['in_20oracle_20database_0',['64-bit Integer Handling in Oracle Database',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database',1,'']]],
   ['in_20order_1',['Query Result Row Columns in Order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
-  ['index_2',['index',['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ab5ca6b248b7df350cc640d419e2737fd',1,'Lightweight::SqlCreateTableQueryBuilder::Index()'],['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046',1,'Lightweight::SqlColumnDeclaration::index']]],
+  ['index_2',['index',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046',1,'Lightweight::SqlColumnDeclaration::index'],['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ab5ca6b248b7df350cc640d419e2737fd',1,'Lightweight::SqlCreateTableQueryBuilder::Index()']]],
   ['infinite_20scrolling_3',['Use Pagination or Infinite Scrolling',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination-or-infinite-scrolling',1,'']]],
   ['information_20to_20the_20database_4',['Configure default connection information to the database',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database',1,'']]],
   ['innertype_5',['InnerType',['../df/d3f/structLightweight_1_1SqlVariant.html#a2159a23a1405bd28c3faf04c19cf6f0c',1,'Lightweight::SqlVariant']]],

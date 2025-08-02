@@ -22,7 +22,6 @@ var classLightweight_1_1DataMapper =
     [ "QuerySparse", "de/d61/classLightweight_1_1DataMapper.html#a39cbd36cc981b35bfcf7a8deca908eda", null ],
     [ "Update", "de/d61/classLightweight_1_1DataMapper.html#a0d838468c9635a154a22206928511d27", null ],
     [ "Delete", "de/d61/classLightweight_1_1DataMapper.html#a708db890dfc02b9ad4183ee9c7ea2512", null ],
-    [ "BuildQuery", "de/d61/classLightweight_1_1DataMapper.html#aa05dfba406aa70766dce65eec12e60c4", null ],
     [ "FromTable", "de/d61/classLightweight_1_1DataMapper.html#ac0e2e432c3ad94048fb407883f4dd64d", null ],
     [ "IsModified", "de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f", null ],
     [ "ClearModifiedState", "de/d61/classLightweight_1_1DataMapper.html#a8caf1defa60f3ab04a507b68931a0cc9", null ],
