@@ -5,6 +5,7 @@
 #include "SqlFixedString.hpp"
 
 #include <array>
+#include <charconv>
 
 namespace Lightweight
 {
