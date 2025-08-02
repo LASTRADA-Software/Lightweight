@@ -366,7 +366,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
     }
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "QuerySingle.Get", "[DataMapper]")
+TEST_CASE_METHOD(SqlTestFixture, "QuerySingle", "[DataMapper]")
 {
     auto dm = DataMapper {};
 
@@ -381,10 +381,32 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle.Get", "[DataMapper]")
     for (auto& person: expectedPersons)
         dm.Create(person);
 
-    auto const record = dm.QuerySingle<Person>().Where(FullFieldNameOf<&Person::age>, "=", 36).Get();
+    SECTION("Get()")
+    {
+        auto const record = dm.QuerySingle<Person>().Where(FullFieldNameOf<&Person::age>, "=", 36).Get();
+        CHECK(record.has_value());
+        CHECK(record.value() == expectedPersons[2]);
+    }
 
-    CHECK(record.has_value());
-    CHECK(record.value() == expectedPersons[2]);
+    SECTION("Get() with non-existing record")
+    {
+        auto const record = dm.QuerySingle<Person>().Where(FullFieldNameOf<&Person::age>, "=", -5).Get();
+        CHECK(record.has_value() == false);
+    }
+
+    SECTION("Count()")
+    {
+        auto const count = dm.QuerySingle<Person>().Where(FieldNameOf<&Person::age>, "=", 24).Count();
+        CHECK(count == 1);
+    }
+
+    SECTION("Single<T>()")
+    {
+        auto const result =
+            dm.QuerySingle<Person>().Where(FieldNameOf<&Person::name>, "=", "Jimbo Jones").Scalar<&Person::age>();
+        CHECK(result.has_value());
+        CHECK(result.value() == 69);
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.All", "[DataMapper]")

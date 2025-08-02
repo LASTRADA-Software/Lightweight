@@ -435,7 +435,7 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecor
 ///
 /// @ingroup DataMapper
 template <typename Record>
-class [[nodiscard]] SqlQuerySingleBuilder: public SqlWhereClauseBuilder<SqlQuerySingleBuilder<Record>>
+class [[nodiscard]] SqlQuerySingleBuilder: public SqlBasicSelectQueryBuilder<SqlQuerySingleBuilder<Record>>
 {
   private:
     SqlStatement& _stmt;
@@ -470,21 +470,56 @@ class [[nodiscard]] SqlQuerySingleBuilder: public SqlWhereClauseBuilder<SqlQuery
     [[nodiscard]] std::optional<Record> Get()
     {
         auto constexpr count = 1;
-        auto constexpr distinct = false;
-        auto constexpr orderBy = std::string_view {};
-        _stmt.ExecuteDirect(_formatter.SelectFirst(distinct,
+        _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
                                                    _fields,
                                                    RecordTableName<Record>,
                                                    _searchCondition.tableAlias,
                                                    _searchCondition.tableJoins,
                                                    _searchCondition.condition,
-                                                   orderBy,
+                                                   this->_query.orderBy,
                                                    count));
         auto record = std::optional<Record> { Record {} };
         auto reader = _stmt.GetResultCursor();
         if (!detail::ReadSingleResult(_stmt.Connection().ServerType(), reader, *record))
             return std::nullopt;
         return record;
+    }
+
+    [[nodiscard]] size_t Count()
+    {
+        _stmt.ExecuteDirect(_formatter.SelectCount(this->_query.distinct,
+                                                   RecordTableName<Record>,
+                                                   _searchCondition.tableAlias,
+                                                   _searchCondition.tableJoins,
+                                                   _searchCondition.condition));
+        SqlResultCursor reader = _stmt.GetResultCursor();
+        if (reader.FetchRow())
+            return reader.GetColumn<size_t>(1);
+        return 0;
+    }
+
+    /// @brief Executes the query to get a single scalar value from the first record found.
+    ///
+    /// @tparam Field The field to select from the record, in the form of &Record::FieldName.
+    ///
+    /// @returns an optional value of the type of the field, or an empty optional if no record was found.
+    template <auto Field>
+    [[nodiscard]] auto Scalar() -> std::optional<ReferencedFieldTypeOf<Field>>
+    {
+        this->_query.fields = std::format(R"("{}"."{}")", RecordTableName<Record>, FieldNameOf<Field>);
+
+        auto constexpr count = 1;
+        _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+                                                   this->_query.fields,
+                                                   RecordTableName<Record>,
+                                                   _searchCondition.tableAlias,
+                                                   _searchCondition.tableJoins,
+                                                   _searchCondition.condition,
+                                                   this->_query.orderBy,
+                                                   count));
+        if (SqlResultCursor reader = _stmt.GetResultCursor(); reader.FetchRow())
+            return reader.template GetColumn<ReferencedFieldTypeOf<Field>>(1);
+        return std::nullopt;
     }
 };
 

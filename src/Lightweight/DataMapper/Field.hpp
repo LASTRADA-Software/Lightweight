@@ -338,6 +338,25 @@ struct SqlDataBinder<Field<T, P1, P2>>
     }
 };
 
+/// @brief Retrieves the type of a member field in a record.
+///
+/// Field must be a member of the record type, and it must be a field type, e.g. `Field<int>` or `BelongsTo<OtherRecord>`.
+///
+/// @code
+/// using MyRecord = Record {
+///    Field<int> value;
+///    Field<std::optional<char>> optionalValue;
+/// };
+///
+/// using MyFieldType = ReferencedFieldTypeOf<&MyRecord::value>; // Retrieves `int`
+/// using MyOptionalFieldType = ReferencedFieldTypeOf<&MyRecord::optionalValue>; // Retrieves `std::optional<char>`
+/// @endcode
+///
+/// @ingroup DataMapper
+template <auto Field>
+using ReferencedFieldTypeOf =
+    typename std::remove_cvref_t<decltype(std::declval<MemberClassType<decltype(Field)>>().*Field)>::ValueType;
+
 } // namespace Lightweight
 
 template <Lightweight::detail::FieldElementType T, auto P1, auto P2>
