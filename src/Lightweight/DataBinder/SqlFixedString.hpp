@@ -208,7 +208,7 @@ class SqlFixedString
     /// Returns a std::basic_string<T> from the string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string<T> ToString() const noexcept
     {
-        return { _data, _size };
+        return { _data };
     }
 
     /// Returns a std::basic_string<T> from the string.
@@ -220,7 +220,7 @@ class SqlFixedString
     /// Returns a std::basic_string_view<T> from the string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string_view<T> ToStringView() const noexcept
     {
-        return { _data, _size };
+        return { _data };
     }
 
     /// Returns a std::basic_string_view<T> from the string.

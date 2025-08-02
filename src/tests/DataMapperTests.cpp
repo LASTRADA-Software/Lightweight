@@ -523,12 +523,6 @@ TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
     CHECK(!dm.QuerySingle<Person>(person.id));
 }
 
-struct UserView
-{
-    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlAnsiString<30>> name {};
-};
-
 TEST_CASE_METHOD(SqlTestFixture, "partial row retrieval", "[DataMapper]")
 {
     auto dm = DataMapper();
@@ -577,6 +571,38 @@ TEST_CASE_METHOD(SqlTestFixture, "iterate over database", "[SqlRowIterator]")
     }
 
     CHECK(count == 11);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Strings with null", "[String]")
+{
+
+    auto dm = DataMapper {};
+    dm.CreateTable<Person>();
+
+    std::string nameWithNull("John Doe\0", 9);
+    CHECK(nameWithNull.size() == 9);
+    auto person = Person { .id = SqlGuid::Create(), .name = nameWithNull, .is_active = true, .age = std::nullopt };
+
+    CHECK(person.name.Value() == nameWithNull);
+    CHECK(person.name.Value().size() == 9);
+    CHECK(std::format("{}", person.name.Value()).size() == 8);
+    CHECK(person.name.Value().ToString() == std::string("John Doe"));
+    CHECK(person.name.Value().ToStringView() == std::string_view("John Doe"));
+
+    dm.Create(person);
+
+    auto retrievedPerson = dm.QuerySingle<Person>(person.id).value();
+    CHECK(retrievedPerson.id == person.id);
+    CHECK(retrievedPerson.name.Value() == "John Doe");
+    CHECK(retrievedPerson.name.Value().size() == 8);
+
+    auto retrieveByName = dm.Query<Person>().Where(FieldNameOf<&Person::name>, "=", person.name.Value()).First();
+    REQUIRE(retrieveByName.has_value());
+    CHECK(retrieveByName.value().id == person.id);
+    CHECK(retrieveByName.value().name.Value() == std::string("John Doe"));
+    CHECK(retrieveByName.value().name.Value().ToString() == std::string("John Doe"));
+    CHECK(retrieveByName.value().name.Value().ToStringView() == std::string_view("John Doe"));
+    CHECK(retrieveByName.value().name.Value().size() == 8);
 }
 
 struct RecordWithDefaults
