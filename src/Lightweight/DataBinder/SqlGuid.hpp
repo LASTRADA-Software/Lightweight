@@ -5,6 +5,7 @@
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "Core.hpp"
 
+#include <charconv>
 #include <format>
 #include <optional>
 #include <string>

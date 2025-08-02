@@ -114,4 +114,77 @@ void MapFromRecordFields(Record&& record, TargetMappable& target)
     });
 }
 
+/// Requires that T satisfies to be a field with storage.
+///
+/// @ingroup DataMapper
+template <typename T>
+concept FieldWithStorage = requires(T const& field, T& mutableField) {
+    // clang-format off
+    { field.Value() } -> std::convertible_to<typename T::ValueType const&>;
+    { mutableField.MutableValue() } -> std::convertible_to<typename T::ValueType&>;
+    { field.IsModified() } -> std::convertible_to<bool>;
+    { mutableField.SetModified(bool {}) } -> std::convertible_to<void>;
+    // clang-format on
+};
+
+/// Represents the number of fields with storage in a record.
+///
+/// @ingroup DataMapper
+template <typename Record>
+constexpr size_t RecordStorageFieldCount =
+    Reflection::FoldMembers<Record>(size_t { 0 }, []<size_t I, typename Field>(size_t const accum) constexpr {
+        if constexpr (FieldWithStorage<Field>)
+            return accum + 1;
+        else
+            return accum;
+    });
+
+template <typename Record>
+concept RecordWithStorageFields = (RecordStorageFieldCount<Record> > 0);
+
+namespace detail
+{
+
+    template <auto Test, typename T>
+    constexpr bool CheckFieldProperty = Reflection::FoldMembers<T>(false, []<size_t I, typename Field>(bool const accum) {
+        if constexpr (Test.template operator()<Field>())
+            return true;
+        else
+            return accum;
+    });
+
+} // namespace detail
+
+/// @brief Tests if the given record type does contain a primary key.
+///
+/// @ingroup DataMapper
+template <typename T>
+constexpr bool HasPrimaryKey = detail::CheckFieldProperty<[]<typename Field>() { return IsPrimaryKey<Field>; }, T>;
+
+/// @brief Tests if the given record type does contain an auto increment primary key.
+///
+/// @ingroup DataMapper
+template <typename T>
+constexpr bool HasAutoIncrementPrimaryKey =
+    detail::CheckFieldProperty<[]<typename Field>() { return IsAutoIncrementPrimaryKey<Field>; }, T>;
+
+/// Returns the first primary key field of the record.
+///
+/// @ingroup DataMapper
+template <typename Record>
+inline LIGHTWEIGHT_FORCE_INLINE RecordPrimaryKeyType<Record> GetPrimaryKeyField(Record const& record) noexcept
+{
+    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+    static_assert(HasPrimaryKey<Record>, "Record must have a primary key");
+
+    auto result = RecordPrimaryKeyType<Record> {};
+    Reflection::EnumerateMembers(record, [&]<size_t I, typename FieldType>(FieldType const& field) {
+        if constexpr (IsPrimaryKey<FieldType> && std::same_as<FieldType, RecordPrimaryKeyType<Record>>)
+        {
+            result = field;
+        }
+    });
+    return result;
+}
+
 } // namespace Lightweight

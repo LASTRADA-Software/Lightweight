@@ -162,3 +162,11 @@ Finally, compile and run the example
 ``` sh
 cmake --build build && ./build/src/examples/example
 ```
+
+
+## Compile using c++26 reflection support
+
+``` sh
+docker buildx build --progress=plain -f .github/DockerReflection --load .
+```
+

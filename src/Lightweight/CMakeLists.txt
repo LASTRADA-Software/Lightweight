@@ -1,9 +1,3 @@
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_COLOR_DIAGNOSTICS ON)
-
 if(NOT WIN32)
     find_package(SQLite3 REQUIRED)
     include_directories(${SQLITE3_INCLUDE_DIR})
@@ -49,6 +43,7 @@ set(HEADER_FILES
     DataMapper/HasMany.hpp
     DataMapper/HasManyThrough.hpp
     DataMapper/HasOneThrough.hpp
+    DataMapper/QueryBuilders.hpp
 
     SqlConnectInfo.hpp
     SqlConnection.hpp
