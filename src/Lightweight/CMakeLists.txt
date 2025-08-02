@@ -49,6 +49,7 @@ set(HEADER_FILES
     DataMapper/HasMany.hpp
     DataMapper/HasManyThrough.hpp
     DataMapper/HasOneThrough.hpp
+    DataMapper/QueryBuilders.hpp
 
     SqlConnectInfo.hpp
     SqlConnection.hpp
