@@ -103,13 +103,19 @@ $(document).ready(function(){initNavTree('d8/db0/classLightweight_1_1SqlQuerySin
 
 <p><code>#include &lt;<a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>&gt;</code></p>
 
-<p>Inherits SqlWhereClauseBuilder&lt; SqlQuerySingleBuilder&lt; Record &gt; &gt;.</p>
+<p>Inherits SqlBasicSelectQueryBuilder&lt; SqlQuerySingleBuilder&lt; Record &gt; &gt;.</p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a37319e299fe1e8765a18f08fa55b5532" id="r_a37319e299fe1e8765a18f08fa55b5532"><td class="memItemLeft" align="right" valign="top">std::optional&lt; Record &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html#a37319e299fe1e8765a18f08fa55b5532">Get</a> ()</td></tr>
 <tr class="memdesc:a37319e299fe1e8765a18f08fa55b5532"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes the query and returns the first record found.  <br /></td></tr>
 <tr class="separator:a37319e299fe1e8765a18f08fa55b5532"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a682289d54e610a0ba67d1c4061e19de4" id="r_a682289d54e610a0ba67d1c4061e19de4"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html#a682289d54e610a0ba67d1c4061e19de4">Count</a> ()</td></tr>
+<tr class="separator:a682289d54e610a0ba67d1c4061e19de4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a10c3fbbc769d54c331a310ec2c20348a" id="r_a10c3fbbc769d54c331a310ec2c20348a"><td class="memTemplParams" colspan="2">template&lt;auto Field&gt; </td></tr>
+<tr class="memitem:a10c3fbbc769d54c331a310ec2c20348a"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html#a10c3fbbc769d54c331a310ec2c20348a">Scalar</a> () -&gt; std::optional&lt; <a class="el" href="../../d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8">ReferencedFieldTypeOf</a>&lt; <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a> &gt; &gt;</td></tr>
+<tr class="memdesc:a10c3fbbc769d54c331a310ec2c20348a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes the query to get a single scalar value from the first record found.  <br /></td></tr>
+<tr class="separator:a10c3fbbc769d54c331a310ec2c20348a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
@@ -194,6 +200,78 @@ template&lt;typename Record &gt; </div>
 <p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00470">470</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00573">Lightweight::SqlStatement::Connection()</a>, <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">Lightweight::SqlStatement::ExecuteDirect()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00885">Lightweight::SqlStatement::GetResultCursor()</a>, <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a6cdc65b4e3d20ca7105abe72ecfdd5b9">Lightweight::SqlQueryFormatter::SelectFirst()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00187">Lightweight::SqlConnection::ServerType()</a>.</p>
+
+</div>
+</div>
+<a id="a682289d54e610a0ba67d1c4061e19de4" name="a682289d54e610a0ba67d1c4061e19de4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a682289d54e610a0ba67d1c4061e19de4">&#9670;&#160;</a></span>Count()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t <a class="el" href="../../d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html">Lightweight::SqlQuerySingleBuilder</a>&lt; Record &gt;::Count </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00488">488</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a10c3fbbc769d54c331a310ec2c20348a" name="a10c3fbbc769d54c331a310ec2c20348a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a10c3fbbc769d54c331a310ec2c20348a">&#9670;&#160;</a></span>Scalar()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record &gt; </div>
+<div class="memtemplate">
+template&lt;auto Field&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">auto <a class="el" href="../../d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html">Lightweight::SqlQuerySingleBuilder</a>&lt; Record &gt;::Scalar </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> -&gt; std::optional&lt;<a class="el" href="../../d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8">ReferencedFieldTypeOf</a>&lt;<a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>&gt;&gt;
+    </td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Executes the query to get a single scalar value from the first record found. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a></td><td>The field to select from the record, in the form of &amp;Record::FieldName.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>an optional value of the type of the field, or an empty optional if no record was found. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00507">507</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">Lightweight::SqlStatement::ExecuteDirect()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00344">Lightweight::SqlResultCursor::FetchRow()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00885">Lightweight::SqlStatement::GetResultCursor()</a>, and <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a6cdc65b4e3d20ca7105abe72ecfdd5b9">Lightweight::SqlQueryFormatter::SelectFirst()</a>.</p>
 
 </div>
 </div>

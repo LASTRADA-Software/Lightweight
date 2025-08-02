@@ -1,5 +1,6 @@
 var NAVTREEINDEX1 =
 {
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a3c64acce0293fce41e3f39a0aaee883e":[7,0,0,9,5],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a4347ff4409d155c9ffb5c8681a45362d":[7,0,0,9,1],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a60f924041dca8dfc6cb88f1ceb782836":[7,0,0,9,4],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a6e0eeeeba9bd5ca1435b8578f42b12b8":[7,0,0,9,0],
@@ -12,6 +13,7 @@ var NAVTREEINDEX1 =
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#acb8f4c9ca3abc544b7c967a07163ae1c":[7,0,0,9,9],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ae48b1defb3a1271985038dde52202726":[7,0,0,9,10],
 "d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html":[5,2,12],
+"d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html#a10c3fbbc769d54c331a310ec2c20348a":[5,2,12,1],
 "d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html#a37319e299fe1e8765a18f08fa55b5532":[5,2,12,0],
 "d8/db2/SqlColumnTypeDefinitions_8hpp_source.html":[8,0,2,7],
 "d8/deb/HasMany_8hpp_source.html":[8,0,2,1,5],
@@ -247,7 +249,5 @@ var NAVTREEINDEX1 =
 "de/d61/classLightweight_1_1DataMapper.html#acc8bc05a730ed1ad295070cf25d6e041":[5,2,3,2],
 "de/d61/classLightweight_1_1DataMapper.html#ae773f443460c175a373e0b02eb88af53":[5,2,3,11],
 "de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747":[5,2,3,17],
-"de/d6a/structLightweight_1_1SqlConnectionString.html":[7,0,0,14],
-"de/d73/classLightweight_1_1HasManyThrough.html":[5,2,7],
-"de/d73/classLightweight_1_1HasManyThrough.html#a1fe66ac23929adadf6bb4de58d1e050e":[5,2,7,14]
+"de/d6a/structLightweight_1_1SqlConnectionString.html":[7,0,0,14]
 };

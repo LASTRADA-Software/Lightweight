@@ -148,6 +148,10 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
+<tr class="memitem:ga0380e9ceb64c318ba9bff748102e62b8" id="r_ga0380e9ceb64c318ba9bff748102e62b8"><td class="memTemplParams" colspan="2">template&lt;auto Field&gt; </td></tr>
+<tr class="memitem:ga0380e9ceb64c318ba9bff748102e62b8"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8">Lightweight::ReferencedFieldTypeOf</a> = typename std::remove_cvref_t&lt; decltype(std::declval&lt; MemberClassType&lt; decltype(<a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>)&gt; &gt;().*<a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>)&gt;::ValueType</td></tr>
+<tr class="memdesc:ga0380e9ceb64c318ba9bff748102e62b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the type of a member field in a record.  <br /></td></tr>
+<tr class="separator:ga0380e9ceb64c318ba9bff748102e62b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga7b2f2210747ec11d91a0d694b4c34b25" id="r_ga7b2f2210747ec11d91a0d694b4c34b25"><td class="memTemplParams" colspan="2">template&lt;size_t... Ints&gt; </td></tr>
 <tr class="memitem:ga7b2f2210747ec11d91a0d694b4c34b25"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25">Lightweight::SqlElements</a> = std::integer_sequence&lt; size_t, Ints... &gt;</td></tr>
 <tr class="memdesc:ga7b2f2210747ec11d91a0d694b4c34b25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a sequence of indexes that can be used alongside Query() to retrieve only part of the record.  <br /></td></tr>
@@ -184,6 +188,35 @@ Variables</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>The data mapper is a high level API for mapping records to and from the database using high level C++ syntax. </p>
 <h2 class="groupheader">Typedef Documentation</h2>
+<a id="ga0380e9ceb64c318ba9bff748102e62b8" name="ga0380e9ceb64c318ba9bff748102e62b8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga0380e9ceb64c318ba9bff748102e62b8">&#9670;&#160;</a></span>ReferencedFieldTypeOf</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;auto Field&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="../../d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8">Lightweight::ReferencedFieldTypeOf</a> = typedef typename std::remove_cvref_t&lt;decltype(std::declval&lt;MemberClassType&lt;decltype(<a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>)&gt; &gt;().*<a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>)&gt;::ValueType</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Retrieves the type of a member field in a record. </p>
+<p><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a> must be a member of the record type, and it must be a field type, e.g. <code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a>&lt;int&gt;</code> or <code><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html" title="Represents a one-to-one relationship.">BelongsTo</a>&lt;OtherRecord&gt;</code>.</p>
+<div class="fragment"><div class="line"><span class="keyword">using </span>MyRecord = Record {</div>
+<div class="line">   <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;int&gt;</a> value;</div>
+<div class="line">   <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field&lt;std::optional&lt;char&gt;</a>&gt; optionalValue;</div>
+<div class="line">};</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">using </span>MyFieldType = ReferencedFieldTypeOf&lt;&amp;MyRecord::value&gt;; <span class="comment">// Retrieves `int`</span></div>
+<div class="line"><span class="keyword">using </span>MyOptionalFieldType = ReferencedFieldTypeOf&lt;&amp;MyRecord::optionalValue&gt;; <span class="comment">// Retrieves `std::optional&lt;char&gt;`</span></div>
+<div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00082">Field.hpp:83</a></div></div>
+</div><!-- fragment --> 
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00357">357</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+
+</div>
+</div>
 <a id="ga7b2f2210747ec11d91a0d694b4c34b25" name="ga7b2f2210747ec11d91a0d694b4c34b25"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga7b2f2210747ec11d91a0d694b4c34b25">&#9670;&#160;</a></span>SqlElements</h2>
 
@@ -268,7 +301,6 @@ template&lt;typename Record &gt; </div>
 <div class="line">            <span class="keywordflow">return</span> accum;</div>
 <div class="line">    })</div>
 <div class="ttc" id="aconceptLightweight_1_1FieldWithStorage_html"><div class="ttname"><a href="../../dd/da7/conceptLightweight_1_1FieldWithStorage.html">Lightweight::FieldWithStorage</a></div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00121">Record.hpp:121</a></div></div>
-<div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00082">Field.hpp:83</a></div></div>
 </div><!-- fragment --><p>Represents the number of fields with storage in a record. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00134">134</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>

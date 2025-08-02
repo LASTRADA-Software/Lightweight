@@ -126,8 +126,10 @@ var group__DataMapper =
     [ "Lightweight::SqlSparseFieldQueryBuilder< Record, ReferencedFields >", "d3/d55/classLightweight_1_1SqlSparseFieldQueryBuilder.html", null ],
     [ "Lightweight::SqlAllFieldsQueryBuilder< Record >", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ],
     [ "Lightweight::SqlQuerySingleBuilder< Record >", "d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html", [
-      [ "Get", "d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html#a37319e299fe1e8765a18f08fa55b5532", null ]
+      [ "Get", "d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html#a37319e299fe1e8765a18f08fa55b5532", null ],
+      [ "Scalar", "d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html#a10c3fbbc769d54c331a310ec2c20348a", null ]
     ] ],
+    [ "Lightweight::ReferencedFieldTypeOf", "d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8", null ],
     [ "Lightweight::SqlElements", "d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25", null ],
     [ "Lightweight::GetPrimaryKeyField", "d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33", null ],
     [ "Lightweight::RecordStorageFieldCount", "d7/d2f/group__DataMapper.html#gac7df2f7b61cdd663f50496fe92c80a73", null ],

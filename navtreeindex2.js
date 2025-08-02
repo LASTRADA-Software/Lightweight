@@ -1,5 +1,7 @@
 var NAVTREEINDEX2 =
 {
+"de/d73/classLightweight_1_1HasManyThrough.html":[5,2,7],
+"de/d73/classLightweight_1_1HasManyThrough.html#a1fe66ac23929adadf6bb4de58d1e050e":[5,2,7,14],
 "de/d73/classLightweight_1_1HasManyThrough.html#a21e9c6d2ec45efdc99352c6ae44517af":[5,2,7,6],
 "de/d73/classLightweight_1_1HasManyThrough.html#a2b350192660de51a40c8a7c242e0313d":[5,2,7,10],
 "de/d73/classLightweight_1_1HasManyThrough.html#a3136d004f0dfe3f81262ae9f3f788270":[5,2,7,4],
@@ -175,8 +177,8 @@ var NAVTREEINDEX2 =
 "functions_y.html":[7,2,0,20],
 "functions_~.html":[7,2,0,21],
 "hierarchy.html":[7,1],
-"index.html":[0],
 "index.html":[],
+"index.html":[0],
 "index.html#example-crud-style-high-level-data-mapping":[0,1],
 "index.html#example-simple-row-retrieval-via-structs":[0,2],
 "index.html#generate-example-for-the-existing-database":[0,6],
