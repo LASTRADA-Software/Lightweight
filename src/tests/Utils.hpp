@@ -656,3 +656,36 @@ inline bool IsGithubActions()
     return std::getenv("GITHUB_ACTIONS") != nullptr && std::string_view(std::getenv("GITHUB_ACTIONS")) == "true";
 #endif
 }
+
+namespace std
+{
+
+template <typename T>
+ostream& operator<<(ostream& os, optional<T> const& opt)
+{
+    if (opt.has_value())
+        return os << *opt;
+    else
+        return os << "nullopt";
+}
+
+} // namespace std
+
+template <typename T, auto P1, auto P2>
+std::ostream& operator<<(std::ostream& os, Lightweight::Field<std::optional<T>, P1, P2> const& field)
+{
+    if (field.Value())
+        return os << std::format("Field<{}> {{ {}, {} }}",
+                                 Reflection::TypeNameOf<T>,
+                                 *field.Value(),
+                                 field.IsModified() ? "modified" : "not modified");
+    else
+        return os << "NULL";
+}
+
+template <typename T, auto P1, auto P2>
+std::ostream& operator<<(std::ostream& os, Lightweight::Field<T, P1, P2> const& field)
+{
+    return os << std::format("Field<{}> {{ ", Reflection::TypeNameOf<T>) << "value: " << field.Value() << "; "
+              << (field.IsModified() ? "modified" : "not modified") << " }";
+}
