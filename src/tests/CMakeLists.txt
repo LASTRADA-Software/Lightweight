@@ -29,7 +29,11 @@ set(SOURCE_FILES
     CoreTests.cpp
     CxxModelPrinterTests.cpp
     DataBinderTests.cpp
-    DataMapperTests.cpp
+    DataMapper/NamingTests.cpp
+    DataMapper/CreateTests.cpp
+    DataMapper/ReadTests.cpp
+    DataMapper/RelationTests.cpp
+    DataMapper/MiscTests.cpp
     MigrationTests.cpp
     QueryBuilderTests.cpp
     UnicodeConverterTests.cpp
