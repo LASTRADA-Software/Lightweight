@@ -75,33 +75,31 @@ class SqlDynamicBinary final
     constexpr auto operator<=>(SqlDynamicBinary<N> const&) const noexcept = default;
 
     /// Retrieves the size of the string.
-    // NOLINTNEXTLINE(readability-identifier-naming)
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::size_t size() const noexcept
     {
         return _base.size();
     }
 
     /// Resizes the underlying data storage to the given size.
-    void LIGHTWEIGHT_FORCE_INLINE resize(std::size_t newSize) // NOLINT(readability-identifier-naming)
+    void LIGHTWEIGHT_FORCE_INLINE resize(std::size_t newSize)
     {
         _base.resize(newSize);
     }
 
     /// Tests if the stored data is empty.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool empty() const noexcept // NOLINT(readability-identifier-naming)
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool empty() const noexcept
     {
         return _base.empty();
     }
 
     /// Retrieves the pointer to the string data.
-    // NOLINTNEXTLINE(readability-identifier-naming)
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr decltype(auto) data(this auto&& self) noexcept
     {
         return self._base.data();
     }
 
     /// Clears the storad data.
-    LIGHTWEIGHT_FORCE_INLINE void clear() noexcept // NOLINT(readability-identifier-naming)
+    LIGHTWEIGHT_FORCE_INLINE void clear() noexcept
     {
         _base.clear();
     }

@@ -7,7 +7,6 @@
 
 #include <chrono>
 #include <format>
-#include <string_view>
 
 #include <sql.h>
 #include <sqlext.h>
@@ -95,6 +94,8 @@ struct SqlDateTime
     {
     }
 
+    // NOLINTBEGIN(readability-identifier-naming)
+
     /// Returns the year of this date-time object.
     [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE std::chrono::year year() const noexcept
     {
@@ -136,6 +137,8 @@ struct SqlDateTime
     {
         return std::chrono::nanoseconds(static_cast<unsigned>(sqlValue.fraction));
     }
+
+    // NOLINTEND(readability-identifier-naming)
 
     LIGHTWEIGHT_FORCE_INLINE constexpr operator native_type() const noexcept
     {

@@ -3,11 +3,11 @@ Checks: >-
   -*,
   bugprone-*,
   -bugprone-branch-clone,
+  -bugprone-crtp-constructor-accessibility,
   -bugprone-exception-escape,
   -bugprone-implicit-widening-of-multiplication-result,
   -bugprone-reserved-identifier,
   -bugprone-suspicious-include,
-  -bugprone-crtp-constructor-accessibility,
   -bugprone-chained-comparison,
   clang-analyzer-core.*,
   clang-analyzer-cplusplus.*,
@@ -44,7 +44,6 @@ Checks: >-
   -readability-braces-around-statements,
   -readability-else-after-return,
   -readability-identifier-length,
-  -readability-identifier-naming,
   -readability-implicit-bool-conversion,
   -readability-magic-numbers,
   -readability-redundant-access-specifiers,
@@ -93,3 +92,5 @@ CheckOptions:
     value:           '1'
   - key:             readability-identifier-naming.FunctionCase
     value:           CamelCase
+  - key:             readability-identifier-naming.FunctionIgnoredRegexp
+    value:           '^(main|begin|end|push_back|pop_back|data|str|get|size|resize|empty|clear|value|c_str|capacity|to_string|assign|at|reserve|substr)$'

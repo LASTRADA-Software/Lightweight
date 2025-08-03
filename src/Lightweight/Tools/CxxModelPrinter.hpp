@@ -39,19 +39,18 @@ class CxxModelPrinter
 
     std::string ToString(std::string_view modelNamespace);
 
-    std::string tableIncludes() const;
+    std::string TableIncludes() const;
 
-    std::string aliasTableName(std::string_view name) const;
+    std::string AliasTableName(std::string_view name) const;
 
     [[nodiscard]] std::expected<void, std::string> PrintCumulativeHeaderFile(
         std::filesystem::path const& outputDirectory, std::filesystem::path const& cumulativeHeaderFile);
 
-    void printToFiles(std::string_view modelNamespace, std::string_view outputDirectory);
+    void PrintToFiles(std::string_view modelNamespace, std::string_view outputDirectory);
 
-    std::string headerFileForTheTable(std::string_view modelNamespace,
-                                      std::string const& tableName); // NOLINT(readability-identifier-naming)
+    std::string HeaderFileForTheTable(std::string_view modelNamespace, std::string const& tableName);
 
-    std::string example(SqlSchema::Table const& table) const;
+    std::string Example(SqlSchema::Table const& table) const;
 
     auto StripSuffix(std::string name) -> std::string;
 

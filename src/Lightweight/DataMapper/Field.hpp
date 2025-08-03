@@ -7,6 +7,7 @@
 #include "../DataBinder/SqlNumeric.hpp"
 #include "../DataBinder/SqlText.hpp"
 #include "../DataBinder/SqlTime.hpp"
+#include "../Utils.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -363,6 +364,7 @@ template <Lightweight::detail::FieldElementType T, auto P1, auto P2>
 struct std::formatter<Lightweight::Field<T, P1, P2>>: std::formatter<T>
 {
     template <typename FormatContext>
+    // NOLINTNEXTLINE(readability-identifier-naming)
     auto format(Lightweight::Field<T, P1, P2> const& field, FormatContext& ctx)
     {
         return formatter<T>::format(field.InspectValue(), ctx);

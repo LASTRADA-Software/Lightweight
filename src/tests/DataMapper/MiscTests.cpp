@@ -218,7 +218,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Test DifferenceView", "[DataMapper]")
     auto difference = CollectDifferences(persons[0], persons[1]);
 
     auto differenceCount = 0;
-    difference.iterate([&](auto& lhs, auto& rhs) {
+    difference.Iterate([&](auto& lhs, auto& rhs) {
         CHECK(lhs.Value() != rhs.Value());
         ++differenceCount;
     });

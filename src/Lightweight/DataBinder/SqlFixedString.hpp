@@ -107,6 +107,7 @@ class SqlFixedString
         return _size;
     }
 
+    // NOLINTNEXTLINE(readability-identifier-naming)
     LIGHTWEIGHT_FORCE_INLINE /*TODO constexpr*/ void setsize(std::size_t n) noexcept
     {
         auto const newSize = (std::min) (n, N);

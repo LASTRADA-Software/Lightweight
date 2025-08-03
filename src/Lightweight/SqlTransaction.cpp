@@ -53,14 +53,14 @@ bool SqlTransaction::TryRollback() noexcept
     SQLRETURN sqlReturn = SQLEndTran(SQL_HANDLE_DBC, NativeHandle(), SQL_ROLLBACK);
     if (sqlReturn != SQL_SUCCESS && sqlReturn != SQL_SUCCESS_WITH_INFO)
     {
-        SqlLogger::GetLogger().OnError(SqlErrorInfo::fromConnectionHandle(NativeHandle()), m_location);
+        SqlLogger::GetLogger().OnError(SqlErrorInfo::FromConnectionHandle(NativeHandle()), m_location);
         return false;
     }
 
     sqlReturn = SQLSetConnectAttr(NativeHandle(), SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
     if (sqlReturn != SQL_SUCCESS && sqlReturn != SQL_SUCCESS_WITH_INFO)
     {
-        SqlLogger::GetLogger().OnError(SqlErrorInfo::fromConnectionHandle(NativeHandle()), m_location);
+        SqlLogger::GetLogger().OnError(SqlErrorInfo::FromConnectionHandle(NativeHandle()), m_location);
         return false;
     }
 
@@ -74,14 +74,14 @@ bool SqlTransaction::TryCommit() noexcept
     SQLRETURN sqlReturn = SQLEndTran(SQL_HANDLE_DBC, NativeHandle(), SQL_COMMIT);
     if (sqlReturn != SQL_SUCCESS && sqlReturn != SQL_SUCCESS_WITH_INFO)
     {
-        SqlLogger::GetLogger().OnError(SqlErrorInfo::fromConnectionHandle(NativeHandle()), m_location);
+        SqlLogger::GetLogger().OnError(SqlErrorInfo::FromConnectionHandle(NativeHandle()), m_location);
         return false;
     }
 
     sqlReturn = SQLSetConnectAttr(NativeHandle(), SQL_ATTR_AUTOCOMMIT, (SQLPOINTER) SQL_AUTOCOMMIT_ON, SQL_IS_UINTEGER);
     if (sqlReturn != SQL_SUCCESS && sqlReturn != SQL_SUCCESS_WITH_INFO)
     {
-        SqlLogger::GetLogger().OnError(SqlErrorInfo::fromConnectionHandle(NativeHandle()), m_location);
+        SqlLogger::GetLogger().OnError(SqlErrorInfo::FromConnectionHandle(NativeHandle()), m_location);
         return false;
     }
 

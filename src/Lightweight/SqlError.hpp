@@ -35,22 +35,22 @@ struct SqlErrorInfo
     std::string message;
 
     /// Constructs an ODBC error info object from the given ODBC connection handle.
-    static SqlErrorInfo fromConnectionHandle(SQLHDBC hDbc)
+    static SqlErrorInfo FromConnectionHandle(SQLHDBC hDbc)
     {
-        return fromHandle(SQL_HANDLE_DBC, hDbc);
+        return FromHandle(SQL_HANDLE_DBC, hDbc);
     }
 
     /// Constructs an ODBC error info object from the given ODBC statement handle.
-    static SqlErrorInfo fromStatementHandle(SQLHSTMT hStmt)
+    static SqlErrorInfo FromStatementHandle(SQLHSTMT hStmt)
     {
-        return fromHandle(SQL_HANDLE_STMT, hStmt);
+        return FromHandle(SQL_HANDLE_STMT, hStmt);
     }
 
     /// Asserts that the given result is a success code, otherwise throws an exception.
     static void RequireStatementSuccess(SQLRETURN result, SQLHSTMT hStmt, std::string_view message);
 
   private:
-    static SqlErrorInfo fromHandle(SQLSMALLINT handleType, SQLHANDLE handle)
+    static SqlErrorInfo FromHandle(SQLSMALLINT handleType, SQLHANDLE handle)
     {
         SqlErrorInfo info {};
         info.message = std::string(1024, '\0');
@@ -75,6 +75,7 @@ class SqlException: public std::runtime_error
     LIGHTWEIGHT_API explicit SqlException(SqlErrorInfo info,
                                           std::source_location location = std::source_location::current());
 
+    // NOLINTNEXTLINE(readability-identifier-naming)
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlErrorInfo const& info() const noexcept
     {
         return _info;
@@ -102,11 +103,13 @@ enum class SqlError : std::int16_t
 
 struct SqlErrorCategory: std::error_category
 {
+    // NOLINTNEXTLINE(readability-identifier-naming)
     static SqlErrorCategory const& get() noexcept
     {
         static SqlErrorCategory const category;
         return category;
     }
+
     [[nodiscard]] char const* name() const noexcept override
     {
         return "Lightweight";
@@ -152,7 +155,8 @@ struct std::is_error_code_enum<Lightweight::SqlError>: public std::true_type
 {
 };
 
-// Tells the compiler that MyErr pairs with MyCategory
+/// Tells the compiler that MyErr pairs with MyCategory
+// NOLINTNEXTLINE(readability-identifier-naming)
 inline std::error_code make_error_code(Lightweight::SqlError e)
 {
     return { static_cast<int>(e), Lightweight::SqlErrorCategory::get() };

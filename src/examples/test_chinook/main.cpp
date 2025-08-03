@@ -40,7 +40,7 @@ static std::string GetEnvironmentVariable(std::string const& name)
 }
 
 template <typename Entity>
-void dumpTable(DataMapper& dm, size_t limit = 1)
+void DumpTable(DataMapper& dm, size_t limit = 1)
 {
     auto entries = dm.Query<Entity>().First(limit);
     for (auto const& entry: entries)
@@ -159,15 +159,15 @@ int main()
     }
 
     // Iterate over all entities in the database and print ther content
-    dumpTable<Album>(dm);
-    dumpTable<Artist>(dm);
-    dumpTable<Customer>(dm);
-    dumpTable<Employee>(dm);
-    dumpTable<Genre>(dm);
-    dumpTable<Invoice>(dm);
-    dumpTable<Invoiceline>(dm);
-    dumpTable<Mediatype>(dm);
-    dumpTable<Playlist>(dm);
-    dumpTable<Playlisttrack>(dm);
-    dumpTable<Track>(dm);
+    DumpTable<Album>(dm);
+    DumpTable<Artist>(dm);
+    DumpTable<Customer>(dm);
+    DumpTable<Employee>(dm);
+    DumpTable<Genre>(dm);
+    DumpTable<Invoice>(dm);
+    DumpTable<Invoiceline>(dm);
+    DumpTable<Mediatype>(dm);
+    DumpTable<Playlist>(dm);
+    DumpTable<Playlisttrack>(dm);
+    DumpTable<Track>(dm);
 }

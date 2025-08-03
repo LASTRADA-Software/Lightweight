@@ -41,7 +41,7 @@ auto EraseLinefeeds(std::string str) noexcept -> std::string
 
 template <typename TheSqlQuery>
     requires(std::is_invocable_v<TheSqlQuery, SqlQueryBuilder&>)
-void checkSqlQueryBuilder(TheSqlQuery const& sqlQueryBuilder,
+void CheckSqlQueryBuilder(TheSqlQuery const& sqlQueryBuilder,
                           QueryExpectations const& expectations,
                           std::function<void()> const& postCheck = {},
                           std::source_location const& location = std::source_location::current())
@@ -79,7 +79,7 @@ struct QueryBuilderCheck
     };
 };
 
-void runSqlQueryBuilder(QueryBuilderCheck const& info,
+void RunSqlQueryBuilder(QueryBuilderCheck const& info,
                         std::source_location const& location = std::source_location::current())
 {
     INFO(std::format("Test source location: {}:{}", location.file_name(), location.line()));
@@ -106,13 +106,13 @@ void runSqlQueryBuilder(QueryBuilderCheck const& info,
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Count", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("Table").Select().Count(); },
+    CheckSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("Table").Select().Count(); },
                          QueryExpectations::All("SELECT COUNT(*) FROM \"Table\""));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.All", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("That").Select().Fields("a", "b").Field("c").GroupBy("a").OrderBy("b").All();
         },
@@ -124,7 +124,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.All", "[SqlQueryBuilder
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Distinct.All", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("That").Select().Distinct().Fields("a", "b").Field("c").GroupBy("a").OrderBy("b").All();
         },
@@ -136,7 +136,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Distinct.All", "[SqlQue
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.OrderBy fully qualified", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("That")
                 .Select()
@@ -153,7 +153,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.OrderBy fully qualified
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.First", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) { return q.FromTable("That").Select().Field("field1").OrderBy("id").First(); },
         QueryExpectations {
             .sqlite = R"(SELECT "field1" FROM "That"
@@ -169,7 +169,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.First", "[SqlQueryBuild
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Range", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) { return q.FromTable("That").Select().Fields("foo", "bar").OrderBy("id").Range(200, 50); },
         QueryExpectations {
             .sqlite = R"(SELECT "foo", "bar" FROM "That"
@@ -185,7 +185,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Range", "[SqlQueryBuild
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Aggregate", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             // clang-format off
             return q.FromTable("Table")
@@ -196,7 +196,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Aggregate", "[SqlQueryB
         },
         QueryExpectations::All(R"(SELECT MIN("field1") AS "aggregateValue" FROM "Table")"));
 
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("Table")
                 .Select()
@@ -223,10 +223,10 @@ struct Orders
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Fields", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("Users").Select().Fields<Users>().All(); },
+    CheckSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("Users").Select().Fields<Users>().All(); },
                          QueryExpectations::All(R"(SELECT "id", "name", "address" FROM "Users")"));
 
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             // clang-format off
             return q.FromTable(RecordTableName<Users>)
@@ -249,7 +249,7 @@ struct UsersFields
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsForFieldMembers", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("Users").Select().Fields<UsersFields>().First(); },
+    CheckSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("Users").Select().Fields<UsersFields>().First(); },
                          QueryExpectations {
                              .sqlite = R"(SELECT "name", "address" FROM "Users" LIMIT 1)",
                              .postgres = R"(SELECT "name", "address" FROM "Users" LIMIT 1)",
@@ -266,7 +266,7 @@ struct QueryBuilderTestEmail
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsWithBelongsTo", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("QueryBuilderTestEmail").Select().Fields<QueryBuilderTestEmail>().First();
         },
@@ -288,7 +288,7 @@ struct QueryBuilderTestEmailWithAliases
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsWithBelongsToAndAliases", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("QueryBuilderTestEmail").Select().Fields<QueryBuilderTestEmailWithAliases>().First();
         },
@@ -303,7 +303,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsWithBelongsToAndAliases"
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.ComplexOR", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             using namespace std::string_view_literals;
             return q.FromTable("Table1")
@@ -328,7 +328,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.ComplexOR", "[SqlQueryBuilder]
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.WhereNotNull", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             // clang-format off
             return q.FromTable("Table")
@@ -343,7 +343,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.WhereNotNull", "[SqlQuer
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.WhereNull", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             // clang-format off
             return q.FromTable("Table")
@@ -358,7 +358,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.WhereNull", "[SqlQueryBu
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.Junctors", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             // clang-format off
             return q.FromTable("Table")
@@ -378,19 +378,19 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.Junctors", "[SqlQueryBui
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn", "[SqlQueryBuilder]")
 {
     // Check functionality of container overloads for IN
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", std::vector { 1, 2, 3 }); },
         QueryExpectations::All(R"(DELETE FROM "That"
                                   WHERE "foo" IN (1, 2, 3))"));
 
     // Check functionality of an lvalue input range
     auto const values = std::set { 1, 2, 3 };
-    checkSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", values); },
+    CheckSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", values); },
                          QueryExpectations::All(R"(DELETE FROM "That"
                                                    WHERE "foo" IN (1, 2, 3))"));
 
     // Check functionality of the initializer_list overload for IN
-    checkSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", { 1, 2, 3 }); },
+    CheckSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", { 1, 2, 3 }); },
                          QueryExpectations::All(R"(DELETE FROM "That"
                                                    WHERE "foo" IN (1, 2, 3))"));
 }
@@ -400,7 +400,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with strings", "[SqlQu
     using namespace std::string_view_literals;
 
     // Check functionality of container overloads for IN
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("That").Delete().WhereIn("foo", std::vector { "foo"sv, "bar"sv, "com"sv });
         },
@@ -409,12 +409,12 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with strings", "[SqlQu
 
     // Check functionality of an lvalue input range
     auto const values = std::set { "foo"sv, "bar"sv, "com"sv }; // will be alphabetically sorted on iteration
-    checkSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", values); },
+    CheckSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", values); },
                          QueryExpectations::All(R"(DELETE FROM "That"
                                                    WHERE "foo" IN ('bar', 'com', 'foo'))"));
 
     // Check functionality of the initializer_list overload for IN
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", { "foo"sv, "bar"sv, "com"sv }); },
         QueryExpectations::All(R"(DELETE FROM "That"
                                                    WHERE "foo" IN ('foo', 'bar', 'com'))"));
@@ -422,7 +422,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with strings", "[SqlQu
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Join", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("That").Select().Fields("foo", "bar").InnerJoin("Other", "id", "that_id").All();
         },
@@ -430,7 +430,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Join", "[SqlQueryBuilder]")
             R"(SELECT "foo", "bar" FROM "That"
                INNER JOIN "Other" ON "Other"."id" = "That"."that_id")"));
 
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("That").Select().Fields("foo", "bar").LeftOuterJoin("Other", "id", "that_id").All();
         },
@@ -438,7 +438,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Join", "[SqlQueryBuilder]")
             R"(SELECT "foo", "bar" FROM "That"
                LEFT OUTER JOIN "Other" ON "Other"."id" = "That"."that_id")"));
 
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             using namespace std::string_view_literals;
             return q.FromTable("Table_A")
@@ -455,7 +455,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Join", "[SqlQueryBuilder]")
                                " LEFT OUTER JOIN \"Table_B\" ON \"Table_B\".\"id\" = \"Table_A\".\"that_id\"\n"
                                " WHERE \"Table_A\".\"foo\" = 42"));
 
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             using namespace std::string_view_literals;
             return q.FromTable("Table_A")
@@ -477,7 +477,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Join", "[SqlQueryBuilder]")
                INNER JOIN "Table_B" ON "Table_B"."id" = "Table_A"."that_id" AND "Table_B"."that_foo" = "Table_A"."foo"
                WHERE "Table_A"."foo" = 42)"));
 
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             using namespace std::string_view_literals;
             return q.FromTable("Table_A")
@@ -504,7 +504,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Join with table aliasing", "[SqlQueryBuilder]"
 {
     SECTION("simple case")
     {
-        checkSqlQueryBuilder(
+        CheckSqlQueryBuilder(
             [](SqlQueryBuilder& q) {
                 return q.FromTable("That")
                     .Select()
@@ -520,7 +520,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Join with table aliasing", "[SqlQueryBuilder]"
     SECTION("Join multiple times to self")
     {
         // clang-format off
-        checkSqlQueryBuilder(
+        CheckSqlQueryBuilder(
             [](SqlQueryBuilder& q) {
                 using namespace std::string_view_literals;
                 return q.FromTableAs("That", "A")
@@ -578,7 +578,7 @@ struct JoinTestC
 
 TEST_CASE_METHOD(SqlTestFixture, "Query Join", "[DataMapper]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             // clang-format off
             return q.FromTable(RecordTableName<JoinTestA>)
@@ -598,7 +598,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query Join", "[DataMapper]")
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Field", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) { return q.FromTable("That").Select().Field("foo").Field("bar").All(); },
         QueryExpectations::All(R"(SELECT "foo", "bar" FROM "That")"));
 }
@@ -607,14 +607,14 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Field", "[SqlQueryBuild
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.SelectAs", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) { return q.FromTable("That").Select().Field("foo").As("F").Field("bar").As("B").All(); },
         QueryExpectations::All(R"(SELECT "foo" AS "F", "bar" AS "B" FROM "That")"));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FromTableAs", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTableAs("Other", "O")
                 .Select()
@@ -628,7 +628,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FromTableAs", "[SqlQueryBuilde
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Insert", "[SqlQueryBuilder]")
 {
     std::vector<SqlVariant> boundValues;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [&](SqlQueryBuilder& q) {
             return q.FromTableAs("Other", "O")
                 .Insert(&boundValues)
@@ -648,7 +648,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Insert", "[SqlQueryBuilder]")
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Update", "[SqlQueryBuilder]")
 {
     std::vector<SqlVariant> boundValues;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [&](SqlQueryBuilder& q) {
             return q.FromTableAs("Other", "O").Update(&boundValues).Set("foo", 42).Set("bar", "baz").Where("id", 123);
         },
@@ -665,7 +665,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Update", "[SqlQueryBuilder]")
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.Lambda", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("That")
                 .Select()
@@ -680,7 +680,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.Lambda", "[SqlQueryBuild
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereColumn", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("That").Select().Field("foo").WhereColumn("left", "=", "right").All();
         },
@@ -692,7 +692,7 @@ TEST_CASE_METHOD(SqlTestFixture,
                  "Where: SqlQualifiedTableColumnName OP SqlQualifiedTableColumnName",
                  "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("That")
                 .Select()
@@ -708,7 +708,7 @@ TEST_CASE_METHOD(SqlTestFixture,
 
 TEST_CASE_METHOD(SqlTestFixture, "Where: left IS NULL", "[SqlQueryBuilder]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             return q.FromTable("That")
                 .Select()
@@ -720,7 +720,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Where: left IS NULL", "[SqlQueryBuilder]")
         QueryExpectations::All(R"(SELECT "foo" FROM "That"
                                   WHERE "Left1" IS NULL AND "Left2" IS NULL)"));
 
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             // clang-format off
             return q.FromTable("That")
@@ -913,7 +913,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: sub select with WhereIn", "[S
 
 TEST_CASE_METHOD(SqlTestFixture, "DropTable", "[SqlQueryBuilder][Migration]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.DropTable("Table");
@@ -927,7 +927,7 @@ TEST_CASE_METHOD(SqlTestFixture, "DropTable", "[SqlQueryBuilder][Migration]")
 TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Column", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.CreateTable("Test").Column("column", Varchar { 255 });
@@ -942,7 +942,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Column", "[SqlQueryBuilder][M
 TEST_CASE_METHOD(SqlTestFixture, "CreateTable with RequiredColumn", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.CreateTable("Test").RequiredColumn("column", Varchar { 255 });
@@ -957,7 +957,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with RequiredColumn", "[SqlQueryBu
 TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Column: Guid", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.CreateTable("Test").RequiredColumn("column", Guid {});
@@ -986,7 +986,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Column: Guid", "[SqlQueryBuil
 TEST_CASE_METHOD(SqlTestFixture, "CreateTable with PrimaryKey", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.CreateTable("Test").PrimaryKey("pk", Integer {});
@@ -1002,7 +1002,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with PrimaryKey", "[SqlQueryBuilde
 TEST_CASE_METHOD(SqlTestFixture, "CreateTable with PrimaryKeyWithAutoIncrement", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.CreateTable("Test").PrimaryKeyWithAutoIncrement("pk");
@@ -1031,7 +1031,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with PrimaryKeyWithAutoIncrement",
 TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Index", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.CreateTable("Table").RequiredColumn("column", Integer {}).Index();
@@ -1047,7 +1047,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Index", "[SqlQueryBuilder][Mi
 TEST_CASE_METHOD(SqlTestFixture, "CreateTable with foreign key", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.CreateTable("Table").ForeignKey("other_id",
@@ -1081,7 +1081,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with foreign key", "[SqlQueryBuild
 TEST_CASE_METHOD(SqlTestFixture, "CreateTable complex demo", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             // clang-format off
             auto migration = q.Migration();
@@ -1140,7 +1140,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable complex demo", "[SqlQueryBuilder][
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddColumn", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.AlterTable("Table").AddColumn("column", Bigint {});
@@ -1163,7 +1163,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AlterColumn", "[SqlQueryBuilder][Mi
 
     SECTION("change type")
     {
-        runSqlQueryBuilder(QueryBuilderCheck {
+        RunSqlQueryBuilder(QueryBuilderCheck {
             .prepare = [](SqlMigrationQueryBuilder migration) -> SqlMigrationPlan {
                 migration.CreateTable("Table").Column("column", Char { 10 });
                 return migration.GetPlan();
@@ -1177,7 +1177,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AlterColumn", "[SqlQueryBuilder][Mi
 
     SECTION("change nullability")
     {
-        runSqlQueryBuilder(QueryBuilderCheck {
+        RunSqlQueryBuilder(QueryBuilderCheck {
             .prepare = [](SqlMigrationQueryBuilder migration) -> SqlMigrationPlan {
                 migration.CreateTable("Table").Column("column", Char { 10 });
                 return migration.GetPlan();
@@ -1194,7 +1194,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AlterColumn", "[SqlQueryBuilder][Mi
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable multiple AddColumn calls", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.AlterTable("Table").AddColumn("column", Bigint {}).AddColumn("column2", Varchar { 255 });
@@ -1218,7 +1218,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable multiple AddColumn calls", "[SqlQue
 
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable RenameColumn", "[SqlQueryBuilder][Migration]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.AlterTable("Table").RenameColumn("old", "new");
@@ -1230,7 +1230,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable RenameColumn", "[SqlQueryBuilder][M
 
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable RenameTo", "[SqlQueryBuilder][Migration]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.AlterTable("Table").RenameTo("NewTable");
@@ -1242,7 +1242,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable RenameTo", "[SqlQueryBuilder][Migra
 
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddIndex", "[SqlQueryBuilder][Migration]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.AlterTable("Table").AddIndex("column");
@@ -1254,7 +1254,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddIndex", "[SqlQueryBuilder][Migra
 
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddUniqueIndex", "[SqlQueryBuilder][Migration]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.AlterTable("Table").AddUniqueIndex("column");
@@ -1266,7 +1266,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddUniqueIndex", "[SqlQueryBuilder]
 
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable DropIndex", "[SqlQueryBuilder][Migration]")
 {
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.AlterTable("Table").DropIndex("column");
@@ -1278,7 +1278,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable DropIndex", "[SqlQueryBuilder][Migr
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddForeignKeyColumn", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;
-    checkSqlQueryBuilder(
+    CheckSqlQueryBuilder(
         [](SqlQueryBuilder& q) {
             auto migration = q.Migration();
             migration.AlterTable("Table").AddForeignKeyColumn("other_id",

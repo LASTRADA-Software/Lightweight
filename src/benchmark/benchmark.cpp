@@ -71,7 +71,7 @@ class SqlTestFixture
         if (!sqlConnection.IsAlive())
         {
             std::println("Failed to connect to the database: {}",
-                         SqlErrorInfo::fromConnectionHandle(sqlConnection.NativeHandle()));
+                         SqlErrorInfo::FromConnectionHandle(sqlConnection.NativeHandle()));
             std::abort();
         }
 
@@ -169,7 +169,7 @@ class SqlTestFixture
     std::vector<std::string> m_createdTables;
 };
 
-void longQuery()
+void LongQuery()
 {
     auto stmt = SqlStatement {};
     stmt.ExecuteDirect("SELECT user_id, COUNT(movie_id) FROM \"ratings\" GROUP "
@@ -184,7 +184,7 @@ void longQuery()
     }
 }
 
-void count()
+void Count()
 {
     auto stmt = SqlStatement {};
 
@@ -212,7 +212,7 @@ void count()
     // count_and_compare("ratings", 15520005); // TODO fix this
 }
 
-void iterate()
+void Iterate()
 {
     auto dm = DataMapper();
     [[maybe_unused]] int count = 0;
@@ -222,7 +222,7 @@ void iterate()
     }
 }
 
-void run()
+void Run()
 {
     auto measureTime = [](auto&& f, std::string_view name, size_t measured) {
         auto start = std::chrono::high_resolution_clock::now();
@@ -233,9 +233,9 @@ void run()
                      std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count(),
                      measured);
     };
-    measureTime(count, "count", 15);
-    measureTime(longQuery, "longQuery", 4018);
-    measureTime(iterate, "iterate", 0);
+    measureTime(Count, "count", 15);
+    measureTime(LongQuery, "longQuery", 4018);
+    measureTime(Iterate, "iterate", 0);
 }
 
 int main(int argc, char** argv)
@@ -246,6 +246,6 @@ int main(int argc, char** argv)
         return *exitCode;
     std::tie(argc, argv) = std::get<SqlTestFixture::MainProgramArgs>(result);
 
-    run();
+    Run();
     return 0;
 }

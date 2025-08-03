@@ -12,7 +12,7 @@ void LogIfFailed(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLoc
     if (SQL_SUCCEEDED(error))
         return;
 
-    SqlLogger::GetLogger().OnError(SqlErrorInfo::fromStatementHandle(hStmt), sourceLocation);
+    SqlLogger::GetLogger().OnError(SqlErrorInfo::FromStatementHandle(hStmt), sourceLocation);
 }
 
 void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLocation)
@@ -20,7 +20,7 @@ void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location source
     if (SQL_SUCCEEDED(error))
         return;
 
-    auto errorInfo = SqlErrorInfo::fromStatementHandle(hStmt);
+    auto errorInfo = SqlErrorInfo::FromStatementHandle(hStmt);
     if (errorInfo.sqlState == "07009")
     {
         SqlLogger::GetLogger().OnError(errorInfo, sourceLocation);
