@@ -8,5 +8,8 @@ var searchData=
   ['belongsto_3c_26genre_3a_3agenreid_2c_20lightweight_3a_3asqlrealname_20_7b_20_22genreid_22_20_7d_2c_20light_3a_3asqlnullable_3a_3anull_20_3e_5',['BelongsTo&lt;&amp;Genre::GenreId, Lightweight::SqlRealName { &quot;GenreId&quot; }, Light::SqlNullable::Null &gt;',['../d0/df7/classLightweight_1_1BelongsTo.html',1,'Lightweight']]],
   ['belongsto_3c_26invoice_3a_3ainvoiceid_2c_20lightweight_3a_3asqlrealname_20_7b_20_22invoiceid_22_20_7d_3e_6',['BelongsTo&lt;&amp;Invoice::InvoiceId, Lightweight::SqlRealName { &quot;InvoiceId&quot; }&gt;',['../d0/df7/classLightweight_1_1BelongsTo.html',1,'Lightweight']]],
   ['belongsto_3c_26mediatype_3a_3amediatypeid_2c_20lightweight_3a_3asqlrealname_20_7b_20_22mediatypeid_22_20_7d_3e_7',['BelongsTo&lt;&amp;Mediatype::MediaTypeId, Lightweight::SqlRealName { &quot;MediaTypeId&quot; }&gt;',['../d0/df7/classLightweight_1_1BelongsTo.html',1,'Lightweight']]],
-  ['belongsto_3c_26track_3a_3atrackid_2c_20lightweight_3a_3asqlrealname_20_7b_20_22trackid_22_20_7d_3e_8',['BelongsTo&lt;&amp;Track::TrackId, Lightweight::SqlRealName { &quot;TrackId&quot; }&gt;',['../d0/df7/classLightweight_1_1BelongsTo.html',1,'Lightweight']]]
+  ['belongsto_3c_26patient_3a_3aid_20_3e_8',['BelongsTo&lt;&amp;Patient::id &gt;',['../d0/df7/classLightweight_1_1BelongsTo.html',1,'Lightweight']]],
+  ['belongsto_3c_26physician_3a_3aid_20_3e_9',['BelongsTo&lt;&amp;Physician::id &gt;',['../d0/df7/classLightweight_1_1BelongsTo.html',1,'Lightweight']]],
+  ['belongsto_3c_26track_3a_3atrackid_2c_20lightweight_3a_3asqlrealname_20_7b_20_22trackid_22_20_7d_3e_10',['BelongsTo&lt;&amp;Track::TrackId, Lightweight::SqlRealName { &quot;TrackId&quot; }&gt;',['../d0/df7/classLightweight_1_1BelongsTo.html',1,'Lightweight']]],
+  ['belongsto_3c_26user_3a_3aid_20_3e_11',['BelongsTo&lt;&amp;User::id &gt;',['../d0/df7/classLightweight_1_1BelongsTo.html',1,'Lightweight']]]
 ];

@@ -1,5 +1,6 @@
 var NAVTREEINDEX1 =
 {
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a059bdf98d69fde660cd3527172a2cc62":[7,0,0,9,8],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a3c64acce0293fce41e3f39a0aaee883e":[7,0,0,9,5],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a4347ff4409d155c9ffb5c8681a45362d":[7,0,0,9,1],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a60f924041dca8dfc6cb88f1ceb782836":[7,0,0,9,4],
@@ -122,7 +123,7 @@ var NAVTREEINDEX1 =
 "da/df4/classLightweight_1_1HasMany.html#adb89edafa7435160b169cae7a7f095a5":[5,2,6,11],
 "da/df4/classLightweight_1_1HasMany.html#adf7e9ed7d4028cd203c8c890b59c03d5":[5,2,6,3],
 "db/d1c/SqlSchema_8hpp_source.html":[8,0,2,17],
-"db/d2a/tests_2Utils_8hpp_source.html":[8,0,3,0],
+"db/d2a/tests_2Utils_8hpp_source.html":[8,0,3,1],
 "db/d47/MigrationPlan_8hpp_source.html":[8,0,2,3,4],
 "db/d83/SqlQuery_2Core_8hpp_source.html":[8,0,2,3,0],
 "db/d8a/SqlDynamicBinary_8hpp_source.html":[8,0,2,0,7],
@@ -248,6 +249,5 @@ var NAVTREEINDEX1 =
 "de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4":[5,2,3,12],
 "de/d61/classLightweight_1_1DataMapper.html#acc8bc05a730ed1ad295070cf25d6e041":[5,2,3,2],
 "de/d61/classLightweight_1_1DataMapper.html#ae773f443460c175a373e0b02eb88af53":[5,2,3,11],
-"de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747":[5,2,3,17],
-"de/d6a/structLightweight_1_1SqlConnectionString.html":[7,0,0,14]
+"de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747":[5,2,3,17]
 };

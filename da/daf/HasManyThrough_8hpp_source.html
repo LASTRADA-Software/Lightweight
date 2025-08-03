@@ -139,47 +139,56 @@ $(document).ready(function(){initNavTree('da/daf/HasManyThrough_8hpp_source.html
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>    <span class="keyword">using </span>const_iterator = <span class="keyword">typename</span> ReferencedRecordList::const_iterator;</div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="comment"></span> </div>
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="comment">    /// Retrieves the list of loaded records.</span></div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span><span class="comment"></span>    [[nodiscard]] <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a449b45f68f5a2303de48e650280ec808">ReferencedRecordList</a> <span class="keyword">const</span>&amp; <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a45f3f4dbef894b9074c9ed7172ca0a6a">All</a>() const noexcept;</div>
+<div class="foldopen" id="foldopen00041" data-start="{" data-end="}">
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno"><a class="line" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a45f3f4dbef894b9074c9ed7172ca0a6a">   41</a></span><span class="comment"></span>    [[nodiscard]] <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a449b45f68f5a2303de48e650280ec808">ReferencedRecordList</a> <span class="keyword">const</span>&amp; <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a45f3f4dbef894b9074c9ed7172ca0a6a">All</a>() const noexcept;</div>
 <div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="comment"></span> </div>
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span><span class="comment">    /// Retrieves the list of records as mutable reference.</span></div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span><span class="comment"></span>    [[nodiscard]] <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a449b45f68f5a2303de48e650280ec808">ReferencedRecordList</a>&amp; <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a45f3f4dbef894b9074c9ed7172ca0a6a">All</a>() noexcept;</div>
+<div class="foldopen" id="foldopen00044" data-start="{" data-end="}">
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno"><a class="line" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a3136d004f0dfe3f81262ae9f3f788270">   44</a></span><span class="comment"></span>    [[nodiscard]] <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a449b45f68f5a2303de48e650280ec808">ReferencedRecordList</a>&amp; <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a45f3f4dbef894b9074c9ed7172ca0a6a">All</a>() noexcept;</div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="comment"></span> </div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span><span class="comment">    /// Emplaces the given list of records into this relationship.</span></div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="comment"></span>    <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a449b45f68f5a2303de48e650280ec808">ReferencedRecordList</a>&amp; <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#af0243a918b74bd0570627d0ce6363f06">Emplace</a>(<a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a449b45f68f5a2303de48e650280ec808">ReferencedRecordList</a>&amp;&amp; records) noexcept;</div>
+<div class="foldopen" id="foldopen00047" data-start="{" data-end="}">
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno"><a class="line" href="../../de/d73/classLightweight_1_1HasManyThrough.html#af0243a918b74bd0570627d0ce6363f06">   47</a></span><span class="comment"></span>    <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a449b45f68f5a2303de48e650280ec808">ReferencedRecordList</a>&amp; <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#af0243a918b74bd0570627d0ce6363f06">Emplace</a>(<a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a449b45f68f5a2303de48e650280ec808">ReferencedRecordList</a>&amp;&amp; records) noexcept;</div>
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span><span class="comment"></span> </div>
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span><span class="comment">    /// Retrieves the number of records in this relationship.</span></div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span><span class="comment"></span>    [[nodiscard]] std::<span class="keywordtype">size_t</span> <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a21e9c6d2ec45efdc99352c6ae44517af">Count</a>() const;</div>
+<div class="foldopen" id="foldopen00050" data-start="{" data-end="}">
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno"><a class="line" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a21e9c6d2ec45efdc99352c6ae44517af">   50</a></span><span class="comment"></span>    [[nodiscard]] std::<span class="keywordtype">size_t</span> <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a21e9c6d2ec45efdc99352c6ae44517af">Count</a>() const;</div>
 <div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span><span class="comment"></span> </div>
 <div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span><span class="comment">    /// Checks if this relationship is empty.</span></div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span><span class="comment"></span>    [[nodiscard]] std::<span class="keywordtype">size_t</span> <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#aa0f11a7350c2a6e43c11a1b6ad9e4d92">IsEmpty</a>() const;</div>
+<div class="foldopen" id="foldopen00053" data-start="{" data-end="}">
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno"><a class="line" href="../../de/d73/classLightweight_1_1HasManyThrough.html#aa0f11a7350c2a6e43c11a1b6ad9e4d92">   53</a></span><span class="comment"></span>    [[nodiscard]] std::<span class="keywordtype">size_t</span> <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#aa0f11a7350c2a6e43c11a1b6ad9e4d92">IsEmpty</a>() const;</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span><span class="comment"></span> </div>
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="comment">    /// @brief Retrieves the record at the given index.</span></div>
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span><span class="comment">    ///</span></div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span><span class="comment">    /// @param index The index of the record to retrieve.</span></div>
 <div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="comment">    /// @note This method will on-demand load the records if they are not already loaded.</span></div>
 <div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="comment">    /// @note This method will throw if the index is out of bounds.</span></div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span><span class="comment"></span>    [[nodiscard]] <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#af76d1ffc037c720dbec3a13d6aa2bb3b">ReferencedRecord</a> const&amp; <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a6c541b2db604dfddcdfdce46588bf314">At</a>(std::<span class="keywordtype">size_t</span> index) const;</div>
+<div class="foldopen" id="foldopen00060" data-start="{" data-end="}">
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno"><a class="line" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a6c541b2db604dfddcdfdce46588bf314">   60</a></span><span class="comment"></span>    [[nodiscard]] <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#af76d1ffc037c720dbec3a13d6aa2bb3b">ReferencedRecord</a> const&amp; <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a6c541b2db604dfddcdfdce46588bf314">At</a>(std::<span class="keywordtype">size_t</span> index) const;</div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="comment"></span> </div>
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="comment">    /// @brief Retrieves the record at the given index.</span></div>
 <div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span><span class="comment">    ///</span></div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="comment">    /// @param index The index of the record to retrieve.</span></div>
 <div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="comment">    /// @note This method will on-demand load the records if they are not already loaded.</span></div>
 <div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="comment">    /// @note This method will throw if the index is out of bounds.</span></div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="comment"></span>    [[nodiscard]] <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#af76d1ffc037c720dbec3a13d6aa2bb3b">ReferencedRecord</a>&amp; <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a6c541b2db604dfddcdfdce46588bf314">At</a>(std::<span class="keywordtype">size_t</span> index);</div>
+<div class="foldopen" id="foldopen00067" data-start="{" data-end="}">
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno"><a class="line" href="../../de/d73/classLightweight_1_1HasManyThrough.html#ae63eccfc25a5ab0cf7d0bfa69edd4da1">   67</a></span><span class="comment"></span>    [[nodiscard]] <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#af76d1ffc037c720dbec3a13d6aa2bb3b">ReferencedRecord</a>&amp; <a class="code hl_function" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a6c541b2db604dfddcdfdce46588bf314">At</a>(std::<span class="keywordtype">size_t</span> index);</div>
 <div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="comment"></span> </div>
 <div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="comment">    /// @brief Retrieves the record at the given index.</span></div>
 <div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="comment">    ///</span></div>
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="comment">    /// @param index The index of the record to retrieve.</span></div>
 <div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="comment">    /// @note This method will on-demand load the records if they are not already loaded.</span></div>
 <div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="comment">    /// @note This method will NOT throw if the index is out of bounds. The behaviour is undefined.</span></div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><span class="comment"></span>    [[nodiscard]] <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#af76d1ffc037c720dbec3a13d6aa2bb3b">ReferencedRecord</a> const&amp; operator[](std::<span class="keywordtype">size_t</span> index) const;</div>
+<div class="foldopen" id="foldopen00074" data-start="{" data-end="}">
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno"><a class="line" href="../../de/d73/classLightweight_1_1HasManyThrough.html#a2b350192660de51a40c8a7c242e0313d">   74</a></span><span class="comment"></span>    [[nodiscard]] <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#af76d1ffc037c720dbec3a13d6aa2bb3b">ReferencedRecord</a> const&amp; operator[](std::<span class="keywordtype">size_t</span> index) const;</div>
 <div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="comment"></span> </div>
 <div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span><span class="comment">    /// @brief Retrieves the record at the given index.</span></div>
 <div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span><span class="comment">    ///</span></div>
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span><span class="comment">    /// @param index The index of the record to retrieve.</span></div>
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><span class="comment">    /// @note This method will on-demand load the records if they are not already loaded.</span></div>
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span><span class="comment">    /// @note This method will NOT throw if the index is out of bounds. The behaviour is undefined.</span></div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span><span class="comment"></span>    [[nodiscard]] <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#af76d1ffc037c720dbec3a13d6aa2bb3b">ReferencedRecord</a>&amp; operator[](std::<span class="keywordtype">size_t</span> index);</div>
+<div class="foldopen" id="foldopen00081" data-start="{" data-end="}">
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno"><a class="line" href="../../de/d73/classLightweight_1_1HasManyThrough.html#abc7b43211d3b31a0b425476983ecfd40">   81</a></span><span class="comment"></span>    [[nodiscard]] <a class="code hl_typedef" href="../../de/d73/classLightweight_1_1HasManyThrough.html#af76d1ffc037c720dbec3a13d6aa2bb3b">ReferencedRecord</a>&amp; operator[](std::<span class="keywordtype">size_t</span> index);</div>
 <div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span> </div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>    [[nodiscard]] iterator begin() noexcept;</div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>    [[nodiscard]] iterator end() noexcept;</div>
@@ -251,7 +260,6 @@ $(document).ready(function(){initNavTree('da/daf/HasManyThrough_8hpp_source.html
 <div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span>    std::optional&lt;size_t&gt; _count;</div>
 <div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span>    std::optional&lt;ReferencedRecordList&gt; _records;</div>
 <div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span>};</div>
-</div>
 <div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span> </div>
 <div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
 <div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsHasManyThrough = IsSpecializationOf&lt;HasManyThrough, T&gt;;</div>
@@ -349,6 +357,7 @@ $(document).ready(function(){initNavTree('da/daf/HasManyThrough_8hpp_source.html
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>    <span class="keywordflow">return</span> *All()[index];</div>
 <div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>}</div>
 </div>
+</div>
 <div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span> </div>
 <div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ReferencedRecordT, <span class="keyword">typename</span> ThroughRecordT&gt;</div>
 <div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>HasManyThrough&lt;ReferencedRecordT, ThroughRecordT&gt;::iterator <a class="code hl_class" href="../../de/d73/classLightweight_1_1HasManyThrough.html">HasManyThrough</a>&lt;ReferencedRecordT,</div>
@@ -378,6 +387,15 @@ $(document).ready(function(){initNavTree('da/daf/HasManyThrough_8hpp_source.html
 <div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>}</div>
 <div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span> </div>
 <div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>} <span class="comment">// namespace Lightweight</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
 <div class="ttc" id="aclassLightweight_1_1HasManyThrough_html"><div class="ttname"><a href="../../de/d73/classLightweight_1_1HasManyThrough.html">Lightweight::HasManyThrough</a></div><div class="ttdoc">This API represents a many-to-many relationship between two records through a third record.</div><div class="ttdef"><b>Definition</b> <a href="../../da/daf/HasManyThrough_8hpp_source.html#l00024">HasManyThrough.hpp:25</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1HasManyThrough_html_a1fe66ac23929adadf6bb4de58d1e050e"><div class="ttname"><a href="../../de/d73/classLightweight_1_1HasManyThrough.html#a1fe66ac23929adadf6bb4de58d1e050e">Lightweight::HasManyThrough::Each</a></div><div class="ttdeci">void Each(Callable const &amp;callable)</div><div class="ttdoc">Iterates over all records in this relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../da/daf/HasManyThrough_8hpp_source.html#l00117">HasManyThrough.hpp:117</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1HasManyThrough_html_a21e9c6d2ec45efdc99352c6ae44517af"><div class="ttname"><a href="../../de/d73/classLightweight_1_1HasManyThrough.html#a21e9c6d2ec45efdc99352c6ae44517af">Lightweight::HasManyThrough::Count</a></div><div class="ttdeci">std::size_t Count() const</div><div class="ttdoc">Retrieves the number of records in this relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../da/daf/HasManyThrough_8hpp_source.html#l00180">HasManyThrough.hpp:180</a></div></div>
