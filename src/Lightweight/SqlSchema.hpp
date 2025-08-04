@@ -221,8 +221,15 @@ struct std::formatter<Lightweight::SqlSchema::FullyQualifiedTableColumnSequence>
         output += resolvedTableName;
         output += '(';
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+        int i { -1 };
+        for (auto const& column: value.columns)
+        {
+            ++i;
+#else
         for (auto const [i, column]: value.columns | std::views::enumerate)
         {
+#endif
             if (i != 0)
                 output += ", ";
             output += column;
