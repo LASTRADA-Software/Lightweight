@@ -964,8 +964,15 @@ detail::RawSqlCondition SqlWhereClauseBuilder<Derived>::PopulateSqlSetExpression
     using namespace std::string_view_literals;
     std::ostringstream fragment;
     fragment << '(';
+#if defined(CXX26_REFLECTION)
+    int index { -1 };
+    for (auto const& value: values)
+    {
+        ++index;
+#else
     for (auto const&& [index, value]: values | std::views::enumerate)
     {
+#endif
         if (index > 0)
             fragment << ", "sv;
 
