@@ -355,7 +355,11 @@ struct SqlDataBinder<Field<T, P1, P2>>
 /// @ingroup DataMapper
 template <auto Field>
 using ReferencedFieldTypeOf =
+#if defined(CXX26_REFLECTION)
+    typename std::remove_cvref_t<typename[:type_of(Field):]>::ValueType;
+#else
     typename std::remove_cvref_t<decltype(std::declval<MemberClassType<decltype(Field)>>().*Field)>::ValueType;
+#endif
 
 } // namespace Lightweight
 

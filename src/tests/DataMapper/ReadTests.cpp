@@ -38,7 +38,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
 
     SECTION("Query.Count")
     {
-        auto const count = dm.Query<Person>().Where(FieldNameOf<&Person::is_active>, "=", true).Count();
+        auto const count = dm.Query<Person>().Where(FieldNameOf<Member(Person::is_active)>, "=", true).Count();
         CHECK(count == 2);
 
         auto const countAll = dm.Query<Person>().Count();
@@ -47,8 +47,10 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
 
     SECTION("Query.All")
     {
-        auto const records =
-            dm.Query<Person>().Where(FieldNameOf<&Person::is_active>, "=", true).OrderBy(FieldNameOf<&Person::name>).All();
+        auto const records = dm.Query<Person>()
+                                 .Where(FieldNameOf<Member(Person::is_active)>, "=", true)
+                                 .OrderBy(FieldNameOf<Member(Person::name)>)
+                                 .All();
 
         CHECK(records.size() == 2);
         CHECK(records[0] == expectedPersons[2]);
@@ -58,8 +60,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
     SECTION("Query.First n")
     {
         auto const records = dm.Query<Person>()
-                                 .Where(FieldNameOf<&Person::age>, ">=", 30)
-                                 .OrderBy(FieldNameOf<&Person::name>, SqlResultOrdering::ASCENDING)
+                                 .Where(FieldNameOf<Member(Person::age)>, ">=", 30)
+                                 .OrderBy(FieldNameOf<Member(Person::name)>, SqlResultOrdering::ASCENDING)
                                  .First(2);
 
         CHECK(records.size() == 2);
@@ -69,12 +71,12 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
 
     SECTION("Query.First")
     {
-        auto const record = dm.Query<Person>().Where(FieldNameOf<&Person::age>, "<=", 24).First();
+        auto const record = dm.Query<Person>().Where(FieldNameOf<Member(Person::age)>, "<=", 24).First();
 
         REQUIRE(record.has_value());
         CHECK(record.value() == expectedPersons[1]);
 
-        auto const impossible = dm.Query<Person>().Where(FieldNameOf<&Person::age>, "=", -5).First();
+        auto const impossible = dm.Query<Person>().Where(FieldNameOf<Member(Person::age)>, "=", -5).First();
         REQUIRE(impossible.has_value() == false);
     }
 
@@ -82,7 +84,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
     {
         // clang-format off
         auto const records = dm.Query<Person>()
-                               .OrderBy(FieldNameOf<&Person::name>, SqlResultOrdering::DESCENDING)
+                               .OrderBy(FieldNameOf<Member(Person::name)>, SqlResultOrdering::DESCENDING)
                                .Range(1, 2);
         // clang-format on
 
@@ -109,27 +111,28 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle", "[DataMapper]")
 
     SECTION("Get()")
     {
-        auto const record = dm.QuerySingle<Person>().Where(FullFieldNameOf<&Person::age>, "=", 36).Get();
+        auto const record = dm.QuerySingle<Person>().Where(FullFieldNameOf<Member(Person::age)>, "=", 36).Get();
         CHECK(record.has_value());
         CHECK(record.value() == expectedPersons[2]);
     }
 
     SECTION("Get() with non-existing record")
     {
-        auto const record = dm.QuerySingle<Person>().Where(FullFieldNameOf<&Person::age>, "=", -5).Get();
+        auto const record = dm.QuerySingle<Person>().Where(FullFieldNameOf<Member(Person::age)>, "=", -5).Get();
         CHECK(record.has_value() == false);
     }
 
     SECTION("Count()")
     {
-        auto const count = dm.QuerySingle<Person>().Where(FieldNameOf<&Person::age>, "=", 24).Count();
+        auto const count = dm.QuerySingle<Person>().Where(FieldNameOf<Member(Person::age)>, "=", 24).Count();
         CHECK(count == 1);
     }
 
     SECTION("Single<T>()")
     {
-        auto const result =
-            dm.QuerySingle<Person>().Where(FieldNameOf<&Person::name>, "=", "Jimbo Jones").Scalar<&Person::age>();
+        auto const result = dm.QuerySingle<Person>()
+                                .Where(FieldNameOf<Member(Person::name)>, "=", "Jimbo Jones")
+                                .Scalar<Member(Person::age)>();
         CHECK(result.has_value());
         CHECK(result.value() == 69);
     }
@@ -143,8 +146,9 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.All", "[DataMapper]")
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 });
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 });
 
-    auto const records =
-        dm.QuerySparse<Person, &Person::name, &Person::age>().Where(FieldNameOf<&Person::is_active>, "=", true).All();
+    auto const records = dm.QuerySparse<Person, Member(Person::name), Member(Person::age)>()
+                             .Where(FieldNameOf<Member(Person::is_active)>, "=", true)
+                             .All();
 
     CHECK(records.size() == 1);
     CHECK(records[0].name == "John Doe");
@@ -166,9 +170,9 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.First n", "[DataMapper]")
     for (auto& person: expectedPersons)
         dm.Create(person);
 
-    auto const records = dm.QuerySparse<Person, &Person::name, &Person::age>()
-                             .Where(FieldNameOf<&Person::age>, ">=", 30)
-                             .OrderBy(FieldNameOf<&Person::name>, SqlResultOrdering::ASCENDING)
+    auto const records = dm.QuerySparse<Person, Member(Person::name), Member(Person::age)>()
+                             .Where(FieldNameOf<Member(Person::age)>, ">=", 30)
+                             .OrderBy(FieldNameOf<Member(Person::name)>, SqlResultOrdering::ASCENDING)
                              .First(2);
 
     CHECK(records.size() == 2);
@@ -190,14 +194,16 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.First", "[DataMapper]")
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 });
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 });
 
-    auto const record = dm.QuerySparse<Person, &Person::name>().Where(FieldNameOf<&Person::age>, "<=", 24).First();
+    auto const record =
+        dm.QuerySparse<Person, Member(Person::name)>().Where(FieldNameOf<Member(Person::age)>, "<=", 24).First();
 
     REQUIRE(record.has_value());
     CHECK(record->name == "Jimmy John");
     CHECK(record->age.Value().has_value() == false); // age is not queried, so it defaults to 0
     CHECK(record->is_active == true);                // is_active is not queried, so it defaults to false
 
-    auto const impossible = dm.QuerySparse<Person, &Person::name>().Where(FieldNameOf<&Person::age>, "=", -5).First();
+    auto const impossible =
+        dm.QuerySparse<Person, Member(Person::name)>().Where(FieldNameOf<Member(Person::age)>, "=", -5).First();
     REQUIRE(impossible.has_value() == false);
 }
 
@@ -212,8 +218,8 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.Range", "[DataMapper]")
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 });
 
     // clang-format off
-    auto const records = dm.QuerySparse<Person, &Person::name, &Person::age>()
-                           .OrderBy(FieldNameOf<&Person::name>, SqlResultOrdering::ASCENDING)
+    auto const records = dm.QuerySparse<Person, Member(Person::name), Member(Person::age)>()
+                           .OrderBy(FieldNameOf<Member(Person::name) >, SqlResultOrdering::ASCENDING)
                            .Range(1, 2);
     // clang-format on
 
@@ -382,11 +388,12 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: Partial retriaval of the data", "[DataM
         INFO("Created person: " << person);
     }
 
-    auto records = dm.Query<SqlElements<1, 3>, Person>(dm.FromTable(RecordTableName<Person>)
-                                                           .Select()
-                                                           .Fields({ "name"sv, "age"sv })
-                                                           .OrderBy(FieldNameOf<&Person::age>, SqlResultOrdering::ASCENDING)
-                                                           .All());
+    auto records =
+        dm.Query<SqlElements<1, 3>, Person>(dm.FromTable(RecordTableName<Person>)
+                                                .Select()
+                                                .Fields({ "name"sv, "age"sv })
+                                                .OrderBy(FieldNameOf<Member(Person::age)>, SqlResultOrdering::ASCENDING)
+                                                .All());
 
 #if defined(CXX26_REFLECTION)
     int i { -1 };
@@ -538,8 +545,10 @@ TEST_CASE_METHOD(SqlTestFixture, "MapForJointStatement", "[DataMapper]")
         dm.Create(c);
     }
 
-    auto const records =
-        dm.Query<JoinA, JoinC>().InnerJoin<&JoinB::a_id, &JoinA::id>().InnerJoin<&JoinC::id, &JoinB::c_id>().All();
+    auto const records = dm.Query<JoinA, JoinC>()
+                             .InnerJoin<Member(JoinB::a_id), Member(JoinA::id)>()
+                             .InnerJoin<Member(JoinC::id), Member(JoinB::c_id)>()
+                             .All();
 
     CHECK(records.size() == 50);
     int i = 1;
@@ -581,7 +590,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Retrieve optional value without output-binding
 
     dm.CreateExplicit(OptionalFields { .id = SqlGuid::Create(), .a = 42 });
 
-    auto const result = dm.Query<OptionalFields>().OrderBy(FieldNameOf<&OptionalFields::a>).First();
+    auto const result = dm.Query<OptionalFields>().OrderBy(FieldNameOf<Member(OptionalFields::a)>).First();
     REQUIRE(result.has_value());
     REQUIRE(result.value().a.has_value());
     REQUIRE(result.value().a.value() == 42);

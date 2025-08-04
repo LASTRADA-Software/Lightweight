@@ -42,15 +42,15 @@ TEST_CASE_METHOD(SqlTestFixture, "SQL entity naming", "[DataMapper]")
     static_assert(FieldNameAt<0, NamingTest2> == "First_PK"sv);
     static_assert(FieldNameAt<1, NamingTest2> == "Second_PK"sv);
 
-    static_assert(FieldNameOf<&NamingTest1::normal> == "normal"sv);
-    static_assert(FieldNameOf<&NamingTest1::name> == "c1"sv);
-    static_assert(FieldNameOf<&NamingTest2::pk1> == "First_PK"sv);
-    static_assert(FieldNameOf<&NamingTest2::pk2> == "Second_PK"sv);
+    static_assert(FieldNameOf<Member(NamingTest1::normal)> == "normal"sv);
+    static_assert(FieldNameOf<Member(NamingTest1::name)> == "c1"sv);
+    static_assert(FieldNameOf<Member(NamingTest2::pk1)> == "First_PK"sv);
+    static_assert(FieldNameOf<Member(NamingTest2::pk2)> == "Second_PK"sv);
 
-    static_assert(FullFieldNameOf<&NamingTest1::normal> == R"("NamingTest1"."normal")");
-    static_assert(FullFieldNameOf<&NamingTest1::name> == R"("NamingTest1"."c1")");
-    static_assert(FullFieldNameOf<&NamingTest2::pk1> == R"("NamingTest2_aliased"."First_PK")");
-    static_assert(FullFieldNameOf<&NamingTest2::pk2> == R"("NamingTest2_aliased"."Second_PK")");
+    static_assert(FullFieldNameOf<Member(NamingTest1::normal)> == R"("NamingTest1"."normal")");
+    static_assert(FullFieldNameOf<Member(NamingTest1::name)> == R"("NamingTest1"."c1")");
+    static_assert(FullFieldNameOf<Member(NamingTest2::pk1)> == R"("NamingTest2_aliased"."First_PK")");
+    static_assert(FullFieldNameOf<Member(NamingTest2::pk2)> == R"("NamingTest2_aliased"."Second_PK")");
 }
 
 namespace Models

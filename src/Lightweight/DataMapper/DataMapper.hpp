@@ -374,7 +374,11 @@ class DataMapper
     SqlSparseFieldQueryBuilder<Record, ReferencedFields...> QuerySparse()
     {
         auto const appendFieldTo = []<auto ReferencedField>(std::string& fields) {
+#if defined(CXX26_REFLECTION)
+            using ReferencedRecord = MemberClassType<ReferencedField>;
+#else
             using ReferencedRecord = Reflection::MemberClassType<ReferencedField>;
+#endif
             if (!fields.empty())
                 fields += ", ";
             fields += '"';

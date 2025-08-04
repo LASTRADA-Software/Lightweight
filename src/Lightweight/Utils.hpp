@@ -15,6 +15,10 @@
 
 #include <sql.h>
 
+#if defined(CXX26_REFLECTION)
+    #include <experimental/meta>
+#endif
+
 namespace Lightweight
 {
 
@@ -71,17 +75,20 @@ namespace detail
                 return Record::TableName;
             else
                 return []() {
-                    // TODO: Build plural
+#if defined(CXX26_REFLECTION)
+                    return std::meta::identifier_of(^^Record);
+#else
                     auto const typeName = Reflection::TypeNameOf<Record>;
                     if (auto const i = typeName.rfind(':'); i != std::string_view::npos)
                         return typeName.substr(i + 1);
                     return typeName;
+#endif
                 }();
         }();
     };
 
     // specialization for the case when we use tuple as
-    // a record, then we usethe first element of the tuple
+    // a record, then we use the first element of the tuple
     // to get the table name
     template <typename First, typename Second>
     struct RecordTableNameImpl<std::tuple<First, Second>>
@@ -91,11 +98,14 @@ namespace detail
                 return First::TableName;
             else
                 return []() {
-                    // TODO: Build plural
+#if defined(CXX26_REFLECTION)
+                    return std::meta::identifier_of(^^First);
+#else
                     auto const typeName = Reflection::TypeNameOf<First>;
                     if (auto const i = typeName.rfind(':'); i != std::string_view::npos)
                         return typeName.substr(i + 1);
                     return typeName;
+#endif
                 }();
         }();
     };
@@ -124,6 +134,21 @@ namespace detail
             return std::string_view {};
     }();
 
+#if defined(CXX26_REFLECTION)
+    template <auto reflection>
+    struct FieldNameOfImpl
+    {
+        using R = [:std::meta::type_of(reflection):];
+        static constexpr std::string_view value = []() constexpr -> std::string_view {
+            if constexpr (requires { R::ColumnNameOverride; })
+            {
+                if constexpr (!R::ColumnNameOverride.empty())
+                    return R::ColumnNameOverride;
+            }
+            return std::meta::identifier_of(reflection);
+        }();
+    };
+#else
     template <typename ReferencedFieldType, auto F>
     struct FieldNameOfImpl;
 
@@ -139,6 +164,7 @@ namespace detail
             return Reflection::NameOf<F>;
         }();
     };
+#endif // CXX26_REFLECTION
 
     template <std::size_t I, typename Record>
     consteval std::string_view FieldNameAt()
@@ -165,12 +191,6 @@ namespace detail
 template <std::size_t I, typename Record>
 constexpr inline std::string_view FieldNameAt = detail::FieldNameAt<I, Record>();
 
-/// @brief Returns the name of the field referenced by the given pointer-to-member.
-///
-/// This also supports custom column name overrides.
-template <auto ReferencedField>
-constexpr inline std::string_view FieldNameOf = detail::FieldNameOfImpl<decltype(ReferencedField), ReferencedField>::value;
-
 /// @brief Holds the SQL tabl ename for the given record type.
 ///
 /// @ingroup DataMapper
@@ -180,15 +200,63 @@ constexpr std::string_view RecordTableName = detail::RecordTableNameImpl<Record>
 template <template <typename...> class S, class T>
 concept IsSpecializationOf = detail::is_specialization_of<S, T>::value;
 
+#if defined(CXX26_REFLECTION)
+
+    /// @brief marco to define a member to the structure, in case of C++26 reflection this
+    /// will create reflection, in case of C++20 reflection this will create a member pointer
+    #define Member(x)    ^^x
+
+/// @brief Returns the name of the field referenced by the given pointer-to-member.
+///
+/// This also supports custom column name overrides.
+template <std::meta::info ReflectionOfField>
+constexpr inline std::string_view FieldNameOf = detail::FieldNameOfImpl<ReflectionOfField>::value;
+
+template <auto Member>
+using MemberClassType = typename[:std::meta::parent_of(Member):];
+
+template <auto Member>
+constexpr size_t MemberIndexOf = []() consteval -> size_t {
+    int index { -1 };
+    auto ctx = std::meta::access_context::current();
+    for (auto info: nonstatic_data_members_of(parent_of(Member), ctx))
+    {
+        ++index;
+        if (info == Member)
+            return index;
+    }
+    return -1;
+}();
+#else // not CXX26_REFLECTION
+
+    /// @brief marco to define a member to the structure, in case of C++26 reflection this
+    /// will create reflection, in case of C++20 reflection this will create a member pointer
+    #define Member(x)    &x
+
+/// @brief Returns the name of the field referenced by the given pointer-to-member.
+///
+/// This also supports custom column name overrides.
+template <auto ReferencedField>
+constexpr inline std::string_view FieldNameOf = detail::FieldNameOfImpl<decltype(ReferencedField), ReferencedField>::value;
+
+template <auto Member>
+constexpr size_t MemberIndexOf = Reflection::MemberIndexOf<Member>;
+
 template <typename T>
 using MemberClassType = typename detail::MemberClassTypeHelper<T>::type;
+
+#endif // CXX26_REFLECTION
 
 namespace detail
 {
     template <auto ReferencedField>
     struct FullFieldNameOfImpl
     {
+#if defined(CXX26_REFLECTION)
+        static constexpr auto ClassName = RecordTableName<typename[:std::meta::parent_of(ReferencedField):]>;
+#else
         static constexpr auto ClassName = RecordTableName<MemberClassType<decltype(ReferencedField)>>;
+#endif
         static constexpr auto FieldName = FieldNameOf<ReferencedField>;
         static constexpr auto StorageSize = ClassName.size() + FieldName.size() + 6;
 
