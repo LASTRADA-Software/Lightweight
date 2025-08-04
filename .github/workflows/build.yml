@@ -101,11 +101,9 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
       - name: "vcpkg: Install dependencies"
-        uses: lukka/run-vcpkg@v11.1
-        id: runvcpkg
-        with:
-          vcpkgDirectory: ${{ runner.workspace }}/vcpkg
-          vcpkgGitCommitId: 80403036a665cb8fcc1a1b3e17593d20b03b2489
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git ${{ runner.workspace }}\vcpkg
+          ${{ runner.workspace }}\vcpkg\bootstrap-vcpkg.bat
       - name: "Install SQLite3 for Win32"
         run: |
           choco install sqliteodbc
@@ -233,6 +231,28 @@ jobs:
           path: |
             Lightweight-Linux-CI.tar.gz
           retention-days: 1
+
+  cpp26-reflection:
+    name: "C++26 reflection implementation"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          version: latest
+      - name: Build
+        shell: bash
+        run: |
+          docker buildx build  \
+              --progress=plain \
+              -f .github/Reflection.Dockerfile \
+              --load . --no-cache
 
   ddl2cpp:
     name: "ddl2cpp"

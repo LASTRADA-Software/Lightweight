@@ -373,12 +373,28 @@ std::optional<std::string> CxxModelPrinter::MapColumnNameOverride(SqlSchema::Ful
 void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> const& tables)
 {
     std::unordered_map<size_t, std::optional<int>> numberOfForeignKeys;
+#if !defined(__cpp_lib_ranges_enumerate)
+    int index { -1 };
+    for (auto const& table: tables)
+    {
+        ++index;
+        numberOfForeignKeys[index] = static_cast<int>(table.foreignKeys.size());
+    }
+#else
     for (auto const& [index, table]: std::views::enumerate(tables))
         numberOfForeignKeys[index] = static_cast<int>(table.foreignKeys.size());
+#endif
 
     auto const updateForeignKeyCountAfterPrinted = [&](auto const& tablePrinted) {
+#if !defined(__cpp_lib_ranges_enumerate)
+        int index { -1 };
+        for (auto const table: tables)
+        {
+            ++index;
+#else
         for (auto const [index, table]: std::views::enumerate(tables))
         {
+#endif
             if (table.name == tablePrinted.name)
                 numberOfForeignKeys[index] = std::nullopt;
 
@@ -401,8 +417,15 @@ void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> co
 
     while (numberOfPrintedTables < tables.size())
     {
+#if !defined(__cpp_lib_ranges_enumerate)
+        int index { -1 };
+        for (auto const table: tables)
+        {
+            ++index;
+#else
         for (auto const [index, table]: std::views::enumerate(tables))
         {
+#endif
             if (!numberOfForeignKeys[index]) // NOLINT(bugprone-unchecked-optional-access)
                 continue;
             if (numberOfForeignKeys[index].value() == 0) //  NOLINT(bugprone-unchecked-optional-access)
@@ -415,8 +438,15 @@ void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> co
                 // if we do NOT have them, we need to print this table anyway since
                 // there is some circular dependency that we cannot resolve
                 bool found = false;
+#if !defined(__cpp_lib_ranges_enumerate)
+                int otherIndex { -1 };
+                for (auto const& otherTable: tables)
+                {
+                    ++otherIndex;
+#else
                 for (auto const [otherIndex, otherTable]: std::views::enumerate(tables))
                 {
+#endif
                     if (numberOfForeignKeys[otherIndex] == 0)
                         found = true;
                 }

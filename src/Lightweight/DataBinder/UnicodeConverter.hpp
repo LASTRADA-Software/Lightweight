@@ -284,7 +284,7 @@ T ToUtf32(std::u16string_view u16InputString)
     for (char16_t const c16: u16InputString)
     {
         if (c16 < 0xD800 || c16 >= 0xDC00)
-            result.push_back(c16);
+            result.push_back(static_cast<char32_t>(c16));
         else
             result.push_back(0x10000 + ((c16 & 0x3FF) | ((c16 & 0x3FF) << 10)));
     }

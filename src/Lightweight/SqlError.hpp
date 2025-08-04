@@ -8,6 +8,7 @@
 
 #include "Api.hpp"
 
+#include <cstdint>
 #include <format>
 #include <source_location>
 #include <stdexcept>

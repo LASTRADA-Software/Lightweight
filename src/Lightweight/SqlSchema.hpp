@@ -221,8 +221,15 @@ struct std::formatter<Lightweight::SqlSchema::FullyQualifiedTableColumnSequence>
         output += resolvedTableName;
         output += '(';
 
+#if !defined(__cpp_lib_ranges_enumerate)
+        int i { -1 };
+        for (auto const& column: value.columns)
+        {
+            ++i;
+#else
         for (auto const [i, column]: value.columns | std::views::enumerate)
         {
+#endif
             if (i != 0)
                 output += ", ";
             output += column;
