@@ -17,6 +17,17 @@ include(ClangTidy)
 include(PedanticCompiler)
 
 find_package(reflection-cpp 0.4.0)
+find_package(Catch2 CONFIG REQUIRED)
+find_package(yaml-cpp CONFIG REQUIRED)
+
+option(LIGHTWEIGHT_CXX26_REFLECTION "Enable experimental reflection support from C++26" OFF)
+
+if(LIGHTWEIGHT_CXX26_REFLECTION)
+    add_definitions(-DLIGHTWEIGHT_CXX26_REFLECTION)
+    set(CMAKE_CXX_STANDARD 26)
+    message(STATUS "C++26 reflection support enabled.")
+endif()
+
 
 if(reflection-cpp_FOUND)
     message(STATUS "reflection-cpp found: ${reflection-cpp_INCLUDE_DIRS}")

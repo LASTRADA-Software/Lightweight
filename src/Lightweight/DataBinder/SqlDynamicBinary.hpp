@@ -59,7 +59,7 @@ class SqlDynamicBinary final
         _base { s, e }
     {
     }
-
+#if !defined(LIGHTWEIGHT_CXX26_REFLECTION)
     /// Constructs a fixed-size string from a string view.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicBinary(std::basic_string_view<value_type> s) noexcept:
         _base { static_cast<uint8_t const*>(s.data()), static_cast<uint8_t const*>(s.data() + s.size()) }
@@ -71,6 +71,7 @@ class SqlDynamicBinary final
     {
         return { _base.data(), _base.size() };
     }
+#endif
 
     constexpr auto operator<=>(SqlDynamicBinary<N> const&) const noexcept = default;
 
