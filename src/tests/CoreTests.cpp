@@ -438,6 +438,26 @@ TEST_CASE_METHOD(SqlTestFixture, "GetNullableColumn", "[SqlStatement]")
     CHECK(!actual2.has_value());
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "GetColumnOr", "[SqlStatement]")
+{
+    auto stmt = Lightweight::SqlStatement {};
+    stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("Test")
+            .Column("Remarks1", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 })
+            .Column("Remarks2", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 });
+    });
+    stmt.Prepare(R"(INSERT INTO "Test" ("Remarks1", "Remarks2") VALUES (?, ?))");
+    stmt.Execute("Blurb", Lightweight::SqlNullValue);
+
+    stmt.ExecuteDirect(R"(SELECT "Remarks1", "Remarks2" FROM "Test")");
+    auto result = stmt.GetResultCursor();
+    REQUIRE(result.FetchRow());
+    auto const actual1 = result.GetColumnOr<std::string>(1, "Foo");
+    auto const actual2 = result.GetColumnOr<std::string>(2, "Bar");
+    CHECK(actual1 == "Blurb");
+    CHECK(actual2 == "Bar");
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "Prepare and move", "[SqlStatement]")
 {
     Lightweight::SqlStatement stmt;
