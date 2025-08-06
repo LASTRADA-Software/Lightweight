@@ -5,7 +5,6 @@
 #include "../DataBinder/UnicodeConverter.hpp"
 #include "../SqlLogger.hpp"
 #include "Core.hpp"
-#include "MFCStringLike.hpp"
 #include "Primitives.hpp"
 #include "SqlDate.hpp"
 #include "SqlDateTime.hpp"

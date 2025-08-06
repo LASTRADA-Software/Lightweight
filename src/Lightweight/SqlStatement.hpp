@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include <stdexcept>
 #if defined(_WIN32) || defined(_WIN64)
     #include <Windows.h>
 #endif
@@ -19,6 +18,7 @@
 #include <optional>
 #include <ranges>
 #include <source_location>
+#include <stdexcept>
 #include <type_traits>
 #include <vector>
 
