@@ -1,6 +1,5 @@
 var NAVTREEINDEX2 =
 {
-"de/d6a/structLightweight_1_1SqlConnectionString.html":[7,0,0,14],
 "de/d73/classLightweight_1_1HasManyThrough.html":[5,2,7],
 "de/d73/classLightweight_1_1HasManyThrough.html#a1fe66ac23929adadf6bb4de58d1e050e":[5,2,7,14],
 "de/d73/classLightweight_1_1HasManyThrough.html#a21e9c6d2ec45efdc99352c6ae44517af":[5,2,7,6],
@@ -54,7 +53,7 @@ var NAVTREEINDEX2 =
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inputparameter":[4,1],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect":[4,4],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#outputcolumn":[4,2],
-"de/dbb/StdString_8hpp_source.html":[8,0,2,0,17],
+"de/dbb/StdString_8hpp_source.html":[8,0,2,0,16],
 "de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html":[7,0,0,28],
 "de/dfe/structLightweight_1_1SqlText.html":[5,0,9],
 "df/d13/SqlQueryFormatter_8hpp_source.html":[8,0,2,15],
@@ -115,7 +114,7 @@ var NAVTREEINDEX2 =
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html":[7,0,0,0,1],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a38e6606ee966480e7a5ab0b1069cf659":[7,0,0,0,1,0],
 "df/db7/QueryBuilders_8hpp_source.html":[8,0,2,1,8],
-"df/dcd/UnicodeConverter_8hpp_source.html":[8,0,2,0,20],
+"df/dcd/UnicodeConverter_8hpp_source.html":[8,0,2,0,19],
 "dir_07cc544e6394bf3dfdd028b8dfeac742.html":[8,0,2],
 "dir_20a36fc8a4949d7efb0c8c5bf02352ee.html":[8,0,2,2],
 "dir_3de76f419617a4f3e6f17c058a2a695a.html":[8,0,3,0],
