@@ -500,6 +500,56 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Join", "[SqlQueryBuilder]")
                WHERE "Table_A"."foo" = 42)"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Join with table aliasing", "[SqlQueryBuilder]")
+{
+    SECTION("simple case")
+    {
+        checkSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                return q.FromTable("That")
+                    .Select()
+                    .Fields("foo", "bar")
+                    .InnerJoin(AliasedTableName { .tableName = "Other", .alias = "Aliased1" }, "id", "that_id")
+                    .All();
+            },
+            QueryExpectations::All(
+                R"(SELECT "foo", "bar" FROM "That"
+                   INNER JOIN "Other" AS "Aliased1" ON "Aliased1"."id" = "That"."that_id")"));
+    }
+
+    SECTION("Join multiple times to self")
+    {
+        // clang-format off
+        checkSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                using namespace std::string_view_literals;
+                return q.FromTableAs("That", "A")
+                        .Select()
+                        .Fields({"foo"sv, "bar"sv}, "A")
+                        .Fields({"foo"sv, "bar"sv}, "B")
+                        .Fields({"foo"sv, "bar"sv}, "C")
+                        .Fields({"foo"sv, "bar"sv}, "D")
+                        .InnerJoin(AliasedTableName { .tableName = "That", .alias = "B" },
+                                   "foo",
+                                   SqlQualifiedTableColumnName { .tableName ="A", .columnName = "bar" })
+                        .InnerJoin(AliasedTableName { .tableName = "That", .alias = "C" },
+                                   "bar",
+                                   SqlQualifiedTableColumnName { .tableName = "B", .columnName = "com" })
+                        .InnerJoin(AliasedTableName { .tableName = "That", .alias = "D" },
+                                   "com",
+                                   SqlQualifiedTableColumnName { .tableName = "C", .columnName = "tar" })
+                        .All();
+            },
+            QueryExpectations::All(
+                R"(SELECT "A"."foo", "A"."bar", "B"."foo", "B"."bar", "C"."foo", "C"."bar", "D"."foo", "D"."bar" FROM "That" AS "A"
+                   INNER JOIN "That" AS "B" ON "B"."foo" = "A"."bar"
+                   INNER JOIN "That" AS "C" ON "C"."bar" = "B"."com"
+                   INNER JOIN "That" AS "D" ON "D"."com" = "C"."tar"
+                )"));
+        // clang-format on
+    }
+}
+
 struct JoinTestA
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
