@@ -32,5 +32,6 @@ var classLightweight_1_1SqlStatement =
     [ "GetVariantRowCursor", "db/dad/classLightweight_1_1SqlStatement.html#a696b3c702137a05dcad3178bc27113b7", null ],
     [ "GetColumn", "db/dad/classLightweight_1_1SqlStatement.html#a6cbc1d88b9c88371c4db1806bab6a700", null ],
     [ "GetColumn", "db/dad/classLightweight_1_1SqlStatement.html#afbcf5f28e24ed34a6246110a4b930872", null ],
-    [ "GetNullableColumn", "db/dad/classLightweight_1_1SqlStatement.html#ac4e7bc8a5e62d553623b67c089a4af58", null ]
+    [ "GetNullableColumn", "db/dad/classLightweight_1_1SqlStatement.html#ac4e7bc8a5e62d553623b67c089a4af58", null ],
+    [ "GetColumnOr", "db/dad/classLightweight_1_1SqlStatement.html#a989ea8b599aaf01c40fc493233366f7c", null ]
 ];

@@ -271,6 +271,9 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 <tr class="memitem:ac4e7bc8a5e62d553623b67c089a4af58" id="r_ac4e7bc8a5e62d553623b67c089a4af58"><td class="memTemplParams" colspan="2">template&lt;SqlGetColumnNativeType T&gt; </td></tr>
 <tr class="memitem:ac4e7bc8a5e62d553623b67c089a4af58"><td class="memTemplItemLeft" align="right" valign="top">std::optional&lt; T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ac4e7bc8a5e62d553623b67c089a4af58">GetNullableColumn</a> (SQLUSMALLINT column) const</td></tr>
 <tr class="separator:ac4e7bc8a5e62d553623b67c089a4af58"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a989ea8b599aaf01c40fc493233366f7c" id="r_a989ea8b599aaf01c40fc493233366f7c"><td class="memTemplParams" colspan="2">template&lt;SqlGetColumnNativeType T&gt; </td></tr>
+<tr class="memitem:a989ea8b599aaf01c40fc493233366f7c"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a989ea8b599aaf01c40fc493233366f7c">GetColumnOr</a> (SQLUSMALLINT column, T &amp;&amp;defaultValue) const</td></tr>
+<tr class="separator:a989ea8b599aaf01c40fc493233366f7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac19f8c92550b34319f2f7b48ec32c149" id="r_ac19f8c92550b34319f2f7b48ec32c149"><td class="memTemplParams" colspan="2">template&lt;SqlOutputColumnBinder... Args&gt; </td></tr>
 <tr class="memitem:ac19f8c92550b34319f2f7b48ec32c149"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ac19f8c92550b34319f2f7b48ec32c149">BindOutputColumns</a> (Args *... args)</td></tr>
 <tr class="separator:ac19f8c92550b34319f2f7b48ec32c149"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -335,7 +338,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00563">563</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00578">578</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -362,7 +365,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00568">568</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00583">583</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -391,9 +394,9 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 
 <p>Retrieves the connection associated with this statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00573">573</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00588">588</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00216">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::All()</a>, <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00232">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::First()</a>, <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00248">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::First()</a>, <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00470">Lightweight::SqlQuerySingleBuilder&lt; Record &gt;::Get()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00830">MigrateDirect()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00889">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00787">Lightweight::DataMapper::QuerySingle()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00750">Lightweight::DataMapper::QuerySingleWithoutRelationAutoLoading()</a>, and <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00265">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::Range()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00216">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::All()</a>, <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00232">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::First()</a>, <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00248">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::First()</a>, <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00470">Lightweight::SqlQuerySingleBuilder&lt; Record &gt;::Get()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00851">MigrateDirect()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00889">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00787">Lightweight::DataMapper::QuerySingle()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00750">Lightweight::DataMapper::QuerySingleWithoutRelationAutoLoading()</a>, and <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00265">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::Range()</a>.</p>
 
 </div>
 </div>
@@ -422,7 +425,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 
 <p>Retrieves the connection associated with this statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00578">578</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00593">593</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -451,7 +454,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 
 <p>Retrieves the last error information with respect to this SQL statement handle. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00583">583</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00598">598</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00044">Lightweight::SqlErrorInfo::fromStatementHandle()</a>.</p>
 
@@ -482,7 +485,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 
 <p>Retrieves the native handle of the statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00588">588</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00603">603</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -534,7 +537,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 <p>Prepares the statement for execution.</p>
 <dl class="section note"><dt>Note</dt><dd>When preparing a new SQL statement the previously executed statement, yielding a result set, must have been closed. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00593">593</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00608">608</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -562,7 +565,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00598">598</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00613">613</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -589,7 +592,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00603">603</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00618">618</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -644,7 +647,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 <dd>
 The records must be aggregate types, i.e. classes with public members and no user-defined constructors. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00619">619</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00634">634</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -668,7 +671,7 @@ template&lt;SqlInputParameterBinder... Args&gt; </div>
 
 <p>Binds the given arguments to the prepared statement and executes it. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00659">659</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00674">674</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00044">Lightweight::SqlErrorInfo::fromStatementHandle()</a>, <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">Lightweight::SqlLogger::GetLogger()</a>, <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00087">Lightweight::SqlLogger::OnBindInputParameter()</a>, and <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a1d04bb81c9f5d37e8b3690a657cd3f9d">Lightweight::SqlLogger::OnExecute()</a>.</p>
 
@@ -707,7 +710,7 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguo
 <p>Each parameter represents a column, to be bound as input parameter. The element types of each column container must be explicitly supported.</p>
 <p>In order to support column value types, their underlying storage must be contiguous. Also the input range itself must be contiguous. If any of these conditions are not met, the function will not compile - use <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a39e7689e3101f48e5fcafe5d39b5d935">ExecuteBatch()</a> instead. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00716">716</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00731">731</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -742,7 +745,7 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 <p>Each parameter represents a column, to be bound as input parameter, and the number of elements in these bound column containers will mandate how many executions will happen.</p>
 <p>This function will bind and execute each row separately, which is less efficient than <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5de8934a879ddef9062eef0d06342ff4">ExecuteBatchNative()</a>, but works non-contiguous input ranges. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00760">760</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00775">775</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -814,7 +817,7 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 
 <p>Executes the given query directly. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00822">822</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00843">843</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">ExecuteDirect()</a>.</p>
 
@@ -851,9 +854,9 @@ requires std::invocable&lt;Callable, <a class="el" href="../../d8/d65/classLight
 
 <p>Executes an SQL migration query, as created b the callback. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00830">830</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00851">851</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00878">CloseCursor()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00573">Connection()</a>, <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">ExecuteDirect()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00197">Lightweight::SqlConnection::QueryFormatter()</a>.</p>
+<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00899">CloseCursor()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00588">Connection()</a>, <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">ExecuteDirect()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00197">Lightweight::SqlConnection::QueryFormatter()</a>.</p>
 
 </div>
 </div>
@@ -895,7 +898,7 @@ requires (!std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight
 </div><div class="memdoc">
 <p>Executes the given query, assuming that only one result row and column is affected, that one will be returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00844">844</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00865">865</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -936,7 +939,7 @@ requires (std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight_
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00854">854</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00875">875</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -978,7 +981,7 @@ requires (!std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight
 </div><div class="memdoc">
 <p>Executes the given query, assuming that only one result row and column is affected, that one will be returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00866">866</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00887">887</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1019,7 +1022,7 @@ requires (std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight_
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00873">873</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00894">894</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1076,11 +1079,11 @@ requires (std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight_
 <p>Closes the result cursor on queries that yield a result set, e.g. SELECT statements.</p>
 <p>Call this function when done with fetching the results before the end of the result set is reached. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00878">878</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00899">899</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">Lightweight::SqlLogger::GetLogger()</a>, and <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a531204f908c6870f7e7e589ac0e20c2f">Lightweight::SqlLogger::OnFetchEnd()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01243">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00830">MigrateDirect()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01243">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00851">MigrateDirect()</a>.</p>
 
 </div>
 </div>
@@ -1109,7 +1112,7 @@ requires (std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight_
 
 <p>Retrieves the result cursor for reading an SQL query result. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00885">885</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00906">906</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00216">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::All()</a>, <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00202">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::Count()</a>, <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00232">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::First()</a>, <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00248">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::First()</a>, <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00470">Lightweight::SqlQuerySingleBuilder&lt; Record &gt;::Get()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00889">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00787">Lightweight::DataMapper::QuerySingle()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00750">Lightweight::DataMapper::QuerySingleWithoutRelationAutoLoading()</a>, <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00265">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::Range()</a>, and <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00507">Lightweight::SqlQuerySingleBuilder&lt; Record &gt;::Scalar()</a>.</p>
 
@@ -1140,7 +1143,7 @@ requires (std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight_
 
 <p>Retrieves the variant row cursor for reading an SQL query result of unknown column types and column count. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00890">890</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00911">911</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1182,7 +1185,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 <p>Retrieves the value of the column at the given index for the currently selected row.</p>
 <p>Returns true if the value is not NULL, false otherwise. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00784">784</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00799">799</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01243">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00817">Lightweight::DataMapper::QueryRaw()</a>.</p>
 
@@ -1216,7 +1219,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 
 <p>Retrieves the value of the column at the given index for the currently selected row. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00800">800</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00815">815</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1248,7 +1251,41 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 <p>Retrieves the value of the column at the given index for the currently selected row.</p>
 <p>If the value is NULL, std::nullopt is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00812">812</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00827">827</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a989ea8b599aaf01c40fc493233366f7c" name="a989ea8b599aaf01c40fc493233366f7c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a989ea8b599aaf01c40fc493233366f7c">&#9670;&#160;</a></span>GetColumnOr()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;SqlGetColumnNativeType T&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">T Lightweight::SqlStatement::GetColumnOr </td>
+          <td>(</td>
+          <td class="paramtype">SQLUSMALLINT&#160;</td>
+          <td class="paramname"><em>column</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">T &amp;&amp;&#160;</td>
+          <td class="paramname"><em>defaultValue</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Retrieves the value of the column at the given index for the currently selected row.</p>
+<p>If the value is NULL, the given <code>defaultValue</code> is returned. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00838">838</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1278,7 +1315,7 @@ template&lt;SqlOutputColumnBinder... Args&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00609">609</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00624">624</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1318,7 +1355,7 @@ template&lt;SqlOutputColumnBinder T&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00634">634</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00649">649</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1358,7 +1395,7 @@ template&lt;SqlInputParameterBinder Arg&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00642">642</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00657">657</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1404,7 +1441,7 @@ template&lt;SqlInputParameterBinder Arg, typename ColumnName &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00650">650</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00665">665</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1444,7 +1481,7 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00748">748</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00763">763</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
