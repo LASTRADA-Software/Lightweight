@@ -253,6 +253,12 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     template <SqlGetColumnNativeType T>
     [[nodiscard]] std::optional<T> GetNullableColumn(SQLUSMALLINT column) const;
 
+    /// Retrieves the value of the column at the given index for the currently selected row.
+    ///
+    /// If the value is NULL, the given @p defaultValue is returned.
+    template <SqlGetColumnNativeType T>
+    [[nodiscard]] T GetColumnOr(SQLUSMALLINT column, T&& defaultValue) const;
+
   private:
     LIGHTWEIGHT_API void RequireSuccess(SQLRETURN error,
                                         std::source_location sourceLocation = std::source_location::current()) const;
@@ -369,6 +375,15 @@ class [[nodiscard]] SqlResultCursor
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::optional<T> GetNullableColumn(SQLUSMALLINT column) const
     {
         return m_stmt->GetNullableColumn<T>(column);
+    }
+
+    /// Retrieves the value of the column at the given index for the currently selected row.
+    ///
+    /// If the value is NULL, the given @p defaultValue is returned.
+    template <SqlGetColumnNativeType T>
+    [[nodiscard]] T GetColumnOr(SQLUSMALLINT column, T&& defaultValue) const
+    {
+        return m_stmt->GetColumnOr(column, std::forward<T>(defaultValue));
     }
 
   private:
@@ -817,6 +832,12 @@ inline std::optional<T> SqlStatement::GetNullableColumn(SQLUSMALLINT column) con
     if (indicator == SQL_NULL_DATA)
         return std::nullopt;
     return { std::move(result) };
+}
+
+template <SqlGetColumnNativeType T>
+T SqlStatement::GetColumnOr(SQLUSMALLINT column, T&& defaultValue) const
+{
+    return GetNullableColumn<T>(column).value_or(std::forward<T>(defaultValue));
 }
 
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::ExecuteDirect(SqlQueryObject auto const& query,
