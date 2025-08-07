@@ -597,7 +597,7 @@ inline LIGHTWEIGHT_FORCE_INLINE SqlConnection const& SqlStatement::Connection() 
 
 inline LIGHTWEIGHT_FORCE_INLINE SqlErrorInfo SqlStatement::LastError() const
 {
-    return SqlErrorInfo::fromStatementHandle(m_hStmt);
+    return SqlErrorInfo::FromStatementHandle(m_hStmt);
 }
 
 inline LIGHTWEIGHT_FORCE_INLINE SQLHSTMT SqlStatement::NativeHandle() const noexcept
@@ -693,7 +693,7 @@ void SqlStatement::Execute(Args const&... args)
     auto const result = SQLExecute(m_hStmt);
 
     if (result != SQL_NO_DATA && result != SQL_SUCCESS && result != SQL_SUCCESS_WITH_INFO)
-        throw SqlException(SqlErrorInfo::fromStatementHandle(m_hStmt), std::source_location::current());
+        throw SqlException(SqlErrorInfo::FromStatementHandle(m_hStmt), std::source_location::current());
 
     ProcessPostExecuteCallbacks();
 }

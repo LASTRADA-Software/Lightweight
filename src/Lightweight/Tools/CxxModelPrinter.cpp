@@ -157,7 +157,7 @@ std::string CxxModelPrinter::FormatTableName(std::string_view name)
     return result;
 }
 
-std::string CxxModelPrinter::aliasTableName(std::string_view name) const
+std::string CxxModelPrinter::AliasTableName(std::string_view name) const
 {
     if (_config.makeAliases)
         return FormatTableName(name);
@@ -181,7 +181,7 @@ std::string CxxModelPrinter::aliasTableName(std::string_view name) const
     auto includes = std::vector<std::string> {};
     includes.reserve(_definitions.size());
     for (auto const& [tableName, definition]: _definitions)
-        includes.emplace_back(std::format("{}.hpp", aliasTableName(tableName)));
+        includes.emplace_back(std::format("{}.hpp", AliasTableName(tableName)));
 
     std::ranges::sort(includes);
 
@@ -191,22 +191,22 @@ std::string CxxModelPrinter::aliasTableName(std::string_view name) const
     return {};
 }
 
-void CxxModelPrinter::printToFiles(std::string_view modelNamespace, std::string_view outputDirectory)
+void CxxModelPrinter::PrintToFiles(std::string_view modelNamespace, std::string_view outputDirectory)
 {
     for (auto const& [tableName, definition]: _definitions)
     {
-        auto const fileName = std::format("{}/{}.hpp", outputDirectory, aliasTableName(tableName));
+        auto const fileName = std::format("{}/{}.hpp", outputDirectory, AliasTableName(tableName));
         auto file = std::ofstream(fileName);
         if (!file)
         {
             std::println("Failed to create file {}.", fileName);
             continue;
         }
-        file << headerFileForTheTable(modelNamespace, tableName);
+        file << HeaderFileForTheTable(modelNamespace, tableName);
     }
 }
 
-std::string CxxModelPrinter::headerFileForTheTable(std::string_view modelNamespace,
+std::string CxxModelPrinter::HeaderFileForTheTable(std::string_view modelNamespace,
                                                    std::string const& tableName) // NOLINT(readability-identifier-naming)
 {
     std::stringstream output;
@@ -601,12 +601,12 @@ std::string CxxModelPrinter::ToString(std::string_view modelNamespace)
     for (auto const& [tableName, definition]: _definitions)
     {
         result += std::format("// file: {}.hpp\n", tableName);
-        result += headerFileForTheTable(modelNamespace, tableName);
+        result += HeaderFileForTheTable(modelNamespace, tableName);
     }
     return result;
 }
 
-std::string CxxModelPrinter::tableIncludes() const
+std::string CxxModelPrinter::TableIncludes() const
 {
 
     std::string result;
@@ -617,11 +617,11 @@ std::string CxxModelPrinter::tableIncludes() const
     return result;
 }
 
-std::string CxxModelPrinter::example(SqlSchema::Table const& table) const
+std::string CxxModelPrinter::Example(SqlSchema::Table const& table) const
 {
     std::stringstream exampleEntries;
 
-    auto const tableName = aliasTableName(table.name);
+    auto const tableName = AliasTableName(table.name);
 
     exampleEntries << std::format("auto entries{} = dm.Query<{}>().First(10);\n", tableName, tableName);
     exampleEntries << std::format("for (auto const& entry: entries{})\n", tableName);

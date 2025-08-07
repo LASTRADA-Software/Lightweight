@@ -4,7 +4,6 @@
 
 #include "../Utils.hpp"
 #include "Error.hpp"
-#include "Record.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 

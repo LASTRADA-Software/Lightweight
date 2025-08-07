@@ -4,14 +4,12 @@
 
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "../SqlError.hpp"
-#include "../SqlLogger.hpp"
 #include "Primitives.hpp"
 
 #include <cmath>
 #include <compare>
 #include <concepts>
 #include <cstring>
-#include <print>
 #include <source_location>
 
 namespace Lightweight
@@ -182,7 +180,7 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
         if (SQL_SUCCEEDED(error))
             return;
 
-        throw SqlException(SqlErrorInfo::fromStatementHandle(stmt), sourceLocation);
+        throw SqlException(SqlErrorInfo::FromStatementHandle(stmt), sourceLocation);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt, SQLUSMALLINT column, ValueType const& value, SqlDataBinderCallback& /*cb*/) noexcept

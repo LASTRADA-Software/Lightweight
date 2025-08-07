@@ -51,6 +51,7 @@ struct SqlRealName
 
     [[nodiscard]] constexpr auto operator<=>(SqlRealName const&) const = default;
 
+    // NOLINTNEXTLINE(readability-identifier-naming)
     [[nodiscard]] constexpr std::string_view sv() const noexcept
     {
         return { value, length };

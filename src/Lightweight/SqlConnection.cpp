@@ -242,7 +242,7 @@ void SqlConnection::PostConnect()
 
 SqlErrorInfo SqlConnection::LastError() const
 {
-    return SqlErrorInfo::fromConnectionHandle(m_hDbc);
+    return SqlErrorInfo::FromConnectionHandle(m_hDbc);
 }
 
 void SqlConnection::Close() noexcept

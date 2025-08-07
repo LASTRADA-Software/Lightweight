@@ -20,6 +20,7 @@ namespace SqlSchema
 
     namespace detail
     {
+        // NOLINTNEXTLINE(readability-identifier-naming)
         constexpr std::string_view rtrim(std::string_view value) noexcept
         {
             while (!value.empty() && (std::isspace(value.back()) || value.back() == '\0'))

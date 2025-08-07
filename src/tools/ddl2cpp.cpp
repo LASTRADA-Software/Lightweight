@@ -452,7 +452,7 @@ void GenerateExample(Configuration const& config,
     auto const sourceFileName = normalizedOutputDir + "example.cpp";
     auto file = std::ofstream(sourceFileName); // NOLINT(bugprone-suspicious-stringview-data-usage)
 
-    file << cxxModelPrinter.tableIncludes();
+    file << cxxModelPrinter.TableIncludes();
     file << "#include <cstdlib>\n";
     file << "\n";
     file << "int main()\n";
@@ -464,7 +464,7 @@ void GenerateExample(Configuration const& config,
     file << "\n";
     for (auto const& table: tables)
     {
-        file << cxxModelPrinter.example(table);
+        file << cxxModelPrinter.Example(table);
     }
     file << "\n";
     file << "return EXIT_SUCCESS;\n";
@@ -527,7 +527,7 @@ int main(int argc, char const* argv[])
         std::println("{}", cxxModelPrinter.ToString(config.modelNamespace));
     else
         TimedExecution(std::format("Writing to directory {}", config.outputDirectory),
-                       [&] { cxxModelPrinter.printToFiles(config.modelNamespace, config.outputDirectory); });
+                       [&] { cxxModelPrinter.PrintToFiles(config.modelNamespace, config.outputDirectory); });
 
     if (!config.cumulativeHeaderFile.empty())
     {
