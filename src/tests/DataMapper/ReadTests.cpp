@@ -37,7 +37,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
     for (auto& person: expectedPersons)
         dm.Create(person);
 
-    SECTION("Query.Count")
+    SECTION("Count()")
     {
         auto const count = dm.Query<Person>().Where(FieldNameOf<&Person::is_active>, "=", true).Count();
         CHECK(count == 2);
@@ -46,7 +46,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
         CHECK(countAll == 4);
     }
 
-    SECTION("Query.All")
+    SECTION("All()")
     {
         auto const records =
             dm.Query<Person>().Where(FieldNameOf<&Person::is_active>, "=", true).OrderBy(FieldNameOf<&Person::name>).All();
@@ -56,7 +56,22 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
         CHECK(records[1] == expectedPersons[0]);
     }
 
-    SECTION("Query.First n")
+    SECTION("All<&Person::age>()")
+    {
+        // clang-format off
+        auto const ages = dm.Query<Person>()
+                            .OrderBy(FieldNameOf<&Person::age>, SqlResultOrdering::ASCENDING)
+                            .All<&Person::age>();
+        // clang-format on
+
+        CHECK(ages.size() == 4);
+        CHECK(ages.at(0).value() == 24);
+        CHECK(ages.at(1).value() == 36);
+        CHECK(ages.at(2).value() == 42);
+        CHECK(ages.at(3).value() == 69);
+    }
+
+    SECTION("First(n)")
     {
         auto const records = dm.Query<Person>()
                                  .Where(FieldNameOf<&Person::age>, ">=", 30)
@@ -68,7 +83,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
         CHECK(records[1] == expectedPersons[3]);
     }
 
-    SECTION("Query.First")
+    SECTION("First()")
     {
         auto const record = dm.Query<Person>().Where(FieldNameOf<&Person::age>, "<=", 24).First();
 
@@ -79,7 +94,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
         REQUIRE(impossible.has_value() == false);
     }
 
-    SECTION("Query.Range")
+    SECTION("Range()")
     {
         // clang-format off
         auto const records = dm.Query<Person>()
