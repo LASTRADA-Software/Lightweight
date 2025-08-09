@@ -279,8 +279,8 @@ TEST_CASE_METHOD(SqlTestFixture, "TestQuerySparseDynamicData", "[DataMapper]")
         INFO(size);
         data.stringUtf16 = std::basic_string<char16_t>(size, u'a');
         dm.Update(data);
-        auto const result = dm.QuerySparse<TestDynamicData, &TestDynamicData::stringUtf16>()
-                                .Where(FieldNameOf<&TestDynamicData::id>, "=", data.id.Value())
+        auto const result = dm.QuerySparse<TestDynamicData, Member(TestDynamicData::stringUtf16)>()
+                                .Where(FieldNameOf<Member(TestDynamicData::id)>, "=", data.id.Value())
                                 .First();
         REQUIRE(result.has_value());
         REQUIRE(result.value().stringUtf16.Value() == std::basic_string<char16_t>(size, u'a'));
@@ -375,7 +375,7 @@ TEST_CASE_METHOD(SqlTestFixture, "TestMessageStruct", "[DataMapper]")
 struct MessageStructTo
 {
     Field<SqlGuid, PrimaryKey::AutoAssign, SqlRealName { "primary_key" }> id;
-    BelongsTo<&MessagesStruct::id, SqlRealName { "log_key" }, SqlNullable::Null> log_message {};
+    BelongsTo<Member(MessagesStruct::id), SqlRealName { "log_key" }, SqlNullable::Null> log_message {};
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "TestMessageStructTo", "[DataMapper]")

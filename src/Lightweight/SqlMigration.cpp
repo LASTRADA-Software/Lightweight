@@ -108,8 +108,15 @@ size_t MigrationManager::ApplyPendingMigrations(ExecuteCallback const& feedbackC
 {
     auto const pendingMigrations = GetPending();
 
+#if defined(CXX26_REFLECTION)
+    int index { -1 };
+    for (auto& migration: pendingMigrations)
+    {
+        ++index;
+#else
     for (auto&& [index, migration]: pendingMigrations | std::views::enumerate)
     {
+#endif
         if (feedbackCallback)
             feedbackCallback(*migration, index, _migrations.size());
         ApplySingleMigration(*migration);

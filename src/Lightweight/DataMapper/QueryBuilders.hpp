@@ -291,7 +291,7 @@ template <typename Record, auto... ReferencedFields>
 class [[nodiscard]] SqlSparseFieldQueryBuilder final:
     public SqlCoreDataMapperQueryBuilder<Record, SqlSparseFieldQueryBuilder<Record, ReferencedFields...>>
 {
-    using ElementMask = std::integer_sequence<size_t, Reflection::MemberIndexOf<ReferencedFields>...>;
+    using ElementMask = std::integer_sequence<size_t, MemberIndexOf<ReferencedFields>...>;
 
   private:
     friend class DataMapper;
@@ -329,7 +329,11 @@ class [[nodiscard]] SqlSparseFieldQueryBuilder final:
     {
         auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(sqlServerType);
         if (outputColumnsBound)
+#if defined(CXX26_REFLECTION)
+            reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
+#else
             reader.BindOutputColumns(&(record.*ReferencedFields)...);
+#endif
 
         if (!reader.FetchRow())
             return false;
