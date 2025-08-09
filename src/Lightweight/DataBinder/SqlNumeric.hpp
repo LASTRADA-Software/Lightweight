@@ -6,6 +6,7 @@
 #include "../SqlError.hpp"
 #include "Primitives.hpp"
 
+#include <bit>
 #include <cmath>
 #include <compare>
 #include <concepts>

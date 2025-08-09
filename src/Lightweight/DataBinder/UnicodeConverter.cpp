@@ -43,7 +43,7 @@ std::u8string ToUtf8(std::u16string_view u16InputString)
         }
         else if (codeUnits == 0)
         {
-            detail::UnicodeConverter<char8_t>::Convert(c16, std::back_inserter(u8String));
+            detail::UnicodeConverter<char8_t>::Convert(static_cast<char32_t>(c16), std::back_inserter(u8String));
         }
         else
         {
