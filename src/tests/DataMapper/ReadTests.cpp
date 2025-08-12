@@ -388,8 +388,15 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: Partial retriaval of the data", "[DataM
                                                            .OrderBy(FieldNameOf<&Person::age>, SqlResultOrdering::ASCENDING)
                                                            .All());
 
+#if !defined(__cpp_lib_ranges_enumerate)
+    int i { -1 };
+    for (auto const& record: records)
+    {
+        ++i;
+#else
     for (auto const [i, record]: records | std::views::enumerate)
     {
+#endif
         auto const age = StartAge + i;
         CAPTURE(age);
         REQUIRE(record.name.Value() == std::format("John-{}", age));

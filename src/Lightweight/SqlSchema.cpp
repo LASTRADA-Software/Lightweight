@@ -180,7 +180,7 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
 
     eventHandler.OnTables(tableNames);
 
-    for (auto const [i, tableName]: tableNames | std::views::enumerate)
+    for (auto const& tableName: tableNames)
     {
         if (tableName == "sqlite_sequence")
             continue;
