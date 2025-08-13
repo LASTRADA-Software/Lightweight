@@ -108,7 +108,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
     }
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "QuerySingle", "[DataMapper]")
+TEST_CASE_METHOD(SqlTestFixture, "Query into First()", "[DataMapper]")
 {
     auto dm = DataMapper {};
 
@@ -125,27 +125,26 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle", "[DataMapper]")
 
     SECTION("Get()")
     {
-        auto const record = dm.QuerySingle<Person>().Where(FullFieldNameOf<&Person::age>, "=", 36).Get();
+        auto const record = dm.Query<Person>().Where(FullFieldNameOf<&Person::age>, "=", 36).First();
         CHECK(record.has_value());
         CHECK(record.value() == expectedPersons[2]);
     }
 
     SECTION("Get() with non-existing record")
     {
-        auto const record = dm.QuerySingle<Person>().Where(FullFieldNameOf<&Person::age>, "=", -5).Get();
+        auto const record = dm.Query<Person>().Where(FullFieldNameOf<&Person::age>, "=", -5).First();
         CHECK(record.has_value() == false);
     }
 
     SECTION("Count()")
     {
-        auto const count = dm.QuerySingle<Person>().Where(FieldNameOf<&Person::age>, "=", 24).Count();
+        auto const count = dm.Query<Person>().Where(FieldNameOf<&Person::age>, "=", 24).Count();
         CHECK(count == 1);
     }
 
     SECTION("Single<T>()")
     {
-        auto const result =
-            dm.QuerySingle<Person>().Where(FieldNameOf<&Person::name>, "=", "Jimbo Jones").Scalar<&Person::age>();
+        auto const result = dm.Query<Person>().Where(FieldNameOf<&Person::name>, "=", "Jimbo Jones").First<&Person::age>();
         CHECK(result.has_value());
         CHECK(result.value() == 69);
     }
@@ -160,7 +159,7 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.All", "[DataMapper]")
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 });
 
     auto const records =
-        dm.QuerySparse<Person, &Person::name, &Person::age>().Where(FieldNameOf<&Person::is_active>, "=", true).All();
+        dm.Query<Person>().Where(FieldNameOf<&Person::is_active>, "=", true).All<&Person::name, &Person::age>();
 
     CHECK(records.size() == 1);
     CHECK(records[0].name == "John Doe");
@@ -182,10 +181,10 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.First n", "[DataMapper]")
     for (auto& person: expectedPersons)
         dm.Create(person);
 
-    auto const records = dm.QuerySparse<Person, &Person::name, &Person::age>()
+    auto const records = dm.Query<Person>()
                              .Where(FieldNameOf<&Person::age>, ">=", 30)
                              .OrderBy(FieldNameOf<&Person::name>, SqlResultOrdering::ASCENDING)
-                             .First(2);
+                             .First<&Person::name, &Person::age>(2);
 
     CHECK(records.size() == 2);
 
@@ -206,14 +205,16 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.First", "[DataMapper]")
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 });
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 });
 
-    auto const record = dm.QuerySparse<Person, &Person::name>().Where(FieldNameOf<&Person::age>, "<=", 24).First();
+    auto const record =
+        dm.Query<Person>().Where(FieldNameOf<&Person::age>, "<=", 24).First<&Person::name, &Person::is_active>();
 
     REQUIRE(record.has_value());
-    CHECK(record->name == "Jimmy John");
-    CHECK(record->age.Value().has_value() == false); // age is not queried, so it defaults to 0
-    CHECK(record->is_active == true);                // is_active is not queried, so it defaults to false
+    CHECK(record->name == "Jimmy John");             // name is queried
+    CHECK(record->age.Value().has_value() == false); // age is not queried
+    CHECK(record->is_active == false);               // is_active is queried
 
-    auto const impossible = dm.QuerySparse<Person, &Person::name>().Where(FieldNameOf<&Person::age>, "=", -5).First();
+    auto const impossible =
+        dm.Query<Person>().Where(FieldNameOf<&Person::age>, "=", -5).First<&Person::name, &Person::is_active>();
     REQUIRE(impossible.has_value() == false);
 }
 
@@ -228,9 +229,9 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.Range", "[DataMapper]")
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "John Doe", .is_active = true, .age = 42 });
 
     // clang-format off
-    auto const records = dm.QuerySparse<Person, &Person::name, &Person::age>()
+    auto const records = dm.Query<Person>()
                            .OrderBy(FieldNameOf<&Person::name>, SqlResultOrdering::ASCENDING)
-                           .Range(1, 2);
+                           .Range<&Person::name, &Person::age>(1, 2);
     // clang-format on
 
     CHECK(records.size() == 2);
@@ -245,22 +246,6 @@ struct UserView
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<SqlAnsiString<30>> name {};
 };
-
-TEST_CASE_METHOD(SqlTestFixture, "partial row retrieval", "[DataMapper]")
-{
-    auto dm = DataMapper();
-    dm.CreateTable<Person>();
-
-    auto person = Person {};
-    person.name = "John Doe";
-    person.is_active = true;
-    REQUIRE(!person.id.Value());
-    dm.Create(person);
-
-    auto po = dm.QuerySingle<PersonName>(person.id);
-    auto p = po.value();
-    CHECK(p.name.Value() == person.name.Value());
-}
 
 TEST_CASE_METHOD(SqlTestFixture, "iterate over database", "[SqlRowIterator]")
 {
@@ -423,7 +408,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: Partial retriaval of the data", "[DataM
 struct SimpleStruct2
 {
     std::u8string name;
-    int age;
+    int age = 0;
 };
 
 static_assert(std::cmp_equal(RecordPrimaryKeyIndex<SimpleStruct2>, static_cast<size_t>(-1)));
@@ -434,7 +419,7 @@ std::ostream& operator<<(std::ostream& os, SimpleStruct2 const& record)
     return os << DataMapper::Inspect(record);
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct", "[DataMapper]")
+TEST_CASE_METHOD(SqlTestFixture, "Query First: into simple struct", "[DataMapper]")
 {
     auto dm = DataMapper {};
 
@@ -445,64 +430,7 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct", "[DataMapper
 
     dm.CreateExplicit(SimpleStruct2 { .name = u8"John", .age = 42 });
 
-    auto result = dm.QuerySingle<SimpleStruct2>().Get();
-
-    REQUIRE(result.has_value());
-    auto const& record = result.value();
-    CAPTURE(record);
-    CHECK(record.name == u8"John");
-    CHECK(record.age == 42);
-}
-
-struct SimpleStruct3
-{
-    std::string name;
-    int age;
-    int notAge;
-};
-
-TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct with extra element", "[DataMapper]")
-{
-    auto dm = DataMapper {};
-
-    SqlStatement(dm.Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-        using namespace SqlColumnTypeDefinitions;
-        // clang-format off
-        migration.CreateTable(RecordTableName<SimpleStruct3>)
-                 .Column("name", NVarchar { 30 })
-                 .Column("age", Integer {});
-        // clang-format on
-    });
-
-    auto stmt = SqlStatement(dm.Connection());
-    stmt.ExecuteDirect(R"(INSERT INTO "SimpleStruct3" ("name", "age") VALUES ('John', 42))");
-
-    auto result =
-        dm.QuerySingle<SimpleStruct3>(dm.FromTable(RecordTableName<SimpleStruct3>).Select().Fields({ "name"sv, "age"sv }));
-
-    REQUIRE(result.has_value());
-    auto const& record = result.value();
-    CAPTURE(record);
-    CHECK(record.name == "John");
-    CHECK(record.age == 42);
-}
-
-TEST_CASE_METHOD(SqlTestFixture, "QuerySingle: into simple struct with less elements", "[DataMapper]")
-{
-    auto dm = DataMapper {};
-
-    SqlStatement(dm.Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-        using namespace SqlColumnTypeDefinitions;
-        migration.CreateTable(RecordTableName<SimpleStruct3>)
-            .Column("name", NVarchar { 30 })
-            .Column("age", Integer {})
-            .Column("notAge", Integer {});
-    });
-
-    dm.CreateExplicit(SimpleStruct3 { .name = "John", .age = 42, .notAge = 0 });
-
-    auto result =
-        dm.QuerySingle<SimpleStruct2>(dm.FromTable(RecordTableName<SimpleStruct3>).Select().Fields({ "name"sv, "age"sv }));
+    auto result = dm.Query<SimpleStruct2>().First();
 
     REQUIRE(result.has_value());
     auto const& record = result.value();

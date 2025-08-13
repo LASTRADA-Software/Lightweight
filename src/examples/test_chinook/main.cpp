@@ -88,9 +88,9 @@ int main()
     std::println("Iterated over {} Albums", numberOfAlbums);
 
     // select album with the title "Mozart Gala: Famous Arias"
-    auto album = dm.QuerySingle<Album>() // NOLINT(bugprone-unchecked-optional-access)
+    auto album = dm.Query<Album>() // NOLINT(bugprone-unchecked-optional-access)
                      .Where(FieldNameOf<&Album::Title>, "=", "Mozart Gala: Famous Arias")
-                     .Get()
+                     .First()
                      .value();
 
     std::println("AlbumId: {}, Title: {}", album.AlbumId.Value(), album.ArtistId.Value());
@@ -104,9 +104,9 @@ int main()
 
     {
         // get an artist with the name "Sir Georg Solti, Sumi Jo & Wiener Philharmoniker"
-        auto artist = dm.QuerySingle<Artist>() // NOLINT(bugprone-unchecked-optional-access)
+        auto artist = dm.Query<Artist>() // NOLINT(bugprone-unchecked-optional-access)
                           .Where(FieldNameOf<&Artist::Name>, "=", "Red Hot Chili Peppers")
-                          .Get()
+                          .First()
                           .value();
         std::println("ArtistId: {}, Name: {}", // NOLINT(bugprone-unchecked-optional-access)
                      artist.ArtistId.Value(),
@@ -151,7 +151,7 @@ int main()
 
     {
         // get one employee
-        auto employee = dm.QuerySingle<Employee>(1).value();     // NOLINT(bugprone-unchecked-optional-access)
+        auto employee = dm.Query<Employee>().Where(FieldNameOf<&Employee::EmployeeId>, 1).First().value();     // NOLINT(bugprone-unchecked-optional-access)
         std::println(" {} ", employee.HireDate.Value().value()); // NOLINT(bugprone-unchecked-optional-access)
         // update hiring date to current date
         employee.HireDate = SqlDateTime::Now();
