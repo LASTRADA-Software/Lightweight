@@ -195,13 +195,13 @@ namespace detail
         // Holds the full field name in the format "ClassName"."FieldName"
         static constexpr auto Storage = []() constexpr -> std::array<char, StorageSize> {
             // clang-format off
-        auto storage = std::array<char, StorageSize> {};
-        std::ranges::copy("\"",      storage.begin());
-        std::ranges::copy(ClassName, storage.begin() + 1);
-        std::ranges::copy("\".\"",   storage.begin() + 1 + ClassName.size());
-        std::ranges::copy(FieldName, storage.begin() + 1 + ClassName.size() + 3);
-        std::ranges::copy("\"",      storage.begin() + 1 + ClassName.size() + 3 + FieldName.size());
-        storage.back() = '\0';
+            auto storage = std::array<char, StorageSize> {};
+            std::ranges::copy("\"",      storage.begin());
+            std::ranges::copy(ClassName, storage.begin() + 1);
+            std::ranges::copy("\".\"",   storage.begin() + 1 + ClassName.size());
+            std::ranges::copy(FieldName, storage.begin() + 1 + ClassName.size() + 3);
+            std::ranges::copy("\"",      storage.begin() + 1 + ClassName.size() + 3 + FieldName.size());
+            storage.back() = '\0';
             // clang-format on
             return storage;
         }();
