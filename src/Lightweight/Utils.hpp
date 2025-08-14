@@ -6,6 +6,7 @@
 
 #include <reflection-cpp/reflection.hpp>
 
+#include <algorithm>
 #include <ranges>
 #include <source_location>
 #include <string_view>
@@ -156,7 +157,6 @@ namespace detail
         else
             return Reflection::MemberNameOf<I, Record>;
     }
-
 } // namespace detail
 
 /// @brief Returns the SQL field name of the given field index in the record.
@@ -195,13 +195,13 @@ namespace detail
         // Holds the full field name in the format "ClassName"."FieldName"
         static constexpr auto Storage = []() constexpr -> std::array<char, StorageSize> {
             // clang-format off
-        auto storage = std::array<char, StorageSize> {};
-        std::ranges::copy("\"",      storage.begin());
-        std::ranges::copy(ClassName, storage.begin() + 1);
-        std::ranges::copy("\".\"",   storage.begin() + 1 + ClassName.size());
-        std::ranges::copy(FieldName, storage.begin() + 1 + ClassName.size() + 3);
-        std::ranges::copy("\"",      storage.begin() + 1 + ClassName.size() + 3 + FieldName.size());
-        storage.back() = '\0';
+            auto storage = std::array<char, StorageSize> {};
+            std::ranges::copy("\"",      storage.begin());
+            std::ranges::copy(ClassName, storage.begin() + 1);
+            std::ranges::copy("\".\"",   storage.begin() + 1 + ClassName.size());
+            std::ranges::copy(FieldName, storage.begin() + 1 + ClassName.size() + 3);
+            std::ranges::copy("\"",      storage.begin() + 1 + ClassName.size() + 3 + FieldName.size());
+            storage.back() = '\0';
             // clang-format on
             return storage;
         }();
@@ -229,6 +229,43 @@ constexpr bool operator!=(SqlRawColumnNameView const& lhs, std::string_view rhs)
 template <auto ReferencedField>
 constexpr inline auto FullFieldNameOf = SqlRawColumnNameView {
     .value = detail::FullFieldNameOfImpl<ReferencedField>::value,
+};
+
+namespace detail
+{
+    template <auto... ReferencedFields>
+    struct QuotedFieldNamesOfImpl
+    {
+        static constexpr auto StorageSize =
+            1 + (2 * (sizeof...(ReferencedFields) - 1)) + (0 + ... + FullFieldNameOf<ReferencedFields>.value.size());
+
+        static constexpr auto Storage = []() constexpr -> std::array<char, StorageSize> {
+            std::array<char, StorageSize> storage {};
+            size_t offset = 0;
+            ((std::ranges::copy_if(", ", storage.begin() + offset, [=]() -> bool { return offset > 0; }),
+              std::ranges::copy(FullFieldNameOf<ReferencedFields>.value, storage.begin() + offset + (offset > 0 ? 2 : 0)),
+              offset += FieldNameOf<ReferencedFields>.size() + (offset > 0 ? 2 : 0)),
+             ...);
+            storage.back() = '\0';
+            return storage;
+        }();
+
+        static constexpr auto value = std::string_view(Storage.data(), Storage.size() - 1);
+    };
+
+} // namespace detail
+
+/// @brief Holds the quoted fully qualified field names of the given fields.
+///
+/// @code
+/// auto const quotedFieldNames = QuotedFieldNamesOf<&Person::id, &Person::name, &Person::age>;
+/// static_assert(quotedFieldNames.value == R"sql("Person"."id", "Person"."name", "Person"."age")sql");
+/// @endcode
+///
+/// @ingroup DataMapper
+template <auto... ReferencedFields>
+constexpr inline auto QuotedFieldNamesOf = SqlRawColumnNameView {
+    .value = detail::QuotedFieldNamesOfImpl<ReferencedFields...>::value,
 };
 
 LIGHTWEIGHT_API void LogIfFailed(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLocation);
