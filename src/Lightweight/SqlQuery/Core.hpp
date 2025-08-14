@@ -5,9 +5,9 @@
 #include "../Api.hpp"
 #include "../SqlQueryFormatter.hpp"
 
+#include <algorithm>
 #include <concepts>
 #include <ranges>
-#include <algorithm>
 
 namespace Lightweight
 {
@@ -66,10 +66,13 @@ struct SqlQualifiedTableColumnName
 /// tableName = "Table" and columnName = "Column".
 template <Reflection::StringLiteral columnLiteral>
 constexpr SqlQualifiedTableColumnName QualifiedColumnName = []() consteval {
+#if !defined(_MSC_VER)
     // enforce that we do not have symbols \ [ ] " '
-    static_assert(!std::ranges::any_of(columnLiteral,
-                                       [](char c) { return c == '\\' || c == '[' || c == ']' || c == '"' || c == '\''; }),
-                  "QualifiedColumnName should not contain symbols \\ [ ] \" '");
+    static_assert(
+        !std::ranges::any_of(columnLiteral,
+                             [](char c) consteval { return c == '\\' || c == '[' || c == ']' || c == '"' || c == '\''; }),
+        "QualifiedColumnName should not contain symbols \\ [ ] \" '");
+#endif
 
     static_assert(std::ranges::count(columnLiteral, '.') == 1,
                   "QualifiedColumnName requires a column name with a single '.' to separate table and column name");
