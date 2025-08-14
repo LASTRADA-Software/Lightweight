@@ -205,14 +205,16 @@ TEST_CASE_METHOD(SqlTestFixture, "QuerySparse.First", "[DataMapper]")
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 });
     dm.CreateExplicit(Person { .id = SqlGuid::Create(), .name = "Jimbo Jones", .is_active = false, .age = 69 });
 
-    auto const record = dm.QuerySparse<Person, &Person::name>().Where(FieldNameOf<&Person::age>, "<=", 24).First();
+    auto const record =
+        dm.Query<Person>().Where(FieldNameOf<&Person::age>, "<=", 24).First<&Person::name, &Person::is_active>();
 
     REQUIRE(record.has_value());
-    CHECK(record->name == "Jimmy John");
-    CHECK(record->age.Value().has_value() == false); // age is not queried, so it defaults to 0
-    CHECK(record->is_active == true);                // is_active is not queried, so it defaults to false
+    CHECK(record->name == "Jimmy John");             // name is queried
+    CHECK(record->age.Value().has_value() == false); // age is not queried
+    CHECK(record->is_active == false);               // is_active is queried
 
-    auto const impossible = dm.QuerySparse<Person, &Person::name>().Where(FieldNameOf<&Person::age>, "=", -5).First();
+    auto const impossible =
+        dm.Query<Person>().Where(FieldNameOf<&Person::age>, "=", -5).First<&Person::name, &Person::is_active>();
     REQUIRE(impossible.has_value() == false);
 }
 

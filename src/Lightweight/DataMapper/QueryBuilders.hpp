@@ -339,6 +339,37 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         return std::nullopt;
     }
 
+    template <auto... ReferencedFields>
+        requires(sizeof...(ReferencedFields) >= 2)
+    [[nodiscard]] auto First() -> std::optional<Record>
+    {
+        auto optionalRecord = std::optional<Record> {};
+
+        _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+                                                   QuotedFieldNamesOf<ReferencedFields...>.value,
+                                                   RecordTableName<Record>,
+                                                   this->_query.searchCondition.tableAlias,
+                                                   this->_query.searchCondition.tableJoins,
+                                                   this->_query.searchCondition.condition,
+                                                   this->_query.orderBy,
+                                                   1));
+
+        auto& record = optionalRecord.emplace();
+        SqlResultCursor reader = _stmt.GetResultCursor();
+        auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
+        if (outputColumnsBound)
+            reader.BindOutputColumns(&(record.*ReferencedFields)...);
+        if (!reader.FetchRow())
+            return std::nullopt;
+        if (!outputColumnsBound)
+        {
+            using ElementMask = std::integer_sequence<size_t, Reflection::MemberIndexOf<ReferencedFields>...>;
+            detail::GetAllColumns<ElementMask>(reader, record);
+        }
+
+        return optionalRecord;
+    }
+
     /// Executes a SELECT query for the first n records found and returns them.
     [[nodiscard]] std::vector<Record> First(size_t n)
     {
