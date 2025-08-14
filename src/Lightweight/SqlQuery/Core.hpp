@@ -7,6 +7,7 @@
 
 #include <concepts>
 #include <ranges>
+#include <algorithm>
 
 namespace Lightweight
 {
@@ -57,6 +58,25 @@ struct SqlQualifiedTableColumnName
     std::string_view tableName;
     std::string_view columnName;
 };
+
+/// @brief Helper function to create a SqlQualifiedTableColumnName from string_view
+///
+/// @param column The column name, which must be qualified with a table name.
+/// Example QualifiedColumnName<"Table.Column"> will create a SqlQualifiedTableColumnName with
+/// tableName = "Table" and columnName = "Column".
+template <Reflection::StringLiteral columnLiteral>
+constexpr SqlQualifiedTableColumnName QualifiedColumnName = []() consteval {
+    // enforce that we do not have symbols \ [ ] " '
+    static_assert(!std::ranges::any_of(columnLiteral,
+                                       [](char c) { return c == '\\' || c == '[' || c == ']' || c == '"' || c == '\''; }),
+                  "QualifiedColumnName should not contain symbols \\ [ ] \" '");
+
+    static_assert(std::ranges::count(columnLiteral, '.') == 1,
+                  "QualifiedColumnName requires a column name with a single '.' to separate table and column name");
+    constexpr auto column = columnLiteral.sv();
+    auto dotPos = column.find('.');
+    return SqlQualifiedTableColumnName { .tableName = column.substr(0, dotPos), .columnName = column.substr(dotPos + 1) };
+}();
 
 namespace detail
 {
