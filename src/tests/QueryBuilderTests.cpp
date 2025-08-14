@@ -534,10 +534,10 @@ TEST_CASE_METHOD(SqlTestFixture, "Join with table aliasing", "[SqlQueryBuilder]"
                                    SqlQualifiedTableColumnName { .tableName ="A", .columnName = "bar" })
                         .InnerJoin(AliasedTableName { .tableName = "That", .alias = "C" },
                                    "bar",
-                                   SqlQualifiedTableColumnName { .tableName = "B", .columnName = "com" })
+                                   QualifiedColumnName<"B.com">)
                         .InnerJoin(AliasedTableName { .tableName = "That", .alias = "D" },
                                    "com",
-                                   SqlQualifiedTableColumnName { .tableName = "C", .columnName = "tar" })
+                                   QualifiedColumnName<"C.tar">)
                         .All();
             },
             QueryExpectations::All(

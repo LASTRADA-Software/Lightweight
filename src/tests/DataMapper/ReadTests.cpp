@@ -4,6 +4,7 @@
 #include "Entities.hpp"
 
 #include <Lightweight/Lightweight.hpp>
+#include <Lightweight/SqlQuery/Core.hpp>
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -313,7 +314,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: SELECT into simple struct", "[DataMappe
     auto records =
         dm.Query<SimpleStruct>(dm.FromTable("TableA")
                                    .Select()
-                                   .Field(SqlQualifiedTableColumnName { .tableName = "TableA", .columnName = "pk" })
+                                   .Field(QualifiedColumnName<"TableA.pk">)
                                    .Field(SqlQualifiedTableColumnName { .tableName = "TableB", .columnName = "pk" })
                                    .Fields({ "c1"sv, "c2"sv }, "TableA"sv)
                                    .Fields({ "c1"sv, "c2"sv }, "TableB"sv)

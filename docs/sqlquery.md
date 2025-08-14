@@ -80,6 +80,7 @@ interface. Here we present a compressed list of functions that can be used to cr
   - `Field()`
     - Simple usage `Field("field")` 
     - With table name specification as `Field(SqlQualifiedTableColumnName { "Table", "field" })`
+    - Helper function to construct `SqlQualifiedTableColumnName` from a string `QualifiedColumnName<"Table.field">`
   - `Fields()`
     - Simple usage `Fields({"a", "b", "c"})`
     - Fields from another table `Fields({"a", "b", "c"}, "Table_B")`
