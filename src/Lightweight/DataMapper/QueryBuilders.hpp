@@ -334,7 +334,11 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         {
             auto& record = records.emplace_back();
             if (outputColumnsBound)
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+                reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
+#else
                 reader.BindOutputColumns(&(record.*ReferencedFields)...);
+#endif
             if (!reader.FetchRow())
             {
                 records.pop_back();
@@ -342,7 +346,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
             }
             if (!outputColumnsBound)
             {
-                using ElementMask = std::integer_sequence<size_t, Reflection::MemberIndexOf<ReferencedFields>...>;
+                using ElementMask = std::integer_sequence<size_t, MemberIndexOf<ReferencedFields>...>;
                 detail::GetAllColumns<ElementMask>(reader, record);
             }
         }
@@ -412,12 +416,16 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         SqlResultCursor reader = _stmt.GetResultCursor();
         auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
         if (outputColumnsBound)
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+            reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
+#else
             reader.BindOutputColumns(&(record.*ReferencedFields)...);
+#endif
         if (!reader.FetchRow())
             return std::nullopt;
         if (!outputColumnsBound)
         {
-            using ElementMask = std::integer_sequence<size_t, Reflection::MemberIndexOf<ReferencedFields>...>;
+            using ElementMask = std::integer_sequence<size_t, MemberIndexOf<ReferencedFields>...>;
             detail::GetAllColumns<ElementMask>(reader, record);
         }
 
@@ -461,7 +469,11 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         {
             auto& record = records.emplace_back();
             if (outputColumnsBound)
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+                reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
+#else
                 reader.BindOutputColumns(&(record.*ReferencedFields)...);
+#endif
             if (!reader.FetchRow())
             {
                 records.pop_back();
@@ -469,7 +481,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
             }
             if (!outputColumnsBound)
             {
-                using ElementMask = std::integer_sequence<size_t, Reflection::MemberIndexOf<ReferencedFields>...>;
+                using ElementMask = std::integer_sequence<size_t, MemberIndexOf<ReferencedFields>...>;
                 detail::GetAllColumns<ElementMask>(reader, record);
             }
         }
@@ -524,7 +536,11 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         {
             auto& record = records.emplace_back();
             if (outputColumnsBound)
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+                reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
+#else
                 reader.BindOutputColumns(&(record.*ReferencedFields)...);
+#endif
             if (!reader.FetchRow())
             {
                 records.pop_back();
@@ -532,7 +548,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
             }
             if (!outputColumnsBound)
             {
-                using ElementMask = std::integer_sequence<size_t, Reflection::MemberIndexOf<ReferencedFields>...>;
+                using ElementMask = std::integer_sequence<size_t, MemberIndexOf<ReferencedFields>...>;
                 detail::GetAllColumns<ElementMask>(reader, record);
             }
         }

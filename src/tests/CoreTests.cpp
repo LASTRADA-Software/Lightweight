@@ -82,16 +82,16 @@ struct QuotedFieldNameTestRecord
 
 TEST_CASE_METHOD(SqlTestFixture, "QuotedFieldNamesOf", "[Utils]")
 {
-    static_assert(Lightweight::QuotedFieldNamesOf<&QuotedFieldNameTestRecord::firstName>.value
+    static_assert(Lightweight::QuotedFieldNamesOf<Member(QuotedFieldNameTestRecord::firstName)>.value
                   == R"sql("QuotedFieldNameTestRecord"."firstName")sql");
 
     static_assert(
-        Lightweight::QuotedFieldNamesOf<&QuotedFieldNameTestRecord::firstName, &QuotedFieldNameTestRecord::lastName>.value
+        Lightweight::QuotedFieldNamesOf<Member(QuotedFieldNameTestRecord::firstName), Member(QuotedFieldNameTestRecord::lastName)>.value
         == R"sql("QuotedFieldNameTestRecord"."firstName", "QuotedFieldNameTestRecord"."lastName")sql");
 
-    static_assert(Lightweight::QuotedFieldNamesOf<&QuotedFieldNameTestRecord::firstName,
-                                          &QuotedFieldNameTestRecord::lastName,
-                                          &QuotedFieldNameTestRecord::salary>.value
+    static_assert(Lightweight::QuotedFieldNamesOf<Member(QuotedFieldNameTestRecord::firstName),
+                                          Member(QuotedFieldNameTestRecord::lastName),
+                                          Member(QuotedFieldNameTestRecord::salary)>.value
           == R"sql("QuotedFieldNameTestRecord"."firstName", "QuotedFieldNameTestRecord"."lastName", "QuotedFieldNameTestRecord"."salary")sql");
 }
 

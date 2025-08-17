@@ -251,7 +251,8 @@ TEST_CASE_METHOD(SqlTestFixture, "TestDynamicData", "[DataMapper]")
         data.stringWide = std::basic_string<wchar_t>(size, L'a');
         dm.Update(data);
 
-        auto const result = dm.Query<TestDynamicData>().Where(FieldNameOf<&TestDynamicData::id>, data.id.Value()).First();
+        auto const result =
+            dm.Query<TestDynamicData>().Where(FieldNameOf<Member(TestDynamicData::id)>, data.id.Value()).First();
         REQUIRE(result.has_value());
         REQUIRE(result.value().stringAnsi.Value() == std::string(size, 'a'));
         REQUIRE(result.value().stringUtf16.Value() == std::basic_string<char16_t>(size, u'a'));
@@ -280,8 +281,8 @@ TEST_CASE_METHOD(SqlTestFixture, "TestQuerySparseDynamicData", "[DataMapper]")
         data.stringUtf16 = std::basic_string<char16_t>(size, u'a');
         dm.Update(data);
         auto const result = dm.Query<TestDynamicData>()
-                                .Where(FieldNameOf<&TestDynamicData::id>, "=", data.id.Value())
-                                .First<&TestDynamicData::stringUtf16>();
+                                .Where(FieldNameOf<Member(TestDynamicData::id)>, "=", data.id.Value())
+                                .First<Member(TestDynamicData::stringUtf16)>();
         REQUIRE(result.has_value());
         REQUIRE(result.value() == std::basic_string<char16_t>(size, u'a'));
     };
@@ -375,7 +376,7 @@ TEST_CASE_METHOD(SqlTestFixture, "TestMessageStruct", "[DataMapper]")
 struct MessageStructTo
 {
     Field<SqlGuid, PrimaryKey::AutoAssign, SqlRealName { "primary_key" }> id;
-    BelongsTo<&MessagesStruct::id, SqlRealName { "log_key" }, SqlNullable::Null> log_message {};
+    BelongsTo<Member(MessagesStruct::id), SqlRealName { "log_key" }, SqlNullable::Null> log_message {};
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "TestMessageStructTo", "[DataMapper]")
@@ -461,7 +462,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
     auto const numRowsAffected = dm.Delete(person);
     CHECK(numRowsAffected == 1);
 
-    CHECK(!dm.Query<Person>().Where(FieldNameOf<&Person::id>, person.id.Value()).First().has_value());
+    CHECK(!dm.Query<Person>().Where(FieldNameOf<Member(Person::id)>, person.id.Value()).First().has_value());
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
