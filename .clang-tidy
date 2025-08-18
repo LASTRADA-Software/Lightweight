@@ -93,4 +93,4 @@ CheckOptions:
   - key:             readability-identifier-naming.FunctionCase
     value:           CamelCase
   - key:             readability-identifier-naming.FunctionIgnoredRegexp
-    value:           '^(main|begin|end|push_back|pop_back|data|str|get|size|resize|empty|clear|value|c_str|capacity|to_string|assign|at|reserve|substr)$'
+    value:           '^(main|begin|end|push_back|pop_back|data|str|get|size|resize|empty|clear|value|c_str|capacity|to_string|string_view|assign|at|reserve|substr)$'

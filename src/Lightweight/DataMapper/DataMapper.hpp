@@ -70,9 +70,9 @@ namespace detail
 /// auto const personId = dm.Create(person);
 ///
 /// // Query the person record from the database
-/// auto const queriedPerson = dm.QuerySingle<Person>(personId)
+/// auto const queriedPerson = dm.Query<Person>(personId)
 ///                              .Where(FieldNameOf<&Person::id>, "=", personId)
-///                              .Get();
+///                              .First();
 ///
 /// if (queriedPerson.has_value())
 ///     std::println("Queried Person: {}", DataMapper::Inspect(queriedPerson.value()));
@@ -162,15 +162,6 @@ class DataMapper
     template <typename Record>
     RecordPrimaryKeyType<Record> CreateExplicit(Record const& record);
 
-    /// @brief Queries a single record from the database based on the given query.
-    ///
-    /// @param selectQuery The SQL select query to execute.
-    /// @param args The input parameters for the query.
-    ///
-    /// @return The record if found, otherwise std::nullopt.
-    template <typename Record, typename... Args>
-    std::optional<Record> QuerySingle(SqlSelectQueryBuilder selectQuery, Args&&... args);
-
     /// @brief Queries a single record (based on primary key) from the database.
     ///
     /// The primary key(s) are used to identify the record to load.
@@ -187,34 +178,6 @@ class DataMapper
     /// depth on MSVC compiler.
     template <typename Record, typename... PrimaryKeyTypes>
     std::optional<Record> QuerySingleWithoutRelationAutoLoading(PrimaryKeyTypes&&... primaryKeys);
-
-    /// @brief Queries a single record from the database.
-    ///
-    /// @return A query builder for the given Record type that will also allow executing the query.
-    ///
-    /// @code
-    /// auto const record = dm.QuerySingle<Person>(personId)
-    ///                       .Where(FieldNameOf<&Person::id>, "=", 42)
-    ///                       .Get();
-    /// if (record.has_value())
-    ///     std::println("Person: {}", DataMapper::Inspect(record.value()));
-    /// @endcode
-    template <typename Record>
-    SqlQuerySingleBuilder<Record> QuerySingle()
-    {
-        std::string fields;
-        Reflection::EnumerateMembers<Record>([&fields]<size_t I, typename Field>() {
-            if (!fields.empty())
-                fields += ", ";
-            fields += '"';
-            fields += RecordTableName<Record>;
-            fields += "\".\"";
-            fields += FieldNameAt<I, Record>;
-            fields += '"';
-        });
-
-        return SqlQuerySingleBuilder<Record>(_stmt, std::move(fields));
-    }
 
     /// Queries multiple records from the database, based on the given query.
     template <typename Record, typename... InputParameters>
@@ -358,37 +321,6 @@ class DataMapper
         return SqlAllFieldsQueryBuilder<Record>(_stmt, std::move(fields));
     }
 
-    /// Queries select fields from the given Record type.
-    ///
-    /// The fields are given in form of &Record::field1, &Record::field2, ...
-    ///
-    /// @returns A query builder for the given Record type. The query builder can be used to further refine the query.
-    ///          The query builder will execute the query when a method like All(), First(n), etc. is called.
-    ///
-    /// @code
-    /// auto const records = dm.QuerySparse<Person, &Person::id, &Person::name, &Person::age>()
-    ///                        .Where(FieldNameOf<&Person::is_active>, "=", true)
-    ///                        .All();
-    /// @endcode
-    template <typename Record, auto... ReferencedFields>
-    SqlSparseFieldQueryBuilder<Record, ReferencedFields...> QuerySparse()
-    {
-        auto const appendFieldTo = []<auto ReferencedField>(std::string& fields) {
-            using ReferencedRecord = Reflection::MemberClassType<ReferencedField>;
-            if (!fields.empty())
-                fields += ", ";
-            fields += '"';
-            fields += RecordTableName<ReferencedRecord>;
-            fields += "\".\"";
-            fields += FieldNameOf<ReferencedField>;
-            fields += '"';
-        };
-        std::string fields;
-        (appendFieldTo.template operator()<ReferencedFields>(fields), ...);
-
-        return SqlSparseFieldQueryBuilder<Record, ReferencedFields...>(_stmt, std::move(fields));
-    }
-
     /// Updates the record in the database.
     template <typename Record>
     void Update(Record& record);
@@ -423,6 +355,15 @@ class DataMapper
     void ConfigureRelationAutoLoading(Record& record);
 
   private:
+    /// @brief Queries a single record from the database based on the given query.
+    ///
+    /// @param selectQuery The SQL select query to execute.
+    /// @param args The input parameters for the query.
+    ///
+    /// @return The record if found, otherwise std::nullopt.
+    template <typename Record, typename... Args>
+    std::optional<Record> QuerySingle(SqlSelectQueryBuilder selectQuery, Args&&... args);
+
     template <typename Record, typename ValueType>
     void SetId(Record& record, ValueType&& id);
 

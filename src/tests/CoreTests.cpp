@@ -73,6 +73,28 @@ TEST_CASE_METHOD(SqlTestFixture, "UniqueNameBuilder", "[Utils]")
     REQUIRE(uniqueNameBuilder.TryDeclareName("baz") == std::nullopt);
 }
 
+struct QuotedFieldNameTestRecord
+{
+    Lightweight::Field<Lightweight::SqlAnsiString<30>> firstName;
+    Lightweight::Field<Lightweight::SqlAnsiString<30>> lastName;
+    Lightweight::Field<int> salary;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "QuotedFieldNamesOf", "[Utils]")
+{
+    static_assert(Lightweight::QuotedFieldNamesOf<&QuotedFieldNameTestRecord::firstName>.value
+                  == R"sql("QuotedFieldNameTestRecord"."firstName")sql");
+
+    static_assert(
+        Lightweight::QuotedFieldNamesOf<&QuotedFieldNameTestRecord::firstName, &QuotedFieldNameTestRecord::lastName>.value
+        == R"sql("QuotedFieldNameTestRecord"."firstName", "QuotedFieldNameTestRecord"."lastName")sql");
+
+    static_assert(Lightweight::QuotedFieldNamesOf<&QuotedFieldNameTestRecord::firstName,
+                                          &QuotedFieldNameTestRecord::lastName,
+                                          &QuotedFieldNameTestRecord::salary>.value
+          == R"sql("QuotedFieldNameTestRecord"."firstName", "QuotedFieldNameTestRecord"."lastName", "QuotedFieldNameTestRecord"."salary")sql");
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnectionDataSource.FromConnectionString", "[SqlConnection]")
 {
     auto const connectionString = Lightweight::SqlConnectionString { "Dsn=Test;UID=TestUser;Pwd=TestPassword;Timeout=10" };

@@ -97,7 +97,7 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[DataMapper],[Field],[
     dm.CreateExplicit(expectedRecord);
 
     // Check single record retrieval
-    auto const actualResult = dm.QuerySingle<TestRecord>().Get();
+    auto const actualResult = dm.Query<TestRecord>().First();
     REQUIRE(actualResult.has_value());
     CHECK(actualResult.value() == expectedRecord);
 
@@ -251,7 +251,7 @@ TEST_CASE_METHOD(SqlTestFixture, "TestDynamicData", "[DataMapper]")
         data.stringWide = std::basic_string<wchar_t>(size, L'a');
         dm.Update(data);
 
-        auto const result = dm.QuerySingle<TestDynamicData>(data.id);
+        auto const result = dm.Query<TestDynamicData>().Where(FieldNameOf<&TestDynamicData::id>, data.id.Value()).First();
         REQUIRE(result.has_value());
         REQUIRE(result.value().stringAnsi.Value() == std::string(size, 'a'));
         REQUIRE(result.value().stringUtf16.Value() == std::basic_string<char16_t>(size, u'a'));
@@ -279,11 +279,11 @@ TEST_CASE_METHOD(SqlTestFixture, "TestQuerySparseDynamicData", "[DataMapper]")
         INFO(size);
         data.stringUtf16 = std::basic_string<char16_t>(size, u'a');
         dm.Update(data);
-        auto const result = dm.QuerySparse<TestDynamicData, &TestDynamicData::stringUtf16>()
+        auto const result = dm.Query<TestDynamicData>()
                                 .Where(FieldNameOf<&TestDynamicData::id>, "=", data.id.Value())
-                                .First();
+                                .First<&TestDynamicData::stringUtf16>();
         REQUIRE(result.has_value());
-        REQUIRE(result.value().stringUtf16.Value() == std::basic_string<char16_t>(size, u'a'));
+        REQUIRE(result.value() == std::basic_string<char16_t>(size, u'a'));
     };
 
     checkSize(5);
@@ -437,6 +437,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
 
     // Read (by primary key)
     auto po = dm.QuerySingle<Person>(person.id);
+    REQUIRE(po.has_value());
     auto p = po.value();
     CHECK(p.id == person.id);
     CHECK(p.name == person.name);
@@ -449,6 +450,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
     dm.Update(person);
 
     po = dm.QuerySingle<Person>(person.id);
+    REQUIRE(po.has_value());
     p = po.value();
     CHECK(p.id == person.id);
     CHECK(p.name == person.name);
@@ -459,7 +461,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
     auto const numRowsAffected = dm.Delete(person);
     CHECK(numRowsAffected == 1);
 
-    CHECK(!dm.QuerySingle<Person>(person.id));
+    CHECK(!dm.Query<Person>().Where(FieldNameOf<&Person::id>, person.id.Value()).First().has_value());
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
