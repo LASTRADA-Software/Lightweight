@@ -232,6 +232,28 @@ jobs:
             Lightweight-Linux-CI.tar.gz
           retention-days: 1
 
+  cpp26-reflection:
+    name: "C++26 reflection implementation"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: all
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          version: latest
+      - name: Build
+        shell: bash
+        run: |
+          docker buildx build  \
+              --progress=plain \
+              -f .github/Reflection.Dockerfile \
+              --load . --no-cache
+
   ddl2cpp:
     name: "ddl2cpp"
     runs-on: ubuntu-24.04
