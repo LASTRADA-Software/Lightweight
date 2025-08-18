@@ -8,5 +8,6 @@ var index =
     [ "Using SQLite for testing on Windows operating system", "index.html#using-sqlite-for-testing-on-windows-operating-system", [
       [ "SQLite ODBC driver installation on other operating systems", "index.html#sqlite-odbc-driver-installation-on-other-operating-systems", null ]
     ] ],
-    [ "Generate example for the existing database", "index.html#generate-example-for-the-existing-database", null ]
+    [ "Generate example for the existing database", "index.html#generate-example-for-the-existing-database", null ],
+    [ "Compile using C++26 reflection support", "index.html#compile-using-c26-reflection-support", null ]
 ];

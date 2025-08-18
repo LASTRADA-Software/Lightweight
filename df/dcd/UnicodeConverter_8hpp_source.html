@@ -391,7 +391,7 @@ $(document).ready(function(){initNavTree('df/dcd/UnicodeConverter_8hpp_source.ht
 <div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>    <span class="keywordflow">for</span> (<span class="keywordtype">char16_t</span> <span class="keyword">const</span> c16: u16InputString)</div>
 <div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>    {</div>
 <div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>        <span class="keywordflow">if</span> (c16 &lt; 0xD800 || c16 &gt;= 0xDC00)</div>
-<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>            result.push_back(c16);</div>
+<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>            result.push_back(<span class="keyword">static_cast&lt;</span><span class="keywordtype">char32_t</span><span class="keyword">&gt;</span>(c16));</div>
 <div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>        <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>            result.push_back(0x10000 + ((c16 &amp; 0x3FF) | ((c16 &amp; 0x3FF) &lt;&lt; 10)));</div>
 <div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>    }</div>
