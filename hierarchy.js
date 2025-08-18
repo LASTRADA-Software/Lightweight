@@ -77,7 +77,6 @@ var hierarchy =
     [ "Lightweight::SqlNumeric< ThePrecision, TheScale >", "d6/d1b/structLightweight_1_1SqlNumeric.html", null ],
     [ "Lightweight::SqlQueryBuilder", "de/da0/classLightweight_1_1SqlQueryBuilder.html", null ],
     [ "Lightweight::SqlQueryFormatter", "d8/df7/classLightweight_1_1SqlQueryFormatter.html", null ],
-    [ "Lightweight::SqlQuerySingleBuilder< Record >", "d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html", null ],
     [ "Lightweight::SqlRealName< N >", "d7/d13/structLightweight_1_1SqlRealName.html", null ],
     [ "Lightweight::SqlResultCursor", "d8/d63/classLightweight_1_1SqlResultCursor.html", null ],
     [ "Lightweight::SqlRowIterator< T >", "d2/d8e/classLightweight_1_1SqlRowIterator.html", null ],
@@ -94,9 +93,6 @@ var hierarchy =
     [ "Lightweight::UniqueNameBuilder", "da/d15/classLightweight_1_1UniqueNameBuilder.html", null ],
     [ "Lightweight::SqlCoreDataMapperQueryBuilder< Record, SqlAllFieldsQueryBuilder< Record > >", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", [
       [ "Lightweight::SqlAllFieldsQueryBuilder< Record >", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ]
-    ] ],
-    [ "Lightweight::SqlCoreDataMapperQueryBuilder< Record, SqlSparseFieldQueryBuilder< Record, ReferencedFields... > >", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", [
-      [ "Lightweight::SqlSparseFieldQueryBuilder< Record, ReferencedFields >", "d3/d55/classLightweight_1_1SqlSparseFieldQueryBuilder.html", null ]
     ] ],
     [ "std::exception", null, [
       [ "std::runtime_error", null, [

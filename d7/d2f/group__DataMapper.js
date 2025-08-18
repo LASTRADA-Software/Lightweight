@@ -35,15 +35,12 @@ var group__DataMapper =
       [ "CreateTables", "de/d61/classLightweight_1_1DataMapper.html#a9876b49397398231200d326dfba78bdb", null ],
       [ "Create", "de/d61/classLightweight_1_1DataMapper.html#aaf59c560a6141b8dc7a5a253aa0ee27f", null ],
       [ "CreateExplicit", "de/d61/classLightweight_1_1DataMapper.html#aa17c743b55af25f5de7ccdc7a5264661", null ],
-      [ "QuerySingle", "de/d61/classLightweight_1_1DataMapper.html#ae773f443460c175a373e0b02eb88af53", null ],
       [ "QuerySingle", "de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4", null ],
       [ "QuerySingleWithoutRelationAutoLoading", "de/d61/classLightweight_1_1DataMapper.html#a0ee9df27df1779d4b6c6212aae482f79", null ],
-      [ "QuerySingle", "de/d61/classLightweight_1_1DataMapper.html#a523f8773b71cab9426f486848463e193", null ],
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#aa6b188d4c0b7e8b267f2722d0e3f1401", null ],
       [ "QueryRaw", "de/d61/classLightweight_1_1DataMapper.html#a9bfbf6773a04363ccc811e845af4d404", null ],
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747", null ],
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#a974d4ddd35cd3e5413e930f66bf5724b", null ],
-      [ "QuerySparse", "de/d61/classLightweight_1_1DataMapper.html#a39cbd36cc981b35bfcf7a8deca908eda", null ],
       [ "Update", "de/d61/classLightweight_1_1DataMapper.html#a0d838468c9635a154a22206928511d27", null ],
       [ "Delete", "de/d61/classLightweight_1_1DataMapper.html#a708db890dfc02b9ad4183ee9c7ea2512", null ],
       [ "FromTable", "de/d61/classLightweight_1_1DataMapper.html#ac0e2e432c3ad94048fb407883f4dd64d", null ],
@@ -119,16 +116,15 @@ var group__DataMapper =
     [ "Lightweight::SqlCoreDataMapperQueryBuilder< Record, Derived >", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", [
       [ "Count", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#aa74481ea89406ca19c072ff7fda6965c", null ],
       [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ad8cfddaf08b7bedde3ea903247560f72", null ],
+      [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ab7eacec15a4a5eb07bb9b3b14277f07c", null ],
+      [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ab926ce0f86a82b6bd9abd255c695e317", null ],
       [ "First", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a45eca1902dcaac7b3b6effa581b1a542", null ],
+      [ "First", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ab43e8c01c06dd2158a29582201bbf049", null ],
+      [ "First", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a4d518ff7f16320f8fe44fa8e2d578195", null ],
       [ "First", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a32fde70ac846c40661fcdbcc03c90367", null ],
       [ "Range", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a830a87b59acef6a411e2a55c9d86ec21", null ]
     ] ],
-    [ "Lightweight::SqlSparseFieldQueryBuilder< Record, ReferencedFields >", "d3/d55/classLightweight_1_1SqlSparseFieldQueryBuilder.html", null ],
     [ "Lightweight::SqlAllFieldsQueryBuilder< Record >", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ],
-    [ "Lightweight::SqlQuerySingleBuilder< Record >", "d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html", [
-      [ "Get", "d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html#a37319e299fe1e8765a18f08fa55b5532", null ],
-      [ "Scalar", "d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html#a10c3fbbc769d54c331a310ec2c20348a", null ]
-    ] ],
     [ "Lightweight::ReferencedFieldTypeOf", "d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8", null ],
     [ "Lightweight::SqlElements", "d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25", null ],
     [ "Lightweight::GetPrimaryKeyField", "d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33", null ],
@@ -136,5 +132,6 @@ var group__DataMapper =
     [ "Lightweight::HasPrimaryKey", "d7/d2f/group__DataMapper.html#gae0874e29a73741a5badb14bacafae06e", null ],
     [ "Lightweight::HasAutoIncrementPrimaryKey", "d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0", null ],
     [ "Lightweight::FieldNameAt", "d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24", null ],
-    [ "Lightweight::RecordTableName", "d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab", null ]
+    [ "Lightweight::RecordTableName", "d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab", null ],
+    [ "Lightweight::QuotedFieldNamesOf", "d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0", null ]
 ];

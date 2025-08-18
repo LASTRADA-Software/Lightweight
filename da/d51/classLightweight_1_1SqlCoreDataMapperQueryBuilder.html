@@ -110,15 +110,39 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ad8cfddaf08b7bedde3ea903247560f72" id="r_ad8cfddaf08b7bedde3ea903247560f72"><td class="memItemLeft" align="right" valign="top">std::vector&lt; Record &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ad8cfddaf08b7bedde3ea903247560f72">All</a> ()</td></tr>
 <tr class="memdesc:ad8cfddaf08b7bedde3ea903247560f72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes a SELECT query and returns all records found.  <br /></td></tr>
 <tr class="separator:ad8cfddaf08b7bedde3ea903247560f72"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab7eacec15a4a5eb07bb9b3b14277f07c" id="r_ab7eacec15a4a5eb07bb9b3b14277f07c"><td class="memTemplParams" colspan="2">template&lt;auto Field&gt; </td></tr>
+<tr class="memitem:ab7eacec15a4a5eb07bb9b3b14277f07c"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ab7eacec15a4a5eb07bb9b3b14277f07c">All</a> () -&gt; std::vector&lt; <a class="el" href="../../d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8">ReferencedFieldTypeOf</a>&lt; <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a> &gt; &gt;</td></tr>
+<tr class="memdesc:ab7eacec15a4a5eb07bb9b3b14277f07c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes a SELECT query and returns all records found for the specified field.  <br /></td></tr>
+<tr class="separator:ab7eacec15a4a5eb07bb9b3b14277f07c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab926ce0f86a82b6bd9abd255c695e317" id="r_ab926ce0f86a82b6bd9abd255c695e317"><td class="memTemplParams" colspan="2">template&lt;auto... ReferencedFields&gt; <br />
+requires (sizeof...(ReferencedFields) &gt;= 2)</td></tr>
+<tr class="memitem:ab926ce0f86a82b6bd9abd255c695e317"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ab926ce0f86a82b6bd9abd255c695e317">All</a> () -&gt; std::vector&lt; Record &gt;</td></tr>
+<tr class="memdesc:ab926ce0f86a82b6bd9abd255c695e317"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes a SELECT query and returns all records found for the specified field, only having the specified fields queried and populated.  <br /></td></tr>
+<tr class="separator:ab926ce0f86a82b6bd9abd255c695e317"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a45eca1902dcaac7b3b6effa581b1a542" id="r_a45eca1902dcaac7b3b6effa581b1a542"><td class="memItemLeft" align="right" valign="top">std::optional&lt; Record &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a45eca1902dcaac7b3b6effa581b1a542">First</a> ()</td></tr>
 <tr class="memdesc:a45eca1902dcaac7b3b6effa581b1a542"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes a SELECT query for the first record found and returns it.  <br /></td></tr>
 <tr class="separator:a45eca1902dcaac7b3b6effa581b1a542"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab43e8c01c06dd2158a29582201bbf049" id="r_ab43e8c01c06dd2158a29582201bbf049"><td class="memTemplParams" colspan="2">template&lt;auto Field&gt; </td></tr>
+<tr class="memitem:ab43e8c01c06dd2158a29582201bbf049"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ab43e8c01c06dd2158a29582201bbf049">First</a> () -&gt; std::optional&lt; <a class="el" href="../../d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8">ReferencedFieldTypeOf</a>&lt; <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a> &gt; &gt;</td></tr>
+<tr class="memdesc:ab43e8c01c06dd2158a29582201bbf049"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes the query to get a single scalar value from the first record found.  <br /></td></tr>
+<tr class="separator:ab43e8c01c06dd2158a29582201bbf049"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4d518ff7f16320f8fe44fa8e2d578195" id="r_a4d518ff7f16320f8fe44fa8e2d578195"><td class="memTemplParams" colspan="2">template&lt;auto... ReferencedFields&gt; <br />
+requires (sizeof...(ReferencedFields) &gt;= 2)</td></tr>
+<tr class="memitem:a4d518ff7f16320f8fe44fa8e2d578195"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a4d518ff7f16320f8fe44fa8e2d578195">First</a> () -&gt; std::optional&lt; Record &gt;</td></tr>
+<tr class="memdesc:a4d518ff7f16320f8fe44fa8e2d578195"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes a SELECT query for the first record found and returns it with only the specified fields populated.  <br /></td></tr>
+<tr class="separator:a4d518ff7f16320f8fe44fa8e2d578195"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a32fde70ac846c40661fcdbcc03c90367" id="r_a32fde70ac846c40661fcdbcc03c90367"><td class="memItemLeft" align="right" valign="top">std::vector&lt; Record &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a32fde70ac846c40661fcdbcc03c90367">First</a> (size_t n)</td></tr>
 <tr class="memdesc:a32fde70ac846c40661fcdbcc03c90367"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes a SELECT query for the first n records found and returns them.  <br /></td></tr>
 <tr class="separator:a32fde70ac846c40661fcdbcc03c90367"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5ddf9230b8e17021786477a502340d81" id="r_a5ddf9230b8e17021786477a502340d81"><td class="memTemplParams" colspan="2">template&lt;auto... ReferencedFields&gt; </td></tr>
+<tr class="memitem:a5ddf9230b8e17021786477a502340d81"><td class="memTemplItemLeft" align="right" valign="top">std::vector&lt; Record &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a5ddf9230b8e17021786477a502340d81">First</a> (size_t n)</td></tr>
+<tr class="separator:a5ddf9230b8e17021786477a502340d81"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a830a87b59acef6a411e2a55c9d86ec21" id="r_a830a87b59acef6a411e2a55c9d86ec21"><td class="memItemLeft" align="right" valign="top">std::vector&lt; Record &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a830a87b59acef6a411e2a55c9d86ec21">Range</a> (size_t offset, size_t limit)</td></tr>
 <tr class="memdesc:a830a87b59acef6a411e2a55c9d86ec21"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes a SELECT query for a range of records and returns them.  <br /></td></tr>
 <tr class="separator:a830a87b59acef6a411e2a55c9d86ec21"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab7f393c9a4e81b67ee0a3ae3b3d1f41f" id="r_ab7f393c9a4e81b67ee0a3ae3b3d1f41f"><td class="memTemplParams" colspan="2">template&lt;auto... ReferencedFields&gt; </td></tr>
+<tr class="memitem:ab7f393c9a4e81b67ee0a3ae3b3d1f41f"><td class="memTemplItemLeft" align="right" valign="top">std::vector&lt; Record &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ab7f393c9a4e81b67ee0a3ae3b3d1f41f">Range</a> (size_t offset, size_t limit)</td></tr>
+<tr class="separator:ab7f393c9a4e81b67ee0a3ae3b3d1f41f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
@@ -129,7 +153,7 @@ Protected Member Functions</h2></td></tr>
 <div class="textblock"><div class="compoundTemplParams">template&lt;typename Record, typename Derived&gt;<br />
 class Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;</div><p>Main API for mapping records to C++ from the database using high level C++ syntax. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00172">172</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00197">197</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a4b4b604d097d536f7a146ba811c8bf12" name="a4b4b604d097d536f7a146ba811c8bf12"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a4b4b604d097d536f7a146ba811c8bf12">&#9670;&#160;</a></span>SqlCoreDataMapperQueryBuilder()</h2>
@@ -167,7 +191,7 @@ template&lt;typename Record , typename Derived &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00193">193</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00218">218</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -199,14 +223,14 @@ template&lt;typename Record , typename Derived &gt; </div>
 
 <p>Executes a SELECT COUNT query and returns the number of records found. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00202">202</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00227">227</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">Lightweight::SqlStatement::ExecuteDirect()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00359">Lightweight::SqlResultCursor::GetColumn()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00906">Lightweight::SqlStatement::GetResultCursor()</a>, and <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a89a3e81449d4a55aec87f793adc3bb4f">Lightweight::SqlQueryFormatter::SelectCount()</a>.</p>
 
 </div>
 </div>
 <a id="ad8cfddaf08b7bedde3ea903247560f72" name="ad8cfddaf08b7bedde3ea903247560f72"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad8cfddaf08b7bedde3ea903247560f72">&#9670;&#160;</a></span>All()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ad8cfddaf08b7bedde3ea903247560f72">&#9670;&#160;</a></span>All() <span class="overload">[1/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -232,14 +256,111 @@ template&lt;typename Record , typename Derived &gt; </div>
 
 <p>Executes a SELECT query and returns all records found. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00216">216</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00241">241</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00588">Lightweight::SqlStatement::Connection()</a>, <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">Lightweight::SqlStatement::ExecuteDirect()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00906">Lightweight::SqlStatement::GetResultCursor()</a>, <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#af0395f9fa984ef77525d2a3749f6ab1f">Lightweight::SqlQueryFormatter::SelectAll()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00187">Lightweight::SqlConnection::ServerType()</a>.</p>
 
 </div>
 </div>
+<a id="ab7eacec15a4a5eb07bb9b3b14277f07c" name="ab7eacec15a4a5eb07bb9b3b14277f07c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab7eacec15a4a5eb07bb9b3b14277f07c">&#9670;&#160;</a></span>All() <span class="overload">[2/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record , typename Derived &gt; </div>
+<div class="memtemplate">
+template&lt;auto Field&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">auto <a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">Lightweight::SqlCoreDataMapperQueryBuilder</a>&lt; Record, Derived &gt;::All </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> -&gt; std::vector&lt;<a class="el" href="../../d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8">ReferencedFieldTypeOf</a>&lt;<a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>&gt;&gt;
+    </td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Executes a SELECT query and returns all records found for the specified field. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a></td><td>The field to select from the record, in the form of &amp;Record::FieldName.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A vector of values of the type of the specified field.</dd></dl>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> dm = <a class="code hl_class" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> {};</div>
+<div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> ages = dm.<a class="code hl_function" href="../../de/d61/classLightweight_1_1DataMapper.html#aa6b188d4c0b7e8b267f2722d0e3f1401">Query</a>&lt;Person&gt;()</div>
+<div class="line">                    .OrderBy(FieldNameOf&lt;&amp;Person::age&gt;, SqlResultOrdering::ASCENDING)</div>
+<div class="line">                    .All&lt;&amp;Person::age&gt;();</div>
+<div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00087">DataMapper.hpp:88</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1DataMapper_html_aa6b188d4c0b7e8b267f2722d0e3f1401"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html#aa6b188d4c0b7e8b267f2722d0e3f1401">Lightweight::DataMapper::Query</a></div><div class="ttdeci">std::vector&lt; Record &gt; Query(SqlSelectQueryBuilder::ComposedQuery const &amp;selectQuery, InputParameters &amp;&amp;... inputParameters)</div><div class="ttdoc">Queries multiple records from the database, based on the given query.</div></div>
+</div><!-- fragment --> 
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00269">269</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00588">Lightweight::SqlStatement::Connection()</a>, <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">Lightweight::SqlStatement::ExecuteDirect()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00350">Lightweight::SqlResultCursor::FetchRow()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00359">Lightweight::SqlResultCursor::GetColumn()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00906">Lightweight::SqlStatement::GetResultCursor()</a>, <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#af0395f9fa984ef77525d2a3749f6ab1f">Lightweight::SqlQueryFormatter::SelectAll()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00187">Lightweight::SqlConnection::ServerType()</a>.</p>
+
+</div>
+</div>
+<a id="ab926ce0f86a82b6bd9abd255c695e317" name="ab926ce0f86a82b6bd9abd255c695e317"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab926ce0f86a82b6bd9abd255c695e317">&#9670;&#160;</a></span>All() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record , typename Derived &gt; </div>
+<div class="memtemplate">
+template&lt;auto... ReferencedFields&gt; <br />
+requires (sizeof...(ReferencedFields) &gt;= 2)</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">auto <a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">Lightweight::SqlCoreDataMapperQueryBuilder</a>&lt; Record, Derived &gt;::All </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> -&gt; std::vector&lt;Record&gt;
+    </td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Executes a SELECT query and returns all records found for the specified field, only having the specified fields queried and populated. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">ReferencedFields</td><td>The fields to select from the record, in the form of &amp;Record::FieldName.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A vector of records with the given fields populated.</dd></dl>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> dm = <a class="code hl_class" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> {};</div>
+<div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> ages = dm.<a class="code hl_function" href="../../de/d61/classLightweight_1_1DataMapper.html#aa6b188d4c0b7e8b267f2722d0e3f1401">Query</a>&lt;Person&gt;()</div>
+<div class="line">                    .OrderBy(FieldNameOf&lt;&amp;Person::age&gt;, SqlResultOrdering::ASCENDING)</div>
+<div class="line">                    .All&lt;&amp;Person::name, &amp;Person::age&gt;();</div>
+</div><!-- fragment --> 
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00318">318</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00338">Lightweight::SqlResultCursor::BindOutputColumns()</a>, and <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00350">Lightweight::SqlResultCursor::FetchRow()</a>.</p>
+
+</div>
+</div>
 <a id="a45eca1902dcaac7b3b6effa581b1a542" name="a45eca1902dcaac7b3b6effa581b1a542"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a45eca1902dcaac7b3b6effa581b1a542">&#9670;&#160;</a></span>First() <span class="overload">[1/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a45eca1902dcaac7b3b6effa581b1a542">&#9670;&#160;</a></span>First() <span class="overload">[1/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -265,14 +386,97 @@ template&lt;typename Record , typename Derived &gt; </div>
 
 <p>Executes a SELECT query for the first record found and returns it. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00232">232</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00354">354</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00588">Lightweight::SqlStatement::Connection()</a>, <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">Lightweight::SqlStatement::ExecuteDirect()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00906">Lightweight::SqlStatement::GetResultCursor()</a>, <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a6cdc65b4e3d20ca7105abe72ecfdd5b9">Lightweight::SqlQueryFormatter::SelectFirst()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00187">Lightweight::SqlConnection::ServerType()</a>.</p>
+</div>
+</div>
+<a id="ab43e8c01c06dd2158a29582201bbf049" name="ab43e8c01c06dd2158a29582201bbf049"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab43e8c01c06dd2158a29582201bbf049">&#9670;&#160;</a></span>First() <span class="overload">[2/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record , typename Derived &gt; </div>
+<div class="memtemplate">
+template&lt;auto Field&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">auto <a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">Lightweight::SqlCoreDataMapperQueryBuilder</a>&lt; Record, Derived &gt;::First </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> -&gt; std::optional&lt;<a class="el" href="../../d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8">ReferencedFieldTypeOf</a>&lt;<a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>&gt;&gt;
+    </td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Executes the query to get a single scalar value from the first record found. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a></td><td>The field to select from the record, in the form of &amp;Record::FieldName.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>an optional value of the type of the field, or an empty optional if no record was found. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00375">375</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a4d518ff7f16320f8fe44fa8e2d578195" name="a4d518ff7f16320f8fe44fa8e2d578195"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4d518ff7f16320f8fe44fa8e2d578195">&#9670;&#160;</a></span>First() <span class="overload">[3/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record , typename Derived &gt; </div>
+<div class="memtemplate">
+template&lt;auto... ReferencedFields&gt; <br />
+requires (sizeof...(ReferencedFields) &gt;= 2)</div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">auto <a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">Lightweight::SqlCoreDataMapperQueryBuilder</a>&lt; Record, Derived &gt;::First </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> -&gt; std::optional&lt;Record&gt;
+    </td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Executes a SELECT query for the first record found and returns it with only the specified fields populated. </p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">ReferencedFields</td><td>The fields to select from the record, in the form of &amp;Record::FieldName.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>an optional record with only the specified fields populated, or an empty optional if no record was found. </dd></dl>
+
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00398">398</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00338">Lightweight::SqlResultCursor::BindOutputColumns()</a>, and <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00350">Lightweight::SqlResultCursor::FetchRow()</a>.</p>
 
 </div>
 </div>
 <a id="a32fde70ac846c40661fcdbcc03c90367" name="a32fde70ac846c40661fcdbcc03c90367"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a32fde70ac846c40661fcdbcc03c90367">&#9670;&#160;</a></span>First() <span class="overload">[2/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a32fde70ac846c40661fcdbcc03c90367">&#9670;&#160;</a></span>First() <span class="overload">[4/5]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -299,14 +503,44 @@ template&lt;typename Record , typename Derived &gt; </div>
 
 <p>Executes a SELECT query for the first n records found and returns them. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00248">248</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00428">428</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00588">Lightweight::SqlStatement::Connection()</a>, <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">Lightweight::SqlStatement::ExecuteDirect()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00906">Lightweight::SqlStatement::GetResultCursor()</a>, <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a6cdc65b4e3d20ca7105abe72ecfdd5b9">Lightweight::SqlQueryFormatter::SelectFirst()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00187">Lightweight::SqlConnection::ServerType()</a>.</p>
+</div>
+</div>
+<a id="a5ddf9230b8e17021786477a502340d81" name="a5ddf9230b8e17021786477a502340d81"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5ddf9230b8e17021786477a502340d81">&#9670;&#160;</a></span>First() <span class="overload">[5/5]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record , typename Derived &gt; </div>
+<div class="memtemplate">
+template&lt;auto... ReferencedFields&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt; Record &gt; <a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">Lightweight::SqlCoreDataMapperQueryBuilder</a>&lt; Record, Derived &gt;::First </td>
+          <td>(</td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>n</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00445">445</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
 <a id="a830a87b59acef6a411e2a55c9d86ec21" name="a830a87b59acef6a411e2a55c9d86ec21"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a830a87b59acef6a411e2a55c9d86ec21">&#9670;&#160;</a></span>Range()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a830a87b59acef6a411e2a55c9d86ec21">&#9670;&#160;</a></span>Range() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -343,9 +577,51 @@ template&lt;typename Record , typename Derived &gt; </div>
 
 <p>Executes a SELECT query for a range of records and returns them. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00265">265</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00481">481</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00588">Lightweight::SqlStatement::Connection()</a>, <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">Lightweight::SqlStatement::ExecuteDirect()</a>, <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00166">Lightweight::FieldNameAt</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00906">Lightweight::SqlStatement::GetResultCursor()</a>, <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#aa1f92ce1316d440b0f318c9b57807bd8">Lightweight::SqlQueryFormatter::SelectRange()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00187">Lightweight::SqlConnection::ServerType()</a>.</p>
+<p class="reference">References <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00166">Lightweight::FieldNameAt</a>.</p>
+
+</div>
+</div>
+<a id="ab7f393c9a4e81b67ee0a3ae3b3d1f41f" name="ab7f393c9a4e81b67ee0a3ae3b3d1f41f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab7f393c9a4e81b67ee0a3ae3b3d1f41f">&#9670;&#160;</a></span>Range() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record , typename Derived &gt; </div>
+<div class="memtemplate">
+template&lt;auto... ReferencedFields&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt; Record &gt; <a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">Lightweight::SqlCoreDataMapperQueryBuilder</a>&lt; Record, Derived &gt;::Range </td>
+          <td>(</td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>offset</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>limit</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00503">503</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>

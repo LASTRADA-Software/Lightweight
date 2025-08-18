@@ -136,14 +136,8 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d55/classLightweight_1_1SqlSparseFieldQueryBuilder.html">Lightweight::SqlSparseFieldQueryBuilder&lt; Record, ReferencedFields &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a query builder that retrieves only the fields specified.  <a href="../../d3/d55/classLightweight_1_1SqlSparseFieldQueryBuilder.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html">Lightweight::SqlAllFieldsQueryBuilder&lt; Record &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a query builder that retrieves all fields of a record.  <a href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html#details">More...</a><br /></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html">Lightweight::SqlQuerySingleBuilder&lt; Record &gt;</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a query builder that retrieves only the first record found.  <a href="../../d8/db0/classLightweight_1_1SqlQuerySingleBuilder.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
@@ -184,6 +178,10 @@ Variables</h2></td></tr>
 <tr class="memitem:ga2bf8fa94d9c5b41f9a1045395403ccab"><td class="memTemplItemLeft" align="right" valign="top">constexpr std::string_view&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">Lightweight::RecordTableName</a> = detail::RecordTableNameImpl&lt;Record&gt;::Value</td></tr>
 <tr class="memdesc:ga2bf8fa94d9c5b41f9a1045395403ccab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Holds the SQL tabl ename for the given record type.  <br /></td></tr>
 <tr class="separator:ga2bf8fa94d9c5b41f9a1045395403ccab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaebaea83b67f63663bc9429b98b899ca0" id="r_gaebaea83b67f63663bc9429b98b899ca0"><td class="memTemplParams" colspan="2">template&lt;auto... ReferencedFields&gt; </td></tr>
+<tr class="memitem:gaebaea83b67f63663bc9429b98b899ca0"><td class="memTemplItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0">Lightweight::QuotedFieldNamesOf</a></td></tr>
+<tr class="memdesc:gaebaea83b67f63663bc9429b98b899ca0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Holds the quoted fully qualified field names of the given fields.  <br /></td></tr>
+<tr class="separator:gaebaea83b67f63663bc9429b98b899ca0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>The data mapper is a high level API for mapping records to and from the database using high level C++ syntax. </p>
@@ -267,7 +265,7 @@ template&lt;typename Record &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00175">175</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00626">Lightweight::DataMapper::Create()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00567">Lightweight::DataMapper::Create()</a>.</p>
 
 </div>
 </div>
@@ -391,7 +389,7 @@ template&lt;std::size_t I, typename Record &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00166">166</a> of file <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00265">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::Range()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00481">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::Range()</a>.</p>
 
 </div>
 </div>
@@ -420,6 +418,39 @@ template&lt;typename Record &gt; </div>
 <p>Holds the SQL tabl ename for the given record type. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00178">178</a> of file <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html">Utils.hpp</a>.</p>
+
+</div>
+</div>
+<a id="gaebaea83b67f63663bc9429b98b899ca0" name="gaebaea83b67f63663bc9429b98b899ca0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaebaea83b67f63663bc9429b98b899ca0">&#9670;&#160;</a></span>QuotedFieldNamesOf</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;auto... ReferencedFields&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr auto Lightweight::QuotedFieldNamesOf</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<b>Initial value:</b><div class="fragment"><div class="line">= SqlRawColumnNameView {</div>
+<div class="line">    .value = detail::QuotedFieldNamesOfImpl&lt;ReferencedFields...&gt;::value,</div>
+<div class="line">}</div>
+</div><!-- fragment -->
+<p>Holds the quoted fully qualified field names of the given fields. </p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> quotedFieldNames = QuotedFieldNamesOf&lt;&amp;Person::id, &amp;Person::name, &amp;Person::age&gt;;</div>
+<div class="line"><span class="keyword">static_assert</span>(quotedFieldNames.value == R<span class="stringliteral">&quot;sql(&quot;Person&quot;.&quot;id&quot;, &quot;Person&quot;.&quot;name&quot;, &quot;Person&quot;.&quot;age&quot;)sql&quot;);</span></div>
+</div><!-- fragment --> 
+<p class="definition">Definition at line <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00310">310</a> of file <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
 </div>
 </div>
