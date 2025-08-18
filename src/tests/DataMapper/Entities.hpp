@@ -48,7 +48,7 @@ struct Email
 {
     Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id {};
     Light::Field<Light::SqlAnsiString<30>> address {};
-    Light::BelongsTo<&User::id> user {};
+    Light::BelongsTo<&User::id, Light::SqlRealName { "user_id" }> user {};
 
     constexpr std::weak_ordering operator<=>(Email const& other) const = default;
 };
@@ -104,8 +104,8 @@ struct Appointment
     Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id;
     Light::Field<Light::SqlDateTime> date;
     Light::Field<Light::SqlAnsiString<80>> comment;
-    Light::BelongsTo<&Physician::id> physician;
-    Light::BelongsTo<&Patient::id> patient;
+    Light::BelongsTo<&Physician::id, Light::SqlRealName { "physician_id" }> physician;
+    Light::BelongsTo<&Patient::id, Light::SqlRealName { "patient_id" }> patient;
 
     constexpr std::weak_ordering operator<=>(Appointment const& other) const
     {

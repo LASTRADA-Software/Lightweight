@@ -365,6 +365,38 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: SELECT into SqlVariantRow", "[DataMappe
     CHECK(record[5].TryGetStringView().value() == "c");
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Strings with null", "[String]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<Person>();
+
+    constexpr size_t SizeOfStringWithNull = 9;
+    std::string nameWithNull("John Doe\0", SizeOfStringWithNull);
+    CHECK(nameWithNull.size() == SizeOfStringWithNull);
+    auto person = Person { .id = SqlGuid::Create(), .name = nameWithNull, .is_active = true, .age = std::nullopt };
+
+    CHECK(person.name.Value() == nameWithNull);
+    CHECK(person.name.Value().size() == SizeOfStringWithNull);
+    CHECK(std::format("{}", person.name.Value()).size() == SizeOfStringWithNull - 1);
+    CHECK(person.name.Value().ToString() == nameWithNull);
+    CHECK(person.name.Value().ToStringView() == std::string_view(nameWithNull));
+
+    dm.Create(person);
+
+    auto retrievedPerson = dm.QuerySingle<Person>(person.id).value();
+    CHECK(retrievedPerson.id == person.id);
+    CHECK(retrievedPerson.name.Value() == "John Doe");
+    CHECK(retrievedPerson.name.Value().size() == SizeOfStringWithNull - 1);
+
+    auto retrieveByName = dm.Query<Person>().Where(FieldNameOf<&Person::name>, "=", person.name.Value()).First();
+    REQUIRE(retrieveByName.has_value());
+    CHECK(retrieveByName.value().id == person.id);
+    CHECK(retrieveByName.value().name.Value() == std::string("John Doe"));
+    CHECK(retrieveByName.value().name.Value().ToString() == std::string("John Doe"));
+    CHECK(retrieveByName.value().name.Value().ToStringView() == std::string_view("John Doe"));
+    CHECK(retrieveByName.value().name.Value().size() == SizeOfStringWithNull - 1);
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "Query: Partial retriaval of the data", "[DataMapper]")
 {
     auto dm = DataMapper {};
