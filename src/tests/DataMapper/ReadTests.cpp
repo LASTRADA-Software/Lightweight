@@ -125,14 +125,14 @@ TEST_CASE_METHOD(SqlTestFixture, "Query into First()", "[DataMapper]")
 
     SECTION("Get()")
     {
-        auto const record = dm.Query<Person>().Where(FullFieldNameOf<&Person::age>, "=", 36).First();
+        auto const record = dm.Query<Person>().Where(FieldNameOf<&Person::age>, "=", 36).First();
         CHECK(record.has_value());
         CHECK(record.value() == expectedPersons[2]);
     }
 
     SECTION("Get() with non-existing record")
     {
-        auto const record = dm.Query<Person>().Where(FullFieldNameOf<&Person::age>, "=", -5).First();
+        auto const record = dm.Query<Person>().Where(FieldNameOf<&Person::age>, "=", -5).First();
         CHECK(record.has_value() == false);
     }
 
