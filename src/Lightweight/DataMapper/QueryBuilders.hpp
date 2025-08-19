@@ -376,7 +376,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     {
         auto constexpr count = 1;
         _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
-                                                   FullFieldNameOf<Field>.string_view(),
+                                                   QuotedFieldNameOf<Field>.string_view(),
                                                    RecordTableName<Record>,
                                                    this->_query.searchCondition.tableAlias,
                                                    this->_query.searchCondition.tableJoins,

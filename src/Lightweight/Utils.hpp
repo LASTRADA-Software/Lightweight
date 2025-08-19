@@ -186,7 +186,7 @@ using MemberClassType = typename detail::MemberClassTypeHelper<T>::type;
 namespace detail
 {
     template <auto ReferencedField>
-    struct FullFieldNameOfImpl
+    struct QuotedFieldNameOfImpl
     {
         static constexpr auto ClassName = RecordTableName<MemberClassType<decltype(ReferencedField)>>;
         static constexpr auto FieldName = FieldNameOf<ReferencedField>;
@@ -261,9 +261,18 @@ constexpr bool operator!=(SqlRawColumnNameView const& lhs, std::string_view rhs)
     return lhs.value != rhs;
 }
 
+/// @brief Holds the quoted fully qualified field name (including table name) of the given field.
+/// @tparam ReferencedField
+///
+/// @code
+/// auto const quotedFieldName = QuotedFieldNameOf<&Person::id>;
+/// static_assert(quotedFieldName.value == R"sql("Person"."id")sql");
+/// @endcode
+///
+/// @ingroup DataMapper
 template <auto ReferencedField>
-constexpr inline auto FullFieldNameOf = SqlRawColumnNameView {
-    .value = detail::FullFieldNameOfImpl<ReferencedField>::value,
+constexpr inline auto QuotedFieldNameOf = SqlRawColumnNameView {
+    .value = detail::QuotedFieldNameOfImpl<ReferencedField>::value,
 };
 
 namespace detail
@@ -272,7 +281,7 @@ namespace detail
     struct QuotedFieldNamesOfImpl
     {
         static constexpr auto StorageSize =
-            1 + (2 * (sizeof...(ReferencedFields) - 1)) + (0 + ... + FullFieldNameOf<ReferencedFields>.size());
+            1 + (2 * (sizeof...(ReferencedFields) - 1)) + (0 + ... + QuotedFieldNameOf<ReferencedFields>.size());
 
         static constexpr std::array<char, StorageSize> Storage = []() consteval {
             auto result = std::array<char, StorageSize> {};
@@ -285,8 +294,8 @@ namespace detail
                         std::ranges::copy(Delimiter, result.begin() + offset);
                         offset += Delimiter.size();
                     }
-                    std::ranges::copy(FullFieldNameOf<ReferencedFields>, result.begin() + offset);
-                    offset += FullFieldNameOf<ReferencedFields>.size();
+                    std::ranges::copy(QuotedFieldNameOf<ReferencedFields>, result.begin() + offset);
+                    offset += QuotedFieldNameOf<ReferencedFields>.size();
                 }(),
                 ...);
             result.back() = '\0';
