@@ -201,12 +201,13 @@ var NAVTREEINDEX0 =
 "d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8":[5,2,11],
 "d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33":[5,2,13],
 "d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0":[5,2,16],
+"d7/d2f/group__DataMapper.html#ga2ade9d9e7b27b720402c72c9d6abe7a8":[5,2,19],
 "d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab":[5,2,18],
 "d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24":[5,2,17],
 "d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25":[5,2,12],
 "d7/d2f/group__DataMapper.html#gac7df2f7b61cdd663f50496fe92c80a73":[5,2,14],
 "d7/d2f/group__DataMapper.html#gae0874e29a73741a5badb14bacafae06e":[5,2,15],
-"d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0":[5,2,19],
+"d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0":[5,2,20],
 "d7/d53/structLightweight_1_1SqlTime.html":[5,0,10],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html":[5,0,4],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a1fc1b3ec6aaa8d6a43f91185ad2370ab":[5,0,4,11],
@@ -248,6 +249,5 @@ var NAVTREEINDEX0 =
 "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#aa7662bd7885424c8970e4f11703a03a7":[7,0,0,31,7],
 "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#ad329c2ef7e306dee1f21351e264ad412":[7,0,0,31,1],
 "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#adc8632d9a895fa48313ea74e4270494b":[7,0,0,31,6],
-"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#affdfdca7abe4cc98091837f185c55f4c":[7,0,0,31,0],
-"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html":[7,0,0,9]
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#affdfdca7abe4cc98091837f185c55f4c":[7,0,0,31,0]
 };

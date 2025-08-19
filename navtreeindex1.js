@@ -1,5 +1,6 @@
 var NAVTREEINDEX1 =
 {
+"d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html":[7,0,0,9],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a059bdf98d69fde660cd3527172a2cc62":[7,0,0,9,8],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a3c64acce0293fce41e3f39a0aaee883e":[7,0,0,9,5],
 "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a4347ff4409d155c9ffb5c8681a45362d":[7,0,0,9,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX1 =
 "de/d61/classLightweight_1_1DataMapper.html#ac0e2e432c3ad94048fb407883f4dd64d":[5,2,3,19],
 "de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4":[5,2,3,11],
 "de/d61/classLightweight_1_1DataMapper.html#acc8bc05a730ed1ad295070cf25d6e041":[5,2,3,2],
-"de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747":[5,2,3,15],
-"de/d6a/structLightweight_1_1SqlConnectionString.html":[7,0,0,14]
+"de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747":[5,2,3,15]
 };

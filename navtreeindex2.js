@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"de/d6a/structLightweight_1_1SqlConnectionString.html":[7,0,0,14],
 "de/d73/classLightweight_1_1HasManyThrough.html":[5,2,7],
 "de/d73/classLightweight_1_1HasManyThrough.html#a1fe66ac23929adadf6bb4de58d1e050e":[5,2,7,14],
 "de/d73/classLightweight_1_1HasManyThrough.html#a21e9c6d2ec45efdc99352c6ae44517af":[5,2,7,6],

@@ -10,5 +10,6 @@ var searchData=
   ['queryraw_7',['QueryRaw',['../de/d61/classLightweight_1_1DataMapper.html#a9bfbf6773a04363ccc811e845af4d404',1,'Lightweight::DataMapper']]],
   ['querysingle_8',['QuerySingle',['../de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4',1,'Lightweight::DataMapper']]],
   ['querysinglewithoutrelationautoloading_9',['QuerySingleWithoutRelationAutoLoading',['../de/d61/classLightweight_1_1DataMapper.html#a0ee9df27df1779d4b6c6212aae482f79',1,'Lightweight::DataMapper']]],
-  ['quotedfieldnamesof_10',['QuotedFieldNamesOf',['../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0',1,'Lightweight']]]
+  ['quotedfieldnameof_10',['QuotedFieldNameOf',['../d7/d2f/group__DataMapper.html#ga2ade9d9e7b27b720402c72c9d6abe7a8',1,'Lightweight']]],
+  ['quotedfieldnamesof_11',['QuotedFieldNamesOf',['../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0',1,'Lightweight']]]
 ];

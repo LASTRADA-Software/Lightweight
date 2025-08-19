@@ -286,7 +286,7 @@ $(document).ready(function(){initNavTree('d7/d04/Lightweight_2Utils_8hpp_source.
 <div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span><span class="keyword">namespace </span>detail</div>
 <div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>{</div>
 <div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>    <span class="keyword">template</span> &lt;auto ReferencedField&gt;</div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>    <span class="keyword">struct </span>FullFieldNameOfImpl</div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>    <span class="keyword">struct </span>QuotedFieldNameOfImpl</div>
 <div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>    {</div>
 <div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> ClassName = <a class="code hl_variable" href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">RecordTableName</a>&lt;MemberClassType&lt;<span class="keyword">decltype</span>(ReferencedField)&gt;&gt;;</div>
 <div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> FieldName = FieldNameOf&lt;ReferencedField&gt;;</div>
@@ -360,111 +360,123 @@ $(document).ready(function(){initNavTree('d7/d04/Lightweight_2Utils_8hpp_source.
 <div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>{</div>
 <div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>    <span class="keywordflow">return</span> lhs.value != rhs;</div>
 <div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>}</div>
-<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span> </div>
-<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span><span class="keyword">template</span> &lt;auto ReferencedField&gt;</div>
-<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span><span class="keyword">constexpr</span> <span class="keyword">inline</span> <span class="keyword">auto</span> FullFieldNameOf = SqlRawColumnNameView {</div>
-<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>    .value = detail::FullFieldNameOfImpl&lt;ReferencedField&gt;::value,</div>
-<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>};</div>
-<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span> </div>
-<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span><span class="keyword">namespace </span>detail</div>
-<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>{</div>
-<div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>    <span class="keyword">template</span> &lt;<span class="keyword">auto</span>... ReferencedFields&gt;</div>
-<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>    <span class="keyword">struct </span>QuotedFieldNamesOfImpl</div>
-<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>    {</div>
-<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> StorageSize =</div>
-<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>            1 + (2 * (<span class="keyword">sizeof</span>...(ReferencedFields) - 1)) + (0 + ... + FullFieldNameOf&lt;ReferencedFields&gt;.size());</div>
-<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span> </div>
-<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> std::array&lt;char, StorageSize&gt; Storage = []() <span class="keyword">consteval</span> {</div>
-<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>            <span class="keyword">auto</span> result = std::array&lt;char, StorageSize&gt; {};</div>
-<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>            <span class="keywordtype">size_t</span> offset = 0;</div>
-<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>            (</div>
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>                [&amp;] {</div>
-<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>                    <span class="keywordflow">if</span> (offset &gt; 0)</div>
-<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>                    {</div>
-<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>                        <span class="keyword">constexpr</span> <span class="keyword">auto</span> Delimiter = std::string_view(<span class="stringliteral">&quot;, &quot;</span>);</div>
-<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>                        std::ranges::copy(Delimiter, result.begin() + offset);</div>
-<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>                        offset += Delimiter.size();</div>
-<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>                    }</div>
-<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>                    std::ranges::copy(FullFieldNameOf&lt;ReferencedFields&gt;, result.begin() + offset);</div>
-<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>                    offset += FullFieldNameOf&lt;ReferencedFields&gt;.size();</div>
-<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>                }(),</div>
-<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>                ...);</div>
-<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>            result.back() = <span class="charliteral">&#39;\0&#39;</span>;</div>
-<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>            <span class="keywordflow">return</span> result;</div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>        }();</div>
-<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span> </div>
-<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = std::string_view(Storage.data(), Storage.size() - 1);</div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>    };</div>
-<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span> </div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>} <span class="comment">// namespace detail</span></div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span><span class="comment"></span> </div>
-<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span><span class="comment">/// @brief Holds the quoted fully qualified field names of the given fields.</span></div>
-<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span><span class="comment">///</span></div>
-<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span><span class="comment">/// @code</span></div>
-<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span><span class="comment">/// auto const quotedFieldNames = QuotedFieldNamesOf&lt;&amp;Person::id, &amp;Person::name, &amp;Person::age&gt;;</span></div>
-<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span><span class="comment">/// static_assert(quotedFieldNames.value == R&quot;sql(&quot;Person&quot;.&quot;id&quot;, &quot;Person&quot;.&quot;name&quot;, &quot;Person&quot;.&quot;age&quot;)sql&quot;);</span></div>
-<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span><span class="comment">/// @endcode</span></div>
-<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span><span class="comment">///</span></div>
-<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span><span class="comment">/// @ingroup DataMapper</span></div>
-<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">auto</span>... ReferencedFields&gt;</div>
-<div class="foldopen" id="foldopen00310" data-start="{" data-end="};">
-<div class="line"><a id="l00310" name="l00310"></a><span class="lineno"><a class="line" href="../../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0">  310</a></span><span class="keyword">constexpr</span> <span class="keyword">inline</span> <span class="keyword">auto</span> <a class="code hl_variable" href="../../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0">QuotedFieldNamesOf</a> = SqlRawColumnNameView {</div>
-<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span>    .value = detail::QuotedFieldNamesOfImpl&lt;ReferencedFields...&gt;::value,</div>
-<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>};</div>
+<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span><span class="comment"></span> </div>
+<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span><span class="comment">/// @brief Holds the quoted fully qualified field name (including table name) of the given field.</span></div>
+<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span><span class="comment">/// @tparam ReferencedField</span></div>
+<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span><span class="comment">///</span></div>
+<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span><span class="comment">/// @code</span></div>
+<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span><span class="comment">/// auto const quotedFieldName = QuotedFieldNameOf&lt;&amp;Person::id&gt;;</span></div>
+<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span><span class="comment">/// static_assert(quotedFieldName.value == R&quot;sql(&quot;Person&quot;.&quot;id&quot;)sql&quot;);</span></div>
+<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span><span class="comment">/// @endcode</span></div>
+<div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span><span class="comment">///</span></div>
+<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span><span class="comment">/// @ingroup DataMapper</span></div>
+<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span><span class="comment"></span><span class="keyword">template</span> &lt;auto ReferencedField&gt;</div>
+<div class="foldopen" id="foldopen00274" data-start="{" data-end="};">
+<div class="line"><a id="l00274" name="l00274"></a><span class="lineno"><a class="line" href="../../d7/d2f/group__DataMapper.html#ga2ade9d9e7b27b720402c72c9d6abe7a8">  274</a></span><span class="keyword">constexpr</span> <span class="keyword">inline</span> <span class="keyword">auto</span> <a class="code hl_variable" href="../../d7/d2f/group__DataMapper.html#ga2ade9d9e7b27b720402c72c9d6abe7a8">QuotedFieldNameOf</a> = SqlRawColumnNameView {</div>
+<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>    .value = detail::QuotedFieldNameOfImpl&lt;ReferencedField&gt;::value,</div>
+<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>};</div>
 </div>
-<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span> </div>
-<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span>LIGHTWEIGHT_API <span class="keywordtype">void</span> LogIfFailed(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLocation);</div>
-<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span> </div>
-<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>LIGHTWEIGHT_API <span class="keywordtype">void</span> RequireSuccess(SQLHSTMT hStmt,</div>
-<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>                                    SQLRETURN error,</div>
-<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>                                    std::source_location sourceLocation = std::source_location::current());</div>
-<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span><span class="comment"></span> </div>
-<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span><span class="comment">/// Defines the naming convention for use (e.g. for C++ column names or table names in C++ struct names).</span></div>
-<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span><span class="comment"></span><span class="keyword">enum class</span> FormatType : uint8_t</div>
-<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>{<span class="comment"></span></div>
-<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span><span class="comment">    /// Preserve the original naming convention.</span></div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span><span class="comment"></span>    preserve,</div>
-<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span><span class="comment"></span> </div>
-<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span><span class="comment">    /// Ensure the name is formatted in snake_case naming convention.</span></div>
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span><span class="comment"></span>    snakeCase,</div>
+<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span> </div>
+<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span><span class="keyword">namespace </span>detail</div>
+<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>{</div>
+<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>    <span class="keyword">template</span> &lt;<span class="keyword">auto</span>... ReferencedFields&gt;</div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>    <span class="keyword">struct </span>QuotedFieldNamesOfImpl</div>
+<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>    {</div>
+<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> StorageSize =</div>
+<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>            1 + (2 * (<span class="keyword">sizeof</span>...(ReferencedFields) - 1)) + (0 + ... + QuotedFieldNameOf&lt;ReferencedFields&gt;.size());</div>
+<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span> </div>
+<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> std::array&lt;char, StorageSize&gt; Storage = []() <span class="keyword">consteval</span> {</div>
+<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>            <span class="keyword">auto</span> result = std::array&lt;char, StorageSize&gt; {};</div>
+<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>            <span class="keywordtype">size_t</span> offset = 0;</div>
+<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>            (</div>
+<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>                [&amp;] {</div>
+<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>                    <span class="keywordflow">if</span> (offset &gt; 0)</div>
+<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>                    {</div>
+<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>                        <span class="keyword">constexpr</span> <span class="keyword">auto</span> Delimiter = std::string_view(<span class="stringliteral">&quot;, &quot;</span>);</div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>                        std::ranges::copy(Delimiter, result.begin() + offset);</div>
+<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>                        offset += Delimiter.size();</div>
+<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>                    }</div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>                    std::ranges::copy(QuotedFieldNameOf&lt;ReferencedFields&gt;, result.begin() + offset);</div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>                    offset += QuotedFieldNameOf&lt;ReferencedFields&gt;.size();</div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>                }(),</div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>                ...);</div>
+<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>            result.back() = <span class="charliteral">&#39;\0&#39;</span>;</div>
+<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>            <span class="keywordflow">return</span> result;</div>
+<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>        }();</div>
+<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span> </div>
+<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> value = std::string_view(Storage.data(), Storage.size() - 1);</div>
+<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>    };</div>
+<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span> </div>
+<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>} <span class="comment">// namespace detail</span></div>
+<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span><span class="comment"></span> </div>
+<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span><span class="comment">/// @brief Holds the quoted fully qualified field names of the given fields.</span></div>
+<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="comment">///</span></div>
+<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span><span class="comment">/// @code</span></div>
+<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span><span class="comment">/// auto const quotedFieldNames = QuotedFieldNamesOf&lt;&amp;Person::id, &amp;Person::name, &amp;Person::age&gt;;</span></div>
+<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span><span class="comment">/// static_assert(quotedFieldNames.value == R&quot;sql(&quot;Person&quot;.&quot;id&quot;, &quot;Person&quot;.&quot;name&quot;, &quot;Person&quot;.&quot;age&quot;)sql&quot;);</span></div>
+<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span><span class="comment">/// @endcode</span></div>
+<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span><span class="comment">///</span></div>
+<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span><span class="comment">/// @ingroup DataMapper</span></div>
+<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">auto</span>... ReferencedFields&gt;</div>
+<div class="foldopen" id="foldopen00319" data-start="{" data-end="};">
+<div class="line"><a id="l00319" name="l00319"></a><span class="lineno"><a class="line" href="../../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0">  319</a></span><span class="keyword">constexpr</span> <span class="keyword">inline</span> <span class="keyword">auto</span> <a class="code hl_variable" href="../../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0">QuotedFieldNamesOf</a> = SqlRawColumnNameView {</div>
+<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>    .value = detail::QuotedFieldNamesOfImpl&lt;ReferencedFields...&gt;::value,</div>
+<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>};</div>
+</div>
+<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span> </div>
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>LIGHTWEIGHT_API <span class="keywordtype">void</span> LogIfFailed(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLocation);</div>
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span> </div>
+<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>LIGHTWEIGHT_API <span class="keywordtype">void</span> RequireSuccess(SQLHSTMT hStmt,</div>
+<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>                                    SQLRETURN error,</div>
+<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>                                    std::source_location sourceLocation = std::source_location::current());</div>
 <div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="comment"></span> </div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span><span class="comment">    /// Ensure the name is formatted in CamelCase naming convention.</span></div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="comment"></span>    camelCase,</div>
-<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>};</div>
-<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span><span class="comment"></span> </div>
-<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span><span class="comment">/// @brief Converts a string to a format that is more suitable for C++ code.</span></div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span><span class="comment"></span>LIGHTWEIGHT_API std::string FormatName(std::string <span class="keyword">const</span>&amp; name, FormatType formatType);</div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span><span class="comment"></span> </div>
-<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span><span class="comment">/// @brief Converts a string to a format that is more suitable for C++ code.</span></div>
-<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span><span class="comment"></span>LIGHTWEIGHT_API std::string FormatName(std::string_view name, FormatType formatType);</div>
-<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span><span class="comment"></span> </div>
-<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span><span class="comment">/// Maintains collisions to create unique names</span></div>
-<div class="foldopen" id="foldopen00340" data-start="{" data-end="};">
-<div class="line"><a id="l00340" name="l00340"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html">  340</a></span><span class="comment"></span><span class="keyword">class </span><a class="code hl_class" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html">UniqueNameBuilder</a></div>
-<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>{</div>
-<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>  <span class="keyword">public</span>:<span class="comment"></span></div>
-<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span><span class="comment">    /// Tests if the given name is already registered.</span></div>
-<div class="line"><a id="l00344" name="l00344"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3">  344</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API <span class="keywordtype">bool</span> <a class="code hl_function" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3">IsColliding</a>(std::string <span class="keyword">const</span>&amp; name) <span class="keyword">const</span> <span class="keyword">noexcept</span>;</div>
-<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span><span class="comment"></span> </div>
-<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span><span class="comment">    /// Tries to declare a name and returns it, otherwise returns std::nullopt.</span></div>
-<div class="line"><a id="l00347" name="l00347"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44">  347</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API std::optional&lt;std::string&gt; <a class="code hl_function" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44">TryDeclareName</a>(std::string name);</div>
-<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span><span class="comment"></span> </div>
-<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span><span class="comment">    /// Creates a name that is definitely not colliding.</span></div>
-<div class="line"><a id="l00350" name="l00350"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26">  350</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API std::string <a class="code hl_function" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26">DeclareName</a>(std::string name);</div>
-<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span> </div>
-<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span>    std::unordered_map&lt;std::string, size_t&gt; _collisionMap;</div>
-<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>};</div>
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span><span class="comment">/// Defines the naming convention for use (e.g. for C++ column names or table names in C++ struct names).</span></div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span><span class="comment"></span><span class="keyword">enum class</span> FormatType : uint8_t</div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>{<span class="comment"></span></div>
+<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span><span class="comment">    /// Preserve the original naming convention.</span></div>
+<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span><span class="comment"></span>    preserve,</div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span><span class="comment"></span> </div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span><span class="comment">    /// Ensure the name is formatted in snake_case naming convention.</span></div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span><span class="comment"></span>    snakeCase,</div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span><span class="comment"></span> </div>
+<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span><span class="comment">    /// Ensure the name is formatted in CamelCase naming convention.</span></div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span><span class="comment"></span>    camelCase,</div>
+<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>};</div>
+<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span><span class="comment"></span> </div>
+<div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span><span class="comment">/// @brief Converts a string to a format that is more suitable for C++ code.</span></div>
+<div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span><span class="comment"></span>LIGHTWEIGHT_API std::string FormatName(std::string <span class="keyword">const</span>&amp; name, FormatType formatType);</div>
+<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span><span class="comment"></span> </div>
+<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span><span class="comment">/// @brief Converts a string to a format that is more suitable for C++ code.</span></div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span><span class="comment"></span>LIGHTWEIGHT_API std::string FormatName(std::string_view name, FormatType formatType);</div>
+<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span><span class="comment"></span> </div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span><span class="comment">/// Maintains collisions to create unique names</span></div>
+<div class="foldopen" id="foldopen00349" data-start="{" data-end="};">
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html">  349</a></span><span class="comment"></span><span class="keyword">class </span><a class="code hl_class" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html">UniqueNameBuilder</a></div>
+<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>{</div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>  <span class="keyword">public</span>:<span class="comment"></span></div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span><span class="comment">    /// Tests if the given name is already registered.</span></div>
+<div class="line"><a id="l00353" name="l00353"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3">  353</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API <span class="keywordtype">bool</span> <a class="code hl_function" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3">IsColliding</a>(std::string <span class="keyword">const</span>&amp; name) <span class="keyword">const</span> <span class="keyword">noexcept</span>;</div>
+<div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span><span class="comment"></span> </div>
+<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span><span class="comment">    /// Tries to declare a name and returns it, otherwise returns std::nullopt.</span></div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44">  356</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API std::optional&lt;std::string&gt; <a class="code hl_function" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44">TryDeclareName</a>(std::string name);</div>
+<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span><span class="comment"></span> </div>
+<div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span><span class="comment">    /// Creates a name that is definitely not colliding.</span></div>
+<div class="line"><a id="l00359" name="l00359"></a><span class="lineno"><a class="line" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26">  359</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_API std::string <a class="code hl_function" href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26">DeclareName</a>(std::string name);</div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span> </div>
+<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>    std::unordered_map&lt;std::string, size_t&gt; _collisionMap;</div>
+<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>};</div>
 </div>
-<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span> </div>
-<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>} <span class="comment">// namespace Lightweight</span></div>
-<div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html">Lightweight::UniqueNameBuilder</a></div><div class="ttdoc">Maintains collisions to create unique names.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00340">Utils.hpp:341</a></div></div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span> </div>
+<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html">Lightweight::UniqueNameBuilder</a></div><div class="ttdoc">Maintains collisions to create unique names.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00349">Utils.hpp:350</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html_ab97998627c36c8d0bce204db1f8f4d26"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26">Lightweight::UniqueNameBuilder::DeclareName</a></div><div class="ttdeci">LIGHTWEIGHT_API std::string DeclareName(std::string name)</div><div class="ttdoc">Creates a name that is definitely not colliding.</div></div>
 <div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html_acfe934b57fa65da4863c45e150bcc1e3"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3">Lightweight::UniqueNameBuilder::IsColliding</a></div><div class="ttdeci">LIGHTWEIGHT_API bool IsColliding(std::string const &amp;name) const noexcept</div><div class="ttdoc">Tests if the given name is already registered.</div></div>
 <div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html_ae617f589c4e2314b8ca94c3113cd3f44"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44">Lightweight::UniqueNameBuilder::TryDeclareName</a></div><div class="ttdeci">LIGHTWEIGHT_API std::optional&lt; std::string &gt; TryDeclareName(std::string name)</div><div class="ttdoc">Tries to declare a name and returns it, otherwise returns std::nullopt.</div></div>
+<div class="ttc" id="agroup__DataMapper_html_ga2ade9d9e7b27b720402c72c9d6abe7a8"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga2ade9d9e7b27b720402c72c9d6abe7a8">Lightweight::QuotedFieldNameOf</a></div><div class="ttdeci">constexpr auto QuotedFieldNameOf</div><div class="ttdoc">Holds the quoted fully qualified field name (including table name) of the given field.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00274">Utils.hpp:274</a></div></div>
 <div class="ttc" id="agroup__DataMapper_html_ga2bf8fa94d9c5b41f9a1045395403ccab"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">Lightweight::RecordTableName</a></div><div class="ttdeci">constexpr std::string_view RecordTableName</div><div class="ttdoc">Holds the SQL tabl ename for the given record type.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00178">Utils.hpp:178</a></div></div>
 <div class="ttc" id="agroup__DataMapper_html_ga6b1b90405a8cf10bbb8fd88789543f24"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24">Lightweight::FieldNameAt</a></div><div class="ttdeci">constexpr std::string_view FieldNameAt</div><div class="ttdoc">Returns the SQL field name of the given field index in the record.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00166">Utils.hpp:166</a></div></div>
-<div class="ttc" id="agroup__DataMapper_html_gaebaea83b67f63663bc9429b98b899ca0"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0">Lightweight::QuotedFieldNamesOf</a></div><div class="ttdeci">constexpr auto QuotedFieldNamesOf</div><div class="ttdoc">Holds the quoted fully qualified field names of the given fields.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00310">Utils.hpp:310</a></div></div>
+<div class="ttc" id="agroup__DataMapper_html_gaebaea83b67f63663bc9429b98b899ca0"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0">Lightweight::QuotedFieldNamesOf</a></div><div class="ttdeci">constexpr auto QuotedFieldNamesOf</div><div class="ttdoc">Holds the quoted fully qualified field names of the given fields.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00319">Utils.hpp:319</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

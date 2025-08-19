@@ -488,7 +488,7 @@ $(document).ready(function(){initNavTree('df/db7/QueryBuilders_8hpp_source.html'
 <div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>    {</div>
 <div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span>        <span class="keyword">auto</span> <span class="keyword">constexpr</span> count = 1;</div>
 <div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span>        _stmt.ExecuteDirect(_formatter.SelectFirst(this-&gt;_query.distinct,</div>
-<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>                                                   FullFieldNameOf&lt;Field&gt;.string_view(),</div>
+<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>                                                   QuotedFieldNameOf&lt;Field&gt;.string_view(),</div>
 <div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>                                                   RecordTableName&lt;Record&gt;,</div>
 <div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>                                                   this-&gt;_query.searchCondition.tableAlias,</div>
 <div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>                                                   this-&gt;_query.searchCondition.tableJoins,</div>
