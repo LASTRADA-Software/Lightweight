@@ -1,5 +1,5 @@
 
-option(LIGHWEIGHT_BENCHMARK "Enable lightweight benchmark" ON)
+option(LIGHWEIGHT_BENCHMARK "Enable lightweight benchmark" OFF)
 
 # Enable benchmark
 if(LIGHWEIGHT_BENCHMARK)
