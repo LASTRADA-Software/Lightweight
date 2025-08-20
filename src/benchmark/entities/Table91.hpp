@@ -1,35 +1,31 @@
 // File is automatically generated using ddl2cpp.
 #pragma once
 
-#include "Table12.hpp"
 #include "Table14.hpp"
-#include "Table17.hpp"
-#include "Table21.hpp"
-#include "Table27.hpp"
-#include "Table3.hpp"
-#include "Table30.hpp"
+#include "Table20.hpp"
+#include "Table28.hpp"
+#include "Table31.hpp"
+#include "Table35.hpp"
+#include "Table37.hpp"
 #include "Table38.hpp"
 #include "Table4.hpp"
-#include "Table45.hpp"
-#include "Table46.hpp"
+#include "Table40.hpp"
+#include "Table48.hpp"
+#include "Table5.hpp"
 #include "Table51.hpp"
-#include "Table52.hpp"
-#include "Table55.hpp"
+#include "Table54.hpp"
 #include "Table58.hpp"
-#include "Table62.hpp"
-#include "Table63.hpp"
-#include "Table68.hpp"
+#include "Table6.hpp"
+#include "Table65.hpp"
+#include "Table69.hpp"
 #include "Table7.hpp"
-#include "Table70.hpp"
-#include "Table72.hpp"
-#include "Table74.hpp"
+#include "Table71.hpp"
+#include "Table75.hpp"
 #include "Table76.hpp"
 #include "Table77.hpp"
-#include "Table78.hpp"
-#include "Table8.hpp"
-#include "Table85.hpp"
-#include "Table87.hpp"
-#include "Table90.hpp"
+#include "Table79.hpp"
+#include "Table82.hpp"
+#include "Table83.hpp"
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 
@@ -39,42 +35,68 @@ struct Table91 final
     static constexpr std::string_view TableName = "table_91";
 
     Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "id" }> id;
-    Light::Field<int32_t, Light::SqlRealName { "col_0" }> col0;
-    Light::Field<std::optional<Light::SqlTime>, Light::SqlRealName { "col_1" }> col1;
-    Light::Field<Light::SqlDate, Light::SqlRealName { "col_2" }> col2;
-    Light::Field<std::optional<Light::SqlDate>, Light::SqlRealName { "col_3" }> col3;
-    Light::Field<Light::SqlTime, Light::SqlRealName { "col_4" }> col4;
-    Light::Field<Light::SqlAnsiString<50>, Light::SqlRealName { "col_5" }> col5;
-    Light::Field<Light::SqlDynamicAnsiString<0>, Light::SqlRealName { "col_6" }> col6;
-    Light::Field<Light::SqlTime, Light::SqlRealName { "col_7" }> col7;
-    Light::BelongsTo<&Table78::id, Light::SqlRealName { "fk_78" }, Light::SqlNullable::Null> fk78;
-    Light::BelongsTo<&Table45::id, Light::SqlRealName { "fk_45" }, Light::SqlNullable::Null> fk45;
-    Light::BelongsTo<&Table58::id, Light::SqlRealName { "fk_58" }> fk58;
-    Light::BelongsTo<&Table8::id, Light::SqlRealName { "fk_8" }> fk8;
-    Light::BelongsTo<&Table72::id, Light::SqlRealName { "fk_72" }, Light::SqlNullable::Null> fk72;
-    Light::BelongsTo<&Table12::id, Light::SqlRealName { "fk_12" }> fk12;
-    Light::BelongsTo<&Table52::id, Light::SqlRealName { "fk_52" }, Light::SqlNullable::Null> fk52;
-    Light::BelongsTo<&Table38::id, Light::SqlRealName { "fk_38" }> fk38;
-    Light::BelongsTo<&Table3::id, Light::SqlRealName { "fk_3" }, Light::SqlNullable::Null> fk3;
-    Light::BelongsTo<&Table7::id, Light::SqlRealName { "fk_7" }> fk7;
-    Light::BelongsTo<&Table62::id, Light::SqlRealName { "fk_62" }> fk62;
-    Light::BelongsTo<&Table70::id, Light::SqlRealName { "fk_70" }, Light::SqlNullable::Null> fk70;
-    Light::BelongsTo<&Table14::id, Light::SqlRealName { "fk_14" }> fk14;
-    Light::BelongsTo<&Table46::id, Light::SqlRealName { "fk_46" }> fk46;
-    Light::BelongsTo<&Table4::id, Light::SqlRealName { "fk_4" }> fk4;
-    Light::BelongsTo<&Table51::id, Light::SqlRealName { "fk_51" }, Light::SqlNullable::Null> fk51;
-    Light::BelongsTo<&Table85::id, Light::SqlRealName { "fk_85" }> fk85;
-    Light::BelongsTo<&Table74::id, Light::SqlRealName { "fk_74" }> fk74;
-    Light::BelongsTo<&Table77::id, Light::SqlRealName { "fk_77" }, Light::SqlNullable::Null> fk77;
-    Light::BelongsTo<&Table17::id, Light::SqlRealName { "fk_17" }, Light::SqlNullable::Null> fk17;
-    Light::BelongsTo<&Table21::id, Light::SqlRealName { "fk_21" }, Light::SqlNullable::Null> fk21;
-    Light::BelongsTo<&Table27::id, Light::SqlRealName { "fk_27" }, Light::SqlNullable::Null> fk27;
-    Light::BelongsTo<&Table90::id, Light::SqlRealName { "fk_90" }, Light::SqlNullable::Null> fk90;
-    Light::BelongsTo<&Table87::id, Light::SqlRealName { "fk_87" }, Light::SqlNullable::Null> fk87;
-    Light::BelongsTo<&Table55::id, Light::SqlRealName { "fk_55" }> fk55;
-    Light::BelongsTo<&Table63::id, Light::SqlRealName { "fk_63" }, Light::SqlNullable::Null> fk63;
-    Light::BelongsTo<&Table30::id, Light::SqlRealName { "fk_30" }, Light::SqlNullable::Null> fk30;
-    Light::BelongsTo<&Table76::id, Light::SqlRealName { "fk_76" }, Light::SqlNullable::Null> fk76;
-    Light::BelongsTo<&Table68::id, Light::SqlRealName { "fk_68" }> fk68;
+    Light::Field<std::optional<Light::SqlAnsiString<50>>, Light::SqlRealName { "col_0" }> col0;
+    Light::Field<std::optional<Light::SqlAnsiString<50>>, Light::SqlRealName { "col_1" }> col1;
+    Light::Field<std::optional<Light::SqlDynamicAnsiString<0>>, Light::SqlRealName { "col_2" }> col2;
+    Light::Field<std::optional<Light::SqlTime>, Light::SqlRealName { "col_3" }> col3;
+    Light::Field<double, Light::SqlRealName { "col_4" }> col4;
+    Light::Field<int32_t, Light::SqlRealName { "col_5" }> col5;
+    Light::Field<Light::SqlDate, Light::SqlRealName { "col_6" }> col6;
+    Light::Field<std::optional<bool>, Light::SqlRealName { "col_7" }> col7;
+    Light::Field<Light::SqlAnsiString<50>, Light::SqlRealName { "col_8" }> col8;
+    Light::Field<Light::SqlDynamicAnsiString<0>, Light::SqlRealName { "col_9" }> col9;
+    Light::Field<std::optional<Light::SqlDynamicAnsiString<0>>, Light::SqlRealName { "col_10" }> col10;
+    Light::Field<Light::SqlDateTime, Light::SqlRealName { "col_11" }> col11;
+    Light::Field<bool, Light::SqlRealName { "col_12" }> col12;
+    Light::Field<std::optional<Light::SqlTime>, Light::SqlRealName { "col_13" }> col13;
+    Light::Field<double, Light::SqlRealName { "col_14" }> col14;
+    Light::Field<std::optional<Light::SqlTime>, Light::SqlRealName { "col_15" }> col15;
+    Light::Field<std::optional<int32_t>, Light::SqlRealName { "col_16" }> col16;
+    Light::Field<std::optional<Light::SqlAnsiString<50>>, Light::SqlRealName { "col_17" }> col17;
+    Light::Field<std::optional<Light::SqlDynamicAnsiString<0>>, Light::SqlRealName { "col_18" }> col18;
+    Light::Field<std::optional<Light::SqlDate>, Light::SqlRealName { "col_19" }> col19;
+    Light::Field<bool, Light::SqlRealName { "col_20" }> col20;
+    Light::Field<Light::SqlDynamicAnsiString<0>, Light::SqlRealName { "col_21" }> col21;
+    Light::Field<std::optional<double>, Light::SqlRealName { "col_22" }> col22;
+    Light::Field<std::optional<Light::SqlDate>, Light::SqlRealName { "col_23" }> col23;
+    Light::Field<Light::SqlDateTime, Light::SqlRealName { "col_24" }> col24;
+    Light::Field<Light::SqlDynamicAnsiString<0>, Light::SqlRealName { "col_25" }> col25;
+    Light::Field<std::optional<Light::SqlDateTime>, Light::SqlRealName { "col_26" }> col26;
+    Light::Field<double, Light::SqlRealName { "col_27" }> col27;
+    Light::Field<std::optional<Light::SqlAnsiString<50>>, Light::SqlRealName { "col_28" }> col28;
+    Light::Field<std::optional<double>, Light::SqlRealName { "col_29" }> col29;
+    Light::Field<Light::SqlDynamicAnsiString<0>, Light::SqlRealName { "col_30" }> col30;
+    Light::Field<int32_t, Light::SqlRealName { "col_31" }> col31;
+    Light::Field<std::optional<Light::SqlDate>, Light::SqlRealName { "col_32" }> col32;
+    Light::Field<bool, Light::SqlRealName { "col_33" }> col33;
+    Light::Field<std::optional<Light::SqlDynamicAnsiString<0>>, Light::SqlRealName { "col_34" }> col34;
+    Light::Field<double, Light::SqlRealName { "col_35" }> col35;
+    Light::Field<std::optional<bool>, Light::SqlRealName { "col_36" }> col36;
+    Light::Field<std::optional<Light::SqlDynamicAnsiString<0>>, Light::SqlRealName { "col_37" }> col37;
+    Light::BelongsTo<Member(Table79::id), Light::SqlRealName { "fk_79" }> fk79;
+    Light::BelongsTo<Member(Table31::id), Light::SqlRealName { "fk_31" }> fk31;
+    Light::BelongsTo<Member(Table82::id), Light::SqlRealName { "fk_82" }, Light::SqlNullable::Null> fk82;
+    Light::BelongsTo<Member(Table38::id), Light::SqlRealName { "fk_38" }, Light::SqlNullable::Null> fk38;
+    Light::BelongsTo<Member(Table35::id), Light::SqlRealName { "fk_35" }, Light::SqlNullable::Null> fk35;
+    Light::BelongsTo<Member(Table75::id), Light::SqlRealName { "fk_75" }> fk75;
+    Light::BelongsTo<Member(Table54::id), Light::SqlRealName { "fk_54" }, Light::SqlNullable::Null> fk54;
+    Light::BelongsTo<Member(Table65::id), Light::SqlRealName { "fk_65" }, Light::SqlNullable::Null> fk65;
+    Light::BelongsTo<Member(Table5::id), Light::SqlRealName { "fk_5" }, Light::SqlNullable::Null> fk5;
+    Light::BelongsTo<Member(Table4::id), Light::SqlRealName { "fk_4" }, Light::SqlNullable::Null> fk4;
+    Light::BelongsTo<Member(Table37::id), Light::SqlRealName { "fk_37" }, Light::SqlNullable::Null> fk37;
+    Light::BelongsTo<Member(Table83::id), Light::SqlRealName { "fk_83" }, Light::SqlNullable::Null> fk83;
+    Light::BelongsTo<Member(Table77::id), Light::SqlRealName { "fk_77" }> fk77;
+    Light::BelongsTo<Member(Table14::id), Light::SqlRealName { "fk_14" }> fk14;
+    Light::BelongsTo<Member(Table6::id), Light::SqlRealName { "fk_6" }, Light::SqlNullable::Null> fk6;
+    Light::BelongsTo<Member(Table48::id), Light::SqlRealName { "fk_48" }> fk48;
+    Light::BelongsTo<Member(Table69::id), Light::SqlRealName { "fk_69" }> fk69;
+    Light::BelongsTo<Member(Table51::id), Light::SqlRealName { "fk_51" }, Light::SqlNullable::Null> fk51;
+    Light::BelongsTo<Member(Table7::id), Light::SqlRealName { "fk_7" }, Light::SqlNullable::Null> fk7;
+    Light::BelongsTo<Member(Table71::id), Light::SqlRealName { "fk_71" }, Light::SqlNullable::Null> fk71;
+    Light::BelongsTo<Member(Table58::id), Light::SqlRealName { "fk_58" }, Light::SqlNullable::Null> fk58;
+    Light::BelongsTo<Member(Table40::id), Light::SqlRealName { "fk_40" }> fk40;
+    Light::BelongsTo<Member(Table20::id), Light::SqlRealName { "fk_20" }, Light::SqlNullable::Null> fk20;
+    Light::BelongsTo<Member(Table28::id), Light::SqlRealName { "fk_28" }, Light::SqlNullable::Null> fk28;
+    Light::BelongsTo<Member(Table76::id), Light::SqlRealName { "fk_76" }, Light::SqlNullable::Null> fk76;
 };
 
