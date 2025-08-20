@@ -1,5 +1,8 @@
 var hierarchy =
 [
+    [ "Lightweight::BelongsTo< Member(Patient::id), Lightweight::SqlRealName { \"patient_id\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
+    [ "Lightweight::BelongsTo< Member(Physician::id), Lightweight::SqlRealName { \"physician_id\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
+    [ "Lightweight::BelongsTo< Member(User::id), Lightweight::SqlRealName { \"user_id\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::BelongsTo<&Album::AlbumId, Lightweight::SqlRealName { \"AlbumId\" }, Light::SqlNullable::Null >", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::BelongsTo<&Artist::ArtistId, Lightweight::SqlRealName { \"ArtistId\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::BelongsTo<&Customer::CustomerId, Lightweight::SqlRealName { \"CustomerId\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
@@ -7,10 +10,7 @@ var hierarchy =
     [ "Lightweight::BelongsTo<&Genre::GenreId, Lightweight::SqlRealName { \"GenreId\" }, Light::SqlNullable::Null >", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::BelongsTo<&Invoice::InvoiceId, Lightweight::SqlRealName { \"InvoiceId\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::BelongsTo<&Mediatype::MediaTypeId, Lightweight::SqlRealName { \"MediaTypeId\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
-    [ "Lightweight::BelongsTo<&Patient::id, Lightweight::SqlRealName { \"patient_id\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
-    [ "Lightweight::BelongsTo<&Physician::id, Lightweight::SqlRealName { \"physician_id\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::BelongsTo<&Track::TrackId, Lightweight::SqlRealName { \"TrackId\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
-    [ "Lightweight::BelongsTo<&User::id, Lightweight::SqlRealName { \"user_id\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::Field< bool >", "d2/dd0/structLightweight_1_1Field.html", null ],
     [ "Lightweight::Field< int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Lightweight::SqlRealName { \"AlbumId\" }>", "d2/dd0/structLightweight_1_1Field.html", null ],
     [ "Lightweight::Field< int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Lightweight::SqlRealName { \"ArtistId\" }>", "d2/dd0/structLightweight_1_1Field.html", null ],

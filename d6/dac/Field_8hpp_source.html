@@ -476,20 +476,24 @@ $(document).ready(function(){initNavTree('d6/dac/Field_8hpp_source.html','../../
 <div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span><span class="comment">/// @ingroup DataMapper</span></div>
 <div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span><span class="comment"></span><span class="keyword">template</span> &lt;auto Field&gt;</div>
 <div class="line"><a id="l00358" name="l00358"></a><span class="lineno"><a class="line" href="../../d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8">  358</a></span><span class="keyword">using </span><a class="code hl_typedef" href="../../d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8">ReferencedFieldTypeOf</a> =</div>
-<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>    <span class="keyword">typename</span> std::remove_cvref_t&lt;<span class="keyword">decltype</span>(std::declval&lt;MemberClassType&lt;<span class="keyword">decltype</span>(<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>)&gt;&gt;().*<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>)&gt;::ValueType;</div>
-<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span> </div>
-<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>} <span class="comment">// namespace Lightweight</span></div>
-<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span> </div>
-<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span><span class="keyword">template</span> &lt;Lightweight::detail::FieldElementType T, auto P1, auto P2&gt;</div>
-<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span><span class="keyword">struct </span>std::formatter&lt;Lightweight::Field&lt;T, P1, P2&gt;&gt;: std::formatter&lt;T&gt;</div>
-<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>{</div>
-<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> FormatContext&gt;</div>
-<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>    <span class="comment">// NOLINTNEXTLINE(readability-identifier-naming)</span></div>
-<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>    <span class="keyword">auto</span> format(<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field&lt;T, P1, P2&gt;</a> <span class="keyword">const</span>&amp; field, FormatContext&amp; ctx)</div>
-<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>    {</div>
-<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>        <span class="keywordflow">return</span> formatter&lt;T&gt;::format(field.<a class="code hl_function" href="../../d2/dd0/structLightweight_1_1Field.html#adb44c1c3efd47294593bc757a7c1734c">InspectValue</a>(), ctx);</div>
-<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span>    }</div>
-<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>};</div>
+<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span><span class="preprocessor">#if defined(LIGHTWEIGHT_CXX26_REFLECTION)</span></div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>    <span class="keyword">typename</span> std::remove_cvref_t&lt;<span class="keyword">typename</span>[:type_of(<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>):]&gt;::ValueType;</div>
+<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span><span class="preprocessor">#else</span></div>
+<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>    <span class="keyword">typename</span> std::remove_cvref_t&lt;<span class="keyword">decltype</span>(std::declval&lt;MemberClassType&lt;<span class="keyword">decltype</span>(<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>)&gt;&gt;().*<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>)&gt;::ValueType;</div>
+<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span> </div>
+<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span> </div>
+<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span><span class="keyword">template</span> &lt;Lightweight::detail::FieldElementType T, auto P1, auto P2&gt;</div>
+<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span><span class="keyword">struct </span>std::formatter&lt;Lightweight::Field&lt;T, P1, P2&gt;&gt;: std::formatter&lt;T&gt;</div>
+<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>{</div>
+<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> FormatContext&gt;</div>
+<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span>    <span class="comment">// NOLINTNEXTLINE(readability-identifier-naming)</span></div>
+<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>    <span class="keyword">auto</span> format(<a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field&lt;T, P1, P2&gt;</a> <span class="keyword">const</span>&amp; field, FormatContext&amp; ctx)</div>
+<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>    {</div>
+<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>        <span class="keywordflow">return</span> formatter&lt;T&gt;::format(field.<a class="code hl_function" href="../../d2/dd0/structLightweight_1_1Field.html#adb44c1c3efd47294593bc757a7c1734c">InspectValue</a>(), ctx);</div>
+<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>    }</div>
+<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>};</div>
 </div>
 </div>
 </div>
@@ -497,7 +501,7 @@ $(document).ready(function(){initNavTree('d6/dac/Field_8hpp_source.html','../../
 </div>
 </div>
 <div class="ttc" id="aclassLightweight_1_1SqlDataBinderCallback_html"><div class="ttname"><a href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">Lightweight::SqlDataBinderCallback</a></div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00031">Core.hpp:32</a></div></div>
-<div class="ttc" id="agroup__DataMapper_html_ga0380e9ceb64c318ba9bff748102e62b8"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8">Lightweight::ReferencedFieldTypeOf</a></div><div class="ttdeci">typename std::remove_cvref_t&lt; decltype(std::declval&lt; MemberClassType&lt; decltype(Field)&gt; &gt;().*Field)&gt;::ValueType ReferencedFieldTypeOf</div><div class="ttdoc">Retrieves the type of a member field in a record.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00358">Field.hpp:359</a></div></div>
+<div class="ttc" id="agroup__DataMapper_html_ga0380e9ceb64c318ba9bff748102e62b8"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8">Lightweight::ReferencedFieldTypeOf</a></div><div class="ttdeci">typename std::remove_cvref_t&lt; decltype(std::declval&lt; MemberClassType&lt; decltype(Field)&gt; &gt;().*Field)&gt;::ValueType ReferencedFieldTypeOf</div><div class="ttdoc">Retrieves the type of a member field in a record.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00358">Field.hpp:362</a></div></div>
 <div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00083">Field.hpp:84</a></div></div>
 <div class="ttc" id="astructLightweight_1_1Field_html_a16569717f0639833f7a8c83a983497b7"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html#a16569717f0639833f7a8c83a983497b7">Lightweight::Field::Field</a></div><div class="ttdeci">constexpr Field(S &amp;&amp;... value) noexcept</div><div class="ttdoc">Constructs a new field with the given value.</div></div>
 <div class="ttc" id="astructLightweight_1_1Field_html_a2d9ecb75eabddce55d5742d7a8a51ddb"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html#a2d9ecb75eabddce55d5742d7a8a51ddb">Lightweight::Field::operator!=</a></div><div class="ttdeci">bool operator!=(S const &amp;value) const noexcept</div><div class="ttdoc">Compares the field value with the given value for inequality.</div></div>
