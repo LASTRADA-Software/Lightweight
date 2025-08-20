@@ -261,7 +261,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsForFieldMembers", "[SqlQ
 struct QueryBuilderTestEmail
 {
     Field<std::string> email;
-    BelongsTo<&UsersFields::name, SqlRealName{"user_id"} > user;
+    BelongsTo<Member(UsersFields::name), SqlRealName{"user_id"} > user;
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsWithBelongsTo", "[SqlQueryBuilder]")
@@ -283,7 +283,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsWithBelongsTo", "[SqlQue
 struct QueryBuilderTestEmailWithAliases
 {
     Field<std::string, SqlRealName { "FAX_ADRESS" }> email;
-    BelongsTo<&UsersFields::name, SqlRealName{ "USER_REC" }> user;
+    BelongsTo<Member(UsersFields::name), SqlRealName{ "USER_REC" }> user;
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsWithBelongsToAndAliases", "[SqlQueryBuilder]")
@@ -584,8 +584,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Query Join", "[DataMapper]")
             return q.FromTable(RecordTableName<JoinTestA>)
                     .Select()
                     .Fields<JoinTestA, JoinTestC>()
-                    .InnerJoin<&JoinTestB::a_id, &JoinTestA::id>()
-                    .InnerJoin<&JoinTestC::id, &JoinTestB::c_id>()
+                    .InnerJoin<Member(JoinTestB::a_id), Member(JoinTestA::id)>()
+                    .InnerJoin<Member(JoinTestC::id), Member(JoinTestB::c_id)>()
                     .All();
             // clang-format onn
         },

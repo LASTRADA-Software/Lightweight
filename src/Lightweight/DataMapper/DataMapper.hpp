@@ -317,7 +317,6 @@ class DataMapper
             fields += FieldNameAt<I, Record>;
             fields += '"';
         });
-
         return SqlAllFieldsQueryBuilder<Record>(_stmt, std::move(fields));
     }
 

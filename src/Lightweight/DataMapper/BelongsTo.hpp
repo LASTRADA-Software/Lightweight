@@ -56,6 +56,16 @@ class BelongsTo
             return std::string_view {};
     }();
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    /// Represents the record type of the other field.
+    using ReferencedRecord = MemberClassType<TheReferencedField>;
+
+    /// Represents the base column type of the foreign key, matching the primary key of the other record.
+    using BaseType = typename[:std::meta::type_of(ReferencedField):] ::ValueType;
+
+    static_assert(std::remove_cvref_t<decltype(std::declval<ReferencedRecord>().[:ReferencedField:])>::IsPrimaryKey,
+                  "The referenced field must be a primary key.");
+#else
     /// Represents the record type of the other field.
     using ReferencedRecord = MemberClassType<decltype(TheReferencedField)>;
 
@@ -64,6 +74,7 @@ class BelongsTo
 
     /// Represents the base column type of the foreign key, matching the primary key of the other record.
     using BaseType = typename std::remove_cvref_t<decltype(std::declval<ReferencedRecord>().*ReferencedField)>::ValueType;
+#endif
 
     /// Represents the value type of the foreign key,
     /// which can be either an optional or a non-optional type of the referenced field,
@@ -82,7 +93,11 @@ class BelongsTo
     }
 
     constexpr BelongsTo(ReferencedRecord const& other) noexcept:
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+        _referencedFieldValue { (other.[:ReferencedField:]).Value() },
+#else
         _referencedFieldValue { (other.*ReferencedField).Value() },
+#endif
         _loaded { true },
         _record { std::make_unique<ReferencedRecord>(other) }
     {
@@ -119,11 +134,19 @@ class BelongsTo
 
     BelongsTo& operator=(ReferencedRecord& other)
     {
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+        if (_referencedFieldValue == (other.[:ReferencedField:]).Value())
+#else
         if (_referencedFieldValue == (other.*ReferencedField).Value())
+#endif
             return *this;
         _loaded = true;
         _record = std::make_unique<ReferencedRecord>(other);
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+        _referencedFieldValue = (other.[:ReferencedField:]).Value();
+#else
         _referencedFieldValue = (other.*ReferencedField).Value();
+#endif
         _modified = true;
         return *this;
     }

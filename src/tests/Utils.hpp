@@ -36,6 +36,17 @@ using WideChar = std::conditional_t<sizeof(wchar_t) == 2, wchar_t, char16_t>;
 using WideString = std::basic_string<WideChar>;
 using WideStringView = std::basic_string_view<WideChar>;
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    /// @brief marco to define a member to the structure, in case of C++26 reflection this
+    /// will create reflection, in case of C++20 reflection this will create a member pointer
+    #define Member(x) ^^x
+
+#else
+    /// @brief marco to define a member to the structure, in case of C++26 reflection this
+    /// will create reflection, in case of C++20 reflection this will create a member pointer
+    #define Member(x) &x
+#endif
+
 #if !defined(_WIN32)
     #define WTEXT(x) (u##x)
 #else

@@ -187,7 +187,7 @@ struct Account
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<SqlAnsiString<30>> iban {};
-    BelongsTo<&Suppliers::id> supplier {};
+    BelongsTo<Member(Suppliers::id)> supplier {};
 
     constexpr std::weak_ordering operator<=>(Account const& other) const = default;
 };
@@ -201,7 +201,7 @@ struct AccountHistory
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<int> credit_rating {};
-    BelongsTo<&Account::id> account {};
+    BelongsTo<Member(Account::id)> account {};
 
     constexpr std::weak_ordering operator<=>(AccountHistory const& other) const = default;
 };
@@ -417,11 +417,11 @@ struct AliasedRecord
 struct BelongsToAliasedRecord
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    BelongsTo<&AliasedRecord::id, SqlRealName { "record_id" }> record;
+    BelongsTo<Member(AliasedRecord::id), SqlRealName { "record_id" }> record;
 };
 
-static_assert(std::same_as<typename BelongsTo<&AliasedRecord::id>::ReferencedRecord, AliasedRecord>);
-static_assert(std::same_as<typename BelongsTo<&AliasedRecord::id>::ValueType, uint64_t>);
+static_assert(std::same_as<typename BelongsTo<Member(AliasedRecord::id)>::ReferencedRecord, AliasedRecord>);
+static_assert(std::same_as<typename BelongsTo<Member(AliasedRecord::id)>::ValueType, uint64_t>);
 
 std::ostream& operator<<(std::ostream& os, AliasedRecord const& record)
 {

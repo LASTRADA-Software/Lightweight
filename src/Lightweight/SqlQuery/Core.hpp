@@ -780,11 +780,18 @@ template <typename Derived>
 template <auto LeftField, auto RightField>
 Derived& SqlWhereClauseBuilder<Derived>::InnerJoin()
 {
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    return Join(JoinType::INNER,
+                RecordTableName<MemberClassType<LeftField>>,
+                FieldNameOf<LeftField>,
+                SqlQualifiedTableColumnName { RecordTableName<MemberClassType<RightField>>, FieldNameOf<RightField> });
+#else
     return Join(
         JoinType::INNER,
         RecordTableName<Reflection::MemberClassType<LeftField>>,
         FieldNameOf<LeftField>,
         SqlQualifiedTableColumnName { RecordTableName<Reflection::MemberClassType<RightField>>, FieldNameOf<RightField> });
+#endif
 }
 
 template <typename Derived>
