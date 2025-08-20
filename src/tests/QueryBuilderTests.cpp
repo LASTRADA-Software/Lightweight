@@ -261,7 +261,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsForFieldMembers", "[SqlQ
 struct QueryBuilderTestEmail
 {
     Field<std::string> email;
-    BelongsTo<&UsersFields::name> user;
+    BelongsTo<&UsersFields::name, SqlRealName{"user_id"} > user;
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsWithBelongsTo", "[SqlQueryBuilder]")

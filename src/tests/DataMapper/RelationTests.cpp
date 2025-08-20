@@ -417,7 +417,7 @@ struct AliasedRecord
 struct BelongsToAliasedRecord
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    BelongsTo<&AliasedRecord::id> record;
+    BelongsTo<&AliasedRecord::id, SqlRealName { "record_id" }> record;
 };
 
 static_assert(std::same_as<typename BelongsTo<&AliasedRecord::id>::ReferencedRecord, AliasedRecord>);

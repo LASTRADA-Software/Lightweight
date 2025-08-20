@@ -101,22 +101,6 @@ namespace detail
         }();
     };
 
-    template <std::size_t I, typename Record>
-    struct BelongsToNameImpl
-    {
-        static constexpr auto baseName = Reflection::MemberNameOf<I, Record>;
-        static constexpr auto storage = []() -> std::array<char, baseName.size() + 4>
-        {
-            std::array<char, baseName.size() + 4> storage {};
-            std::copy_n(baseName.begin(), baseName.size(), storage.begin());
-            std::copy_n("_id", 3, storage.begin() + baseName.size());
-            storage.back() = '\0';
-            return storage;
-        }
-        ();
-        static constexpr auto name = std::string_view(storage.data(), storage.size() - 1);
-    };
-
     template <typename FieldType>
     constexpr auto ColumnNameOverride = []() consteval {
         if constexpr (requires { FieldType::ColumnNameOverride; })
@@ -150,12 +134,7 @@ namespace detail
         {
             return FieldType::ColumnNameOverride;
         }
-        else if constexpr (requires { FieldType::ReferencedField; }) // check isBelongsTo
-        {
-            return detail::BelongsToNameImpl<I, Record>::name;
-        }
-        else
-            return Reflection::MemberNameOf<I, Record>;
+        return Reflection::MemberNameOf<I, Record>;
     }
 } // namespace detail
 
