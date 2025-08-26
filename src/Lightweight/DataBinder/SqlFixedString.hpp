@@ -320,8 +320,14 @@ using SqlWideString = SqlFixedString<N, wchar_t, SqlFixedStringMode::VARIABLE_SI
 /// Fixed-size (right-trimmed) string of element type `char` with a capacity of `N` characters.
 ///
 /// @ingroup DataTypes
-template <std::size_t N, typename T = char>
-using SqlTrimmedFixedString = SqlFixedString<N, T, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED>;
+template <std::size_t N>
+using SqlTrimmedFixedString = SqlFixedString<N, char, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED>;
+
+/// Fixed-size (right-trimmed) string of element type `wchar_t` with a capacity of `N` characters.
+///
+/// @ingroup DataTypes
+template <std::size_t N>
+using SqlTrimmedWideFixedString = SqlFixedString<N, wchar_t, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED>;
 
 template <std::size_t N, typename T = char>
 using SqlString = SqlFixedString<N, T, SqlFixedStringMode::VARIABLE_SIZE>;
@@ -404,7 +410,11 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
 
     LIGHTWEIGHT_FORCE_INLINE static void TrimRight(ValueType* boundOutputString, SQLLEN indicator) noexcept
     {
-        size_t n = (std::min) ((size_t) indicator, N - 1);
+#if defined(_WIN32)
+        size_t n = (std::min) (static_cast<size_t>(indicator) / sizeof(CharType), N - 1);
+#else
+        size_t n = std::min(static_cast<size_t>(indicator), N - 1);
+#endif
         while (n > 0 && std::isspace((*boundOutputString)[n - 1]))
             --n;
         boundOutputString->setsize(n);
@@ -420,7 +430,7 @@ struct std::formatter<Lightweight::SqlFixedString<N, T, P>>: std::formatter<std:
     auto format(value_type const& text, format_context& ctx) const -> format_context::iterator
     {
         if constexpr (std::same_as<T, wchar_t>)
-            return std::formatter<std::string>::format((char const*) ToUtf8(text.ToStringView()).c_str(), ctx);
+            return std::formatter<std::string>::format(ToUtf8(text.ToStringView()), ctx);
         else
             return std::formatter<std::string>::format(text.c_str(), ctx);
     }

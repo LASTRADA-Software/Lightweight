@@ -184,6 +184,18 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: c_str", "[SqlFixedString]")
     REQUIRE(str.c_str() == "He"sv); // Call to `c_str()` also mutates [2] to NUL
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: TrimRight", "[SqlFixedString]")
+{
+    SqlTrimmedFixedString<20> str { "Hello        " };
+    SqlBasicStringOperations<SqlTrimmedFixedString<20>>::TrimRight(&str, 5);
+    REQUIRE(str == "Hello");
+    SqlTrimmedWideFixedString<20> wstr { L"Hello        " };
+    SqlBasicStringOperations<SqlTrimmedWideFixedString<20>>::TrimRight(&wstr, 10);
+    REQUIRE(wstr == L"Hello");
+    SqlTrimmedWideFixedString<20> wstrWrongIndicator { L"Hello        " };
+    REQUIRE(wstrWrongIndicator != L"Hello");
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn in-place store variant", "[SqlDataBinder]")
 {
     auto stmt = SqlStatement {};
@@ -624,13 +636,24 @@ struct TestTypeTraits<CustomType>
 };
 
 template <>
-struct TestTypeTraits<SqlTrimmedFixedString<20, char>>
+struct TestTypeTraits<SqlTrimmedFixedString<20>>
 {
-    using ValueType = SqlTrimmedFixedString<20, char>;
+    using ValueType = SqlTrimmedFixedString<20>;
     static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Char { 20 };
     static constexpr auto inputValue = ValueType { "Hello " };
     static constexpr auto expectedOutputValue = ValueType { "Hello" };
 };
+
+
+template <>
+struct TestTypeTraits<SqlTrimmedWideFixedString<20>>
+{
+    using ValueType = SqlTrimmedWideFixedString<20>;
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::NVarchar { 20 };
+    static constexpr auto inputValue = ValueType { L"Hello" };
+    static constexpr auto expectedOutputValue = ValueType { L"Hello" };
+};
+
 
 template <>
 struct TestTypeTraits<SqlAnsiString<20>>
@@ -895,7 +918,8 @@ using TypesToTest = std::tuple<
     SqlWideString<20>,
     SqlText,
     SqlTime,
-    SqlTrimmedFixedString<20, char>,
+    SqlTrimmedFixedString<20>,
+    SqlTrimmedWideFixedString<20>,
     double,
     float,
     int8_t,
