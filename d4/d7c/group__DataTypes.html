@@ -159,9 +159,12 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ga151c371c5f22ebb4ff0fa48cc99d1338" id="r_ga151c371c5f22ebb4ff0fa48cc99d1338"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
 <tr class="memitem:ga151c371c5f22ebb4ff0fa48cc99d1338"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d4/d7c/group__DataTypes.html#ga151c371c5f22ebb4ff0fa48cc99d1338">Lightweight::SqlWideString</a> = <a class="el" href="../../de/dae/classLightweight_1_1SqlFixedString.html">SqlFixedString</a>&lt; N, wchar_t, SqlFixedStringMode::VARIABLE_SIZE &gt;</td></tr>
 <tr class="separator:ga151c371c5f22ebb4ff0fa48cc99d1338"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gac7cda3cd083e6d209b731892637151db" id="r_gac7cda3cd083e6d209b731892637151db"><td class="memTemplParams" colspan="2">template&lt;std::size_t N, typename T  = char&gt; </td></tr>
-<tr class="memitem:gac7cda3cd083e6d209b731892637151db"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d4/d7c/group__DataTypes.html#gac7cda3cd083e6d209b731892637151db">Lightweight::SqlTrimmedFixedString</a> = <a class="el" href="../../de/dae/classLightweight_1_1SqlFixedString.html">SqlFixedString</a>&lt; N, T, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED &gt;</td></tr>
-<tr class="separator:gac7cda3cd083e6d209b731892637151db"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga514572725cc330d6c418c96fc4d969a2" id="r_ga514572725cc330d6c418c96fc4d969a2"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
+<tr class="memitem:ga514572725cc330d6c418c96fc4d969a2"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d4/d7c/group__DataTypes.html#ga514572725cc330d6c418c96fc4d969a2">Lightweight::SqlTrimmedFixedString</a> = <a class="el" href="../../de/dae/classLightweight_1_1SqlFixedString.html">SqlFixedString</a>&lt; N, char, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED &gt;</td></tr>
+<tr class="separator:ga514572725cc330d6c418c96fc4d969a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga6ffd015cbc1fc39c906cc9da2cf3ca61" id="r_ga6ffd015cbc1fc39c906cc9da2cf3ca61"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
+<tr class="memitem:ga6ffd015cbc1fc39c906cc9da2cf3ca61"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d4/d7c/group__DataTypes.html#ga6ffd015cbc1fc39c906cc9da2cf3ca61">Lightweight::SqlTrimmedWideFixedString</a> = <a class="el" href="../../de/dae/classLightweight_1_1SqlFixedString.html">SqlFixedString</a>&lt; N, wchar_t, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED &gt;</td></tr>
+<tr class="separator:ga6ffd015cbc1fc39c906cc9da2cf3ca61"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -323,22 +326,41 @@ template&lt;std::size_t N&gt; </div>
 
 </div>
 </div>
-<a id="gac7cda3cd083e6d209b731892637151db" name="gac7cda3cd083e6d209b731892637151db"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gac7cda3cd083e6d209b731892637151db">&#9670;&#160;</a></span>SqlTrimmedFixedString</h2>
+<a id="ga514572725cc330d6c418c96fc4d969a2" name="ga514572725cc330d6c418c96fc4d969a2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga514572725cc330d6c418c96fc4d969a2">&#9670;&#160;</a></span>SqlTrimmedFixedString</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;std::size_t N, typename T  = char&gt; </div>
+template&lt;std::size_t N&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../d4/d7c/group__DataTypes.html#gac7cda3cd083e6d209b731892637151db">Lightweight::SqlTrimmedFixedString</a> = typedef <a class="el" href="../../de/dae/classLightweight_1_1SqlFixedString.html">SqlFixedString</a>&lt;N, T, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED&gt;</td>
+          <td class="memname">using <a class="el" href="../../d4/d7c/group__DataTypes.html#ga514572725cc330d6c418c96fc4d969a2">Lightweight::SqlTrimmedFixedString</a> = typedef <a class="el" href="../../de/dae/classLightweight_1_1SqlFixedString.html">SqlFixedString</a>&lt;N, char, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED&gt;</td>
         </tr>
       </table>
 </div><div class="memdoc">
 <p>Fixed-size (right-trimmed) string of element type <code>char</code> with a capacity of <code>N</code> characters. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00324">324</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ga6ffd015cbc1fc39c906cc9da2cf3ca61" name="ga6ffd015cbc1fc39c906cc9da2cf3ca61"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga6ffd015cbc1fc39c906cc9da2cf3ca61">&#9670;&#160;</a></span>SqlTrimmedWideFixedString</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::size_t N&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="../../d4/d7c/group__DataTypes.html#ga6ffd015cbc1fc39c906cc9da2cf3ca61">Lightweight::SqlTrimmedWideFixedString</a> = typedef <a class="el" href="../../de/dae/classLightweight_1_1SqlFixedString.html">SqlFixedString</a>&lt;N, wchar_t, SqlFixedStringMode::FIXED_SIZE_RIGHT_TRIMMED&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Fixed-size (right-trimmed) string of element type <code>wchar_t</code> with a capacity of <code>N</code> characters. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00330">330</a> of file <a class="el" href="../../d1/dfb/SqlFixedString_8hpp_source.html">SqlFixedString.hpp</a>.</p>
 
 </div>
 </div>

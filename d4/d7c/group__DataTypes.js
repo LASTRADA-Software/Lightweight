@@ -147,6 +147,7 @@ var group__DataTypes =
     [ "Lightweight::SqlUtf16String", "d4/d7c/group__DataTypes.html#ga04372f5ac238ef704eda6ebed92399c0", null ],
     [ "Lightweight::SqlUtf32String", "d4/d7c/group__DataTypes.html#ga13c851268190d19b75e7de49c523fd31", null ],
     [ "Lightweight::SqlWideString", "d4/d7c/group__DataTypes.html#ga151c371c5f22ebb4ff0fa48cc99d1338", null ],
-    [ "Lightweight::SqlTrimmedFixedString", "d4/d7c/group__DataTypes.html#gac7cda3cd083e6d209b731892637151db", null ],
+    [ "Lightweight::SqlTrimmedFixedString", "d4/d7c/group__DataTypes.html#ga514572725cc330d6c418c96fc4d969a2", null ],
+    [ "Lightweight::SqlTrimmedWideFixedString", "d4/d7c/group__DataTypes.html#ga6ffd015cbc1fc39c906cc9da2cf3ca61", null ],
     [ "Lightweight::SqlNullValue", "d4/d7c/group__DataTypes.html#ga557658392c27465b9ba0a5ecacdc7f45", null ]
 ];
