@@ -46,6 +46,9 @@ concept NotSqlElements = !detail::IsSqlElements<T>::value;
 template <typename Record>
 concept DataMapperRecord = std::is_aggregate_v<Record> && NotSqlElements<Record>;
 
+template <typename... Records>
+concept DataMapperRecords = (DataMapperRecord<Records> && ...);
+
 namespace detail
 {
 

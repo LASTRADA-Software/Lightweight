@@ -183,7 +183,42 @@ class DataMapper
     template <typename Record, typename... InputParameters>
     std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters);
 
-    /// Queries multiple records from the database, based on the given raw query.
+    /// Queries multiple records and returns them as a vector of std::tuple of the given record types.
+    /// This can be used to query multiple record types in a single query.
+    ///
+    /// example:
+    /// @code
+    /// struct Person
+    /// {
+    ///   int id;
+    ///   std::string name;
+    ///   std::string email;
+    ///   std::string phone;
+    /// };
+    /// struct Address
+    /// {
+    ///   int id;
+    ///   std::string address;
+    ///   std::string city;
+    ///   std::string country;
+    /// };
+    /// void example(DataMapper& dm)
+    /// {
+    ///   auto const sqlQueryString = R"(SELECT p.*, a.* FROM "Person" p INNER JOIN "Address" a ON p.id = a.id WHERE p.city =
+    ///   Berlin AND a.country = Germany)";
+    ///   auto const records = dm.QueryToTuple<Person, Address>(sqlQueryString);
+    ///   for (auto const& [person, address] : records)
+    ///   {
+    ///     std::println("Person: {}", DataMapper::Inspect(person));
+    ///     std::println("Address: {}", DataMapper::Inspect(address));
+    ///   }
+    /// }
+    /// @endcode
+    template <typename... Records>
+        requires DataMapperRecords<Records...>
+    std::vector<std::tuple<Records...>> QueryToTuple(SqlSelectQueryBuilder::ComposedQuery const& selectQuery);
+
+    /// Queries multiple records from the database, based on the given query.
     ///
     /// @param sqlQueryString The SQL query string to execute.
     /// @param inputParameters The input parameters for the query to be bound before executing.
@@ -205,7 +240,7 @@ class DataMapper
     /// void example(DataMapper& dm)
     /// {
     ///     auto const sqlQueryString = R"(SELECT * FROM "Person" WHERE "city" = ? AND "country" = ?)";
-    ///     auto const records = dm.QueryRaw<Person>(sqlQueryString, "Berlin", "Germany");
+    ///     auto const records = dm.Query<Person>(sqlQueryString, "Berlin", "Germany");
     ///     for (auto const& record: records)
     ///     {
     ///         std::println("Person: {}", DataMapper::Inspect(record));
@@ -213,7 +248,7 @@ class DataMapper
     /// }
     /// @endcode
     template <typename Record, typename... InputParameters>
-    std::vector<Record> QueryRaw(std::string_view sqlQueryString, InputParameters&&... inputParameters);
+    std::vector<Record> Query(std::string_view sqlQueryString, InputParameters&&... inputParameters);
 
     /// Queries records from the database, based on the given query and can be used to retrieve only part of the record
     /// by specifying the ElementMask.
@@ -750,11 +785,11 @@ inline LIGHTWEIGHT_FORCE_INLINE std::vector<Record> DataMapper::Query(
 {
     static_assert(DataMapperRecord<Record> || std::same_as<Record, SqlVariantRow>, "Record must satisfy DataMapperRecord");
 
-    return QueryRaw<Record>(selectQuery.ToSql(), std::forward<InputParameters>(inputParameters)...);
+    return Query<Record>(selectQuery.ToSql(), std::forward<InputParameters>(inputParameters)...);
 }
 
 template <typename Record, typename... InputParameters>
-std::vector<Record> DataMapper::QueryRaw(std::string_view sqlQueryString, InputParameters&&... inputParameters)
+std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputParameters&&... inputParameters)
 {
     auto result = std::vector<Record> {};
 
@@ -789,6 +824,53 @@ std::vector<Record> DataMapper::QueryRaw(std::string_view sqlQueryString, InputP
             ConfigureRelationAutoLoading(record);
         }
     }
+
+    return result;
+}
+
+template <typename... Records>
+    requires DataMapperRecords<Records...>
+std::vector<std::tuple<Records...>> DataMapper::QueryToTuple(SqlSelectQueryBuilder::ComposedQuery const& selectQuery)
+{
+    using value_type = std::tuple<Records...>;
+    auto result = std::vector<value_type> {};
+
+    _stmt.Prepare(selectQuery.ToSql());
+    _stmt.Execute();
+
+    constexpr auto calculateOffset = []<size_t I, typename Tuple>() {
+        size_t offset = 1;
+
+        if constexpr (I > 0)
+        {
+            [&]<size_t... Indices>(std::index_sequence<Indices...>) {
+                ((Indices < I ? (offset += Reflection::CountMembers<std::tuple_element_t<Indices, Tuple>>) : 0), ...);
+            }(std::make_index_sequence<I> {});
+        }
+        return offset;
+    };
+
+    auto const processElement = [this]<typename ElementType, size_t Offset>(ElementType& element) {
+        this->BindOutputColumns<ElementType, Offset>(element);
+        this->ConfigureRelationAutoLoading(element);
+    };
+
+    auto const ConfigureFetchAndBind = [&](auto& record) {
+        Reflection::template_for<0, std::tuple_size_v<value_type>>([&]<auto I>() {
+            using TupleElement = std::decay_t<std::tuple_element_t<I, value_type>>;
+            auto& element = std::get<I>(record);
+            constexpr size_t offset = calculateOffset.template operator()<I, value_type>();
+            processElement.template operator()<TupleElement, offset>(element);
+        });
+    };
+
+    ConfigureFetchAndBind(result.emplace_back());
+    while (_stmt.FetchRow())
+        ConfigureFetchAndBind(result.emplace_back());
+
+    // remove the last empty record
+    if (!result.empty())
+        result.pop_back();
 
     return result;
 }

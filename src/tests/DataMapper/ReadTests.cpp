@@ -5,6 +5,7 @@
 
 #include <Lightweight/Lightweight.hpp>
 #include <Lightweight/SqlQuery/Core.hpp>
+#include <Lightweight/Utils.hpp>
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -570,6 +571,96 @@ TEST_CASE_METHOD(SqlTestFixture, "Retrieve optional value without output-binding
     REQUIRE(result.has_value());
     REQUIRE(result.value().a.has_value());
     REQUIRE(result.value().a.value() == 42);
+}
+
+struct CustomBindingA
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<int> number {};
+    Field<SqlAnsiString<20>> name {};
+    Field<SqlDynamicWideString<1000>> description {};
+};
+
+struct CustomBindingB
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<20>> title {};
+    Field<SqlDateTime> date_time {};
+    Field<uint64_t> a_id {};
+    Field<uint64_t> c_id {};
+};
+
+struct CustomBindingC
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<double> value {};
+    Field<SqlAnsiString<20>> comment {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "GetMultileTypesAsVectorOfTuples", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<CustomBindingA>();
+    dm.CreateTable<CustomBindingB>();
+    dm.CreateTable<CustomBindingC>();
+    // fill with some data
+    for (int const i: std::views::iota(1, 10))
+    {
+        auto a = CustomBindingA {
+            .number = i,
+            .name = std::format("Name-{}", i),
+            .description = ToStdWideString(std::format("Description-{}", i)),
+        };
+        dm.Create(a);
+
+        auto c = CustomBindingC {
+            .value = i * 1.5,
+            .comment = std::format("Comment-{}", i),
+        };
+        dm.Create(c);
+
+        auto b = CustomBindingB {
+            .title = std::format("Title-{}", i),
+            .date_time = SqlDateTime::Now(),
+            .a_id = a.id.Value(),
+            .c_id = c.id.Value(),
+        };
+        dm.Create(b);
+    }
+
+    auto stmt = SqlStatement(dm.Connection());
+    auto query = dm.FromTable(RecordTableName<CustomBindingA>)
+                     .Select()
+                     .Fields<CustomBindingA, CustomBindingB>()
+                     .Field(QualifiedColumnName<"CustomBindingC.id">)
+                     .Field(QualifiedColumnName<"CustomBindingC.comment">)
+                     .InnerJoin<Member(CustomBindingB::a_id), Member(CustomBindingA::id)>()
+                     .InnerJoin<Member(CustomBindingC::id), Member(CustomBindingB::c_id)>()
+                     .OrderBy(QualifiedColumnName<"CustomBindingA.id">)
+                     .All();
+
+    struct PartOfC
+    {
+        uint64_t id {};
+        SqlAnsiString<20> comment {};
+    };
+
+    auto const records = dm.QueryToTuple<CustomBindingA, CustomBindingB, PartOfC>(query);
+    CHECK(!records.empty());
+
+    for (auto const& [a, b, c]: records)
+    {
+        CHECK(a.id.Value());
+        CHECK(b.id.Value());
+        CHECK(c.id != 0);
+
+        CHECK(a.name.Value().ToString().starts_with("Name-"));
+        CHECK(a.description.Value().ToStringView().starts_with(L"Description-"));
+
+        CHECK(b.date_time.Value().day() == SqlDateTime::Now().day());
+
+        CHECK(c.comment.ToString().starts_with("Comment-"));
+    }
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
