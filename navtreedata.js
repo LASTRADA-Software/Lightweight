@@ -94,7 +94,7 @@ var NAVTREEINDEX =
 "annotated.html",
 "d7/d94/Table33_8hpp_source.html",
 "db/dfd/classLightweight_1_1SqlLogger.html#aa68027bdaa8f1fde1e3feb1de44f985c",
-"functions_func_n.html"
+"functions_func_m.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
