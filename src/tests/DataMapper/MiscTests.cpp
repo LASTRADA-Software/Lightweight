@@ -229,10 +229,10 @@ TEST_CASE_METHOD(SqlTestFixture, "Test DifferenceView", "[DataMapper]")
 struct TestDynamicData
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<SqlDynamicAnsiString<4000>> stringAnsi {};
-    Field<SqlDynamicUtf16String<4000>> stringUtf16 {};
-    Field<SqlDynamicUtf32String<4000>> stringUtf32 {};
-    Field<SqlDynamicWideString<4000>> stringWide {};
+    Field<SqlDynamicAnsiString<16000>> stringAnsi {};
+    Field<SqlDynamicUtf16String<16000>> stringUtf16 {};
+    Field<SqlDynamicUtf32String<16000>> stringUtf32 {};
+    Field<SqlDynamicWideString<16000>> stringWide {};
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "TestDynamicData", "[DataMapper]")
@@ -264,6 +264,35 @@ TEST_CASE_METHOD(SqlTestFixture, "TestDynamicData", "[DataMapper]")
     checkSize(1000);
     checkSize(2000);
     checkSize(4000);
+    checkSize(16000);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "TestQuerySingleDynamicData", "[DataMapper]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<TestDynamicData>();
+    TestDynamicData data {};
+    data.stringAnsi = std::string(10, 'a');
+    data.stringUtf32 = std::basic_string<char32_t>(10, U'a');
+    data.stringWide = std::basic_string<wchar_t>(10, L'a');
+    dm.Create(data);
+
+    auto const checkSize = [&](auto size) {
+        INFO(size);
+        data.stringWide = std::basic_string<wchar_t>(size, L'a');
+        dm.Update(data);
+        auto const result = dm.Query<TestDynamicData>()
+                                .Where(FieldNameOf<Member(TestDynamicData::id)>, "=", data.id.Value())
+                                .First<Member(TestDynamicData::stringWide)>();
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == std::basic_string<wchar_t>(size, L'a'));
+    };
+
+    checkSize(5);
+    checkSize(1000);
+    checkSize(2000);
+    checkSize(4000);
+    checkSize(16000);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "TestQuerySparseDynamicData", "[DataMapper]")
@@ -279,27 +308,30 @@ TEST_CASE_METHOD(SqlTestFixture, "TestQuerySparseDynamicData", "[DataMapper]")
     auto const checkSize = [&](auto size) {
         INFO(size);
         data.stringUtf16 = std::basic_string<char16_t>(size, u'a');
+        data.stringUtf32 = std::basic_string<char32_t>(size, U'a');
         dm.Update(data);
         auto const result = dm.Query<TestDynamicData>()
                                 .Where(FieldNameOf<Member(TestDynamicData::id)>, "=", data.id.Value())
-                                .First<Member(TestDynamicData::stringUtf16)>();
+                                .First<Member(TestDynamicData::stringUtf16), Member(TestDynamicData::stringUtf32)>();
         REQUIRE(result.has_value());
-        REQUIRE(result.value() == std::basic_string<char16_t>(size, u'a'));
+        REQUIRE(result.value().stringUtf16 == std::basic_string<char16_t>(size, u'a'));
+        REQUIRE(result.value().stringUtf32 == std::basic_string<char32_t>(size, U'a'));
     };
 
     checkSize(5);
     checkSize(1000);
     checkSize(2000);
     checkSize(4000);
+    checkSize(16000);
 }
 
 struct TestOptionalDynamicData
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
-    Field<std::optional<SqlDynamicAnsiString<4000>>> stringAnsi {};
-    Field<std::optional<SqlDynamicUtf16String<4000>>> stringUtf16 {};
-    Field<std::optional<SqlDynamicUtf32String<4000>>> stringUtf32 {};
-    Field<std::optional<SqlDynamicWideString<4000>>> stringWide {};
+    Field<std::optional<SqlDynamicAnsiString<16000>>> stringAnsi {};
+    Field<std::optional<SqlDynamicUtf16String<16000>>> stringUtf16 {};
+    Field<std::optional<SqlDynamicUtf32String<16000>>> stringUtf32 {};
+    Field<std::optional<SqlDynamicWideString<16000>>> stringWide {};
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "TestOptionalDynamicData", "[DataMapper]")
@@ -349,6 +381,7 @@ TEST_CASE_METHOD(SqlTestFixture, "TestOptionalDynamicData", "[DataMapper]")
     checkSize(2000);
     checkSize(2001);
     checkSize(4000);
+    checkSize(16000);
 }
 
 struct MessagesStruct
