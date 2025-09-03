@@ -5,6 +5,7 @@
 #include "../SqlConnection.hpp"
 #include "../SqlQueryFormatter.hpp"
 #include "../SqlStatement.hpp"
+#include "../Utils.hpp"
 #include "BelongsTo.hpp"
 #include "Field.hpp"
 #include "Record.hpp"
@@ -273,7 +274,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         auto result = std::vector<value_type> {};
 
         _stmt.ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
-                                                 QuotedFieldNamesOf<Field>.string_view(),
+                                                 FullyQualifiedNamesOf<Field>.string_view(),
                                                  RecordTableName<Record>,
                                                  this->_query.searchCondition.tableAlias,
                                                  this->_query.searchCondition.tableJoins,
@@ -321,7 +322,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         auto records = std::vector<Record> {};
 
         _stmt.ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
-                                                 QuotedFieldNamesOf<ReferencedFields...>.string_view(),
+                                                 FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
                                                  RecordTableName<Record>,
                                                  this->_query.searchCondition.tableAlias,
                                                  this->_query.searchCondition.tableJoins,
@@ -381,7 +382,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     {
         auto constexpr count = 1;
         _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
-                                                   QuotedFieldNameOf<Field>.string_view(),
+                                                   FullyQualifiedNamesOf<Field>.string_view(),
                                                    RecordTableName<Record>,
                                                    this->_query.searchCondition.tableAlias,
                                                    this->_query.searchCondition.tableJoins,
@@ -405,7 +406,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         auto optionalRecord = std::optional<Record> {};
 
         _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
-                                                   QuotedFieldNamesOf<ReferencedFields...>.string_view(),
+                                                   FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
                                                    RecordTableName<Record>,
                                                    this->_query.searchCondition.tableAlias,
                                                    this->_query.searchCondition.tableJoins,
@@ -456,7 +457,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         auto records = std::vector<Record> {};
         records.reserve(n);
         _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
-                                                   QuotedFieldNamesOf<ReferencedFields...>.string_view(),
+                                                   FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
                                                    RecordTableName<Record>,
                                                    this->_query.searchCondition.tableAlias,
                                                    this->_query.searchCondition.tableJoins,
@@ -519,7 +520,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
         records.reserve(limit);
         _stmt.ExecuteDirect(_formatter.SelectRange(
             this->_query.distinct,
-            QuotedFieldNamesOf<ReferencedFields...>.string_view(),
+            FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
             RecordTableName<Record>,
             this->_query.searchCondition.tableAlias,
             this->_query.searchCondition.tableJoins,
