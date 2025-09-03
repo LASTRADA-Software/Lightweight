@@ -99,9 +99,8 @@ namespace detail
     // indexes of the mask corresponds to the indexe of the field
     // inside the structure, not inside the SQL result set
     template <typename ElementMask, typename Record>
-    void GetAllColumns(SqlResultCursor& reader, Record& record)
+    void GetAllColumns(SqlResultCursor& reader, Record& record, SQLUSMALLINT indexFromQuery = 0)
     {
-        SQLUSMALLINT indexFromQuery = 0;
         Reflection::EnumerateMembers<ElementMask>(
             record, [reader = &reader, &indexFromQuery]<size_t I, typename Field>(Field& field) mutable {
                 ++indexFromQuery;
@@ -124,12 +123,14 @@ namespace detail
     }
 
     template <typename Record>
-    void GetAllColumns(SqlResultCursor& reader, Record& record)
+    void GetAllColumns(SqlResultCursor& reader, Record& record, SQLUSMALLINT indexFromQuery = 0)
     {
-        return GetAllColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>, Record>(reader, record);
+        return GetAllColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>, Record>(
+            reader, record, indexFromQuery);
     }
 
     template <typename FirstRecord, typename SecondRecord>
+    // TODO we need to remove this at some points and provide generic bindings for tuples
     void GetAllColumns(SqlResultCursor& reader, std::tuple<FirstRecord, SecondRecord>& record)
     {
         auto& [firstRecord, secondRecord] = record;

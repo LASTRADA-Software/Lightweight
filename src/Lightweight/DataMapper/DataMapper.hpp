@@ -303,12 +303,14 @@ class DataMapper
     /// }
     template <typename FirstRecord, typename NextRecord, typename... InputParameters>
         requires DataMapperRecord<FirstRecord> && DataMapperRecord<NextRecord>
+    // TODO : need more generic one and we also have queryToTuple
     std::vector<std::tuple<FirstRecord, NextRecord>> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
                                                            InputParameters&&... inputParameters);
 
     /// Queries records of different types from the database, based on the given query.
     template <typename FirstRecord, typename NextRecord>
         requires DataMapperRecord<FirstRecord> && DataMapperRecord<NextRecord>
+    // TODO : need more generic one and we also have queryToTuple
     SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>> Query()
     {
         std::string fields;
@@ -810,19 +812,32 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
     {
         static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
+        bool const canSafelyBindOutputColumns = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
+
         _stmt.Prepare(sqlQueryString);
         _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
 
-        auto record = Record {};
-        BindOutputColumns(record);
-        ConfigureRelationAutoLoading(record);
-        while (_stmt.FetchRow())
+        auto reader = _stmt.GetResultCursor();
+
+        for (;;)
         {
-            result.emplace_back(std::move(record));
-            record = Record {};
-            BindOutputColumns(record);
-            ConfigureRelationAutoLoading(record);
+            auto& record = result.emplace_back();
+
+            if (canSafelyBindOutputColumns)
+                BindOutputColumns(record);
+
+            if (!reader.FetchRow())
+                break;
+
+            if (!canSafelyBindOutputColumns)
+                detail::GetAllColumns(reader, record);
         }
+
+        // Drop the last record, which we failed to fetch (End of result set).
+        result.pop_back();
+
+        for (auto& record: result)
+            ConfigureRelationAutoLoading(record);
     }
 
     return result;
@@ -837,6 +852,7 @@ std::vector<std::tuple<Records...>> DataMapper::QueryToTuple(SqlSelectQueryBuild
 
     _stmt.Prepare(selectQuery.ToSql());
     _stmt.Execute();
+    auto reader = _stmt.GetResultCursor();
 
     constexpr auto calculateOffset = []<size_t I, typename Tuple>() {
         size_t offset = 1;
@@ -850,27 +866,56 @@ std::vector<std::tuple<Records...>> DataMapper::QueryToTuple(SqlSelectQueryBuild
         return offset;
     };
 
-    auto const processElement = [this]<typename ElementType, size_t Offset>(ElementType& element) {
-        this->BindOutputColumns<ElementType, Offset>(element);
-        this->ConfigureRelationAutoLoading(element);
-    };
-
-    auto const ConfigureFetchAndBind = [&](auto& record) {
+    auto const BindElements = [&](auto& record) {
         Reflection::template_for<0, std::tuple_size_v<value_type>>([&]<auto I>() {
             using TupleElement = std::decay_t<std::tuple_element_t<I, value_type>>;
             auto& element = std::get<I>(record);
             constexpr size_t offset = calculateOffset.template operator()<I, value_type>();
-            processElement.template operator()<TupleElement, offset>(element);
+            this->BindOutputColumns<TupleElement, offset>(element);
         });
     };
 
-    ConfigureFetchAndBind(result.emplace_back());
-    while (_stmt.FetchRow())
-        ConfigureFetchAndBind(result.emplace_back());
+    auto const GetElements = [&](auto& record) {
+        Reflection::template_for<0, std::tuple_size_v<value_type>>([&]<auto I>() {
+            auto& element = std::get<I>(record);
+            constexpr size_t offset = calculateOffset.template operator()<I, value_type>();
+            detail::GetAllColumns(reader, element, offset - 1);
+        });
+    };
 
-    // remove the last empty record
-    if (!result.empty())
-        result.pop_back();
+    bool const canSafelyBindOutputColumns = [&]() {
+        bool result = true;
+        Reflection::template_for<0, std::tuple_size_v<value_type>>([&]<auto I>() {
+            using TupleElement = std::decay_t<std::tuple_element_t<I, value_type>>;
+            result &= detail::CanSafelyBindOutputColumns<TupleElement>(_stmt.Connection().ServerType());
+        });
+        return result;
+    }();
+
+    for (;;)
+    {
+        auto& record = result.emplace_back();
+
+        if (canSafelyBindOutputColumns)
+            BindElements(record);
+
+        if (!reader.FetchRow())
+            break;
+
+        if (!canSafelyBindOutputColumns)
+            GetElements(record);
+    }
+
+    // Drop the last record, which we failed to fetch (End of result set).
+    result.pop_back();
+
+    for (auto& record: result)
+    {
+        Reflection::template_for<0, std::tuple_size_v<value_type>>([&]<auto I>() {
+            auto& element = std::get<I>(record);
+            ConfigureRelationAutoLoading(element);
+        });
+    }
 
     return result;
 }
