@@ -30,6 +30,12 @@ struct SqlDateTime
         return SqlDateTime { std::chrono::system_clock::now() };
     }
 
+    /// Return the current date and time in UTC.
+    [[nodiscard]] static LIGHTWEIGHT_FORCE_INLINE SqlDateTime NowUTC() noexcept
+    {
+        return SqlDateTime { std::chrono::system_clock::time_point { std::chrono::utc_clock::now().time_since_epoch() } };
+    }
+
     constexpr SqlDateTime() noexcept = default;
     constexpr SqlDateTime(SqlDateTime&&) noexcept = default;
     constexpr SqlDateTime& operator=(SqlDateTime&&) noexcept = default;
