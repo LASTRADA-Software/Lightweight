@@ -219,7 +219,7 @@ using MemberClassType = typename detail::MemberClassTypeHelper<T>::type;
 namespace detail
 {
     template <auto ReferencedField>
-    struct QuotedFieldNameOfImpl
+    struct FullyQualifiedNameOfImpl
     {
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
         static constexpr auto ClassName = RecordTableName<typename[:std::meta::parent_of(ReferencedField):]>;
@@ -302,23 +302,23 @@ constexpr bool operator!=(SqlRawColumnNameView const& lhs, std::string_view rhs)
 /// @tparam ReferencedField
 ///
 /// @code
-/// auto const quotedFieldName = QuotedFieldNameOf<&Person::id>;
+/// auto const quotedFieldName = FullyQualifiedNameOf<&Person::id>;
 /// static_assert(quotedFieldName.value == R"sql("Person"."id")sql");
 /// @endcode
 ///
 /// @ingroup DataMapper
 template <auto ReferencedField>
-constexpr inline auto QuotedFieldNameOf = SqlRawColumnNameView {
-    .value = detail::QuotedFieldNameOfImpl<ReferencedField>::value,
+constexpr inline auto FullyQualifiedNameOf = SqlRawColumnNameView {
+    .value = detail::FullyQualifiedNameOfImpl<ReferencedField>::value,
 };
 
 namespace detail
 {
     template <auto... ReferencedFields>
-    struct QuotedFieldNamesOfImpl
+    struct FullyQualifiedNamesOfImpl
     {
         static constexpr auto StorageSize =
-            1 + (2 * (sizeof...(ReferencedFields) - 1)) + (0 + ... + QuotedFieldNameOf<ReferencedFields>.size());
+            1 + (2 * (sizeof...(ReferencedFields) - 1)) + (0 + ... + FullyQualifiedNameOf<ReferencedFields>.size());
 
         static constexpr std::array<char, StorageSize> Storage = []() consteval {
             auto result = std::array<char, StorageSize> {};
@@ -331,8 +331,8 @@ namespace detail
                         std::ranges::copy(Delimiter, result.begin() + offset);
                         offset += Delimiter.size();
                     }
-                    std::ranges::copy(QuotedFieldNameOf<ReferencedFields>, result.begin() + offset);
-                    offset += QuotedFieldNameOf<ReferencedFields>.size();
+                    std::ranges::copy(FullyQualifiedNameOf<ReferencedFields>, result.begin() + offset);
+                    offset += FullyQualifiedNameOf<ReferencedFields>.size();
                 }(),
                 ...);
             result.back() = '\0';
@@ -347,14 +347,14 @@ namespace detail
 /// @brief Holds the quoted fully qualified field names of the given fields.
 ///
 /// @code
-/// auto const quotedFieldNames = QuotedFieldNamesOf<&Person::id, &Person::name, &Person::age>;
+/// auto const quotedFieldNames = FullyQualifiedNamesOf<&Person::id, &Person::name, &Person::age>;
 /// static_assert(quotedFieldNames.value == R"sql("Person"."id", "Person"."name", "Person"."age")sql");
 /// @endcode
 ///
 /// @ingroup DataMapper
 template <auto... ReferencedFields>
-constexpr inline auto QuotedFieldNamesOf = SqlRawColumnNameView {
-    .value = detail::QuotedFieldNamesOfImpl<ReferencedFields...>::value,
+constexpr inline auto FullyQualifiedNamesOf = SqlRawColumnNameView {
+    .value = detail::FullyQualifiedNamesOfImpl<ReferencedFields...>::value,
 };
 
 LIGHTWEIGHT_API void LogIfFailed(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLocation);
