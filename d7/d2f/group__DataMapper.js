@@ -134,6 +134,6 @@ var group__DataMapper =
     [ "Lightweight::HasAutoIncrementPrimaryKey", "d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0", null ],
     [ "Lightweight::FieldNameAt", "d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24", null ],
     [ "Lightweight::RecordTableName", "d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab", null ],
-    [ "Lightweight::QuotedFieldNameOf", "d7/d2f/group__DataMapper.html#ga2ade9d9e7b27b720402c72c9d6abe7a8", null ],
-    [ "Lightweight::QuotedFieldNamesOf", "d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0", null ]
+    [ "Lightweight::FullyQualifiedNameOf", "d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03", null ],
+    [ "Lightweight::FullyQualifiedNamesOf", "d7/d2f/group__DataMapper.html#ga8e59547a0c0c6f118824cab220ae43c4", null ]
 ];

@@ -178,14 +178,14 @@ Variables</h2></td></tr>
 <tr class="memitem:ga2bf8fa94d9c5b41f9a1045395403ccab"><td class="memTemplItemLeft" align="right" valign="top">constexpr std::string_view&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">Lightweight::RecordTableName</a> = detail::RecordTableNameImpl&lt;Record&gt;::Value</td></tr>
 <tr class="memdesc:ga2bf8fa94d9c5b41f9a1045395403ccab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Holds the SQL tabl ename for the given record type.  <br /></td></tr>
 <tr class="separator:ga2bf8fa94d9c5b41f9a1045395403ccab"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga2ade9d9e7b27b720402c72c9d6abe7a8" id="r_ga2ade9d9e7b27b720402c72c9d6abe7a8"><td class="memTemplParams" colspan="2">template&lt;auto ReferencedField&gt; </td></tr>
-<tr class="memitem:ga2ade9d9e7b27b720402c72c9d6abe7a8"><td class="memTemplItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga2ade9d9e7b27b720402c72c9d6abe7a8">Lightweight::QuotedFieldNameOf</a></td></tr>
-<tr class="memdesc:ga2ade9d9e7b27b720402c72c9d6abe7a8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Holds the quoted fully qualified field name (including table name) of the given field.  <br /></td></tr>
-<tr class="separator:ga2ade9d9e7b27b720402c72c9d6abe7a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gaebaea83b67f63663bc9429b98b899ca0" id="r_gaebaea83b67f63663bc9429b98b899ca0"><td class="memTemplParams" colspan="2">template&lt;auto... ReferencedFields&gt; </td></tr>
-<tr class="memitem:gaebaea83b67f63663bc9429b98b899ca0"><td class="memTemplItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0">Lightweight::QuotedFieldNamesOf</a></td></tr>
-<tr class="memdesc:gaebaea83b67f63663bc9429b98b899ca0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Holds the quoted fully qualified field names of the given fields.  <br /></td></tr>
-<tr class="separator:gaebaea83b67f63663bc9429b98b899ca0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaed63e2eb978095fa8298c02414f9ca03" id="r_gaed63e2eb978095fa8298c02414f9ca03"><td class="memTemplParams" colspan="2">template&lt;auto ReferencedField&gt; </td></tr>
+<tr class="memitem:gaed63e2eb978095fa8298c02414f9ca03"><td class="memTemplItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03">Lightweight::FullyQualifiedNameOf</a></td></tr>
+<tr class="memdesc:gaed63e2eb978095fa8298c02414f9ca03"><td class="mdescLeft">&#160;</td><td class="mdescRight">Holds the quoted fully qualified field name (including table name) of the given field.  <br /></td></tr>
+<tr class="separator:gaed63e2eb978095fa8298c02414f9ca03"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga8e59547a0c0c6f118824cab220ae43c4" id="r_ga8e59547a0c0c6f118824cab220ae43c4"><td class="memTemplParams" colspan="2">template&lt;auto... ReferencedFields&gt; </td></tr>
+<tr class="memitem:ga8e59547a0c0c6f118824cab220ae43c4"><td class="memTemplItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga8e59547a0c0c6f118824cab220ae43c4">Lightweight::FullyQualifiedNamesOf</a></td></tr>
+<tr class="memdesc:ga8e59547a0c0c6f118824cab220ae43c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Holds the quoted fully qualified field names of the given fields.  <br /></td></tr>
+<tr class="separator:ga8e59547a0c0c6f118824cab220ae43c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>The data mapper is a high level API for mapping records to and from the database using high level C++ syntax. </p>
@@ -393,7 +393,7 @@ template&lt;std::size_t I, typename Record &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00170">170</a> of file <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00494">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::Range()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00495">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived &gt;::Range()</a>.</p>
 
 </div>
 </div>
@@ -425,8 +425,8 @@ template&lt;typename Record &gt; </div>
 
 </div>
 </div>
-<a id="ga2ade9d9e7b27b720402c72c9d6abe7a8" name="ga2ade9d9e7b27b720402c72c9d6abe7a8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga2ade9d9e7b27b720402c72c9d6abe7a8">&#9670;&#160;</a></span>QuotedFieldNameOf</h2>
+<a id="gaed63e2eb978095fa8298c02414f9ca03" name="gaed63e2eb978095fa8298c02414f9ca03"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaed63e2eb978095fa8298c02414f9ca03">&#9670;&#160;</a></span>FullyQualifiedNameOf</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -437,7 +437,7 @@ template&lt;auto ReferencedField&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto Lightweight::QuotedFieldNameOf</td>
+          <td class="memname">constexpr auto Lightweight::FullyQualifiedNameOf</td>
         </tr>
       </table>
   </td>
@@ -447,7 +447,7 @@ template&lt;auto ReferencedField&gt; </div>
 </table>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">= SqlRawColumnNameView {</div>
-<div class="line">    .value = detail::QuotedFieldNameOfImpl&lt;ReferencedField&gt;::value,</div>
+<div class="line">    .value = detail::FullyQualifiedNameOfImpl&lt;ReferencedField&gt;::value,</div>
 <div class="line">}</div>
 </div><!-- fragment -->
 <p>Holds the quoted fully qualified field name (including table name) of the given field. </p>
@@ -457,15 +457,15 @@ template&lt;auto ReferencedField&gt; </div>
   </table>
   </dd>
 </dl>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> quotedFieldName = QuotedFieldNameOf&lt;&amp;Person::id&gt;;</div>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> quotedFieldName = FullyQualifiedNameOf&lt;&amp;Person::id&gt;;</div>
 <div class="line"><span class="keyword">static_assert</span>(quotedFieldName.value == R<span class="stringliteral">&quot;sql(&quot;Person&quot;.&quot;id&quot;)sql&quot;);</span></div>
 </div><!-- fragment --> 
 <p class="definition">Definition at line <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00311">311</a> of file <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
 </div>
 </div>
-<a id="gaebaea83b67f63663bc9429b98b899ca0" name="gaebaea83b67f63663bc9429b98b899ca0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gaebaea83b67f63663bc9429b98b899ca0">&#9670;&#160;</a></span>QuotedFieldNamesOf</h2>
+<a id="ga8e59547a0c0c6f118824cab220ae43c4" name="ga8e59547a0c0c6f118824cab220ae43c4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga8e59547a0c0c6f118824cab220ae43c4">&#9670;&#160;</a></span>FullyQualifiedNamesOf</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -476,7 +476,7 @@ template&lt;auto... ReferencedFields&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr auto Lightweight::QuotedFieldNamesOf</td>
+          <td class="memname">constexpr auto Lightweight::FullyQualifiedNamesOf</td>
         </tr>
       </table>
   </td>
@@ -486,11 +486,11 @@ template&lt;auto... ReferencedFields&gt; </div>
 </table>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">= SqlRawColumnNameView {</div>
-<div class="line">    .value = detail::QuotedFieldNamesOfImpl&lt;ReferencedFields...&gt;::value,</div>
+<div class="line">    .value = detail::FullyQualifiedNamesOfImpl&lt;ReferencedFields...&gt;::value,</div>
 <div class="line">}</div>
 </div><!-- fragment -->
 <p>Holds the quoted fully qualified field names of the given fields. </p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> quotedFieldNames = QuotedFieldNamesOf&lt;&amp;Person::id, &amp;Person::name, &amp;Person::age&gt;;</div>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> quotedFieldNames = FullyQualifiedNamesOf&lt;&amp;Person::id, &amp;Person::name, &amp;Person::age&gt;;</div>
 <div class="line"><span class="keyword">static_assert</span>(quotedFieldNames.value == R<span class="stringliteral">&quot;sql(&quot;Person&quot;.&quot;id&quot;, &quot;Person&quot;.&quot;name&quot;, &quot;Person&quot;.&quot;age&quot;)sql&quot;);</span></div>
 </div><!-- fragment --> 
 <p class="definition">Definition at line <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00356">356</a> of file <a class="el" href="../../d7/d04/Lightweight_2Utils_8hpp_source.html">Utils.hpp</a>.</p>

@@ -319,7 +319,7 @@ $(document).ready(function(){initNavTree('d7/d04/Lightweight_2Utils_8hpp_source.
 <div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span><span class="keyword">namespace </span>detail</div>
 <div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>{</div>
 <div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>    <span class="keyword">template</span> &lt;auto ReferencedField&gt;</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>    <span class="keyword">struct </span>QuotedFieldNameOfImpl</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>    <span class="keyword">struct </span>FullyQualifiedNameOfImpl</div>
 <div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>    {</div>
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span><span class="preprocessor">#if defined(LIGHTWEIGHT_CXX26_REFLECTION)</span></div>
 <div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> ClassName = <a class="code hl_variable" href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">RecordTableName</a>&lt;<span class="keyword">typename</span>[:std::meta::parent_of(ReferencedField):]&gt;;</div>
@@ -402,25 +402,25 @@ $(document).ready(function(){initNavTree('d7/d04/Lightweight_2Utils_8hpp_source.
 <div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span><span class="comment">/// @tparam ReferencedField</span></div>
 <div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span><span class="comment">///</span></div>
 <div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span><span class="comment">/// @code</span></div>
-<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span><span class="comment">/// auto const quotedFieldName = QuotedFieldNameOf&lt;&amp;Person::id&gt;;</span></div>
+<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span><span class="comment">/// auto const quotedFieldName = FullyQualifiedNameOf&lt;&amp;Person::id&gt;;</span></div>
 <div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span><span class="comment">/// static_assert(quotedFieldName.value == R&quot;sql(&quot;Person&quot;.&quot;id&quot;)sql&quot;);</span></div>
 <div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span><span class="comment">/// @endcode</span></div>
 <div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span><span class="comment">///</span></div>
 <div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span><span class="comment">/// @ingroup DataMapper</span></div>
 <div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span><span class="comment"></span><span class="keyword">template</span> &lt;auto ReferencedField&gt;</div>
 <div class="foldopen" id="foldopen00311" data-start="{" data-end="};">
-<div class="line"><a id="l00311" name="l00311"></a><span class="lineno"><a class="line" href="../../d7/d2f/group__DataMapper.html#ga2ade9d9e7b27b720402c72c9d6abe7a8">  311</a></span><span class="keyword">constexpr</span> <span class="keyword">inline</span> <span class="keyword">auto</span> <a class="code hl_variable" href="../../d7/d2f/group__DataMapper.html#ga2ade9d9e7b27b720402c72c9d6abe7a8">QuotedFieldNameOf</a> = SqlRawColumnNameView {</div>
-<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>    .value = detail::QuotedFieldNameOfImpl&lt;ReferencedField&gt;::value,</div>
+<div class="line"><a id="l00311" name="l00311"></a><span class="lineno"><a class="line" href="../../d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03">  311</a></span><span class="keyword">constexpr</span> <span class="keyword">inline</span> <span class="keyword">auto</span> <a class="code hl_variable" href="../../d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03">FullyQualifiedNameOf</a> = SqlRawColumnNameView {</div>
+<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>    .value = detail::FullyQualifiedNameOfImpl&lt;ReferencedField&gt;::value,</div>
 <div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span>};</div>
 </div>
 <div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span> </div>
 <div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span><span class="keyword">namespace </span>detail</div>
 <div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>{</div>
 <div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>    <span class="keyword">template</span> &lt;<span class="keyword">auto</span>... ReferencedFields&gt;</div>
-<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>    <span class="keyword">struct </span>QuotedFieldNamesOfImpl</div>
+<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>    <span class="keyword">struct </span>FullyQualifiedNamesOfImpl</div>
 <div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>    {</div>
 <div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> StorageSize =</div>
-<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>            1 + (2 * (<span class="keyword">sizeof</span>...(ReferencedFields) - 1)) + (0 + ... + QuotedFieldNameOf&lt;ReferencedFields&gt;.size());</div>
+<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>            1 + (2 * (<span class="keyword">sizeof</span>...(ReferencedFields) - 1)) + (0 + ... + FullyQualifiedNameOf&lt;ReferencedFields&gt;.size());</div>
 <div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span> </div>
 <div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>        <span class="keyword">static</span> <span class="keyword">constexpr</span> std::array&lt;char, StorageSize&gt; Storage = []() <span class="keyword">consteval</span> {</div>
 <div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>            <span class="keyword">auto</span> result = std::array&lt;char, StorageSize&gt; {};</div>
@@ -433,8 +433,8 @@ $(document).ready(function(){initNavTree('d7/d04/Lightweight_2Utils_8hpp_source.
 <div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>                        std::ranges::copy(Delimiter, result.begin() + offset);</div>
 <div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>                        offset += Delimiter.size();</div>
 <div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>                    }</div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>                    std::ranges::copy(QuotedFieldNameOf&lt;ReferencedFields&gt;, result.begin() + offset);</div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>                    offset += QuotedFieldNameOf&lt;ReferencedFields&gt;.size();</div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>                    std::ranges::copy(FullyQualifiedNameOf&lt;ReferencedFields&gt;, result.begin() + offset);</div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>                    offset += FullyQualifiedNameOf&lt;ReferencedFields&gt;.size();</div>
 <div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>                }(),</div>
 <div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>                ...);</div>
 <div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>            result.back() = <span class="charliteral">&#39;\0&#39;</span>;</div>
@@ -449,15 +449,15 @@ $(document).ready(function(){initNavTree('d7/d04/Lightweight_2Utils_8hpp_source.
 <div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span><span class="comment">/// @brief Holds the quoted fully qualified field names of the given fields.</span></div>
 <div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span><span class="comment">///</span></div>
 <div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span><span class="comment">/// @code</span></div>
-<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span><span class="comment">/// auto const quotedFieldNames = QuotedFieldNamesOf&lt;&amp;Person::id, &amp;Person::name, &amp;Person::age&gt;;</span></div>
+<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span><span class="comment">/// auto const quotedFieldNames = FullyQualifiedNamesOf&lt;&amp;Person::id, &amp;Person::name, &amp;Person::age&gt;;</span></div>
 <div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span><span class="comment">/// static_assert(quotedFieldNames.value == R&quot;sql(&quot;Person&quot;.&quot;id&quot;, &quot;Person&quot;.&quot;name&quot;, &quot;Person&quot;.&quot;age&quot;)sql&quot;);</span></div>
 <div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span><span class="comment">/// @endcode</span></div>
 <div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span><span class="comment">///</span></div>
 <div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span><span class="comment">/// @ingroup DataMapper</span></div>
 <div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">auto</span>... ReferencedFields&gt;</div>
 <div class="foldopen" id="foldopen00356" data-start="{" data-end="};">
-<div class="line"><a id="l00356" name="l00356"></a><span class="lineno"><a class="line" href="../../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0">  356</a></span><span class="keyword">constexpr</span> <span class="keyword">inline</span> <span class="keyword">auto</span> <a class="code hl_variable" href="../../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0">QuotedFieldNamesOf</a> = SqlRawColumnNameView {</div>
-<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>    .value = detail::QuotedFieldNamesOfImpl&lt;ReferencedFields...&gt;::value,</div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno"><a class="line" href="../../d7/d2f/group__DataMapper.html#ga8e59547a0c0c6f118824cab220ae43c4">  356</a></span><span class="keyword">constexpr</span> <span class="keyword">inline</span> <span class="keyword">auto</span> <a class="code hl_variable" href="../../d7/d2f/group__DataMapper.html#ga8e59547a0c0c6f118824cab220ae43c4">FullyQualifiedNamesOf</a> = SqlRawColumnNameView {</div>
+<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>    .value = detail::FullyQualifiedNamesOfImpl&lt;ReferencedFields...&gt;::value,</div>
 <div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>};</div>
 </div>
 <div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span> </div>
@@ -510,10 +510,10 @@ $(document).ready(function(){initNavTree('d7/d04/Lightweight_2Utils_8hpp_source.
 <div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html_ab97998627c36c8d0bce204db1f8f4d26"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26">Lightweight::UniqueNameBuilder::DeclareName</a></div><div class="ttdeci">LIGHTWEIGHT_API std::string DeclareName(std::string name)</div><div class="ttdoc">Creates a name that is definitely not colliding.</div></div>
 <div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html_acfe934b57fa65da4863c45e150bcc1e3"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3">Lightweight::UniqueNameBuilder::IsColliding</a></div><div class="ttdeci">LIGHTWEIGHT_API bool IsColliding(std::string const &amp;name) const noexcept</div><div class="ttdoc">Tests if the given name is already registered.</div></div>
 <div class="ttc" id="aclassLightweight_1_1UniqueNameBuilder_html_ae617f589c4e2314b8ca94c3113cd3f44"><div class="ttname"><a href="../../da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44">Lightweight::UniqueNameBuilder::TryDeclareName</a></div><div class="ttdeci">LIGHTWEIGHT_API std::optional&lt; std::string &gt; TryDeclareName(std::string name)</div><div class="ttdoc">Tries to declare a name and returns it, otherwise returns std::nullopt.</div></div>
-<div class="ttc" id="agroup__DataMapper_html_ga2ade9d9e7b27b720402c72c9d6abe7a8"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga2ade9d9e7b27b720402c72c9d6abe7a8">Lightweight::QuotedFieldNameOf</a></div><div class="ttdeci">constexpr auto QuotedFieldNameOf</div><div class="ttdoc">Holds the quoted fully qualified field name (including table name) of the given field.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00311">Utils.hpp:311</a></div></div>
 <div class="ttc" id="agroup__DataMapper_html_ga2bf8fa94d9c5b41f9a1045395403ccab"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">Lightweight::RecordTableName</a></div><div class="ttdeci">constexpr std::string_view RecordTableName</div><div class="ttdoc">Holds the SQL tabl ename for the given record type.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00176">Utils.hpp:176</a></div></div>
 <div class="ttc" id="agroup__DataMapper_html_ga6b1b90405a8cf10bbb8fd88789543f24"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24">Lightweight::FieldNameAt</a></div><div class="ttdeci">constexpr std::string_view FieldNameAt</div><div class="ttdoc">Returns the SQL field name of the given field index in the record.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00170">Utils.hpp:170</a></div></div>
-<div class="ttc" id="agroup__DataMapper_html_gaebaea83b67f63663bc9429b98b899ca0"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0">Lightweight::QuotedFieldNamesOf</a></div><div class="ttdeci">constexpr auto QuotedFieldNamesOf</div><div class="ttdoc">Holds the quoted fully qualified field names of the given fields.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00356">Utils.hpp:356</a></div></div>
+<div class="ttc" id="agroup__DataMapper_html_ga8e59547a0c0c6f118824cab220ae43c4"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga8e59547a0c0c6f118824cab220ae43c4">Lightweight::FullyQualifiedNamesOf</a></div><div class="ttdeci">constexpr auto FullyQualifiedNamesOf</div><div class="ttdoc">Holds the quoted fully qualified field names of the given fields.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00356">Utils.hpp:356</a></div></div>
+<div class="ttc" id="agroup__DataMapper_html_gaed63e2eb978095fa8298c02414f9ca03"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03">Lightweight::FullyQualifiedNameOf</a></div><div class="ttdeci">constexpr auto FullyQualifiedNameOf</div><div class="ttdoc">Holds the quoted fully qualified field name (including table name) of the given field.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d04/Lightweight_2Utils_8hpp_source.html#l00311">Utils.hpp:311</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

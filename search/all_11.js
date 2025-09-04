@@ -9,7 +9,5 @@ var searchData=
   ['querylastinsertid_6',['QueryLastInsertId',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ae5c1899d98fac7ec8340f1cd0cfeae1a',1,'Lightweight::SqlQueryFormatter']]],
   ['querysingle_7',['QuerySingle',['../de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4',1,'Lightweight::DataMapper']]],
   ['querysinglewithoutrelationautoloading_8',['QuerySingleWithoutRelationAutoLoading',['../de/d61/classLightweight_1_1DataMapper.html#a0ee9df27df1779d4b6c6212aae482f79',1,'Lightweight::DataMapper']]],
-  ['querytotuple_9',['QueryToTuple',['../de/d61/classLightweight_1_1DataMapper.html#ad7f6c844984f53d320c9e1a738cbc59c',1,'Lightweight::DataMapper']]],
-  ['quotedfieldnameof_10',['QuotedFieldNameOf',['../d7/d2f/group__DataMapper.html#ga2ade9d9e7b27b720402c72c9d6abe7a8',1,'Lightweight']]],
-  ['quotedfieldnamesof_11',['QuotedFieldNamesOf',['../d7/d2f/group__DataMapper.html#gaebaea83b67f63663bc9429b98b899ca0',1,'Lightweight']]]
+  ['querytotuple_9',['QueryToTuple',['../de/d61/classLightweight_1_1DataMapper.html#ad7f6c844984f53d320c9e1a738cbc59c',1,'Lightweight::DataMapper']]]
 ];
