@@ -291,8 +291,8 @@ TEST_CASE_METHOD(SqlTestFixture, "iterate over database", "[SqlRowIterator]")
 // Simple struct, used for testing SELECT'ing into it
 struct SimpleStruct
 {
-    uint64_t pkFromA;
-    uint64_t pkFromB;
+    uint64_t pkFromA {};
+    uint64_t pkFromB {};
     SqlAnsiString<30> c1FromA;
     SqlAnsiString<30> c2FromA;
     SqlAnsiString<30> c1FromB;
