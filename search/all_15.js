@@ -1,7 +1,7 @@
 var searchData=
 [
   ['unicode_20conversion_20functions_0',['Unicode conversion functions',['../d1/d7d/group__Unicode.html',1,'']]],
-  ['unique_1',['unique',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#ac7edfc2036f6d77ebce95c4a17d39fd8',1,'Lightweight::SqlColumnDeclaration::unique'],['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aee69f4c93ebeb28785f120395d66ab75',1,'Lightweight::SqlCreateTableQueryBuilder::Unique()']]],
+  ['unique_1',['unique',['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aee69f4c93ebeb28785f120395d66ab75',1,'Lightweight::SqlCreateTableQueryBuilder::Unique()'],['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#ac7edfc2036f6d77ebce95c4a17d39fd8',1,'Lightweight::SqlColumnDeclaration::unique']]],
   ['uniqueindex_2',['UniqueIndex',['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aba0b0aa6a40a801a06a53e274847bcf7',1,'Lightweight::SqlCreateTableQueryBuilder']]],
   ['uniquenamebuilder_3',['UniqueNameBuilder',['../da/d15/classLightweight_1_1UniqueNameBuilder.html',1,'Lightweight']]],
   ['unload_4',['unload',['../d0/df7/classLightweight_1_1BelongsTo.html#aad91a7c8e99b5ccba18d9bdde1224988',1,'Lightweight::BelongsTo::Unload()'],['../df/d63/classLightweight_1_1HasOneThrough.html#a30da30b50381dcdcb372de5f94e118e1',1,'Lightweight::HasOneThrough::Unload()']]],
