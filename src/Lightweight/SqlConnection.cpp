@@ -323,9 +323,9 @@ void SqlConnection::RequireSuccess(SQLRETURN sqlResult, std::source_location sou
     if (SQL_SUCCEEDED(sqlResult))
         return;
 
-    auto errorInfo = LastError();
+    auto const errorInfo = LastError();
     SqlLogger::GetLogger().OnError(errorInfo, sourceLocation);
-    throw SqlException(std::move(errorInfo));
+    throw SqlException(errorInfo);
 }
 
 SqlQueryBuilder SqlConnection::Query(std::string_view const& table) const
