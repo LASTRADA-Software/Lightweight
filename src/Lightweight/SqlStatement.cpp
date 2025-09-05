@@ -236,11 +236,11 @@ bool SqlStatement::FetchRow()
     if (result.has_value())
         return result.value();
 
-    SqlErrorInfo errorInfo = std::move(result.error());
+    SqlErrorInfo const errorInfo = std::move(result.error());
     if (errorInfo.sqlState == "07009")
         throw std::invalid_argument(std::format("SQL error: {}", errorInfo));
     else
-        throw SqlException(std::move(errorInfo));
+        throw SqlException(errorInfo);
 }
 
 std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location location) noexcept

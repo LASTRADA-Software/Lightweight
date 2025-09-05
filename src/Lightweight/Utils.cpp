@@ -20,14 +20,14 @@ void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location source
     if (SQL_SUCCEEDED(error))
         return;
 
-    auto errorInfo = SqlErrorInfo::FromStatementHandle(hStmt);
+    auto const errorInfo = SqlErrorInfo::FromStatementHandle(hStmt);
     if (errorInfo.sqlState == "07009")
     {
         SqlLogger::GetLogger().OnError(errorInfo, sourceLocation);
         throw std::invalid_argument(std::format("SQL error: {}", errorInfo));
     }
     else
-        throw SqlException(std::move(errorInfo));
+        throw SqlException(errorInfo);
 }
 
 std::string FormatName(std::string const& name, FormatType formatType)
