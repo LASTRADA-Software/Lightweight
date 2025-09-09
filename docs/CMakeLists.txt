@@ -47,12 +47,13 @@ if(LIGHTWEIGHT_BUILD_DOCUMENTATION)
   set(DOXYGEN_STRIP_FROM_PATH "${PROJECT_SOURCE_DIR}/src")
 
   set(DOCS_SOURCES
-    "${PROJECT_SOURCE_DIR}/src";
-    "${PROJECT_SOURCE_DIR}/README.md";
-    "${PROJECT_SOURCE_DIR}/docs/usage.md";
-    "${PROJECT_SOURCE_DIR}/docs/sqlquery.md";
-    "${PROJECT_SOURCE_DIR}/docs/best-practices.md";
-    "${PROJECT_SOURCE_DIR}/docs/data-binder.md";
+    "${PROJECT_SOURCE_DIR}/src"
+    "${PROJECT_SOURCE_DIR}/README.md"
+    "${PROJECT_SOURCE_DIR}/docs/how-to.md"
+    "${PROJECT_SOURCE_DIR}/docs/usage.md"
+    "${PROJECT_SOURCE_DIR}/docs/sqlquery.md"
+    "${PROJECT_SOURCE_DIR}/docs/best-practices.md"
+    "${PROJECT_SOURCE_DIR}/docs/data-binder.md"
   )
   doxygen_add_docs(doc
     ${DOCS_SOURCES}

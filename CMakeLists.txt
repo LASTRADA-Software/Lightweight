@@ -41,6 +41,7 @@ else()
         EXPECTED_HASH SHA256=cc155ce02e7945e7b8967ddfaff0b050e958a723ef7aad3766d368940cb15494
     )
     include(${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake)
+    cmake_policy(SET CMP0169 OLD)
     CPMAddPackage("gh:contour-terminal/reflection-cpp#master")
 endif()
 
