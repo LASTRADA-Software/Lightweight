@@ -17,7 +17,7 @@
 #include "StdStringView.hpp"
 
 #include <format>
-#include <print>
+// #include <print>  // Temporarily commented out for C++23 compatibility
 #include <variant>
 
 namespace Lightweight
