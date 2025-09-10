@@ -15,6 +15,10 @@
 namespace Lightweight
 {
 
+// Forward declarations
+struct SqlDate;
+struct SqlTime;
+
 /// Represents a date and time to efficiently write to or read from a database.
 ///
 /// @see SqlDate, SqlTime
@@ -145,6 +149,12 @@ struct SqlDateTime
     {
         return std::chrono::nanoseconds(static_cast<unsigned>(sqlValue.fraction));
     }
+
+    /// Returns the date part of this date-time object as a SqlDate.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlDate date() const noexcept;
+
+    /// Returns the time part of this date-time object as a SqlTime.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlTime time() const noexcept;
 
     // NOLINTEND(readability-identifier-naming)
 
@@ -360,5 +370,21 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
         return std::format("{}", value);
     }
 };
+
+// Implementation of SqlDateTime methods that depend on SqlDate and SqlTime
+// These need to be included after the SqlDataBinder specializations
+#include "SqlDate.hpp"
+#include "SqlTime.hpp"
+
+LIGHTWEIGHT_FORCE_INLINE SqlDate SqlDateTime::date() const noexcept
+{
+    return SqlDate { year(), month(), day() };
+}
+
+LIGHTWEIGHT_FORCE_INLINE SqlTime SqlDateTime::time() const noexcept
+{
+    return SqlTime { hour(), minute(), second(), 
+                    std::chrono::duration_cast<std::chrono::microseconds>(nanosecond()) };
+}
 
 } // namespace Lightweight

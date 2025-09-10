@@ -554,6 +554,45 @@ TEST_CASE("SqlDateTime operations", "[SqlDataBinder],[SqlDateTime]")
     }
 }
 
+TEST_CASE("SqlDateTime date and time extraction", "[SqlDataBinder],[SqlDateTime]")
+{
+    namespace chrono = std::chrono;
+    auto const baseDateTime = SqlDateTime(chrono::year(2025),
+                                          chrono::January,
+                                          chrono::day(15),
+                                          chrono::hours(14),
+                                          chrono::minutes(30),
+                                          chrono::seconds(45),
+                                          chrono::nanoseconds(123'456'000));
+    
+    SECTION("date extraction")
+    {
+        auto const extractedDate = baseDateTime.date();
+        auto const expectedDate = SqlDate(chrono::year(2025), chrono::January, chrono::day(15));
+        CHECK(extractedDate == expectedDate);
+        
+        // Verify the extracted date has correct components
+        auto const dateYmd = extractedDate.value();
+        CHECK(dateYmd.year() == chrono::year(2025));
+        CHECK(dateYmd.month() == chrono::January);
+        CHECK(dateYmd.day() == chrono::day(15));
+    }
+    
+    SECTION("time extraction")
+    {
+        auto const extractedTime = baseDateTime.time();
+        auto const expectedTime = SqlTime(chrono::hours(14), chrono::minutes(30), chrono::seconds(45), chrono::microseconds(123'456));
+        CHECK(extractedTime == expectedTime);
+        
+        // Verify the extracted time has correct components
+        auto const timeHms = extractedTime.value();
+        CHECK(timeHms.hours() == chrono::hours(14));
+        CHECK(timeHms.minutes() == chrono::minutes(30));
+        CHECK(timeHms.seconds() == chrono::seconds(45));
+        CHECK(timeHms.subseconds() == chrono::microseconds(123'456));
+    }
+}
+
 // clang-format off
 template <typename T>
 struct TestTypeTraits;
