@@ -15,6 +15,10 @@
 namespace Lightweight
 {
 
+// Forward declarations
+struct SqlDate;
+struct SqlTime;
+
 /// Represents a date and time to efficiently write to or read from a database.
 ///
 /// @see SqlDate, SqlTime
@@ -145,6 +149,12 @@ struct SqlDateTime
     {
         return std::chrono::nanoseconds(static_cast<unsigned>(sqlValue.fraction));
     }
+
+    /// Returns the date part of this date-time object as a SqlDate.
+    [[nodiscard]] SqlDate date() const noexcept;
+
+    /// Returns the time part of this date-time object as a SqlTime.
+    [[nodiscard]] SqlTime time() const noexcept;
 
     // NOLINTEND(readability-identifier-naming)
 
