@@ -575,6 +575,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Retrieve optional value without output-binding
 
 struct CustomBindingA
 {
+    static constexpr std::string_view TableName = "A";
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<int> number {};
     Field<SqlAnsiString<20>> name {};
@@ -583,6 +584,7 @@ struct CustomBindingA
 
 struct CustomBindingB
 {
+    static constexpr std::string_view TableName = "B";
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<SqlAnsiString<20>> title {};
     Field<SqlDateTime> date_time {};
@@ -592,6 +594,7 @@ struct CustomBindingB
 
 struct CustomBindingC
 {
+    static constexpr std::string_view TableName = "C";
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
     Field<double> value {};
     Field<SqlAnsiString<20>> comment {};
@@ -632,11 +635,11 @@ TEST_CASE_METHOD(SqlTestFixture, "GetMultileTypesAsVectorOfTuples", "[DataMapper
     auto query = dm.FromTable(RecordTableName<CustomBindingA>)
                      .Select()
                      .Fields<CustomBindingA, CustomBindingB>()
-                     .Field(QualifiedColumnName<"CustomBindingC.id">)
-                     .Field(QualifiedColumnName<"CustomBindingC.comment">)
+                     .Field(QualifiedColumnName<"C.id">)
+                     .Field(QualifiedColumnName<"C.comment">)
                      .InnerJoin<Member(CustomBindingB::a_id), Member(CustomBindingA::id)>()
                      .InnerJoin<Member(CustomBindingC::id), Member(CustomBindingB::c_id)>()
-                     .OrderBy(QualifiedColumnName<"CustomBindingA.id">)
+                     .OrderBy(QualifiedColumnName<"A.id">)
                      .All();
 
     struct PartOfC
