@@ -3,7 +3,7 @@ var searchData=
   ['data_0',['data',['../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a24e4f9758ae81670b16fdb7a422c44a6',1,'Lightweight::SqlDynamicBinary::data()'],['../d7/d9a/classLightweight_1_1SqlDynamicString.html#a456fc412b4faa603580046fdb3b91044',1,'Lightweight::SqlDynamicString::data() const noexcept'],['../d7/d9a/classLightweight_1_1SqlDynamicString.html#a867af39389032aa37de23ae4bc898ad6',1,'Lightweight::SqlDynamicString::data() noexcept']]],
   ['data_20binder_20api_1',['Data Binder API',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html',1,'']]],
   ['data_20mapper_2',['Data Mapper',['../d7/d2f/group__DataMapper.html',1,'']]],
-  ['data_20mapping_3',['data mapping',['../index.html#example-crud-style-high-level-data-mapping',1,'Example: CRUD-style High level Data Mapping'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping',1,'High level Data Mapping']]],
+  ['data_20mapping_3',['High level Data Mapping',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping',1,'']]],
   ['data_20model_20and_20business_20logic_20separate_4',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]],
   ['data_20type_20binder_20example_5',['Custom Column Data Type Binder Example',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#custom-column-data-type-binder-example',1,'']]],
   ['data_20types_6',['Data Types',['../d4/d7c/group__DataTypes.html',1,'']]],
@@ -25,6 +25,6 @@ var searchData=
   ['dropdatabase_22',['DropDatabase',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#ad329c2ef7e306dee1f21351e264ad412',1,'Lightweight::SqlMigrationQueryBuilder']]],
   ['dropforeignkey_23',['DropForeignKey',['../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aae78f7a3b9c5ab16e1c530458a1b9d70',1,'Lightweight::SqlAlterTableQueryBuilder']]],
   ['dropindex_24',['DropIndex',['../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a059bdf98d69fde660cd3527172a2cc62',1,'Lightweight::SqlAlterTableQueryBuilder']]],
-  ['droptable_25',['droptable',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad3dac3bc0f6b00ef7edab0d77f9131d7',1,'Lightweight::SqlQueryFormatter::DropTable()'],['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6814368089abf7691cdd525806db0ae6',1,'Lightweight::SqlMigrationQueryBuilder::DropTable()']]],
+  ['droptable_25',['droptable',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6814368089abf7691cdd525806db0ae6',1,'Lightweight::SqlMigrationQueryBuilder::DropTable()'],['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad3dac3bc0f6b00ef7edab0d77f9131d7',1,'Lightweight::SqlQueryFormatter::DropTable()']]],
   ['dynamiccapacity_26',['DynamicCapacity',['../d6/db6/classLightweight_1_1SqlDynamicBinary.html#ababc7f508bb66c88f96847906bc6fff3',1,'Lightweight::SqlDynamicBinary']]]
 ];

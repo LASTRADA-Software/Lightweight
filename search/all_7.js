@@ -713,13 +713,14 @@ var searchData=
   ['for_20c_2023_710',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
   ['for_20testing_20on_20windows_20operating_20system_711',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]],
   ['for_20the_20existing_20database_712',['Generate example for the existing database',['../index.html#generate-example-for-the-existing-database',1,'']]],
-  ['foreignkey_713',['foreignkey',['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ab21fb33567468849f1b0d724719c23e7',1,'Lightweight::SqlCreateTableQueryBuilder::ForeignKey()'],['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a59119220ab43706394b2a1f22caf183d',1,'Lightweight::SqlColumnDeclaration::foreignKey']]],
-  ['foreignkeys_714',['foreignKeys',['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#a774feb3fa67174c1d22ffa9463877e9e',1,'Lightweight::SqlSchema::Table']]],
-  ['fromconnectionhandle_715',['FromConnectionHandle',['../d8/d5b/structLightweight_1_1SqlErrorInfo.html#ae47def24d7fb0b76a4a6d3531b0721f6',1,'Lightweight::SqlErrorInfo']]],
-  ['fromstatementhandle_716',['FromStatementHandle',['../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8c5df558d7e9cd5263d15c3b13461944',1,'Lightweight::SqlErrorInfo']]],
-  ['fromtable_717',['fromtable',['../de/d61/classLightweight_1_1DataMapper.html#ac0e2e432c3ad94048fb407883f4dd64d',1,'Lightweight::DataMapper::FromTable()'],['../de/da0/classLightweight_1_1SqlQueryBuilder.html#a2088cc443c26818bb7e7c6cacf379d11',1,'Lightweight::SqlQueryBuilder::FromTable(std::string table)'],['../de/da0/classLightweight_1_1SqlQueryBuilder.html#af7ef6f1c5540f6aba2f607f81c7938ec',1,'Lightweight::SqlQueryBuilder::FromTable(std::string_view table)'],['../de/da0/classLightweight_1_1SqlQueryBuilder.html#af144019a618b92754fdc3879e226632d',1,'Lightweight::SqlQueryBuilder::FromTable(char const (&amp;table)[N])']]],
-  ['fromtableas_718',['FromTableAs',['../de/da0/classLightweight_1_1SqlQueryBuilder.html#a017af051177b1185b32816e0e49e5ab8',1,'Lightweight::SqlQueryBuilder']]],
-  ['fullyqualifiednameof_719',['FullyQualifiedNameOf',['../d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03',1,'Lightweight']]],
-  ['fullyqualifiednamesof_720',['FullyQualifiedNamesOf',['../d7/d2f/group__DataMapper.html#ga8e59547a0c0c6f118824cab220ae43c4',1,'Lightweight']]],
-  ['functions_721',['Unicode conversion functions',['../d1/d7d/group__Unicode.html',1,'']]]
+  ['foreign_20keys_20relation_713',['Foreign keys relation',['../index.html#foreign-keys-relation',1,'']]],
+  ['foreignkey_714',['foreignkey',['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ab21fb33567468849f1b0d724719c23e7',1,'Lightweight::SqlCreateTableQueryBuilder::ForeignKey()'],['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a59119220ab43706394b2a1f22caf183d',1,'Lightweight::SqlColumnDeclaration::foreignKey']]],
+  ['foreignkeys_715',['foreignKeys',['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#a774feb3fa67174c1d22ffa9463877e9e',1,'Lightweight::SqlSchema::Table']]],
+  ['fromconnectionhandle_716',['FromConnectionHandle',['../d8/d5b/structLightweight_1_1SqlErrorInfo.html#ae47def24d7fb0b76a4a6d3531b0721f6',1,'Lightweight::SqlErrorInfo']]],
+  ['fromstatementhandle_717',['FromStatementHandle',['../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8c5df558d7e9cd5263d15c3b13461944',1,'Lightweight::SqlErrorInfo']]],
+  ['fromtable_718',['fromtable',['../de/d61/classLightweight_1_1DataMapper.html#ac0e2e432c3ad94048fb407883f4dd64d',1,'Lightweight::DataMapper::FromTable()'],['../de/da0/classLightweight_1_1SqlQueryBuilder.html#a2088cc443c26818bb7e7c6cacf379d11',1,'Lightweight::SqlQueryBuilder::FromTable(std::string table)'],['../de/da0/classLightweight_1_1SqlQueryBuilder.html#af7ef6f1c5540f6aba2f607f81c7938ec',1,'Lightweight::SqlQueryBuilder::FromTable(std::string_view table)'],['../de/da0/classLightweight_1_1SqlQueryBuilder.html#af144019a618b92754fdc3879e226632d',1,'Lightweight::SqlQueryBuilder::FromTable(char const (&amp;table)[N])']]],
+  ['fromtableas_719',['FromTableAs',['../de/da0/classLightweight_1_1SqlQueryBuilder.html#a017af051177b1185b32816e0e49e5ab8',1,'Lightweight::SqlQueryBuilder']]],
+  ['fullyqualifiednameof_720',['FullyQualifiedNameOf',['../d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03',1,'Lightweight']]],
+  ['fullyqualifiednamesof_721',['FullyQualifiedNamesOf',['../d7/d2f/group__DataMapper.html#ga8e59547a0c0c6f118824cab220ae43c4',1,'Lightweight']]],
+  ['functions_722',['Unicode conversion functions',['../d1/d7d/group__Unicode.html',1,'']]]
 ];

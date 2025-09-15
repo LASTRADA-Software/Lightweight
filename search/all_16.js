@@ -6,5 +6,5 @@ var searchData=
   ['valuetype_3',['ValueType',['../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2',1,'Lightweight::BelongsTo']]],
   ['variation_20challenges_4',['SQL Server Variation Challenges',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges',1,'']]],
   ['varying_5',['Varying',['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ad6c4d16035eeae14498503654c48dcbb',1,'Lightweight::SqlSelectQueryBuilder']]],
-  ['via_20structs_6',['via structs',['../index.html#example-simple-row-retrieval-via-structs',1,'Example: Simple row retrieval via structs'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'Simple row retrieval via structs']]]
+  ['via_20structs_6',['Simple row retrieval via structs',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'']]]
 ];

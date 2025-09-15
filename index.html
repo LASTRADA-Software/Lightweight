@@ -93,25 +93,35 @@ $(document).ready(function(){initNavTree('index.html',''); initResizable(); });
   <div class="headertitle"><div class="title">Lightweight, an ODBC SQL API for C++23 </div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="md__2home_2runner_2work_2Lightweight_2Lightweight_2README"></a> <b>Lightweight</b> is a thin and modern C++ ODBC wrapper for <b>easy</b> and <b>fast</b> raw database access.</p>
-<p>Documentation is available at <a href="https://lastrada-software.github.io/Lightweight/">https://lastrada-software.github.io/Lightweight/</a>.</p>
-<h1><a class="anchor" id="goals"></a>
-Goals</h1>
+<div class="textblock"><p><a class="anchor" id="md__2home_2runner_2work_2Lightweight_2Lightweight_2README"></a> <b>Lightweight</b> is a thin and modern C++ ODBC wrapper for <b>easy</b> and <b>fast</b> raw database access. Documentation is available at <a href="https://lastrada-software.github.io/Lightweight/">https://lastrada-software.github.io/Lightweight/</a>.</p>
+<p>It supports both low-level access to the sql api as well as provides hight level abstraction that allow easy database access.</p>
+<p>Here you can see an example of datamapper usage (our tool for the high level abstraction) </p>
+<h1><a class="anchor" id="supported-platforms"></a>
+Supported platforms</h1>
+<p>Only ODBC is supported, so it should work on any platform that has an ODBC driver and a modern enough C++ compiler.</p>
 <ul>
-<li><b>Easy to use</b> - simple, expressive and intuitive API</li>
-<li><b>Production ready</b> - targeting production grade systems</li>
-<li><b>Performance</b> - do as little as possible, and as much as necessary - <b>Zero overhead abstraction</b> is a key design requirement.</li>
-<li><b>Extensible</b> - support for custom data types for writing to and reading from columns</li>
-<li><b>Resource aware</b> - efficient resource management and exception safety</li>
+<li>Windows (Visual Studio 2022, toolkit v143)</li>
+<li>Linux (GCC 14, Clang 19)</li>
 </ul>
-<h1><a class="anchor" id="example-crud-style-high-level-data-mapping"></a>
-Example: CRUD-style High level Data Mapping</h1>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/Lightweight.hpp&gt;</span></div>
+<h1><a class="anchor" id="supported-databases"></a>
+Supported databases</h1>
+<ul>
+<li>Microsoft SQL</li>
+<li>PostgreSQL</li>
+<li>SQLite3</li>
+<li>Oracle database (work in progress)</li>
+</ul>
+<h1><a class="anchor" id="namespace"></a>
+Namespace</h1>
+<p>All functionality is placed inside a <code>Lightweight</code> namespace, we also provide an alias for this namespace <code>Light</code>, that is slightly shorter.</p>
+<h1><a class="anchor" id="high-level-api"></a>
+High level api</h1>
+<p>High level api of the library provided by the type <code>DataMapper</code></p>
+<h2><a class="anchor" id="simple-one-record-example"></a>
+Simple one record example</h2>
+<p>Example of its usage to save/load/update/delete entry in the database for one table </p><div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/Lightweight.hpp&gt;</span></div>
 <div class="line"> </div>
-<div class="line"><span class="comment">// Define a person structure, mapping to a table</span></div>
-<div class="line"><span class="comment">// The field members are mapped to the columns in the table,</span></div>
-<div class="line"><span class="comment">// and the Field&lt;&gt; template parameter specifies the type of the column.</span></div>
-<div class="line"><span class="comment">// Field&lt;&gt; is also used to track what fields are modified and need to be updated.</span></div>
+<div class="line"><span class="comment">// Define a person structure, mapping to a table from the database</span></div>
 <div class="line"><span class="keyword">struct </span>Person</div>
 <div class="line">{</div>
 <div class="line">    Field&lt;SqlGuid, PrimaryKey::AutoAssign&gt; id;</div>
@@ -125,29 +135,57 @@ Example: CRUD-style High level Data Mapping</h1>
 <div class="line">    <span class="comment">// Creates the table if it does not exist</span></div>
 <div class="line">    dm.CreateTable&lt;Person&gt;();</div>
 <div class="line"> </div>
-<div class="line">    <span class="comment">// Create a new person</span></div>
-<div class="line">    <span class="keyword">auto</span> person = Person {};</div>
-<div class="line">    person.name = <span class="stringliteral">&quot;John Doe&quot;</span>;</div>
-<div class="line">    person.is_active = <span class="keyword">true</span>;</div>
+<div class="line">    <span class="comment">// Create a new person and create a database entry </span></div>
+<div class="line">    <span class="keyword">auto</span> person = Person {.name = <span class="stringliteral">&quot;John Doe&quot;</span>, .is_active = <span class="keyword">true</span>, .age = 24};</div>
 <div class="line">    dm.Create(person);</div>
 <div class="line"> </div>
-<div class="line">    <span class="comment">// Update the person</span></div>
-<div class="line">    name.age = 25;</div>
+<div class="line">    <span class="comment">// Update the age and save to the database</span></div>
+<div class="line">    person.age = 25;</div>
 <div class="line">    dm.Update(person);</div>
 <div class="line"> </div>
-<div class="line">    <span class="comment">// Query the person</span></div>
-<div class="line">    <span class="keywordflow">if</span> (<span class="keyword">auto</span> <span class="keyword">const</span> po = dm.QuerySingle&lt;Person&gt;(person.id); po)</div>
+<div class="line">    <span class="comment">// Query the person by primary key</span></div>
+<div class="line">    <span class="keywordflow">if</span> (<span class="keyword">auto</span> <span class="keyword">const</span> po = dm.Query&lt;Person&gt;(person.id); po)</div>
 <div class="line">        std::println(<span class="stringliteral">&quot;Person: {} ({})&quot;</span>, po-&gt;name, DataMapper::Inspect(*po));</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Query all persons</span></div>
-<div class="line">    <span class="keyword">auto</span> <span class="keyword">const</span> persons = dm.Query&lt;Person&gt;(); </div>
+<div class="line">    std::vector&lt;Person&gt; <span class="keyword">const</span> persons = dm.Query&lt;Person&gt;().All(); </div>
+<div class="line">    </div>
+<div class="line">    <span class="comment">// Query all persons with some filter and order by name</span></div>
+<div class="line">    <span class="keyword">auto</span> <span class="keyword">const</span> records = dm.Query&lt;Person&gt;()</div>
+<div class="line">                             .Where(FieldNameOf&lt;&amp;Person::is_active&gt;, <span class="stringliteral">&quot;=&quot;</span>, <span class="keyword">true</span>)</div>
+<div class="line">                             .OrderBy(FieldNameOf&lt;&amp;Person::name&gt;)</div>
+<div class="line">                             .All();</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Delete the person</span></div>
 <div class="line">    dm.Delete(person);</div>
 <div class="line">}</div>
-</div><!-- fragment --><h1><a class="anchor" id="example-simple-row-retrieval-via-structs"></a>
-Example: Simple row retrieval via structs</h1>
-<p>When only read access is needed, you can use a simple struct to represent the row, and also do not need to wrap the fields into <code>Field&lt;&gt;</code> template. The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
+</div><!-- fragment --><h2><a class="anchor" id="foreign-keys-relation"></a>
+Foreign keys relation</h2>
+<p>Now consider the following example we have two tables <code>User</code> and <code>Email</code>, with foreign key in <code>Email</code> pointing to the <code>User</code> this will translate in the following structs </p><div class="fragment"><div class="line"><span class="keyword">struct </span>User</div>
+<div class="line">{</div>
+<div class="line">    <a class="code hl_struct" href="d2/dd0/structLightweight_1_1Field.html">Light::Field</a>&lt;<a class="code hl_struct" href="df/d7c/structLightweight_1_1SqlGuid.html">Light::SqlGuid</a>, Light::PrimaryKey::AutoAssign, SqlRealName { <span class="stringliteral">&quot;user_id&quot;</span> }&gt; <span class="keywordtype">id</span> {};</div>
+<div class="line">    <a class="code hl_struct" href="d2/dd0/structLightweight_1_1Field.html">Light::Field&lt;Light::SqlAnsiString&lt;30&gt;</a>&gt; name {};</div>
+<div class="line">};</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">struct </span>Email</div>
+<div class="line">{</div>
+<div class="line">    <a class="code hl_struct" href="d2/dd0/structLightweight_1_1Field.html">Light::Field&lt;Light::SqlGuid, Light::PrimaryKey::AutoAssign&gt;</a> <span class="keywordtype">id</span> {};</div>
+<div class="line">    <a class="code hl_struct" href="d2/dd0/structLightweight_1_1Field.html">Light::Field&lt;Light::SqlAnsiString&lt;30&gt;</a>&gt; address {};</div>
+<div class="line">    <a class="code hl_class" href="d0/df7/classLightweight_1_1BelongsTo.html">Light::BelongsTo</a>&lt;&amp;User::id, <a class="code hl_struct" href="d7/d13/structLightweight_1_1SqlRealName.html">Light::SqlRealName</a> { <span class="stringliteral">&quot;user_id&quot;</span> }&gt; user {};</div>
+<div class="line">};</div>
+<div class="ttc" id="aclassLightweight_1_1BelongsTo_html"><div class="ttname"><a href="d0/df7/classLightweight_1_1BelongsTo.html">Lightweight::BelongsTo</a></div><div class="ttdoc">Represents a one-to-one relationship.</div><div class="ttdef"><b>Definition</b> <a href="da/d23/BelongsTo_8hpp_source.html#l00045">BelongsTo.hpp:46</a></div></div>
+<div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="d6/dac/Field_8hpp_source.html#l00083">Field.hpp:84</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlGuid_html"><div class="ttname"><a href="df/d7c/structLightweight_1_1SqlGuid.html">Lightweight::SqlGuid</a></div><div class="ttdef"><b>Definition</b> <a href="d9/dc2/SqlGuid_8hpp_source.html#l00019">SqlGuid.hpp:20</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlRealName_html"><div class="ttname"><a href="d7/d13/structLightweight_1_1SqlRealName.html">Lightweight::SqlRealName</a></div><div class="ttdoc">Helper class, used to represent a real SQL column names as template arguments.</div><div class="ttdef"><b>Definition</b> <a href="d0/dd1/SqlRealName_8hpp_source.html#l00014">SqlRealName.hpp:15</a></div></div>
+</div><!-- fragment --><p>In the presented example we used rename of the columns, for more details see how-to#rename-column-name page. you can query the email and get access to the user record as well</p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> dm = <a class="code hl_class" href="de/d61/classLightweight_1_1DataMapper.html">Light::DataMapper</a>{};</div>
+<div class="line"><span class="keyword">auto</span> email = dm.<a class="code hl_function" href="de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4">QuerySingle</a>&lt;Email&gt;(some_email_id).value_or(Email{});</div>
+<div class="line"><span class="keyword">auto</span> user_name = email.user-&gt;name; <span class="comment">// lazily loads the user record</span></div>
+<div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="df/d4f/DataMapper_8hpp_source.html#l00087">DataMapper.hpp:88</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1DataMapper_html_acc18932e94446a8a198017a5a8772bc4"><div class="ttname"><a href="de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4">Lightweight::DataMapper::QuerySingle</a></div><div class="ttdeci">std::optional&lt; Record &gt; QuerySingle(PrimaryKeyTypes &amp;&amp;... primaryKeys)</div><div class="ttdoc">Queries a single record (based on primary key) from the database.</div><div class="ttdef"><b>Definition</b> <a href="df/d4f/DataMapper_8hpp_source.html#l00755">DataMapper.hpp:755</a></div></div>
+</div><!-- fragment --><h2><a class="anchor" id="mapping-query-results-to-a-simple-struct"></a>
+Mapping query results to a simple struct</h2>
+<p>If you have a sql query that returns some values, but it does not corresponds to the existing table in the database, you can map the result to a simple struct. The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/Lightweight.hpp&gt;</span></div>
 <div class="line"> </div>
 <div class="line"><span class="keyword">struct </span>SimpleStruct</div>
@@ -170,27 +208,64 @@ Example: Simple row retrieval via structs</h1>
 <div class="line">            std::println(<span class="stringliteral">&quot;{}&quot;</span>, DataMapper::Inspect(obj));</div>
 <div class="line">    }</div>
 <div class="line">}</div>
-</div><!-- fragment --><h1><a class="anchor" id="supported-platforms"></a>
-Supported platforms</h1>
-<p>Only ODBC is supported, so it should work on any platform that has an ODBC driver and a modern enough C++ compiler.</p>
-<ul>
-<li>Windows (Visual Studio 2022, toolkit v143)</li>
-<li>Linux (GCC 14, Clang 19)</li>
-</ul>
-<h1><a class="anchor" id="supported-databases"></a>
-Supported databases</h1>
-<ul>
-<li>Microsoft SQL</li>
-<li>PostgreSQL</li>
-<li>SQLite3</li>
-<li>Oracle database (work in progress)</li>
-</ul>
-<h1><a class="anchor" id="using-sqlite-for-testing-on-windows-operating-system"></a>
+</div><!-- fragment --><h2><a class="anchor" id="mapping-query-to-multiple-struct"></a>
+Mapping query to multiple struct</h2>
+<p>We also provide an api to create sql queries, this can be usefull if you want to use information from existing structures. The following example shows how to create a query that joins multiple tables and maps the result to multiple structs. Consider the following structs</p>
+<div class="fragment"><div class="line"><span class="keyword">struct </span>CustomBindingA</div>
+<div class="line">{</div>
+<div class="line">    Field&lt;uint64_t, PrimaryKey::ServerSideAutoIncrement&gt; <span class="keywordtype">id</span> {};</div>
+<div class="line">    Field&lt;int&gt; number {};</div>
+<div class="line">    Field&lt;SqlAnsiString&lt;20&gt;&gt; name {};</div>
+<div class="line">    Field&lt;SqlDynamicWideString&lt;1000&gt;&gt; description {};</div>
+<div class="line">};</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">struct </span>CustomBindingB</div>
+<div class="line">{</div>
+<div class="line">    Field&lt;uint64_t, PrimaryKey::ServerSideAutoIncrement&gt; <span class="keywordtype">id</span> {};</div>
+<div class="line">    Field&lt;SqlAnsiString&lt;20&gt;&gt; title {};</div>
+<div class="line">    Field&lt;SqlDateTime&gt; date_time {};</div>
+<div class="line">    Field&lt;uint64_t&gt; a_id {};</div>
+<div class="line">    Field&lt;uint64_t&gt; c_id {};</div>
+<div class="line">};</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">struct </span>CustomBindingC</div>
+<div class="line">{</div>
+<div class="line">    Field&lt;uint64_t, PrimaryKey::ServerSideAutoIncrement&gt; <span class="keywordtype">id</span> {};</div>
+<div class="line">    Field&lt;double&gt; value {};</div>
+<div class="line">    Field&lt;SqlAnsiString&lt;20&gt;&gt; comment {};</div>
+<div class="line">};</div>
+</div><!-- fragment --><p>Create a query to join those tables to get in a single query </p><div class="fragment"><div class="line"><span class="keyword">auto</span> dm = DataMapper {};</div>
+<div class="line"><span class="keyword">auto</span> query = dm.FromTable(RecordTableName&lt;CustomBindingA&gt;)</div>
+<div class="line">                 .Select()</div>
+<div class="line">                 .Fields&lt;CustomBindingA, CustomBindingB&gt;()</div>
+<div class="line">                 .Field(QualifiedColumnName&lt;&quot;C.id&quot;&gt;)</div>
+<div class="line">                 .Field(QualifiedColumnName&lt;&quot;C.comment&quot;&gt;)</div>
+<div class="line">                 .InnerJoin&lt;&amp;CustomBindingB::a_id, &amp;CustomBindingA::id&gt;()</div>
+<div class="line">                 .InnerJoin&lt;&amp;CustomBindingC::id, &amp;CustomBindingB::c_id&gt;()</div>
+<div class="line">                 .OrderBy(QualifiedColumnName&lt;&quot;A.id&quot;&gt;)</div>
+<div class="line">                 .All();</div>
+</div><!-- fragment --><p> This create the following sql query </p><div class="fragment"><div class="line"><span class="keyword">SELECT</span> <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;id&quot;</span>, <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;number&quot;</span>, <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;name&quot;</span>, <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;description&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;id&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;title&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;date_time&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;a_id&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;c_id&quot;</span>, <span class="stringliteral">&quot;&quot;</span>C<span class="stringliteral">&quot;.&quot;</span>id<span class="stringliteral">&quot;&quot;</span>, <span class="stringliteral">&quot;C&quot;</span>.<span class="stringliteral">&quot;comment&quot;</span> <span class="keyword">FROM</span> <span class="stringliteral">&quot;A&quot;</span></div>
+<div class="line"> <span class="keyword">INNER</span> <span class="keyword">JOIN</span> <span class="stringliteral">&quot;B&quot;</span> <span class="keyword">ON</span> <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;a_id&quot;</span> = <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;id&quot;</span></div>
+<div class="line"> <span class="keyword">INNER</span> <span class="keyword">JOIN</span> <span class="stringliteral">&quot;C&quot;</span> <span class="keyword">ON</span> <span class="stringliteral">&quot;C&quot;</span>.<span class="stringliteral">&quot;id&quot;</span> = <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;c_id&quot;</span></div>
+<div class="line"> <span class="keyword">ORDER</span> <span class="keyword">BY</span> <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;id&quot;</span> ASC</div>
+</div><!-- fragment --><p>Now you can execute it and get the result as a <code>std::vector&lt;std::tuple&lt;CustomBindingA, CustomBindingB, ParfOfC&gt;</code> like this</p>
+<div class="fragment"><div class="line"><span class="keyword">struct </span>PartOfC</div>
+<div class="line">{</div>
+<div class="line">    uint64_t <span class="keywordtype">id</span> {};</div>
+<div class="line">    SqlAnsiString&lt;20&gt; comment {};</div>
+<div class="line">};</div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> records = dm.QueryToTuple&lt;CustomBindingA, CustomBindingB, PartOfC&gt;(query);</div>
+<div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; [a, b, c]: records)</div>
+<div class="line">{</div>
+<div class="line">    <span class="comment">// ...</span></div>
+<div class="line">}</div>
+</div><!-- fragment --><h1><a class="anchor" id="using-sqlite-for-testing-on-windows-operating-system"></a>
 Using SQLite for testing on Windows operating system</h1>
 <p>You need to have the SQLite3 ODBC driver for SQLite installed.</p>
 <ul>
 <li>ODBC driver download URL: <a href="http://www.ch-werner.de/sqliteodbc/">http://www.ch-werner.de/sqliteodbc/</a></li>
-<li>Example connection string: <code>DRIVER={SQLite3 ODBC Driver};Database=<a href="file::memory:">file::memory:</a></code></li>
+<li>Example connection string: <code>"DRIVER={SQLite3 ODBC Driver};Database=file::memory:"</code></li>
 </ul>
 <h2><a class="anchor" id="sqlite-odbc-driver-installation-on-other-operating-systems"></a>
 SQLite ODBC driver installation on other operating systems</h2>
@@ -204,7 +279,7 @@ SQLite ODBC driver installation on other operating systems</h2>
 <div class="line">arch -arm64 brew install sqliteodbc</div>
 </div><!-- fragment --><ul>
 <li>sqliteODBC Documentation: <a href="http://www.ch-werner.de/sqliteodbc/html/index.html">http://www.ch-werner.de/sqliteodbc/html/index.html</a></li>
-<li>Example connection string: <code>DRIVER=SQLite3;Database=<a href="file::memory:">file::memory:</a></code></li>
+<li>Example connection string: <code>"DRIVER=SQLite3;Database=file::memory:"</code></li>
 </ul>
 <h1><a class="anchor" id="generate-example-for-the-existing-database"></a>
 Generate example for the existing database</h1>

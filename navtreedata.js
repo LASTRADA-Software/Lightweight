@@ -26,6 +26,9 @@ var NAVTREE =
 [
   [ "Lightweight", "index.html", [
     [ "Lightweight, an ODBC SQL API for C++23", "index.html", "index" ],
+    [ "How to", "d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html", [
+      [ "Rename column name", "d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html#rename-column-name", null ]
+    ] ],
     [ "Usage Examples", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html", [
       [ "Configure default connection information to the database", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database", null ],
       [ "Raw SQL Queries", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries", null ],
@@ -92,9 +95,9 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d7/d94/Table33_8hpp_source.html",
-"db/dfd/classLightweight_1_1SqlLogger.html#aa68027bdaa8f1fde1e3feb1de44f985c",
-"functions_func_m.html"
+"d7/d5b/Table88_8hpp_source.html",
+"db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750a93cba07454f06a4a960172bbd6e2a435",
+"functions_func_i.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

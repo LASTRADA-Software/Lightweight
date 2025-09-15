@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['practices_0',['Best Practices',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html',1,'']]]
+  ['odbc_20sql_20api_20for_20c_2023_0',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]]
 ];

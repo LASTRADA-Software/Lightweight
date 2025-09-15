@@ -9,6 +9,5 @@ var searchData=
   ['getplan_6',['getplan',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() const &amp;'],['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a503a9d905ab222a68bb4fcbec1510154',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() &amp;&amp;']]],
   ['getprimarykeyfield_7',['GetPrimaryKeyField',['../d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33',1,'Lightweight']]],
   ['getresultcursor_8',['GetResultCursor',['../db/dad/classLightweight_1_1SqlStatement.html#a6a00a9d4de7a50e8e8108b5bce77663f',1,'Lightweight::SqlStatement']]],
-  ['getvariantrowcursor_9',['GetVariantRowCursor',['../db/dad/classLightweight_1_1SqlStatement.html#a696b3c702137a05dcad3178bc27113b7',1,'Lightweight::SqlStatement']]],
-  ['goals_10',['Goals',['../index.html#goals',1,'']]]
+  ['getvariantrowcursor_9',['GetVariantRowCursor',['../db/dad/classLightweight_1_1SqlStatement.html#a696b3c702137a05dcad3178bc27113b7',1,'Lightweight::SqlStatement']]]
 ];
