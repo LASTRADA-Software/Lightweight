@@ -429,8 +429,12 @@ struct std::formatter<Lightweight::SqlFixedString<N, T, P>>: std::formatter<std:
     using value_type = Lightweight::SqlFixedString<N, T, P>;
     auto format(value_type const& text, format_context& ctx) const -> format_context::iterator
     {
-        if constexpr (std::same_as<T, wchar_t>)
-            return std::formatter<std::string>::format(ToUtf8(text.ToStringView()), ctx);
+        if constexpr (std::same_as<T, char16_t> || std::same_as<T, char32_t> || std::same_as<T, wchar_t>)
+        {
+            auto const utf8 = Lightweight::ToUtf8(text.ToStringView());
+            auto const stdstring = std::string(reinterpret_cast<char const*>(utf8.data()), utf8.size());
+            return std::formatter<std::string>::format(stdstring, ctx);
+        }
         else
             return std::formatter<std::string>::format(text.c_str(), ctx);
     }
