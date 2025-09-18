@@ -1,5 +1,7 @@
 var NAVTREEINDEX1 =
 {
+"d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03":[6,2,19],
+"d7/d53/structLightweight_1_1SqlTime.html":[6,0,10],
 "d7/d5b/Table88_8hpp_source.html":[9,0,0,0,87],
 "d7/d74/Table25_8hpp_source.html":[9,0,0,0,18],
 "d7/d94/Table33_8hpp_source.html":[9,0,0,0,27],
@@ -247,7 +249,5 @@ var NAVTREEINDEX1 =
 "db/dfd/classLightweight_1_1SqlLogger.html#a85df1dd0e63ccaa6c8b89874907205ce":[8,0,0,29,14],
 "db/dfd/classLightweight_1_1SqlLogger.html#a89a7b4c6fd89c71bfdab6e81b7f15f35":[8,0,0,29,18],
 "db/dfd/classLightweight_1_1SqlLogger.html#a8f14312f2f4bf2436d124947d9150716":[8,0,0,29,15],
-"db/dfd/classLightweight_1_1SqlLogger.html#a9fa72e1dc66122e2b611a6806e77063b":[8,0,0,29,0],
-"db/dfd/classLightweight_1_1SqlLogger.html#aa4a431f0941273837878750619925192":[8,0,0,29,10],
-"db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750":[8,0,0,29,1]
+"db/dfd/classLightweight_1_1SqlLogger.html#a9fa72e1dc66122e2b611a6806e77063b":[8,0,0,29,0]
 };

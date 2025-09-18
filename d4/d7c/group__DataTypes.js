@@ -17,6 +17,8 @@ var group__DataTypes =
       [ "minute", "d6/dfa/structLightweight_1_1SqlDateTime.html#a87a2b5b93a1dd9151dc3f3f4245062d8", null ],
       [ "second", "d6/dfa/structLightweight_1_1SqlDateTime.html#a63f32910bfa3c1dee896bddf23e69e96", null ],
       [ "nanosecond", "d6/dfa/structLightweight_1_1SqlDateTime.html#a8936bb67e7a6cccf8b462302175ca0c7", null ],
+      [ "Date", "d6/dfa/structLightweight_1_1SqlDateTime.html#a50c214ccbdedd65463ff121de8489e60", null ],
+      [ "Time", "d6/dfa/structLightweight_1_1SqlDateTime.html#ab670fd561755bd58aaa31099a291af23", null ],
       [ "value", "d6/dfa/structLightweight_1_1SqlDateTime.html#ad9d7388657a62e1037680c4d4dab9eea", null ]
     ] ],
     [ "Lightweight::SqlDynamicBinary< N >", "d6/db6/classLightweight_1_1SqlDynamicBinary.html", [

@@ -1,5 +1,7 @@
 var NAVTREEINDEX2 =
 {
+"db/dfd/classLightweight_1_1SqlLogger.html#aa4a431f0941273837878750619925192":[8,0,0,29,10],
+"db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750":[8,0,0,29,1],
 "db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750a93cba07454f06a4a960172bbd6e2a435":[8,0,0,29,1,1],
 "db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750abafd7322c6e97d25b6299b5d6fe8920b":[8,0,0,29,1,0],
 "db/dfd/classLightweight_1_1SqlLogger.html#aa68027bdaa8f1fde1e3feb1de44f985c":[8,0,0,29,7],
@@ -247,7 +249,5 @@ var NAVTREEINDEX2 =
 "functions_func_c.html":[8,2,1,2],
 "functions_func_d.html":[8,2,1,3],
 "functions_func_e.html":[8,2,1,4],
-"functions_func_f.html":[8,2,1,5],
-"functions_func_g.html":[8,2,1,6],
-"functions_func_h.html":[8,2,1,7]
+"functions_func_f.html":[8,2,1,5]
 };
