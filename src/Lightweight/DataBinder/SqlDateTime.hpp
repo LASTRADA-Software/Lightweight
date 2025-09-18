@@ -4,6 +4,8 @@
 
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "Core.hpp"
+#include "SqlDate.hpp"
+#include "SqlTime.hpp"
 
 #include <chrono>
 #include <format>
@@ -151,6 +153,21 @@ struct SqlDateTime
     LIGHTWEIGHT_FORCE_INLINE constexpr operator native_type() const noexcept
     {
         return value();
+    }
+
+    /// @brief Constructs only a date from a SQL date-time structure.
+    [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE SqlDate Date() const noexcept
+    {
+        return SqlDate { year(), month(), day() };
+    }
+
+    /// @brief Constructs only a time from a SQL date-time structure.
+    [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE SqlTime Time() const noexcept
+    {
+        return SqlTime { std::chrono::hours { hour() },
+                         std::chrono::minutes { minute() },
+                         std::chrono::seconds { second() },
+                         std::chrono::microseconds { std::chrono::duration_cast<std::chrono::microseconds>(nanosecond()) } };
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQL_TIMESTAMP_STRUCT constexpr ConvertToSqlValue(native_type value) noexcept

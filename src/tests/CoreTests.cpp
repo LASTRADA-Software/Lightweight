@@ -614,4 +614,14 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into SqlVariantRowIterator", "[SqlState
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlDateTime conversion", "[SqlDateTime]")
+{
+    auto const nowDateTime = Lightweight::SqlDateTime::Now();
+    REQUIRE(nowDateTime.Date() == Lightweight::SqlDate::Today());
+    auto const nowTime = nowDateTime.Time().value();
+    REQUIRE(nowTime.hours().count() == Lightweight::SqlDateTime::ConvertToSqlValue(nowDateTime.value()).hour);
+    REQUIRE(nowTime.minutes().count() == Lightweight::SqlDateTime::ConvertToSqlValue(nowDateTime.value()).minute);
+    REQUIRE(nowTime.seconds().count() == Lightweight::SqlDateTime::ConvertToSqlValue(nowDateTime.value()).second);
+}
+
 // NOLINTEND(readability-container-size-empty)
