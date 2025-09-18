@@ -3,9 +3,10 @@
 **Lightweight** is a thin and modern C++ ODBC wrapper for **easy** and **fast** raw database access.
 Documentation is available at [https://lastrada-software.github.io/Lightweight/](https://lastrada-software.github.io/Lightweight/).
 
-It supports both low-level access to the sql api as well as provides hight level abstraction that allow easy database access.
+It supports both low-level access to the SQL API as well as provides hight level abstraction that allow easy database access.
 
 Here you can see an example of datamapper usage (our tool for the high level abstraction)
+
 ## Supported platforms
 
 Only ODBC is supported, so it should work on any platform that has an ODBC driver and
@@ -22,13 +23,17 @@ a modern enough C++ compiler.
 - Oracle database (work in progress)
 
 ## Namespace
+
 All functionality is placed inside a `Lightweight` namespace, we also provide an alias for this namespace `Light`, that is slightly shorter. 
 
-## High level api
-High level api of the library provided by the type `DataMapper`
+## High level API
+
+High level API of the library provided by the type `DataMapper`
 
 ### Simple one record example 
+
 Example of its usage to save/load/update/delete entry in the database for one table
+
 ```cpp
 #include <Lightweight/Lightweight.hpp>
 
@@ -73,8 +78,10 @@ void CRUD(DataMapper& dm)
 ```
 
 ### Foreign keys relation
+
 Now consider the following example we have two tables `User` and `Email`, with foreign key in `Email` pointing to the `User` 
 this will translate in the following structs 
+
 ```cpp
 struct User
 {
@@ -101,7 +108,7 @@ auto user_name = email.user->name; // lazily loads the user record
 
 ### Mapping query results to a simple struct
 
-If you have a sql query that returns some values, but it does not corresponds to the existing table in the database, you can map the result to a simple struct.
+If you have a SQL query that returns some values, but it does not corresponds to the existing table in the database, you can map the result to a simple struct.
 The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.
 
 ```cpp
@@ -131,7 +138,7 @@ void SimpleStructExample(DataMapper& dm)
 
 ### Mapping query to multiple struct
 
-We also provide an api to create sql queries, this can be usefull if you want to use information from existing structures.
+We also provide an API to create SQL queries, this can be usefull if you want to use information from existing structures.
 The following example shows how to create a query that joins multiple tables and maps the result to multiple structs.
 Consider the following structs
 
@@ -175,7 +182,7 @@ auto query = dm.FromTable(RecordTableName<CustomBindingA>)
                  .OrderBy(QualifiedColumnName<"A.id">)
                  .All();
 ```
-This create the following sql query
+This create the following SQL query
 ```sql
 SELECT "A"."id", "A"."number", "A"."name", "A"."description", "B"."id", "B"."title", "B"."date_time", "B"."a_id", "B"."c_id", ""C"."id"", "C"."comment" FROM "A"
  INNER JOIN "B" ON "B"."a_id" = "A"."id"
@@ -229,11 +236,13 @@ arch -arm64 brew install sqliteodbc
 You can use `ddl2cpp` to generate header file for you database schema as well as an example file that you can compile
 
 First, configure cmake project and compile `ddl2cpp` target
+
 ``` sh
 cmake --build build --target ddl2cpp 
 ```
 
 Generate header file from the existing database by providing connection string to the tool 
+
 ``` sh
  ./build/src/tools/ddl2cpp --connection-string "DRIVER=SQLite3;Database=test.db" --make-aliases --naming-convention CamelCase  --output ./src/examples/example.hpp --generate-example
 ```
@@ -261,10 +270,8 @@ Finally, compile and run the example
 cmake --build build && ./build/src/examples/example
 ```
 
-
 ## Compile using C++26 reflection support
 
 ``` sh
 docker buildx build --progress=plain -f .github/DockerReflection --load .
 ```
-
