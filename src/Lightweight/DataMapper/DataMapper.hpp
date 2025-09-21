@@ -794,7 +794,6 @@ template <typename Record, typename... InputParameters>
 std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputParameters&&... inputParameters)
 {
     auto result = std::vector<Record> {};
-
     if constexpr (std::same_as<Record, SqlVariantRow>)
     {
         _stmt.Prepare(sqlQueryString);

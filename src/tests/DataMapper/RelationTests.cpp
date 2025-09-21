@@ -270,6 +270,71 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsToChain", "[DataMapper][relations]")
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "BelongsTo loading of multiple records", "[DataMapper][relations]")
+{
+    auto dm = DataMapper();
+
+    dm.CreateTables<Suppliers, Account, AccountHistory>();
+
+    auto supplier1 = Suppliers { .name = "Supplier 1" };
+    dm.Create(supplier1);
+
+    auto account1 = Account { .iban = "DE89370400440532013001", .supplier = supplier1 };
+    dm.Create(account1);
+    for (int const i: std::views::iota(0, 10))
+    {
+        dm.CreateExplicit(AccountHistory { .credit_rating = 90 + i, .account = account1 });
+    }
+
+    SECTION("Query multiple with relation wuthout auto loading")
+    {
+        auto allHistories = dm.Query<AccountHistory>()
+                                .Where(FullyQualifiedNameOf<Member(AccountHistory::account)>, "=", account1.id.Value())
+                                .All();
+        REQUIRE(allHistories.size() == 10);
+#if !defined(__cpp_lib_ranges_enumerate)
+        int index { -1 };
+        for (auto& history: allHistories)
+        {
+            ++index;
+#else
+        for (auto const& [index, history]: allHistories | std::views::enumerate)
+        {
+#endif
+            dm.ConfigureRelationAutoLoading(history);
+            CAPTURE(index);
+            REQUIRE(history.account.Value() == account1.id.Value());
+            REQUIRE(history.account->id.Value() == account1.id.Value());
+            REQUIRE(history.credit_rating.Value() == 90 + static_cast<int>(index));
+        }
+    }
+
+    SECTION("Query multiple with relation auto loading")
+    {
+        auto allHistories = dm.Query<AccountHistory>(
+            dm.FromTable(RecordTableName<AccountHistory>)
+                .Select()
+                .Fields<AccountHistory>()
+                .Where(FullyQualifiedNameOf<Member(AccountHistory::account)>, "=", account1.id.Value())
+                .All());
+        REQUIRE(allHistories.size() == 10);
+#if !defined(__cpp_lib_ranges_enumerate)
+        int index { -1 };
+        for (auto& history: allHistories)
+        {
+            ++index;
+#else
+        for (auto const& [index, history]: allHistories | std::views::enumerate)
+        {
+#endif
+            CAPTURE(index);
+            REQUIRE(history.account.Value() == account1.id.Value());
+            REQUIRE(history.account->id.Value() == account1.id.Value());
+            REQUIRE(history.credit_rating.Value() == 90 + static_cast<int>(index));
+        }
+    }
+}
+
 template <typename T>
 std::set<T> MakeSetFromRange(std::ranges::range auto&& range)
 {
