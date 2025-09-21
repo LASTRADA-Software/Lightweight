@@ -600,7 +600,7 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
 /// of two records
 ///
 /// @ingroup DataMapper
-/// TODO : deprecate this in favor of a more generic tuple support
+/// @todo deprecate this in favor of a more generic tuple support
 template <typename FirstRecord, typename SecondRecord>
 class [[nodiscard]] SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>> final:
     public SqlCoreDataMapperQueryBuilder<std::tuple<FirstRecord, SecondRecord>,
