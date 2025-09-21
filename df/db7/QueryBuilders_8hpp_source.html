@@ -722,54 +722,55 @@ $(document).ready(function(){initNavTree('df/db7/QueryBuilders_8hpp_source.html'
 <div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span><span class="comment">/// of two records</span></div>
 <div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span><span class="comment">///</span></div>
 <div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span><span class="comment">/// @ingroup DataMapper</span></div>
-<div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> FirstRecord, <span class="keyword">typename</span> SecondRecord&gt;</div>
-<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span><span class="keyword">class </span>[[nodiscard]] <a class="code hl_class" href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html">SqlAllFieldsQueryBuilder</a>&lt;std::tuple&lt;FirstRecord, SecondRecord&gt;&gt; final:</div>
-<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span>    <span class="keyword">public</span> <a class="code hl_class" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">SqlCoreDataMapperQueryBuilder</a>&lt;std::tuple&lt;FirstRecord, SecondRecord&gt;,</div>
-<div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span>                                         SqlAllFieldsQueryBuilder&lt;std::tuple&lt;FirstRecord, SecondRecord&gt;&gt;&gt;</div>
-<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span>{</div>
-<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span>    <span class="keyword">using </span>RecordType = std::tuple&lt;FirstRecord, SecondRecord&gt;;</div>
-<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>    <span class="keyword">friend</span> <span class="keyword">class </span><a class="code hl_class" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a>;</div>
-<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>    <span class="keyword">friend</span> <span class="keyword">class </span><a class="code hl_class" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">SqlCoreDataMapperQueryBuilder</a>&lt;RecordType, <a class="code hl_class" href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html">SqlAllFieldsQueryBuilder</a>&lt;RecordType&gt;&gt;;</div>
-<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span> </div>
-<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span>    LIGHTWEIGHT_FORCE_INLINE <span class="keyword">explicit</span> <a class="code hl_class" href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html">SqlAllFieldsQueryBuilder</a>(<a class="code hl_class" href="../../db/dad/classLightweight_1_1SqlStatement.html">SqlStatement</a>&amp; stmt, std::string fields) <span class="keyword">noexcept</span>:</div>
-<div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span>        <a class="code hl_class" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">SqlCoreDataMapperQueryBuilder&lt;RecordType, SqlAllFieldsQueryBuilder&lt;RecordType&gt;</a>&gt; { stmt, std::move(fields) }</div>
-<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span>    {</div>
-<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span>    }</div>
-<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span> </div>
-<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span>    <span class="keyword">static</span> <span class="keywordtype">void</span> ReadResults(SqlServerType sqlServerType, SqlResultCursor reader, std::vector&lt;RecordType&gt;* records)</div>
-<div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span>    {</div>
-<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span>        <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
-<div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span>        {</div>
-<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span>            <span class="keyword">auto</span>&amp; record = records-&gt;emplace_back();</div>
-<div class="line"><a id="l00623" name="l00623"></a><span class="lineno">  623</span>            <span class="keyword">auto</span>&amp; [firstRecord, secondRecord] = record;</div>
-<div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span> </div>
-<div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span>            <span class="keyword">using </span>FirstRecordType = std::remove_cvref_t&lt;<span class="keyword">decltype</span>(firstRecord)&gt;;</div>
-<div class="line"><a id="l00626" name="l00626"></a><span class="lineno">  626</span>            <span class="keyword">using </span>SecondRecordType = std::remove_cvref_t&lt;<span class="keyword">decltype</span>(secondRecord)&gt;;</div>
-<div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span> </div>
-<div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span>            <span class="keyword">auto</span> <span class="keyword">const</span> outputColumnsBoundFirst = detail::CanSafelyBindOutputColumns&lt;FirstRecordType&gt;(sqlServerType);</div>
-<div class="line"><a id="l00629" name="l00629"></a><span class="lineno">  629</span>            <span class="keyword">auto</span> <span class="keyword">const</span> outputColumnsBoundSecond = detail::CanSafelyBindOutputColumns&lt;SecondRecordType&gt;(sqlServerType);</div>
-<div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span>            <span class="keyword">auto</span> <span class="keyword">const</span> canSafelyBindAll = outputColumnsBoundFirst &amp;&amp; outputColumnsBoundSecond;</div>
-<div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span> </div>
-<div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span>            <span class="keywordflow">if</span> (canSafelyBindAll)</div>
-<div class="line"><a id="l00633" name="l00633"></a><span class="lineno">  633</span>            {</div>
-<div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span>                detail::BindAllOutputColumnsWithOffset(reader, firstRecord, 1);</div>
-<div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span>                detail::BindAllOutputColumnsWithOffset(reader, secondRecord, 1 + Reflection::CountMembers&lt;FirstRecord&gt;);</div>
-<div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span>            }</div>
-<div class="line"><a id="l00637" name="l00637"></a><span class="lineno">  637</span> </div>
-<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span>            <span class="keywordflow">if</span> (!reader.FetchRow())</div>
-<div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span>            {</div>
-<div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span>                records-&gt;pop_back();</div>
-<div class="line"><a id="l00641" name="l00641"></a><span class="lineno">  641</span>                <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l00642" name="l00642"></a><span class="lineno">  642</span>            }</div>
-<div class="line"><a id="l00643" name="l00643"></a><span class="lineno">  643</span> </div>
-<div class="line"><a id="l00644" name="l00644"></a><span class="lineno">  644</span>            <span class="keywordflow">if</span> (!canSafelyBindAll)</div>
-<div class="line"><a id="l00645" name="l00645"></a><span class="lineno">  645</span>                detail::GetAllColumns(reader, record);</div>
-<div class="line"><a id="l00646" name="l00646"></a><span class="lineno">  646</span>        }</div>
-<div class="line"><a id="l00647" name="l00647"></a><span class="lineno">  647</span>    }</div>
-<div class="line"><a id="l00648" name="l00648"></a><span class="lineno">  648</span>};</div>
-<div class="line"><a id="l00649" name="l00649"></a><span class="lineno">  649</span> </div>
-<div class="line"><a id="l00650" name="l00650"></a><span class="lineno">  650</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span><span class="comment">/// @todo deprecate this in favor of a more generic tuple support</span></div>
+<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> FirstRecord, <span class="keyword">typename</span> SecondRecord&gt;</div>
+<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span><span class="keyword">class </span>[[nodiscard]] <a class="code hl_class" href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html">SqlAllFieldsQueryBuilder</a>&lt;std::tuple&lt;FirstRecord, SecondRecord&gt;&gt; final:</div>
+<div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span>    <span class="keyword">public</span> <a class="code hl_class" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">SqlCoreDataMapperQueryBuilder</a>&lt;std::tuple&lt;FirstRecord, SecondRecord&gt;,</div>
+<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span>                                         SqlAllFieldsQueryBuilder&lt;std::tuple&lt;FirstRecord, SecondRecord&gt;&gt;&gt;</div>
+<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span>{</div>
+<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>    <span class="keyword">using </span>RecordType = std::tuple&lt;FirstRecord, SecondRecord&gt;;</div>
+<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>    <span class="keyword">friend</span> <span class="keyword">class </span><a class="code hl_class" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a>;</div>
+<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span>    <span class="keyword">friend</span> <span class="keyword">class </span><a class="code hl_class" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">SqlCoreDataMapperQueryBuilder</a>&lt;RecordType, <a class="code hl_class" href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html">SqlAllFieldsQueryBuilder</a>&lt;RecordType&gt;&gt;;</div>
+<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span> </div>
+<div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span>    LIGHTWEIGHT_FORCE_INLINE <span class="keyword">explicit</span> <a class="code hl_class" href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html">SqlAllFieldsQueryBuilder</a>(<a class="code hl_class" href="../../db/dad/classLightweight_1_1SqlStatement.html">SqlStatement</a>&amp; stmt, std::string fields) <span class="keyword">noexcept</span>:</div>
+<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span>        <a class="code hl_class" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">SqlCoreDataMapperQueryBuilder&lt;RecordType, SqlAllFieldsQueryBuilder&lt;RecordType&gt;</a>&gt; { stmt, std::move(fields) }</div>
+<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span>    {</div>
+<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span>    }</div>
+<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span> </div>
+<div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span>    <span class="keyword">static</span> <span class="keywordtype">void</span> ReadResults(SqlServerType sqlServerType, SqlResultCursor reader, std::vector&lt;RecordType&gt;* records)</div>
+<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span>    {</div>
+<div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span>        <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
+<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span>        {</div>
+<div class="line"><a id="l00623" name="l00623"></a><span class="lineno">  623</span>            <span class="keyword">auto</span>&amp; record = records-&gt;emplace_back();</div>
+<div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span>            <span class="keyword">auto</span>&amp; [firstRecord, secondRecord] = record;</div>
+<div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span> </div>
+<div class="line"><a id="l00626" name="l00626"></a><span class="lineno">  626</span>            <span class="keyword">using </span>FirstRecordType = std::remove_cvref_t&lt;<span class="keyword">decltype</span>(firstRecord)&gt;;</div>
+<div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span>            <span class="keyword">using </span>SecondRecordType = std::remove_cvref_t&lt;<span class="keyword">decltype</span>(secondRecord)&gt;;</div>
+<div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span> </div>
+<div class="line"><a id="l00629" name="l00629"></a><span class="lineno">  629</span>            <span class="keyword">auto</span> <span class="keyword">const</span> outputColumnsBoundFirst = detail::CanSafelyBindOutputColumns&lt;FirstRecordType&gt;(sqlServerType);</div>
+<div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span>            <span class="keyword">auto</span> <span class="keyword">const</span> outputColumnsBoundSecond = detail::CanSafelyBindOutputColumns&lt;SecondRecordType&gt;(sqlServerType);</div>
+<div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span>            <span class="keyword">auto</span> <span class="keyword">const</span> canSafelyBindAll = outputColumnsBoundFirst &amp;&amp; outputColumnsBoundSecond;</div>
+<div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span> </div>
+<div class="line"><a id="l00633" name="l00633"></a><span class="lineno">  633</span>            <span class="keywordflow">if</span> (canSafelyBindAll)</div>
+<div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span>            {</div>
+<div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span>                detail::BindAllOutputColumnsWithOffset(reader, firstRecord, 1);</div>
+<div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span>                detail::BindAllOutputColumnsWithOffset(reader, secondRecord, 1 + Reflection::CountMembers&lt;FirstRecord&gt;);</div>
+<div class="line"><a id="l00637" name="l00637"></a><span class="lineno">  637</span>            }</div>
+<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span> </div>
+<div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span>            <span class="keywordflow">if</span> (!reader.FetchRow())</div>
+<div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span>            {</div>
+<div class="line"><a id="l00641" name="l00641"></a><span class="lineno">  641</span>                records-&gt;pop_back();</div>
+<div class="line"><a id="l00642" name="l00642"></a><span class="lineno">  642</span>                <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l00643" name="l00643"></a><span class="lineno">  643</span>            }</div>
+<div class="line"><a id="l00644" name="l00644"></a><span class="lineno">  644</span> </div>
+<div class="line"><a id="l00645" name="l00645"></a><span class="lineno">  645</span>            <span class="keywordflow">if</span> (!canSafelyBindAll)</div>
+<div class="line"><a id="l00646" name="l00646"></a><span class="lineno">  646</span>                detail::GetAllColumns(reader, record);</div>
+<div class="line"><a id="l00647" name="l00647"></a><span class="lineno">  647</span>        }</div>
+<div class="line"><a id="l00648" name="l00648"></a><span class="lineno">  648</span>    }</div>
+<div class="line"><a id="l00649" name="l00649"></a><span class="lineno">  649</span>};</div>
+<div class="line"><a id="l00650" name="l00650"></a><span class="lineno">  650</span> </div>
+<div class="line"><a id="l00651" name="l00651"></a><span class="lineno">  651</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00087">DataMapper.hpp:88</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlAllFieldsQueryBuilder_html"><div class="ttname"><a href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html">Lightweight::SqlAllFieldsQueryBuilder</a></div><div class="ttdoc">Represents a query builder that retrieves all fields of a record.</div><div class="ttdef"><b>Definition</b> <a href="../../df/db7/QueryBuilders_8hpp_source.html#l00566">QueryBuilders.hpp:568</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlConnection_html_a2cf1b575719f949078c4a5c31145e501"><div class="ttname"><a href="../../da/da8/classLightweight_1_1SqlConnection.html#a2cf1b575719f949078c4a5c31145e501">Lightweight::SqlConnection::ServerType</a></div><div class="ttdeci">SqlServerType ServerType() const noexcept</div><div class="ttdoc">Retrieves the type of the server.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00187">SqlConnection.hpp:187</a></div></div>
