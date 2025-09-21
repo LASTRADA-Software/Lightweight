@@ -283,8 +283,7 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo loading of multiple records", "[Data
     dm.Create(account1);
     for (int const i: std::views::iota(0, 10))
     {
-        auto accountHistory = AccountHistory { .credit_rating = 90 + i, .account = account1 };
-        dm.Create(accountHistory);
+        dm.CreateExplicit(AccountHistory { .credit_rating = 90 + i, .account = account1 });
     }
 
     SECTION("Query multiple with relation wuthout auto loading")
