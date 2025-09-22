@@ -94,8 +94,8 @@ $(document).ready(function(){initNavTree('index.html',''); initResizable(); });
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p><a class="anchor" id="md__2home_2runner_2work_2Lightweight_2Lightweight_2README"></a> <b>Lightweight</b> is a thin and modern C++ ODBC wrapper for <b>easy</b> and <b>fast</b> raw database access. Documentation is available at <a href="https://lastrada-software.github.io/Lightweight/">https://lastrada-software.github.io/Lightweight/</a>.</p>
-<p>It supports both low-level access to the sql api as well as provides hight level abstraction that allow easy database access.</p>
-<p>Here you can see an example of datamapper usage (our tool for the high level abstraction) </p>
+<p>It supports both low-level access to the SQL API as well as provides hight level abstraction that allow easy database access.</p>
+<p>Here you can see an example of datamapper usage (our tool for the high level abstraction)</p>
 <h1><a class="anchor" id="supported-platforms"></a>
 Supported platforms</h1>
 <p>Only ODBC is supported, so it should work on any platform that has an ODBC driver and a modern enough C++ compiler.</p>
@@ -115,11 +115,12 @@ Supported databases</h1>
 Namespace</h1>
 <p>All functionality is placed inside a <code>Lightweight</code> namespace, we also provide an alias for this namespace <code>Light</code>, that is slightly shorter.</p>
 <h1><a class="anchor" id="high-level-api"></a>
-High level api</h1>
-<p>High level api of the library provided by the type <code>DataMapper</code></p>
+High level API</h1>
+<p>High level API of the library provided by the type <code>DataMapper</code></p>
 <h2><a class="anchor" id="simple-one-record-example"></a>
 Simple one record example</h2>
-<p>Example of its usage to save/load/update/delete entry in the database for one table </p><div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/Lightweight.hpp&gt;</span></div>
+<p>Example of its usage to save/load/update/delete entry in the database for one table</p>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/Lightweight.hpp&gt;</span></div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Define a person structure, mapping to a table from the database</span></div>
 <div class="line"><span class="keyword">struct </span>Person</div>
@@ -161,7 +162,8 @@ Simple one record example</h2>
 <div class="line">}</div>
 </div><!-- fragment --><h2><a class="anchor" id="foreign-keys-relation"></a>
 Foreign keys relation</h2>
-<p>Now consider the following example we have two tables <code>User</code> and <code>Email</code>, with foreign key in <code>Email</code> pointing to the <code>User</code> this will translate in the following structs </p><div class="fragment"><div class="line"><span class="keyword">struct </span>User</div>
+<p>Now consider the following example we have two tables <code>User</code> and <code>Email</code>, with foreign key in <code>Email</code> pointing to the <code>User</code> this will translate in the following structs</p>
+<div class="fragment"><div class="line"><span class="keyword">struct </span>User</div>
 <div class="line">{</div>
 <div class="line">    <a class="code hl_struct" href="d2/dd0/structLightweight_1_1Field.html">Light::Field</a>&lt;<a class="code hl_struct" href="df/d7c/structLightweight_1_1SqlGuid.html">Light::SqlGuid</a>, Light::PrimaryKey::AutoAssign, SqlRealName { <span class="stringliteral">&quot;user_id&quot;</span> }&gt; <span class="keywordtype">id</span> {};</div>
 <div class="line">    <a class="code hl_struct" href="d2/dd0/structLightweight_1_1Field.html">Light::Field&lt;Light::SqlAnsiString&lt;30&gt;</a>&gt; name {};</div>
@@ -182,10 +184,10 @@ Foreign keys relation</h2>
 <div class="line"><span class="keyword">auto</span> email = dm.<a class="code hl_function" href="de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4">QuerySingle</a>&lt;Email&gt;(some_email_id).value_or(Email{});</div>
 <div class="line"><span class="keyword">auto</span> user_name = email.user-&gt;name; <span class="comment">// lazily loads the user record</span></div>
 <div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="df/d4f/DataMapper_8hpp_source.html#l00087">DataMapper.hpp:88</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1DataMapper_html_acc18932e94446a8a198017a5a8772bc4"><div class="ttname"><a href="de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4">Lightweight::DataMapper::QuerySingle</a></div><div class="ttdeci">std::optional&lt; Record &gt; QuerySingle(PrimaryKeyTypes &amp;&amp;... primaryKeys)</div><div class="ttdoc">Queries a single record (based on primary key) from the database.</div><div class="ttdef"><b>Definition</b> <a href="df/d4f/DataMapper_8hpp_source.html#l00755">DataMapper.hpp:755</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1DataMapper_html_acc18932e94446a8a198017a5a8772bc4"><div class="ttname"><a href="de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4">Lightweight::DataMapper::QuerySingle</a></div><div class="ttdeci">std::optional&lt; Record &gt; QuerySingle(PrimaryKeyTypes &amp;&amp;... primaryKeys)</div><div class="ttdoc">Queries a single record (based on primary key) from the database.</div><div class="ttdef"><b>Definition</b> <a href="df/d4f/DataMapper_8hpp_source.html#l00923">DataMapper.hpp:923</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="mapping-query-results-to-a-simple-struct"></a>
 Mapping query results to a simple struct</h2>
-<p>If you have a sql query that returns some values, but it does not corresponds to the existing table in the database, you can map the result to a simple struct. The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
+<p>If you have a SQL query that returns some values, but it does not corresponds to the existing table in the database, you can map the result to a simple struct. The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/Lightweight.hpp&gt;</span></div>
 <div class="line"> </div>
 <div class="line"><span class="keyword">struct </span>SimpleStruct</div>
@@ -210,7 +212,7 @@ Mapping query results to a simple struct</h2>
 <div class="line">}</div>
 </div><!-- fragment --><h2><a class="anchor" id="mapping-query-to-multiple-struct"></a>
 Mapping query to multiple struct</h2>
-<p>We also provide an api to create sql queries, this can be usefull if you want to use information from existing structures. The following example shows how to create a query that joins multiple tables and maps the result to multiple structs. Consider the following structs</p>
+<p>We also provide an API to create SQL queries, this can be usefull if you want to use information from existing structures. The following example shows how to create a query that joins multiple tables and maps the result to multiple structs. Consider the following structs</p>
 <div class="fragment"><div class="line"><span class="keyword">struct </span>CustomBindingA</div>
 <div class="line">{</div>
 <div class="line">    Field&lt;uint64_t, PrimaryKey::ServerSideAutoIncrement&gt; <span class="keywordtype">id</span> {};</div>
@@ -244,7 +246,7 @@ Mapping query to multiple struct</h2>
 <div class="line">                 .InnerJoin&lt;&amp;CustomBindingC::id, &amp;CustomBindingB::c_id&gt;()</div>
 <div class="line">                 .OrderBy(QualifiedColumnName&lt;&quot;A.id&quot;&gt;)</div>
 <div class="line">                 .All();</div>
-</div><!-- fragment --><p> This create the following sql query </p><div class="fragment"><div class="line"><span class="keyword">SELECT</span> <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;id&quot;</span>, <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;number&quot;</span>, <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;name&quot;</span>, <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;description&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;id&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;title&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;date_time&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;a_id&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;c_id&quot;</span>, <span class="stringliteral">&quot;&quot;</span>C<span class="stringliteral">&quot;.&quot;</span>id<span class="stringliteral">&quot;&quot;</span>, <span class="stringliteral">&quot;C&quot;</span>.<span class="stringliteral">&quot;comment&quot;</span> <span class="keyword">FROM</span> <span class="stringliteral">&quot;A&quot;</span></div>
+</div><!-- fragment --><p> This create the following SQL query </p><div class="fragment"><div class="line"><span class="keyword">SELECT</span> <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;id&quot;</span>, <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;number&quot;</span>, <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;name&quot;</span>, <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;description&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;id&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;title&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;date_time&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;a_id&quot;</span>, <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;c_id&quot;</span>, <span class="stringliteral">&quot;&quot;</span>C<span class="stringliteral">&quot;.&quot;</span>id<span class="stringliteral">&quot;&quot;</span>, <span class="stringliteral">&quot;C&quot;</span>.<span class="stringliteral">&quot;comment&quot;</span> <span class="keyword">FROM</span> <span class="stringliteral">&quot;A&quot;</span></div>
 <div class="line"> <span class="keyword">INNER</span> <span class="keyword">JOIN</span> <span class="stringliteral">&quot;B&quot;</span> <span class="keyword">ON</span> <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;a_id&quot;</span> = <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;id&quot;</span></div>
 <div class="line"> <span class="keyword">INNER</span> <span class="keyword">JOIN</span> <span class="stringliteral">&quot;C&quot;</span> <span class="keyword">ON</span> <span class="stringliteral">&quot;C&quot;</span>.<span class="stringliteral">&quot;id&quot;</span> = <span class="stringliteral">&quot;B&quot;</span>.<span class="stringliteral">&quot;c_id&quot;</span></div>
 <div class="line"> <span class="keyword">ORDER</span> <span class="keyword">BY</span> <span class="stringliteral">&quot;A&quot;</span>.<span class="stringliteral">&quot;id&quot;</span> ASC</div>
@@ -284,9 +286,11 @@ SQLite ODBC driver installation on other operating systems</h2>
 <h1><a class="anchor" id="generate-example-for-the-existing-database"></a>
 Generate example for the existing database</h1>
 <p>You can use <code>ddl2cpp</code> to generate header file for you database schema as well as an example file that you can compile</p>
-<p>First, configure cmake project and compile <code>ddl2cpp</code> target </p><div class="fragment"><div class="line"> sh</div>
+<p>First, configure cmake project and compile <code>ddl2cpp</code> target</p>
+<div class="fragment"><div class="line"> sh</div>
 <div class="line">cmake --build build --target ddl2cpp </div>
-</div><!-- fragment --><p>Generate header file from the existing database by providing connection string to the tool </p><div class="fragment"><div class="line">sh</div>
+</div><!-- fragment --><p>Generate header file from the existing database by providing connection string to the tool</p>
+<div class="fragment"><div class="line">sh</div>
 <div class="line">./build/src/tools/ddl2cpp --connection-string &quot;DRIVER=SQLite3;Database=test.db&quot; --make-aliases --naming-convention CamelCase  --output ./src/examples/example.hpp --generate-example</div>
 </div><!-- fragment --><p>You can also avoid all those command line arguments by creating a config file that muts be in your current working directory or in one of its parent directories. The config file must be named <code>ddl2cpp.yml</code> and must contain the following content:</p>
 <div class="fragment"><div class="line">ConnectionString: &#39;DSN=YourDSN;UID=YourUser;PWD=YourSecret&#39;</div>

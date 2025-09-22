@@ -3,7 +3,7 @@ var index =
     [ "Supported platforms", "index.html#supported-platforms", null ],
     [ "Supported databases", "index.html#supported-databases", null ],
     [ "Namespace", "index.html#namespace", null ],
-    [ "High level api", "index.html#high-level-api", [
+    [ "High level API", "index.html#high-level-api", [
       [ "Simple one record example", "index.html#simple-one-record-example", null ],
       [ "Foreign keys relation", "index.html#foreign-keys-relation", null ],
       [ "Mapping query results to a simple struct", "index.html#mapping-query-results-to-a-simple-struct", null ],
