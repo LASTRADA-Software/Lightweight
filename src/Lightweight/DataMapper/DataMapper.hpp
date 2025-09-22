@@ -487,7 +487,47 @@ std::vector<std::string> DataMapper::CreateTableString(SqlServerType serverType)
 
     auto migration = SqlQueryBuilder(*SqlQueryFormatter::Get(serverType)).Migration();
     auto createTable = migration.CreateTable(RecordTableName<Record>);
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    constexpr auto ctx = std::meta::access_context::current();
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (FieldWithStorage<FieldType>)
+        {
+            if constexpr (IsAutoIncrementPrimaryKey<FieldType>)
+                createTable.PrimaryKeyWithAutoIncrement(std::string(FieldNameOf<el>),
+                                                        SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
+            else if constexpr (FieldType::IsPrimaryKey)
+                createTable.PrimaryKey(std::string(FieldNameOf<el>),
+                                       SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
+            else if constexpr (IsBelongsTo<FieldType>)
+            {
+                constexpr size_t referencedFieldIndex = []() constexpr -> size_t {
+                    auto index = size_t(-1);
+                    Reflection::EnumerateMembers<typename FieldType::ReferencedRecord>(
+                        [&index]<size_t J, typename ReferencedFieldType>() constexpr -> void {
+                            if constexpr (IsField<ReferencedFieldType>)
+                                if constexpr (ReferencedFieldType::IsPrimaryKey)
+                                    index = J;
+                        });
+                    return index;
+                }();
+                createTable.ForeignKey(
+                    std::string(FieldNameOf<el>),
+                    SqlColumnTypeDefinitionOf<typename FieldType::ValueType>,
+                    SqlForeignKeyReferenceDefinition {
+                        .tableName = std::string { RecordTableName<typename FieldType::ReferencedRecord> },
+                        .columnName = std::string { FieldNameOf<FieldType::ReferencedField> } });
+            }
+            else if constexpr (FieldType::IsMandatory)
+                createTable.RequiredColumn(std::string(FieldNameOf<el>),
+                                           SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
+            else
+                createTable.Column(std::string(FieldNameOf<el>), SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
+        }
+    };
 
+#else
     Reflection::EnumerateMembers<Record>([&]<size_t I, typename FieldType>() {
         if constexpr (FieldWithStorage<FieldType>)
         {
@@ -525,7 +565,7 @@ std::vector<std::string> DataMapper::CreateTableString(SqlServerType serverType)
                                    SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
         }
     });
-
+#endif
     return migration.GetPlan().ToSql();
 }
 
@@ -565,20 +605,39 @@ RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
 
     auto query = _connection.Query(RecordTableName<Record>).Insert(nullptr);
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    constexpr auto ctx = std::meta::access_context::current();
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
+            query.Set(FieldNameOf<el>, SqlWildcard);
+    }
+#else
     Reflection::EnumerateMembers(record, [&query]<auto I, typename FieldType>(FieldType const& /*field*/) {
         if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
             query.Set(FieldNameAt<I, Record>, SqlWildcard);
     });
+#endif
 
     _stmt.Prepare(query);
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    int i = 1;
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
+            _stmt.BindInputParameter(i++, record.[:el:], std::meta::identifier_of(el));
+    }
+#else
     Reflection::CallOnMembers(
         record,
         [this, i = SQLSMALLINT { 1 }]<typename Name, typename FieldType>(Name const& name, FieldType const& field) mutable {
             if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
                 _stmt.BindInputParameter(i++, field, name);
         });
-
+#endif
     _stmt.Execute();
 
     if constexpr (HasAutoIncrementPrimaryKey<Record>)
@@ -586,6 +645,19 @@ RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
     else if constexpr (HasPrimaryKey<Record>)
     {
         RecordPrimaryKeyType<Record> const* primaryKey = nullptr;
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+        template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+        {
+            using FieldType = typename[:std::meta::type_of(el):];
+            if constexpr (IsField<FieldType>)
+            {
+                if constexpr (FieldType::IsPrimaryKey)
+                {
+                    primaryKey = &record.[:el:].Value();
+                }
+            }
+        }
+#else
         Reflection::EnumerateMembers(record, [&]<size_t I, typename FieldType>(FieldType& field) {
             if constexpr (IsField<FieldType>)
             {
@@ -595,6 +667,7 @@ RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
                 }
             }
         });
+#endif
         return *primaryKey;
     }
 }
@@ -605,7 +678,34 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
     static_assert(!std::is_const_v<Record>);
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
-    // If the primary key is not an auto-increment field and the primary key is not set, we need to set it.
+// If the primary key is not an auto-increment field and the primary key is not set, we need to set it.
+//
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    constexpr auto ctx = std::meta::access_context::current();
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (IsField<FieldType>)
+            if constexpr (FieldType::IsPrimaryKey)
+                if constexpr (FieldType::IsAutoAssignPrimaryKey)
+                {
+                    if (!record.[:el:].IsModified())
+                    {
+                        using ValueType = typename FieldType::ValueType;
+                        if constexpr (std::same_as<ValueType, SqlGuid>)
+                        {
+                            record.[:el:] = SqlGuid::Create();
+                        }
+                        else if constexpr (requires { ValueType {} + 1; })
+                        {
+                            auto maxId = SqlStatement { _connection }.ExecuteDirectScalar<ValueType>(std::format(
+                                R"sql(SELECT MAX("{}") FROM "{}")sql", FieldNameOf<el>, RecordTableName<Record>));
+                            record.[:el:] = maxId.value_or(ValueType {}) + 1;
+                        }
+                    }
+                }
+    }
+#else
     CallOnPrimaryKey(record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType& primaryKeyField) {
         if constexpr (PrimaryKeyType::IsAutoAssignPrimaryKey)
         {
@@ -627,6 +727,7 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
             }
         }
     });
+#endif
 
     CreateExplicit(record);
 
@@ -647,12 +748,23 @@ bool DataMapper::IsModified(Record const& record) const noexcept
 
     bool modified = false;
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    auto constexpr ctx = std::meta::access_context::current();
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        if constexpr (requires { record.[:el:].IsModified(); })
+        {
+            modified = modified || record.[:el:].IsModified();
+        }
+    }
+#else
     Reflection::CallOnMembers(record, [&modified](auto const& /*name*/, auto const& field) {
         if constexpr (requires { field.IsModified(); })
         {
             modified = modified || field.IsModified();
         }
     });
+#endif
 
     return modified;
 }
@@ -664,6 +776,20 @@ void DataMapper::Update(Record& record)
 
     auto query = _connection.Query(RecordTableName<Record>).Update();
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    auto constexpr ctx = std::meta::access_context::current();
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (FieldWithStorage<FieldType>)
+        {
+            if (record.[:el:].IsModified())
+                query.Set(FieldNameOf<el>, SqlWildcard);
+            if constexpr (IsPrimaryKey<FieldType>)
+                std::ignore = query.Where(FieldNameOf<el>, SqlWildcard);
+        }
+    }
+#else
     Reflection::CallOnMembersWithoutName(record, [&query]<size_t I, typename FieldType>(FieldType const& field) {
         if (field.IsModified())
             query.Set(FieldNameAt<I, Record>, SqlWildcard);
@@ -672,11 +798,30 @@ void DataMapper::Update(Record& record)
         if constexpr (IsPrimaryKey<Reflection::MemberTypeOf<I, Record>>)
             std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
     });
-
+#endif
     _stmt.Prepare(query);
 
-    // Bind the SET clause
     SQLSMALLINT i = 1;
+
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        if (record.[:el:].IsModified())
+        {
+            _stmt.BindInputParameter(i++, record.[:el:].Value(), std::meta::identifier_of(el));
+        }
+    }
+
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (FieldType::IsPrimaryKey)
+        {
+            _stmt.BindInputParameter(i++, record.[:el:].Value(), std::meta::identifier_of(el));
+        }
+    }
+#else
+    // Bind the SET clause
     Reflection::CallOnMembers(
         record, [this, &i]<typename Name, typename FieldType>(Name const& name, FieldType const& field) mutable {
             if (field.IsModified())
@@ -689,6 +834,7 @@ void DataMapper::Update(Record& record)
             if constexpr (FieldType::IsPrimaryKey)
                 _stmt.BindInputParameter(i++, field.Value(), name);
         });
+#endif
 
     _stmt.Execute();
 
@@ -702,14 +848,35 @@ std::size_t DataMapper::Delete(Record const& record)
 
     auto query = _connection.Query(RecordTableName<Record>).Delete();
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    auto constexpr ctx = std::meta::access_context::current();
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (FieldType::IsPrimaryKey)
+            std::ignore = query.Where(std::meta::identifier_of(el), SqlWildcard);
+    }
+#else
     Reflection::CallOnMembers(record,
                               [&query]<typename Name, typename FieldType>(Name const& name, FieldType const& /*field*/) {
                                   if constexpr (FieldType::IsPrimaryKey)
                                       std::ignore = query.Where(name, SqlWildcard);
                               });
+#endif
 
     _stmt.Prepare(query);
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    SQLSMALLINT i = 1;
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (FieldType::IsPrimaryKey)
+        {
+            _stmt.BindInputParameter(i++, record.[:el:].Value(), std::meta::identifier_of(el));
+        }
+    }
+#else
     // Bind the WHERE clause
     Reflection::CallOnMembers(
         record,
@@ -717,6 +884,7 @@ std::size_t DataMapper::Delete(Record const& record)
             if constexpr (FieldType::IsPrimaryKey)
                 _stmt.BindInputParameter(i++, field.Value(), name);
         });
+#endif
 
     _stmt.Execute();
 
@@ -1055,6 +1223,23 @@ std::optional<typename FieldType::ReferencedRecord> DataMapper::LoadBelongsTo(ty
     using ReferencedRecord = typename FieldType::ReferencedRecord;
 
     std::optional<ReferencedRecord> record { std::nullopt };
+
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    auto constexpr ctx = std::meta::access_context::current();
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^ReferencedRecord, ctx)))
+    {
+        using BelongsToFieldType = typename[:std::meta::type_of(el):];
+        if constexpr (IsField<BelongsToFieldType>)
+            if constexpr (BelongsToFieldType::IsPrimaryKey)
+            {
+                if (auto result = QuerySingle<ReferencedRecord>(value); result)
+                    record = std::move(result);
+                else
+                    SqlLogger::GetLogger().OnWarning(
+                        std::format("Loading BelongsTo failed for {}", RecordTableName<ReferencedRecord>));
+            }
+    }
+#else
     CallOnPrimaryKey<ReferencedRecord>([&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>() {
         if (auto result = QuerySingle<ReferencedRecord>(value); result)
             record = std::move(result);
@@ -1062,6 +1247,7 @@ std::optional<typename FieldType::ReferencedRecord> DataMapper::LoadBelongsTo(ty
             SqlLogger::GetLogger().OnWarning(
                 std::format("Loading BelongsTo failed for {}", RecordTableName<ReferencedRecord>));
     });
+#endif
     return record;
 }
 
@@ -1224,6 +1410,30 @@ void DataMapper::LoadRelations(Record& record)
     static_assert(!std::is_const_v<Record>);
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    constexpr auto ctx = std::meta::access_context::current();
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (IsBelongsTo<FieldType>)
+        {
+            auto& field = record.[:el:];
+            field = LoadBelongsTo<FieldType>(field.Value());
+        }
+        else if constexpr (IsHasMany<FieldType>)
+        {
+            LoadHasMany<el>(record, record.[:el:]);
+        }
+        else if constexpr (IsHasOneThrough<FieldType>)
+        {
+            LoadHasOneThrough(record, record.[:el:]);
+        }
+        else if constexpr (IsHasManyThrough<FieldType>)
+        {
+            LoadHasManyThrough(record, record.[:el:]);
+        }
+    }
+#else
     Reflection::EnumerateMembers(record, [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
         if constexpr (IsBelongsTo<FieldType>)
         {
@@ -1242,6 +1452,7 @@ void DataMapper::LoadRelations(Record& record)
             LoadHasManyThrough(record, field);
         }
     });
+#endif
 }
 
 template <typename Record, typename ValueType>
@@ -1250,6 +1461,21 @@ inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::SetId(Record& record, ValueType
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     // static_assert(HasPrimaryKey<Record>);
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+
+    auto constexpr ctx = std::meta::access_context::current();
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (IsField<FieldType>)
+        {
+            if constexpr (FieldType::IsPrimaryKey)
+            {
+                record.[:el:] = std::forward<ValueType>(id);
+            }
+        }
+    }
+#else
     Reflection::EnumerateMembers(record, [&]<size_t I, typename FieldType>(FieldType& field) {
         if constexpr (IsField<FieldType>)
         {
@@ -1259,6 +1485,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::SetId(Record& record, ValueType
             }
         }
     });
+#endif
 }
 
 template <typename Record, size_t InitialOffset>
@@ -1290,6 +1517,23 @@ Record& DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
     static_assert(!std::is_const_v<Record>);
     assert(stmt != nullptr);
 
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    auto constexpr ctx = std::meta::access_context::current();
+    SQLSMALLINT i = SQLSMALLINT { InitialOffset };
+    template for (constexpr auto index: define_static_array(template_arguments_of(^^ElementMask)) | std::views::drop(1))
+    {
+        constexpr auto el = nonstatic_data_members_of(^^Record, ctx)[[:index:]];
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (IsField<FieldType>)
+        {
+            stmt->BindOutputColumn(i++, &record.[:el:].MutableValue());
+        }
+        else if constexpr (SqlOutputColumnBinder<FieldType>)
+        {
+            stmt->BindOutputColumn(i++, &record.[:el:]);
+        }
+    }
+#else
     Reflection::EnumerateMembers<ElementMask>(
         record, [stmt, i = SQLSMALLINT { InitialOffset }]<size_t I, typename Field>(Field& field) mutable {
             if constexpr (IsField<Field>)
@@ -1301,6 +1545,7 @@ Record& DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
                 stmt->BindOutputColumn(i++, &field);
             }
         });
+#endif
 
     return record;
 }
@@ -1310,7 +1555,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
-    Reflection::EnumerateMembers(record, [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
+    auto const callback = [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
         if constexpr (IsBelongsTo<FieldType>)
         {
             field.SetAutoLoader(typename FieldType::Loader {
@@ -1416,7 +1661,20 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                     },
             });
         }
+    };
+
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    constexpr auto ctx = std::meta::access_context::current();
+
+    Reflection::template_for<0, nonstatic_data_members_of(^^Record, ctx).size()>([&callback, &record]<auto I>() {
+        constexpr auto localctx = std::meta::access_context::current();
+        constexpr auto members = define_static_array(nonstatic_data_members_of(^^Record, localctx));
+        using FieldType = typename[:std::meta::type_of(members[I]):];
+        callback.template operator()<I, FieldType>(record.[:members[I]:]);
     });
+#else
+    Reflection::EnumerateMembers(record, callback);
+#endif
 }
 
 } // namespace Lightweight
