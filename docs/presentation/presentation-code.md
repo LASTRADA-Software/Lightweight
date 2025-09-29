@@ -380,3 +380,173 @@ void main()
     }
 }
 ```
+
+---
+
+## Generation 2: Modeling data
+
+- Business objects are data **and** logic in one
+- No separation of concerns
+
+### Ideal solution
+
+```cpp
+struct Person
+{
+    int Id;
+    std::string FirstName;
+    std::string LastName;
+}
+```
+
+---
+
+## Generation 2: Active record pattern
+
+```cpp
+void main()
+{
+    Person person;
+
+    person.Id = 1;
+    person.FirstName = "Jeff";
+    person.LastName = "Clintfield";
+
+    person.Create(); // <-- Where does this come from?
+}
+```
+
+---
+
+## Generation 2: Active record pattern (How to define a data model)
+
+- A data modeling API on top of the core API from generation 1
+- `Field<T>` poor-man's C++ annotation system (also to track modification state)
+
+```cpp
+template <typename Record>
+struct ActiveRecord
+{
+    void Create();
+    void Update();
+    void Delete();
+
+    static std::expected<Record, SqlError> Find(SqlPrimaryKey primaryKeyValue);
+    static std::expected<std::vector<Record>, SqlError> FindAll(std::string_view whereQuery);
+    // ... and more static member functions to operate on the database ...
+};
+
+template <typename T>
+class Field
+{
+  public:
+    // ...
+    Field& operator=(T&& value);
+    Field& operator=(T const& value);
+
+    bool IsModified() const;
+    void SetModified(bool value);
+
+  private:
+    T _value;
+    bool _modified;
+};
+```
+
+---
+
+## Generation 2: Active record pattern (How to define a data model)
+
+Example
+
+```cpp
+struct Person: ActiveRecord<Person>
+{
+    Person();                                  // <-| problem
+    Person(Person&& moveFrom);                 // <-| problem
+    Person(Person const& copyFrom);            // <-| problem
+    Person& operator=(Person const& copyFrom); // <-| problem
+    Person& operator=(Person&& moveFrom);      // <-| problem
+    ~Person();                                 // <-| problem
+
+    Field<int> Id;
+    Field<std::string> FirstName;
+    Field<std::string> LastName;
+};
+```
+
+- Implementation of these create a huge boilerplate
+- But needed for CRUD functions to work
+
+---
+
+## Side stepping into the Dapper framework
+
+```csharp
+public class Dog
+{
+    public int? Age { get; set; }
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    public float? Weight { get; set; }
+
+    public int IgnoredProperty { get { return 1; } }
+}
+
+var guid = Guid.NewGuid();
+var dog = connection.Query<Dog>("select Age = @Age, Id = @Id", new { Age = (int?)null, Id = guid });
+```
+
+Wouldn't that be nice for C++?
+
+---
+
+## Generation 4: SQL Data Mapper API (Declaration and Creation)
+
+Back to basics (or almost):
+
+```cpp
+struct Person
+{
+    Field<int, SqlPrimaryKey::AUTO_INCREMENT> Id;
+    Field<std::string> FirstName;
+    Field<std::string, SqlRealName{"LAST_NAME2"}> LastName;
+};
+
+void CreateDemo()
+{
+    auto dm = DataMapper {};
+
+    auto person = Person {};
+    person.FirstName = "Jeff";
+    person.LastName = "Johnson";
+
+    dm.Create(person);
+    std::println("New person spawned with primary key {}.", person.Id);
+}
+```
+
+---
+
+## Generation 4: SQL Data Mapper API (Update)
+
+Back to basics (or almost):
+
+```cpp
+struct Person
+{
+    Field<int, SqlPrimaryKey::AUTO_INCREMENT> Id;
+    Field<std::string> FirstName;
+    Field<std::string, SqlRealName{"LAST_NAME2"}> LastName;
+};
+
+void PersonGotMarried(DataMapper& dm, Person& person)
+{
+    person.LastName = "Johnson, the Married";
+
+    dm.Update(person);
+    std::println("Married person's record: {}", DataMapper::Inspect(person));
+}
+```
+
+Example Output: `Married person's record: <Id: 42, FirstName: "Jeff", LAST_NAME_2: "Johnson the Married.">`
