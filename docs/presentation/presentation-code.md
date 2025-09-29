@@ -17,6 +17,16 @@ SELECT "ID", "FirstName", "LastName"
  LIMIT 10;
 ```
 
+## Agenda
+
+1. Who am I
+2. Who we are
+3. Historic approach
+4. Core API & how to bring the type system together wth database access
+5. How to construct queries generically
+6. Data modelling on top of the existing core APIs
+7. Outlook
+
 ---
 
 ## Who am I
@@ -211,8 +221,8 @@ void main()
     while (stmt.FetchRow())
     {
         auto const id = stmt.GetInt(1);             // XXX did you get the indices right?
-        auto const firstName = stmt.GetString(2);
-        auto const lastName = stmt.GetString(3);
+        auto const firstName = stmt.GetColumn<std::string>(2);
+        auto const lastName = stmt.GetColumn<std::string>(3);
         // Process the row data...
     }
 }
@@ -230,6 +240,15 @@ struct SqlDataBinder;
 
 template <>
 struct SqlDataBinder<int>
+{
+    static SQLRETURN InputParameter(...) noexcept;
+    static SQLRETURN OutputColumn(...) noexcept;
+    static SQLRETURN GetColumn(...) noexcept;
+    static std::string Inspect(...);
+};
+
+template <>
+struct SqlDataBinder<CustomType>
 {
     static SQLRETURN InputParameter(...) noexcept;
     static SQLRETURN OutputColumn(...) noexcept;
@@ -261,28 +280,10 @@ struct SqlDataBinder<CustomType>
 
 ---
 
-## Generation 1: Custom SQL data binder (special-cases API)
-
-```cpp
-class LIGHTWEIGHT_API SqlDataBinderCallback
-{
-  public:
-    // ...
-
-    virtual SqlServerType ServerType() const noexcept = 0;
-    virtual std::string const& DriverName() const noexcept = 0;
-
-    // called after SqlStatement.Execute() has executed
-    virtual void PlanPostExecuteCallback(std::function<void()>&&) = 0;
-
-    // called after each fetched row
-    virtual void PlanPostProcessOutputColumn(std::function<void()>&&) = 0;
-};
-```
-
----
-
 ## Generation 1: Native Batch Execution
+
+Supported types any input_range with a fixed size element type
+
 
 ```cpp
 void DemoMassOperations()
@@ -290,13 +291,17 @@ void DemoMassOperations()
     auto stmt = SqlStatement {};
     stmt.Prepare(R"(INSERT INTO "Test" ("A", "B", "C") VALUES (?, ?, ?))");
 
-    auto const first = std::array<Lightweight::SqlFixedString<8>, 3> { "Hello", "World", "!" };
-    auto const second = std::vector { 1.3, 2.3, 3.3 };
-    unsigned const third[3] = { 50'000u, 60'000u, 70'000u };
+    auto const firstColumn = ...; 
+    auto const secondColumn = ...;
+    auto const thirdColumn = ...;
 
-    stmt.ExecuteBatchNative(first, second, third); // <-- insert all rows
+    stmt.ExecuteBatchNative(firstColumn, secondColumn, thirdColumn);
 }
 ```
+
+## TODO: add some info on columnbar batch execution
+
+---
 
 ## Generation 1: low level API summary
 
@@ -333,9 +338,9 @@ void main()
 
     while (stmt.FetchRow())
     {
-        auto const id = stmt.GetInt(1);
-        auto const firstName = stmt.GetString(2);
-        auto const lastName = stmt.GetString(3);
+        auto const id = stmt.GetColumn<int>(1);
+        auto const firstName = stmt.GetColumn<std::string>(2);
+        auto const lastName = stmt.GetColumn<std::string>(3);
         // Process the row data...
     }
 }
@@ -348,20 +353,10 @@ void main()
 ```cpp
 void main()
 {
-    auto conn = SqlConnection {};
-    conn.Connect("DSN=mydb;UID=user;PWD=password;");
-
-    auto stmt = SqlStatement { conn };
-    stmt.Prepare(conn.FromTable("Person") // <-- query builder constructed from connection
-                     .Select()
-                     .Fields({"ID", "FirstName", "LastName"})
-                     .Where("LastName = ?")
-                     .OrderBy("FirstName", SqlResultOrdering::ASCENDING)
-                     .Limit(10));
-    stmt.Bind(1, "Doe");
+    // ... same as before
     stmt.Execute();
 
-    auto id = 0;                stmt.BindColumn(1, &id); // Coding style prely for presentation
+    auto id = 0;                stmt.BindColumn(1, &id); // Coding style purely for presentation
     auto firstName = String {}; stmt.BindColumn(2, &firstName);
     auto lastName = String {};  stmt.BindColumn(3, &lastName);
 
@@ -372,6 +367,14 @@ void main()
     }
 }
 ```
+
+### Example output could be like
+
+Id | FirstName | LastName
+---|-----------|--------
+1  | John      | Doe
+2  | Jane      | Doe
+3  | Jim       | Johnson
 
 ---
 
@@ -391,9 +394,7 @@ struct Person
 }
 ```
 
----
-
-## Generation 2: Active record pattern
+### Generation 2: Active record pattern
 
 ```cpp
 void main()
@@ -454,7 +455,7 @@ Example
 ```cpp
 struct Person: ActiveRecord<Person>
 {
-    Person();                                  // <-| problem
+    Person();                                  // <-| problem | TODO: show one impl to demo boilerplate
     Person(Person&& moveFrom);                 // <-| problem
     Person(Person const& copyFrom);            // <-| problem
     Person& operator=(Person const& copyFrom); // <-| problem
@@ -473,6 +474,8 @@ struct Person: ActiveRecord<Person>
 ---
 
 ## Side stepping into the Dapper framework
+
+Dapper is a simple object mapper for .NET, written in C#.
 
 ```csharp
 public class Dog
@@ -517,6 +520,8 @@ void CreateDemo()
     std::println("New person spawned with primary key {}.", person.Id);
 }
 ```
+
+Example output: `New person spawned with primary key 42.`
 
 ---
 
