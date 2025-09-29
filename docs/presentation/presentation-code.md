@@ -156,42 +156,36 @@ public:
 
 - Dated legacy API design decisions.
   - Little to no use of standard C++ features (e.g., no STL, no smart pointers, no move semantics, no constexpr, ...)
-  - No unit tests -> hard to refactor
-  - **a lot** of indirections and abstractions -> increases runtime overhead and cognitive load
-  - Every time we add a new business object -> we have to write repetitive code.
-  - Every time we add a new column -> we have to add too much boilerplate code.
-  - Not designed with runtime efficiency in mind. -> crucial!
+  - No unit tests
+  - **a lot** of indirections and abstractions
+  - Every time we add a new business object
+  - Every time we add a new column
+  - Not designed with runtime efficiency in mind
 - This leads to a lot of copy-paste and makes it hard to maintain the codebase.
 - **Performance** is of concern, as we need to handle thousands of records efficiently.
 - **Separation of concerns:** business logic should be separate from data access logic.
 
-### Performance is an issue right now for us
+### Performance and static typing is an issue right now for us
 
 We needed to rewrite some part of our program to address critical performance issues.
 
-### Our goals
+---
+
+## Our goals
 
 - ❗Improve runtime performance of database operations (Ideally: zero-cost abstractions).
 
 - **[App Devs]** Code should be more expressive and easier to read.
 - **[Library Devs]** Reduce the cognitive load for developers defining and using data models.
-- **[Wishful]** Have a better way to define and manage our data models <- without too much boilerplate.
+- **[Library Devs]** Well covered unit tests.
+- **[Wishful]** Have a better way to define and manage our data models
 
----
-
-## Mission: Create a lightweight SQL Library
+### Mission: Create a lightweight SQL Library
 
 We need:
 
 1. performance: Fast and efficient database access (no needless indirections, no needless conversions)
-
-and
-
 1. Minimize C++ boilerplate code when defining business objects (data models).
-
-and
-
-1. We only use ODBC as the database access layer, so only support ODBC.
 
 ---
 
@@ -231,16 +225,16 @@ void main()
 - similar to `std::formatter<T>`
 
 ```cpp
-template <>
+template <typename>
 struct SqlDataBinder;
 
 template <>
 struct SqlDataBinder<int>
 {
-    static SQLRETURN InputParameter(SQLHSTMT stmt, SQLUSMALLINT column, int value, SqlDataBinderCallback& cb) noexcept;
-    static SQLRETURN OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, int* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept;
-    static SQLRETURN GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, int* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept;
-    static std::string Inspect(int value);
+    static SQLRETURN InputParameter(...) noexcept;
+    static SQLRETURN OutputColumn(...) noexcept;
+    static SQLRETURN GetColumn(...) noexcept;
+    static std::string Inspect(...);
 };
 ```
 
@@ -254,12 +248,10 @@ struct CustomType { int value; };
 template <>
 struct SqlDataBinder<CustomType>
 {
-    static SQLRETURN InputParameter(SQLHSTMT stmt, SQLUSMALLINT column, CustomType const& value, SqlDataBinderCallback& cb) noexcept
+    static SQLRETURN InputParameter(auto& stmt, auto column, CustomType const& value, auto& cb) noexcept
     {
-        // Example special logic
-        if (cb.ServerType() == SqlServerType::MICROSOFT_SQL)
-            return SqlDataBinder<int>::InputParameter(hStmt, column, value.value * -1, cb);
-
+        // Imagine special logic
+        // ...
         return SqlDataBinder<int>::InputParameter(hStmt, column, value.value, cb);
     }
 
