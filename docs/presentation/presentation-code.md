@@ -1,4 +1,5 @@
 # "Lightweight SQL Library"
+
 ## "A Story on the evolution of a C++ SQL library"
 
 ```sql
@@ -17,7 +18,8 @@ SELECT "ID", "FirstName", "LastName"
 ```
 
 ---
-# Who am I
+
+## Who am I
 
 - C++ developer for more than 30 years
 - My very first professional programming job: C#, ASP.NET, booking site for hotels (NOT booking.com)
@@ -28,18 +30,19 @@ SELECT "ID", "FirstName", "LastName"
 - **|> Lifetime project <| ** Contour terminal emulator ❤️
 - Now working at as chief of development at **LASTRADA**, the sponsor today's C++ meetup in Helsinki 🎉
 
-# Disclaimer
+## Disclaimer
 
 - The views expressed in this presentation are purely my own.
 - The slides are made for the `slides` CLI tool. But this tool turned out to be a bit buggy 😭
 
 ---
-# Who we are
+
+## Who we are
 
 - Not too small software company, not too big
 - We develop a data centric desktop (and mobile) application
 
-## Our main product
+### Our main product
 
 - Quality control software for construction industry (Asphalt, Concrete, Soil, ...)
 - also, supervise and control the lifecycle of probes and samples
@@ -50,10 +53,11 @@ SELECT "ID", "FirstName", "LastName"
 - Depending on the client, the application creates thousands of records per day
 
 ---
-# Database access in our code base
 
-* Our code base uses "business objects" (BO) to represent data and logic.
-* Each business object represents a table record in the database and the business logic around it.
+## Database access in our code base
+
+- Our code base uses "business objects" (BO) to represent data and logic.
+- Each business object represents a table record in the database and the business logic around it.
 
 ```cpp
 class DB_Table {
@@ -79,7 +83,8 @@ class DB_Table {
 ```
 
 ---
-# Database access... (Representation of a column value)
+
+## Database access... (Representation of a column value)
 
 ```cpp
 class DB_Variant {
@@ -107,7 +112,8 @@ class DB_Variant {
 ```
 
 ---
-# Database access... (How we defined a business object)
+
+## Database access... (How we defined a business object)
 
 ```cpp
 // Classic way to define a business object, Person:
@@ -136,7 +142,8 @@ public:
 ```
 
 ---
-# Benefits of this design
+
+## Benefits of this design
 
 - Business objects are easy to pass around and use in the code.
 - Business logic is encapsulated within the business object.
@@ -144,7 +151,8 @@ public:
 - Easy access to referenced objects via `LoadRecursive()` (think of SQL foreign keys).
 
 ---
-# The problem we are facing
+
+## The problem we are facing
 
 - Dated legacy API design decisions.
   - Little to no use of standard C++ features (e.g., no STL, no smart pointers, no move semantics, no constexpr, ...)
@@ -157,11 +165,11 @@ public:
 - **Performance** is of concern, as we need to handle thousands of records efficiently.
 - **Separation of concerns:** business logic should be separate from data access logic.
 
-## Performance is an issue right now for us
+### Performance is an issue right now for us
 
 We needed to rewrite some part of our program to address critical performance issues.
 
-## Our goals
+### Our goals
 
 - ❗Improve runtime performance of database operations (Ideally: zero-cost abstractions).
 
@@ -171,7 +179,7 @@ We needed to rewrite some part of our program to address critical performance is
 
 ---
 
-# Mission: Create a lightweight SQL Library
+## Mission: Create a lightweight SQL Library
 
 We need:
 
@@ -186,7 +194,8 @@ and
 1. We only use ODBC as the database access layer, so only support ODBC.
 
 ---
-# Generation 1: The core Lightweight SQL Library
+
+## Generation 1: The core Lightweight SQL Library
 
 - Have a `SqlConnection` to manage an SQL connection
 - Have a `SqlStatement` to prepare and execute SQL statements and read results
@@ -216,7 +225,8 @@ void main()
 ```
 
 ---
-# Generation 1: SQL query builder
+
+## Generation 1: SQL query builder
 
 ```cpp
 void main()
@@ -243,9 +253,10 @@ void main()
     }
 }
 ```
-`
+
 ---
-# Generation 1 of evolution (Continued): SQL query builder, pre-binding
+
+## Generation 1 of evolution (Continued): SQL query builder, pre-binding
 
 ```cpp
 void main()
