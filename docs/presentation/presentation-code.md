@@ -21,8 +21,8 @@ SELECT "ID", "FirstName", "LastName"
 
 1. Who am I
 2. Who we are
-3. Historic approach
-4. Core API & how to bring the type system together wth database access
+3. Historical approach
+4. Core API & how to bring the type system together with database access
 5. How to construct queries generically
 6. Data modelling on top of the existing core APIs
 7. Outlook
@@ -35,10 +35,10 @@ SELECT "ID", "FirstName", "LastName"
 - My very first professional programming job: C#, ASP.NET, booking site for hotels (NOT booking.com)
 - Also worked at Ruby on Rails e-shop startups ("to learn from the pros")
 - Worked twice in the ads business (serving, bidding, analytics) 
-  - generating terabytes of data daily (into SQL databases)
+  - generating terabytes of daily data stored in SQL databases
 - Open source advocate and contributor (various, mostly C++)
 - **|> Lifetime project <| ** Contour terminal emulator ❤️
-- Now working at as chief of development at **LASTRADA**, the sponsor today's C++ meetup in Helsinki 🎉
+- Now working as chief of development at **LASTRADA**, the sponsor today's C++ meetup in Helsinki 🎉
 
 ## Disclaimer
 
@@ -49,18 +49,18 @@ SELECT "ID", "FirstName", "LastName"
 
 ## Who we are
 
-- Not too small software company, not too big
+- A mid-sized software company
 - We develop a data centric desktop (and mobile) application
 
 ### Our main product
 
-- Quality control software for construction industry (Asphalt, Concrete, Soil, ...)
-- also, supervise and control the lifecycle of probes and samples
+- Quality control software for the construction industry (Asphalt, Concrete, Soil, ...)
+- also, supervise and control the lifecycle of samples
   - LIMS (Laboratory Information Management System)
 - The company's software is about 30 years old with very little employee fluctuation
-- The code base is almost exclusively in C++ with more than 3 million lines of code
-- We use ODBC to access SQL databases (for MS SQL Server, PostgreSQL, ...)
-- Depending on the client, the application creates thousands of records per day
+- The code base is almost exclusively in C++ with more than 3k cpp files
+- We use ODBC to access SQL databases (primarily MS SQL Server and PostgreSQL)
+- Depending on the client, the application has to handle thousands of records efficiently
 
 ---
 
@@ -126,7 +126,7 @@ class DB_Variant {
 ## Database access... (How we defined a business object)
 
 ```cpp
-// Classic way to define a business object, Person:
+// Way to define a business object, Person:
 class Person : public DB_Table {
 public:
     enum {
@@ -136,7 +136,7 @@ public:
         MAX_COLUMN,
     };
 
-    Schema const& GetSchema() const override; // <-- interesting part
+    Schema const& GetSchema() const override;
 
     int Id() const { return GetInt(ID); }
     void SetId(int id) { SetInt(ID, id); } // usually manually written too
@@ -165,7 +165,7 @@ public:
 ## The problem we are facing
 
 - Dated legacy API design decisions.
-  - Little to no use of standard C++ features (e.g., no STL, no smart pointers, no move semantics, no constexpr, ...)
+  - Minimal use of modern C++ features (e.g., no STL, no smart pointers, no move semantics, no constexpr, ...)
   - No unit tests
   - **a lot** of indirections and abstractions
   - Every time we add a new business object
@@ -175,7 +175,7 @@ public:
 - **Performance** is of concern, as we need to handle thousands of records efficiently.
 - **Separation of concerns:** business logic should be separate from data access logic.
 
-### Performance and static typing is an issue right now for us
+### Performance and static typing are issues right now for us
 
 We needed to rewrite some part of our program to address critical performance issues.
 
@@ -194,12 +194,12 @@ We needed to rewrite some part of our program to address critical performance is
 
 We need:
 
-1. performance: Fast and efficient database access (no needless indirections, no needless conversions)
+1. Performance: Fast and efficient database access (no needless indirections, no needless conversions)
 1. Minimize C++ boilerplate code when defining business objects (data models).
 
 ---
 
-## Generation 1: The core Lightweight SQL Library
+## The core Lightweight SQL Library
 
 - Have a `SqlConnection` to manage an SQL connection
 - Have a `SqlStatement` to prepare and execute SQL statements and read results
@@ -220,7 +220,7 @@ void main()
 
     while (stmt.FetchRow())
     {
-        auto const id = stmt.GetInt(1);             // XXX did you get the indices right?
+        auto const id = stmt.GetInt(1);             
         auto const firstName = stmt.GetColumn<std::string>(2);
         auto const lastName = stmt.GetColumn<std::string>(3);
         // Process the row data...
@@ -230,7 +230,7 @@ void main()
 
 ---
 
-## Generation 1: How does data binding work?
+## How does data binding work?
 
 - similar to `std::formatter<T>`
 
@@ -259,7 +259,7 @@ struct SqlDataBinder<CustomType>
 
 ---
 
-## Generation 1: Custom SQL data binder
+## Custom SQL data binder
 
 ```cpp
 struct CustomType { int value; };
@@ -280,7 +280,7 @@ struct SqlDataBinder<CustomType>
 
 ---
 
-## Generation 1: Native Batch Execution
+## Native Batch Execution
 
 Supported types any input_range with a fixed size element type
 
@@ -299,11 +299,18 @@ void DemoMassOperations()
 }
 ```
 
-## TODO: add some info on columnbar batch execution
+## Example of batch input data
+| firstColumn | secondColumn | thirdColumn | 
+|      1      |      1.1     |     "1"    |
+|      2      |      2.2     |     "2"    |
+|      3      |      3.3     |     "3"    |
+|      4      |      4.4     |     "4"    |
+|      5      |      5.5     |     "5"    |
+|      6      |      6.6     |     "6"    |
 
 ---
 
-## Generation 1: low level API summary
+## Core (low level) API summary
 
 | Class              | description
 |--------------------|-------------------------------------------------------
@@ -318,7 +325,7 @@ void DemoMassOperations()
 
 ---
 
-## Generation 1: SQL query builder
+## SQL query builder
 
 ```cpp
 void main()
@@ -348,7 +355,31 @@ void main()
 
 ---
 
-## Generation 1: (Continued): SQL query builder, pre-binding
+## Examples of a more complex SQL query with joins
+
+```SQL
+SELECT "JoinTestA"."id", "JoinTestA"."value_a_first", "JoinTestA"."value_a_second", "JoinTestA"."value_a_third", "JoinTestC"."id", "JoinTestC"."value_c_first", "JoinTestC"."value_c_second", "JoinTestC"."value_c_third" 
+    FROM "JoinTestA"
+    INNER JOIN "JoinTestB" ON "JoinTestB"."a_id" = "JoinTestA"."id"
+    INNER JOIN "JoinTestC" ON "JoinTestC"."id" = "JoinTestB"."c_id"
+```
+
+
+```cpp
+conn.FromTable(RecordTableName<JoinTestA>)
+                    .Select()
+                    .Fields<JoinTestA, JoinTestC>()
+                    .InnerJoin<&JoinTestB::a_id, &JoinTestA::id>()
+                    .InnerJoin<&JoinTestC::id, &JoinTestB::c_id>()
+                    .All()
+```
+
+Library provides helper templates to extract table and column names from types and members.
+For example, `RecordTableName<T>`, `FieldNameOf<&T::member>` and `Fields<T>`.
+
+---
+
+## SQL query builder, pre-binding
 
 ```cpp
 void main()
@@ -378,9 +409,9 @@ Id | FirstName | LastName
 
 ---
 
-## Generation 2: Modeling data
+## Modeling data
 
-- Business objects are data **and** logic in one
+- Business objects combine data **and** logic in one
 - No separation of concerns
 
 ### Ideal solution
@@ -394,7 +425,7 @@ struct Person
 }
 ```
 
-### Generation 2: Active record pattern
+### Active record pattern
 
 ```cpp
 void main()
@@ -411,9 +442,9 @@ void main()
 
 ---
 
-## Generation 2: Active record pattern (How to define a data model)
+## Active record pattern (How to define a data model)
 
-- A data modeling API on top of the core API from generation 1
+- A data modeling API on top of the core API from 
 - `Field<T>` poor-man's C++ annotation system (also to track modification state)
 
 ```cpp
@@ -448,7 +479,7 @@ class Field
 
 ---
 
-## Generation 2: Active record pattern (How to define a data model)
+## Active record pattern (How to define a data model)
 
 Example
 
@@ -473,7 +504,7 @@ struct Person: ActiveRecord<Person>
 
 ---
 
-## Side stepping into the Dapper framework
+## Sidestepping into the Dapper framework
 
 Dapper is a simple object mapper for .NET, written in C#.
 
@@ -496,7 +527,7 @@ Wouldn't that be nice for C++?
 
 ---
 
-## Generation 4: SQL Data Mapper API (Declaration and Creation)
+## SQL Data Mapper API (Declaration and Creation)
 
 Back to basics (or almost):
 
@@ -512,6 +543,7 @@ void CreateDemo()
 {
     auto dm = DataMapper {};
 
+    dm.CreateTable<Person>();
     auto person = Person {};
     person.FirstName = "Jeff";
     person.LastName = "Johnson";
@@ -525,7 +557,7 @@ Example output: `New person spawned with primary key 42.`
 
 ---
 
-## Generation 4: SQL Data Mapper API (Update)
+## SQL Data Mapper API
 
 Back to basics (or almost):
 
@@ -547,3 +579,229 @@ void PersonGotMarried(DataMapper& dm, Person& person)
 ```
 
 Example Output: `Married person's record: <Id: 42, FirstName: "Jeff", LAST_NAME_2: "Johnson the Married.">`
+
+---
+
+## BelongsTo relationship 
+
+Foreign keys modeled using `BelongsTo<MemberPtr>` member
+
+```cpp
+struct User
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign> id {};
+    Field<SqlAnsiString<30>> name {};
+};
+
+struct Email
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign> id {};
+    Field<SqlAnsiString<30>> address {};
+    BelongsTo<&User::id, SqlRealName { "user_id" }> user {}; // foreign key to User
+};
+
+
+auto dm = Light::DataMapper{};
+auto email = dm.QuerySingle<Email>(some_email_id).value_or(Email{});
+auto user_name = email.user->name; // lazily loads the user record
+
+```
+
+--- 
+
+## HasMany relationship
+
+Inverse relationship to BelongsTo is modeled using `HasMany<T, MemberPtr>`
+
+```cpp
+
+struct User
+{
+    Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id {};
+    Light::Field<Light::SqlAnsiString<30>> name {};
+
+    Light::HasMany<Email> emails {};
+};
+
+
+auto johnDoe = dm.QuerySingle<User>(some_user_id).value_or(User{});
+for (auto const& email : johnDoe.emails)
+{
+    // 
+}
+
+```
+
+---
+
+## Using DataMapper to retrieve data
+
+```cpp
+
+auto const records = dm.Query<Person>()
+                         .Where(FieldNameOf<&Person::is_active>, "=", true)
+                         .All<&Person::name, &Person::age>();
+
+for (auto const& person : records)
+{
+    // only person.name and person.age are populated 
+}
+
+```
+
+```cpp
+
+    struct PartOfC
+    {
+        uint64_t id {};
+        SqlAnsiString<20> comment {};
+    
+        static constexpr std::string_view TableName = "C";
+    };
+    auto const records = dm.Query<CustomBindingA, CustomBindingB, PartOfC>()
+                     .InnerJoin<&CustomBindingB::a_id, &CustomBindingA::id>()
+                     .InnerJoin<&CustomBindingC::id, &CustomBindingB::c_id>()
+                     .OrderBy(QualifiedColumnName<"A.id">)
+                     .All();
+
+    for (auto const& [a, b, c]: records)
+    {
+        // a is CustomBindingA, b is CustomBindingB, c is PartOfC
+    }
+
+```
+
+--- 
+
+## Generate structures from database schema
+
+- We can generate C++ structures from an existing database schema using ddl2cpp tool
+
+```bash
+yaraslau@Cartan:~/repo/Lightweight|docs/presentation-slides⚡  ⇒  ./build/src/tools/ddl2cpp --help
+Usage: ./build/src/tools/ddl2cpp [options] [database] [schema]
+Options:
+  --trace-sql             Enable SQL tracing
+  --connection-string STR ODBC connection string
+  --database STR          Database name
+  --schema STR            Schema name
+  --create-test-tables    Create test tables
+  --output STR            Output directory, for every table separate header file will be created
+  --generate-example      Generate usage example code
+                          using generated header and database connection
+  --make-aliases          Create aliases for the tables and members
+  --naming-convention STR Naming convention for aliases
+                          [none, snake_case, camelCase]
+  --no-warnings           Suppresses warnings
+  --help, -h              Display this information
+```
+
+```bash
+yaraslau@Cartan:~/repo/Lightweight|docs/presentation-slides⚡  ⇒  bat ./src/examples/test_chinook/entities/Album.hpp
+───────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+       │ File: ./src/examples/test_chinook/entities/Album.hpp
+  �─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   1   │ // File is automatically generated using ddl2cpp.
+   2   │ #pragma once
+   3   │
+   4   │ #include "Artist.hpp"
+   5   │
+   6   │ #include <Lightweight/DataMapper/DataMapper.hpp>
+   7   │
+   8   │
+   9   │ struct Album final
+  10   │ {
+  11   │     static constexpr std::string_view TableName = "Album";
+  12   │
+  13   │     Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "AlbumId" }> AlbumId;
+  14   │     Light::Field<Light::SqlDynamicUtf16String<160>, Light::SqlRealName { "Title" }> Title;
+  15   │     Light::BelongsTo<&Artist::ArtistId, Light::SqlRealName { "ArtistId" }> ArtistId;
+  16   │ };
+  17   │
+───────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+```
+
+--- 
+
+## Outlook
+
+We have implementation that is using c++26 reflection for the data modeling part.
+
+List of changes that we are considering as an outlook and c++26 reflection support in mind 
+
+* Use annotations instead of `Field<T>` wrapper
+```cpp
+struct Field
+{
+
+    [[=PrimaryKey::ServerSideAutoIncrement, =SqlRealName("TrackId")]] 
+    int32_t TrackId;
+    std::string Name;
+    [[=SqlRealName("OVERWRITE_BYTES")]] 
+    std::optional<int32_t> bytes;
+    [[=SqlRealName("AlbumId"), =SqlNullable::Null]] 
+    BelongsTo<^^Album::AlbumId> AlbumId;
+};
+```
+
+* Generate migration script from the data model definition
+```cpp
+struct Field
+{
+    /// 
+    [[=SqlRealName("NewColumn"), =SqlNullable::Null, =Version("2.0")]] 
+    std::optional<int32_t> NewColumn;
+};
+
+// This collects all version changes and generates migration scripts
+dm.MigrateToVersion("2.0"); 
+
+```
+
+* Find shortest path through relationships at compile time to generate required joins
+* Generate C++ implementations that use the query builder directly to improve compilation times (inspired by [2025 CppCon Sutter])
+
+
+---
+
+
+## Get in touch
+
+Repository: https://github.com/LASTRADA-Software/Lightweight 
+
+██████████████████████████████████████████████████████████████████████
+██              ████      ██  ████    ████  ████  ████              ██
+██  ██████████  ██████    ██          ████    ████████  ██████████  ██
+██  ██      ██  ██      ██    ██████    ████    ██████  ██      ██  ██
+██  ██      ██  ██    ██    ██      ██████  ██  ██  ██  ██      ██  ██
+██  ██      ██  ██        ██  ██  ████  ████  ██  ████  ██      ██  ██
+██  ██████████  ██  ██████              ██  ██████████  ██████████  ██
+██              ██  ██  ██  ██  ██  ██  ██  ██  ██  ██              ██
+██████████████████  ██  ██████    ██████████  ████████████████████████
+██  ██          ████  ████          ██████████████████          ██████
+████    ██  ██████  ████    ████    ██████    ██  ████    ██    ██  ██
+████  ██          ████    ██████    ██  ██████  ██  ██  ██  ██    ████
+██  ████████  ████  ████  ████      ██████      ██    ████          ██
+████  ████████            ████████████    ████        ██      ██  ████
+████  ████    ██      ██            ██████  ████  ████  ██████      ██
+██    ██    ██  ██  ████    ████████████  ████  ████      ██      ████
+██    ████████████████      ██  ██  ██        ██  ██    ██      ██████
+██  ████████    ██████████    ██████████  ████  ██    ██      ████  ██
+████  ██    ████    ██    ██████████  ████  ████  ████    ██        ██
+██      ██████            ████        ████    ████    ██    ██    ████
+██    ██    ████  ██    ██    ██  ██          ██████            ██████
+██  ██████████  ████  ████████      ████    ██  ████  ██  ██  ██  ████
+██  ████████  ████  ████  ██  ██  ████  ████      ████  ██████  ██  ██
+██  ██      ██      ██      ██          ██  ██████    ████  ████  ████
+██  ██  ████  ██████    ██  ████  ████  ████    ████    ██      ██████
+██  ████  ████              ████  ████████████  ██          ██████████
+██████████████████  ██████████      ██    ██  ██    ██████  ██      ██
+██              ████        ████  ████  ██          ██  ██  ██    ████
+██  ██████████  ██    ██  ██  ██    ██████    ██    ██████      ██  ██
+██  ██      ██  ██      ████  ██  ████    ██  ████            ██  ████
+██  ██      ██  ██    ██████        ██████  ████      ████          ██
+██  ██      ██  ██  ██    ██    ██████    ████  ██████    ██    ██████
+██  ██████████  ██████████  ██████  ████          ████  ██  ██  ██████
+██              ██  ██  ████  ██████████  ████      ████  ██████  ████
+██████████████████████████████████████████████████████████████████████
+
