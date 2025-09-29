@@ -226,6 +226,101 @@ void main()
 
 ---
 
+## Generation 1: How does data binding work?
+
+- similar to `std::formatter<T>`
+
+```cpp
+template <>
+struct SqlDataBinder;
+
+template <>
+struct SqlDataBinder<int>
+{
+    static SQLRETURN InputParameter(SQLHSTMT stmt, SQLUSMALLINT column, int value, SqlDataBinderCallback& cb) noexcept;
+    static SQLRETURN OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, int* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept;
+    static SQLRETURN GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, int* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept;
+    static std::string Inspect(int value);
+};
+```
+
+---
+
+## Generation 1: Custom SQL data binder
+
+```cpp
+struct CustomType { int value; };
+
+template <>
+struct SqlDataBinder<CustomType>
+{
+    static SQLRETURN InputParameter(SQLHSTMT stmt, SQLUSMALLINT column, CustomType const& value, SqlDataBinderCallback& cb) noexcept
+    {
+        // Example special logic
+        if (cb.ServerType() == SqlServerType::MICROSOFT_SQL)
+            return SqlDataBinder<int>::InputParameter(hStmt, column, value.value * -1, cb);
+
+        return SqlDataBinder<int>::InputParameter(hStmt, column, value.value, cb);
+    }
+
+    // ... and the others
+};
+```
+
+---
+
+## Generation 1: Custom SQL data binder (special-cases API)
+
+```cpp
+class LIGHTWEIGHT_API SqlDataBinderCallback
+{
+  public:
+    // ...
+
+    virtual SqlServerType ServerType() const noexcept = 0;
+    virtual std::string const& DriverName() const noexcept = 0;
+
+    // called after SqlStatement.Execute() has executed
+    virtual void PlanPostExecuteCallback(std::function<void()>&&) = 0;
+
+    // called after each fetched row
+    virtual void PlanPostProcessOutputColumn(std::function<void()>&&) = 0;
+};
+```
+
+---
+
+## Generation 1: Native Batch Execution
+
+```cpp
+void DemoMassOperations()
+{
+    auto stmt = SqlStatement {};
+    stmt.Prepare(R"(INSERT INTO "Test" ("A", "B", "C") VALUES (?, ?, ?))");
+
+    auto const first = std::array<Lightweight::SqlFixedString<8>, 3> { "Hello", "World", "!" };
+    auto const second = std::vector { 1.3, 2.3, 3.3 };
+    unsigned const third[3] = { 50'000u, 60'000u, 70'000u };
+
+    stmt.ExecuteBatchNative(first, second, third); // <-- insert all rows
+}
+```
+
+## Generation 1: low level API summary
+
+| Class              | description
+|--------------------|-------------------------------------------------------
+| `SqlConnection`    | handling an SQL connection
+| `SqlStatement`     | handling prepared, direct, and bulk statements, including data bindings
+| `SqlDataBinder<T>` | non-intrusive extending column data type support
+| `SqlTransaction`   | handling SQL transactions (commit, rollback)
+
+## So what's missing?
+
+- SQL dialect agnostic query building!
+
+---
+
 ## Generation 1: SQL query builder
 
 ```cpp
@@ -256,7 +351,7 @@ void main()
 
 ---
 
-## Generation 1 of evolution (Continued): SQL query builder, pre-binding
+## Generation 1: (Continued): SQL query builder, pre-binding
 
 ```cpp
 void main()
@@ -281,6 +376,7 @@ void main()
     while (stmt.FetchRow())
     {
         // Process the row data...
+        std::println("{}: {}, {}", id, lastName, firstName);
     }
 }
 ```
