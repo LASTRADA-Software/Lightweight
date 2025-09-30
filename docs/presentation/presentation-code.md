@@ -301,12 +301,13 @@ void DemoMassOperations()
 
 ## Example of batch input data
 | firstColumn | secondColumn | thirdColumn | 
-|      1      |      1.1     |     "1"    |
-|      2      |      2.2     |     "2"    |
-|      3      |      3.3     |     "3"    |
-|      4      |      4.4     |     "4"    |
-|      5      |      5.5     |     "5"    |
-|      6      |      6.6     |     "6"    |
+|-------------|--------------|-------------|
+|      1      |      1.1     |     "1"     |
+|      2      |      2.2     |     "2"     |
+|      3      |      3.3     |     "3"     |
+|      4      |      4.4     |     "4"     |
+|      5      |      5.5     |     "5"     |
+|      6      |      6.6     |     "6"     |
 
 ---
 
@@ -374,8 +375,8 @@ conn.FromTable(RecordTableName<JoinTestA>)
                     .All()
 ```
 
-Library provides helper templates to extract table and column names from types and members.
-For example, `RecordTableName<T>`, `FieldNameOf<&T::member>` and `Fields<T>`.
+- Library provides helper templates to extract table and column names from types and members.
+- For example: `RecordTableName<T>`, `FieldNameOf<&T::member>` and `Fields<T...>`.
 
 ---
 
@@ -448,33 +449,21 @@ void main()
 - `Field<T>` poor-man's C++ annotation system (also to track modification state)
 
 ```cpp
-template <typename Record>
-struct ActiveRecord
-{
-    void Create();
-    void Update();
-    void Delete();
-
-    static std::expected<Record, SqlError> Find(SqlPrimaryKey primaryKeyValue);
-    static std::expected<std::vector<Record>, SqlError> FindAll(std::string_view whereQuery);
-    // ... and more static member functions to operate on the database ...
-};
-
-template <typename T>
-class Field
-{
-  public:
-    // ...
-    Field& operator=(T&& value);
-    Field& operator=(T const& value);
-
-    bool IsModified() const;
-    void SetModified(bool value);
-
-  private:
-    T _value;
-    bool _modified;
-};
+template <typename Record>                                 | template <typename T>
+struct ActiveRecord                                        | class Field
+{                                                          | {
+    void Create();                                         |   public:
+    void Update();                                         |     // ...
+    void Delete();                                         |     Field& operator=(T&& value);
+                                                           |     Field& operator=(T const& value);
+    static Record Find(auto id);                           | 
+    static std::vector<Record> FindAll(auto whereClause);  |     bool IsModified() const;
+    // and more functions to operate on the database ...   |     void SetModified(bool value);
+};                                                         | 
+                                                           |   private:
+                                                           |     T _value;
+                                                           |     bool _modified;
+                                                           | };
 ```
 
 ---
@@ -604,10 +593,9 @@ struct Email
 auto dm = Light::DataMapper{};
 auto email = dm.QuerySingle<Email>(some_email_id).value_or(Email{});
 auto user_name = email.user->name; // lazily loads the user record
-
 ```
 
---- 
+---
 
 ## HasMany relationship
 
@@ -625,11 +613,10 @@ struct User
 
 
 auto johnDoe = dm.QuerySingle<User>(some_user_id).value_or(User{});
-for (auto const& email : johnDoe.emails)
+for (auto const& email: johnDoe.emails)
 {
-    // 
+    // process email
 }
-
 ```
 
 ---
@@ -637,49 +624,47 @@ for (auto const& email : johnDoe.emails)
 ## Using DataMapper to retrieve data
 
 ```cpp
-
 auto const records = dm.Query<Person>()
-                         .Where(FieldNameOf<&Person::is_active>, "=", true)
-                         .All<&Person::name, &Person::age>();
+                       .Where(FieldNameOf<&Person::is_active>, "=", true)
+                       .All<&Person::name, &Person::age>();
 
 for (auto const& person : records)
 {
     // only person.name and person.age are populated 
 }
-
 ```
 
 ```cpp
+struct PartOfC
+{
+    uint64_t id {};
+    SqlAnsiString<20> comment {};
 
-    struct PartOfC
-    {
-        uint64_t id {};
-        SqlAnsiString<20> comment {};
-    
-        static constexpr std::string_view TableName = "C";
-    };
-    auto const records = dm.Query<CustomBindingA, CustomBindingB, PartOfC>()
-                     .InnerJoin<&CustomBindingB::a_id, &CustomBindingA::id>()
-                     .InnerJoin<&CustomBindingC::id, &CustomBindingB::c_id>()
-                     .OrderBy(QualifiedColumnName<"A.id">)
-                     .All();
+    static constexpr std::string_view TableName = "C"; // optional, defaults to struct name
+};
 
-    for (auto const& [a, b, c]: records)
-    {
-        // a is CustomBindingA, b is CustomBindingB, c is PartOfC
-    }
+auto const records = dm.Query<CustomBindingA, CustomBindingB, PartOfC>()
+                       .InnerJoin<&CustomBindingB::a_id, &CustomBindingA::id>()
+                       .InnerJoin<&CustomBindingC::id, &CustomBindingB::c_id>()
+                       .OrderBy(QualifiedColumnName<"A.id">)
+                       .All();
 
+for (auto const& [a, b, c]: records)
+{
+    // a is CustomBindingA, b is CustomBindingB, c is PartOfC
+}
 ```
 
---- 
+---
 
 ## Generate structures from database schema
 
 - We can generate C++ structures from an existing database schema using ddl2cpp tool
 
 ```bash
-yaraslau@Cartan:~/repo/Lightweight|docs/presentation-slides⚡  ⇒  ./build/src/tools/ddl2cpp --help
-Usage: ./build/src/tools/ddl2cpp [options] [database] [schema]
+Shell⚡ ddl2cpp --help
+
+Usage: ddl2cpp [options] [database] [schema]
 Options:
   --trace-sql             Enable SQL tracing
   --connection-string STR ODBC connection string
@@ -696,38 +681,38 @@ Options:
   --help, -h              Display this information
 ```
 
+---
+
+## Example of generated structure
+
 ```bash
-yaraslau@Cartan:~/repo/Lightweight|docs/presentation-slides⚡  ⇒  bat ./src/examples/test_chinook/entities/Album.hpp
-───────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-       │ File: ./src/examples/test_chinook/entities/Album.hpp
-  �─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-   1   │ // File is automatically generated using ddl2cpp.
-   2   │ #pragma once
-   3   │
-   4   │ #include "Artist.hpp"
-   5   │
-   6   │ #include <Lightweight/DataMapper/DataMapper.hpp>
-   7   │
-   8   │
-   9   │ struct Album final
-  10   │ {
-  11   │     static constexpr std::string_view TableName = "Album";
-  12   │
-  13   │     Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "AlbumId" }> AlbumId;
-  14   │     Light::Field<Light::SqlDynamicUtf16String<160>, Light::SqlRealName { "Title" }> Title;
-  15   │     Light::BelongsTo<&Artist::ArtistId, Light::SqlRealName { "ArtistId" }> ArtistId;
-  16   │ };
-  17   │
-───────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+Shell⚡ bat ./src/examples/test_chinook/entities/Album.hpp
 ```
 
---- 
+```cpp
+// File is automatically generated using ddl2cpp.
+#pragma once
 
-## Outlook
+#include "Artist.hpp"
 
-We have implementation that is using c++26 reflection for the data modeling part.
+#include <Lightweight/DataMapper/DataMapper.hpp>
 
-List of changes that we are considering as an outlook and c++26 reflection support in mind 
+
+struct Album final
+{
+    static constexpr std::string_view TableName = "Album";
+
+    Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "AlbumId" }> AlbumId;
+    Light::Field<Light::SqlDynamicUtf16String<160>, Light::SqlRealName { "Title" }> Title;
+    Light::BelongsTo<&Artist::ArtistId, Light::SqlRealName { "ArtistId" }> ArtistId;
+};
+```
+
+---
+
+## Outlook (C++26 annotations)
+
+List of changes that we are considering as an outlook and C++26 reflection support in mind 
 
 * Use annotations instead of `Field<T>` wrapper
 ```cpp
@@ -744,12 +729,18 @@ struct Field
 };
 ```
 
+---
+
+## Outlook (DB migrations)
+
 * Generate migration script from the data model definition
+
 ```cpp
 struct Field
 {
-    /// 
-    [[=SqlRealName("NewColumn"), =SqlNullable::Null, =Version("2.0")]] 
+    // ... other fields ...
+
+    [[=SqlRealName("NewColumn"), =SqlNullable::Null, =Version("2025-10-07-03:14:15")]] 
     std::optional<int32_t> NewColumn;
 };
 
@@ -758,8 +749,8 @@ dm.MigrateToVersion("2.0");
 
 ```
 
-* Find shortest path through relationships at compile time to generate required joins
-* Generate C++ implementations that use the query builder directly to improve compilation times (inspired by [2025 CppCon Sutter])
+- Find shortest path through relationships at compile time to generate required joins
+- Generate C++ implementations that use the query builder directly to improve compilation times (inspired by [2025 CppCon Sutter])
 
 
 ---
@@ -769,6 +760,7 @@ dm.MigrateToVersion("2.0");
 
 Repository: https://github.com/LASTRADA-Software/Lightweight 
 
+```
 ██████████████████████████████████████████████████████████████████████
 ██              ████      ██  ████    ████  ████  ████              ██
 ██  ██████████  ██████    ██          ████    ████████  ██████████  ██
@@ -804,4 +796,4 @@ Repository: https://github.com/LASTRADA-Software/Lightweight
 ██  ██████████  ██████████  ██████  ████          ████  ██  ██  ██████
 ██              ██  ██  ████  ██████████  ████      ████  ██████  ████
 ██████████████████████████████████████████████████████████████████████
-
+```
