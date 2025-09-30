@@ -546,17 +546,12 @@ Example output: `New person spawned with primary key 42.`
 
 ---
 
-## SQL Data Mapper API
+## SQL Data Mapper API (Updating existing records)
 
 Back to basics (or almost):
 
 ```cpp
-struct Person
-{
-    Field<int, SqlPrimaryKey::AUTO_INCREMENT> Id;
-    Field<std::string> FirstName;
-    Field<std::string, SqlRealName{"LAST_NAME2"}> LastName;
-};
+// ... same Person definition as before ...
 
 void PersonGotMarried(DataMapper& dm, Person& person)
 {
@@ -571,7 +566,7 @@ Example Output: `Married person's record: <Id: 42, FirstName: "Jeff", LAST_NAME_
 
 ---
 
-## BelongsTo relationship 
+## Data Mapper API (BelongsTo relationship)
 
 Foreign keys modeled using `BelongsTo<MemberPtr>` member
 
@@ -597,7 +592,7 @@ auto user_name = email.user->name; // lazily loads the user record
 
 ---
 
-## HasMany relationship
+## DataMapper API (HasMany relationship)
 
 Inverse relationship to BelongsTo is modeled using `HasMany<T, MemberPtr>`
 
@@ -621,7 +616,7 @@ for (auto const& email: johnDoe.emails)
 
 ---
 
-## Using DataMapper to retrieve data
+## Data Mapper API (Querying records)
 
 ```cpp
 auto const records = dm.Query<Person>()
@@ -654,6 +649,31 @@ for (auto const& [a, b, c]: records)
     // a is CustomBindingA, b is CustomBindingB, c is PartOfC
 }
 ```
+
+---
+
+## Data Mapper API (The idea behind)
+
+- Keep data model declarations as simple as possible
+- Use C++ type system to strongly define data models
+- Separate data access logic from data model declarations
+- Have high level access to fluent query building using the data mapper directly | TODO: slide for that
+- Have also access to data mapper like querying by passing a raw or built query.
+
+### similarities to query building
+
+```cpp
+// primarily promoted way
+dm.Query<Types...>().(query building methods ...).All/.First()/.Count()/.Delete();
+
+// alternative way
+dm.Query<Types...>(queryBuilderObject.All/.First()/.Count()/.Delete());
+
+// fallback way
+dm.Query<Types...>("RAW SQL QUERY");
+```
+
+- Have a look at our chinook example in the repository and the tests for more examples
 
 ---
 
