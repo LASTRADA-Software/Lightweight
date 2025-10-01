@@ -270,6 +270,30 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsToChain", "[DataMapper][relations]")
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "BelongsToChainWithScope", "[DataMapper][relations]")
+{
+    SECTION("Query with relation auto loading in another scope ")
+    {
+        {
+            auto accountHistory = [&]() {
+                auto scopedDm = DataMapper();
+                scopedDm.CreateTables<Suppliers, Account, AccountHistory>();
+                auto supplier1 = Suppliers { .name = "Supplier 1" };
+                scopedDm.Create(supplier1);
+                auto account1 = Account { .iban = "DE89370400440532013000", .supplier = supplier1 };
+                scopedDm.Create(account1);
+                auto accountHistory1 = AccountHistory { .credit_rating = 100, .account = account1 };
+                scopedDm.Create(accountHistory1);
+                return scopedDm.QuerySingle<AccountHistory>(accountHistory1.id).value();
+            }();
+            REQUIRE(accountHistory.account.Value());
+            REQUIRE(accountHistory.account->id.Value());
+            REQUIRE(accountHistory.account->supplier->id.Value());
+            REQUIRE(!accountHistory.account->supplier->name.Value().empty());
+        }
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "BelongsTo loading of multiple records", "[DataMapper][relations]")
 {
     auto dm = DataMapper();
