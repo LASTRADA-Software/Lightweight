@@ -19,7 +19,7 @@ setup_sqlite3() {
     if [ -n "$GITHUB_OUTPUT" ]; then
         echo "Exporting ODBC_CONNECTION_INFO..."
         # expose the ODBC connection string to connect to the database
-        echo "ODBC_CONNECTION_STRING=DRIVER=SQLite3;DATABASE=file::memory:" >> "${GITHUB_OUTPUT}"
+        echo "ODBC_CONNECTION_STRING=DRIVER=SQLite3;DATABASE=test.db" >> "${GITHUB_OUTPUT}"
     fi
 }
 

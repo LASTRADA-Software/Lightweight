@@ -128,7 +128,7 @@ auto inline const DefaultTestConnectionString = Lightweight::SqlConnectionString
 #else
                          "SQLite3",
 #endif
-                         "file::memory:"),
+                         "test.db"),
 };
 
 class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
@@ -424,12 +424,17 @@ class SqlTestFixture
             case SqlServerType::UNKNOWN: {
                 auto const tableNames = GetAllTableNames(stmt);
                 for (auto const& tableName: tableNames)
+                {
+                    if (tableName == "sqlite_sequence")
+                        continue;
+
                     DropTableRecursively(stmt,
                                          Lightweight::SqlSchema::FullyQualifiedTableName {
                                              .catalog = {},
                                              .schema = {},
                                              .table = tableName,
                                          });
+                }
                 break;
             }
             case SqlServerType::POSTGRESQL:

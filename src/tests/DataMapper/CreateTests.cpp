@@ -47,13 +47,13 @@ struct RecordWithNoDefaults
 
 TEST_CASE_METHOD(SqlTestFixture, "Create table with default values", "[DataMapper]")
 {
-    auto dm = DataMapper();
-    dm.CreateTable<RecordWithDefaults>();
+    auto dm = DataMapper::Create();
+    dm->CreateTable<RecordWithDefaults>();
 
     auto record = RecordWithDefaults {};
-    dm.Create(record);
+    dm->Create(record);
 
-    auto const actual = dm.QuerySingle<RecordWithNoDefaults>(record.id).value();
+    auto const actual = dm->QuerySingle<RecordWithNoDefaults>(record.id).value();
     CHECK(actual.id == record.id);
     CHECK(actual.name1 == record.name1);
     CHECK(actual.boolean1 == record.boolean1);
@@ -77,19 +77,19 @@ std::ostream& operator<<(std::ostream& os, TestRecord const& record)
 
 TEST_CASE_METHOD(SqlTestFixture, "PrimaryKey: AutoAssign", "[DataMapper]")
 {
-    auto dm = DataMapper();
-    dm.CreateTable<TestRecord>();
+    auto dm = DataMapper::Create();
+    dm->CreateTable<TestRecord>();
 
     auto record = TestRecord { .comment = "Hello, World!" };
-    dm.Create(record);
+    dm->Create(record);
     INFO("Created record: " << DataMapper::Inspect(record));
-    auto const queriedRecord = dm.QuerySingle<TestRecord>(record.id).value();
+    auto const queriedRecord = dm->QuerySingle<TestRecord>(record.id).value();
     REQUIRE(queriedRecord == record);
 
     auto record2 = TestRecord { .comment = "Hello, World! 2" };
-    dm.Create(record2);
+    dm->Create(record2);
     INFO("Created record: " << DataMapper::Inspect(record2));
-    auto const queriedRecord2 = dm.QuerySingle<TestRecord>(record2.id).value();
+    auto const queriedRecord2 = dm->QuerySingle<TestRecord>(record2.id).value();
     REQUIRE(queriedRecord2 == record2);
 
     REQUIRE(record.id != record2.id);
@@ -105,19 +105,19 @@ struct MultiPkRecord
 
 TEST_CASE_METHOD(SqlTestFixture, "Table with multiple primary keys", "[DataMapper]")
 {
-    auto dm = DataMapper {};
+    auto dm = DataMapper::Create();
 
-    dm.CreateTable<MultiPkRecord>();
+    dm->CreateTable<MultiPkRecord>();
 
     auto record = MultiPkRecord { .firstName = "John", .lastName = "Doe" };
-    dm.Create(record);
+    dm->Create(record);
 
     {
         auto const _ = ScopedSqlNullLogger {}; // Suppress the error message, as we are testing for it
-        CHECK_THROWS_AS(dm.CreateExplicit(MultiPkRecord { .firstName = "John", .lastName = "Doe" }), SqlException);
+        CHECK_THROWS_AS(dm->CreateExplicit(MultiPkRecord { .firstName = "John", .lastName = "Doe" }), SqlException);
     }
 
-    auto queriedRecords = dm.Query<MultiPkRecord>().All();
+    auto queriedRecords = dm->Query<MultiPkRecord>().All();
 
     CHECK(queriedRecords.size() == 1);
     auto const& queriedRecord = queriedRecords.at(0);
