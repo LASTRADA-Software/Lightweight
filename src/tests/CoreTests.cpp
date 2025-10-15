@@ -624,4 +624,12 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDateTime conversion", "[SqlDateTime]")
     REQUIRE(nowTime.seconds().count() == Lightweight::SqlDateTime::ConvertToSqlValue(nowDateTime.value()).second);
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "StringFormatting", "[Strings]")
+{
+    REQUIRE(std::format("{}", Lightweight::SqlAnsiString<30> { "Hello" }) == "Hello");
+    REQUIRE(std::format("{}", Lightweight::SqlUtf16String<30> { u"Hello" }) == "Hello");
+    REQUIRE(std::format("{}", Lightweight::SqlUtf32String<30> { U"Hello" }) == "Hello");
+    REQUIRE(std::format("{}", Lightweight::SqlWideString<30> { L"Hello" }) == "Hello");
+}
+
 // NOLINTEND(readability-container-size-empty)
