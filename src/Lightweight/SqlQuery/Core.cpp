@@ -1,3 +1,6 @@
+#if defined(_WIN32) || defined(_WIN64)
+    #include <Windows.h>
+#endif
 #include "Core.hpp"
 
 std::string Lightweight::detail::ComposedQuery::ToSql() const

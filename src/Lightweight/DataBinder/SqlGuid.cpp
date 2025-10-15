@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
+#if defined(_WIN32) || defined(_WIN64)
+    #include <Windows.h>
+#endif
 
 #include "BasicStringBinder.hpp"
 #include "SqlGuid.hpp"
 #include "StdString.hpp"
 
-#if __has_include(<Windows.h>)
-    #include <Windows.h>
-#elif __has_include(<uuid/uuid.h>)
+#if __has_include(<uuid/uuid.h>)
     #include <cstring>
 
     #include <uuid/uuid.h>

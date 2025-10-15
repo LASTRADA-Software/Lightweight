@@ -1,10 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-
 #pragma once
-
-#if defined(_WIN32) || defined(_WIN64)
-    #include <Windows.h>
-#endif
 
 #include "SqlConnection.hpp"
 #include "SqlError.hpp"

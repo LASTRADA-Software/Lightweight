@@ -2,10 +2,6 @@
 
 #pragma once
 
-#if defined(_WIN32) || defined(_WIN64)
-    #include <Windows.h>
-#endif
-
 #include <Lightweight/Lightweight.hpp>
 
 #include <catch2/catch_session.hpp>

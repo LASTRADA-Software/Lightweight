@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
+#if defined(_WIN32) || defined(_WIN64)
+    #include <Windows.h>
+#endif
 
 #include "BasicStringBinder.hpp"
 #include "Primitives.hpp"
