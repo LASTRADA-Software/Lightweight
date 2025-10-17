@@ -40,9 +40,9 @@ static std::string GetEnvironmentVariable(std::string const& name)
 }
 
 template <typename Entity>
-void DumpTable(DataMapper& dm, size_t limit = 1)
+void DumpTable(std::shared_ptr<DataMapper>& dm, size_t limit = 1)
 {
-    auto entries = dm.Query<Entity>().First(limit);
+    auto entries = dm->Query<Entity>().First(limit);
     for (auto const& entry: entries)
         std::println("{}", DataMapper::Inspect(entry));
 }
@@ -60,7 +60,7 @@ int main()
             "Server};SERVER=localhost;UID=SA;PWD=BlahThat.;TrustServerCertificate=yes;DATABASE=LightweightTest" });
     }
 
-    auto dm = DataMapper();
+    auto dm = DataMapper::Create();
 
     // helper function to create std::string from string_view<char16_t>
     auto const toString = [](std::basic_string_view<char16_t> str) {
@@ -69,7 +69,7 @@ int main()
     };
 
     // get all employees
-    auto const empoyees = dm.Query<Employee>().All();
+    auto const empoyees = dm->Query<Employee>().All();
     for (auto const& employee: empoyees)
     {
         std::println("EmployeeId: {}, FirstName: {}, LastName: {}",
@@ -80,7 +80,7 @@ int main()
 
     // directly iterate over elements
     int numberOfAlbums = 0;
-    for (auto const& album: SqlRowIterator<Album>(dm.Connection()))
+    for (auto const& album: SqlRowIterator<Album>(dm->Connection()))
     {
         std::println("{}", toString(album.Title.Value().c_str()));
         ++numberOfAlbums;
@@ -88,7 +88,7 @@ int main()
     std::println("Iterated over {} Albums", numberOfAlbums);
 
     // select album with the title "Mozart Gala: Famous Arias"
-    auto album = dm.Query<Album>() // NOLINT(bugprone-unchecked-optional-access)
+    auto album = dm->Query<Album>() // NOLINT(bugprone-unchecked-optional-access)
                      .Where(FieldNameOf<&Album::Title>, "=", "Mozart Gala: Famous Arias")
                      .First()
                      .value();
@@ -98,13 +98,13 @@ int main()
     // we can use BelongsTo<&Artist::ArtistId, SqlRealName{"ArtistId"}> c_ArtistId member
     // to get access to the artist entry in the database, using dereference operator
     // after configuring the relations
-    dm.ConfigureRelationAutoLoading(album);
+    dm->ConfigureRelationAutoLoading(album);
     std::println("Artist name: {}",
                  toString(album.ArtistId->Name.Value().value().c_str())); // NOLINT(bugprone-unchecked-optional-access)
 
     {
         // get an artist with the name "Sir Georg Solti, Sumi Jo & Wiener Philharmoniker"
-        auto artist = dm.Query<Artist>() // NOLINT(bugprone-unchecked-optional-access)
+        auto artist = dm->Query<Artist>() // NOLINT(bugprone-unchecked-optional-access)
                           .Where(FieldNameOf<&Artist::Name>, "=", "Red Hot Chili Peppers")
                           .First()
                           .value();
@@ -113,12 +113,12 @@ int main()
                      toString(artist.Name.Value().value().c_str())); // NOLINT(bugprone-unchecked-optional-access)
 
         // get albums of the artist
-        auto albums = dm.Query<Album>().Where(FieldNameOf<&Album::ArtistId>, "=", artist.ArtistId.Value()).All();
+        auto albums = dm->Query<Album>().Where(FieldNameOf<&Album::ArtistId>, "=", artist.ArtistId.Value()).All();
         std::println("got {} albums", albums.size());
 
         auto albumIds = albums | std::views::transform([](auto const& album) { return album.AlbumId.Value(); });
         // get all tracks from all albums
-        auto tracks = dm.Query<Track>().WhereIn(FieldNameOf<&Track::AlbumId>, albumIds).All();
+        auto tracks = dm->Query<Track>().WhereIn(FieldNameOf<&Track::AlbumId>, albumIds).All();
         std::println("got {} tracks", tracks.size());
 
         // iterate over all tracks and print song names
@@ -134,7 +134,7 @@ int main()
 
     {
         // get pair of customer and employee
-        auto records = dm.Query<Customer, Employee>().InnerJoin<&Employee::EmployeeId, &Customer::SupportRepId>().All();
+        auto records = dm->Query<Customer, Employee>().InnerJoin<&Employee::EmployeeId, &Customer::SupportRepId>().All();
 
         for (auto const& [customer, employee]: records)
         {
@@ -151,11 +151,11 @@ int main()
 
     {
         // get one employee
-        auto employee = dm.Query<Employee>().Where(FieldNameOf<&Employee::EmployeeId>, 1).First().value();     // NOLINT(bugprone-unchecked-optional-access)
+        auto employee = dm->Query<Employee>().Where(FieldNameOf<&Employee::EmployeeId>, 1).First().value();     // NOLINT(bugprone-unchecked-optional-access)
         std::println(" {} ", employee.HireDate.Value().value()); // NOLINT(bugprone-unchecked-optional-access)
         // update hiring date to current date
         employee.HireDate = SqlDateTime::Now();
-        dm.Update(employee);
+        dm->Update(employee);
     }
 
     // Iterate over all entities in the database and print ther content

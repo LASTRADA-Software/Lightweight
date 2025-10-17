@@ -20,6 +20,7 @@
 
 #include <cassert>
 #include <concepts>
+#include <memory>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -84,28 +85,51 @@ namespace detail
 /// // Delete the person record from the database
 /// dm.Delete(person);
 /// @endcode
-class DataMapper
+class DataMapper: public std::enable_shared_from_this<DataMapper>
 {
+    struct PrivateTag
+    {
+        explicit PrivateTag() = default;
+    };
+
   public:
     /// Constructs a new data mapper, using the default connection.
-    DataMapper():
+    DataMapper([[maybe_unused]] PrivateTag _):
         _connection {},
         _stmt { _connection }
     {
     }
 
     /// Constructs a new data mapper, using the given connection.
-    explicit DataMapper(SqlConnection&& connection):
+    explicit DataMapper(SqlConnection&& connection, [[maybe_unused]] PrivateTag _):
         _connection { std::move(connection) },
         _stmt { _connection }
     {
     }
 
     /// Constructs a new data mapper, using the given connection string.
-    explicit DataMapper(SqlConnectionString connectionString):
+    explicit DataMapper(SqlConnectionString connectionString, [[maybe_unused]] PrivateTag _):
         _connection { std::move(connectionString) },
         _stmt { _connection }
     {
+    }
+
+    /// Factory method to create a new data mapper with default connection
+    [[nodiscard]] static std::shared_ptr<DataMapper> Create()
+    {
+        return std::make_shared<DataMapper>(PrivateTag {});
+    }
+
+    /// Factory method to create a new data mapper with given connection
+    [[nodiscard]] static std::shared_ptr<DataMapper> Create(SqlConnection&& connection)
+    {
+        return std::make_shared<DataMapper>(std::move(connection), PrivateTag {});
+    }
+
+    /// Factory method to create a new data mapper with connection string
+    [[nodiscard]] static std::shared_ptr<DataMapper> Create(SqlConnectionString connectionString)
+    {
+        return std::make_shared<DataMapper>(std::move(connectionString), PrivateTag {});
     }
 
     DataMapper(DataMapper const&) = delete;
@@ -1555,12 +1579,13 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
+    auto self = shared_from_this();
     auto const callback = [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
         if constexpr (IsBelongsTo<FieldType>)
         {
             field.SetAutoLoader(typename FieldType::Loader {
-                .loadReference = [this, value = field.Value()]() -> std::optional<typename FieldType::ReferencedRecord> {
-                    return LoadBelongsTo<FieldType>(value);
+                .loadReference = [self, value = field.Value()]() -> std::optional<typename FieldType::ReferencedRecord> {
+                    return self->LoadBelongsTo<FieldType>(value);
                 },
             });
         }
@@ -1569,35 +1594,35 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
             using ReferencedRecord = typename FieldType::ReferencedRecord;
             HasMany<ReferencedRecord>& hasMany = field;
             hasMany.SetAutoLoader(typename FieldType::Loader {
-                .count = [this, &record]() -> size_t {
+                .count = [self, &record]() -> size_t {
                     size_t count = 0;
-                    CallOnHasMany<FieldIndex, Record, ReferencedRecord>(
+                    self->CallOnHasMany<FieldIndex, Record, ReferencedRecord>(
                         record, [&](SqlSelectQueryBuilder selectQuery, auto const& primaryKeyField) {
-                            _stmt.Prepare(selectQuery.Count());
-                            _stmt.Execute(primaryKeyField.Value());
-                            if (_stmt.FetchRow())
-                                count = _stmt.GetColumn<size_t>(1);
-                            _stmt.CloseCursor();
+                            self->_stmt.Prepare(selectQuery.Count());
+                            self->_stmt.Execute(primaryKeyField.Value());
+                            if (self->_stmt.FetchRow())
+                                count = self->_stmt.GetColumn<size_t>(1);
+                            self->_stmt.CloseCursor();
                         });
                     return count;
                 },
-                .all = [this, &record, &hasMany]() { LoadHasMany<FieldIndex>(record, hasMany); },
+                .all = [self, &record, &hasMany]() { self->LoadHasMany<FieldIndex>(record, hasMany); },
                 .each =
-                    [this, &record](auto const& each) {
-                        CallOnHasMany<FieldIndex, Record, ReferencedRecord>(
+                    [self, &record](auto const& each) {
+                        self->CallOnHasMany<FieldIndex, Record, ReferencedRecord>(
                             record, [&](SqlSelectQueryBuilder selectQuery, auto const& primaryKeyField) {
-                                auto stmt = SqlStatement { _connection };
+                                auto stmt = SqlStatement { self->_connection };
                                 stmt.Prepare(selectQuery.All());
                                 stmt.Execute(primaryKeyField.Value());
 
                                 auto referencedRecord = ReferencedRecord {};
-                                BindOutputColumns(referencedRecord, &stmt);
-                                ConfigureRelationAutoLoading(referencedRecord);
+                                self->BindOutputColumns(referencedRecord, &stmt);
+                                self->ConfigureRelationAutoLoading(referencedRecord);
 
                                 while (stmt.FetchRow())
                                 {
                                     each(referencedRecord);
-                                    BindOutputColumns(referencedRecord, &stmt);
+                                    self->BindOutputColumns(referencedRecord, &stmt);
                                 }
                             });
                     },
@@ -1610,8 +1635,8 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
             HasOneThrough<ReferencedRecord, ThroughRecord>& hasOneThrough = field;
             hasOneThrough.SetAutoLoader(typename FieldType::Loader {
                 .loadReference =
-                    [this, &record, &hasOneThrough]() {
-                        LoadHasOneThrough<ReferencedRecord, ThroughRecord>(record, hasOneThrough);
+                    [self, &record, &hasOneThrough]() {
+                        self->LoadHasOneThrough<ReferencedRecord, ThroughRecord>(record, hasOneThrough);
                     },
             });
         }
@@ -1621,41 +1646,41 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
             using ThroughRecord = typename FieldType::ThroughRecord;
             HasManyThrough<ReferencedRecord, ThroughRecord>& hasManyThrough = field;
             hasManyThrough.SetAutoLoader(typename FieldType::Loader {
-                .count = [this, &record]() -> size_t {
+                .count = [self, &record]() -> size_t {
                     // Load result for Count()
                     size_t count = 0;
-                    CallOnHasManyThrough<ReferencedRecord, ThroughRecord>(
+                    self->CallOnHasManyThrough<ReferencedRecord, ThroughRecord>(
                         record, [&](SqlSelectQueryBuilder& selectQuery, auto& primaryKeyField) {
-                            _stmt.Prepare(selectQuery.Count());
-                            _stmt.Execute(primaryKeyField.Value());
-                            if (_stmt.FetchRow())
-                                count = _stmt.GetColumn<size_t>(1);
-                            _stmt.CloseCursor();
+                            self->_stmt.Prepare(selectQuery.Count());
+                            self->_stmt.Execute(primaryKeyField.Value());
+                            if (self->_stmt.FetchRow())
+                                count = self->_stmt.GetColumn<size_t>(1);
+                            self->_stmt.CloseCursor();
                         });
                     return count;
                 },
                 .all =
-                    [this, &record, &hasManyThrough]() {
+                    [self, &record, &hasManyThrough]() {
                         // Load result for All()
-                        LoadHasManyThrough(record, hasManyThrough);
+                        self->LoadHasManyThrough(record, hasManyThrough);
                     },
                 .each =
-                    [this, &record](auto const& each) {
+                    [self, &record](auto const& each) {
                         // Load result for Each()
-                        CallOnHasManyThrough<ReferencedRecord, ThroughRecord>(
+                        self->CallOnHasManyThrough<ReferencedRecord, ThroughRecord>(
                             record, [&](SqlSelectQueryBuilder& selectQuery, auto& primaryKeyField) {
-                                auto stmt = SqlStatement { _connection };
+                                auto stmt = SqlStatement { self->_connection };
                                 stmt.Prepare(selectQuery.All());
                                 stmt.Execute(primaryKeyField.Value());
 
                                 auto referencedRecord = ReferencedRecord {};
-                                BindOutputColumns(referencedRecord, &stmt);
-                                ConfigureRelationAutoLoading(referencedRecord);
+                                self->BindOutputColumns(referencedRecord, &stmt);
+                                self->ConfigureRelationAutoLoading(referencedRecord);
 
                                 while (stmt.FetchRow())
                                 {
                                     each(referencedRecord);
-                                    BindOutputColumns(referencedRecord, &stmt);
+                                    self->BindOutputColumns(referencedRecord, &stmt);
                                 }
                             });
                     },

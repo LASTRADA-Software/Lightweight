@@ -38,12 +38,12 @@ struct SchemaMigration
     static constexpr std::string_view TableName = "schema_migrations";
 };
 
-DataMapper& MigrationManager::GetDataMapper()
+std::shared_ptr<DataMapper>& MigrationManager::GetDataMapper()
 {
-    if (!_mapper.has_value())
-        _mapper = DataMapper {};
+    if (!_mapper)
+        _mapper = DataMapper::Create();
 
-    return *_mapper;
+    return _mapper;
 }
 
 void MigrationManager::CloseDataMapper()
@@ -53,7 +53,7 @@ void MigrationManager::CloseDataMapper()
 
 void MigrationManager::CreateMigrationHistory()
 {
-    GetDataMapper().CreateTable<SchemaMigration>();
+    GetDataMapper()->CreateTable<SchemaMigration>();
 }
 
 std::vector<MigrationTimestamp> MigrationManager::GetAppliedMigrationIds() const
@@ -61,7 +61,7 @@ std::vector<MigrationTimestamp> MigrationManager::GetAppliedMigrationIds() const
     auto result = std::vector<MigrationTimestamp> {};
 
     auto& mapper = GetDataMapper();
-    auto const records = mapper.Query<SchemaMigration>().OrderBy("version", SqlResultOrdering::ASCENDING).All();
+    auto const records = mapper->Query<SchemaMigration>().OrderBy("version", SqlResultOrdering::ASCENDING).All();
     for (auto const& record: records)
         result.emplace_back(MigrationTimestamp { record.version.Value() });
 
@@ -87,21 +87,21 @@ void MigrationManager::ApplySingleMigration(MigrationTimestamp timestamp)
 void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
 {
     auto& mapper = GetDataMapper();
-    SqlMigrationQueryBuilder migrationBuilder = mapper.Connection().Migration();
+    SqlMigrationQueryBuilder migrationBuilder = mapper->Connection().Migration();
     migration.Execute(migrationBuilder);
 
     SqlMigrationPlan const plan = migrationBuilder.GetPlan();
 
-    auto stmt = SqlStatement { mapper.Connection() };
+    auto stmt = SqlStatement { mapper->Connection() };
 
     for (SqlMigrationPlanElement const& step: plan.steps)
     {
-        auto const sqlScripts = ToSql(mapper.Connection().QueryFormatter(), step);
+        auto const sqlScripts = ToSql(mapper->Connection().QueryFormatter(), step);
         for (auto const& sqlScript: sqlScripts)
             stmt.ExecuteDirect(sqlScript);
     }
 
-    mapper.CreateExplicit(SchemaMigration { .version = migration.GetTimestamp().value });
+    mapper->CreateExplicit(SchemaMigration { .version = migration.GetTimestamp().value });
 }
 
 size_t MigrationManager::ApplyPendingMigrations(ExecuteCallback const& feedbackCallback)
@@ -127,7 +127,7 @@ size_t MigrationManager::ApplyPendingMigrations(ExecuteCallback const& feedbackC
 
 SqlTransaction MigrationManager::Transaction()
 {
-    return SqlTransaction { GetDataMapper().Connection() };
+    return SqlTransaction { GetDataMapper()->Connection() };
 }
 
 } // namespace Lightweight::SqlMigration
