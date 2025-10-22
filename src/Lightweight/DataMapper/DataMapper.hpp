@@ -207,41 +207,6 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
     template <typename Record, typename... InputParameters>
     std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters);
 
-    /// Queries multiple records and returns them as a vector of std::tuple of the given record types.
-    /// This can be used to query multiple record types in a single query.
-    ///
-    /// example:
-    /// @code
-    /// struct Person
-    /// {
-    ///   int id;
-    ///   std::string name;
-    ///   std::string email;
-    ///   std::string phone;
-    /// };
-    /// struct Address
-    /// {
-    ///   int id;
-    ///   std::string address;
-    ///   std::string city;
-    ///   std::string country;
-    /// };
-    /// void example(DataMapper& dm)
-    /// {
-    ///   auto const sqlQueryString = R"(SELECT p.*, a.* FROM "Person" p INNER JOIN "Address" a ON p.id = a.id WHERE p.city =
-    ///   Berlin AND a.country = Germany)";
-    ///   auto const records = dm.QueryToTuple<Person, Address>(sqlQueryString);
-    ///   for (auto const& [person, address] : records)
-    ///   {
-    ///     std::println("Person: {}", DataMapper::Inspect(person));
-    ///     std::println("Address: {}", DataMapper::Inspect(address));
-    ///   }
-    /// }
-    /// @endcode
-    template <typename... Records>
-        requires DataMapperRecords<Records...>
-    std::vector<std::tuple<Records...>> QueryToTuple(SqlSelectQueryBuilder::ComposedQuery const& selectQuery);
-
     /// Queries multiple records from the database, based on the given query.
     ///
     /// @param sqlQueryString The SQL query string to execute.
@@ -303,7 +268,7 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
 
     /// Queries records of different types from the database, based on the given query.
     /// User can constructed query that selects columns from the multiple tables
-    /// this function is uset to get result of the
+    /// this function is used to get result of the query
     ///
     /// example:
     /// @code
@@ -325,16 +290,13 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
     /// {
     ///   // do something with elementA and elementC
     /// }
-    template <typename FirstRecord, typename NextRecord, typename... InputParameters>
-        requires DataMapperRecord<FirstRecord> && DataMapperRecord<NextRecord>
-    // TODO : need more generic one and we also have queryToTuple
-    std::vector<std::tuple<FirstRecord, NextRecord>> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
-                                                           InputParameters&&... inputParameters);
+    template <typename First, typename Second, typename... Rest>
+        requires DataMapperRecords<First> && DataMapperRecords<Second> && DataMapperRecords<Rest...>
+    std::vector<std::tuple<First, Second, Rest...>> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery);
 
     /// Queries records of different types from the database, based on the given query.
     template <typename FirstRecord, typename NextRecord>
         requires DataMapperRecord<FirstRecord> && DataMapperRecord<NextRecord>
-    // TODO : need more generic one and we also have queryToTuple
     SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>> Query()
     {
         std::string fields;
@@ -1030,11 +992,11 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
     return result;
 }
 
-template <typename... Records>
-    requires DataMapperRecords<Records...>
-std::vector<std::tuple<Records...>> DataMapper::QueryToTuple(SqlSelectQueryBuilder::ComposedQuery const& selectQuery)
+template <typename First, typename Second, typename... Rest>
+    requires DataMapperRecords<First> && DataMapperRecords<Second> && DataMapperRecords<Rest...>
+std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery)
 {
-    using value_type = std::tuple<Records...>;
+    using value_type = std::tuple<First, Second, Rest...>;
     auto result = std::vector<value_type> {};
 
     _stmt.Prepare(selectQuery.ToSql());
@@ -1103,38 +1065,6 @@ std::vector<std::tuple<Records...>> DataMapper::QueryToTuple(SqlSelectQueryBuild
             ConfigureRelationAutoLoading(element);
         });
     }
-
-    return result;
-}
-
-template <typename FirstRecord, typename SecondRecord, typename... InputParameters>
-    requires DataMapperRecord<FirstRecord> && DataMapperRecord<SecondRecord>
-std::vector<std::tuple<FirstRecord, SecondRecord>> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
-                                                                     InputParameters&&... inputParameters)
-{
-    auto result = std::vector<std::tuple<FirstRecord, SecondRecord>> {};
-
-    _stmt.Prepare(selectQuery.ToSql());
-    _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
-
-    auto const ConfigureFetchAndBind = [this](auto& record) {
-        auto& [recordFirst, recordSecond] = record;
-        // clang-cl gives false possitive error that *this*
-        // is not used in the lambda, to avoid the warning,
-        // use it here explicitly
-        this->BindOutputColumns<FirstRecord, 1>(recordFirst);
-        this->BindOutputColumns<SecondRecord, Reflection::CountMembers<FirstRecord> + 1>(recordSecond);
-        this->ConfigureRelationAutoLoading(recordFirst);
-        this->ConfigureRelationAutoLoading(recordSecond);
-    };
-
-    ConfigureFetchAndBind(result.emplace_back());
-    while (_stmt.FetchRow())
-        ConfigureFetchAndBind(result.emplace_back());
-
-    // remove the last empty record
-    if (!result.empty())
-        result.pop_back();
 
     return result;
 }
