@@ -832,7 +832,7 @@ void DataMapper::Update(Record& record)
     {
         if (record.[:el:].IsModified())
         {
-            _stmt.BindInputParameter(i++, record.[:el:].Value(), std::meta::identifier_of(el));
+            _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
         }
     }
 
@@ -841,23 +841,21 @@ void DataMapper::Update(Record& record)
         using FieldType = typename[:std::meta::type_of(el):];
         if constexpr (FieldType::IsPrimaryKey)
         {
-            _stmt.BindInputParameter(i++, record.[:el:].Value(), std::meta::identifier_of(el));
+            _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
         }
     }
 #else
     // Bind the SET clause
-    Reflection::CallOnMembers(
-        record, [this, &i]<typename Name, typename FieldType>(Name const& name, FieldType const& field) mutable {
-            if (field.IsModified())
-                _stmt.BindInputParameter(i++, field.Value(), name);
-        });
+    Reflection::CallOnMembersWithoutName(record, [this, &i]<size_t I, typename FieldType>(FieldType const& field) {
+        if (field.IsModified())
+            _stmt.BindInputParameter(i++, field.Value(), FieldNameAt<I, Record>);
+    });
 
     // Bind the WHERE clause
-    Reflection::CallOnMembers(
-        record, [this, &i]<typename Name, typename FieldType>(Name const& name, FieldType const& field) mutable {
-            if constexpr (FieldType::IsPrimaryKey)
-                _stmt.BindInputParameter(i++, field.Value(), name);
-        });
+    Reflection::CallOnMembersWithoutName(record, [this, &i]<size_t I, typename FieldType>(FieldType const& field) {
+        if constexpr (IsPrimaryKey<Reflection::MemberTypeOf<I, Record>>)
+            _stmt.BindInputParameter(i++, field.Value(), FieldNameAt<I, Record>);
+    });
 #endif
 
     _stmt.Execute();
@@ -878,14 +876,13 @@ std::size_t DataMapper::Delete(Record const& record)
     {
         using FieldType = typename[:std::meta::type_of(el):];
         if constexpr (FieldType::IsPrimaryKey)
-            std::ignore = query.Where(std::meta::identifier_of(el), SqlWildcard);
+            std::ignore = query.Where(FieldNameOf<el>, SqlWildcard);
     }
 #else
-    Reflection::CallOnMembers(record,
-                              [&query]<typename Name, typename FieldType>(Name const& name, FieldType const& /*field*/) {
-                                  if constexpr (FieldType::IsPrimaryKey)
-                                      std::ignore = query.Where(name, SqlWildcard);
-                              });
+    Reflection::CallOnMembersWithoutName(record, [&query]<size_t I, typename FieldType>(FieldType const& /*field*/) {
+        if constexpr (IsPrimaryKey<Reflection::MemberTypeOf<I, Record>>)
+            std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
+    });
 #endif
 
     _stmt.Prepare(query);
@@ -897,16 +894,15 @@ std::size_t DataMapper::Delete(Record const& record)
         using FieldType = typename[:std::meta::type_of(el):];
         if constexpr (FieldType::IsPrimaryKey)
         {
-            _stmt.BindInputParameter(i++, record.[:el:].Value(), std::meta::identifier_of(el));
+            _stmt.BindInputParameter(i++, record.[:el:].Value(), FieldNameOf<el>);
         }
     }
 #else
     // Bind the WHERE clause
-    Reflection::CallOnMembers(
-        record,
-        [this, i = SQLSMALLINT { 1 }]<typename Name, typename FieldType>(Name const& name, FieldType const& field) mutable {
-            if constexpr (FieldType::IsPrimaryKey)
-                _stmt.BindInputParameter(i++, field.Value(), name);
+    Reflection::CallOnMembersWithoutName(
+        record, [this, i = SQLSMALLINT { 1 }]<size_t I, typename FieldType>(FieldType const& field) mutable {
+            if constexpr (IsPrimaryKey<Reflection::MemberTypeOf<I, Record>>)
+                _stmt.BindInputParameter(i++, field.Value(), FieldNameAt<I, Record>);
         });
 #endif
 
