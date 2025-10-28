@@ -42,12 +42,6 @@ std::ostream& operator<<(std::ostream& os, Email const& record)
     return os << DataMapper::Inspect(record);
 }
 
-// TODO: Get this to work
-// std::ostream& operator<<(std::ostream& os, RecordWithStorageFields auto const& record)
-// {
-//     return os << DataMapper::Inspect(record);
-// }
-
 TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")
 {
     auto dm = DataMapper::Create();
@@ -268,6 +262,16 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsToChain", "[DataMapper][relations]")
         REQUIRE(queriedAccountHistory.account->supplier->id.Value() == supplier1.id.Value());
         REQUIRE(queriedAccountHistory.account->supplier->name.Value() == supplier1.name.Value());
     }
+
+    SECTION("Query single with relation auto loading and unique_ptr ")
+    {
+        auto queriedAccountHistory =
+            std::make_unique<AccountHistory>(dm->QuerySingle<AccountHistory>(accountHistory1.id).value());
+        REQUIRE(queriedAccountHistory->account.Value() == account1.id.Value());
+        REQUIRE(queriedAccountHistory->account->id.Value() == account1.id.Value());
+        REQUIRE(queriedAccountHistory->account->supplier->id.Value() == supplier1.id.Value());
+        REQUIRE(queriedAccountHistory->account->supplier->name.Value() == supplier1.name.Value());
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "BelongsToChainWithScope", "[DataMapper][relations]")
@@ -288,10 +292,31 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsToChainWithScope", "[DataMapper][relati
             }();
             REQUIRE(accountHistory.account.Value());
 
-            auto dm = DataMapper::Create();
             REQUIRE(accountHistory.account->id.Value());
             REQUIRE(accountHistory.account->supplier->id.Value());
             REQUIRE(!accountHistory.account->supplier->name.Value().empty());
+        }
+    }
+
+    SECTION("Query with relation auto loading in another scope and unique_ptr ")
+    {
+        {
+            auto accountHistory = []() {
+                auto scopedDm = DataMapper::Create();
+                scopedDm->CreateTables<Suppliers, Account, AccountHistory>();
+                auto supplier1 = Suppliers { .name = "Supplier 1" };
+                scopedDm->Create(supplier1);
+                auto account1 = Account { .iban = "DE89370400440532013000", .supplier = supplier1 };
+                scopedDm->Create(account1);
+                auto accountHistory1 = AccountHistory { .credit_rating = 100, .account = account1 };
+                scopedDm->Create(accountHistory1);
+                return std::make_unique<AccountHistory>(scopedDm->QuerySingle<AccountHistory>(accountHistory1.id).value());
+            }();
+            REQUIRE(accountHistory->account.Value());
+
+            REQUIRE(accountHistory->account->id.Value());
+            REQUIRE(accountHistory->account->supplier->id.Value());
+            REQUIRE(!accountHistory->account->supplier->name.Value().empty());
         }
     }
 }
