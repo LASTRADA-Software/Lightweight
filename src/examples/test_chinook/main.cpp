@@ -16,6 +16,7 @@
 
 #include <Lightweight/Lightweight.hpp>
 
+#include <iterator>
 #include <print>
 
 using namespace Lightweight;
@@ -39,13 +40,23 @@ static std::string GetEnvironmentVariable(std::string const& name)
     return {};
 }
 
+template <typename... Args>
+void Log(std::format_string<Args...> fmt, Args&&... args)
+{
+    std::println(fmt, std::forward<Args>(args)...);
+}
+
+
 template <typename Entity>
 void DumpTable(std::shared_ptr<DataMapper>& dm, size_t limit = 1)
 {
     auto entries = dm->Query<Entity>().First(limit);
     for (auto const& entry: entries)
-        std::println("{}", DataMapper::Inspect(entry));
+    {
+        Log("{}", DataMapper::Inspect(entry));
+    }
 }
+
 
 int main()
 {
@@ -72,7 +83,7 @@ int main()
     auto const empoyees = dm->Query<Employee>().All();
     for (auto const& employee: empoyees)
     {
-        std::println("EmployeeId: {}, FirstName: {}, LastName: {}",
+        Log("EmployeeId: {}, FirstName: {}, LastName: {}",
                      employee.EmployeeId.Value(),
                      toString(employee.FirstName.Value().c_str()),
                      toString(employee.LastName.Value().c_str()));
@@ -82,10 +93,10 @@ int main()
     int numberOfAlbums = 0;
     for (auto const& album: SqlRowIterator<Album>(dm->Connection()))
     {
-        std::println("{}", toString(album.Title.Value().c_str()));
+        Log("{}", toString(album.Title.Value().c_str()));
         ++numberOfAlbums;
     }
-    std::println("Iterated over {} Albums", numberOfAlbums);
+    Log("Iterated over {} Albums", numberOfAlbums);
 
     // select album with the title "Mozart Gala: Famous Arias"
     auto album = dm->Query<Album>() // NOLINT(bugprone-unchecked-optional-access)
@@ -93,13 +104,13 @@ int main()
                      .First()
                      .value();
 
-    std::println("AlbumId: {}, Title: {}", album.AlbumId.Value(), album.ArtistId.Value());
+    Log("AlbumId: {}, Title: {}", album.AlbumId.Value(), album.ArtistId.Value());
 
     // we can use BelongsTo<&Artist::ArtistId, SqlRealName{"ArtistId"}> c_ArtistId member
     // to get access to the artist entry in the database, using dereference operator
     // after configuring the relations
     dm->ConfigureRelationAutoLoading(album);
-    std::println("Artist name: {}",
+    Log("Artist name: {}",
                  toString(album.ArtistId->Name.Value().value().c_str())); // NOLINT(bugprone-unchecked-optional-access)
 
     {
@@ -108,27 +119,43 @@ int main()
                           .Where(FieldNameOf<&Artist::Name>, "=", "Red Hot Chili Peppers")
                           .First()
                           .value();
-        std::println("ArtistId: {}, Name: {}", // NOLINT(bugprone-unchecked-optional-access)
+
+        Log("ArtistId: {}, Name: {}", // NOLINT(bugprone-unchecked-optional-access)
                      artist.ArtistId.Value(),
                      toString(artist.Name.Value().value().c_str())); // NOLINT(bugprone-unchecked-optional-access)
 
         // get albums of the artist
         auto albums = dm->Query<Album>().Where(FieldNameOf<&Album::ArtistId>, "=", artist.ArtistId.Value()).All();
-        std::println("got {} albums", albums.size());
+
+        Log("got {} albums", albums.size());
 
         auto albumIds = albums | std::views::transform([](auto const& album) { return album.AlbumId.Value(); });
         // get all tracks from all albums
         auto tracks = dm->Query<Track>().WhereIn(FieldNameOf<&Track::AlbumId>, albumIds).All();
-        std::println("got {} tracks", tracks.size());
+
+        Log("got {} tracks", tracks.size());
 
         // iterate over all tracks and print song names
         for (auto const& track: tracks)
         {
-            std::println("TrackId: {}, Name: {}, Bytes: {} , UnitPrice: {}",
+            Log("TrackId: {}, Name: {}, Bytes: {} , UnitPrice: {}",
                          track.TrackId.Value(),
                          toString(track.Name.Value().c_str()),
-                         track.Bytes.Value().value_or(0),
+                         track.Bytes.ValueOr(),
                          track.UnitPrice.Value().ToString());
+        }
+        
+        for (auto & track: dm->Query<Track>().All())
+        {
+            dm->ConfigureRelationAutoLoading(track);
+            // BelogsTo relation loading
+            Log("Track Name: {}. Media type: {}. Genre: {}. Album id: {}. Artist name: {}",
+                         toString(track.Name.Value().ToStringView()),
+                         toString(track.MediaTypeId->Name.ValueOr().ToStringView()),
+                         toString(track.GenreId->Name.ValueOr().ToStringView()),
+                         toString(track.AlbumId->Title.Value().ToStringView()),
+                         toString(track.AlbumId->ArtistId->Name.ValueOr().ToStringView())
+            );
         }
     }
 
@@ -138,11 +165,11 @@ int main()
 
         for (auto const& [customer, employee]: records)
         {
-            std::println("CustomerId: {}, FirstName: {}, LastName: {}",
+            Log("CustomerId: {}, FirstName: {}, LastName: {}",
                          customer.CustomerId.Value(),
                          toString(customer.FirstName.Value().c_str()),
                          toString(customer.LastName.Value().c_str()));
-            std::println("EmployeeId: {}, FirstName: {}, LastName: {}",
+            Log("EmployeeId: {}, FirstName: {}, LastName: {}",
                          employee.EmployeeId.Value(),
                          toString(employee.FirstName.Value().c_str()),
                          toString(employee.LastName.Value().c_str()));
@@ -152,7 +179,7 @@ int main()
     {
         // get one employee
         auto employee = dm->Query<Employee>().Where(FieldNameOf<&Employee::EmployeeId>, 1).First().value();     // NOLINT(bugprone-unchecked-optional-access)
-        std::println(" {} ", employee.HireDate.Value().value()); // NOLINT(bugprone-unchecked-optional-access)
+        Log(" {} ", employee.HireDate.Value().value()); // NOLINT(bugprone-unchecked-optional-access)
         // update hiring date to current date
         employee.HireDate = SqlDateTime::Now();
         dm->Update(employee);

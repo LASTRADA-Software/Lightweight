@@ -153,6 +153,19 @@ struct Field
     /// Returns the value of the field.
     [[nodiscard]] constexpr T const& Value() const noexcept;
 
+    /// When the field type is optional, unpacks it or returns a default-constructed value.
+    [[nodiscard]] constexpr auto ValueOr() const noexcept
+        requires IsOptional
+    {
+        if (_value.has_value())
+            return _value.value();
+        else
+        {
+            typename T::value_type defaultValue {};
+            return defaultValue;
+        }
+    }
+
     /// Returns a mutable reference to the value of the field.
     ///
     /// @note If the field value is changed through this method, it will not be automatically marked as modified.
