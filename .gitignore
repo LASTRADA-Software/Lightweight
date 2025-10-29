@@ -13,3 +13,4 @@ compile_commands.json
 /html/
 .aider*
 /ddl2cpp.yml
+/test.db
