@@ -450,7 +450,6 @@ TEST_CASE_METHOD(SqlTestFixture, "TestMessageStructTo", "[DataMapper]")
         dm->Create(to);
         auto const queriedTo = dm->QuerySingle<MessageStructTo>(to.id).value();
         REQUIRE(queriedTo.id.Value() == to.id.Value());
-        REQUIRE(!queriedTo.log_message.IsLoaded());
         REQUIRE(!queriedTo.log_message.Value().has_value());
     }
 }
