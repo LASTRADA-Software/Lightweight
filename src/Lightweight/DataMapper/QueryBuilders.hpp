@@ -192,6 +192,8 @@ namespace detail
     }
 } // namespace detail
 
+class DataMapper;
+
 /// Main API for mapping records to C++ from the database using high level C++ syntax.
 ///
 /// @ingroup DataMapper
@@ -199,7 +201,7 @@ template <typename Record, typename Derived>
 class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBuilder<Derived>
 {
   private:
-    SqlStatement& _stmt;
+    DataMapper& _dm;
     SqlQueryFormatter const& _formatter;
 
     std::string _fields;
@@ -217,12 +219,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     }
 
   protected:
-    LIGHTWEIGHT_FORCE_INLINE explicit SqlCoreDataMapperQueryBuilder(SqlStatement& stmt, std::string fields) noexcept:
-        _stmt { stmt },
-        _formatter { stmt.Connection().QueryFormatter() },
-        _fields { std::move(fields) }
-    {
-    }
+    LIGHTWEIGHT_FORCE_INLINE explicit SqlCoreDataMapperQueryBuilder(DataMapper& dm, std::string fields) noexcept;
 
   public:
     /// Executes a SELECT COUNT query and returns the number of records found.
@@ -309,8 +306,8 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
     friend class DataMapper;
     friend class SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record>>;
 
-    LIGHTWEIGHT_FORCE_INLINE explicit SqlAllFieldsQueryBuilder(SqlStatement& stmt, std::string fields) noexcept:
-        SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record>> { stmt, std::move(fields) }
+    LIGHTWEIGHT_FORCE_INLINE explicit SqlAllFieldsQueryBuilder(DataMapper& dm, std::string fields) noexcept:
+        SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record>> { dm, std::move(fields) }
     {
     }
 
@@ -334,8 +331,8 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecor
     friend class DataMapper;
     friend class SqlCoreDataMapperQueryBuilder<RecordType, SqlAllFieldsQueryBuilder<RecordType>>;
 
-    LIGHTWEIGHT_FORCE_INLINE explicit SqlAllFieldsQueryBuilder(SqlStatement& stmt, std::string fields) noexcept:
-        SqlCoreDataMapperQueryBuilder<RecordType, SqlAllFieldsQueryBuilder<RecordType>> { stmt, std::move(fields) }
+    LIGHTWEIGHT_FORCE_INLINE explicit SqlAllFieldsQueryBuilder(DataMapper& dm, std::string fields) noexcept:
+        SqlCoreDataMapperQueryBuilder<RecordType, SqlAllFieldsQueryBuilder<RecordType>> { dm, std::move(fields) }
     {
     }
 

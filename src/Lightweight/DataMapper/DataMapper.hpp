@@ -150,6 +150,12 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
         return _connection;
     }
 
+    /// Returns the mutable statement reference used by this data mapper.
+    [[nodiscard]] SqlStatement& Statement() noexcept
+    {
+        return _stmt;
+    }
+
     /// Constructs a human readable string representation of the given record.
     template <typename Record>
     static std::string Inspect(Record const& record);
@@ -312,7 +318,7 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
         emplaceRecordsFrom.template operator()<FirstRecord>();
         emplaceRecordsFrom.template operator()<NextRecord>();
 
-        return SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>>(_stmt, std::move(fields));
+        return SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>>(*this, std::move(fields));
     }
 
     /// Queries records of given Record type.
@@ -340,7 +346,7 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
             fields += FieldNameAt<I, Record>;
             fields += '"';
         });
-        return SqlAllFieldsQueryBuilder<Record>(_stmt, std::move(fields));
+        return SqlAllFieldsQueryBuilder<Record>(*this, std::move(fields));
     }
 
     /// Updates the record in the database.
@@ -425,15 +431,27 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
 
 // ------------------------------------------------------------------------------------------------
 
+
+template <typename Record, typename Derived>
+
+inline SqlCoreDataMapperQueryBuilder<Record, Derived>::SqlCoreDataMapperQueryBuilder(DataMapper& dm, std::string fields) noexcept:
+        _dm { dm },
+        _formatter { dm.Connection().QueryFormatter() },
+        _fields { std::move(fields) }
+    {
+    }
+
+
+
 template <typename Record, typename Derived>
 size_t SqlCoreDataMapperQueryBuilder<Record, Derived>::Count()
 {
-    _stmt.ExecuteDirect(_formatter.SelectCount(this->_query.distinct,
+    _dm.Statement().ExecuteDirect(_formatter.SelectCount(this->_query.distinct,
                                                RecordTableName<Record>,
                                                this->_query.searchCondition.tableAlias,
                                                this->_query.searchCondition.tableJoins,
                                                this->_query.searchCondition.condition));
-    auto reader = _stmt.GetResultCursor();
+    auto reader = _dm.Statement().GetResultCursor();
     if (reader.FetchRow())
         return reader.GetColumn<size_t>(1);
     return 0;
@@ -443,7 +461,7 @@ template <typename Record, typename Derived>
 std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::All()
 {
     auto records = std::vector<Record> {};
-    _stmt.ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
+    _dm.Statement().ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
                                              _fields,
                                              RecordTableName<Record>,
                                              this->_query.searchCondition.tableAlias,
@@ -451,7 +469,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::All()
                                              this->_query.searchCondition.condition,
                                              this->_query.orderBy,
                                              this->_query.groupBy));
-    Derived::ReadResults(_stmt.Connection().ServerType(), _stmt.GetResultCursor(), &records);
+    Derived::ReadResults(_dm.Statement().Connection().ServerType(), _dm.Statement().GetResultCursor(), &records);
     return records;
 }
 
@@ -463,7 +481,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived>::All() -> std::vector<Refere
     using value_type = ReferencedFieldTypeOf<Field>;
     auto result = std::vector<value_type> {};
 
-    _stmt.ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
+    _dm.Statement().ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
                                              FullyQualifiedNamesOf<Field>.string_view(),
                                              RecordTableName<Record>,
                                              this->_query.searchCondition.tableAlias,
@@ -471,8 +489,8 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived>::All() -> std::vector<Refere
                                              this->_query.searchCondition.condition,
                                              this->_query.orderBy,
                                              this->_query.groupBy));
-    SqlResultCursor reader = _stmt.GetResultCursor();
-    auto const outputColumnsBound = detail::CanSafelyBindOutputColumn<value_type>(_stmt.Connection().ServerType());
+    SqlResultCursor reader = _dm.Statement().GetResultCursor();
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumn<value_type>(_dm.Statement().Connection().ServerType());
     while (true)
     {
         auto& value = result.emplace_back();
@@ -499,7 +517,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived>::All() -> std::vector<Record
 {
     auto records = std::vector<Record> {};
 
-    _stmt.ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
+    _dm.Statement().ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
                                              FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
                                              RecordTableName<Record>,
                                              this->_query.searchCondition.tableAlias,
@@ -508,8 +526,8 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived>::All() -> std::vector<Record
                                              this->_query.orderBy,
                                              this->_query.groupBy));
 
-    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
-    SqlResultCursor reader = _stmt.GetResultCursor();
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_dm.Statement().Connection().ServerType());
+    SqlResultCursor reader = _dm.Statement().GetResultCursor();
     while (true)
     {
         auto& record = records.emplace_back();
@@ -538,7 +556,7 @@ template <typename Record, typename Derived>
 std::optional<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::First()
 {
     std::optional<Record> record {};
-    _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+    _dm.Statement().ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
                                                _fields,
                                                RecordTableName<Record>,
                                                this->_query.searchCondition.tableAlias,
@@ -546,7 +564,7 @@ std::optional<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::First()
                                                this->_query.searchCondition.condition,
                                                this->_query.orderBy,
                                                1));
-    Derived::ReadResult(_stmt.Connection().ServerType(), _stmt.GetResultCursor(), &record);
+    Derived::ReadResult(_dm.Statement().Connection().ServerType(), _dm.Statement().GetResultCursor(), &record);
     return record;
 }
 
@@ -556,7 +574,7 @@ template <auto Field>
 auto SqlCoreDataMapperQueryBuilder<Record, Derived>::First() -> std::optional<ReferencedFieldTypeOf<Field>>
 {
     auto constexpr count = 1;
-    _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+    _dm.Statement().ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
                                                FullyQualifiedNamesOf<Field>.string_view(),
                                                RecordTableName<Record>,
                                                this->_query.searchCondition.tableAlias,
@@ -564,7 +582,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived>::First() -> std::optional<Re
                                                this->_query.searchCondition.condition,
                                                this->_query.orderBy,
                                                count));
-    if (SqlResultCursor reader = _stmt.GetResultCursor(); reader.FetchRow())
+    if (SqlResultCursor reader = _dm.Statement().GetResultCursor(); reader.FetchRow())
         return reader.template GetColumn<ReferencedFieldTypeOf<Field>>(1);
     return std::nullopt;
 }
@@ -576,7 +594,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived>::First() -> std::optional<Re
 {
     auto optionalRecord = std::optional<Record> {};
 
-    _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+    _dm.Statement().ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
                                                FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
                                                RecordTableName<Record>,
                                                this->_query.searchCondition.tableAlias,
@@ -586,8 +604,8 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived>::First() -> std::optional<Re
                                                1));
 
     auto& record = optionalRecord.emplace();
-    SqlResultCursor reader = _stmt.GetResultCursor();
-    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
+    SqlResultCursor reader = _dm.Statement().GetResultCursor();
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_dm.Statement().Connection().ServerType());
     if (outputColumnsBound)
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
         reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
@@ -610,7 +628,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::First(size_t
 {
     auto records = std::vector<Record> {};
     records.reserve(n);
-    _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+    _dm.Statement().ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
                                                _fields,
                                                RecordTableName<Record>,
                                                this->_query.searchCondition.tableAlias,
@@ -618,7 +636,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::First(size_t
                                                this->_query.searchCondition.condition,
                                                this->_query.orderBy,
                                                n));
-    Derived::ReadResults(_stmt.Connection().ServerType(), _stmt.GetResultCursor(), &records);
+    Derived::ReadResults(_dm.Statement().Connection().ServerType(), _dm.Statement().GetResultCursor(), &records);
     return records;
 }
 
@@ -627,7 +645,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::Range(size_t
 {
     auto records = std::vector<Record> {};
     records.reserve(limit);
-    _stmt.ExecuteDirect(
+    _dm.Statement().ExecuteDirect(
         _formatter.SelectRange(this->_query.distinct,
                                _fields,
                                RecordTableName<Record>,
@@ -640,7 +658,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::Range(size_t
                                this->_query.groupBy,
                                offset,
                                limit));
-    Derived::ReadResults(_stmt.Connection().ServerType(), _stmt.GetResultCursor(), &records);
+    Derived::ReadResults(_dm.Statement().Connection().ServerType(), _dm.Statement().GetResultCursor(), &records);
     return records;
 }
 
@@ -650,7 +668,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::Range(size_t
 {
     auto records = std::vector<Record> {};
     records.reserve(limit);
-    _stmt.ExecuteDirect(
+    _dm.Statement().ExecuteDirect(
         _formatter.SelectRange(this->_query.distinct,
                                FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
                                RecordTableName<Record>,
@@ -664,8 +682,8 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::Range(size_t
                                offset,
                                limit));
 
-    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
-    SqlResultCursor reader = _stmt.GetResultCursor();
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_dm.Statement().Connection().ServerType());
+    SqlResultCursor reader = _dm.Statement().GetResultCursor();
     while (true)
     {
         auto& record = records.emplace_back();
@@ -696,7 +714,7 @@ template <auto... ReferencedFields>
 {
     auto records = std::vector<Record> {};
     records.reserve(n);
-    _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+    _dm.Statement().ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
                                                FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
                                                RecordTableName<Record>,
                                                this->_query.searchCondition.tableAlias,
@@ -705,8 +723,8 @@ template <auto... ReferencedFields>
                                                this->_query.orderBy,
                                                n));
 
-    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
-    SqlResultCursor reader = _stmt.GetResultCursor();
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_dm.Statement().Connection().ServerType());
+    SqlResultCursor reader = _dm.Statement().GetResultCursor();
     while (true)
     {
         auto& record = records.emplace_back();
