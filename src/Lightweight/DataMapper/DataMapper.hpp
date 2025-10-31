@@ -425,6 +425,372 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
 
 // ------------------------------------------------------------------------------------------------
 
+template <typename Record, typename Derived>
+size_t SqlCoreDataMapperQueryBuilder<Record, Derived>::Count()
+{
+    _stmt.ExecuteDirect(_formatter.SelectCount(this->_query.distinct,
+                                               RecordTableName<Record>,
+                                               this->_query.searchCondition.tableAlias,
+                                               this->_query.searchCondition.tableJoins,
+                                               this->_query.searchCondition.condition));
+    auto reader = _stmt.GetResultCursor();
+    if (reader.FetchRow())
+        return reader.GetColumn<size_t>(1);
+    return 0;
+}
+
+template <typename Record, typename Derived>
+std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::All()
+{
+    auto records = std::vector<Record> {};
+    _stmt.ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
+                                             _fields,
+                                             RecordTableName<Record>,
+                                             this->_query.searchCondition.tableAlias,
+                                             this->_query.searchCondition.tableJoins,
+                                             this->_query.searchCondition.condition,
+                                             this->_query.orderBy,
+                                             this->_query.groupBy));
+    Derived::ReadResults(_stmt.Connection().ServerType(), _stmt.GetResultCursor(), &records);
+    return records;
+}
+
+template <typename Record, typename Derived>
+template <auto Field>
+    requires std::is_member_object_pointer_v<decltype(Field)>
+auto SqlCoreDataMapperQueryBuilder<Record, Derived>::All() -> std::vector<ReferencedFieldTypeOf<Field>>
+{
+    using value_type = ReferencedFieldTypeOf<Field>;
+    auto result = std::vector<value_type> {};
+
+    _stmt.ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
+                                             FullyQualifiedNamesOf<Field>.string_view(),
+                                             RecordTableName<Record>,
+                                             this->_query.searchCondition.tableAlias,
+                                             this->_query.searchCondition.tableJoins,
+                                             this->_query.searchCondition.condition,
+                                             this->_query.orderBy,
+                                             this->_query.groupBy));
+    SqlResultCursor reader = _stmt.GetResultCursor();
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumn<value_type>(_stmt.Connection().ServerType());
+    while (true)
+    {
+        auto& value = result.emplace_back();
+        if (outputColumnsBound)
+            reader.BindOutputColumn(1, &value);
+
+        if (!reader.FetchRow())
+        {
+            result.pop_back();
+            break;
+        }
+
+        if (!outputColumnsBound)
+            value = reader.GetColumn<value_type>(1);
+    }
+
+    return result;
+}
+
+template <typename Record, typename Derived>
+template <auto... ReferencedFields>
+    requires(sizeof...(ReferencedFields) >= 2)
+auto SqlCoreDataMapperQueryBuilder<Record, Derived>::All() -> std::vector<Record>
+{
+    auto records = std::vector<Record> {};
+
+    _stmt.ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
+                                             FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
+                                             RecordTableName<Record>,
+                                             this->_query.searchCondition.tableAlias,
+                                             this->_query.searchCondition.tableJoins,
+                                             this->_query.searchCondition.condition,
+                                             this->_query.orderBy,
+                                             this->_query.groupBy));
+
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
+    SqlResultCursor reader = _stmt.GetResultCursor();
+    while (true)
+    {
+        auto& record = records.emplace_back();
+        if (outputColumnsBound)
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+            reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
+#else
+            reader.BindOutputColumns(&(record.*ReferencedFields)...);
+#endif
+        if (!reader.FetchRow())
+        {
+            records.pop_back();
+            break;
+        }
+        if (!outputColumnsBound)
+        {
+            using ElementMask = std::integer_sequence<size_t, MemberIndexOf<ReferencedFields>...>;
+            detail::GetAllColumns<ElementMask>(reader, record);
+        }
+    }
+
+    return records;
+}
+
+template <typename Record, typename Derived>
+std::optional<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::First()
+{
+    std::optional<Record> record {};
+    _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+                                               _fields,
+                                               RecordTableName<Record>,
+                                               this->_query.searchCondition.tableAlias,
+                                               this->_query.searchCondition.tableJoins,
+                                               this->_query.searchCondition.condition,
+                                               this->_query.orderBy,
+                                               1));
+    Derived::ReadResult(_stmt.Connection().ServerType(), _stmt.GetResultCursor(), &record);
+    return record;
+}
+
+template <typename Record, typename Derived>
+template <auto Field>
+    requires std::is_member_object_pointer_v<decltype(Field)>
+auto SqlCoreDataMapperQueryBuilder<Record, Derived>::First() -> std::optional<ReferencedFieldTypeOf<Field>>
+{
+    auto constexpr count = 1;
+    _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+                                               FullyQualifiedNamesOf<Field>.string_view(),
+                                               RecordTableName<Record>,
+                                               this->_query.searchCondition.tableAlias,
+                                               this->_query.searchCondition.tableJoins,
+                                               this->_query.searchCondition.condition,
+                                               this->_query.orderBy,
+                                               count));
+    if (SqlResultCursor reader = _stmt.GetResultCursor(); reader.FetchRow())
+        return reader.template GetColumn<ReferencedFieldTypeOf<Field>>(1);
+    return std::nullopt;
+}
+
+template <typename Record, typename Derived>
+template <auto... ReferencedFields>
+    requires(sizeof...(ReferencedFields) >= 2)
+auto SqlCoreDataMapperQueryBuilder<Record, Derived>::First() -> std::optional<Record>
+{
+    auto optionalRecord = std::optional<Record> {};
+
+    _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+                                               FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
+                                               RecordTableName<Record>,
+                                               this->_query.searchCondition.tableAlias,
+                                               this->_query.searchCondition.tableJoins,
+                                               this->_query.searchCondition.condition,
+                                               this->_query.orderBy,
+                                               1));
+
+    auto& record = optionalRecord.emplace();
+    SqlResultCursor reader = _stmt.GetResultCursor();
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
+    if (outputColumnsBound)
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+        reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
+#else
+        reader.BindOutputColumns(&(record.*ReferencedFields)...);
+#endif
+    if (!reader.FetchRow())
+        return std::nullopt;
+    if (!outputColumnsBound)
+    {
+        using ElementMask = std::integer_sequence<size_t, MemberIndexOf<ReferencedFields>...>;
+        detail::GetAllColumns<ElementMask>(reader, record);
+    }
+
+    return optionalRecord;
+}
+
+template <typename Record, typename Derived>
+std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::First(size_t n)
+{
+    auto records = std::vector<Record> {};
+    records.reserve(n);
+    _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+                                               _fields,
+                                               RecordTableName<Record>,
+                                               this->_query.searchCondition.tableAlias,
+                                               this->_query.searchCondition.tableJoins,
+                                               this->_query.searchCondition.condition,
+                                               this->_query.orderBy,
+                                               n));
+    Derived::ReadResults(_stmt.Connection().ServerType(), _stmt.GetResultCursor(), &records);
+    return records;
+}
+
+template <typename Record, typename Derived>
+std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::Range(size_t offset, size_t limit)
+{
+    auto records = std::vector<Record> {};
+    records.reserve(limit);
+    _stmt.ExecuteDirect(
+        _formatter.SelectRange(this->_query.distinct,
+                               _fields,
+                               RecordTableName<Record>,
+                               this->_query.searchCondition.tableAlias,
+                               this->_query.searchCondition.tableJoins,
+                               this->_query.searchCondition.condition,
+                               !this->_query.orderBy.empty()
+                                   ? this->_query.orderBy
+                                   : std::format(" ORDER BY \"{}\" ASC", FieldNameAt<RecordPrimaryKeyIndex<Record>, Record>),
+                               this->_query.groupBy,
+                               offset,
+                               limit));
+    Derived::ReadResults(_stmt.Connection().ServerType(), _stmt.GetResultCursor(), &records);
+    return records;
+}
+
+template <typename Record, typename Derived>
+template <auto... ReferencedFields>
+std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::Range(size_t offset, size_t limit)
+{
+    auto records = std::vector<Record> {};
+    records.reserve(limit);
+    _stmt.ExecuteDirect(
+        _formatter.SelectRange(this->_query.distinct,
+                               FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
+                               RecordTableName<Record>,
+                               this->_query.searchCondition.tableAlias,
+                               this->_query.searchCondition.tableJoins,
+                               this->_query.searchCondition.condition,
+                               !this->_query.orderBy.empty()
+                                   ? this->_query.orderBy
+                                   : std::format(" ORDER BY \"{}\" ASC", FieldNameAt<RecordPrimaryKeyIndex<Record>, Record>),
+                               this->_query.groupBy,
+                               offset,
+                               limit));
+
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
+    SqlResultCursor reader = _stmt.GetResultCursor();
+    while (true)
+    {
+        auto& record = records.emplace_back();
+        if (outputColumnsBound)
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+            reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
+#else
+            reader.BindOutputColumns(&(record.*ReferencedFields)...);
+#endif
+        if (!reader.FetchRow())
+        {
+            records.pop_back();
+            break;
+        }
+        if (!outputColumnsBound)
+        {
+            using ElementMask = std::integer_sequence<size_t, MemberIndexOf<ReferencedFields>...>;
+            detail::GetAllColumns<ElementMask>(reader, record);
+        }
+    }
+
+    return records;
+}
+
+template <typename Record, typename Derived>
+template <auto... ReferencedFields>
+[[nodiscard]] std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::First(size_t n)
+{
+    auto records = std::vector<Record> {};
+    records.reserve(n);
+    _stmt.ExecuteDirect(_formatter.SelectFirst(this->_query.distinct,
+                                               FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
+                                               RecordTableName<Record>,
+                                               this->_query.searchCondition.tableAlias,
+                                               this->_query.searchCondition.tableJoins,
+                                               this->_query.searchCondition.condition,
+                                               this->_query.orderBy,
+                                               n));
+
+    auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
+    SqlResultCursor reader = _stmt.GetResultCursor();
+    while (true)
+    {
+        auto& record = records.emplace_back();
+        if (outputColumnsBound)
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+            reader.BindOutputColumns(&(record.[:ReferencedFields:])...);
+#else
+            reader.BindOutputColumns(&(record.*ReferencedFields)...);
+#endif
+        if (!reader.FetchRow())
+        {
+            records.pop_back();
+            break;
+        }
+        if (!outputColumnsBound)
+        {
+            using ElementMask = std::integer_sequence<size_t, MemberIndexOf<ReferencedFields>...>;
+            detail::GetAllColumns<ElementMask>(reader, record);
+        }
+    }
+
+    return records;
+}
+
+template <typename Record>
+void SqlAllFieldsQueryBuilder<Record>::ReadResults(SqlServerType sqlServerType,
+                                                   SqlResultCursor reader,
+                                                   std::vector<Record>* records)
+{
+    while (true)
+    {
+        Record& record = records->emplace_back();
+        if (!detail::ReadSingleResult(sqlServerType, reader, record))
+        {
+            records->pop_back();
+            break;
+        }
+    }
+}
+
+template <typename Record>
+void SqlAllFieldsQueryBuilder<Record>::ReadResult(SqlServerType sqlServerType,
+                                                  SqlResultCursor reader,
+                                                  std::optional<Record>* optionalRecord)
+{
+    Record& record = optionalRecord->emplace();
+    if (!detail::ReadSingleResult(sqlServerType, reader, record))
+        optionalRecord->reset();
+}
+
+template <typename FirstRecord, typename SecondRecord>
+void SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>>::ReadResults(SqlServerType sqlServerType,
+                                                                                  SqlResultCursor reader,
+                                                                                  std::vector<RecordType>* records)
+{
+    while (true)
+    {
+        auto& record = records->emplace_back();
+        auto& [firstRecord, secondRecord] = record;
+
+        using FirstRecordType = std::remove_cvref_t<decltype(firstRecord)>;
+        using SecondRecordType = std::remove_cvref_t<decltype(secondRecord)>;
+
+        auto const outputColumnsBoundFirst = detail::CanSafelyBindOutputColumns<FirstRecordType>(sqlServerType);
+        auto const outputColumnsBoundSecond = detail::CanSafelyBindOutputColumns<SecondRecordType>(sqlServerType);
+        auto const canSafelyBindAll = outputColumnsBoundFirst && outputColumnsBoundSecond;
+
+        if (canSafelyBindAll)
+        {
+            detail::BindAllOutputColumnsWithOffset(reader, firstRecord, 1);
+            detail::BindAllOutputColumnsWithOffset(reader, secondRecord, 1 + Reflection::CountMembers<FirstRecord>);
+        }
+
+        if (!reader.FetchRow())
+        {
+            records->pop_back();
+            break;
+        }
+
+        if (!canSafelyBindAll)
+            detail::GetAllColumns(reader, record);
+    }
+}
+
 template <typename Record>
 std::string DataMapper::Inspect(Record const& record)
 {
