@@ -109,7 +109,6 @@ int main()
     // we can use BelongsTo<&Artist::ArtistId, SqlRealName{"ArtistId"}> c_ArtistId member
     // to get access to the artist entry in the database, using dereference operator
     // after configuring the relations
-    dm->ConfigureRelationAutoLoading(album);
     Log("Artist name: {}",
                  toString(album.ArtistId->Name.Value().value().c_str())); // NOLINT(bugprone-unchecked-optional-access)
 
