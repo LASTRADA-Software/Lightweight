@@ -200,12 +200,6 @@ class BelongsTo
     /// Retrieves an immutable reference to the record from the relationship.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& Record() const { RequireLoaded(); return *_record; }
 
-    /// Checks if the record is loaded into memory.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool IsLoaded() const noexcept { return _loaded; }
-
-    /// Unloads the record from memory.
-    LIGHTWEIGHT_FORCE_INLINE void Unload() noexcept { _record = nullptr; _loaded = false; }
-
     /// Retrieves the record from the relationship.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& operator*() noexcept { RequireLoaded(); return *_record; }
 

@@ -59,13 +59,8 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")
     CHECK(actualEmail1 == email1);
     dm->ConfigureRelationAutoLoading(actualEmail1);
 
-    REQUIRE(!actualEmail1.user.IsLoaded());
     CHECK(actualEmail1.user->id == user.id);
-    REQUIRE(actualEmail1.user.IsLoaded());
     CHECK(actualEmail1.user->name == user.name);
-
-    actualEmail1.user.Unload();
-    REQUIRE(!actualEmail1.user.IsLoaded());
 
     if (dm->Connection().ServerType() == SqlServerType::SQLITE)
     {
@@ -100,7 +95,6 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo do not load", "[DataMapper][relation
     auto actualEmail1 = dm->QuerySingleWithoutRelationAutoLoading<Email>(email1.id).value();
 
     CHECK(actualEmail1.address == email1.address);
-    REQUIRE(!actualEmail1.user.IsLoaded());
 
     // The following test works locally but seems to fail on GitHub Actions with SIGSEGV
     if (!IsGithubActions())
@@ -222,9 +216,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasOneThrough", "[DataMapper][relations]")
 
     SECTION("Explicit loading")
     {
-        REQUIRE(!supplier1.accountHistory.IsLoaded());
         dm->LoadRelations(supplier1);
-        REQUIRE(supplier1.accountHistory.IsLoaded());
 
         CHECK(supplier1.accountHistory.Record() == accountHistory1);
     }
@@ -233,9 +225,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasOneThrough", "[DataMapper][relations]")
     {
         dm->ConfigureRelationAutoLoading(supplier1);
 
-        REQUIRE(!supplier1.accountHistory.IsLoaded());
         CHECK(supplier1.accountHistory.Record() == accountHistory1);
-        REQUIRE(supplier1.accountHistory.IsLoaded());
     }
 }
 
