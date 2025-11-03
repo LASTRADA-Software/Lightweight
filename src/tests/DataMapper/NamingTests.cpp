@@ -70,6 +70,13 @@ struct NamingTest2
     static constexpr std::string_view TableName = "NamingTest2_aliased"sv;
 };
 
+struct Person
+{
+    Light::Field<int, Light::PrimaryKey::AutoAssign, Light::SqlRealName { "index" }> id;
+    Light::Field<Light::SqlAnsiString<50>, Light::SqlRealName { "not_name" }> name;
+    static constexpr std::string_view TableName = "Human"sv;
+};
+
 } // namespace Models
 
 TEST_CASE_METHOD(SqlTestFixture, "SQL entity naming (namespace)", "[DataMapper]")
@@ -81,4 +88,45 @@ TEST_CASE_METHOD(SqlTestFixture, "SQL entity naming (namespace)", "[DataMapper]"
     CHECK(FieldNameAt<0, Models::NamingTest2> == "First_PK"sv);
     CHECK(FieldNameAt<1, Models::NamingTest2> == "Second_PK"sv);
     CHECK(RecordTableName<Models::NamingTest2> == "NamingTest2_aliased"sv);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Check aliasing of the columns and table for crud operation", "[DataMapper]")
+{
+    auto dm = DataMapper::Create();
+
+    dm->CreateTable<Models::Person>();
+
+    auto record1 = Models::Person {};
+    record1.name = "42";
+
+    CHECK(dm->Query<Models::Person>().Count() == 0);
+    CHECK(record1.id.Value() == 0);
+    dm->Create(record1);
+    CHECK(dm->Query<Models::Person>().Count() == 1);
+    CHECK(record1.id.Value() != 0);
+    {
+        auto queriedRecordResult = dm->QuerySingle<Models::Person>(record1.id);
+        CHECK(queriedRecordResult.has_value());
+        CHECK(queriedRecordResult.value().name.Value().ToStringView() // NOLINT(bugprone-unchecked-optional-access)
+              == "42"sv);
+    }
+
+    record1.name = "43";
+    dm->Update(record1);
+
+    SqlStatement(dm->Connection())
+        .ExecuteDirect(R"( INSERT INTO "Human" ("index", "not_name") VALUES (5, 'Direct Insert') )");
+    CHECK(dm->Query<Models::Person>().Count() == 2);
+    {
+        auto queriedRecordResult = dm->QuerySingle<Models::Person>(record1.id);
+        CHECK(queriedRecordResult.has_value());
+        CHECK(queriedRecordResult.value().name.Value().ToStringView() // NOLINT(bugprone-unchecked-optional-access)
+              == "43"sv);
+    }
+    dm->Delete(record1);
+    CHECK(dm->Query<Models::Person>().Count() == 1);
+    {
+        auto queriedRecord = dm->QuerySingle<Models::Person>(record1.id);
+        CHECK(!queriedRecord.has_value());
+    }
 }
