@@ -280,18 +280,18 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
     /// // the following query will construct statement to fetch all elements of JointA and JointC types
     /// auto dm = DataMapper {};
     /// auto const query = dm.FromTable(RecordTableName<JoinTestA>)
-    ///             .Select()
-    ///             .Fields<JointA, JointC>()
-    ///             .InnerJoin<&JointB::a_id, &JointA::id>()
-    ///             .InnerJoin<&JointC::id, &JointB::c_id>()
-    ///             .All();
+    ///                      .Select()
+    ///                      .Fields<JointA, JointC>()
+    ///                      .InnerJoin<&JointB::a_id, &JointA::id>()
+    ///                      .InnerJoin<&JointC::id, &JointB::c_id>()
+    ///                      .All();
     /// auto const records = dm.Query<JointA, JointC>(query);
     /// for(const auto [elementA, elementC] : records)
     /// {
     ///   // do something with elementA and elementC
     /// }
     template <typename First, typename Second, typename... Rest>
-        requires DataMapperRecords<First> && DataMapperRecords<Second> && DataMapperRecords<Rest...>
+        requires DataMapperRecord<First> && DataMapperRecord<Second> && DataMapperRecords<Rest...>
     std::vector<std::tuple<First, Second, Rest...>> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery);
 
     /// Queries records of different types from the database, based on the given query.
@@ -993,7 +993,7 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
 }
 
 template <typename First, typename Second, typename... Rest>
-    requires DataMapperRecords<First> && DataMapperRecords<Second> && DataMapperRecords<Rest...>
+    requires DataMapperRecord<First> && DataMapperRecord<Second> && DataMapperRecords<Rest...>
 std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery)
 {
     using value_type = std::tuple<First, Second, Rest...>;
