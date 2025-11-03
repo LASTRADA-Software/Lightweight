@@ -9,8 +9,6 @@ var classLightweight_1_1BelongsTo =
     [ "MutableValue", "d0/df7/classLightweight_1_1BelongsTo.html#a9c8d03efe79deeecbe6b949685ee0094", null ],
     [ "Record", "d0/df7/classLightweight_1_1BelongsTo.html#a9cb9592bfe705615e69ab89c56c1c20b", null ],
     [ "Record", "d0/df7/classLightweight_1_1BelongsTo.html#a3f6bb9ee4f87abad475a3344b8841774", null ],
-    [ "IsLoaded", "d0/df7/classLightweight_1_1BelongsTo.html#a4d6e33cdada97679814199185e46904c", null ],
-    [ "Unload", "d0/df7/classLightweight_1_1BelongsTo.html#aad91a7c8e99b5ccba18d9bdde1224988", null ],
     [ "operator*", "d0/df7/classLightweight_1_1BelongsTo.html#a26f546f43fe90885812079cb8b16f737", null ],
     [ "operator*", "d0/df7/classLightweight_1_1BelongsTo.html#a0e5f9facccccc7337904cfc7930a9651", null ],
     [ "operator->", "d0/df7/classLightweight_1_1BelongsTo.html#a99e8cfb3c61270472a59f5674fe04b62", null ],

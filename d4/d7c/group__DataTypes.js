@@ -139,6 +139,7 @@ var group__DataTypes =
       [ "SetModified", "d2/dd0/structLightweight_1_1Field.html#a5d28935f66fa335c491af43a83924200", null ],
       [ "IsModified", "d2/dd0/structLightweight_1_1Field.html#a4296163dab8a3ce341e2b52a18c7c7b7", null ],
       [ "Value", "d2/dd0/structLightweight_1_1Field.html#a757ce7d3d9533493051cd9b402482b41", null ],
+      [ "ValueOr", "d2/dd0/structLightweight_1_1Field.html#aaf257a679d7d4340a4514a567f03a27a", null ],
       [ "MutableValue", "d2/dd0/structLightweight_1_1Field.html#a46aa0ba0864c6602fd06e8dcc6fed2d3", null ]
     ] ],
     [ "Lightweight::SqlDynamicAnsiString", "d4/d7c/group__DataTypes.html#ga4c7230912e188a9744ab3a6bf6821df3", null ],

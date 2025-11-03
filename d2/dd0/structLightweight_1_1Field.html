@@ -170,6 +170,9 @@ requires std::convertible_to&lt;S, T&gt;</td></tr>
 <tr class="memitem:a757ce7d3d9533493051cd9b402482b41" id="r_a757ce7d3d9533493051cd9b402482b41"><td class="memItemLeft" align="right" valign="top">constexpr T const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a757ce7d3d9533493051cd9b402482b41">Value</a> () const noexcept</td></tr>
 <tr class="memdesc:a757ce7d3d9533493051cd9b402482b41"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the value of the field.  <br /></td></tr>
 <tr class="separator:a757ce7d3d9533493051cd9b402482b41"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaf257a679d7d4340a4514a567f03a27a" id="r_aaf257a679d7d4340a4514a567f03a27a"><td class="memItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#aaf257a679d7d4340a4514a567f03a27a">ValueOr</a> (auto &amp;&amp;defaultValue) const noexcept</td></tr>
+<tr class="memdesc:aaf257a679d7d4340a4514a567f03a27a"><td class="mdescLeft">&#160;</td><td class="mdescRight">When the field type is optional, returns the value or the given default value.  <br /></td></tr>
+<tr class="separator:aaf257a679d7d4340a4514a567f03a27a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a46aa0ba0864c6602fd06e8dcc6fed2d3" id="r_a46aa0ba0864c6602fd06e8dcc6fed2d3"><td class="memItemLeft" align="right" valign="top">constexpr T &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html#a46aa0ba0864c6602fd06e8dcc6fed2d3">MutableValue</a> () noexcept</td></tr>
 <tr class="separator:a46aa0ba0864c6602fd06e8dcc6fed2d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac38b8072a1d454cdab18e208bf86291b" id="r_ac38b8072a1d454cdab18e208bf86291b"><td class="memTemplParams" colspan="2">template&lt;typename... S&gt; <br />
@@ -268,7 +271,7 @@ requires std::constructible_from&lt;T, S...&gt;</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00212">212</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00219">219</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -301,7 +304,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Compares two fields for equality. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00228">228</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00235">235</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -332,7 +335,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Returns a string representation of the value, suitable for use in debugging and logging. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00250">250</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00257">257</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -364,7 +367,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Sets the modified state of the field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00286">286</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00293">293</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -395,7 +398,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Checks if the field has been modified. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00292">292</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00299">299</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -426,7 +429,39 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 
 <p>Returns the value of the field. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00298">298</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00305">305</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+
+</div>
+</div>
+<a id="aaf257a679d7d4340a4514a567f03a27a" name="aaf257a679d7d4340a4514a567f03a27a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaf257a679d7d4340a4514a567f03a27a">&#9670;&#160;</a></span>ValueOr()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::nullopt&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr auto <a class="el" href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a>&lt; T, P1, P2 &gt;::ValueOr </td>
+          <td>(</td>
+          <td class="paramtype">auto &amp;&amp;&#160;</td>
+          <td class="paramname"><em>defaultValue</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>When the field type is optional, returns the value or the given default value. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00157">157</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -457,7 +492,7 @@ template&lt;detail::FieldElementType T, auto P1, auto P2&gt; </div>
 <p>Returns a mutable reference to the value of the field.</p>
 <dl class="section note"><dt>Note</dt><dd>If the field value is changed through this method, it will not be automatically marked as modified. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00304">304</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00311">311</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -490,7 +525,7 @@ requires std::constructible_from&lt;T, S&gt; &amp;&amp; (!std::same_as&lt;std::r
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00220">220</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00227">227</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -523,7 +558,7 @@ requires std::convertible_to&lt;S, T&gt;</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00236">236</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00243">243</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>
@@ -556,7 +591,7 @@ requires std::convertible_to&lt;S, T&gt;</div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00244">244</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/dac/Field_8hpp_source.html#l00251">251</a> of file <a class="el" href="../../d6/dac/Field_8hpp_source.html">Field.hpp</a>.</p>
 
 </div>
 </div>

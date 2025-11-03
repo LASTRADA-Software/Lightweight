@@ -12,8 +12,6 @@ var group__DataMapper =
       [ "MutableValue", "d0/df7/classLightweight_1_1BelongsTo.html#a9c8d03efe79deeecbe6b949685ee0094", null ],
       [ "Record", "d0/df7/classLightweight_1_1BelongsTo.html#a9cb9592bfe705615e69ab89c56c1c20b", null ],
       [ "Record", "d0/df7/classLightweight_1_1BelongsTo.html#a3f6bb9ee4f87abad475a3344b8841774", null ],
-      [ "IsLoaded", "d0/df7/classLightweight_1_1BelongsTo.html#a4d6e33cdada97679814199185e46904c", null ],
-      [ "Unload", "d0/df7/classLightweight_1_1BelongsTo.html#aad91a7c8e99b5ccba18d9bdde1224988", null ],
       [ "operator*", "d0/df7/classLightweight_1_1BelongsTo.html#a26f546f43fe90885812079cb8b16f737", null ],
       [ "operator*", "d0/df7/classLightweight_1_1BelongsTo.html#a0e5f9facccccc7337904cfc7930a9651", null ],
       [ "operator->", "d0/df7/classLightweight_1_1BelongsTo.html#a99e8cfb3c61270472a59f5674fe04b62", null ],
@@ -38,7 +36,6 @@ var group__DataMapper =
       [ "QuerySingle", "de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4", null ],
       [ "QuerySingleWithoutRelationAutoLoading", "de/d61/classLightweight_1_1DataMapper.html#a0ee9df27df1779d4b6c6212aae482f79", null ],
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#aa6b188d4c0b7e8b267f2722d0e3f1401", null ],
-      [ "QueryToTuple", "de/d61/classLightweight_1_1DataMapper.html#ad7f6c844984f53d320c9e1a738cbc59c", null ],
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#abc16383a3cfcc043de94a70742545903", null ],
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747", null ],
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#a974d4ddd35cd3e5413e930f66bf5724b", null ],
@@ -63,6 +60,7 @@ var group__DataMapper =
       [ "SetModified", "d2/dd0/structLightweight_1_1Field.html#a5d28935f66fa335c491af43a83924200", null ],
       [ "IsModified", "d2/dd0/structLightweight_1_1Field.html#a4296163dab8a3ce341e2b52a18c7c7b7", null ],
       [ "Value", "d2/dd0/structLightweight_1_1Field.html#a757ce7d3d9533493051cd9b402482b41", null ],
+      [ "ValueOr", "d2/dd0/structLightweight_1_1Field.html#aaf257a679d7d4340a4514a567f03a27a", null ],
       [ "MutableValue", "d2/dd0/structLightweight_1_1Field.html#a46aa0ba0864c6602fd06e8dcc6fed2d3", null ]
     ] ],
     [ "Lightweight::HasMany< OtherRecord >", "da/df4/classLightweight_1_1HasMany.html", [

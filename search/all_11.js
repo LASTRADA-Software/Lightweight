@@ -10,6 +10,5 @@ var searchData=
   ['queryformatter_7',['QueryFormatter',['../da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32',1,'Lightweight::SqlConnection']]],
   ['querylastinsertid_8',['QueryLastInsertId',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ae5c1899d98fac7ec8340f1cd0cfeae1a',1,'Lightweight::SqlQueryFormatter']]],
   ['querysingle_9',['QuerySingle',['../de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4',1,'Lightweight::DataMapper']]],
-  ['querysinglewithoutrelationautoloading_10',['QuerySingleWithoutRelationAutoLoading',['../de/d61/classLightweight_1_1DataMapper.html#a0ee9df27df1779d4b6c6212aae482f79',1,'Lightweight::DataMapper']]],
-  ['querytotuple_11',['QueryToTuple',['../de/d61/classLightweight_1_1DataMapper.html#ad7f6c844984f53d320c9e1a738cbc59c',1,'Lightweight::DataMapper']]]
+  ['querysinglewithoutrelationautoloading_10',['QuerySingleWithoutRelationAutoLoading',['../de/d61/classLightweight_1_1DataMapper.html#a0ee9df27df1779d4b6c6212aae482f79',1,'Lightweight::DataMapper']]]
 ];
