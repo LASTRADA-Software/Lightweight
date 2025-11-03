@@ -117,3 +117,40 @@ auto query = q.FromTable("Table_A")
               .Where(SqlQualifiedTableColumnName { .tableName = "Table_A", .columnName = "foo" }, 42)
               .All();
 ```
+
+
+### Examples of SQL to DataMapper mappings
+
+
+```cpp
+
+dm->Query<Employee>().All();    // SELECT "Employee"."EmployeeId", "Employee"."LastName", "Employee"."FirstName", "Employee"."Title",
+                                //        "Employee"."ReportsTo", "Employee"."BirthDate", "Employee"."HireDate", "Employee"."Address",
+                                //        "Employee"."City", "Employee"."State", "Employee"."Country", "Employee"."PostalCode",
+                                //        "Employee"."Phone", "Employee"."Fax", "Employee"."Email"
+                                //        FROM "Employee"
+                                // SELECT "AlbumId", "Title", "ArtistId" FROM "Album"
+
+
+
+
+dm->Query<Album>()                                                        // TOP 1 "Album"."AlbumId", "Album"."Title", "Album"."ArtistId" 
+    .Where(FieldNameOf<&Album::Title>, "=", "Mozart Gala: Famous Arias")  // FROM "Album"
+    .First()                                                              // WHERE "Title" = 'Mozart Gala: Famous Arias'
+    .value();
+
+
+
+dm->Query<Track>()                                   // SELECT "Track"."TrackId", "Track"."Name", "Track"."AlbumId",
+    .WhereIn(FieldNameOf<&Track::AlbumId>, albumIds) // "Track"."MediaTypeId", "Track"."GenreId", "Track"."Composer",
+    .All();                                          // "Track"."Milliseconds", "Track"."Bytes", "Track"."UnitPrice"
+                                                     // FROM "Track"
+                                                     // WHERE "AlbumId" IN (193, 194, 195)
+
+
+
+dm->Query<Customer, Employee>()                                  // SELECT "Customer"."CustomerId", "Customer"."FirstName", .... ,
+    .InnerJoin<&Employee::EmployeeId, &Customer::SupportRepId>() // "Employee"."EmployeeId", "Employee"."LastName", ...., "Employee"."Email"    .All();                                                      // FROM "Customer"
+                                                                 // INNER JOIN "Employee" ON "Employee"."EmployeeId" = "Customer"."SupportRepId"
+
+```
