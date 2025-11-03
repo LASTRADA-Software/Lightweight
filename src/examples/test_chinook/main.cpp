@@ -141,7 +141,7 @@ int main()
             Log("TrackId: {}, Name: {}, Bytes: {} , UnitPrice: {}",
                          track.TrackId.Value(),
                          toString(track.Name.Value().c_str()),
-                         track.Bytes.ValueOr(),
+                         track.Bytes.ValueOr(0),
                          track.UnitPrice.Value().ToString());
         }
         
@@ -151,10 +151,10 @@ int main()
             // BelogsTo relation loading
             Log("Track Name: {}. Media type: {}. Genre: {}. Album id: {}. Artist name: {}",
                          toString(track.Name.Value().ToStringView()),
-                         toString(track.MediaTypeId->Name.ValueOr().ToStringView()),
-                         toString(track.GenreId->Name.ValueOr().ToStringView()),
+                         toString(track.MediaTypeId->Name.ValueOr(u"").ToStringView()),
+                         toString(track.GenreId->Name.ValueOr(u"").ToStringView()),
                          toString(track.AlbumId->Title.Value().ToStringView()),
-                         toString(track.AlbumId->ArtistId->Name.ValueOr().ToStringView())
+                         toString(track.AlbumId->ArtistId->Name.ValueOr(u"").ToStringView())
             );
         }
     }
