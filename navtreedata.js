@@ -95,9 +95,8 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03",
-"db/dfd/classLightweight_1_1SqlLogger.html#aa4a431f0941273837878750619925192",
-"functions_func_g.html"
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#aa7662bd7885424c8970e4f11703a03a7",
+"de/d61/classLightweight_1_1DataMapper.html#ac0e2e432c3ad94048fb407883f4dd64d"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
