@@ -648,7 +648,7 @@ TEST_CASE_METHOD(SqlTestFixture, "GetMultileTypesAsVectorOfTuples", "[DataMapper
         SqlAnsiString<20> comment {};
     };
 
-    auto const records = dm->QueryToTuple<CustomBindingA, CustomBindingB, PartOfC>(query);
+    auto const records = dm->Query<CustomBindingA, CustomBindingB, PartOfC>(query);
     CHECK(!records.empty());
 
     for (auto const& [a, b, c]: records)
