@@ -251,6 +251,37 @@ Example</h2>
 <div class="line">                  })</div>
 <div class="line">              .Where(SqlQualifiedTableColumnName { .tableName = <span class="stringliteral">&quot;Table_A&quot;</span>, .columnName = <span class="stringliteral">&quot;foo&quot;</span> }, 42)</div>
 <div class="line">              .All();</div>
+</div><!-- fragment --><h2><a class="anchor" id="examples-of-sql-to-datamapper-mappings"></a>
+Examples of SQL to DataMapper mappings</h2>
+<div class="fragment"><div class="line">dm-&gt;Query&lt;Employee&gt;().All();    <span class="comment">// SELECT &quot;Employee&quot;.&quot;EmployeeId&quot;, &quot;Employee&quot;.&quot;LastName&quot;, &quot;Employee&quot;.&quot;FirstName&quot;, &quot;Employee&quot;.&quot;Title&quot;,</span></div>
+<div class="line">                                <span class="comment">//        &quot;Employee&quot;.&quot;ReportsTo&quot;, &quot;Employee&quot;.&quot;BirthDate&quot;, &quot;Employee&quot;.&quot;HireDate&quot;, &quot;Employee&quot;.&quot;Address&quot;,</span></div>
+<div class="line">                                <span class="comment">//        &quot;Employee&quot;.&quot;City&quot;, &quot;Employee&quot;.&quot;State&quot;, &quot;Employee&quot;.&quot;Country&quot;, &quot;Employee&quot;.&quot;PostalCode&quot;,</span></div>
+<div class="line">                                <span class="comment">//        &quot;Employee&quot;.&quot;Phone&quot;, &quot;Employee&quot;.&quot;Fax&quot;, &quot;Employee&quot;.&quot;Email&quot;</span></div>
+<div class="line">                                <span class="comment">//        FROM &quot;Employee&quot;</span></div>
+<div class="line">                                <span class="comment">// SELECT &quot;AlbumId&quot;, &quot;Title&quot;, &quot;ArtistId&quot; FROM &quot;Album&quot;</span></div>
+<div class="line"> </div>
+<div class="line"> </div>
+<div class="line"> </div>
+<div class="line"> </div>
+<div class="line">dm-&gt;Query&lt;Album&gt;()                                                        <span class="comment">// TOP 1 &quot;Album&quot;.&quot;AlbumId&quot;, &quot;Album&quot;.&quot;Title&quot;, &quot;Album&quot;.&quot;ArtistId&quot; </span></div>
+<div class="line">    .Where(FieldNameOf&lt;&amp;Album::Title&gt;, <span class="stringliteral">&quot;=&quot;</span>, <span class="stringliteral">&quot;Mozart Gala: Famous Arias&quot;</span>)  <span class="comment">// FROM &quot;Album&quot;</span></div>
+<div class="line">    .First()                                                              <span class="comment">// WHERE &quot;Title&quot; = &#39;Mozart Gala: Famous Arias&#39;</span></div>
+<div class="line">    .value();</div>
+<div class="line"> </div>
+<div class="line"> </div>
+<div class="line"> </div>
+<div class="line">dm-&gt;Query&lt;Track&gt;()                                   <span class="comment">// SELECT &quot;Track&quot;.&quot;TrackId&quot;, &quot;Track&quot;.&quot;Name&quot;, &quot;Track&quot;.&quot;AlbumId&quot;,</span></div>
+<div class="line">    .WhereIn(FieldNameOf&lt;&amp;Track::AlbumId&gt;, albumIds) <span class="comment">// &quot;Track&quot;.&quot;MediaTypeId&quot;, &quot;Track&quot;.&quot;GenreId&quot;, &quot;Track&quot;.&quot;Composer&quot;,</span></div>
+<div class="line">    .All();                                          <span class="comment">// &quot;Track&quot;.&quot;Milliseconds&quot;, &quot;Track&quot;.&quot;Bytes&quot;, &quot;Track&quot;.&quot;UnitPrice&quot;</span></div>
+<div class="line">                                                     <span class="comment">// FROM &quot;Track&quot;</span></div>
+<div class="line">                                                     <span class="comment">// WHERE &quot;AlbumId&quot; IN (193, 194, 195)</span></div>
+<div class="line"> </div>
+<div class="line"> </div>
+<div class="line"> </div>
+<div class="line">dm-&gt;Query&lt;Customer, Employee&gt;()                                  <span class="comment">// SELECT &quot;Customer&quot;.&quot;CustomerId&quot;, &quot;Customer&quot;.&quot;FirstName&quot;, .... ,</span></div>
+<div class="line">    .InnerJoin&lt;&amp;Employee::EmployeeId, &amp;Customer::SupportRepId&gt;() <span class="comment">// &quot;Employee&quot;.&quot;EmployeeId&quot;, &quot;Employee&quot;.&quot;LastName&quot;, ...., &quot;Employee&quot;.&quot;Email&quot;</span></div>
+<div class="line">                                                                 <span class="comment">// FROM &quot;Customer&quot;</span></div>
+<div class="line">                                                                 <span class="comment">// INNER JOIN &quot;Employee&quot; ON &quot;Employee&quot;.&quot;EmployeeId&quot; = &quot;Customer&quot;.&quot;SupportRepId&quot;</span></div>
 </div><!-- fragment --> </div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->
