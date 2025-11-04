@@ -290,14 +290,14 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
     /// {
     ///   // do something with elementA and elementC
     /// }
-    template <typename First, typename Second, typename... Rest>
+    template <typename First, typename Second, typename... Rest, DataMapperOptions QueryOptions = {}>
         requires DataMapperRecord<First> && DataMapperRecord<Second> && DataMapperRecords<Rest...>
     std::vector<std::tuple<First, Second, Rest...>> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery);
 
     /// Queries records of different types from the database, based on the given query.
-    template <typename FirstRecord, typename NextRecord>
+    template <typename FirstRecord, typename NextRecord, DataMapperOptions QueryOptions = {}>
         requires DataMapperRecord<FirstRecord> && DataMapperRecord<NextRecord>
-    SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>> Query()
+    SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>, QueryOptions> Query()
     {
         std::string fields;
 
@@ -312,7 +312,7 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
         emplaceRecordsFrom.template operator()<FirstRecord>();
         emplaceRecordsFrom.template operator()<NextRecord>();
 
-        return SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>>(*this, std::move(fields));
+        return SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>, QueryOptions>(*this, std::move(fields));
     }
 
     /// Queries records of given Record type.
@@ -327,8 +327,8 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
     ///                        .Where(FieldNameOf<&Person::is_active>, "=", true)
     ///                        .All();
     /// @endcode
-    template <typename Record>
-    SqlAllFieldsQueryBuilder<Record> Query()
+    template <typename Record, DataMapperOptions QueryOptions = {}>
+    SqlAllFieldsQueryBuilder<Record, QueryOptions> Query()
     {
         std::string fields;
         Reflection::EnumerateMembers<Record>([&fields]<size_t I, typename Field>() {
@@ -340,7 +340,7 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
             fields += FieldNameAt<I, Record>;
             fields += '"';
         });
-        return SqlAllFieldsQueryBuilder<Record>(*this, std::move(fields));
+        return SqlAllFieldsQueryBuilder<Record, QueryOptions>(*this, std::move(fields));
     }
 
     /// Updates the record in the database.
@@ -604,18 +604,17 @@ namespace detail
     }
 } // namespace detail
 
-template <typename Record, typename Derived>
-
-inline SqlCoreDataMapperQueryBuilder<Record, Derived>::SqlCoreDataMapperQueryBuilder(DataMapper& dm,
-                                                                                     std::string fields) noexcept:
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+inline SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::SqlCoreDataMapperQueryBuilder(
+    DataMapper& dm, std::string fields) noexcept:
     _dm { dm },
     _formatter { dm.Connection().QueryFormatter() },
     _fields { std::move(fields) }
 {
 }
 
-template <typename Record, typename Derived>
-size_t SqlCoreDataMapperQueryBuilder<Record, Derived>::Count()
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+size_t SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Count()
 {
     auto stmt = SqlStatement { _dm.Connection() };
     stmt.ExecuteDirect(_formatter.SelectCount(this->_query.distinct,
@@ -629,9 +628,10 @@ size_t SqlCoreDataMapperQueryBuilder<Record, Derived>::Count()
     return 0;
 }
 
-template <typename Record, typename Derived>
-std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::All()
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All()
 {
+
     auto records = std::vector<Record> {};
     auto stmt = SqlStatement { _dm.Connection() };
     stmt.ExecuteDirect(_formatter.SelectAll(this->_query.distinct,
@@ -648,22 +648,25 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::All()
         // This can be called when record type is not plain aggregate type
         // but more complex tuple, like std::tuple<A, B>
         // for now we do not unwrap this type and just skip auto-loading configuration
-        for (auto& record: records)
+        if constexpr (QueryOptions.loadRelations)
         {
-            _dm.ConfigureRelationAutoLoading(record);
+            for (auto& record: records)
+            {
+                _dm.ConfigureRelationAutoLoading(record);
+            }
         }
     }
     return records;
 }
 
-template <typename Record, typename Derived>
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 template <auto Field>
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
     requires(is_aggregate_type(parent_of(Field)))
 #else
     requires std::is_member_object_pointer_v<decltype(Field)>
 #endif
-auto SqlCoreDataMapperQueryBuilder<Record, Derived>::All() -> std::vector<ReferencedFieldTypeOf<Field>>
+auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All() -> std::vector<ReferencedFieldTypeOf<Field>>
 {
     using value_type = ReferencedFieldTypeOf<Field>;
     auto result = std::vector<value_type> {};
@@ -698,10 +701,10 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived>::All() -> std::vector<Refere
     return result;
 }
 
-template <typename Record, typename Derived>
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 template <auto... ReferencedFields>
     requires(sizeof...(ReferencedFields) >= 2)
-auto SqlCoreDataMapperQueryBuilder<Record, Derived>::All() -> std::vector<Record>
+auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All() -> std::vector<Record>
 {
     auto records = std::vector<Record> {};
     auto stmt = SqlStatement { _dm.Connection() };
@@ -736,15 +739,13 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived>::All() -> std::vector<Record
             using ElementMask = std::integer_sequence<size_t, MemberIndexOf<ReferencedFields>...>;
             detail::GetAllColumns<ElementMask>(reader, record);
         }
-
-        _dm.ConfigureRelationAutoLoading(record);
     }
 
     return records;
 }
 
-template <typename Record, typename Derived>
-std::optional<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::First()
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+std::optional<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First()
 {
     std::optional<Record> record {};
     auto stmt = SqlStatement { _dm.Connection() };
@@ -757,19 +758,22 @@ std::optional<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::First()
                                               this->_query.orderBy,
                                               1));
     Derived::ReadResult(stmt.Connection().ServerType(), stmt.GetResultCursor(), &record);
-    if (record)
-        _dm.ConfigureRelationAutoLoading(record.value());
+    if constexpr (QueryOptions.loadRelations)
+    {
+        if (record)
+            _dm.ConfigureRelationAutoLoading(record.value());
+    }
     return record;
 }
 
-template <typename Record, typename Derived>
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 template <auto Field>
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
     requires(is_aggregate_type(parent_of(Field)))
 #else
     requires std::is_member_object_pointer_v<decltype(Field)>
 #endif
-auto SqlCoreDataMapperQueryBuilder<Record, Derived>::First() -> std::optional<ReferencedFieldTypeOf<Field>>
+auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First() -> std::optional<ReferencedFieldTypeOf<Field>>
 {
     auto constexpr count = 1;
     auto stmt = SqlStatement { _dm.Connection() };
@@ -786,10 +790,10 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived>::First() -> std::optional<Re
     return std::nullopt;
 }
 
-template <typename Record, typename Derived>
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 template <auto... ReferencedFields>
     requires(sizeof...(ReferencedFields) >= 2)
-auto SqlCoreDataMapperQueryBuilder<Record, Derived>::First() -> std::optional<Record>
+auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First() -> std::optional<Record>
 {
     auto optionalRecord = std::optional<Record> {};
 
@@ -820,13 +824,14 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived>::First() -> std::optional<Re
         detail::GetAllColumns<ElementMask>(reader, record);
     }
 
-    _dm.ConfigureRelationAutoLoading(record);
+    if constexpr (QueryOptions.loadRelations)
+        _dm.ConfigureRelationAutoLoading(record);
 
     return optionalRecord;
 }
 
-template <typename Record, typename Derived>
-std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::First(size_t n)
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First(size_t n)
 {
     auto records = std::vector<Record> {};
     auto stmt = SqlStatement { _dm.Connection() };
@@ -840,13 +845,17 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::First(size_t
                                               this->_query.orderBy,
                                               n));
     Derived::ReadResults(stmt.Connection().ServerType(), stmt.GetResultCursor(), &records);
-    for (auto& record: records)
-        _dm.ConfigureRelationAutoLoading(record);
+
+    if constexpr (QueryOptions.loadRelations)
+    {
+        for (auto& record: records)
+            _dm.ConfigureRelationAutoLoading(record);
+    }
     return records;
 }
 
-template <typename Record, typename Derived>
-std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::Range(size_t offset, size_t limit)
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Range(size_t offset, size_t limit)
 {
     auto records = std::vector<Record> {};
     auto stmt = SqlStatement { _dm.Connection() };
@@ -865,14 +874,17 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::Range(size_t
                                offset,
                                limit));
     Derived::ReadResults(stmt.Connection().ServerType(), stmt.GetResultCursor(), &records);
-    for (auto& record: records)
-        _dm.ConfigureRelationAutoLoading(record);
+    if constexpr (QueryOptions.loadRelations)
+    {
+        for (auto& record: records)
+            _dm.ConfigureRelationAutoLoading(record);
+    }
     return records;
 }
 
-template <typename Record, typename Derived>
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 template <auto... ReferencedFields>
-std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::Range(size_t offset, size_t limit)
+std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Range(size_t offset, size_t limit)
 {
     auto records = std::vector<Record> {};
     auto stmt = SqlStatement { _dm.Connection() };
@@ -913,15 +925,19 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::Range(size_t
             detail::GetAllColumns<ElementMask>(reader, record);
         }
     }
-    for (auto& record: records)
-        _dm.ConfigureRelationAutoLoading(record);
+
+    if constexpr (QueryOptions.loadRelations)
+    {
+        for (auto& record: records)
+            _dm.ConfigureRelationAutoLoading(record);
+    }
 
     return records;
 }
 
-template <typename Record, typename Derived>
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 template <auto... ReferencedFields>
-[[nodiscard]] std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived>::First(size_t n)
+[[nodiscard]] std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First(size_t n)
 {
     auto records = std::vector<Record> {};
     auto stmt = SqlStatement { _dm.Connection() };
@@ -957,16 +973,20 @@ template <auto... ReferencedFields>
             detail::GetAllColumns<ElementMask>(reader, record);
         }
     }
-    for (auto& record: records)
-        _dm.ConfigureRelationAutoLoading(record);
+
+    if constexpr (QueryOptions.loadRelations)
+    {
+        for (auto& record: records)
+            _dm.ConfigureRelationAutoLoading(record);
+    }
 
     return records;
 }
 
-template <typename Record>
-void SqlAllFieldsQueryBuilder<Record>::ReadResults(SqlServerType sqlServerType,
-                                                   SqlResultCursor reader,
-                                                   std::vector<Record>* records)
+template <typename Record, DataMapperOptions QueryOptions>
+void SqlAllFieldsQueryBuilder<Record, QueryOptions>::ReadResults(SqlServerType sqlServerType,
+                                                                 SqlResultCursor reader,
+                                                                 std::vector<Record>* records)
 {
     while (true)
     {
@@ -979,20 +999,19 @@ void SqlAllFieldsQueryBuilder<Record>::ReadResults(SqlServerType sqlServerType,
     }
 }
 
-template <typename Record>
-void SqlAllFieldsQueryBuilder<Record>::ReadResult(SqlServerType sqlServerType,
-                                                  SqlResultCursor reader,
-                                                  std::optional<Record>* optionalRecord)
+template <typename Record, DataMapperOptions QueryOptions>
+void SqlAllFieldsQueryBuilder<Record, QueryOptions>::ReadResult(SqlServerType sqlServerType,
+                                                                SqlResultCursor reader,
+                                                                std::optional<Record>* optionalRecord)
 {
     Record& record = optionalRecord->emplace();
     if (!detail::ReadSingleResult(sqlServerType, reader, record))
         optionalRecord->reset();
 }
 
-template <typename FirstRecord, typename SecondRecord>
-void SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>>::ReadResults(SqlServerType sqlServerType,
-                                                                                  SqlResultCursor reader,
-                                                                                  std::vector<RecordType>* records)
+template <typename FirstRecord, typename SecondRecord, DataMapperOptions QueryOptions>
+void SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>, QueryOptions>::ReadResults(
+    SqlServerType sqlServerType, SqlResultCursor reader, std::vector<RecordType>* records)
 {
     while (true)
     {
@@ -1590,7 +1609,7 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
     return result;
 }
 
-template <typename First, typename Second, typename... Rest>
+template <typename First, typename Second, typename... Rest, DataMapperOptions QueryOptions>
     requires DataMapperRecord<First> && DataMapperRecord<Second> && DataMapperRecords<Rest...>
 std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery)
 {
@@ -1656,12 +1675,16 @@ std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQuery
     // Drop the last record, which we failed to fetch (End of result set).
     result.pop_back();
 
-    for (auto& record: result)
+    if constexpr (QueryOptions.loadRelations)
     {
-        Reflection::template_for<0, std::tuple_size_v<value_type>>([&]<auto I>() {
-            auto& element = std::get<I>(record);
-            ConfigureRelationAutoLoading(element);
-        });
+
+        for (auto& record: result)
+        {
+            Reflection::template_for<0, std::tuple_size_v<value_type>>([&]<auto I>() {
+                auto& element = std::get<I>(record);
+                ConfigureRelationAutoLoading(element);
+            });
+        }
     }
 
     return result;
