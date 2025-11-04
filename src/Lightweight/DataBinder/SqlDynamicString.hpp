@@ -208,34 +208,53 @@ namespace detail
     {
     };
 
+    template <typename T>
+    consteval size_t SqlMaxNumberOfChars()
+    {
+        // This constant defines the maximal number of bytes that can appear
+        // in single column for types like varchar(max)
+        // see: https://learn.microsoft.com/en-us/sql/sql-server/maximum-capacity-specifications-for-sql-server
+        // 2GB or 2^31 - 1
+        constexpr size_t numberOfBytes = 2147483647;
+        return numberOfBytes / sizeof(T);
+    }
+
 } // namespace detail
 
 template <typename T>
 constexpr bool IsSqlDynamicString = detail::IsSqlDynamicStringImpl<T>::value;
 
-/// Fixed-size string of element type `char` with a capacity of `N` characters.
+/// Dynamic-size string of element type `char` with a capacity of `N` characters.
 ///
 /// @ingroup DataTypes
 template <std::size_t N>
 using SqlDynamicAnsiString = SqlDynamicString<N, char>;
 
-/// Fixed-size string of element type `char16_t` with a capacity of `N` characters.
+/// Dynamic-size string of element type `char16_t` with a capacity of `N` characters.
 ///
 /// @ingroup DataTypes
 template <std::size_t N>
 using SqlDynamicUtf16String = SqlDynamicString<N, char16_t>;
 
-/// Fixed-size string of element type `char32_t` with a capacity of `N` characters.
+/// Dynamic-size string of element type `char32_t` with a capacity of `N` characters.
 ///
 /// @ingroup DataTypes
 template <std::size_t N>
 using SqlDynamicUtf32String = SqlDynamicString<N, char32_t>;
 
-/// Fixed-size string of element type `wchar_t` with a capacity of `N` characters.
+/// Dynamic-size string of element type `wchar_t` with a capacity of `N` characters.
 ///
 /// @ingroup DataTypes
 template <std::size_t N>
 using SqlDynamicWideString = SqlDynamicString<N, wchar_t>;
+
+/// Dynamic-size string of element type 'char' with a maximum capacity of
+/// `SqlMaxNumberOfChars<char>` characters.
+using SqlMaxDynamicAnsiString = SqlDynamicString<detail::SqlMaxNumberOfChars<char>(), char>;
+
+/// Dynamic-size string of element type 'wchar_t' with a maximum capacity of
+/// `SqlMaxNumberOfChars<wchar_t>` characters.
+using SqlMaxDynamicWideString = SqlDynamicString<detail::SqlMaxNumberOfChars<wchar_t>(), wchar_t>;
 
 } // namespace Lightweight
 
