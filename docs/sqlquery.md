@@ -150,7 +150,8 @@ dm->Query<Track>()                                   // SELECT "Track"."TrackId"
 
 
 dm->Query<Customer, Employee>()                                  // SELECT "Customer"."CustomerId", "Customer"."FirstName", .... ,
-    .InnerJoin<&Employee::EmployeeId, &Customer::SupportRepId>() // "Employee"."EmployeeId", "Employee"."LastName", ...., "Employee"."Email"    .All();                                                      // FROM "Customer"
+    .InnerJoin<&Employee::EmployeeId, &Customer::SupportRepId>() // "Employee"."EmployeeId", "Employee"."LastName", ...., "Employee"."Email"
+                                                                 // FROM "Customer"
                                                                  // INNER JOIN "Employee" ON "Employee"."EmployeeId" = "Customer"."SupportRepId"
 
 ```
