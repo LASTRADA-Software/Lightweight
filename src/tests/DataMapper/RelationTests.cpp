@@ -327,7 +327,7 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo loading of multiple records", "[Data
         dm->CreateExplicit(AccountHistory { .credit_rating = 90 + i, .account = account1 });
     }
 
-    SECTION("Query multiple with relation wuthout auto loading")
+    SECTION("Query multiple with relation auto loading using Query builder directly")
     {
         auto allHistories = dm->Query<AccountHistory>()
                                 .Where(FullyQualifiedNameOf<Member(AccountHistory::account)>, "=", account1.id.Value())
@@ -342,7 +342,6 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo loading of multiple records", "[Data
         for (auto const& [index, history]: allHistories | std::views::enumerate)
         {
 #endif
-            dm->ConfigureRelationAutoLoading(history);
             CAPTURE(index);
             REQUIRE(history.account.Value() == account1.id.Value());
             REQUIRE(history.account->id.Value() == account1.id.Value());
