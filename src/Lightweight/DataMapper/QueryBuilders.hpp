@@ -15,10 +15,19 @@ namespace Lightweight
 
 class DataMapper;
 
+/// Structural type for options for DataMapper queries.
+/// This allows to configure behavior of the queries at compile time
+/// when using query builder directly from the DataMapper
+struct DataMapperOptions
+{
+    /// This is the default behavior since compilation times significantly increase otherwise.
+    bool loadRelations { false };
+};
+
 /// Main API for mapping records to C++ from the database using high level C++ syntax.
 ///
 /// @ingroup DataMapper
-template <typename Record, typename Derived>
+template <typename Record, typename Derived, DataMapperOptions QueryOptions = {}>
 class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBuilder<Derived>
 {
   private:
@@ -127,16 +136,18 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
 /// @brief Represents a query builder that retrieves all fields of a record.
 ///
 /// @ingroup DataMapper
-template <typename Record>
+template <typename Record, DataMapperOptions QueryOptions>
 class [[nodiscard]] SqlAllFieldsQueryBuilder final:
-    public SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record>>
+    public SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record, QueryOptions>, QueryOptions>
 {
   private:
     friend class DataMapper;
-    friend class SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record>>;
+    friend class SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record, QueryOptions>, QueryOptions>;
 
     LIGHTWEIGHT_FORCE_INLINE explicit SqlAllFieldsQueryBuilder(DataMapper& dm, std::string fields) noexcept:
-        SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record>> { dm, std::move(fields) }
+        SqlCoreDataMapperQueryBuilder<Record, SqlAllFieldsQueryBuilder<Record, QueryOptions>, QueryOptions> {
+            dm, std::move(fields)
+        }
     {
     }
 
@@ -149,18 +160,21 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder final:
 ///
 /// @ingroup DataMapper
 /// @todo deprecate this in favor of a more generic tuple support
-template <typename FirstRecord, typename SecondRecord>
-class [[nodiscard]] SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>> final:
+template <typename FirstRecord, typename SecondRecord, DataMapperOptions QueryOptions>
+class [[nodiscard]] SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>, QueryOptions> final:
     public SqlCoreDataMapperQueryBuilder<std::tuple<FirstRecord, SecondRecord>,
-                                         SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>>>
+                                         SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>, QueryOptions>,
+                                         QueryOptions>
 {
   private:
     using RecordType = std::tuple<FirstRecord, SecondRecord>;
     friend class DataMapper;
-    friend class SqlCoreDataMapperQueryBuilder<RecordType, SqlAllFieldsQueryBuilder<RecordType>>;
+    friend class SqlCoreDataMapperQueryBuilder<RecordType, SqlAllFieldsQueryBuilder<RecordType, QueryOptions>>;
 
     LIGHTWEIGHT_FORCE_INLINE explicit SqlAllFieldsQueryBuilder(DataMapper& dm, std::string fields) noexcept:
-        SqlCoreDataMapperQueryBuilder<RecordType, SqlAllFieldsQueryBuilder<RecordType>> { dm, std::move(fields) }
+        SqlCoreDataMapperQueryBuilder<RecordType, SqlAllFieldsQueryBuilder<RecordType, QueryOptions>, QueryOptions> {
+            dm, std::move(fields)
+        }
     {
     }
 

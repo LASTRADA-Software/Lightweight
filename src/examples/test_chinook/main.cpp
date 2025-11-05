@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "Lightweight/SqlLogger.hpp"
 
 #include "entities/Album.hpp"
 #include "entities/Artist.hpp"
@@ -15,6 +14,7 @@
 #include "entities/Track.hpp"
 
 #include <Lightweight/Lightweight.hpp>
+#include <Lightweight/SqlLogger.hpp>
 
 #include <iterator>
 #include <print>
@@ -99,10 +99,11 @@ int main()
     Log("Iterated over {} Albums", numberOfAlbums);
 
     // select album with the title "Mozart Gala: Famous Arias"
-    auto album = dm->Query<Album>() // NOLINT(bugprone-unchecked-optional-access)
-                     .Where(FieldNameOf<&Album::Title>, "=", "Mozart Gala: Famous Arias")
-                     .First()
-                     .value();
+    auto album =
+        dm->Query<Album, DataMapperOptions { .loadRelations = true }>() // NOLINT(bugprone-unchecked-optional-access)
+            .Where(FieldNameOf<&Album::Title>, "=", "Mozart Gala: Famous Arias")
+            .First()
+            .value();
 
     Log("AlbumId: {}, Title: {}", album.AlbumId.Value(), album.ArtistId.Value());
 
