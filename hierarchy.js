@@ -44,6 +44,7 @@ var hierarchy =
     [ "Lightweight::HasManyThrough< Physician, Appointment >", "de/d73/classLightweight_1_1HasManyThrough.html", null ],
     [ "Lightweight::BelongsTo< TheReferencedField, ColumnNameOverrideString, Nullable >", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::DataMapper", "de/d61/classLightweight_1_1DataMapper.html", null ],
+    [ "Lightweight::DataMapperOptions", "d3/db2/structLightweight_1_1DataMapperOptions.html", null ],
     [ "Lightweight::Field< T, P1, P2 >", "d2/dd0/structLightweight_1_1Field.html", null ],
     [ "Lightweight::HasMany< OtherRecord >", "da/df4/classLightweight_1_1HasMany.html", null ],
     [ "Lightweight::HasManyThrough< ReferencedRecordT, ThroughRecordT >", "de/d73/classLightweight_1_1HasManyThrough.html", null ],
@@ -54,7 +55,7 @@ var hierarchy =
     [ "Lightweight::SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html", null ],
     [ "Lightweight::SqlConnectionDataSource", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html", null ],
     [ "Lightweight::SqlConnectionString", "de/d6a/structLightweight_1_1SqlConnectionString.html", null ],
-    [ "Lightweight::SqlCoreDataMapperQueryBuilder< Record, Derived >", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", null ],
+    [ "Lightweight::SqlCoreDataMapperQueryBuilder< Record, Derived, QueryOptions >", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", null ],
     [ "Lightweight::SqlCreateTableQueryBuilder", "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html", null ],
     [ "Lightweight::SqlDataBinderCallback", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html", [
       [ "Lightweight::SqlStatement", "db/dad/classLightweight_1_1SqlStatement.html", null ]
@@ -91,8 +92,8 @@ var hierarchy =
     [ "Lightweight::SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html", null ],
     [ "Lightweight::SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html", null ],
     [ "Lightweight::UniqueNameBuilder", "da/d15/classLightweight_1_1UniqueNameBuilder.html", null ],
-    [ "Lightweight::SqlCoreDataMapperQueryBuilder< Record, SqlAllFieldsQueryBuilder< Record > >", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", [
-      [ "Lightweight::SqlAllFieldsQueryBuilder< Record >", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ]
+    [ "Lightweight::SqlCoreDataMapperQueryBuilder< Record, SqlAllFieldsQueryBuilder< Record, QueryOptions >, QueryOptions >", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", [
+      [ "Lightweight::SqlAllFieldsQueryBuilder< Record, QueryOptions >", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ]
     ] ],
     [ "std::exception", null, [
       [ "std::runtime_error", null, [

@@ -9,6 +9,6 @@ var searchData=
   ['lightweight_3a_3adatamapperrecord_6',['DataMapperRecord',['../de/d36/conceptLightweight_1_1DataMapperRecord.html',1,'Lightweight']]],
   ['lightweight_3a_3afieldwithstorage_7',['FieldWithStorage',['../dd/da7/conceptLightweight_1_1FieldWithStorage.html',1,'Lightweight']]],
   ['lightweight_3a_3asqlqueryobject_8',['SqlQueryObject',['../d4/da8/conceptLightweight_1_1SqlQueryObject.html',1,'Lightweight']]],
-  ['loadrelations_9',['LoadRelations',['../de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702',1,'Lightweight::DataMapper']]],
+  ['loadrelations_9',['loadrelations',['../de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702',1,'Lightweight::DataMapper::LoadRelations()'],['../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a',1,'Lightweight::DataMapperOptions::loadRelations']]],
   ['logic_20separate_10',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]]
 ];

@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['range_0',['range',['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af0bb9fac51166cdbd7346d78b668be09',1,'Lightweight::SqlSelectQueryBuilder::Range()'],['../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a830a87b59acef6a411e2a55c9d86ec21',1,'Lightweight::SqlCoreDataMapperQueryBuilder::Range()']]],
+  ['range_0',['range',['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af0bb9fac51166cdbd7346d78b668be09',1,'Lightweight::SqlSelectQueryBuilder::Range()'],['../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ad4234fec2da873f7a938a6c436451cf9',1,'Lightweight::SqlCoreDataMapperQueryBuilder::Range()']]],
   ['rawsql_1',['RawSql',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a2363ab60bde2e2467972747a5646a7e5',1,'Lightweight::SqlMigrationQueryBuilder']]],
   ['record_2',['record',['../d0/df7/classLightweight_1_1BelongsTo.html#a9cb9592bfe705615e69ab89c56c1c20b',1,'Lightweight::BelongsTo::Record()'],['../d0/df7/classLightweight_1_1BelongsTo.html#a3f6bb9ee4f87abad475a3344b8841774',1,'Lightweight::BelongsTo::Record() const'],['../df/d63/classLightweight_1_1HasOneThrough.html#a6725a1e4bcdba50861bcf944de59370a',1,'Lightweight::HasOneThrough::Record() noexcept'],['../df/d63/classLightweight_1_1HasOneThrough.html#ae492b111cd0d54d642a2e507b1217350',1,'Lightweight::HasOneThrough::Record() const noexcept']]],
   ['reload_3',['Reload',['../de/d73/classLightweight_1_1HasManyThrough.html#a57d4420d41ec66436af386a3d3fd20a8',1,'Lightweight::HasManyThrough']]],

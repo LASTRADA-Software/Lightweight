@@ -8,6 +8,7 @@ var annotated_dup =
       ] ],
       [ "BelongsTo", "d0/df7/classLightweight_1_1BelongsTo.html", "d0/df7/classLightweight_1_1BelongsTo" ],
       [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html", "de/d61/classLightweight_1_1DataMapper" ],
+      [ "DataMapperOptions", "d3/db2/structLightweight_1_1DataMapperOptions.html", "d3/db2/structLightweight_1_1DataMapperOptions" ],
       [ "Field", "d2/dd0/structLightweight_1_1Field.html", "d2/dd0/structLightweight_1_1Field" ],
       [ "HasMany", "da/df4/classLightweight_1_1HasMany.html", "da/df4/classLightweight_1_1HasMany" ],
       [ "HasManyThrough", "de/d73/classLightweight_1_1HasManyThrough.html", "de/d73/classLightweight_1_1HasManyThrough" ],
