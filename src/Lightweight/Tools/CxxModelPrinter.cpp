@@ -293,6 +293,14 @@ std::string CxxModelPrinter::MakeType(
                     else
                         return std::format("Light::SqlTrimmedFixedString<{}>", type.size);
                 }
+                else if (type.size == detail::SqlMaxNumberOfChars<char>() && !shouldForceUnicodeTextColumn())
+                {
+                    return "Light::SqlMaxDynamicAnsiString";
+                }
+                else if (type.size == detail::SqlMaxNumberOfChars<wchar_t>() && shouldForceUnicodeTextColumn())
+                {
+                    return "Light::SqlMaxDynamicWideString";
+                }
                 else
                 {
                     if (shouldForceUnicodeTextColumn())
@@ -328,9 +336,18 @@ std::string CxxModelPrinter::MakeType(
             [](Smallint const&) -> std::string { return "int16_t"; },
             [=](Text const& type) -> std::string {
                 if (shouldForceUnicodeTextColumn())
+                {
+
+                    if (type.size == detail::SqlMaxNumberOfChars<wchar_t>())
+                        return "Light::SqlMaxDynamicWideString";
                     return std::format("Light::SqlDynamicWideString<{}>", type.size);
+                }
                 else
+                {
+                    if (type.size == detail::SqlMaxNumberOfChars<char>())
+                        return "Light::SqlMaxDynamicAnsiString";
                     return std::format("Light::SqlDynamicAnsiString<{}>", type.size);
+                }
             },
             [](Time const&) -> std::string { return "Light::SqlTime"; },
             [](Timestamp const&) -> std::string { return "Light::SqlDateTime"; },
@@ -347,9 +364,18 @@ std::string CxxModelPrinter::MakeType(
                 else
                 {
                     if (shouldForceUnicodeTextColumn())
+                    {
+
+                        if (type.size == detail::SqlMaxNumberOfChars<wchar_t>())
+                            return "Light::SqlMaxDynamicWideString";
                         return std::format("Light::SqlDynamicWideString<{}>", type.size);
+                    }
                     else
+                    {
+                        if (type.size == detail::SqlMaxNumberOfChars<char>())
+                            return "Light::SqlMaxDynamicAnsiString";
                         return std::format("Light::SqlDynamicAnsiString<{}>", type.size);
+                    }
                 }
             },
         },
