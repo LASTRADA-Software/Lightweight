@@ -62,6 +62,19 @@ TEST_CASE_METHOD(SqlTestFixture, "Create table with default values", "[DataMappe
     CHECK(actual.int2 == record.int2);
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Check that record exist", "[DataMapper]")
+{
+    auto dm = DataMapper::Create();
+    dm->CreateTable<RecordWithDefaults>();
+
+    auto record = RecordWithDefaults {};
+    dm->Create(record);
+
+    CHECK(
+        dm->Query<RecordWithDefaults>().Where(FieldNameOf<Member(RecordWithDefaults::id)>, "=", record.id.Value()).Exist());
+    CHECK(!dm->Query<RecordWithDefaults>().Where(FieldNameOf<Member(RecordWithDefaults::id)>, "=", -1).Exist());
+}
+
 struct TestRecord
 {
     Field<uint64_t, PrimaryKey::AutoAssign> id {};
