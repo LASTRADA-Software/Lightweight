@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-
 #include "entities/Album.hpp"
 #include "entities/Artist.hpp"
 #include "entities/Customer.hpp"
@@ -46,7 +45,6 @@ void Log(std::format_string<Args...> fmt, Args&&... args)
     std::println(fmt, std::forward<Args>(args)...);
 }
 
-
 template <typename Entity>
 void DumpTable(std::shared_ptr<DataMapper>& dm, size_t limit = 1)
 {
@@ -56,7 +54,6 @@ void DumpTable(std::shared_ptr<DataMapper>& dm, size_t limit = 1)
         Log("{}", DataMapper::Inspect(entry));
     }
 }
-
 
 int main()
 {
@@ -84,9 +81,9 @@ int main()
     for (auto const& employee: empoyees)
     {
         Log("EmployeeId: {}, FirstName: {}, LastName: {}",
-                     employee.EmployeeId.Value(),
-                     toString(employee.FirstName.Value().c_str()),
-                     toString(employee.LastName.Value().c_str()));
+            employee.EmployeeId.Value(),
+            toString(employee.FirstName.Value().c_str()),
+            toString(employee.LastName.Value().c_str()));
     }
 
     // directly iterate over elements
@@ -111,7 +108,7 @@ int main()
     // to get access to the artist entry in the database, using dereference operator
     // after configuring the relations
     Log("Artist name: {}",
-                 toString(album.ArtistId->Name.Value().value().c_str())); // NOLINT(bugprone-unchecked-optional-access)
+        toString(album.ArtistId->Name.Value().value().c_str())); // NOLINT(bugprone-unchecked-optional-access)
 
     {
         // get an artist with the name "Sir Georg Solti, Sumi Jo & Wiener Philharmoniker"
@@ -121,8 +118,8 @@ int main()
                           .value();
 
         Log("ArtistId: {}, Name: {}", // NOLINT(bugprone-unchecked-optional-access)
-                     artist.ArtistId.Value(),
-                     toString(artist.Name.Value().value().c_str())); // NOLINT(bugprone-unchecked-optional-access)
+            artist.ArtistId.Value(),
+            toString(artist.Name.Value().value().c_str())); // NOLINT(bugprone-unchecked-optional-access)
 
         // get albums of the artist
         auto albums = dm->Query<Album>().Where(FieldNameOf<&Album::ArtistId>, "=", artist.ArtistId.Value()).All();
@@ -139,23 +136,22 @@ int main()
         for (auto const& track: tracks)
         {
             Log("TrackId: {}, Name: {}, Bytes: {} , UnitPrice: {}",
-                         track.TrackId.Value(),
-                         toString(track.Name.Value().c_str()),
-                         track.Bytes.ValueOr(0),
-                         track.UnitPrice.Value().ToString());
+                track.TrackId.Value(),
+                toString(track.Name.Value().c_str()),
+                track.Bytes.ValueOr(0),
+                track.UnitPrice.Value().ToString());
         }
-        
-        for (auto & track: dm->Query<Track>().All())
+
+        for (auto& track: dm->Query<Track>().All())
         {
             dm->ConfigureRelationAutoLoading(track);
             // BelogsTo relation loading
             Log("Track Name: {}. Media type: {}. Genre: {}. Album id: {}. Artist name: {}",
-                         toString(track.Name.Value().ToStringView()),
-                         toString(track.MediaTypeId->Name.ValueOr(u"").ToStringView()),
-                         toString(track.GenreId->Name.ValueOr(u"").ToStringView()),
-                         toString(track.AlbumId->Title.Value().ToStringView()),
-                         toString(track.AlbumId->ArtistId->Name.ValueOr(u"").ToStringView())
-            );
+                toString(track.Name.Value().ToStringView()),
+                toString(track.MediaTypeId->Name.ValueOr(u"").ToStringView()),
+                toString(track.GenreId->Name.ValueOr(u"").ToStringView()),
+                toString(track.AlbumId->Title.Value().ToStringView()),
+                toString(track.AlbumId->ArtistId->Name.ValueOr(u"").ToStringView()));
         }
     }
 
@@ -166,19 +162,24 @@ int main()
         for (auto const& [customer, employee]: records)
         {
             Log("CustomerId: {}, FirstName: {}, LastName: {}",
-                         customer.CustomerId.Value(),
-                         toString(customer.FirstName.Value().c_str()),
-                         toString(customer.LastName.Value().c_str()));
+                customer.CustomerId.Value(),
+                toString(customer.FirstName.Value().c_str()),
+                toString(customer.LastName.Value().c_str()));
             Log("EmployeeId: {}, FirstName: {}, LastName: {}",
-                         employee.EmployeeId.Value(),
-                         toString(employee.FirstName.Value().c_str()),
-                         toString(employee.LastName.Value().c_str()));
+                employee.EmployeeId.Value(),
+                toString(employee.FirstName.Value().c_str()),
+                toString(employee.LastName.Value().c_str()));
         }
     }
 
     {
         // get one employee
-        auto employee = dm->Query<Employee>().Where(FieldNameOf<&Employee::EmployeeId>, 1).First().value();     // NOLINT(bugprone-unchecked-optional-access)
+        // NOLINTBEGIN(bugprone-unchecked-optional-access)
+        auto employee = dm->Query<Employee>()
+                            .Where(FieldNameOf<&Employee::EmployeeId>, 1)
+                            .First()
+                            .value();                   
+        // NOLINTEND(bugprone-unchecked-optional-access)
         Log(" {} ", employee.HireDate.Value().value()); // NOLINT(bugprone-unchecked-optional-access)
         // update hiring date to current date
         employee.HireDate = SqlDateTime::Now();

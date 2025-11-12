@@ -1,5 +1,8 @@
 name: Build
 
+permissions:
+  contents: write
+
 on:
   merge_group:
   push:
@@ -41,13 +44,25 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
-    - name: "Clang-format"
-      uses: jidicula/clang-format-action@v4.15.0
       with:
-        clang-format-version: 20
-        check-path: 'src'
-        exclude-regex: '^src/examples/|^src/benchmark|src/tools/tests/'
-
+        persist-credentials: true
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+        ref: ${{ github.event.pull_request.head.ref }}
+        token: ${{ secrets.CLANG_FORMAT_PAT }}
+    - uses: DoozyX/clang-format-lint-action@v0.20
+      with:
+        source: '.'
+        exclude: 'src/examples/test_chinook/entities'
+        extensions: 'h,hpp,cpp'
+        clangFormatVersion: 20
+        style: file
+        inplace: True
+    - uses: EndBug/add-and-commit@v9
+      if: github.event.pull_request.head.repo.full_name == github.repository
+      with:
+        message: 'Committing clang-format changes'
+        default_author: github_actions
+        
   check_clang_tidy:
     name: "Check clang-tidy"
     runs-on: ubuntu-24.04
