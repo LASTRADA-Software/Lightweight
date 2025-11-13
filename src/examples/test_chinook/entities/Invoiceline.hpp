@@ -6,7 +6,6 @@
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 
-
 struct Invoiceline final
 {
     static constexpr std::string_view TableName = "InvoiceLine";
@@ -17,4 +16,3 @@ struct Invoiceline final
     Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "UnitPrice" }> UnitPrice;
     Light::Field<int32_t, Light::SqlRealName { "Quantity" }> Quantity;
 };
-

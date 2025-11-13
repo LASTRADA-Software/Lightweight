@@ -7,7 +7,6 @@
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 
-
 struct Track final
 {
     static constexpr std::string_view TableName = "Track";
@@ -22,4 +21,3 @@ struct Track final
     Light::Field<std::optional<int32_t>, Light::SqlRealName { "Bytes" }> Bytes;
     Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "UnitPrice" }> UnitPrice;
 };
-

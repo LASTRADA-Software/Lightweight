@@ -5,7 +5,6 @@
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 
-
 struct Invoice final
 {
     static constexpr std::string_view TableName = "Invoice";
@@ -17,7 +16,7 @@ struct Invoice final
     Light::Field<std::optional<Light::SqlDynamicUtf16String<40>>, Light::SqlRealName { "BillingCity" }> BillingCity;
     Light::Field<std::optional<Light::SqlDynamicUtf16String<40>>, Light::SqlRealName { "BillingState" }> BillingState;
     Light::Field<std::optional<Light::SqlDynamicUtf16String<40>>, Light::SqlRealName { "BillingCountry" }> BillingCountry;
-    Light::Field<std::optional<Light::SqlDynamicUtf16String<10>>, Light::SqlRealName { "BillingPostalCode" }> BillingPostalCode;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<10>>, Light::SqlRealName { "BillingPostalCode" }>
+        BillingPostalCode;
     Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "Total" }> Total;
 };
-

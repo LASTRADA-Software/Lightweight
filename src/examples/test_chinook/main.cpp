@@ -175,10 +175,7 @@ int main()
     {
         // get one employee
         // NOLINTBEGIN(bugprone-unchecked-optional-access)
-        auto employee = dm->Query<Employee>()
-                            .Where(FieldNameOf<&Employee::EmployeeId>, 1)
-                            .First()
-                            .value();                   
+        auto employee = dm->Query<Employee>().Where(FieldNameOf<&Employee::EmployeeId>, 1).First().value();
         // NOLINTEND(bugprone-unchecked-optional-access)
         Log(" {} ", employee.HireDate.Value().value()); // NOLINT(bugprone-unchecked-optional-access)
         // update hiring date to current date
