@@ -497,4 +497,27 @@ TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
     CHECK(!dm->Query<Person>().Where(FieldNameOf<Member(Person::id)>, person.id.Value()).First().has_value());
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlGuid", "[DataMapper]")
+{
+    auto dm = DataMapper::Create();
+    auto guid = SqlGuid::Create();
+
+    auto expectedPersons = std::array {
+        Person { .id = guid, .name = "John Doe", .is_active = true, .age = 42 },
+        Person { .id = SqlGuid::Create(), .name = "Jimmy John", .is_active = false, .age = 24 },
+        Person { .id = SqlGuid::Create(), .name = "Jane Doe", .is_active = true, .age = 36 },
+        Person {},
+    };
+
+    dm->CreateTable<Person>();
+    for (auto& person: expectedPersons)
+        dm->Create(person);
+
+    CHECK(expectedPersons[0].id.Value() == guid);
+    for (auto& person: expectedPersons)
+    {
+        REQUIRE(person.id.Value());
+    }
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)

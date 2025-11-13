@@ -1317,7 +1317,8 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
                         using ValueType = typename FieldType::ValueType;
                         if constexpr (std::same_as<ValueType, SqlGuid>)
                         {
-                            record.[:el:] = SqlGuid::Create();
+                            if (!record.[:el:].Value())
+                                record.[:el:] = SqlGuid::Create();
                         }
                         else if constexpr (requires { ValueType {} + 1; })
                         {
@@ -1337,7 +1338,8 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
                 using ValueType = typename PrimaryKeyType::ValueType;
                 if constexpr (std::same_as<ValueType, SqlGuid>)
                 {
-                    primaryKeyField = SqlGuid::Create();
+                    if (!primaryKeyField.Value())
+                        primaryKeyField = SqlGuid::Create();
                 }
                 else if constexpr (requires { ValueType {} + 1; })
                 {
