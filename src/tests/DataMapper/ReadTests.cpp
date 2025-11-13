@@ -47,6 +47,15 @@ TEST_CASE_METHOD(SqlTestFixture, "Query", "[DataMapper]")
         CHECK(countAll == 4);
     }
 
+    SECTION("Exist()")
+    {
+        auto const existSome = dm->Query<Person>().Where(FieldNameOf<Member(Person::is_active)>, "=", true).Exist();
+        CHECK(existSome);
+
+        auto const notExist = dm->Query<Person>().Where(FieldNameOf<Member(Person::id)>, SqlGuid::Create()).Exist();
+        CHECK(!notExist);
+    }
+
     SECTION("All()")
     {
         auto const records = dm->Query<Person>()

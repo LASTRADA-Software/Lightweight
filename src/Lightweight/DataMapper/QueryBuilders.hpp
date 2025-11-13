@@ -52,6 +52,10 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     LIGHTWEIGHT_FORCE_INLINE explicit SqlCoreDataMapperQueryBuilder(DataMapper& dm, std::string fields) noexcept;
 
   public:
+    /// Executes a SELECT 1 ... query and returns true if a record exists
+    /// We do not provide db specific syntax to check this but reuse the First() implementation
+    [[nodiscard]] bool Exist();
+
     /// Executes a SELECT COUNT query and returns the number of records found.
     [[nodiscard]] size_t Count();
 

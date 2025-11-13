@@ -629,6 +629,26 @@ size_t SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Count()
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+bool SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Exist()
+{
+    auto stmt = SqlStatement { _dm.Connection() };
+
+    auto const query = _formatter.SelectFirst(this->_query.distinct,
+                                              _fields,
+                                              RecordTableName<Record>,
+                                              this->_query.searchCondition.tableAlias,
+                                              this->_query.searchCondition.tableJoins,
+                                              this->_query.searchCondition.condition,
+                                              this->_query.orderBy,
+                                              1);
+
+    stmt.ExecuteDirect(query);
+    if (SqlResultCursor reader = stmt.GetResultCursor(); reader.FetchRow())
+        return true;
+    return false;
+}
+
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All()
 {
 
