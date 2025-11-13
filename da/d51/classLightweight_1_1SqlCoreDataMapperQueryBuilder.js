@@ -1,5 +1,6 @@
 var classLightweight_1_1SqlCoreDataMapperQueryBuilder =
 [
+    [ "Exist", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ae924750087e80757fb0b4b210edbddae", null ],
     [ "Count", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#af3f8be66ec88e462629f484bd6363344", null ],
     [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a5a68b798844875ce98c0310fdf2b224a", null ],
     [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a884604fb9ced8f3aec3f1baaca96cc67", null ],

@@ -113,6 +113,7 @@ var group__DataMapper =
       [ "SetAutoLoader", "df/d63/classLightweight_1_1HasOneThrough.html#af4d6a310537dbf2367da7a1aef991843", null ]
     ] ],
     [ "Lightweight::SqlCoreDataMapperQueryBuilder< Record, Derived, QueryOptions >", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", [
+      [ "Exist", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ae924750087e80757fb0b4b210edbddae", null ],
       [ "Count", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#af3f8be66ec88e462629f484bd6363344", null ],
       [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a5a68b798844875ce98c0310fdf2b224a", null ],
       [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a884604fb9ced8f3aec3f1baaca96cc67", null ],
