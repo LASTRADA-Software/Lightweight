@@ -3,7 +3,6 @@
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 
-
 struct Employee final
 {
     static constexpr std::string_view TableName = "Employee";
@@ -24,4 +23,3 @@ struct Employee final
     Light::Field<std::optional<Light::SqlDynamicUtf16String<24>>, Light::SqlRealName { "Fax" }> Fax;
     Light::Field<std::optional<Light::SqlDynamicUtf16String<60>>, Light::SqlRealName { "Email" }> Email;
 };
-

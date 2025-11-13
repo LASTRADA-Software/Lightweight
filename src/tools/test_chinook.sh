@@ -22,23 +22,14 @@ run_test_chinook() {
 
     # get the list of files in the entities directory
     files=$(find "${PROJECT_ROOT}/src/examples/test_chinook/entities_compare" -type f -name "*.hpp" | xargs -n 1 basename)
-    # loop through the files and check the diff
-    for file in ${files}; do
-        # check if the file exists
-        if [[ -f "${PROJECT_ROOT}/src/examples/test_chinook/entities_compare/${file}" ]]; then
-            # check the diff between the generated file and the expected file
-            # if diff is not empty we need to return 1
-            diff -u "${PROJECT_ROOT}/src/examples/test_chinook/entities_compare/${file}" "${PROJECT_ROOT}/src/examples/test_chinook/entities/${file}" --ignore-all-space --ignore-blank-lines
-        else
-            echo "File ${file} not found"
-        fi
-    done
 
     for file in ${files}; do
         # check if the file exists
         if [[ -f "${PROJECT_ROOT}/src/examples/test_chinook/entities_compare/${file}" ]]; then
             # check the diff between the generated file and the expected file
             # if diff is not empty we need to return 1
+
+            clang-format -i "${PROJECT_ROOT}/src/examples/test_chinook/entities_compare/${file}"
             diff -u "${PROJECT_ROOT}/src/examples/test_chinook/entities_compare/${file}" "${PROJECT_ROOT}/src/examples/test_chinook/entities/${file}" --ignore-all-space --ignore-blank-lines
             if [[ $? -ne 0 ]]; then
                 echo "Diff found in ${file}"

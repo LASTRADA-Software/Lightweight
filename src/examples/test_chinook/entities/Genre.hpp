@@ -3,7 +3,6 @@
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 
-
 struct Genre final
 {
     static constexpr std::string_view TableName = "Genre";
@@ -11,4 +10,3 @@ struct Genre final
     Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "GenreId" }> GenreId;
     Light::Field<std::optional<Light::SqlDynamicUtf16String<120>>, Light::SqlRealName { "Name" }> Name;
 };
-
