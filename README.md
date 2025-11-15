@@ -101,8 +101,8 @@ In the presented example we used rename of the columns, for more details see how
 you can query the email and get access to the user record as well
 
 ```cpp
-auto dm = Light::DataMapper{};
-auto email = dm.QuerySingle<Email>(some_email_id).value_or(Email{});
+auto dm = Light::DataMapper::Create();
+auto email = dm->QuerySingle<Email>(some_email_id).value_or(Email{});
 auto user_name = email.user->name; // lazily loads the user record
 ```
 
@@ -171,8 +171,8 @@ struct CustomBindingC
 
 Create a query to join those tables to get in a single query
 ```cpp
-auto dm = DataMapper {};
-auto query = dm.FromTable(RecordTableName<CustomBindingA>)
+auto dm = Light::DataMapper::Create();
+auto query = dm->FromTable(RecordTableName<CustomBindingA>)
                  .Select()
                  .Fields<CustomBindingA, CustomBindingB>()
                  .Field(QualifiedColumnName<"C.id">)
@@ -199,7 +199,7 @@ struct PartOfC
     SqlAnsiString<20> comment {};
 };
 
-auto const records = dm.QueryToTuple<CustomBindingA, CustomBindingB, PartOfC>(query);
+auto const records = dm->Query<CustomBindingA, CustomBindingB, PartOfC>(query);
 for (auto const& [a, b, c]: records)
 {
     // ...
