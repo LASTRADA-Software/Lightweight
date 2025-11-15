@@ -180,11 +180,9 @@ Foreign keys relation</h2>
 <div class="ttc" id="astructLightweight_1_1SqlGuid_html"><div class="ttname"><a href="df/d7c/structLightweight_1_1SqlGuid.html">Lightweight::SqlGuid</a></div><div class="ttdef"><b>Definition</b> <a href="d9/dc2/SqlGuid_8hpp_source.html#l00019">SqlGuid.hpp:20</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlRealName_html"><div class="ttname"><a href="d7/d13/structLightweight_1_1SqlRealName.html">Lightweight::SqlRealName</a></div><div class="ttdoc">Helper class, used to represent a real SQL column names as template arguments.</div><div class="ttdef"><b>Definition</b> <a href="d0/dd1/SqlRealName_8hpp_source.html#l00014">SqlRealName.hpp:15</a></div></div>
 </div><!-- fragment --><p>In the presented example we used rename of the columns, for more details see how-to#rename-column-name page. you can query the email and get access to the user record as well</p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> dm = <a class="code hl_class" href="de/d61/classLightweight_1_1DataMapper.html">Light::DataMapper</a>{};</div>
-<div class="line"><span class="keyword">auto</span> email = dm.<a class="code hl_function" href="de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4">QuerySingle</a>&lt;Email&gt;(some_email_id).value_or(Email{});</div>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> dm = Light::DataMapper::Create();</div>
+<div class="line"><span class="keyword">auto</span> email = dm-&gt;QuerySingle&lt;Email&gt;(some_email_id).value_or(Email{});</div>
 <div class="line"><span class="keyword">auto</span> user_name = email.user-&gt;name; <span class="comment">// lazily loads the user record</span></div>
-<div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="df/d4f/DataMapper_8hpp_source.html#l00088">DataMapper.hpp:89</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1DataMapper_html_acc18932e94446a8a198017a5a8772bc4"><div class="ttname"><a href="de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4">Lightweight::DataMapper::QuerySingle</a></div><div class="ttdeci">std::optional&lt; Record &gt; QuerySingle(PrimaryKeyTypes &amp;&amp;... primaryKeys)</div><div class="ttdoc">Queries a single record (based on primary key) from the database.</div><div class="ttdef"><b>Definition</b> <a href="df/d4f/DataMapper_8hpp_source.html#l01544">DataMapper.hpp:1544</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="mapping-query-results-to-a-simple-struct"></a>
 Mapping query results to a simple struct</h2>
 <p>If you have a SQL query that returns some values, but it does not corresponds to the existing table in the database, you can map the result to a simple struct. The struct must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
@@ -236,8 +234,8 @@ Mapping query to multiple struct</h2>
 <div class="line">    Field&lt;double&gt; value {};</div>
 <div class="line">    Field&lt;SqlAnsiString&lt;20&gt;&gt; comment {};</div>
 <div class="line">};</div>
-</div><!-- fragment --><p>Create a query to join those tables to get in a single query </p><div class="fragment"><div class="line"><span class="keyword">auto</span> dm = DataMapper {};</div>
-<div class="line"><span class="keyword">auto</span> query = dm.FromTable(RecordTableName&lt;CustomBindingA&gt;)</div>
+</div><!-- fragment --><p>Create a query to join those tables to get in a single query </p><div class="fragment"><div class="line"><span class="keyword">auto</span> dm = Light::DataMapper::Create();</div>
+<div class="line"><span class="keyword">auto</span> query = dm-&gt;FromTable(RecordTableName&lt;CustomBindingA&gt;)</div>
 <div class="line">                 .Select()</div>
 <div class="line">                 .Fields&lt;CustomBindingA, CustomBindingB&gt;()</div>
 <div class="line">                 .Field(QualifiedColumnName&lt;&quot;C.id&quot;&gt;)</div>
@@ -257,7 +255,7 @@ Mapping query to multiple struct</h2>
 <div class="line">    SqlAnsiString&lt;20&gt; comment {};</div>
 <div class="line">};</div>
 <div class="line"> </div>
-<div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> records = dm.QueryToTuple&lt;CustomBindingA, CustomBindingB, PartOfC&gt;(query);</div>
+<div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> records = dm-&gt;Query&lt;CustomBindingA, CustomBindingB, PartOfC&gt;(query);</div>
 <div class="line"><span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; [a, b, c]: records)</div>
 <div class="line">{</div>
 <div class="line">    <span class="comment">// ...</span></div>
