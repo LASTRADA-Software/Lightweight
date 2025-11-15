@@ -343,6 +343,15 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
         return SqlAllFieldsQueryBuilder<Record, QueryOptions>(*this, std::move(fields));
     }
 
+    /// Returns a SqlQueryBuilder using the default query formatter.
+    /// This can be used to build custom queries separately from the DataMapper.
+    /// and execute them via the DataMapper's Query() methods that SqlSelectQueryBuilder
+    ///
+    SqlQueryBuilder Query()
+    {
+        return SqlQueryBuilder(_connection.QueryFormatter());
+    }
+
     /// Updates the record in the database.
     template <typename Record>
     void Update(Record& record);
@@ -375,6 +384,13 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
     /// The relations are automatically loaded when accessed.
     template <typename Record>
     void ConfigureRelationAutoLoading(Record& record);
+
+    /// Helper function that allow to execute query directly via data mapper
+    /// and get scalar result without need to create SqlStatement manually
+    ///
+    /// @param sqlQueryString The SQL query string to execute.
+    template <typename T>
+    [[nodiscard]] std::optional<T> Execute(std::string_view sqlQueryString);
 
   private:
     /// @brief Queries a single record from the database based on the given query.
@@ -2284,6 +2300,12 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
 #else
     Reflection::EnumerateMembers(record, callback);
 #endif
+}
+
+template <typename T>
+std::optional<T> DataMapper::Execute(std::string_view sqlQueryString)
+{
+    return _stmt.ExecuteDirectScalar<T>(sqlQueryString);
 }
 
 } // namespace Lightweight
