@@ -649,6 +649,21 @@ bool SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Exist()
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+void SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Delete()
+{
+    auto stmt = SqlStatement { _dm.Connection() };
+
+    auto const query = _formatter.Delete(RecordTableName<Record>,
+                                         this->_query.searchCondition.tableAlias,
+                                         this->_query.searchCondition.tableJoins,
+                                         this->_query.searchCondition.condition);
+
+    stmt.Prepare(query);
+    stmt.Execute();
+    stmt.CloseCursor();
+}
+
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All()
 {
 
