@@ -6,6 +6,7 @@
 #include "../SqlError.hpp"
 #include "Primitives.hpp"
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <compare>
@@ -36,19 +37,21 @@ namespace Lightweight
 template <std::size_t ThePrecision, std::size_t TheScale>
 struct SqlNumeric
 {
-    static constexpr auto ColumnType = SqlColumnTypeDefinitions::Decimal { .precision = ThePrecision, .scale = TheScale };
-
     /// Number of total digits
     static constexpr auto Precision = ThePrecision;
 
     /// Number of digits after the decimal point
     static constexpr auto Scale = TheScale;
 
-    static_assert(TheScale < SQL_MAX_NUMERIC_LEN);
+    static constexpr auto ColumnType = SqlColumnTypeDefinitions::Decimal { .precision = Precision, .scale = TheScale };
+
+    static_assert(Precision < SQL_MAX_NUMERIC_LEN);
     static_assert(Scale <= Precision);
 
-    /// The value is stored as a string to avoid floating point precision issues.
     SQL_NUMERIC_STRUCT sqlValue {};
+
+    // Cached native value for drivers that do not support SQL_NUMERIC_STRUCT directly (e.g., SQLite).
+    double nativeValue {};
 
     constexpr SqlNumeric() noexcept = default;
     constexpr SqlNumeric(SqlNumeric&&) noexcept = default;
@@ -73,20 +76,23 @@ struct SqlNumeric
     static_assert(std::endian::native == std::endian::little);
 
     /// Assigns a value to the numeric.
-    LIGHTWEIGHT_FORCE_INLINE constexpr void assign(std::floating_point auto value) noexcept
+    LIGHTWEIGHT_FORCE_INLINE constexpr void assign(std::floating_point auto inputValue) noexcept
     {
-#if defined(LIGHTWEIGHT_INT128_T)
-        auto const num = static_cast<LIGHTWEIGHT_INT128_T>(value * std::pow(10, Scale));
-        *((LIGHTWEIGHT_INT128_T*) sqlValue.val) = num;
-#else
-        auto const num = static_cast<int64_t>(value * std::pow(10, Scale));
-        std::memset(sqlValue.val, 0, sizeof(sqlValue.val));
-        *((int64_t*) sqlValue.val) = num;
-#endif
+        nativeValue = static_cast<decltype(nativeValue)>(inputValue);
 
-        sqlValue.sign = num >= 0; // 1 == positive, 0 == negative
-        sqlValue.precision = Precision;
-        sqlValue.scale = Scale;
+        sqlValue = {};
+        sqlValue.sign = std::signbit(inputValue) ? 0 : 1;
+        sqlValue.precision = static_cast<SQLCHAR>(Precision);
+        sqlValue.scale = static_cast<SQLSCHAR>(Scale);
+
+        auto const unscaledValue = std::roundl(static_cast<long double>(std::abs(inputValue) * std::powl(10.0L, Scale)));
+#if defined(LIGHTWEIGHT_INT128_T)
+        auto const num = static_cast<LIGHTWEIGHT_INT128_T>(unscaledValue);
+        std::memcpy(sqlValue.val, &num, sizeof(num));
+#else
+        auto const num = static_cast<int64_t>(unscaledValue);
+        std::memcpy(sqlValue.val, &num, sizeof(num));
+#endif
     }
 
     /// Assigns a floating point value to the numeric.
@@ -99,6 +105,16 @@ struct SqlNumeric
     /// Converts the numeric to an unscaled integer value.
     [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE auto ToUnscaledValue() const noexcept
     {
+        if (nativeValue != 0.0)
+        {
+            auto const unscaledValue = std::roundl(nativeValue * std::powl(10.0L, Scale));
+#if defined(LIGHTWEIGHT_INT128_T)
+            return static_cast<LIGHTWEIGHT_INT128_T>(unscaledValue);
+#else
+            return static_cast<int64_t>(unscaledValue);
+#endif
+        }
+
         auto const sign = sqlValue.sign ? 1 : -1;
 #if defined(LIGHTWEIGHT_INT128_T)
         return sign * *reinterpret_cast<LIGHTWEIGHT_INT128_T const*>(sqlValue.val);
@@ -110,19 +126,19 @@ struct SqlNumeric
     /// Converts the numeric to a floating point value.
     [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE float ToFloat() const noexcept
     {
-        return float(ToUnscaledValue()) / std::powf(10, Scale);
+        return static_cast<float>(ToUnscaledValue()) / std::powf(10, sqlValue.scale);
     }
 
     /// Converts the numeric to a double precision floating point value.
     [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE double ToDouble() const noexcept
     {
-        return double(ToUnscaledValue()) / std::pow(10, Scale);
+        return static_cast<double>(ToUnscaledValue()) / std::pow(10, sqlValue.scale);
     }
 
     /// Converts the numeric to a long double precision floating point value.
     [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE long double ToLongDouble() const noexcept
     {
-        return static_cast<long double>(ToUnscaledValue()) / std::pow(10, Scale);
+        return static_cast<long double>(ToUnscaledValue()) / std::pow(10, sqlValue.scale);
     }
 
     /// Converts the numeric to a floating point value.
@@ -146,7 +162,7 @@ struct SqlNumeric
     /// Converts the numeric to a string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::string ToString() const
     {
-        return std::format("{:.{}f}", ToFloat(), Scale);
+        return std::format("{:.{}f}", ToLongDouble(), Scale);
     }
 
     [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE std::weak_ordering operator<=>(SqlNumeric const& other) const noexcept
@@ -184,17 +200,54 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
         throw SqlException(SqlErrorInfo::FromStatementHandle(stmt), sourceLocation);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt, SQLUSMALLINT column, ValueType const& value, SqlDataBinderCallback& /*cb*/) noexcept
+    static constexpr bool NativeNumericSupportIsBroken(SqlServerType serverType) noexcept
     {
-        auto* mut = const_cast<ValueType*>(&value);
-        mut->sqlValue.precision = Precision;
-        mut->sqlValue.scale = Scale;
-        RequireSuccess(stmt, SQLBindParameter(stmt, column, SQL_PARAM_INPUT, SQL_C_NUMERIC, SQL_NUMERIC, Precision, Scale, (SQLPOINTER) &value.sqlValue, 0, nullptr));
-        return SQL_SUCCESS;
+        // SQLite's ODBC driver does not support SQL_NUMERIC_STRUCT (it's all just floating point numbers).
+        // Microsoft SQL Server's ODBC driver also has issues (keeps reporting out of bound, on Linux at least).
+        return serverType == SqlServerType::SQLITE || serverType == SqlServerType::MICROSOFT_SQL;
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback& /*unused*/) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
+                                                             SQLUSMALLINT column,
+                                                             ValueType const& value,
+                                                             SqlDataBinderCallback& cb) noexcept
     {
+        if (NativeNumericSupportIsBroken(cb.ServerType()))
+        {
+            return SQLBindParameter(stmt,
+                                    column,
+                                    SQL_PARAM_INPUT,
+                                    SQL_C_DOUBLE,
+                                    SQL_DOUBLE,
+                                    0,
+                                    0,
+                                    (SQLPOINTER) &value.nativeValue,
+                                    sizeof(value.nativeValue),
+                                    nullptr);
+        }
+
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                SQL_C_NUMERIC,
+                                SQL_NUMERIC,
+                                value.sqlValue.precision,
+                                value.sqlValue.scale,
+                                (SQLPOINTER) &value,
+                                sizeof(value),
+                                nullptr);
+    }
+
+
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
+        SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
+    {
+        if (NativeNumericSupportIsBroken(cb.ServerType()))
+        {
+            result->sqlValue = { .precision = Precision, .scale = Scale, .sign = 0, .val = {} };
+            return SQLBindCol(stmt, column, SQL_C_DOUBLE, &result->nativeValue, sizeof(result->nativeValue), indicator);
+        }
+
         SQLHDESC hDesc {};
         RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &hDesc, 0, nullptr));
         RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_PRECISION, (SQLPOINTER) Precision, 0)); // NOLINT(performance-no-int-to-ptr)
@@ -203,8 +256,14 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
         return SQLBindCol(stmt, column, SQL_C_NUMERIC, &result->sqlValue, sizeof(ValueType), indicator);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback const& /*cb*/) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
     {
+        if (NativeNumericSupportIsBroken(cb.ServerType()))
+        {
+            result->sqlValue = { .precision = Precision, .scale = Scale, .sign = 0, .val = {} };
+            return SQLGetData(stmt, column, SQL_C_DOUBLE, &result->nativeValue, sizeof(result->nativeValue), indicator);
+        }
+
         SQLHDESC hDesc {};
         RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &hDesc, 0, nullptr));
         RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_PRECISION, (SQLPOINTER) Precision, 0)); // NOLINT(performance-no-int-to-ptr)
