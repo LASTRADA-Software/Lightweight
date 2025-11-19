@@ -28,7 +28,7 @@ struct SqlText
 template <>
 struct SqlBasicStringOperations<SqlText>
 {
-    using Traits = SqlBasicStringOperations<typename SqlText::value_type>;
+    using Traits = SqlBasicStringOperations<SqlText::value_type>;
 
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::Text {};
 

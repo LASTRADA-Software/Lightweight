@@ -36,7 +36,7 @@ namespace detail
         }
     static SQLRETURN GetRawColumnArrayData(SQLHSTMT stmt, SQLUSMALLINT column, ArrayType* result, SQLLEN* indicator) noexcept
     {
-        using CharType = typename ArrayType::value_type;
+        using CharType = ArrayType::value_type;
 
         *indicator = 0;
 
@@ -105,7 +105,7 @@ namespace detail
     SQLRETURN BindOutputColumnNonUtf16Unicode(
         SQLHSTMT stmt, SQLUSMALLINT column, StringType* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
-        using CharType = typename StringType::value_type;
+        using CharType = StringType::value_type;
 
         auto u16String = std::make_shared<std::u16string>();
         if (!result->empty())
@@ -441,7 +441,7 @@ template <typename Utf32StringType>
 struct SqlDataBinder<Utf32StringType>
 {
     using ValueType = Utf32StringType;
-    using CharType = typename Utf32StringType::value_type;
+    using CharType = Utf32StringType::value_type;
     using StringTraits = SqlBasicStringOperations<Utf32StringType>;
 
     static constexpr auto ColumnType = StringTraits::ColumnType;

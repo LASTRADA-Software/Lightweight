@@ -551,8 +551,8 @@ struct BelongsToAliasedRecord
     BelongsTo<Member(AliasedRecord::id), SqlRealName { "record_id" }> record;
 };
 
-static_assert(std::same_as<typename BelongsTo<Member(AliasedRecord::id)>::ReferencedRecord, AliasedRecord>);
-static_assert(std::same_as<typename BelongsTo<Member(AliasedRecord::id)>::ValueType, uint64_t>);
+static_assert(std::same_as<BelongsTo<Member(AliasedRecord::id)>::ReferencedRecord, AliasedRecord>);
+static_assert(std::same_as<BelongsTo<Member(AliasedRecord::id)>::ValueType, uint64_t>);
 
 std::ostream& operator<<(std::ostream& os, AliasedRecord const& record)
 {

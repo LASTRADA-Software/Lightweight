@@ -212,7 +212,7 @@ template <auto Member>
 constexpr size_t MemberIndexOf = Reflection::MemberIndexOf<Member>;
 
 template <typename T>
-using MemberClassType = typename detail::MemberClassTypeHelper<T>::type;
+using MemberClassType = detail::MemberClassTypeHelper<T>::type;
 
 #endif // LIGHTWEIGHT_CXX26_REFLECTION
 

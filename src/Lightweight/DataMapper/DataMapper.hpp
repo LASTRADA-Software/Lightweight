@@ -402,7 +402,7 @@ class DataMapper: public std::enable_shared_from_this<DataMapper>
     Record& BindOutputColumns(Record& record, SqlStatement* stmt);
 
     template <typename FieldType>
-    std::optional<typename FieldType::ReferencedRecord> LoadBelongsTo(typename FieldType::ValueType value);
+    std::optional<typename FieldType::ReferencedRecord> LoadBelongsTo(FieldType::ValueType value);
 
     template <size_t FieldIndex, typename Record, typename OtherRecord>
     void LoadHasMany(Record& record, HasMany<OtherRecord>& field);
@@ -1335,7 +1335,7 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
         {
             if (!primaryKeyField.IsModified())
             {
-                using ValueType = typename PrimaryKeyType::ValueType;
+                using ValueType = PrimaryKeyType::ValueType;
                 if constexpr (std::same_as<ValueType, SqlGuid>)
                 {
                     if (!primaryKeyField.Value())
@@ -1811,9 +1811,9 @@ inline LIGHTWEIGHT_FORCE_INLINE void CallOnBelongsTo(Callable const& callable)
 }
 
 template <typename FieldType>
-std::optional<typename FieldType::ReferencedRecord> DataMapper::LoadBelongsTo(typename FieldType::ValueType value)
+std::optional<typename FieldType::ReferencedRecord> DataMapper::LoadBelongsTo(FieldType::ValueType value)
 {
-    using ReferencedRecord = typename FieldType::ReferencedRecord;
+    using ReferencedRecord = FieldType::ReferencedRecord;
 
     std::optional<ReferencedRecord> record { std::nullopt };
 
@@ -1851,7 +1851,7 @@ void DataMapper::CallOnHasMany(Record& record, Callable const& callback)
     static_assert(DataMapperRecord<OtherRecord>, "OtherRecord must satisfy DataMapperRecord");
 
     using FieldType = HasMany<OtherRecord>;
-    using ReferencedRecord = typename FieldType::ReferencedRecord;
+    using ReferencedRecord = FieldType::ReferencedRecord;
 
     CallOnPrimaryKey(record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
         auto query = _connection.Query(RecordTableName<ReferencedRecord>)
@@ -2160,7 +2160,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         }
         else if constexpr (IsHasMany<FieldType>)
         {
-            using ReferencedRecord = typename FieldType::ReferencedRecord;
+            using ReferencedRecord = FieldType::ReferencedRecord;
             HasMany<ReferencedRecord>& hasMany = field;
             hasMany.SetAutoLoader(typename FieldType::Loader {
                 .count = [self, &record]() -> size_t {
@@ -2199,8 +2199,8 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         }
         else if constexpr (IsHasOneThrough<FieldType>)
         {
-            using ReferencedRecord = typename FieldType::ReferencedRecord;
-            using ThroughRecord = typename FieldType::ThroughRecord;
+            using ReferencedRecord = FieldType::ReferencedRecord;
+            using ThroughRecord = FieldType::ThroughRecord;
             HasOneThrough<ReferencedRecord, ThroughRecord>& hasOneThrough = field;
             hasOneThrough.SetAutoLoader(typename FieldType::Loader {
                 .loadReference =
@@ -2211,8 +2211,8 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         }
         else if constexpr (IsHasManyThrough<FieldType>)
         {
-            using ReferencedRecord = typename FieldType::ReferencedRecord;
-            using ThroughRecord = typename FieldType::ThroughRecord;
+            using ReferencedRecord = FieldType::ReferencedRecord;
+            using ThroughRecord = FieldType::ThroughRecord;
             HasManyThrough<ReferencedRecord, ThroughRecord>& hasManyThrough = field;
             hasManyThrough.SetAutoLoader(typename FieldType::Loader {
                 .count = [self, &record]() -> size_t {
