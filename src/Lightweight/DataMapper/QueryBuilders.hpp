@@ -62,6 +62,9 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     /// Executes a SELECT query and returns all records found.
     [[nodiscard]] std::vector<Record> All();
 
+    /// Executes a DELETE query.
+    void Delete();
+
     /// @brief Executes a SELECT query and returns all records found for the specified field.
     ///
     /// @tparam Field The field to select from the record, in the form of &Record::FieldName.

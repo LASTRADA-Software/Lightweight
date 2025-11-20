@@ -520,4 +520,26 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlGuid", "[DataMapper]")
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Delete", "[DataMapper]")
+{
+    auto dm = DataMapper::Create();
+
+    dm->CreateTable<Person>();
+    for (auto const i: std::views::iota(0, 10))
+    {
+        dm->CreateExplicit(Person {
+            .id = SqlGuid::Create(),
+            .name = std::format("Person {}", i),
+            .is_active = (i % 2) == 0,
+            .age = i,
+        });
+    }
+    CHECK(dm->Query<Person>().Count() == 10);
+    dm->Query<Person>().Where(FieldNameOf<Member(Person::age)>, "<", 6).Delete();
+    CHECK(dm->Query<Person>().Count() == 4);
+    dm->Query<Person>().Delete();
+    REQUIRE(dm->Query<Person>().Count() == 0);
+    dm->Query<Person>().Delete();
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
