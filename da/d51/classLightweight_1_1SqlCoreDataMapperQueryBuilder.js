@@ -3,6 +3,7 @@ var classLightweight_1_1SqlCoreDataMapperQueryBuilder =
     [ "Exist", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ae924750087e80757fb0b4b210edbddae", null ],
     [ "Count", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#af3f8be66ec88e462629f484bd6363344", null ],
     [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a5a68b798844875ce98c0310fdf2b224a", null ],
+    [ "Delete", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#adb6ca685968933ad2c6ed5a16ea3af4e", null ],
     [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a884604fb9ced8f3aec3f1baaca96cc67", null ],
     [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#af2cb68c13dc9766d52889c8b83e3a452", null ],
     [ "First", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a5010f642210297358fe1e66ea1a37c86", null ],
