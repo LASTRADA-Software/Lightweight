@@ -43,10 +43,10 @@ class HasMany
     using value_type = OtherRecord;
 
     /// Iterator type for the list of records.
-    using iterator = typename ReferencedRecordList::iterator;
+    using iterator = ReferencedRecordList::iterator;
 
     /// Const iterator type for the list of records.
-    using const_iterator = typename ReferencedRecordList::const_iterator;
+    using const_iterator = ReferencedRecordList::const_iterator;
 
     /// Retrieves the list of loaded records.
     [[nodiscard]] ReferencedRecordList const& All() const noexcept;

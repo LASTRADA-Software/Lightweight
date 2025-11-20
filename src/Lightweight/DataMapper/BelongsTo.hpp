@@ -73,7 +73,7 @@ class BelongsTo
                   "The referenced field must be a primary key.");
 
     /// Represents the base column type of the foreign key, matching the primary key of the other record.
-    using BaseType = typename std::remove_cvref_t<decltype(std::declval<ReferencedRecord>().*ReferencedField)>::ValueType;
+    using BaseType = std::remove_cvref_t<decltype(std::declval<ReferencedRecord>().*ReferencedField)>::ValueType;
 #endif
 
     /// Represents the value type of the foreign key,
@@ -340,7 +340,7 @@ template <auto ReferencedField, auto ColumnNameOverrideString, SqlNullable Nulla
 struct SqlDataBinder<BelongsTo<ReferencedField, ColumnNameOverrideString, Nullable>>
 {
     using SelfType = BelongsTo<ReferencedField, ColumnNameOverrideString, Nullable>;
-    using InnerType = typename SelfType::ValueType;
+    using InnerType = SelfType::ValueType;
 
     static constexpr auto ColumnType = SqlDataBinder<InnerType>::ColumnType;
 

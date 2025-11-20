@@ -95,14 +95,14 @@ namespace details
         requires(RecordPrimaryKeyIndex<Record> < Reflection::CountMembers<Record>)
     struct RecordPrimaryKeyTypeHelper<Record>
     {
-        using type = typename Reflection::MemberTypeOf<RecordPrimaryKeyIndex<Record>, Record>::ValueType;
+        using type = Reflection::MemberTypeOf<RecordPrimaryKeyIndex<Record>, Record>::ValueType;
     };
 
 } // namespace details
 
 /// Reflects the primary key type of the given record.
 template <typename Record>
-using RecordPrimaryKeyType = typename details::RecordPrimaryKeyTypeHelper<Record>::type;
+using RecordPrimaryKeyType = details::RecordPrimaryKeyTypeHelper<Record>::type;
 
 /// @brief Maps the fields of the given record to the target that supports the operator[].
 template <typename Record, typename TargetMappable>

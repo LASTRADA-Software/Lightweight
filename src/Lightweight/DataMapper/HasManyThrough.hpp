@@ -33,8 +33,8 @@ class HasManyThrough
     using ReferencedRecordList = std::vector<std::shared_ptr<ReferencedRecord>>;
 
     using value_type = ReferencedRecord;
-    using iterator = typename ReferencedRecordList::iterator;
-    using const_iterator = typename ReferencedRecordList::const_iterator;
+    using iterator = ReferencedRecordList::iterator;
+    using const_iterator = ReferencedRecordList::const_iterator;
 
     /// Retrieves the list of loaded records.
     [[nodiscard]] ReferencedRecordList const& All() const noexcept;
