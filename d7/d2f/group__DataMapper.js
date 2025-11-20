@@ -4,7 +4,7 @@ var group__DataMapper =
     [ "Lightweight::FieldWithStorage", "dd/da7/conceptLightweight_1_1FieldWithStorage.html", null ],
     [ "Lightweight::BelongsTo< TheReferencedField, ColumnNameOverrideString, Nullable >", "d0/df7/classLightweight_1_1BelongsTo.html", [
       [ "ReferencedRecord", "d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b", null ],
-      [ "BaseType", "d0/df7/classLightweight_1_1BelongsTo.html#ac6e9aa800a748bfed6a6082fd21b7ce5", null ],
+      [ "BaseType", "d0/df7/classLightweight_1_1BelongsTo.html#a1ea1e35fcc93942ed865c095b0546be9", null ],
       [ "ValueType", "d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2", null ],
       [ "SetModified", "d0/df7/classLightweight_1_1BelongsTo.html#ab487740598ec23b90ed15317feb34402", null ],
       [ "IsModified", "d0/df7/classLightweight_1_1BelongsTo.html#a760ee5ea51fd3c714f26a1d1f3366a37", null ],
@@ -67,8 +67,8 @@ var group__DataMapper =
       [ "ReferencedRecord", "da/df4/classLightweight_1_1HasMany.html#aa55567dd568d83b2bf1a17980f856553", null ],
       [ "ReferencedRecordList", "da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb", null ],
       [ "value_type", "da/df4/classLightweight_1_1HasMany.html#a09781261bf364bf63b828563ef5d7f7c", null ],
-      [ "iterator", "da/df4/classLightweight_1_1HasMany.html#adf7e9ed7d4028cd203c8c890b59c03d5", null ],
-      [ "const_iterator", "da/df4/classLightweight_1_1HasMany.html#abb4354bf4bdcaf6544432192d5b354ad", null ],
+      [ "iterator", "da/df4/classLightweight_1_1HasMany.html#a4208c7230c0ba0e12997bf6c2ce0775c", null ],
+      [ "const_iterator", "da/df4/classLightweight_1_1HasMany.html#a817d4e3c44dfd053546805cd77b5ed77", null ],
       [ "All", "da/df4/classLightweight_1_1HasMany.html#acea92f62bbba17fef8765578507e62e4", null ],
       [ "All", "da/df4/classLightweight_1_1HasMany.html#a48da79f7712889cd21441431df7f7efc", null ],
       [ "Each", "da/df4/classLightweight_1_1HasMany.html#a543f2454721d934c47a6cf3b63459c6d", null ],
@@ -125,7 +125,7 @@ var group__DataMapper =
       [ "Range", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ad4234fec2da873f7a938a6c436451cf9", null ]
     ] ],
     [ "Lightweight::SqlAllFieldsQueryBuilder< Record, QueryOptions >", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ],
-    [ "Lightweight::ReferencedFieldTypeOf", "d7/d2f/group__DataMapper.html#ga0380e9ceb64c318ba9bff748102e62b8", null ],
+    [ "Lightweight::ReferencedFieldTypeOf", "d7/d2f/group__DataMapper.html#gaeebbb701afbe9efa3118910e348b4e61", null ],
     [ "Lightweight::SqlElements", "d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25", null ],
     [ "Lightweight::GetPrimaryKeyField", "d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33", null ],
     [ "Lightweight::RecordStorageFieldCount", "d7/d2f/group__DataMapper.html#gac7df2f7b61cdd663f50496fe92c80a73", null ],

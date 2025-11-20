@@ -195,14 +195,14 @@ $(document).ready(function(){initNavTree('d3/d6b/Record_8hpp_source.html','../..
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>        <span class="keyword">requires</span>(RecordPrimaryKeyIndex&lt;Record&gt; &lt; Reflection::CountMembers&lt;Record&gt;)</div>
 <div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>    <span class="keyword">struct</span> RecordPrimaryKeyTypeHelper&lt;Record&gt;</div>
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>    {</div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>        <span class="keyword">using </span>type = <span class="keyword">typename</span> Reflection::MemberTypeOf&lt;RecordPrimaryKeyIndex&lt;Record&gt;, Record&gt;::ValueType;</div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>        <span class="keyword">using </span>type = Reflection::MemberTypeOf&lt;RecordPrimaryKeyIndex&lt;Record&gt;, Record&gt;::ValueType;</div>
 <div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>    };</div>
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span> </div>
 <div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>} <span class="comment">// namespace details</span></div>
 <div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span><span class="comment"></span> </div>
 <div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span><span class="comment">/// Reflects the primary key type of the given record.</span></div>
 <div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Record&gt;</div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span><span class="keyword">using </span>RecordPrimaryKeyType = <span class="keyword">typename</span> details::RecordPrimaryKeyTypeHelper&lt;Record&gt;::type;</div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span><span class="keyword">using </span>RecordPrimaryKeyType = details::RecordPrimaryKeyTypeHelper&lt;Record&gt;::type;</div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span><span class="comment"></span> </div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span><span class="comment">/// @brief Maps the fields of the given record to the target that supports the operator[].</span></div>
 <div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Record, <span class="keyword">typename</span> TargetMappable&gt;</div>

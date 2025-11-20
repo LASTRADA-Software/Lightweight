@@ -136,7 +136,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>        }</div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>    <span class="keyword">static</span> SQLRETURN GetRawColumnArrayData(SQLHSTMT stmt, SQLUSMALLINT column, ArrayType* result, SQLLEN* indicator) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>    {</div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>        <span class="keyword">using </span>CharType = <span class="keyword">typename</span> ArrayType::value_type;</div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>        <span class="keyword">using </span>CharType = ArrayType::value_type;</div>
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span> </div>
 <div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>        *indicator = 0;</div>
 <div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span> </div>
@@ -205,7 +205,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>    SQLRETURN BindOutputColumnNonUtf16Unicode(</div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>        SQLHSTMT stmt, SQLUSMALLINT column, StringType* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>    {</div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>        <span class="keyword">using </span>CharType = <span class="keyword">typename</span> StringType::value_type;</div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>        <span class="keyword">using </span>CharType = StringType::value_type;</div>
 <div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span> </div>
 <div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>        <span class="keyword">auto</span> u16String = std::make_shared&lt;std::u16string&gt;();</div>
 <div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>        <span class="keywordflow">if</span> (!result-&gt;empty())</div>
@@ -541,7 +541,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00441" name="l00441"></a><span class="lineno">  441</span><span class="keyword">struct </span>SqlDataBinder&lt;Utf32StringType&gt;</div>
 <div class="line"><a id="l00442" name="l00442"></a><span class="lineno">  442</span>{</div>
 <div class="line"><a id="l00443" name="l00443"></a><span class="lineno">  443</span>    <span class="keyword">using </span>ValueType = Utf32StringType;</div>
-<div class="line"><a id="l00444" name="l00444"></a><span class="lineno">  444</span>    <span class="keyword">using </span>CharType = <span class="keyword">typename</span> Utf32StringType::value_type;</div>
+<div class="line"><a id="l00444" name="l00444"></a><span class="lineno">  444</span>    <span class="keyword">using </span>CharType = Utf32StringType::value_type;</div>
 <div class="line"><a id="l00445" name="l00445"></a><span class="lineno">  445</span>    <span class="keyword">using </span>StringTraits = SqlBasicStringOperations&lt;Utf32StringType&gt;;</div>
 <div class="line"><a id="l00446" name="l00446"></a><span class="lineno">  446</span> </div>
 <div class="line"><a id="l00447" name="l00447"></a><span class="lineno">  447</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> ColumnType = StringTraits::ColumnType;</div>

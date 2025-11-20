@@ -109,10 +109,10 @@ Public Types</h2></td></tr>
 <tr class="memitem:ae3deecf75fdd98c06884f76ce07f077b" id="r_ae3deecf75fdd98c06884f76ce07f077b"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b">ReferencedRecord</a> = MemberClassType&lt; decltype(TheReferencedField)&gt;</td></tr>
 <tr class="memdesc:ae3deecf75fdd98c06884f76ce07f077b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents the record type of the other field.  <br /></td></tr>
 <tr class="separator:ae3deecf75fdd98c06884f76ce07f077b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac6e9aa800a748bfed6a6082fd21b7ce5" id="r_ac6e9aa800a748bfed6a6082fd21b7ce5"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac6e9aa800a748bfed6a6082fd21b7ce5">BaseType</a> = typename std::remove_cvref_t&lt; decltype(std::declval&lt; <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b">ReferencedRecord</a> &gt;().*<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a39e9e2c9ac0ad6140225dbd78f01929e">ReferencedField</a>)&gt;<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">::ValueType</a></td></tr>
-<tr class="memdesc:ac6e9aa800a748bfed6a6082fd21b7ce5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents the base column type of the foreign key, matching the primary key of the other record.  <br /></td></tr>
-<tr class="separator:ac6e9aa800a748bfed6a6082fd21b7ce5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac108395e0094203583b03b195284d6b2" id="r_ac108395e0094203583b03b195284d6b2"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">ValueType</a> = std::conditional_t&lt; Nullable==SqlNullable::Null, std::optional&lt; <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac6e9aa800a748bfed6a6082fd21b7ce5">BaseType</a> &gt;, <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac6e9aa800a748bfed6a6082fd21b7ce5">BaseType</a> &gt;</td></tr>
+<tr class="memitem:a1ea1e35fcc93942ed865c095b0546be9" id="r_a1ea1e35fcc93942ed865c095b0546be9"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1ea1e35fcc93942ed865c095b0546be9">BaseType</a> = std::remove_cvref_t&lt; decltype(std::declval&lt; <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b">ReferencedRecord</a> &gt;().*<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a39e9e2c9ac0ad6140225dbd78f01929e">ReferencedField</a>)&gt;<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">::ValueType</a></td></tr>
+<tr class="memdesc:a1ea1e35fcc93942ed865c095b0546be9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents the base column type of the foreign key, matching the primary key of the other record.  <br /></td></tr>
+<tr class="separator:a1ea1e35fcc93942ed865c095b0546be9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac108395e0094203583b03b195284d6b2" id="r_ac108395e0094203583b03b195284d6b2"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">ValueType</a> = std::conditional_t&lt; Nullable==SqlNullable::Null, std::optional&lt; <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1ea1e35fcc93942ed865c095b0546be9">BaseType</a> &gt;, <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1ea1e35fcc93942ed865c095b0546be9">BaseType</a> &gt;</td></tr>
 <tr class="separator:ac108395e0094203583b03b195284d6b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
@@ -260,8 +260,8 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 
 </div>
 </div>
-<a id="ac6e9aa800a748bfed6a6082fd21b7ce5" name="ac6e9aa800a748bfed6a6082fd21b7ce5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac6e9aa800a748bfed6a6082fd21b7ce5">&#9670;&#160;</a></span>BaseType</h2>
+<a id="a1ea1e35fcc93942ed865c095b0546be9" name="a1ea1e35fcc93942ed865c095b0546be9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1ea1e35fcc93942ed865c095b0546be9">&#9670;&#160;</a></span>BaseType</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -269,7 +269,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html">Lightweight::BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::BaseType =  typename std::remove_cvref_t&lt;decltype(std::declval&lt;<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b">ReferencedRecord</a>&gt;().*<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a39e9e2c9ac0ad6140225dbd78f01929e">ReferencedField</a>)&gt;<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">::ValueType</a></td>
+          <td class="memname">using <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html">Lightweight::BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::BaseType =  std::remove_cvref_t&lt;decltype(std::declval&lt;<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b">ReferencedRecord</a>&gt;().*<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a39e9e2c9ac0ad6140225dbd78f01929e">ReferencedField</a>)&gt;<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">::ValueType</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -289,7 +289,7 @@ template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullop
 template&lt;auto TheReferencedField, auto ColumnNameOverrideString = std::nullopt, SqlNullable Nullable = SqlNullable::NotNull&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html">Lightweight::BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::ValueType =  std::conditional_t&lt;Nullable == SqlNullable::Null, std::optional&lt;<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac6e9aa800a748bfed6a6082fd21b7ce5">BaseType</a>&gt;, <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac6e9aa800a748bfed6a6082fd21b7ce5">BaseType</a>&gt;</td>
+          <td class="memname">using <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html">Lightweight::BelongsTo</a>&lt; TheReferencedField, ColumnNameOverrideString, Nullable &gt;::ValueType =  std::conditional_t&lt;Nullable == SqlNullable::Null, std::optional&lt;<a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1ea1e35fcc93942ed865c095b0546be9">BaseType</a>&gt;, <a class="el" href="../../d0/df7/classLightweight_1_1BelongsTo.html#a1ea1e35fcc93942ed865c095b0546be9">BaseType</a>&gt;</td>
         </tr>
       </table>
 </div><div class="memdoc">
