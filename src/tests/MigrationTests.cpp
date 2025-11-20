@@ -40,7 +40,7 @@ class SqlMigrationTestFixture: public SqlTestFixture
 };
 
 // This is how a migration could look like
-LIGHTWEIGHT_SQL_MIGRATION(20170816112233, "create users")
+LIGHTWEIGHT_SQL_MIGRATION(20170816112233, "create users") // NOLINT(bugprone-throwing-static-initialization)
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
 

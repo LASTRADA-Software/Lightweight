@@ -156,13 +156,17 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlBasicSelectQueryBuild
     /// Finalizes building the query as SELECT field names FROM ... query with a range.
     LIGHTWEIGHT_API ComposedQuery Range(std::size_t offset, std::size_t limit);
 
-    LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SearchCondition() noexcept
+    // clang-format off
+    LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SearchCondition() noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
     {
+        // clang-format on
         return _query.searchCondition;
     }
 
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter const& Formatter() const noexcept
+    // clang-format off
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter const& Formatter() const noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
     {
+        // clang-format on
         return _formatter;
     }
 

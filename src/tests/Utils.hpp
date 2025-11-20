@@ -121,7 +121,10 @@ std::ostream& operator<<(std::ostream& os, Lightweight::SqlNumeric<Precision, Sc
 // - http://www.ch-werner.de/sqliteodbc/
 // - https://github.com/softace/sqliteodbc
 //
-auto inline const DefaultTestConnectionString = Lightweight::SqlConnectionString {
+
+// clang-format off
+auto inline const DefaultTestConnectionString = Lightweight::SqlConnectionString { //NOLINT(bugprone-throwing-static-initialization)
+    // clang-format on
     .value = std::format("DRIVER={};Database={}",
 #if defined(_WIN32) || defined(_WIN64)
                          "SQLite3 ODBC Driver",
@@ -264,7 +267,7 @@ constexpr void FixedPointIterate(Getter const& getter, Callable const& callable)
 class SqlTestFixture
 {
   public:
-    static inline std::string testDatabaseName = "LightweightTest";
+    static inline std::string testDatabaseName = "LightweightTest"; // NOLINT(bugprone-throwing-static-initialization)
     static inline bool odbcTrace = false;
 
     using MainProgramArgs = std::tuple<int, char**>;
@@ -669,7 +672,8 @@ inline bool IsGithubActions()
     return getenv_s(&requiredCount, envBuffer, sizeof(envBuffer), "GITHUB_ACTIONS") == 0
            && std::string_view(envBuffer) == "true" == 0;
 #else
-    return std::getenv("GITHUB_ACTIONS") != nullptr && std::string_view(std::getenv("GITHUB_ACTIONS")) == "true";
+    return std::getenv("GITHUB_ACTIONS") != nullptr
+           && std::string_view(std::getenv("GITHUB_ACTIONS")) == "true"; // NOLINT(clang-analyzer-core.NonNullParamChecker)
 #endif
 }
 

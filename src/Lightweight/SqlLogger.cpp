@@ -39,7 +39,7 @@ namespace
       protected:
         void Tick()
         {
-            auto const _ = std::lock_guard { _mutex };
+            auto const _ = std::scoped_lock { _mutex };
             _currentTime = std::chrono::system_clock::now();
             auto const nowMs = time_point_cast<std::chrono::milliseconds>(_currentTime);
             _currentTimeStr = std::format("{:%F %X}.{:03}", _currentTime, nowMs.time_since_epoch().count() % 1'000);

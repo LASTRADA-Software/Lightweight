@@ -20,7 +20,7 @@
 #include <ranges>
 #include <type_traits>
 
-// NOLINTBEGIN(readability-container-size-empty)
+// NOLINTBEGIN(readability-container-size-empty, bugprone-throwing-static-initialization)
 
 #if defined(_MSC_VER)
     // Disable the warning C4834: discarding return value of function with 'nodiscard' attribute.
@@ -131,8 +131,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: resize and clear", "[SqlFixedS
     REQUIRE(str.size() == 2);
 
     str.clear();
-    REQUIRE(str.size() == 0);
-    REQUIRE(str == "");
+    REQUIRE(str.empty());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: push_back and pop_back", "[SqlFixedString]")
@@ -151,11 +150,11 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: push_back and pop_back", "[Sql
     REQUIRE(str == "a");
 
     str.pop_back();
-    REQUIRE(str == "");
+    REQUIRE(str.empty());
 
     // no-op
     str.pop_back();
-    REQUIRE(str == "");
+    REQUIRE(str.empty());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: assign", "[SqlFixedString]")
@@ -334,7 +333,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlTime", "[SqlDataBinder],[SqlVar
         return;
     }
 
-    CHECK(actual.TryGetTime().value() == std::get<SqlTime>(expected.value));
+    REQUIRE(actual.TryGetTime().has_value());
+    if (actual.TryGetTime())
+        CHECK(actual.TryGetTime().value() == std::get<SqlTime>(expected.value));
 
     // Test for inserting/getting NULL values
     stmt.ExecuteDirect(stmt.Query("Test").Delete());
@@ -471,7 +472,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode mixed", "[SqlDataBinder
         // Read value: UTF-16 encoded
         auto actualValue = stmt.ExecuteDirectScalar<WideString>(stmt.Query("Test").Select().Field("Value").First());
         REQUIRE(actualValue.has_value());
-        CHECK(*actualValue == expectedWideValue);
+        CHECK(*actualValue == expectedWideValue); // NOLINT(bugprone-unchecked-optional-access)
     }
 }
 
@@ -502,7 +503,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.StoreAndLoad", "[SqlDataBinder],[Sq
 
     auto stmt = SqlStatement {};
     stmt.MigrateDirect(
-        [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Decimal { 10, 2 }); });
+        [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Decimal { .precision=10, .scale=2 }); });
 
     auto const inputValue = SqlNumeric<10, 2> { 99999999.99 };
 
@@ -1099,4 +1100,4 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
     }
 }
 
-// NOLINTEND(readability-container-size-empty)
+// NOLINTEND(readability-container-size-empty, bugprone-throwing-static-initialization)
