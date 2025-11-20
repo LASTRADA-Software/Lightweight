@@ -124,7 +124,7 @@ std::ostream& operator<<(std::ostream& os, Lightweight::SqlNumeric<Precision, Sc
 
 // clang-format off
 auto inline const DefaultTestConnectionString = Lightweight::SqlConnectionString { //NOLINT(bugprone-throwing-static-initialization)
-// clang-format on
+    // clang-format on
     .value = std::format("DRIVER={};Database={}",
 #if defined(_WIN32) || defined(_WIN64)
                          "SQLite3 ODBC Driver",
