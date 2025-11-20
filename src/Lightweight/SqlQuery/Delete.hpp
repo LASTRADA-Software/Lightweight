@@ -23,13 +23,15 @@ class LIGHTWEIGHT_API SqlDeleteQueryBuilder final: public SqlWhereClauseBuilder<
         m_searchCondition.tableAlias = std::move(tableAlias);
     }
 
-    SqlSearchCondition& SearchCondition() noexcept
+    SqlSearchCondition& SearchCondition() noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
     {
         return m_searchCondition;
     }
 
-    [[nodiscard]] SqlQueryFormatter const& Formatter() const noexcept
+    // clang-format off
+    [[nodiscard]] SqlQueryFormatter const& Formatter() const noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
     {
+        // clang-format on
         return m_formatter;
     }
 
