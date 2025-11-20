@@ -22,6 +22,11 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         return std::format("SELECT lastval();");
     }
 
+    [[nodiscard]] std::string_view DateFunction() const noexcept override
+    {
+        return "CURRENT_DATE";
+    }
+
     [[nodiscard]] std::string BuildColumnDefinition(SqlColumnDeclaration const& column) const override
     {
         std::stringstream sqlQueryString;
