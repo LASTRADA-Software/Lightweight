@@ -542,4 +542,49 @@ TEST_CASE_METHOD(SqlTestFixture, "Delete", "[DataMapper]")
     dm->Query<Person>().Delete();
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "ExecuteDirect", "[DataMapper]")
+{
+    auto dm = DataMapper::Create();
+    auto stmt = SqlStatement(dm->Connection());
+
+    auto const date =
+        stmt.ExecuteDirectScalar<SqlDateTime>(std::format("SELECT {};", stmt.Connection().QueryFormatter().DateFunction()));
+    auto const dateFromDataMapper =
+        dm->Execute<SqlDateTime>(std::format("SELECT {};", stmt.Connection().QueryFormatter().DateFunction()));
+
+    REQUIRE(date.has_value());
+    REQUIRE(dateFromDataMapper.has_value());
+    CHECK(date.value().value() == dateFromDataMapper.value().value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Query builder", "[DataMapper]")
+{
+
+    auto dm = DataMapper::Create();
+
+    auto const query = dm->Query().FromTable("That").Select().Distinct().Fields("a", "b").All();
+
+    struct QueryResult
+    {
+        Field<SqlDateTime> date;
+    };
+
+    auto stmt = SqlStatement(dm->Connection());
+
+    if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
+    {
+        stmt.ExecuteDirect(R"SQL(
+        CREATE TABLE "That" (
+            "a" INT,
+            "b" INT,
+            "c" INT
+        ))SQL");
+
+        stmt.ExecuteDirect(R"SQL(INSERT INTO "That" ("a", "b", "c") VALUES (1, 2, 3))SQL");
+
+        auto const result = dm->Query<QueryResult>(query);
+        REQUIRE(result.size() == 1);
+    }
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)

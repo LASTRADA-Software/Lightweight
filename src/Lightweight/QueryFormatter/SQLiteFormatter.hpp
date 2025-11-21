@@ -31,6 +31,11 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return literalValue ? "TRUE" : "FALSE";
     }
 
+    [[nodiscard]] std::string_view DateFunction() const noexcept override
+    {
+        return "date()";
+    }
+
     [[nodiscard]] std::string StringLiteral(std::string_view value) const noexcept override
     {
         // TODO: Implement escaping of special characters.

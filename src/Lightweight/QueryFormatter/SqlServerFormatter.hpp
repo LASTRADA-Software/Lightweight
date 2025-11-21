@@ -26,6 +26,11 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
         return literalValue ? "1" : "0";
     }
 
+    [[nodiscard]] std::string_view DateFunction() const noexcept override
+    {
+        return "GETDATE()";
+    }
+
     [[nodiscard]] std::string SelectFirst(bool distinct,
                                           // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
                                           std::string_view fields,

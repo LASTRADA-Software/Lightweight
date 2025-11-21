@@ -29,6 +29,9 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// Converts a boolean value to a string literal.
     [[nodiscard]] virtual std::string_view BooleanLiteral(bool value) const noexcept = 0;
 
+    // Returns a function to get a date from the database
+    [[nodiscard]] virtual std::string_view DateFunction() const noexcept = 0;
+
     /// Converts a string value to a string literal.
     [[nodiscard]] virtual std::string StringLiteral(std::string_view value) const noexcept = 0;
 
