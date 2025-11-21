@@ -10,7 +10,7 @@ var searchData=
   ['example_20for_20the_20existing_20database_7',['Generate example for the existing database',['../index.html#generate-example-for-the-existing-database',1,'']]],
   ['examples_8',['Usage Examples',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html',1,'']]],
   ['examples_20of_20sql_20to_20datamapper_20mappings_9',['Examples of SQL to DataMapper mappings',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#examples-of-sql-to-datamapper-mappings',1,'']]],
-  ['execute_10',['Execute',['../db/dad/classLightweight_1_1SqlStatement.html#a540bcb492f2600c3165a96349599f47b',1,'Lightweight::SqlStatement']]],
+  ['execute_10',['execute',['../de/d61/classLightweight_1_1DataMapper.html#a572f96a940e6a856d3d2a2b16ded4591',1,'Lightweight::DataMapper::Execute()'],['../db/dad/classLightweight_1_1SqlStatement.html#a540bcb492f2600c3165a96349599f47b',1,'Lightweight::SqlStatement::Execute(Args const &amp;... args)']]],
   ['executebatch_11',['ExecuteBatch',['../db/dad/classLightweight_1_1SqlStatement.html#a39e7689e3101f48e5fcafe5d39b5d935',1,'Lightweight::SqlStatement']]],
   ['executebatchnative_12',['ExecuteBatchNative',['../db/dad/classLightweight_1_1SqlStatement.html#a5de8934a879ddef9062eef0d06342ff4',1,'Lightweight::SqlStatement']]],
   ['executebatchsoft_13',['ExecuteBatchSoft',['../db/dad/classLightweight_1_1SqlStatement.html#a435c8e2a6927c31c28cd9b6c082a5fad',1,'Lightweight::SqlStatement']]],

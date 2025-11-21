@@ -39,13 +39,15 @@ var group__DataMapper =
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#abc16383a3cfcc043de94a70742545903", null ],
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747", null ],
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#a861abe24982b3d6a0ae7a786a9907b3a", null ],
+      [ "Query", "de/d61/classLightweight_1_1DataMapper.html#a2b2b5b2f4bc610b6a8f518ce88a6e485", null ],
       [ "Update", "de/d61/classLightweight_1_1DataMapper.html#a0d838468c9635a154a22206928511d27", null ],
       [ "Delete", "de/d61/classLightweight_1_1DataMapper.html#a708db890dfc02b9ad4183ee9c7ea2512", null ],
       [ "FromTable", "de/d61/classLightweight_1_1DataMapper.html#ac0e2e432c3ad94048fb407883f4dd64d", null ],
       [ "IsModified", "de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f", null ],
       [ "ClearModifiedState", "de/d61/classLightweight_1_1DataMapper.html#a8caf1defa60f3ab04a507b68931a0cc9", null ],
       [ "LoadRelations", "de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702", null ],
-      [ "ConfigureRelationAutoLoading", "de/d61/classLightweight_1_1DataMapper.html#ab1c4e06b5be5553d6c0d2f045e92ea60", null ]
+      [ "ConfigureRelationAutoLoading", "de/d61/classLightweight_1_1DataMapper.html#ab1c4e06b5be5553d6c0d2f045e92ea60", null ],
+      [ "Execute", "de/d61/classLightweight_1_1DataMapper.html#a572f96a940e6a856d3d2a2b16ded4591", null ]
     ] ],
     [ "Lightweight::SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html", null ],
     [ "Lightweight::Field< T, P1, P2 >", "d2/dd0/structLightweight_1_1Field.html", [
