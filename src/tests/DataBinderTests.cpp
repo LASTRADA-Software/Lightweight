@@ -477,12 +477,54 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode mixed", "[SqlDataBinder
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric", "[SqlDataBinder],[SqlNumeric]")
 {
-    auto const expectedValue = SqlNumeric<10, 2> { 123.45 };
+    SECTION("Positive number")
+    {
+        auto const expectedValue = SqlNumeric<10, 2> { 87654321.99 };
+        INFO(expectedValue);
+        CHECK_THAT(expectedValue.ToDouble(), Catch::Matchers::WithinAbs(87654321.99, 0.001));
+        CHECK_THAT(expectedValue.ToFloat(), Catch::Matchers::WithinAbs(87654321.99F, 0.001));
+        CHECK(expectedValue.ToString() == "87654321.99");
+    }
 
-    INFO(expectedValue);
-    CHECK_THAT(expectedValue.ToDouble(), Catch::Matchers::WithinAbs(123.45, 0.001));
-    CHECK_THAT(expectedValue.ToFloat(), Catch::Matchers::WithinAbs(123.45F, 0.001));
-    CHECK(expectedValue.ToString() == "123.45");
+    SECTION("Negative number")
+    {
+        auto const expectedValue = SqlNumeric<10, 2> { -123.45 };
+        INFO(expectedValue);
+        CHECK_THAT(expectedValue.ToDouble(), Catch::Matchers::WithinAbs(-123.45, 0.001));
+        CHECK_THAT(expectedValue.ToFloat(), Catch::Matchers::WithinAbs(-123.45F, 0.001));
+        CHECK(expectedValue.ToString() == "-123.45");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.StoreAndLoad", "[SqlDataBinder],[SqlNumeric]")
+{
+    // NOLINTBEGIN(bugprone-unchecked-optional-access)
+
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect(
+        [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Decimal { 10, 2 }); });
+
+    auto const inputValue = SqlNumeric<10, 2> { 99999999.99 };
+
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+    stmt.Execute(inputValue);
+
+    // Check retrieval via type: string
+    auto const receivedStr = stmt.ExecuteDirectScalar<std::string>(stmt.Query("Test").Select().Field("Value").All());
+    CHECK(receivedStr == "99999999.99");
+
+    // Check retrieval via type: double
+    auto const receivedDouble = stmt.ExecuteDirectScalar<double>(stmt.Query("Test").Select().Field("Value").All());
+    REQUIRE(receivedDouble.has_value());
+    CHECK_THAT(receivedDouble.value(), Catch::Matchers::WithinAbs(99999999.99, 0.001));
+
+    // Check retrieval via type: SqlNumeric
+    auto const receivedNumeric =
+        stmt.ExecuteDirectScalar<SqlNumeric<10, 2>>(stmt.Query("Test").Select().Field("Value").All());
+    REQUIRE(receivedNumeric.has_value());
+    CHECK_THAT(receivedNumeric->ToDouble(), Catch::Matchers::WithinAbs(99999999.99, 0.001));
+
+    // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
 TEST_CASE("SqlDateTime construction", "[SqlDataBinder],[SqlDateTime]")
@@ -729,23 +771,8 @@ struct TestTypeTraits<SqlGuid>
 };
 
 template <>
-struct TestTypeTraits<SqlNumeric<15, 2>>
-{
-    static constexpr auto blacklist = std::array {
-        std::pair { SqlServerType::SQLITE, "SQLite does not support NUMERIC type"sv },
-    };
-    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Decimal { .precision=15, .scale=2 };
-    static const inline auto inputValue = SqlNumeric<15, 2> { 123.45 };
-    static const inline auto expectedOutputValue = SqlNumeric<15, 2> { 123.45 };
-};
-
-
-template <>
 struct TestTypeTraits<SqlNumeric<5, 2>>
 {
-    static constexpr auto blacklist = std::array {
-        std::pair { SqlServerType::SQLITE, "SQLite does not support NUMERIC type"sv },
-    };
     static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Decimal { .precision=5, .scale=2 };
     static const inline auto inputValue = SqlNumeric<5, 2> { 123.45 };
     static const inline auto expectedOutputValue = SqlNumeric<5, 2> { 123.45 };
@@ -755,9 +782,6 @@ struct TestTypeTraits<SqlNumeric<5, 2>>
 template <>
 struct TestTypeTraits<SqlNumeric<9, 6>>
 {
-    static constexpr auto blacklist = std::array {
-        std::pair { SqlServerType::SQLITE, "SQLite does not support NUMERIC type"sv },
-    };
     static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Decimal { .precision=9, .scale=6 };
     static const inline auto inputValue = SqlNumeric<9, 6> { 123.456789 };
     static const inline auto expectedOutputValue = SqlNumeric<9, 6> { 123.456789 };
@@ -766,15 +790,18 @@ struct TestTypeTraits<SqlNumeric<9, 6>>
 template <>
 struct TestTypeTraits<SqlNumeric<10, 2>>
 {
-    static constexpr auto blacklist = std::array {
-        std::pair { SqlServerType::SQLITE, "SQLite does not support NUMERIC type"sv },
-    };
     static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Decimal { .precision=10, .scale=2 };
-    static const inline auto inputValue = SqlNumeric<10, 2> { 0.99 };
-    static const inline auto expectedOutputValue = SqlNumeric<10, 2> { 0.99 };
+    static const inline auto inputValue = SqlNumeric<10, 2> { 99'999'999.99 };
+    static const inline auto expectedOutputValue = SqlNumeric<10, 2> { 99'999'999.99 };
 };
 
-
+template <>
+struct TestTypeTraits<SqlNumeric<15, 2>>
+{
+    static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Decimal { .precision=15, .scale=2 };
+    static const inline auto inputValue = SqlNumeric<15, 2> { 123.45 };
+    static const inline auto expectedOutputValue = SqlNumeric<15, 2> { 123.45 };
+};
 
 template <typename T>
 T MakeStringOuputInitializer(SqlServerType serverType)
@@ -911,6 +938,9 @@ using TypesToTest = std::tuple<
     SqlDateTime,
     SqlDynamicBinary<8>,
     SqlGuid,
+    SqlNumeric<5, 2>,
+    SqlNumeric<9, 6>,
+    SqlNumeric<10, 2>,
     SqlNumeric<15, 2>,
     SqlAnsiString<20>,
     SqlUtf16String<20>,
