@@ -1,6 +1,5 @@
 var NAVTREEINDEX2 =
 {
-"de/d61/classLightweight_1_1DataMapper.html#aa6b188d4c0b7e8b267f2722d0e3f1401":[6,2,3,13],
 "de/d61/classLightweight_1_1DataMapper.html#aa7b800a3b69075d96b38b2710df0229d":[6,2,3,6],
 "de/d61/classLightweight_1_1DataMapper.html#aaf59c560a6141b8dc7a5a253aa0ee27f":[6,2,3,9],
 "de/d61/classLightweight_1_1DataMapper.html#ab1c4e06b5be5553d6c0d2f045e92ea60":[6,2,3,23],
