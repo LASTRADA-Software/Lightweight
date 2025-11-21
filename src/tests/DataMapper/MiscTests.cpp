@@ -548,9 +548,9 @@ TEST_CASE_METHOD(SqlTestFixture, "ExecuteDirect", "[DataMapper]")
     auto stmt = SqlStatement(dm->Connection());
 
     auto const date =
-        stmt.ExecuteDirectScalar<SqlDateTime>(std::format("SELECT {};", stmt.Connection().QueryFormatter().DateFunction()));
+        stmt.ExecuteDirectScalar<SqlDate>(std::format("SELECT {};", stmt.Connection().QueryFormatter().DateFunction()));
     auto const dateFromDataMapper =
-        dm->Execute<SqlDateTime>(std::format("SELECT {};", stmt.Connection().QueryFormatter().DateFunction()));
+        dm->Execute<SqlDate>(std::format("SELECT {};", stmt.Connection().QueryFormatter().DateFunction()));
 
     REQUIRE(date.has_value());
     REQUIRE(dateFromDataMapper.has_value());
