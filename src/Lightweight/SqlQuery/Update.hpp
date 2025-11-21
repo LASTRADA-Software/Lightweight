@@ -36,13 +36,14 @@ class [[nodiscard]] SqlUpdateQueryBuilder final: public SqlWhereClauseBuilder<Sq
         m_searchCondition.inputBindings = inputBindings;
     }
 
-    SqlSearchCondition& SearchCondition() noexcept
+    SqlSearchCondition& SearchCondition() noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
     {
         return m_searchCondition;
     }
 
     /// @brief Returns the SQL query formatter.
-    [[nodiscard]] SqlQueryFormatter const& Formatter() const noexcept
+    [[nodiscard]] SqlQueryFormatter const& FormatterLocal()
+        const noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
     {
         return m_formatter;
     }
