@@ -139,19 +139,14 @@ class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
   private:
     std::string m_lastPreparedQuery;
 
+    void WriteRawInfo(std::string_view message);
+
     template <typename... Args>
     void WriteInfo(std::format_string<Args...> const& fmt, Args&&... args)
     {
         auto message = std::format(fmt, std::forward<Args>(args)...);
         message = std::format("[{}] {}", "Lightweight", message);
-        try
-        {
-            UNSCOPED_INFO(message);
-        }
-        catch (...)
-        {
-            std::println("{}", message);
-        }
+        WriteRawInfo(message);
     }
 
     template <typename... Args>
@@ -212,7 +207,7 @@ class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
 
     void OnFetchEnd() override
     {
-        WriteInfo("Fetch end");
+        // WriteInfo("Fetch end");
     }
 
   private:
@@ -269,6 +264,7 @@ class SqlTestFixture
   public:
     static inline std::string testDatabaseName = "LightweightTest"; // NOLINT(bugprone-throwing-static-initialization)
     static inline bool odbcTrace = false;
+    static inline std::atomic<bool> running = false;
 
     using MainProgramArgs = std::tuple<int, char**>;
 
@@ -375,6 +371,7 @@ class SqlTestFixture
 
     SqlTestFixture()
     {
+        running = true;
         auto stmt = Lightweight::SqlStatement();
         REQUIRE(stmt.IsAlive());
 
@@ -390,7 +387,11 @@ class SqlTestFixture
         DropAllTablesInDatabase(stmt);
     }
 
-    virtual ~SqlTestFixture() = default;
+    virtual ~SqlTestFixture()
+    {
+        running = false;
+        Lightweight::SqlLogger::SetLogger(Lightweight::SqlLogger::StandardLogger());
+    }
 
     static std::string ToString(std::vector<std::string> const& values, std::string_view separator)
     {

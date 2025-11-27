@@ -18,11 +18,11 @@ struct SqlConnectionString
 {
     std::string value;
 
-    LIGHTWEIGHT_API auto operator<=>(SqlConnectionString const&) const noexcept = default;
+    auto operator<=>(SqlConnectionString const&) const noexcept = default;
 
     [[nodiscard]] LIGHTWEIGHT_API std::string Sanitized() const;
 
-    LIGHTWEIGHT_API static std::string SanitizePwd(std::string_view input);
+    [[nodiscard]] LIGHTWEIGHT_API static std::string SanitizePwd(std::string_view input);
 };
 
 using SqlConnectionStringMap = std::map<std::string, std::string>;
@@ -43,14 +43,14 @@ struct [[nodiscard]] SqlConnectionDataSource
 
     LIGHTWEIGHT_API static SqlConnectionDataSource FromConnectionString(SqlConnectionString const& value);
 
-    [[nodiscard]] SqlConnectionString ToConnectionString() const
+    [[nodiscard]] LIGHTWEIGHT_API SqlConnectionString ToConnectionString() const
     {
         return SqlConnectionString {
             .value = std::format("DSN={};UID={};PWD={};TIMEOUT={}", datasource, username, password, timeout.count())
         };
     }
 
-    LIGHTWEIGHT_API auto operator<=>(SqlConnectionDataSource const&) const noexcept = default;
+    auto operator<=>(SqlConnectionDataSource const&) const noexcept = default;
 };
 
 using SqlConnectInfo = std::variant<SqlConnectionDataSource, SqlConnectionString>;

@@ -39,15 +39,16 @@ set(SOURCE_FILES
     CoreTests.cpp
     CxxModelPrinterTests.cpp
     DataBinderTests.cpp
-    DataMapper/NamingTests.cpp
+    DataMapper/AsynchronousTests.cpp
     DataMapper/CreateTests.cpp
+    DataMapper/MiscTests.cpp
+    DataMapper/NamingTests.cpp
     DataMapper/ReadTests.cpp
     DataMapper/RelationTests.cpp
-    DataMapper/MiscTests.cpp
-    DataMapper/AsynchronousTests.cpp
     MigrationTests.cpp
     QueryBuilderTests.cpp
     UnicodeConverterTests.cpp
+    Utils.cpp
 )
 
 target_sources(LightweightTest PRIVATE ${SOURCE_FILES})

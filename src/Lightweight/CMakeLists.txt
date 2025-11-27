@@ -62,6 +62,8 @@ set(SOURCE_FILES
     DataBinder/SqlVariant.cpp
     DataBinder/UnicodeConverter.cpp
 
+    DataMapper/DataMapper.cpp
+
     SqlConnectInfo.cpp
     SqlConnection.cpp
     SqlError.cpp

@@ -83,9 +83,9 @@ namespace SqlMigration
         LIGHTWEIGHT_API void CreateMigrationHistory();
         [[nodiscard]] LIGHTWEIGHT_API std::vector<MigrationTimestamp> GetAppliedMigrationIds() const;
 
-        [[nodiscard]] LIGHTWEIGHT_API std::shared_ptr<DataMapper>& GetDataMapper();
+        [[nodiscard]] LIGHTWEIGHT_API DataMapper& GetDataMapper();
 
-        [[nodiscard]] LIGHTWEIGHT_API std::shared_ptr<DataMapper>& GetDataMapper() const
+        [[nodiscard]] LIGHTWEIGHT_API DataMapper& GetDataMapper() const
         {
             return const_cast<MigrationManager*>(this)->GetDataMapper();
         }
@@ -96,7 +96,7 @@ namespace SqlMigration
 
       private:
         MigrationList _migrations;
-        mutable std::shared_ptr<DataMapper> _mapper { nullptr };
+        mutable DataMapper* _dataMapper { nullptr };
     };
 
     // Represents a single unique SQL migration

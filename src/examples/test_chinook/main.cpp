@@ -46,9 +46,9 @@ void Log(std::format_string<Args...> fmt, Args&&... args)
 }
 
 template <typename Entity>
-void DumpTable(std::shared_ptr<DataMapper>& dm, size_t limit = 1)
+void DumpTable(DataMapper& dm, size_t limit = 1)
 {
-    auto entries = dm->Query<Entity>().First(limit);
+    auto entries = dm.Query<Entity>().First(limit);
     for (auto const& entry: entries)
     {
         Log("{}", DataMapper::Inspect(entry));
@@ -68,7 +68,7 @@ int main()
             "Server};SERVER=localhost;UID=SA;PWD=BlahThat.;TrustServerCertificate=yes;DATABASE=LightweightTest" });
     }
 
-    auto dm = DataMapper::Create();
+    auto dm = DataMapper();
 
     // helper function to create std::string from string_view<char16_t>
     auto const toString = [](std::basic_string_view<char16_t> str) {
@@ -77,7 +77,7 @@ int main()
     };
 
     // get all employees
-    auto const empoyees = dm->Query<Employee>().All();
+    auto const empoyees = dm.Query<Employee>().All();
     for (auto const& employee: empoyees)
     {
         Log("EmployeeId: {}, FirstName: {}, LastName: {}",
@@ -88,7 +88,7 @@ int main()
 
     // directly iterate over elements
     int numberOfAlbums = 0;
-    for (auto const& album: SqlRowIterator<Album>(dm->Connection()))
+    for (auto const& album: SqlRowIterator<Album>(dm.Connection()))
     {
         Log("{}", toString(album.Title.Value().c_str()));
         ++numberOfAlbums;
@@ -96,11 +96,10 @@ int main()
     Log("Iterated over {} Albums", numberOfAlbums);
 
     // select album with the title "Mozart Gala: Famous Arias"
-    auto album =
-        dm->Query<Album, DataMapperOptions { .loadRelations = true }>() // NOLINT(bugprone-unchecked-optional-access)
-            .Where(FieldNameOf<&Album::Title>, "=", "Mozart Gala: Famous Arias")
-            .First()
-            .value();
+    auto album = dm.Query<Album, DataMapperOptions { .loadRelations = true }>() // NOLINT(bugprone-unchecked-optional-access)
+                     .Where(FieldNameOf<&Album::Title>, "=", "Mozart Gala: Famous Arias")
+                     .First()
+                     .value();
 
     Log("AlbumId: {}, Title: {}", album.AlbumId.Value(), album.ArtistId.Value());
 
@@ -112,7 +111,7 @@ int main()
 
     {
         // get an artist with the name "Sir Georg Solti, Sumi Jo & Wiener Philharmoniker"
-        auto artist = dm->Query<Artist>() // NOLINT(bugprone-unchecked-optional-access)
+        auto artist = dm.Query<Artist>() // NOLINT(bugprone-unchecked-optional-access)
                           .Where(FieldNameOf<&Artist::Name>, "=", "Red Hot Chili Peppers")
                           .First()
                           .value();
@@ -122,13 +121,13 @@ int main()
             toString(artist.Name.Value().value().c_str())); // NOLINT(bugprone-unchecked-optional-access)
 
         // get albums of the artist
-        auto albums = dm->Query<Album>().Where(FieldNameOf<&Album::ArtistId>, "=", artist.ArtistId.Value()).All();
+        auto albums = dm.Query<Album>().Where(FieldNameOf<&Album::ArtistId>, "=", artist.ArtistId.Value()).All();
 
         Log("got {} albums", albums.size());
 
         auto albumIds = albums | std::views::transform([](auto const& album) { return album.AlbumId.Value(); });
         // get all tracks from all albums
-        auto tracks = dm->Query<Track>().WhereIn(FieldNameOf<&Track::AlbumId>, albumIds).All();
+        auto tracks = dm.Query<Track>().WhereIn(FieldNameOf<&Track::AlbumId>, albumIds).All();
 
         Log("got {} tracks", tracks.size());
 
@@ -142,9 +141,9 @@ int main()
                 track.UnitPrice.Value().ToString());
         }
 
-        for (auto& track: dm->Query<Track>().All())
+        for (auto& track: dm.Query<Track>().All())
         {
-            dm->ConfigureRelationAutoLoading(track);
+            dm.ConfigureRelationAutoLoading(track);
             // BelogsTo relation loading
             Log("Track Name: {}. Media type: {}. Genre: {}. Album id: {}. Artist name: {}",
                 toString(track.Name.Value().ToStringView()),
@@ -157,7 +156,7 @@ int main()
 
     {
         // get pair of customer and employee
-        auto records = dm->Query<Customer, Employee>().InnerJoin<&Employee::EmployeeId, &Customer::SupportRepId>().All();
+        auto records = dm.Query<Customer, Employee>().InnerJoin<&Employee::EmployeeId, &Customer::SupportRepId>().All();
 
         for (auto const& [customer, employee]: records)
         {
@@ -175,12 +174,12 @@ int main()
     {
         // get one employee
         // NOLINTBEGIN(bugprone-unchecked-optional-access)
-        auto employee = dm->Query<Employee>().Where(FieldNameOf<&Employee::EmployeeId>, 1).First().value();
+        auto employee = dm.Query<Employee>().Where(FieldNameOf<&Employee::EmployeeId>, 1).First().value();
         // NOLINTEND(bugprone-unchecked-optional-access)
         Log(" {} ", employee.HireDate.Value().value()); // NOLINT(bugprone-unchecked-optional-access)
         // update hiring date to current date
         employee.HireDate = SqlDateTime::Now();
-        dm->Update(employee);
+        dm.Update(employee);
     }
 
     // Iterate over all entities in the database and print ther content
