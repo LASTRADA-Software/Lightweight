@@ -4,10 +4,13 @@ if(NOT LIGHTWEIGHT_BUILD_TESTS)
     return()
 endif()
 
+set(STDEXEC_BUILD_TESTS OFF)
+set(STDEXEC_BUILD_EXAMPLES OFF)
+
 CPMAddPackage(
   NAME stdexec
   GITHUB_REPOSITORY NVIDIA/stdexec
-  GIT_TAG nvhpc-25.09 # This will always pull the latest code from the `main` branch. You may also use a specific release version or tag
+  GIT_TAG nvhpc-24.09.rc1 # This will always pull the latest code from the `main` branch. You may also use a specific release version or tag
 )
 
 

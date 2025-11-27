@@ -43,7 +43,6 @@ if(reflection-cpp_FOUND)
     message(STATUS "reflection-cpp found: ${reflection-cpp_INCLUDE_DIRS}")
 else()
     message(STATUS "reflection-cpp not found, downloading...")
-    # download CPM.cmake
     CPMAddPackage("gh:contour-terminal/reflection-cpp#master")
 endif()
 
