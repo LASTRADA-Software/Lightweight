@@ -502,8 +502,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.StoreAndLoad", "[SqlDataBinder],[Sq
     // NOLINTBEGIN(bugprone-unchecked-optional-access)
 
     auto stmt = SqlStatement {};
-    stmt.MigrateDirect(
-        [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Decimal { .precision=10, .scale=2 }); });
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Decimal { .precision = 10, .scale = 2 });
+    });
 
     auto const inputValue = SqlNumeric<10, 2> { 99999999.99 };
 
