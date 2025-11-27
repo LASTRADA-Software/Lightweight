@@ -4,6 +4,13 @@ if(NOT LIGHTWEIGHT_BUILD_TESTS)
     return()
 endif()
 
+CPMAddPackage(
+  NAME stdexec
+  GITHUB_REPOSITORY NVIDIA/stdexec
+  GIT_TAG nvhpc-25.09 # This will always pull the latest code from the `main` branch. You may also use a specific release version or tag
+)
+
+
 find_package(Catch2 REQUIRED)
 
 add_executable(LightweightTest)
@@ -19,7 +26,7 @@ else()
     set(TEST_LIBRARIES ${TEST_LIBRARIES} odbc ${SQLITE3_LIBRARY}) # FIXME: should be PkgConfig::ODBC in Lightweight target already
 endif()
 
-target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES})
+target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES} STDEXEC::stdexec)
 
 if(MSVC)
     target_compile_options(LightweightTest PRIVATE /bigobj)
@@ -34,6 +41,7 @@ set(SOURCE_FILES
     DataMapper/ReadTests.cpp
     DataMapper/RelationTests.cpp
     DataMapper/MiscTests.cpp
+    DataMapper/AsynchronousTests.cpp
     MigrationTests.cpp
     QueryBuilderTests.cpp
     UnicodeConverterTests.cpp
