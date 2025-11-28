@@ -25,7 +25,7 @@ function(GetVersionInformation VersionTripleVar VersionStringVar)
         # --match "v*": only consider tags starting with 'v'
         execute_process(
             COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0 --match "v*"
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
             OUTPUT_VARIABLE GIT_TAG
             OUTPUT_STRIP_TRAILING_WHITESPACE
             ERROR_QUIET
