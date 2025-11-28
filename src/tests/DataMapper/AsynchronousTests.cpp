@@ -12,7 +12,6 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-
 // NOLINTBEGIN(*)
 
 //  Due to a name clash with rpcndr.h
