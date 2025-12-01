@@ -44,33 +44,33 @@ std::ostream& operator<<(std::ostream& os, Email const& record)
 
 TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")
 {
-    auto dm = DataMapper::Create();
-    dm->CreateTables<User, Email>();
+    auto dm = DataMapper();
+    dm.CreateTables<User, Email>();
 
     auto user = User { .id = SqlGuid::Create(), .name = "John Doe" };
-    dm->Create(user);
+    dm.Create(user);
 
     auto email1 = Email { .id = SqlGuid::Create(), .address = "john@doe.com", .user = user };
-    dm->Create(email1);
+    dm.Create(email1);
 
-    dm->CreateExplicit(Email { .id = SqlGuid::Create(), .address = "john2@doe.com", .user = user });
+    dm.CreateExplicit(Email { .id = SqlGuid::Create(), .address = "john2@doe.com", .user = user });
 
-    auto actualEmail1 = dm->QuerySingle<Email>(email1.id).value();
+    auto actualEmail1 = dm.QuerySingle<Email>(email1.id).value();
     CHECK(actualEmail1 == email1);
-    dm->ConfigureRelationAutoLoading(actualEmail1);
+    dm.ConfigureRelationAutoLoading(actualEmail1);
 
     CHECK(actualEmail1.user->id == user.id);
     CHECK(actualEmail1.user->name == user.name);
 
-    if (dm->Connection().ServerType() == SqlServerType::SQLITE)
+    if (dm.Connection().ServerType() == SqlServerType::SQLITE)
     {
-        CHECK(NormalizeText(dm->CreateTableString<User>(dm->Connection().ServerType()))
+        CHECK(NormalizeText(dm.CreateTableString<User>(dm.Connection().ServerType()))
               == NormalizeText(R"(CREATE TABLE "User" (
                                     "id" GUID NOT NULL,
                                     "name" VARCHAR(30) NOT NULL,
                                     PRIMARY KEY ("id")
                                     );)"));
-        CHECK(NormalizeText(dm->CreateTableString<Email>(dm->Connection().ServerType()))
+        CHECK(NormalizeText(dm.CreateTableString<Email>(dm.Connection().ServerType()))
               == NormalizeText(R"(CREATE TABLE "Email" (
                                     "id" GUID NOT NULL,
                                     "address" VARCHAR(30) NOT NULL,
@@ -83,16 +83,16 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")
 
 TEST_CASE_METHOD(SqlTestFixture, "BelongsTo do not load", "[DataMapper][relations]")
 {
-    auto dm = DataMapper::Create();
-    dm->CreateTables<User, Email>();
+    auto dm = DataMapper();
+    dm.CreateTables<User, Email>();
 
     auto user = User { .id = SqlGuid::Create(), .name = "John Doe" };
-    dm->Create(user);
+    dm.Create(user);
 
     auto email1 = Email { .id = SqlGuid::Create(), .address = "john@doe.com", .user = user };
-    dm->Create(email1);
+    dm.Create(email1);
 
-    auto actualEmail1 = dm->QuerySingleWithoutRelationAutoLoading<Email>(email1.id).value();
+    auto actualEmail1 = dm.QuerySingleWithoutRelationAutoLoading<Email>(email1.id).value();
 
     CHECK(actualEmail1.address == email1.address);
 
@@ -105,24 +105,24 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo do not load", "[DataMapper][relation
 
 TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
 {
-    auto dm = DataMapper::Create();
-    dm->CreateTables<User, Email>();
+    auto dm = DataMapper();
+    dm.CreateTables<User, Email>();
 
     // Create user John with 2 email addresses
     auto johnDoe = User { .id = SqlGuid::Create(), .name = "John Doe" };
-    dm->Create(johnDoe);
+    dm.Create(johnDoe);
 
     auto email1 = Email { .id = SqlGuid::Create(), .address = "john@doe.com", .user = johnDoe };
-    dm->Create(email1);
+    dm.Create(email1);
 
     auto email2 = Email { .id = SqlGuid::Create(), .address = "john2@doe.com", .user = johnDoe };
-    dm->Create(email2);
+    dm.Create(email2);
 
     // Create some other users
-    auto const janeDoeID = dm->CreateExplicit(User { .id = SqlGuid::Create(), .name = "Jane Doe" });
-    dm->CreateExplicit(Email { .id = SqlGuid::Create(), .address = "john3@doe.com", .user = janeDoeID });
-    auto const jimDoeID = dm->CreateExplicit(User { .id = SqlGuid::Create(), .name = "Jim Doe" });
-    dm->CreateExplicit(Email { .id = SqlGuid::Create(), .address = "john3@doe.com", .user = jimDoeID });
+    auto const janeDoeID = dm.CreateExplicit(User { .id = SqlGuid::Create(), .name = "Jane Doe" });
+    dm.CreateExplicit(Email { .id = SqlGuid::Create(), .address = "john3@doe.com", .user = janeDoeID });
+    auto const jimDoeID = dm.CreateExplicit(User { .id = SqlGuid::Create(), .name = "Jim Doe" });
+    dm.CreateExplicit(Email { .id = SqlGuid::Create(), .address = "john3@doe.com", .user = jimDoeID });
 
     SECTION("Count")
     {
@@ -201,29 +201,29 @@ std::ostream& operator<<(std::ostream& os, AccountHistory const& record)
 
 TEST_CASE_METHOD(SqlTestFixture, "HasOneThrough", "[DataMapper][relations]")
 {
-    auto dm = DataMapper::Create();
+    auto dm = DataMapper();
 
-    dm->CreateTables<Suppliers, Account, AccountHistory>();
+    dm.CreateTables<Suppliers, Account, AccountHistory>();
 
     auto supplier1 = Suppliers { .name = "Supplier 1" };
-    dm->Create(supplier1);
+    dm.Create(supplier1);
 
     auto account1 = Account { .iban = "DE89370400440532013000", .supplier = supplier1 };
-    dm->Create(account1);
+    dm.Create(account1);
 
     auto accountHistory1 = AccountHistory { .credit_rating = 100, .account = account1 };
-    dm->Create(accountHistory1);
+    dm.Create(accountHistory1);
 
     SECTION("Explicit loading")
     {
-        dm->LoadRelations(supplier1);
+        dm.LoadRelations(supplier1);
 
         CHECK(supplier1.accountHistory.Record() == accountHistory1);
     }
 
     SECTION("Auto loading")
     {
-        dm->ConfigureRelationAutoLoading(supplier1);
+        dm.ConfigureRelationAutoLoading(supplier1);
 
         CHECK(supplier1.accountHistory.Record() == accountHistory1);
     }
@@ -231,22 +231,22 @@ TEST_CASE_METHOD(SqlTestFixture, "HasOneThrough", "[DataMapper][relations]")
 
 TEST_CASE_METHOD(SqlTestFixture, "BelongsToChain", "[DataMapper][relations]")
 {
-    auto dm = DataMapper::Create();
+    auto dm = DataMapper();
 
-    dm->CreateTables<Suppliers, Account, AccountHistory>();
+    dm.CreateTables<Suppliers, Account, AccountHistory>();
 
     auto supplier1 = Suppliers { .name = "Supplier 1" };
-    dm->Create(supplier1);
+    dm.Create(supplier1);
 
     auto account1 = Account { .iban = "DE89370400440532013000", .supplier = supplier1 };
-    dm->Create(account1);
+    dm.Create(account1);
 
     auto accountHistory1 = AccountHistory { .credit_rating = 100, .account = account1 };
-    dm->Create(accountHistory1);
+    dm.Create(accountHistory1);
 
     SECTION("Query single with relation auto loading")
     {
-        auto queriedAccountHistory = dm->QuerySingle<AccountHistory>(accountHistory1.id).value();
+        auto queriedAccountHistory = dm.QuerySingle<AccountHistory>(accountHistory1.id).value();
         REQUIRE(queriedAccountHistory.account.Value() == account1.id.Value());
         REQUIRE(queriedAccountHistory.account->id.Value() == account1.id.Value());
         REQUIRE(queriedAccountHistory.account->supplier->id.Value() == supplier1.id.Value());
@@ -256,7 +256,7 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsToChain", "[DataMapper][relations]")
     SECTION("Query single with relation auto loading and unique_ptr ")
     {
         auto queriedAccountHistory =
-            std::make_unique<AccountHistory>(dm->QuerySingle<AccountHistory>(accountHistory1.id).value());
+            std::make_unique<AccountHistory>(dm.QuerySingle<AccountHistory>(accountHistory1.id).value());
         REQUIRE(queriedAccountHistory->account.Value() == account1.id.Value());
         REQUIRE(queriedAccountHistory->account->id.Value() == account1.id.Value());
         REQUIRE(queriedAccountHistory->account->supplier->id.Value() == supplier1.id.Value());
@@ -270,15 +270,15 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsToChainWithScope", "[DataMapper][relati
     {
         {
             auto accountHistory = []() {
-                auto scopedDm = DataMapper::Create();
-                scopedDm->CreateTables<Suppliers, Account, AccountHistory>();
+                auto scopedDm = DataMapper();
+                scopedDm.CreateTables<Suppliers, Account, AccountHistory>();
                 auto supplier1 = Suppliers { .name = "Supplier 1" };
-                scopedDm->Create(supplier1);
+                scopedDm.Create(supplier1);
                 auto account1 = Account { .iban = "DE89370400440532013000", .supplier = supplier1 };
-                scopedDm->Create(account1);
+                scopedDm.Create(account1);
                 auto accountHistory1 = AccountHistory { .credit_rating = 100, .account = account1 };
-                scopedDm->Create(accountHistory1);
-                return scopedDm->QuerySingle<AccountHistory>(accountHistory1.id).value();
+                scopedDm.Create(accountHistory1);
+                return scopedDm.QuerySingle<AccountHistory>(accountHistory1.id).value();
             }();
             REQUIRE(accountHistory.account.Value());
 
@@ -292,15 +292,15 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsToChainWithScope", "[DataMapper][relati
     {
         {
             auto accountHistory = []() {
-                auto scopedDm = DataMapper::Create();
-                scopedDm->CreateTables<Suppliers, Account, AccountHistory>();
+                auto scopedDm = DataMapper();
+                scopedDm.CreateTables<Suppliers, Account, AccountHistory>();
                 auto supplier1 = Suppliers { .name = "Supplier 1" };
-                scopedDm->Create(supplier1);
+                scopedDm.Create(supplier1);
                 auto account1 = Account { .iban = "DE89370400440532013000", .supplier = supplier1 };
-                scopedDm->Create(account1);
+                scopedDm.Create(account1);
                 auto accountHistory1 = AccountHistory { .credit_rating = 100, .account = account1 };
-                scopedDm->Create(accountHistory1);
-                return std::make_unique<AccountHistory>(scopedDm->QuerySingle<AccountHistory>(accountHistory1.id).value());
+                scopedDm.Create(accountHistory1);
+                return std::make_unique<AccountHistory>(scopedDm.QuerySingle<AccountHistory>(accountHistory1.id).value());
             }();
             REQUIRE(accountHistory->account.Value());
 
@@ -313,23 +313,23 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsToChainWithScope", "[DataMapper][relati
 
 TEST_CASE_METHOD(SqlTestFixture, "BelongsTo loading of multiple records", "[DataMapper][relations]")
 {
-    auto dm = DataMapper::Create();
+    auto dm = DataMapper();
 
-    dm->CreateTables<Suppliers, Account, AccountHistory>();
+    dm.CreateTables<Suppliers, Account, AccountHistory>();
 
     auto supplier1 = Suppliers { .name = "Supplier 1" };
-    dm->Create(supplier1);
+    dm.Create(supplier1);
 
     auto account1 = Account { .iban = "DE89370400440532013001", .supplier = supplier1 };
-    dm->Create(account1);
+    dm.Create(account1);
     for (int const i: std::views::iota(0, 10))
     {
-        dm->CreateExplicit(AccountHistory { .credit_rating = 90 + i, .account = account1 });
+        dm.CreateExplicit(AccountHistory { .credit_rating = 90 + i, .account = account1 });
     }
 
     SECTION("Query multiple without relation auto loading using Query builder directly")
     {
-        auto allHistories = dm->Query<AccountHistory>()
+        auto allHistories = dm.Query<AccountHistory>()
                                 .Where(FullyQualifiedNameOf<Member(AccountHistory::account)>, "=", account1.id.Value())
                                 .All();
         REQUIRE(allHistories.size() == 10);
@@ -342,7 +342,7 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo loading of multiple records", "[Data
         for (auto const& [index, history]: allHistories | std::views::enumerate)
         {
 #endif
-            dm->ConfigureRelationAutoLoading(history);
+            dm.ConfigureRelationAutoLoading(history);
             CAPTURE(index);
             REQUIRE(history.account.Value() == account1.id.Value());
             REQUIRE(history.account->id.Value() == account1.id.Value());
@@ -352,7 +352,7 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo loading of multiple records", "[Data
 
     SECTION("Query multiple with relation auto loading using Query builder directly")
     {
-        auto allHistories = dm->Query<AccountHistory, DataMapperOptions { .loadRelations = true }>()
+        auto allHistories = dm.Query<AccountHistory, DataMapperOptions { .loadRelations = true }>()
                                 .Where(FullyQualifiedNameOf<Member(AccountHistory::account)>, "=", account1.id.Value())
                                 .All();
         REQUIRE(allHistories.size() == 10);
@@ -374,8 +374,8 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo loading of multiple records", "[Data
 
     SECTION("Query multiple with relation auto loading")
     {
-        auto allHistories = dm->Query<AccountHistory>(
-            dm->FromTable(RecordTableName<AccountHistory>)
+        auto allHistories = dm.Query<AccountHistory>(
+            dm.FromTable(RecordTableName<AccountHistory>)
                 .Select()
                 .Fields<AccountHistory>()
                 .Where(FullyQualifiedNameOf<Member(AccountHistory::account)>, "=", account1.id.Value())
@@ -415,48 +415,48 @@ std::set<T> MakeSetFromRange(std::ranges::range auto&& range)
 #else
 TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough", "[DataMapper][relations]")
 {
-    auto dm = DataMapper::Create();
+    auto dm = DataMapper();
 
-    dm->CreateTables<Physician, Patient, Appointment>();
+    dm.CreateTables<Physician, Patient, Appointment>();
 
     Physician physician1;
     physician1.name = "Dr. House";
-    dm->Create(physician1);
+    dm.Create(physician1);
 
     Physician physician2;
     physician2.name = "Granny";
-    dm->Create(physician2);
+    dm.Create(physician2);
 
     Patient patient1;
     patient1.name = "Blooper";
     patient1.comment = "Prefers morning times";
-    dm->Create(patient1);
+    dm.Create(patient1);
 
     Patient patient2;
     patient2.name = "Valentine";
     patient2.comment = "always friendly";
-    dm->Create(patient2);
+    dm.Create(patient2);
 
     Appointment patient1Apointment1;
     patient1Apointment1.date = SqlDateTime::Now();
     patient1Apointment1.patient = patient1;
     patient1Apointment1.physician = physician2;
     patient1Apointment1.comment = "Patient is a bit nervous";
-    dm->Create(patient1Apointment1);
+    dm.Create(patient1Apointment1);
 
     Appointment patient1Apointment2;
     patient1Apointment2.date = SqlDateTime::Now();
     patient1Apointment2.patient = patient1;
     patient1Apointment2.physician = physician1;
     patient1Apointment2.comment = "Patient is a bit nervous, again";
-    dm->Create(patient1Apointment2);
+    dm.Create(patient1Apointment2);
 
     Appointment patient2Apointment1;
     patient2Apointment1.date = SqlDateTime::Now();
     patient2Apointment1.patient = patient2;
     patient2Apointment1.physician = physician1;
     patient2Apointment1.comment = "Patient is funny";
-    dm->Create(patient2Apointment1);
+    dm.Create(patient2Apointment1);
 
     {
         auto const queriedCount = physician1.patients.Count();
@@ -487,7 +487,7 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough", "[DataMapper][relations]")
             retrievedPatients.emplace_back(patient);
 
             // Load the relations of the patient
-            dm->ConfigureRelationAutoLoading(retrievedPatients.back());
+            dm.ConfigureRelationAutoLoading(retrievedPatients.back());
         });
         auto const physician2Patients = MakeSetFromRange<Patient>(retrievedPatients);
         CHECK(physician2Patients.size() == 1);
@@ -503,23 +503,23 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough", "[DataMapper][relations]")
         CHECK(patient1Physicians.contains(physician2));
     }
 
-    if (dm->Connection().ServerType() == SqlServerType::SQLITE)
+    if (dm.Connection().ServerType() == SqlServerType::SQLITE)
     {
-        REQUIRE(NormalizeText(dm->CreateTableString<Physician>(dm->Connection().ServerType()))
+        REQUIRE(NormalizeText(dm.CreateTableString<Physician>(dm.Connection().ServerType()))
                 == NormalizeText(R"(CREATE TABLE "Physician" (
                                     "id" GUID NOT NULL,
                                     "name" VARCHAR(30) NOT NULL,
                                     PRIMARY KEY ("id")
                                     );)"));
 
-        REQUIRE(NormalizeText(dm->CreateTableString<Patient>(dm->Connection().ServerType()))
+        REQUIRE(NormalizeText(dm.CreateTableString<Patient>(dm.Connection().ServerType()))
                 == NormalizeText(R"(CREATE TABLE "Patient" (
                                     "id" GUID NOT NULL,
                                     "name" VARCHAR(30) NOT NULL,
                                     "comment" VARCHAR(30) NOT NULL,
                                     PRIMARY KEY ("id")
                                     );)"));
-        REQUIRE(NormalizeText(dm->CreateTableString<Appointment>(dm->Connection().ServerType()))
+        REQUIRE(NormalizeText(dm.CreateTableString<Appointment>(dm.Connection().ServerType()))
                 == NormalizeText(R"(CREATE TABLE "Appointment" (
                                     "id" GUID NOT NULL,
                                     "date" DATETIME NOT NULL,
@@ -561,30 +561,30 @@ std::ostream& operator<<(std::ostream& os, AliasedRecord const& record)
 
 TEST_CASE_METHOD(SqlTestFixture, "Table with aliased column names", "[DataMapper]")
 {
-    auto dm = DataMapper::Create();
+    auto dm = DataMapper();
 
-    dm->CreateTable<AliasedRecord>();
+    dm.CreateTable<AliasedRecord>();
 
     auto record = AliasedRecord { .name = "John Doe", .comment = "Hello, World!" };
-    dm->Create(record);
+    dm.Create(record);
 
-    auto const queriedRecord = dm->QuerySingle<AliasedRecord>(record.id).value();
+    auto const queriedRecord = dm.QuerySingle<AliasedRecord>(record.id).value();
     CHECK(queriedRecord == record);
 
-    auto const queriedRecords2 = dm->Query<AliasedRecord>().All();
+    auto const queriedRecords2 = dm.Query<AliasedRecord>().All();
     CHECK(queriedRecords2.size() == 1);
     auto const& queriedRecord2 = queriedRecords2.at(0);
     CHECK(queriedRecord2 == record);
 
-    if (dm->Connection().ServerType() == SqlServerType::SQLITE)
+    if (dm.Connection().ServerType() == SqlServerType::SQLITE)
     {
-        REQUIRE(NormalizeText(dm->CreateTableString<AliasedRecord>(dm->Connection().ServerType()))
+        REQUIRE(NormalizeText(dm.CreateTableString<AliasedRecord>(dm.Connection().ServerType()))
                 == NormalizeText(R"(CREATE TABLE "TheAliasedRecord" (
                                     "pk" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                                     "c1" VARCHAR(30) NOT NULL,
                                     "c2" VARCHAR(30) NOT NULL
                                     );)"));
-        REQUIRE(NormalizeText(dm->CreateTableString<BelongsToAliasedRecord>(dm->Connection().ServerType()))
+        REQUIRE(NormalizeText(dm.CreateTableString<BelongsToAliasedRecord>(dm.Connection().ServerType()))
                 == NormalizeText(R"(CREATE TABLE "BelongsToAliasedRecord" (
                                     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                                     "record_id" BIGINT,
@@ -594,7 +594,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with aliased column names", "[DataMapper
 
     SECTION("All")
     {
-        auto const records = dm->Query<AliasedRecord>().All();
+        auto const records = dm.Query<AliasedRecord>().All();
         CHECK(records.size() == 1);
         CHECK(records.at(0) == record);
     }

@@ -31,8 +31,8 @@ struct WithConstionStringTestRecord
 
 TEST_CASE_METHOD(SqlTestFixture, "Constructor with connection string", "[DataMapper]")
 {
-    auto dm = DataMapper::Create(SqlConnection::DefaultConnectionString());
-    dm->CreateTable<WithConstionStringTestRecord>();
+    auto dm = DataMapper(SqlConnection::DefaultConnectionString());
+    dm.CreateTable<WithConstionStringTestRecord>();
 }
 
 TEST_CASE("Field: int", "[DataMapper],[Field]")
@@ -87,22 +87,22 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[DataMapper],[Field],[
         SqlTestFixture::DropAllTablesInDatabase(stmt);
     }
 
-    auto dm = DataMapper::Create();
-    dm->CreateTable<TestRecord>();
+    auto dm = DataMapper();
+    dm.CreateTable<TestRecord>();
 
     auto const expectedRecord = TestRecord {
         .id = SqlGuid::Create(),
         .longString = MakeLargeText<typename TestRecord::value_type>(5000),
     };
-    dm->CreateExplicit(expectedRecord);
+    dm.CreateExplicit(expectedRecord);
 
     // Check single record retrieval
-    auto const actualResult = dm->Query<TestRecord>().First();
+    auto const actualResult = dm.Query<TestRecord>().First();
     REQUIRE(actualResult.has_value());
     CHECK(actualResult.value() == expectedRecord);
 
     // Check multi-record retrieval (if one works, they all do)
-    auto const records = dm->Query<TestRecord>().All();
+    auto const records = dm.Query<TestRecord>().All();
     REQUIRE(records.size() == 1);
     CHECK(records[0] == expectedRecord);
 }
@@ -206,15 +206,15 @@ struct PersonDifferenceView
 
 TEST_CASE_METHOD(SqlTestFixture, "Test DifferenceView", "[DataMapper]")
 {
-    auto dm = DataMapper::Create();
+    auto dm = DataMapper();
 
-    dm->CreateTable<PersonDifferenceView>();
+    dm.CreateTable<PersonDifferenceView>();
     auto first = PersonDifferenceView { .name = "Jahn Doe", .age = 10 };
-    dm->Create(first);
+    dm.Create(first);
     auto second = PersonDifferenceView { .name = "John Doe", .age = 19 };
-    dm->Create(second);
+    dm.Create(second);
 
-    auto persons = dm->Query<PersonDifferenceView>().All();
+    auto persons = dm.Query<PersonDifferenceView>().All();
     auto difference = CollectDifferences(persons[0], persons[1]);
 
     auto differenceCount = 0;
@@ -237,10 +237,10 @@ struct TestDynamicData
 
 TEST_CASE_METHOD(SqlTestFixture, "TestDynamicData", "[DataMapper]")
 {
-    auto dm = DataMapper::Create();
-    dm->CreateTable<TestDynamicData>();
+    auto dm = DataMapper();
+    dm.CreateTable<TestDynamicData>();
     TestDynamicData data {};
-    dm->Create(data);
+    dm.Create(data);
 
     auto const checkSize = [&](auto size) {
         INFO(size);
@@ -249,10 +249,10 @@ TEST_CASE_METHOD(SqlTestFixture, "TestDynamicData", "[DataMapper]")
         data.stringUtf16 = std::basic_string<char16_t>(size, u'a');
         data.stringUtf32 = std::basic_string<char32_t>(size, U'a');
         data.stringWide = std::basic_string<wchar_t>(size, L'a');
-        dm->Update(data);
+        dm.Update(data);
 
         auto const result =
-            dm->Query<TestDynamicData>().Where(FieldNameOf<Member(TestDynamicData::id)>, data.id.Value()).First();
+            dm.Query<TestDynamicData>().Where(FieldNameOf<Member(TestDynamicData::id)>, data.id.Value()).First();
         REQUIRE(result.has_value());
         REQUIRE(result.value().stringAnsi.Value() == std::string(size, 'a'));
         REQUIRE(result.value().stringUtf16.Value() == std::basic_string<char16_t>(size, u'a'));
@@ -269,19 +269,19 @@ TEST_CASE_METHOD(SqlTestFixture, "TestDynamicData", "[DataMapper]")
 
 TEST_CASE_METHOD(SqlTestFixture, "TestQuerySingleDynamicData", "[DataMapper]")
 {
-    auto dm = DataMapper::Create();
-    dm->CreateTable<TestDynamicData>();
+    auto dm = DataMapper();
+    dm.CreateTable<TestDynamicData>();
     TestDynamicData data {};
     data.stringAnsi = std::string(10, 'a');
     data.stringUtf32 = std::basic_string<char32_t>(10, U'a');
     data.stringWide = std::basic_string<wchar_t>(10, L'a');
-    dm->Create(data);
+    dm.Create(data);
 
     auto const checkSize = [&](auto size) {
         INFO(size);
         data.stringWide = std::basic_string<wchar_t>(size, L'a');
-        dm->Update(data);
-        auto const result = dm->Query<TestDynamicData>()
+        dm.Update(data);
+        auto const result = dm.Query<TestDynamicData>()
                                 .Where(FieldNameOf<Member(TestDynamicData::id)>, "=", data.id.Value())
                                 .First<Member(TestDynamicData::stringWide)>();
         REQUIRE(result.has_value());
@@ -297,20 +297,20 @@ TEST_CASE_METHOD(SqlTestFixture, "TestQuerySingleDynamicData", "[DataMapper]")
 
 TEST_CASE_METHOD(SqlTestFixture, "TestQuerySparseDynamicData", "[DataMapper]")
 {
-    auto dm = DataMapper::Create();
-    dm->CreateTable<TestDynamicData>();
+    auto dm = DataMapper();
+    dm.CreateTable<TestDynamicData>();
     TestDynamicData data {};
     data.stringAnsi = std::string(10, 'a');
     data.stringUtf32 = std::basic_string<char32_t>(10, U'a');
     data.stringWide = std::basic_string<wchar_t>(10, L'a');
-    dm->Create(data);
+    dm.Create(data);
 
     auto const checkSize = [&](auto size) {
         INFO(size);
         data.stringUtf16 = std::basic_string<char16_t>(size, u'a');
         data.stringUtf32 = std::basic_string<char32_t>(size, U'a');
-        dm->Update(data);
-        auto const result = dm->Query<TestDynamicData>()
+        dm.Update(data);
+        auto const result = dm.Query<TestDynamicData>()
                                 .Where(FieldNameOf<Member(TestDynamicData::id)>, "=", data.id.Value())
                                 .First<Member(TestDynamicData::stringUtf16), Member(TestDynamicData::stringUtf32)>();
         REQUIRE(result.has_value());
@@ -336,10 +336,10 @@ struct TestOptionalDynamicData
 
 TEST_CASE_METHOD(SqlTestFixture, "TestOptionalDynamicData", "[DataMapper]")
 {
-    auto dm = DataMapper::Create();
-    dm->CreateTable<TestOptionalDynamicData>();
+    auto dm = DataMapper();
+    dm.CreateTable<TestOptionalDynamicData>();
     TestOptionalDynamicData data {};
-    dm->Create(data);
+    dm.Create(data);
 
     auto const checkSize = [&](auto size) {
         INFO(size);
@@ -357,9 +357,9 @@ TEST_CASE_METHOD(SqlTestFixture, "TestOptionalDynamicData", "[DataMapper]")
         else
             data.stringWide = std::nullopt;
 
-        dm->Update(data);
+        dm.Update(data);
 
-        auto const result = dm->QuerySingle<TestOptionalDynamicData>(data.id);
+        auto const result = dm.QuerySingle<TestOptionalDynamicData>(data.id);
         REQUIRE(result.has_value());
         if (size / 5 == 0)
             REQUIRE(result.value().stringAnsi.Value().value_or("") == std::string(size, 'a'));
@@ -393,8 +393,8 @@ struct MessagesStruct
 
 TEST_CASE_METHOD(SqlTestFixture, "TestMessageStruct", "[DataMapper]")
 {
-    auto dm = DataMapper::Create();
-    dm->CreateTable<MessagesStruct>();
+    auto dm = DataMapper();
+    dm.CreateTable<MessagesStruct>();
 
     MessagesStruct message {
         .id = SqlGuid::Create(),
@@ -402,7 +402,7 @@ TEST_CASE_METHOD(SqlTestFixture, "TestMessageStruct", "[DataMapper]")
         .message = L"Hello, World!",
     };
 
-    dm->Create(message);
+    dm.Create(message);
     REQUIRE(message.id.Value());
 }
 
@@ -414,11 +414,11 @@ struct MessageStructTo
 
 TEST_CASE_METHOD(SqlTestFixture, "TestMessageStructTo", "[DataMapper]")
 {
-    auto dm = DataMapper::Create();
+    auto dm = DataMapper();
 
-    dm->CreateTable<MessagesStruct>();
+    dm.CreateTable<MessagesStruct>();
 
-    SqlStatement(dm->Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+    SqlStatement(dm.Connection()).MigrateDirect([](SqlMigrationQueryBuilder& migration) {
         using namespace SqlColumnTypeDefinitions;
         migration.CreateTable("MessageStructTo")
             .PrimaryKey("primary_key", Guid {})
@@ -433,13 +433,13 @@ TEST_CASE_METHOD(SqlTestFixture, "TestMessageStructTo", "[DataMapper]")
         .timeStamp = SqlDateTime::Now(),
         .message = L"Hello, World!",
     };
-    dm->CreateExplicit(message);
+    dm.CreateExplicit(message);
 
     SECTION("Test BelongsTo with non-NULL relation")
     {
         auto const to = MessageStructTo { .id = SqlGuid::Create(), .log_message = message.id.Value() };
-        dm->CreateExplicit(to);
-        auto const queriedTo = dm->QuerySingle<MessageStructTo>(to.id).value();
+        dm.CreateExplicit(to);
+        auto const queriedTo = dm.QuerySingle<MessageStructTo>(to.id).value();
         REQUIRE(queriedTo.id.Value() == to.id.Value());
         REQUIRE(queriedTo.log_message.Value().value() == message.id.Value());
     }
@@ -447,8 +447,8 @@ TEST_CASE_METHOD(SqlTestFixture, "TestMessageStructTo", "[DataMapper]")
     SECTION("Test BelongsTo with NULL relation")
     {
         MessageStructTo to { .id = SqlGuid::Create(), .log_message = std::nullopt };
-        dm->Create(to);
-        auto const queriedTo = dm->QuerySingle<MessageStructTo>(to.id).value();
+        dm.Create(to);
+        auto const queriedTo = dm.QuerySingle<MessageStructTo>(to.id).value();
         REQUIRE(queriedTo.id.Value() == to.id.Value());
         REQUIRE(!queriedTo.log_message.Value().has_value());
     }
@@ -456,8 +456,8 @@ TEST_CASE_METHOD(SqlTestFixture, "TestMessageStructTo", "[DataMapper]")
 
 TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
 {
-    auto dm = DataMapper::Create();
-    dm->CreateTable<Person>();
+    auto dm = DataMapper();
+    dm.CreateTable<Person>();
 
     // Create
     auto person = Person {};
@@ -465,11 +465,11 @@ TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
     person.is_active = true;
 
     REQUIRE(!person.id.Value());
-    dm->Create(person);
+    dm.Create(person);
     REQUIRE(person.id.Value());
 
     // Read (by primary key)
-    auto po = dm->QuerySingle<Person>(person.id);
+    auto po = dm.QuerySingle<Person>(person.id);
     REQUIRE(po.has_value());
     auto p = po.value();
     CHECK(p.id == person.id);
@@ -480,9 +480,9 @@ TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
     // Update
     person.age = 42;
     person.is_active = false;
-    dm->Update(person);
+    dm.Update(person);
 
-    po = dm->QuerySingle<Person>(person.id);
+    po = dm.QuerySingle<Person>(person.id);
     REQUIRE(po.has_value());
     p = po.value();
     CHECK(p.id == person.id);
@@ -491,15 +491,15 @@ TEST_CASE_METHOD(SqlTestFixture, "CRUD", "[DataMapper]")
     CHECK(p.age.Value().value_or(0) == 42);
 
     // Delete
-    auto const numRowsAffected = dm->Delete(person);
+    auto const numRowsAffected = dm.Delete(person);
     CHECK(numRowsAffected == 1);
 
-    CHECK(!dm->Query<Person>().Where(FieldNameOf<Member(Person::id)>, person.id.Value()).First().has_value());
+    CHECK(!dm.Query<Person>().Where(FieldNameOf<Member(Person::id)>, person.id.Value()).First().has_value());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlGuid", "[DataMapper]")
 {
-    auto dm = DataMapper::Create();
+    auto dm = DataMapper();
     auto guid = SqlGuid::Create();
 
     auto expectedPersons = std::array {
@@ -509,9 +509,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlGuid", "[DataMapper]")
         Person {},
     };
 
-    dm->CreateTable<Person>();
+    dm.CreateTable<Person>();
     for (auto& person: expectedPersons)
-        dm->Create(person);
+        dm.Create(person);
 
     CHECK(expectedPersons[0].id.Value() == guid);
     for (auto& person: expectedPersons)
@@ -522,35 +522,35 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlGuid", "[DataMapper]")
 
 TEST_CASE_METHOD(SqlTestFixture, "Delete", "[DataMapper]")
 {
-    auto dm = DataMapper::Create();
+    auto dm = DataMapper();
 
-    dm->CreateTable<Person>();
+    dm.CreateTable<Person>();
     for (auto const i: std::views::iota(0, 10))
     {
-        dm->CreateExplicit(Person {
+        dm.CreateExplicit(Person {
             .id = SqlGuid::Create(),
             .name = std::format("Person {}", i),
             .is_active = (i % 2) == 0,
             .age = i,
         });
     }
-    CHECK(dm->Query<Person>().Count() == 10);
-    dm->Query<Person>().Where(FieldNameOf<Member(Person::age)>, "<", 6).Delete();
-    CHECK(dm->Query<Person>().Count() == 4);
-    dm->Query<Person>().Delete();
-    REQUIRE(dm->Query<Person>().Count() == 0);
-    dm->Query<Person>().Delete();
+    CHECK(dm.Query<Person>().Count() == 10);
+    dm.Query<Person>().Where(FieldNameOf<Member(Person::age)>, "<", 6).Delete();
+    CHECK(dm.Query<Person>().Count() == 4);
+    dm.Query<Person>().Delete();
+    REQUIRE(dm.Query<Person>().Count() == 0);
+    dm.Query<Person>().Delete();
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "ExecuteDirect", "[DataMapper]")
 {
-    auto dm = DataMapper::Create();
-    auto stmt = SqlStatement(dm->Connection());
+    auto dm = DataMapper();
+    auto stmt = SqlStatement(dm.Connection());
 
     auto const date =
         stmt.ExecuteDirectScalar<SqlDate>(std::format("SELECT {};", stmt.Connection().QueryFormatter().DateFunction()));
     auto const dateFromDataMapper =
-        dm->Execute<SqlDate>(std::format("SELECT {};", stmt.Connection().QueryFormatter().DateFunction()));
+        dm.Execute<SqlDate>(std::format("SELECT {};", stmt.Connection().QueryFormatter().DateFunction()));
 
     REQUIRE(date.has_value());
     REQUIRE(dateFromDataMapper.has_value());
@@ -560,16 +560,16 @@ TEST_CASE_METHOD(SqlTestFixture, "ExecuteDirect", "[DataMapper]")
 TEST_CASE_METHOD(SqlTestFixture, "Query builder", "[DataMapper]")
 {
 
-    auto dm = DataMapper::Create();
+    auto dm = DataMapper();
 
-    auto const query = dm->Query().FromTable("That").Select().Distinct().Fields("a", "b").All();
+    auto const query = dm.Query().FromTable("That").Select().Distinct().Fields("a", "b").All();
 
     struct QueryResult
     {
         Field<SqlDateTime> date;
     };
 
-    auto stmt = SqlStatement(dm->Connection());
+    auto stmt = SqlStatement(dm.Connection());
 
     if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
     {
@@ -582,7 +582,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Query builder", "[DataMapper]")
 
         stmt.ExecuteDirect(R"SQL(INSERT INTO "That" ("a", "b", "c") VALUES (1, 2, 3))SQL");
 
-        auto const result = dm->Query<QueryResult>(query);
+        auto const result = dm.Query<QueryResult>(query);
         REQUIRE(result.size() == 1);
     }
 }

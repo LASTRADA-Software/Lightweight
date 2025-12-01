@@ -460,7 +460,7 @@ void GenerateExample(Configuration const& config,
     file << std::format("Lightweight::SqlConnection::SetDefaultConnectionString(SqlConnectionString {{ \"{}\" }});\n",
                         std::string(config.connectionString));
     file << "\n";
-    file << "auto dm = Lightweight::DataMapper::Create();";
+    file << "auto dm = Lightweight::DataMapper();";
     file << "\n";
     for (auto const& table: tables)
     {
