@@ -59,7 +59,7 @@ var searchData=
   ['for_20testing_20on_20windows_20operating_20system_56',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]],
   ['for_20the_20existing_20database_57',['Generate example for the existing database',['../index.html#generate-example-for-the-existing-database',1,'']]],
   ['foreign_20keys_20relation_58',['Foreign keys relation',['../index.html#foreign-keys-relation',1,'']]],
-  ['foreignkey_59',['foreignkey',['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ab21fb33567468849f1b0d724719c23e7',1,'Lightweight::SqlCreateTableQueryBuilder::ForeignKey()'],['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a59119220ab43706394b2a1f22caf183d',1,'Lightweight::SqlColumnDeclaration::foreignKey']]],
+  ['foreignkey_59',['foreignkey',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a59119220ab43706394b2a1f22caf183d',1,'Lightweight::SqlColumnDeclaration::foreignKey'],['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ab21fb33567468849f1b0d724719c23e7',1,'Lightweight::SqlCreateTableQueryBuilder::ForeignKey()']]],
   ['foreignkeys_60',['foreignKeys',['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#a774feb3fa67174c1d22ffa9463877e9e',1,'Lightweight::SqlSchema::Table']]],
   ['fromconnectionhandle_61',['FromConnectionHandle',['../d8/d5b/structLightweight_1_1SqlErrorInfo.html#ae47def24d7fb0b76a4a6d3531b0721f6',1,'Lightweight::SqlErrorInfo']]],
   ['fromstatementhandle_62',['FromStatementHandle',['../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8c5df558d7e9cd5263d15c3b13461944',1,'Lightweight::SqlErrorInfo']]],

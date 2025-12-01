@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"de/d61/classLightweight_1_1DataMapper.html#a9876b49397398231200d326dfba78bdb":[6,2,3,8],
 "de/d61/classLightweight_1_1DataMapper.html#aa17c743b55af25f5de7ccdc7a5264661":[6,2,3,10],
 "de/d61/classLightweight_1_1DataMapper.html#aa6b188d4c0b7e8b267f2722d0e3f1401":[6,2,3,13],
 "de/d61/classLightweight_1_1DataMapper.html#aa7b800a3b69075d96b38b2710df0229d":[6,2,3,6],
@@ -8,7 +9,6 @@ var NAVTREEINDEX2 =
 "de/d61/classLightweight_1_1DataMapper.html#abc16383a3cfcc043de94a70742545903":[6,2,3,14],
 "de/d61/classLightweight_1_1DataMapper.html#ac0e2e432c3ad94048fb407883f4dd64d":[6,2,3,20],
 "de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4":[6,2,3,11],
-"de/d61/classLightweight_1_1DataMapper.html#ad16bbc9da7d412211f8a4470480c0b85":[6,2,3,0],
 "de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747":[6,2,3,15],
 "de/d6a/structLightweight_1_1SqlConnectionString.html":[8,0,0,15],
 "de/d73/classLightweight_1_1HasManyThrough.html":[6,2,7],
