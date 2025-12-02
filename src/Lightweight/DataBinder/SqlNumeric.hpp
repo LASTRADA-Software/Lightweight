@@ -45,8 +45,8 @@ struct SqlNumeric
 
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::Decimal { .precision = Precision, .scale = TheScale };
 
-    static_assert(Precision < SQL_MAX_NUMERIC_LEN);
-    static_assert(Scale <= Precision);
+    static_assert(Precision <= SQL_MAX_NUMERIC_LEN);
+    static_assert(Scale < Precision);
 
     SQL_NUMERIC_STRUCT sqlValue {};
 
