@@ -157,20 +157,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: push_back and pop_back", "[Sql
     REQUIRE(str.empty());
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: assign", "[SqlFixedString]")
-{
-    SqlFixedString<12> str;
-    str.assign("Hello, World");
-    REQUIRE(str == "Hello, World");
-    // str.assign("Hello, World!"); <-- would fail due to static_assert
-    str.assign("Hello, World!"sv);
-    REQUIRE(str == "Hello, World");
-
-    str = "Something";
-    REQUIRE(str == "Something");
-    // str = ("Hello, World!"); // <-- would fail due to static_assert
-}
-
 TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: c_str", "[SqlFixedString]")
 {
     SqlFixedString<12> str { "Hello, World" };

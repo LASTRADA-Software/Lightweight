@@ -5,6 +5,7 @@
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "../Utils.hpp"
 #include "Core.hpp"
+#include "StringInterface.hpp"
 #include "UnicodeConverter.hpp"
 
 #include <format>
@@ -28,6 +29,10 @@ class SqlDynamicString
     static constexpr std::size_t DynamicCapacity = N;
     using value_type = T;
     using string_type = std::basic_string<T>;
+    using iterator = string_type::iterator;
+    using const_iterator = string_type::const_iterator;
+    using pointer_type = T*;
+    using const_pointer_type = T const*;
 
     /// Constructs a fixed-size string from a string literal.
     template <std::size_t SourceSize>
@@ -122,10 +127,53 @@ class SqlDynamicString
         _value.clear();
     }
 
+    LIGHTWEIGHT_FORCE_INLINE void reserve(std::size_t capacity)
+    {
+        _value.reserve(capacity);
+    }
+
+    LIGHTWEIGHT_FORCE_INLINE constexpr void push_back(T c) noexcept
+    {
+        _value += c;
+    }
+
+    LIGHTWEIGHT_FORCE_INLINE constexpr void pop_back() noexcept
+    {
+        _value.pop_back();
+    }
+
+    // NOLINTNEXTLINE(readability-identifier-naming)
+    LIGHTWEIGHT_FORCE_INLINE void setsize(std::size_t n) noexcept
+    {
+        auto const newSize = (std::min) (n, N);
+        _value.resize(newSize);
+    }
+
     /// Resizes the string.
     LIGHTWEIGHT_FORCE_INLINE constexpr void resize(std::size_t n) noexcept
     {
         _value.resize(n);
+    }
+
+    /// Retrieves a string view of the string.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string_view<T> substr(
+        std::size_t offset = 0, std::size_t count = (std::numeric_limits<std::size_t>::max)()) const noexcept
+    {
+        if (count != (std::numeric_limits<std::size_t>::max)())
+        {
+            return _value.substr(offset, count);
+        }
+        return _value.substr(offset);
+    }
+
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr string_type ToString() const noexcept
+    {
+        return _value;
+    }
+
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr explicit operator std::basic_string<T>() const noexcept
+    {
+        return ToString();
     }
 
     /// Retrieves a string view of the string.
@@ -177,9 +225,31 @@ class SqlDynamicString
         return !(*this == other);
     }
 
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr iterator begin() noexcept
+    {
+        return _value.begin();
+    }
+
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr iterator end() noexcept
+    {
+        return _value.end();
+    }
+
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr const_iterator begin() const noexcept
+    {
+        return _value.begin();
+    }
+
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr const_iterator end() const noexcept
+    {
+        return _value.end();
+    }
+
   private:
     string_type _value;
 };
+
+static_assert(SqlStringInterface<SqlDynamicString<10>>);
 
 template <std::size_t N, typename CharT>
 struct detail::SqlViewHelper<SqlDynamicString<N, CharT>>
