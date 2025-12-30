@@ -35,7 +35,7 @@ jobs:
     name: "Check PR-TODOs"
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: "Checking for open PR-related TODO items"
       run: ./scripts/check-pr-todos.sh
 
@@ -43,12 +43,12 @@ jobs:
     name: "Check C++ style"
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v2
       with:
         persist-credentials: true
         repository: ${{ github.event.pull_request.head.repo.full_name }}
         ref: ${{ github.event.pull_request.head.ref }}
-        token: ${{ secrets.CLANG_FORMAT_PAT }}
+        # token: ${{ secrets.CLANG_FORMAT_PAT }}
     - uses: DoozyX/clang-format-lint-action@v0.20
       with:
         source: '.'
@@ -57,18 +57,19 @@ jobs:
         clangFormatVersion: 20
         style: file
         inplace: True
-    - uses: EndBug/add-and-commit@v9
-      if: github.event.pull_request.head.repo.full_name == github.repository
-      with:
-        message: 'Committing clang-format changes'
-        default_author: github_actions
+    # does not work for now
+    # - uses: EndBug/add-and-commit@v9
+    #   if: github.event.pull_request.head.repo.full_name == github.repository
+    #   with:
+    #     message: 'Committing clang-format changes'
+    #     default_author: github_actions
         
   check_clang_tidy:
     name: "Check clang-tidy"
     runs-on: ubuntu-24.04
     if: github.ref != 'refs/heads/master'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Fetch tags
       run: git fetch --prune --unshallow --tags
     - name: ccache
@@ -110,7 +111,7 @@ jobs:
     name: "Windows-${{ matrix.preset }}"
     runs-on: windows-2025
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Fetch tags
         run: git fetch --prune --unshallow --tags
       - name: Run sccache-cache
@@ -164,7 +165,7 @@ jobs:
     outputs:
       id: "${{ matrix.compiler }} (C++${{ matrix.cxx }}, ${{ matrix.build_type }})"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Fetch tags
         run: git fetch --prune --unshallow --tags
       - name: ccache
@@ -251,7 +252,7 @@ jobs:
     name: "C++26 reflection implementation"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
         with:
@@ -274,7 +275,7 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [ubuntu_build_cc_matrix]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Fetch tags
         run: git fetch --prune --unshallow --tags
       - name: "Download binaries"
@@ -323,7 +324,7 @@ jobs:
     env:
       DBMS: "${{ matrix.database }}"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: "Download unit test binaries"
         uses: actions/download-artifact@v4
         with:
