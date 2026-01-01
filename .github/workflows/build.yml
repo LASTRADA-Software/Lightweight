@@ -45,7 +45,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        persist-credentials: true
+        #persist-credentials: true
         repository: ${{ github.event.pull_request.head.repo.full_name }}
         ref: ${{ github.event.pull_request.head.ref }}
         # token: ${{ secrets.CLANG_FORMAT_PAT }}

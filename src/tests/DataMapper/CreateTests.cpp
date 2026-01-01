@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "../Utils.hpp"
+#include "Entities.hpp"
 
 #include <Lightweight/Lightweight.hpp>
 
@@ -136,5 +137,25 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with multiple primary keys", "[DataMappe
     INFO("Queried record: " << DataMapper::Inspect(queriedRecord));
     CHECK(queriedRecord == record);
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "Loading of the dependent records after create", "[DataMapper]")
+{
+    auto dm = DataMapper();
+
+    dm.CreateTables<User, NullableForeignKeyUser>();
+
+    auto user = User { .id = SqlGuid::Create(), .name = "John Doe" };
+    dm.Create(user);
+
+    auto nullableFKUser = NullableForeignKeyUser { .user = user };
+    dm.Create(nullableFKUser);
+    REQUIRE(nullableFKUser.user.Value().has_value());
+    REQUIRE(nullableFKUser.user->id.Value() == user.id.Value());
+
+    auto nullableFKUserNotSet = NullableForeignKeyUser {};
+    dm.Create(nullableFKUserNotSet);
+    REQUIRE(!nullableFKUserNotSet.user.Value().has_value());
+}
+
 
 // NOLINTEND(bugprone-unchecked-optional-access)

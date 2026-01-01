@@ -188,7 +188,7 @@ inline LIGHTWEIGHT_FORCE_INLINE std::size_t HasMany<OtherRecord>::Count() const 
     if (_records)
         return _records->size();
 
-    if (!_count)
+    if (!_count && _loader.count)
         const_cast<HasMany<OtherRecord>*>(this)->_count = _loader.count();
 
     return _count.value_or(0);
