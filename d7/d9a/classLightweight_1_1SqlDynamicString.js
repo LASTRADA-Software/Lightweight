@@ -15,5 +15,6 @@ var classLightweight_1_1SqlDynamicString =
     [ "empty", "d7/d9a/classLightweight_1_1SqlDynamicString.html#a627bc6369c02612f03246b0bb478d7f2", null ],
     [ "clear", "d7/d9a/classLightweight_1_1SqlDynamicString.html#af20732b460e20ac1671e33b5510fbe7f", null ],
     [ "resize", "d7/d9a/classLightweight_1_1SqlDynamicString.html#afabe49e0b301a332521f723358f91417", null ],
+    [ "substr", "d7/d9a/classLightweight_1_1SqlDynamicString.html#aa67b9eff101d2fdca8a6a563bbe31609", null ],
     [ "ToStringView", "d7/d9a/classLightweight_1_1SqlDynamicString.html#a6f504281e87ac884342b0d590d63ccf3", null ]
 ];

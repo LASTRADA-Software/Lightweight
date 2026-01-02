@@ -18,6 +18,7 @@ var dir_6f1d6fa2b219487ffef8a5d5282640f4 =
     [ "StdOptional.hpp", "da/dce/StdOptional_8hpp_source.html", null ],
     [ "StdString.hpp", "de/dbb/StdString_8hpp_source.html", null ],
     [ "StdStringView.hpp", "d9/dc3/StdStringView_8hpp_source.html", null ],
+    [ "StringInterface.hpp", "d2/dfe/StringInterface_8hpp_source.html", null ],
     [ "StringLiteral.hpp", "d4/d46/StringLiteral_8hpp_source.html", null ],
     [ "UnicodeConverter.hpp", "df/dcd/UnicodeConverter_8hpp_source.html", null ]
 ];

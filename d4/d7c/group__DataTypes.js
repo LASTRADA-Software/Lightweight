@@ -49,6 +49,7 @@ var group__DataTypes =
       [ "empty", "d7/d9a/classLightweight_1_1SqlDynamicString.html#a627bc6369c02612f03246b0bb478d7f2", null ],
       [ "clear", "d7/d9a/classLightweight_1_1SqlDynamicString.html#af20732b460e20ac1671e33b5510fbe7f", null ],
       [ "resize", "d7/d9a/classLightweight_1_1SqlDynamicString.html#afabe49e0b301a332521f723358f91417", null ],
+      [ "substr", "d7/d9a/classLightweight_1_1SqlDynamicString.html#aa67b9eff101d2fdca8a6a563bbe31609", null ],
       [ "ToStringView", "d7/d9a/classLightweight_1_1SqlDynamicString.html#a6f504281e87ac884342b0d590d63ccf3", null ]
     ] ],
     [ "Lightweight::SqlFixedString< N, T, Mode >", "de/dae/classLightweight_1_1SqlFixedString.html", [
@@ -62,8 +63,6 @@ var group__DataTypes =
       [ "resize", "de/dae/classLightweight_1_1SqlFixedString.html#a4c3ec565ffd7b94f60bb27a966e7a552", null ],
       [ "capacity", "de/dae/classLightweight_1_1SqlFixedString.html#a1509acf30b33d511e3f81322d25e27b5", null ],
       [ "clear", "de/dae/classLightweight_1_1SqlFixedString.html#a42d9009b4fa414a66683870d5d5a22b2", null ],
-      [ "assign", "de/dae/classLightweight_1_1SqlFixedString.html#a50f815d81a214fefe6f4a0ab099bbaa1", null ],
-      [ "assign", "de/dae/classLightweight_1_1SqlFixedString.html#a64c2abc1e365934e1eaab1dd940bd634", null ],
       [ "push_back", "de/dae/classLightweight_1_1SqlFixedString.html#a50438c4dd3511d7dba129606f23950a8", null ],
       [ "pop_back", "de/dae/classLightweight_1_1SqlFixedString.html#af7208a623058c1f470f0829ce892afda", null ],
       [ "substr", "de/dae/classLightweight_1_1SqlFixedString.html#a9da9b618656a2afc3a7748d302dc06e5", null ],
