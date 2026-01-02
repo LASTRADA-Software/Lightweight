@@ -155,7 +155,7 @@ class DataMapper
     /// The record is inserted into the database and the primary key is set on this record.
     ///
     /// @return The primary key of the newly created record.
-    template <typename Record>
+    template <DataMapperOptions QueryOptions = {}, typename Record>
     RecordPrimaryKeyType<Record> Create(Record& record);
 
     /// @brief Creates a new record in the database.
@@ -1306,7 +1306,7 @@ RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
     }
 }
 
-template <typename Record>
+template <DataMapperOptions QueryOptions, typename Record>
 RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
 {
     static_assert(!std::is_const_v<Record>);
@@ -1371,7 +1371,9 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
         SetId(record, _stmt.LastInsertId(RecordTableName<Record>));
 
     ClearModifiedState(record);
-    ConfigureRelationAutoLoading(record);
+
+    if constexpr (QueryOptions.loadRelations)
+        ConfigureRelationAutoLoading(record);
 
     if constexpr (HasPrimaryKey<Record>)
         return GetPrimaryKeyField(record);

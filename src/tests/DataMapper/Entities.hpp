@@ -53,6 +53,12 @@ struct Email
     constexpr std::weak_ordering operator<=>(Email const& other) const = default;
 };
 
+struct NullableForeignKeyUser
+{
+    Light::Field<Light::SqlGuid, Light::PrimaryKey::AutoAssign> id {};
+    Light::BelongsTo<Member(User::id), Light::SqlRealName { "user_id" }, Light::SqlNullable::Null> user {};
+};
+
 struct Physician;
 struct Appointment;
 struct Patient;

@@ -20,8 +20,7 @@ class DataMapper;
 /// when using query builder directly from the DataMapper
 struct DataMapperOptions
 {
-    /// This is the default behavior since compilation times significantly increase otherwise.
-    bool loadRelations { false };
+    bool loadRelations { true };
 };
 
 /// Main API for mapping records to C++ from the database using high level C++ syntax.
