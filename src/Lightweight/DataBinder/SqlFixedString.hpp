@@ -5,6 +5,7 @@
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "Core.hpp"
 #include "UnicodeConverter.hpp"
+#include "StringInterface.hpp"
 
 #include <format>
 #include <ranges>
@@ -138,21 +139,21 @@ class SqlFixedString
         _size = 0;
     }
 
-    /// Assigns a string literal to the string.
-    template <std::size_t SourceSize>
-    LIGHTWEIGHT_FORCE_INLINE constexpr void assign(T const (&source)[SourceSize]) noexcept
-    {
-        static_assert(SourceSize <= N + 1, "Source string must not overflow the target string's capacity.");
-        _size = SourceSize - 1;
-        std::copy_n(source, SourceSize, _data);
-    }
+    // /// Assigns a string literal to the string.
+    // template <std::size_t SourceSize>
+    // LIGHTWEIGHT_FORCE_INLINE constexpr void assign(T const (&source)[SourceSize]) noexcept
+    // {
+    //     static_assert(SourceSize <= N + 1, "Source string must not overflow the target string's capacity.");
+    //     _size = SourceSize - 1;
+    //     std::copy_n(source, SourceSize, _data);
+    // }
 
-    /// Assigns a string view to the string.
-    LIGHTWEIGHT_FORCE_INLINE constexpr void assign(std::basic_string_view<T> s) noexcept
-    {
-        _size = (std::min) (N, s.size());
-        std::copy_n(s.data(), _size, _data); // NOLINT(bugprone-suspicious-stringview-data-usage)
-    }
+    // /// Assigns a string view to the string.
+    // LIGHTWEIGHT_FORCE_INLINE constexpr void assign(std::basic_string_view<T> s) noexcept
+    // {
+    //     _size = (std::min) (N, s.size());
+    //     std::copy_n(s.data(), _size, _data); // NOLINT(bugprone-suspicious-stringview-data-usage)
+    // }
 
     /// Appends a character to the string.
     LIGHTWEIGHT_FORCE_INLINE constexpr void push_back(T c) noexcept
@@ -191,18 +192,15 @@ class SqlFixedString
     }
 
     // clang-format off
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr pointer_type c_str() noexcept { _data[_size] = '\0'; return _data; }
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr pointer_type data() noexcept { return _data; }
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr iterator begin() noexcept { return _data; }
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr iterator end() noexcept { return _data + size(); }
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr T& at(std::size_t i) noexcept { return _data[i]; }
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr T& operator[](std::size_t i) noexcept { return _data[i]; }
 
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr const_pointer_type c_str() const noexcept { return _data; }
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr const_pointer_type data() const noexcept { return _data; }
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr const_iterator begin() const noexcept { return _data; }
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr const_iterator end() const noexcept { return _data + size(); }
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr T const& at(std::size_t i) const noexcept { return _data[i]; }
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr T const& operator[](std::size_t i) const noexcept { return _data[i]; }
     // clang-format on
 
@@ -265,6 +263,8 @@ class SqlFixedString
         return !(*this == other);
     }
 };
+
+static_assert(SqlStringInterface<SqlFixedString<10>>);
 
 template <std::size_t N, typename CharT, SqlFixedStringMode Mode>
 struct detail::SqlViewHelper<SqlFixedString<N, CharT, Mode>>
