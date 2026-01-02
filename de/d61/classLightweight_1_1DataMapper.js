@@ -9,7 +9,7 @@ var classLightweight_1_1DataMapper =
     [ "CreateTablesString", "de/d61/classLightweight_1_1DataMapper.html#aa7b800a3b69075d96b38b2710df0229d", null ],
     [ "CreateTable", "de/d61/classLightweight_1_1DataMapper.html#a81e4a5713d5efa40b8eb2588d969e90f", null ],
     [ "CreateTables", "de/d61/classLightweight_1_1DataMapper.html#a9876b49397398231200d326dfba78bdb", null ],
-    [ "Create", "de/d61/classLightweight_1_1DataMapper.html#aaf59c560a6141b8dc7a5a253aa0ee27f", null ],
+    [ "Create", "de/d61/classLightweight_1_1DataMapper.html#ada167653166b773b0421fe2ad31a2c57", null ],
     [ "CreateExplicit", "de/d61/classLightweight_1_1DataMapper.html#aa17c743b55af25f5de7ccdc7a5264661", null ],
     [ "QuerySingle", "de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4", null ],
     [ "QuerySingleWithoutRelationAutoLoading", "de/d61/classLightweight_1_1DataMapper.html#a0ee9df27df1779d4b6c6212aae482f79", null ],

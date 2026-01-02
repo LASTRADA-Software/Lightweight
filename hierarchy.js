@@ -2,6 +2,7 @@ var hierarchy =
 [
     [ "Lightweight::BelongsTo< Member(Patient::id), Lightweight::SqlRealName { \"patient_id\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::BelongsTo< Member(Physician::id), Lightweight::SqlRealName { \"physician_id\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
+    [ "Lightweight::BelongsTo< Member(User::id), Lightweight::SqlRealName { \"user_id\" }, Light::SqlNullable::Null >", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::BelongsTo< Member(User::id), Lightweight::SqlRealName { \"user_id\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::BelongsTo<&Album::AlbumId, Lightweight::SqlRealName { \"AlbumId\" }, Light::SqlNullable::Null >", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::BelongsTo<&Artist::ArtistId, Lightweight::SqlRealName { \"ArtistId\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
