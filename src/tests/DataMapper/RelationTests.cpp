@@ -600,4 +600,24 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with aliased column names", "[DataMapper
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "BelongsTo Optinal records", "[DataMapper]")
+{
+    auto dm = DataMapper();
+
+    dm.CreateTables<User, NullableForeignKeyUser>();
+
+    auto user = User { .id = SqlGuid::Create(), .name = "John Doe" };
+    dm.Create(user);
+
+    auto nullableFKUser = NullableForeignKeyUser { .user = user };
+    dm.Create(nullableFKUser);
+    REQUIRE(nullableFKUser.user.Value().has_value());
+    REQUIRE(nullableFKUser.user.Record().transform(Light::Unwrap).value().id == user.id);
+
+    auto nullableFKUserNotSet = NullableForeignKeyUser {};
+    dm.Create<Light::DataMapperOptions{.loadRelations = false}>(nullableFKUserNotSet);
+    REQUIRE(!nullableFKUserNotSet.user.Value().has_value());
+    REQUIRE(!nullableFKUserNotSet.user.Record().transform(Light::Unwrap).value_or(User{}).id.Value());
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)

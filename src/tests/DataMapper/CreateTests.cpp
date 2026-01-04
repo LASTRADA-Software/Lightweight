@@ -3,6 +3,7 @@
 
 #include "../Utils.hpp"
 #include "Entities.hpp"
+#include "Lightweight/DataMapper/QueryBuilders.hpp"
 
 #include <Lightweight/Lightweight.hpp>
 
@@ -150,12 +151,12 @@ TEST_CASE_METHOD(SqlTestFixture, "Loading of the dependent records after create"
     auto nullableFKUser = NullableForeignKeyUser { .user = user };
     dm.Create(nullableFKUser);
     REQUIRE(nullableFKUser.user.Value().has_value());
-    REQUIRE(nullableFKUser.user->id.Value() == user.id.Value());
+    REQUIRE(nullableFKUser.user.Record().has_value());
 
     auto nullableFKUserNotSet = NullableForeignKeyUser {};
-    dm.Create(nullableFKUserNotSet);
+    dm.Create<Light::DataMapperOptions{.loadRelations = false}>(nullableFKUserNotSet);
     REQUIRE(!nullableFKUserNotSet.user.Value().has_value());
+    REQUIRE(!nullableFKUserNotSet.user.Record().has_value());
 }
-
 
 // NOLINTEND(bugprone-unchecked-optional-access)
