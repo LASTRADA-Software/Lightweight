@@ -144,13 +144,16 @@ int main()
         for (auto& track: dm.Query<Track>().All())
         {
             dm.ConfigureRelationAutoLoading(track);
+            // NOLINTBEGIN(bugprone-unchecked-optional-access)
             // BelogsTo relation loading
             Log("Track Name: {}. Media type: {}. Genre: {}. Album id: {}. Artist name: {}",
                 toString(track.Name.Value().ToStringView()),
                 toString(track.MediaTypeId->Name.ValueOr(u"").ToStringView()),
-                toString(track.GenreId->Name.ValueOr(u"").ToStringView()),
-                toString(track.AlbumId->Title.Value().ToStringView()),
-                toString(track.AlbumId->ArtistId->Name.ValueOr(u"").ToStringView()));
+                toString(track.GenreId.Record().transform(Light::Unwrap).value().Name.ValueOr(u"").ToStringView()),
+                toString(track.AlbumId.Record().transform(Light::Unwrap).value().Title.Value().ToStringView()),
+                toString(
+                    track.AlbumId.Record().transform(Light::Unwrap).value().ArtistId->Name.ValueOr(u"").ToStringView()));
+            // NOLINTEND(bugprone-unchecked-optional-access)
         }
     }
 

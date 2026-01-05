@@ -17,6 +17,11 @@
 namespace Lightweight
 {
 
+
+/// @brief Helper function to use with std::optional<std::reference_wrapper<T>>
+/// like this .transform(Unwrap).value_or({})
+auto inline Unwrap = [](auto v) { return v.get(); };
+
 /// @brief Represents a one-to-one relationship.
 ///
 /// The `TheReferencedField` parameter is the field in the other record that references the current record,
@@ -180,45 +185,86 @@ class BelongsTo
 
     ~BelongsTo() noexcept = default;
 
-    // clang-format off
-
     /// Marks the field as modified or unmodified.
-    LIGHTWEIGHT_FORCE_INLINE constexpr void SetModified(bool value) noexcept { _modified = value; }
+    LIGHTWEIGHT_FORCE_INLINE constexpr void SetModified(bool value) noexcept
+    {
+        _modified = value;
+    }
 
     /// Checks if the field is modified.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool IsModified() const noexcept { return _modified; }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool IsModified() const noexcept
+    {
+        return _modified;
+    }
 
     /// Retrieves the reference to the value of the field.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ValueType const& Value() const noexcept { return _referencedFieldValue; }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ValueType const& Value() const noexcept
+    {
+        return _referencedFieldValue;
+    }
 
     /// Retrieves the mutable reference to the value of the field.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ValueType& MutableValue() noexcept { return _referencedFieldValue; }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ValueType& MutableValue() noexcept
+    {
+        return _referencedFieldValue;
+    }
 
-    /// Retrieves a record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& Record() { RequireLoaded(); return *_record; }
+    /// Retrieves a record from the relationship. When the record is not optional
+    template <typename Self>
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& Record(this Self&& self)
+        requires(IsMandatory)
+    {
+        self.RequireLoaded();
+        return *self._record;
+    }
 
-    /// Retrieves an immutable reference to the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& Record() const { RequireLoaded(); return *_record; }
+    /// Retrieves a record from the relationship. When the record is optional
+    /// we return object similar to std::optional<ReferencedRecord&>
+    template <typename Self>
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr decltype(auto) Record(this Self&& self)
+        requires(IsOptional)
+    {
+        self.RequireLoaded();
+        return [&]() -> std::optional<std::reference_wrapper<ReferencedRecord>> {
+            if (self._record)
+                return *self._record;
+            return std::nullopt;
+        }();
+        //                    .transform([](auto v) { return v.get(); });
+        //                    requires at least clang-20
+    }
 
     /// Retrieves the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& operator*() noexcept { RequireLoaded(); return *_record; }
+    /// Only available when the relationship is mandatory.
+    template <typename Self>
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& operator*(this Self&& self) noexcept
+        requires(IsMandatory)
+    {
+        self.RequireLoaded();
+        return *self._record;
+    }
 
     /// Retrieves the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& operator*() const noexcept { RequireLoaded(); return *_record; }
-
-    /// Retrieves the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* operator->() { RequireLoaded(); return _record.get(); }
-
-    /// Retrieves the record from the relationship.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* operator->() const { RequireLoaded(); return _record.get(); }
+    /// Only available when the relationship is mandatory.
+    template <typename Self>
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* operator->(this Self&& self)
+        requires(IsMandatory)
+    {
+        self.RequireLoaded();
+        return self._record.get();
+    }
 
     /// Checks if the field value is NULL.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!() const noexcept { return !_referencedFieldValue; }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!() const noexcept
+    {
+        return !_referencedFieldValue;
+    }
 
     /// Checks if the field value is not NULL.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr explicit operator bool() const noexcept { return static_cast<bool>(_referencedFieldValue); }
-
-    // clang-format on
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr explicit operator bool() const noexcept
+    {
+        return static_cast<bool>(_referencedFieldValue);
+    }
 
     /// Emplaces a record into the relationship. This will mark the relationship as loaded.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord& EmplaceRecord()
@@ -293,8 +339,9 @@ class BelongsTo
             }
         }
 
-        if (!_loaded)
-            throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>);
+        if constexpr (IsMandatory)
+            if (!_loaded)
+                throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>);
     }
 
     ValueType _referencedFieldValue {};
