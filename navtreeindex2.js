@@ -1,7 +1,5 @@
 var NAVTREEINDEX2 =
 {
-"de/d61/classLightweight_1_1DataMapper.html#a91d6ba541ec66c8c25d9f277b3655efa":[6,2,3,4],
-"de/d61/classLightweight_1_1DataMapper.html#a9876b49397398231200d326dfba78bdb":[6,2,3,8],
 "de/d61/classLightweight_1_1DataMapper.html#aa17c743b55af25f5de7ccdc7a5264661":[6,2,3,10],
 "de/d61/classLightweight_1_1DataMapper.html#aa6b188d4c0b7e8b267f2722d0e3f1401":[6,2,3,13],
 "de/d61/classLightweight_1_1DataMapper.html#aa7b800a3b69075d96b38b2710df0229d":[6,2,3,6],
@@ -145,8 +143,8 @@ var NAVTREEINDEX2 =
 "functions_e.html":[8,2,0,4],
 "functions_enum.html":[8,2,4],
 "functions_f.html":[8,2,0,5],
-"functions_func.html":[8,2,1,0],
 "functions_func.html":[8,2,1],
+"functions_func.html":[8,2,1,0],
 "functions_func_b.html":[8,2,1,1],
 "functions_func_c.html":[8,2,1,2],
 "functions_func_d.html":[8,2,1,3],
