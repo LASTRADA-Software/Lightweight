@@ -451,8 +451,8 @@ $(document).ready(function(){initNavTree('da/d23/BelongsTo_8hpp_source.html','..
 </div>
 <div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span> </div>
 <div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>    <span class="keywordtype">void</span> RequireLoaded()</div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>    {</div>
+<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>    <span class="keywordtype">void</span> RequireLoaded()<span class="keyword"> const</span></div>
+<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>        <span class="keywordflow">if</span> (_loaded)</div>
 <div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>            <span class="keywordflow">return</span>;</div>
 <div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span> </div>
@@ -473,9 +473,9 @@ $(document).ready(function(){initNavTree('da/d23/BelongsTo_8hpp_source.html','..
 <div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span> </div>
 <div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>    <a class="code hl_typedef" href="../../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2">ValueType</a> _referencedFieldValue {};</div>
 <div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>    Loader _loader {};</div>
-<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>    <span class="keywordtype">bool</span> _loaded = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>    <span class="keywordtype">bool</span> _modified = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>    std::unique_ptr&lt;ReferencedRecord&gt; _record {};</div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>    <span class="keywordtype">bool</span> _modified = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>    <span class="keyword">mutable</span> <span class="keywordtype">bool</span> _loaded = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>    <span class="keyword">mutable</span> std::unique_ptr&lt;ReferencedRecord&gt; _record {};</div>
 <div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>};</div>
 </div>
 <div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span> </div>
