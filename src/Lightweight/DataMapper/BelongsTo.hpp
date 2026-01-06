@@ -324,7 +324,7 @@ class BelongsTo
     }
 
   private:
-    void RequireLoaded()
+    void RequireLoaded() const
     {
         if (_loaded)
             return;
@@ -346,9 +346,9 @@ class BelongsTo
 
     ValueType _referencedFieldValue {};
     Loader _loader {};
-    bool _loaded = false;
     bool _modified = false;
-    std::unique_ptr<ReferencedRecord> _record {};
+    mutable bool _loaded = false;
+    mutable std::unique_ptr<ReferencedRecord> _record {};
 };
 
 template <auto ReferencedField, auto ColumnNameOverrideString, SqlNullable Nullable>

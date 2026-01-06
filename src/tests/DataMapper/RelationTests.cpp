@@ -620,4 +620,30 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo Optinal records", "[DataMapper]")
     REQUIRE(!nullableFKUserNotSet.user.Record().transform(Light::Unwrap).value_or(User{}).id.Value());
 }
 
+bool CheckFieldInEntityConstCorrectness(auto const& nullableFKUser)
+{
+    return static_cast<bool>(nullableFKUser.id.Value());
+}
+
+bool CheckBelongsToInEntityConstCorrectness(auto const& nullableFKUser)
+{
+    return nullableFKUser.user.Record().transform(Light::Unwrap).has_value();
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Entity const corectness", "[DataMapper]")
+{
+    auto dm = DataMapper();
+
+    dm.CreateTables<User, NullableForeignKeyUser>();
+
+    auto user = User { .id = SqlGuid::Create(), .name = "John Doe" };
+    dm.Create(user);
+
+    auto nullableFKUser = NullableForeignKeyUser { .user = user };
+    dm.Create(nullableFKUser);
+
+    REQUIRE(CheckFieldInEntityConstCorrectness(nullableFKUser));
+    REQUIRE(CheckBelongsToInEntityConstCorrectness(nullableFKUser));
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
