@@ -136,6 +136,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with multiple primary keys", "[DataMappe
     CHECK(queriedRecords.size() == 1);
     auto const& queriedRecord = queriedRecords.at(0);
     INFO("Queried record: " << DataMapper::Inspect(queriedRecord));
+    INFO("record: " << DataMapper::Inspect(record));
     CHECK(queriedRecord == record);
 }
 
@@ -157,6 +158,23 @@ TEST_CASE_METHOD(SqlTestFixture, "Loading of the dependent records after create"
     dm.Create<Light::DataMapperOptions{.loadRelations = false}>(nullableFKUserNotSet);
     REQUIRE(!nullableFKUserNotSet.user.Value().has_value());
     REQUIRE(!nullableFKUserNotSet.user.Record().has_value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Create with defined primary key", "[DataMapper]")
+{
+    auto dm = DataMapper();
+
+    dm.CreateTables<EntryWithIntPrimaryKey>();
+
+    auto entry = EntryWithIntPrimaryKey { .id = 42, .comment = "The Answer" };
+    dm.Create(entry);
+
+    REQUIRE(entry.id.Value() == 42);
+
+    entry.comment = "Updated Comment";
+    dm.Update(entry);
+    REQUIRE(entry.id.Value() == 42);
+    REQUIRE(dm.QuerySingle<EntryWithIntPrimaryKey>(42).value().comment.Value() == "Updated Comment");
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)

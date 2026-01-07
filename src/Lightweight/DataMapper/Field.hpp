@@ -126,20 +126,20 @@ struct Field
     constexpr std::weak_ordering operator<=>(Field const& other) const noexcept;
 
     /// Compares the field value with the given value for equality.
-    bool operator==(Field const& value) const noexcept = default;
+    constexpr bool operator==(Field const& value) const noexcept;
 
     /// Compares the field value with the given value for inequality.
-    bool operator!=(Field const& value) const noexcept = default;
+    constexpr bool operator!=(Field const& value) const noexcept;
 
     /// Compares the field value with the given value for equality.
     template <typename S>
         requires std::convertible_to<S, T>
-    bool operator==(S const& value) const noexcept;
+    constexpr bool operator==(S const& value) const noexcept;
 
     /// Compares the field value with the given value for inequality.
     template <typename S>
         requires std::convertible_to<S, T>
-    bool operator!=(S const& value) const noexcept;
+    constexpr bool operator!=(S const& value) const noexcept;
 
     /// Returns a string representation of the value, suitable for use in debugging and logging.
     [[nodiscard]] std::string InspectValue() const;
@@ -167,7 +167,7 @@ struct Field
 
   private:
     ValueType _value {};
-    bool _modified { false };
+    bool _modified { true };
 };
 
 // clang-format off
@@ -238,9 +238,21 @@ constexpr std::weak_ordering LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::operator
 }
 
 template <detail::FieldElementType T, auto P1, auto P2>
+constexpr bool LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::operator==(Field const& other) const noexcept
+{
+    return _value == other._value;
+}
+
+template <detail::FieldElementType T, auto P1, auto P2>
+constexpr bool LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::operator!=(Field const& other) const noexcept
+{
+    return _value != other._value;
+}
+
+template <detail::FieldElementType T, auto P1, auto P2>
 template <typename S>
     requires std::convertible_to<S, T>
-inline LIGHTWEIGHT_FORCE_INLINE bool Field<T, P1, P2>::operator==(S const& value) const noexcept
+constexpr bool LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::operator==(S const& value) const noexcept
 {
     return _value == value;
 }
@@ -248,7 +260,7 @@ inline LIGHTWEIGHT_FORCE_INLINE bool Field<T, P1, P2>::operator==(S const& value
 template <detail::FieldElementType T, auto P1, auto P2>
 template <typename S>
     requires std::convertible_to<S, T>
-inline LIGHTWEIGHT_FORCE_INLINE bool Field<T, P1, P2>::operator!=(S const& value) const noexcept
+constexpr bool LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::operator!=(S const& value) const noexcept
 {
     return _value != value;
 }
