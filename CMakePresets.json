@@ -55,6 +55,8 @@
         { "name": "debug",                  "hidden": true, "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" } },
         { "name": "release",                "hidden": true, "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" } },
         { "name": "pedantic",               "hidden": true, "cacheVariables": { "PEDANTIC_COMPILER": "ON", "PEDANTIC_COMPILER_WERROR": "ON" } },
+        { "name": "asan-ubsan",             "hidden": true, "cacheVariables": { "ENABLE_SANITIZER_ADDRESS": "ON", "ENABLE_SANITIZER_UNDEFINED": "ON" } },
+        { "name": "tsan",                   "hidden": true, "cacheVariables": { "ENABLE_SANITIZER_THREAD": "ON" } },
         { "name": "linux-common-release",   "hidden": true, "inherits": "release",      "cacheVariables": { "CMAKE_INSTALL_PREFIX": "/usr/local" } },
         { "name": "linux-clang",            "hidden": true, "inherits": "linux-common", "cacheVariables": { "CMAKE_CXX_COMPILER": "clang++" } },
         { "name": "linux-gcc",              "hidden": true, "inherits": "linux-common", "cacheVariables": { "CMAKE_CXX_COMPILER": "g++" } },
@@ -62,6 +64,8 @@
         { "name": "linux-clang-debug",      "displayName": "Linux (Clang) Debug", "inherits": ["linux-clang", "debug"] },
         { "name": "linux-gcc-release",      "displayName": "Linux (GCC) Release", "inherits": ["linux-gcc", "linux-common-release"] },
         { "name": "linux-gcc-debug",        "displayName": "Linux (GCC) Debug", "inherits": ["linux-gcc", "debug", "pedantic"] },
+        { "name": "linux-clang-asan-ubsan", "displayName": "Linux (Clang) ASan+UBSan", "inherits": ["linux-clang", "debug", "asan-ubsan"] },
+        { "name": "linux-clang-tsan",       "displayName": "Linux (Clang) ThreadSanitizer", "inherits": ["linux-clang", "debug", "tsan"] },
         { "name": "macos-release",          "displayName": "MacOS Release", "inherits": ["macos-common", "release"] },
         { "name": "macos-debug",            "displayName": "MacOS Debug", "inherits": ["macos-common", "debug"] }
     ],
@@ -75,7 +79,9 @@
         { "name": "linux-gcc-debug",         "displayName": "Linux - GCC - Debug", "configurePreset": "linux-gcc-debug" },
         { "name": "linux-gcc-release",       "displayName": "Linux - GCC - RelWithDebInfo", "configurePreset": "linux-gcc-release" },
         { "name": "macos-debug",             "displayName": "MacOS - Debug", "configurePreset": "macos-debug" },
-        { "name": "macos-release",           "displayName": "MacOS - RelWithDebInfo", "configurePreset": "macos-release" }
+        { "name": "macos-release",           "displayName": "MacOS - RelWithDebInfo", "configurePreset": "macos-release" },
+        { "name": "linux-clang-asan-ubsan",  "displayName": "Linux - Clang - ASan+UBSan", "configurePreset": "linux-clang-asan-ubsan" },
+        { "name": "linux-clang-tsan",        "displayName": "Linux - Clang - ThreadSanitizer", "configurePreset": "linux-clang-tsan" }
     ],
     "testPresets": [
         { "name": "windows-cl-debug", "configurePreset": "windows-cl-debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
@@ -85,7 +91,9 @@
         { "name": "linux-gcc-debug", "configurePreset": "linux-gcc-debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
         { "name": "linux-gcc-release", "configurePreset": "linux-gcc-release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
         { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "linux-clang-release", "configurePreset": "linux-clang-release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } }
+        { "name": "linux-clang-release", "configurePreset": "linux-clang-release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "linux-clang-asan-ubsan", "configurePreset": "linux-clang-asan-ubsan", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "linux-clang-tsan", "configurePreset": "linux-clang-tsan", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } }
     ],
     "packagePresets": [
         {
