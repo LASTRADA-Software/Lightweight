@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <chrono>
 #include <format>
+#include <mutex>
 #include <ostream>
 #include <ranges>
 #include <string>
@@ -137,6 +138,7 @@ auto inline const DefaultTestConnectionString = Lightweight::SqlConnectionString
 class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
 {
   private:
+    mutable std::mutex m_mutex;
     std::string m_lastPreparedQuery;
 
     void WriteRawInfo(std::string_view message);
@@ -187,6 +189,7 @@ class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
 
     void OnPrepare(std::string_view const& query) override
     {
+        std::lock_guard lock(m_mutex);
         m_lastPreparedQuery = query;
     }
 
@@ -197,6 +200,7 @@ class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
 
     void OnExecuteBatch() override
     {
+        std::lock_guard lock(m_mutex);
         WriteInfo("ExecuteBatch: {}", m_lastPreparedQuery);
     }
 
@@ -213,6 +217,7 @@ class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
   private:
     void WriteDetails(std::source_location sourceLocation)
     {
+        std::lock_guard lock(m_mutex);
         WriteInfo("  Source: {}:{}", sourceLocation.file_name(), sourceLocation.line());
         if (!m_lastPreparedQuery.empty())
             WriteInfo("  Query: {}", m_lastPreparedQuery);

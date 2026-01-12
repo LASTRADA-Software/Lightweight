@@ -370,3 +370,53 @@ jobs:
           $CMD_PREFIX LightweightTest
 
   # }}}
+  # {{{ Sanitizers
+  sanitizers:
+    strategy:
+      fail-fast: false
+      matrix:
+        sanitizer:
+          [
+            "asan-ubsan",
+            "tsan",
+          ]
+    name: "Sanitizers (${{ matrix.sanitizer }})"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fetch tags
+        run: git fetch --prune --unshallow --tags
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: "ccache-ubuntu2404-clang-${{ matrix.sanitizer }}"
+          max-size: 256M
+      - name: "update APT database"
+        run: sudo apt -q update
+      - name: Install Clang
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 19
+      - name: "install dependencies"
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev
+      - name: "cmake"
+        run: |
+          cmake --preset linux-clang-${{ matrix.sanitizer }} \
+                -D CMAKE_CXX_COMPILER=clang++-19 \
+                -D CMAKE_C_COMPILER=clang-19
+      - name: "build"
+        run: cmake --build --preset linux-clang-${{ matrix.sanitizer }} -- -j$(nproc)
+      - name: "Setup SQLite3"
+        id: setup
+        run: bash ./.github/prepare-test-run.sh "SQLite3"
+      - name: "Run tests with ${{ matrix.sanitizer }}"
+        env:
+          ODBC_CONNECTION_STRING: "${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}"
+          ASAN_OPTIONS: "detect_leaks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1"
+          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
+          TSAN_OPTIONS: "second_deadlock_stack=1"
+        run: |
+          ./out/build/linux-clang-${{ matrix.sanitizer }}/src/tests/LightweightTest
+
+  # }}}
