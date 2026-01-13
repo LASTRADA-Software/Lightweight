@@ -1,0 +1,1 @@
+/home/runner/work/Lightweight/.codeql-scratch/dbs/cpp/working/autobuild/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/ddl2cpp.dir/link.d CMakeFiles/ddl2cpp.dir/ddl2cpp.cpp.o -o ddl2cpp  ../Lightweight/libLightweight.a ../Lightweight/libLightweightTools.a -lyaml-cpp ../Lightweight/libLightweight.a -L/usr/lib/x86_64-linux-gnu -lodbc -lstdc++exp -luuid

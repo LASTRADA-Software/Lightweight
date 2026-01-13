@@ -1,0 +1,2 @@
+/usr/bin/ar qc libLightweightTools.a CMakeFiles/LightweightTools.dir/Tools/CxxModelPrinter.cpp.o
+/usr/bin/ranlib libLightweightTools.a

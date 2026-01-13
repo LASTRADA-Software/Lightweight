@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/rapids-cmake-subbuild/CMakeFiles/rapids-cmake-populate"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/rapids-cmake-subbuild/CMakeFiles/rapids-cmake-populate.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/rapids-cmake-subbuild/CMakeFiles/rapids-cmake-populate-complete.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/rapids-cmake-subbuild/rapids-cmake-populate-prefix/src/rapids-cmake-populate-stamp/rapids-cmake-populate-build.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/rapids-cmake-subbuild/rapids-cmake-populate-prefix/src/rapids-cmake-populate-stamp/rapids-cmake-populate-configure.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/rapids-cmake-subbuild/rapids-cmake-populate-prefix/src/rapids-cmake-populate-stamp/rapids-cmake-populate-download.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/rapids-cmake-subbuild/rapids-cmake-populate-prefix/src/rapids-cmake-populate-stamp/rapids-cmake-populate-install.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/rapids-cmake-subbuild/rapids-cmake-populate-prefix/src/rapids-cmake-populate-stamp/rapids-cmake-populate-mkdir.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/rapids-cmake-subbuild/rapids-cmake-populate-prefix/src/rapids-cmake-populate-stamp/rapids-cmake-populate-patch.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/rapids-cmake-subbuild/rapids-cmake-populate-prefix/src/rapids-cmake-populate-stamp/rapids-cmake-populate-test.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/rapids-cmake-subbuild/rapids-cmake-populate-prefix/src/rapids-cmake-populate-stamp/rapids-cmake-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"rapids-cmake-populate"
+		],
+		"name" : "rapids-cmake-populate"
+	}
+}
