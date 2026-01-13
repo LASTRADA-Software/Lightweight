@@ -6,13 +6,13 @@ endif()
 
 set(STDEXEC_BUILD_TESTS OFF)
 set(STDEXEC_BUILD_EXAMPLES OFF)
+set(STDEXEC_ENABLE_TBB ON)
 
 CPMAddPackage(
   NAME stdexec
   GITHUB_REPOSITORY NVIDIA/stdexec
-  GIT_TAG nvhpc-24.09.rc1 # This will always pull the latest code from the `main` branch. You may also use a specific release version or tag
+  GIT_TAG nvhpc-25.09
 )
-
 
 find_package(Catch2 REQUIRED)
 
@@ -34,6 +34,9 @@ target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES} STDEXEC::stdexec
 if(MSVC)
     target_compile_options(LightweightTest PRIVATE /bigobj)
 endif()
+
+# some flags required to compile stdexec with pedantic settings
+target_compile_options(LightweightTest PRIVATE -Wno-error=empty-body -Wno-error=missing-declarations)
 
 set(SOURCE_FILES
     CoreTests.cpp
