@@ -1415,7 +1415,7 @@ RecordPrimaryKeyType<Record> DataMapper::CreateCopyOf(Record const& originalReco
         {
             if constexpr (!FieldType::IsPrimaryKey)
             {
-                newRecord.[:el:] = originalRecord.[:el:].Value();
+                newRecord.[:el:] = originalRecord.[:el:];
             }
         }
     }
@@ -1425,7 +1425,7 @@ RecordPrimaryKeyType<Record> DataMapper::CreateCopyOf(Record const& originalReco
         {
             if constexpr (!FieldType::IsPrimaryKey)
             {
-                Reflection::GetMemberAt<I>(newRecord) = field.Value();
+                Reflection::GetMemberAt<I>(newRecord) = field;
             }
         }
     });
