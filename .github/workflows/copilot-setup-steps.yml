@@ -1,0 +1,47 @@
+name: "Copilot Setup Steps"
+
+# This workflow is triggered by GitHub Copilot coding agent to set up
+# the development environment
+
+on: workflow_dispatch
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-24.04
+    permissions:
+     contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch tags
+        run: git fetch --prune --unshallow --tags
+
+      - name: Update APT database
+        run: sudo apt -q update
+
+      - name: Install build dependencies
+        run: |
+          sudo apt install -y \
+            cmake \
+            ninja-build \
+            catch2 \
+            unixodbc-dev \
+            sqlite3 \
+            libsqlite3-dev \
+            libsqliteodbc \
+            uuid-dev \
+            libyaml-cpp-dev \
+            g++-14 \
+            libstdc++-14-dev
+
+      - name: Configure CMake
+        run: cmake --preset linux-gcc-debug
+
+      - name: Build project
+        run: cmake --build --preset linux-gcc-debug -- -j$(nproc)
+
+      - name: Verify build
+        run: |
+          echo "Build completed successfully"
+          ls -la out/build/linux-gcc-debug/src/tests/LightweightTest
