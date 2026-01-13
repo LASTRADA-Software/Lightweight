@@ -94,6 +94,13 @@ namespace SqlSchema
         return std::tie(a.foreignKey, a.primaryKey) < std::tie(b.foreignKey, b.primaryKey);
     }
 
+    using KeyPair = std::pair<FullyQualifiedTableName /*fk table*/, FullyQualifiedTableName /*pk table*/>;
+
+    inline bool operator<(KeyPair const& a, KeyPair const& b)
+    {
+        return std::tie(a.first, a.second) < std::tie(b.first, b.second);
+    }
+
     /// Holds the definition of a column in a SQL table as read from the database schema.
     struct Column
     {

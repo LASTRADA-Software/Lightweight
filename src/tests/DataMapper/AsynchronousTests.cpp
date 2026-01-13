@@ -53,9 +53,9 @@ TEST_CASE("Fetch from Local data mapper", "[DataMapper],[Executors]")
         return dm.QuerySingle<Email>(id).value();
     };
 
-    auto work = stdexec::when_all(stdexec::start_on(sched, stdexec::just(emails[0].id.Value()) | stdexec::then(fetch)),
-                                  stdexec::start_on(sched, stdexec::just(emails[1].id.Value()) | stdexec::then(fetch)),
-                                  stdexec::start_on(sched, stdexec::just(emails[2].id.Value()) | stdexec::then(fetch)));
+    auto work = stdexec::when_all(stdexec::starts_on(sched, stdexec::just(emails[0].id.Value()) | stdexec::then(fetch)),
+                                  stdexec::starts_on(sched, stdexec::just(emails[1].id.Value()) | stdexec::then(fetch)),
+                                  stdexec::starts_on(sched, stdexec::just(emails[2].id.Value()) | stdexec::then(fetch)));
 
     // Launch the work and wait for the result
     auto [i, j, k] = stdexec::sync_wait(std::move(work)).value();

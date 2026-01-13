@@ -17,10 +17,11 @@
 namespace Lightweight
 {
 
-
 /// @brief Helper function to use with std::optional<std::reference_wrapper<T>>
 /// like this .transform(Unwrap).value_or({})
-auto inline Unwrap = [](auto v) { return v.get(); };
+auto inline Unwrap = [](auto v) {
+    return v.get();
+};
 
 /// @brief Represents a one-to-one relationship.
 ///
@@ -346,8 +347,8 @@ class BelongsTo
 
     ValueType _referencedFieldValue {};
     Loader _loader {};
-    bool _modified = false;
     mutable bool _loaded = false;
+    bool _modified = false;
     mutable std::unique_ptr<ReferencedRecord> _record {};
 };
 

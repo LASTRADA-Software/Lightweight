@@ -4,15 +4,26 @@ if(NOT LIGHTWEIGHT_BUILD_TESTS)
     return()
 endif()
 
-set(STDEXEC_BUILD_TESTS OFF)
-set(STDEXEC_BUILD_EXAMPLES OFF)
+# Try to find TBB for stdexec support
+find_package(TBB QUIET)
 
-CPMAddPackage(
-  NAME stdexec
-  GITHUB_REPOSITORY NVIDIA/stdexec
-  GIT_TAG nvhpc-24.09.rc1 # This will always pull the latest code from the `main` branch. You may also use a specific release version or tag
-)
+if(TBB_FOUND)
+    message(STATUS "TBB found - building with stdexec support")
+    set(LIGHTWEIGHT_HAS_STDEXEC ON)
 
+    set(STDEXEC_BUILD_TESTS OFF)
+    set(STDEXEC_BUILD_EXAMPLES OFF)
+    set(STDEXEC_ENABLE_TBB ON)
+
+    CPMAddPackage(
+      NAME stdexec
+      GITHUB_REPOSITORY NVIDIA/stdexec
+      GIT_TAG nvhpc-25.09
+    )
+else()
+    message(STATUS "TBB not found - building without stdexec support (AsynchronousTests will be skipped)")
+    set(LIGHTWEIGHT_HAS_STDEXEC OFF)
+endif()
 
 find_package(Catch2 REQUIRED)
 
@@ -29,17 +40,25 @@ else()
     set(TEST_LIBRARIES ${TEST_LIBRARIES} odbc ${SQLITE3_LIBRARY}) # FIXME: should be PkgConfig::ODBC in Lightweight target already
 endif()
 
-target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES} STDEXEC::stdexec)
+if(LIGHTWEIGHT_HAS_STDEXEC)
+    target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES} STDEXEC::stdexec)
+else()
+    target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES})
+endif()
 
 if(MSVC)
     target_compile_options(LightweightTest PRIVATE /bigobj)
+endif()
+
+# some flags required to compile stdexec with pedantic settings
+if(LIGHTWEIGHT_HAS_STDEXEC)
+    target_compile_options(LightweightTest PRIVATE -Wno-error=empty-body -Wno-error=missing-declarations)
 endif()
 
 set(SOURCE_FILES
     CoreTests.cpp
     CxxModelPrinterTests.cpp
     DataBinderTests.cpp
-    DataMapper/AsynchronousTests.cpp
     DataMapper/CreateTests.cpp
     DataMapper/MiscTests.cpp
     DataMapper/NamingTests.cpp
@@ -50,6 +69,10 @@ set(SOURCE_FILES
     UnicodeConverterTests.cpp
     Utils.cpp
 )
+
+if(LIGHTWEIGHT_HAS_STDEXEC)
+    list(APPEND SOURCE_FILES DataMapper/AsynchronousTests.cpp)
+endif()
 
 target_sources(LightweightTest PRIVATE ${SOURCE_FILES})
 

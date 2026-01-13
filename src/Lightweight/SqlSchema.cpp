@@ -20,13 +20,6 @@ namespace Lightweight::SqlSchema
 using namespace std::string_literals;
 using namespace std::string_view_literals;
 
-using KeyPair = std::pair<FullyQualifiedTableName /*fk table*/, FullyQualifiedTableName /*pk table*/>;
-
-bool operator<(KeyPair const& a, KeyPair const& b)
-{
-    return std::tie(a.first, a.second) < std::tie(b.first, b.second);
-}
-
 namespace
 {
     template <typename A, typename B>
@@ -294,15 +287,15 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
     }
 }
 
-std::string ToLowerCase(std::string_view str)
-{
-    std::string result(str);
-    std::ranges::transform(result, result.begin(), [](char c) { return static_cast<char>(std::tolower(c)); });
-    return result;
-}
-
 TableList ReadAllTables(std::string_view database, std::string_view schema, ReadAllTablesCallback callback)
 {
+
+    auto ToLowerCase = [](std::string_view str) -> std::string {
+        std::string result(str);
+        std::ranges::transform(result, result.begin(), [](char c) { return static_cast<char>(std::tolower(c)); });
+        return result;
+    };
+
     TableList tables;
     struct EventHandler: public SqlSchema::EventHandler
     {
