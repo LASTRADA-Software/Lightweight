@@ -166,6 +166,24 @@ class DataMapper
     template <typename Record>
     RecordPrimaryKeyType<Record> CreateExplicit(Record const& record);
 
+    /// @brief Creates a copy of an existing record in the database.
+    ///
+    /// This method creates a new database record by copying all non-primary-key fields from the original record.
+    /// The primary key(s) will be auto-assigned according to the field's PrimaryKey configuration.
+    ///
+    /// @param originalRecord The record to copy. Primary key fields are excluded from the copy.
+    /// @return The primary key of the newly created record.
+    ///
+    /// @code
+    /// auto person = Person { .name = "John Doe", .age = 42 };
+    /// dm.Create(person);
+    ///
+    /// // Create a copy of the person record with a new primary key
+    /// auto newPersonId = dm.CreateCopyOf(person);
+    /// @endcode
+    template <typename Record>
+    [[nodiscard]] RecordPrimaryKeyType<Record> CreateCopyOf(Record const& originalRecord);
+
     /// @brief Queries a single record (based on primary key) from the database.
     ///
     /// The primary key(s) are used to identify the record to load.
@@ -1377,6 +1395,44 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
 
     if constexpr (HasPrimaryKey<Record>)
         return GetPrimaryKeyField(record);
+}
+
+template <typename Record>
+RecordPrimaryKeyType<Record> DataMapper::CreateCopyOf(Record const& originalRecord)
+{
+    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+
+    // Create a new record by copying all non-primary-key fields
+    auto newRecord = Record {};
+
+    // Copy all non-primary-key fields from the original record
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    constexpr auto ctx = std::meta::access_context::current();
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (IsField<FieldType>)
+        {
+            if constexpr (!FieldType::IsPrimaryKey)
+            {
+                newRecord.[:el:] = originalRecord.[:el:].Value();
+            }
+        }
+    }
+#else
+    Reflection::EnumerateMembers(originalRecord, [&newRecord]<size_t I, typename FieldType>(FieldType const& field) {
+        if constexpr (IsField<FieldType>)
+        {
+            if constexpr (!FieldType::IsPrimaryKey)
+            {
+                Reflection::GetMemberAt<I>(newRecord) = field.Value();
+            }
+        }
+    });
+#endif
+
+    // Create the new record in the database, which will auto-assign the primary key(s)
+    return Create(newRecord);
 }
 
 template <typename Record>
