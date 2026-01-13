@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/icm-subbuild/CMakeFiles/icm-populate"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/icm-subbuild/CMakeFiles/icm-populate.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/icm-subbuild/CMakeFiles/icm-populate-complete.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/icm-subbuild/icm-populate-prefix/src/icm-populate-stamp/icm-populate-build.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/icm-subbuild/icm-populate-prefix/src/icm-populate-stamp/icm-populate-configure.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/icm-subbuild/icm-populate-prefix/src/icm-populate-stamp/icm-populate-download.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/icm-subbuild/icm-populate-prefix/src/icm-populate-stamp/icm-populate-install.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/icm-subbuild/icm-populate-prefix/src/icm-populate-stamp/icm-populate-mkdir.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/icm-subbuild/icm-populate-prefix/src/icm-populate-stamp/icm-populate-patch.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/icm-subbuild/icm-populate-prefix/src/icm-populate-stamp/icm-populate-test.rule"
+		},
+		{
+			"file" : "/home/runner/work/Lightweight/Lightweight/_codeql_build_dir/_deps/icm-subbuild/icm-populate-prefix/src/icm-populate-stamp/icm-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"icm-populate"
+		],
+		"name" : "icm-populate"
+	}
+}

@@ -1,0 +1,2 @@
+/usr/bin/ar qc libsystem_context.a CMakeFiles/system_context.dir/src/system_context/system_context.cpp.o
+/usr/bin/ranlib libsystem_context.a
