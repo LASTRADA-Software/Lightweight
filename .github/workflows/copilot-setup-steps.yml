@@ -36,7 +36,7 @@ jobs:
             libstdc++-14-dev
 
       - name: Configure CMake
-        run: cmake --preset linux-gcc-debug
+        run: cmake --preset linux-gcc-debug -D CMAKE_CXX_COMPILER=g++-14
 
       - name: Build project
         run: cmake --build --preset linux-gcc-debug -- -j$(nproc)
