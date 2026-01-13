@@ -159,4 +159,114 @@ TEST_CASE_METHOD(SqlTestFixture, "Loading of the dependent records after create"
     REQUIRE(!nullableFKUserNotSet.user.Record().has_value());
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "CreateCopyOf with auto-increment primary key", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<RecordWithDefaults>();
+
+    // Create the original record
+    auto original = RecordWithDefaults {};
+    original.name1 = "Alice";
+    original.boolean1 = false;
+    original.int1 = 123;
+    dm.Create(original);
+
+    // Create a copy of the original record
+    auto const copiedId = dm.CreateCopyOf(original);
+
+    // Verify that the copy has a different primary key
+    REQUIRE(copiedId != original.id.Value());
+
+    // Query the copied record from the database
+    auto const copied = dm.QuerySingle<RecordWithDefaults>(copiedId).value();
+
+    // Verify that the copied record has the same field values as the original
+    CHECK(copied.name1 == original.name1);
+    CHECK(copied.name2 == original.name2);
+    CHECK(copied.boolean1 == original.boolean1);
+    CHECK(copied.boolean2 == original.boolean2);
+    CHECK(copied.int1 == original.int1);
+    CHECK(copied.int2 == original.int2);
+
+    // Verify that the copied record exists in the database with a different ID
+    CHECK(copied.id != original.id);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateCopyOf with auto-assign primary key (GUID)", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<Person>();
+
+    // Create the original record
+    auto original = Person { .name = "Bob", .is_active = true, .age = 30 };
+    dm.Create(original);
+
+    // Create a copy of the original record
+    auto const copiedId = dm.CreateCopyOf(original);
+
+    // Verify that the copy has a different primary key
+    REQUIRE(copiedId != original.id.Value());
+
+    // Query the copied record from the database
+    auto const copied = dm.QuerySingle<Person>(copiedId).value();
+
+    // Verify that the copied record has the same field values as the original
+    CHECK(copied.name == original.name);
+    CHECK(copied.is_active == original.is_active);
+    CHECK(copied.age == original.age);
+
+    // Verify that the copied record exists in the database with a different ID
+    CHECK(copied.id != original.id);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateCopyOf with multiple primary keys", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<MultiPkRecord>();
+
+    // Create the original record
+    auto original = MultiPkRecord { .firstName = "John", .lastName = "Doe" };
+    dm.Create(original);
+
+    // For records with manually assigned primary keys, CreateCopyOf will keep the same primary keys
+    // This will likely cause a unique constraint violation, so we expect an exception
+    auto const _ = ScopedSqlNullLogger {}; // Suppress the error message
+    CHECK_THROWS_AS(dm.CreateCopyOf(original), SqlException);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateCopyOf multiple times", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<Person>();
+
+    // Create the original record
+    auto original = Person { .name = "Charlie", .is_active = false, .age = 25 };
+    dm.Create(original);
+
+    // Create multiple copies
+    auto const copy1Id = dm.CreateCopyOf(original);
+    auto const copy2Id = dm.CreateCopyOf(original);
+    auto const copy3Id = dm.CreateCopyOf(original);
+
+    // Verify that all copies have different primary keys
+    REQUIRE(copy1Id != original.id.Value());
+    REQUIRE(copy2Id != original.id.Value());
+    REQUIRE(copy3Id != original.id.Value());
+    REQUIRE(copy1Id != copy2Id);
+    REQUIRE(copy2Id != copy3Id);
+    REQUIRE(copy1Id != copy3Id);
+
+    // Query all records from the database
+    auto const allRecords = dm.Query<Person>().All();
+    REQUIRE(allRecords.size() == 4); // original + 3 copies
+
+    // Verify that all copies have the same field values as the original
+    for (auto const& record: allRecords)
+    {
+        CHECK(record.name == original.name);
+        CHECK(record.is_active == original.is_active);
+        CHECK(record.age == original.age);
+    }
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)

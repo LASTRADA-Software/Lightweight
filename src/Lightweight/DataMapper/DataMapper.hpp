@@ -166,6 +166,27 @@ class DataMapper
     template <typename Record>
     RecordPrimaryKeyType<Record> CreateExplicit(Record const& record);
 
+    /// @brief Creates a copy of an existing record in the database.
+    ///
+    /// This method creates a new record in the database based on an existing record.
+    /// Primary keys are handled automatically:
+    /// - Auto-increment primary keys are reset and assigned by the database
+    /// - Auto-assign primary keys (e.g., GUIDs) are regenerated
+    /// - Manually assigned primary keys are copied as-is
+    ///
+    /// @param originalRecord The record to copy
+    /// @return The primary key of the newly created copy
+    ///
+    /// @code
+    /// auto person = Person { .name = "John Doe", .email = "john@doe.com" };
+    /// auto const personId = dm.Create(person);
+    ///
+    /// // Create a copy of the person record
+    /// auto const copiedPersonId = dm.CreateCopyOf(person);
+    /// @endcode
+    template <typename Record>
+    [[nodiscard]] RecordPrimaryKeyType<Record> CreateCopyOf(Record const& originalRecord);
+
     /// @brief Queries a single record (based on primary key) from the database.
     ///
     /// The primary key(s) are used to identify the record to load.
@@ -1377,6 +1398,94 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
 
     if constexpr (HasPrimaryKey<Record>)
         return GetPrimaryKeyField(record);
+}
+
+template <typename Record>
+[[nodiscard]] RecordPrimaryKeyType<Record> DataMapper::CreateCopyOf(Record const& originalRecord)
+{
+    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+
+    // Create a mutable copy of the original record
+    Record recordCopy = originalRecord;
+
+    // Reset auto-increment and auto-assign primary keys
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    constexpr auto ctx = std::meta::access_context::current();
+    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+    {
+        using FieldType = typename[:std::meta::type_of(el):];
+        if constexpr (IsField<FieldType>)
+        {
+            if constexpr (FieldType::IsPrimaryKey)
+            {
+                // Reset auto-increment primary keys (will be assigned by the database)
+                if constexpr (IsAutoIncrementPrimaryKey<FieldType>)
+                {
+                    recordCopy.[:el:] = typename FieldType::ValueType {};
+                }
+                // Regenerate auto-assign primary keys
+                else if constexpr (FieldType::IsAutoAssignPrimaryKey)
+                {
+                    using ValueType = typename FieldType::ValueType;
+                    if constexpr (std::same_as<ValueType, SqlGuid>)
+                    {
+                        recordCopy.[:el:] = SqlGuid::Create();
+                    }
+                    else if constexpr (requires { ValueType {} + 1; })
+                    {
+                        auto maxId = SqlStatement { _connection }.ExecuteDirectScalar<ValueType>(
+                            std::format(R"sql(SELECT MAX("{}") FROM "{}")sql", FieldNameOf<el>, RecordTableName<Record>));
+                        recordCopy.[:el:] = maxId.value_or(ValueType {}) + 1;
+                    }
+                }
+                // For manually assigned primary keys, keep the original value
+                // Note: This might cause a unique constraint violation if the primary key already exists
+            }
+        }
+    }
+#else
+    CallOnPrimaryKey(recordCopy, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType& primaryKeyField) {
+        // Reset auto-increment primary keys (will be assigned by the database)
+        if constexpr (IsAutoIncrementPrimaryKey<PrimaryKeyType>)
+        {
+            primaryKeyField = typename PrimaryKeyType::ValueType {};
+        }
+        // Regenerate auto-assign primary keys
+        else if constexpr (PrimaryKeyType::IsAutoAssignPrimaryKey)
+        {
+            using ValueType = PrimaryKeyType::ValueType;
+            if constexpr (std::same_as<ValueType, SqlGuid>)
+            {
+                primaryKeyField = SqlGuid::Create();
+            }
+            else if constexpr (requires { ValueType {} + 1; })
+            {
+                auto maxId = SqlStatement { _connection }.ExecuteDirectScalar<ValueType>(
+                    std::format(R"sql(SELECT MAX("{}") FROM "{}")sql",
+                                FieldNameAt<PrimaryKeyIndex, Record>,
+                                RecordTableName<Record>));
+                primaryKeyField = maxId.value_or(ValueType {}) + 1;
+            }
+        }
+        // For manually assigned primary keys, keep the original value
+        // Note: This might cause a unique constraint violation if the primary key already exists
+    });
+#endif
+
+    // Use CreateExplicit to insert the copy
+    CreateExplicit(recordCopy);
+
+    // Update auto-increment primary keys with the database-assigned value
+    if constexpr (HasAutoIncrementPrimaryKey<Record>)
+    {
+        auto const newId = _stmt.LastInsertId(RecordTableName<Record>);
+        SetId(recordCopy, newId);
+        return newId;
+    }
+    else if constexpr (HasPrimaryKey<Record>)
+    {
+        return GetPrimaryKeyField(recordCopy);
+    }
 }
 
 template <typename Record>
