@@ -350,9 +350,17 @@ class DataMapper
     template <typename Record>
     bool IsModified(Record const& record) const noexcept;
 
-    /// Clears the modified state of the record.
-    template <typename Record>
-    void ClearModifiedState(Record& record) noexcept;
+    /// Enum to set the modified state of a record.
+    enum class ModifiedState : uint8_t
+    {
+        Modified,
+        NotModified
+    };
+
+    /// Sets the modified state of the record after receiving from the database.
+    /// This marks all fields as not modified.
+    template <ModifiedState state, typename Record>
+    void SetModifiedState(Record& record) noexcept;
 
     /// Loads all direct relations to this record.
     template <typename Record>
@@ -1323,15 +1331,15 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
             if constexpr (FieldType::IsPrimaryKey)
                 if constexpr (FieldType::IsAutoAssignPrimaryKey)
                 {
-                    if (!record.[:el:].IsModified())
+                    using ValueType = typename FieldType::ValueType;
+                    if constexpr (std::same_as<ValueType, SqlGuid>)
                     {
-                        using ValueType = typename FieldType::ValueType;
-                        if constexpr (std::same_as<ValueType, SqlGuid>)
-                        {
-                            if (!record.[:el:].Value())
-                                record.[:el:] = SqlGuid::Create();
-                        }
-                        else if constexpr (requires { ValueType {} + 1; })
+                        if (!record.[:el:].Value())
+                            record.[:el:] = SqlGuid::Create();
+                    }
+                    else if constexpr (requires { ValueType {} + 1; })
+                    {
+                        if (record.[:el:].Value() == ValueType {})
                         {
                             auto maxId = SqlStatement { _connection }.ExecuteDirectScalar<ValueType>(std::format(
                                 R"sql(SELECT MAX("{}") FROM "{}")sql", FieldNameOf<el>, RecordTableName<Record>));
@@ -1344,15 +1352,15 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
     CallOnPrimaryKey(record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType& primaryKeyField) {
         if constexpr (PrimaryKeyType::IsAutoAssignPrimaryKey)
         {
-            if (!primaryKeyField.IsModified())
+            using ValueType = PrimaryKeyType::ValueType;
+            if constexpr (std::same_as<ValueType, SqlGuid>)
             {
-                using ValueType = PrimaryKeyType::ValueType;
-                if constexpr (std::same_as<ValueType, SqlGuid>)
-                {
-                    if (!primaryKeyField.Value())
-                        primaryKeyField = SqlGuid::Create();
-                }
-                else if constexpr (requires { ValueType {} + 1; })
+                if (!primaryKeyField.Value())
+                    primaryKeyField = SqlGuid::Create();
+            }
+            else if constexpr (requires { ValueType {} + 1; })
+            {
+                if (primaryKeyField.Value() == ValueType {})
                 {
                     auto maxId = SqlStatement { _connection }.ExecuteDirectScalar<ValueType>(
                         std::format(R"sql(SELECT MAX("{}") FROM "{}")sql",
@@ -1370,7 +1378,7 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
     if constexpr (HasAutoIncrementPrimaryKey<Record>)
         SetId(record, _stmt.LastInsertId(RecordTableName<Record>));
 
-    ClearModifiedState(record);
+    SetModifiedState<ModifiedState::NotModified>(record);
 
     if constexpr (QueryOptions.loadRelations)
         ConfigureRelationAutoLoading(record);
@@ -1474,7 +1482,7 @@ void DataMapper::Update(Record& record)
 
     _stmt.Execute();
 
-    ClearModifiedState(record);
+    SetModifiedState<ModifiedState::NotModified>(record);
 }
 
 template <typename Record>
@@ -1550,6 +1558,9 @@ std::optional<Record> DataMapper::QuerySingleWithoutRelationAutoLoading(PrimaryK
     if (!detail::ReadSingleResult(_stmt.Connection().ServerType(), reader, *resultRecord))
         return std::nullopt;
 
+    if (resultRecord)
+        SetModifiedState<ModifiedState::NotModified>(resultRecord.value());
+
     return resultRecord;
 }
 
@@ -1558,7 +1569,9 @@ std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
 {
     auto record = QuerySingleWithoutRelationAutoLoading<Record>(std::forward<PrimaryKeyTypes>(primaryKeys)...);
     if (record)
+    {
         ConfigureRelationAutoLoading(*record);
+    }
     return record;
 }
 
@@ -1578,6 +1591,10 @@ std::optional<Record> DataMapper::QuerySingle(SqlSelectQueryBuilder selectQuery,
     auto reader = _stmt.GetResultCursor();
     if (!detail::ReadSingleResult(_stmt.Connection().ServerType(), reader, *resultRecord))
         return std::nullopt;
+
+    if (resultRecord)
+        SetModifiedState<ModifiedState::NotModified>(resultRecord.value());
+
     return resultRecord;
 }
 
@@ -1638,7 +1655,10 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
         result.pop_back();
 
         for (auto& record: result)
+        {
+            SetModifiedState<ModifiedState::NotModified>(record);
             ConfigureRelationAutoLoading(record);
+        }
     }
 
     return result;
@@ -1710,16 +1730,16 @@ std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQuery
     // Drop the last record, which we failed to fetch (End of result set).
     result.pop_back();
 
-    if constexpr (QueryOptions.loadRelations)
+    for (auto& record: result)
     {
-
-        for (auto& record: result)
-        {
-            Reflection::template_for<0, std::tuple_size_v<value_type>>([&]<auto I>() {
-                auto& element = std::get<I>(record);
+        Reflection::template_for<0, std::tuple_size_v<value_type>>([&]<auto I>() {
+            auto& element = std::get<I>(record);
+            SetModifiedState<ModifiedState::NotModified>(element);
+            if constexpr (QueryOptions.loadRelations)
+            {
                 ConfigureRelationAutoLoading(element);
-            });
-        }
+            }
+        });
     }
 
     return result;
@@ -1759,13 +1779,16 @@ std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const
     records.pop_back();
 
     for (auto& record: records)
+    {
+        SetModifiedState<ModifiedState::NotModified>(record);
         ConfigureRelationAutoLoading(record);
+    }
 
     return records;
 }
 
-template <typename Record>
-void DataMapper::ClearModifiedState(Record& record) noexcept
+template <DataMapper::ModifiedState state, typename Record>
+void DataMapper::SetModifiedState(Record& record) noexcept
 {
     static_assert(!std::is_const_v<Record>);
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
@@ -1773,7 +1796,10 @@ void DataMapper::ClearModifiedState(Record& record) noexcept
     Reflection::EnumerateMembers(record, []<size_t I, typename FieldType>(FieldType& field) {
         if constexpr (requires { field.SetModified(false); })
         {
-            field.SetModified(false);
+            if constexpr (state == ModifiedState::Modified)
+                field.SetModified(true);
+            else
+                field.SetModified(false);
         }
     });
 }

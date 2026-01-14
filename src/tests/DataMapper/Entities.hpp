@@ -133,3 +133,9 @@ struct Appointment
         return std::weak_ordering::equivalent;
     }
 };
+
+struct EntryWithIntPrimaryKey
+{
+    Light::Field<int, Light::PrimaryKey::AutoAssign> id;
+    Light::Field<Light::SqlAnsiString<30>> comment;
+};
