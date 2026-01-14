@@ -1,5 +1,9 @@
 var classLightweight_1_1DataMapper =
 [
+    [ "ModifiedState", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441", [
+      [ "Modified", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441a35e0c8c0b180c95d4e122e55ed62cc64", null ],
+      [ "NotModified", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441ac169e6d9a1b9442001384de8dcf49ab9", null ]
+    ] ],
     [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html#a2169593bd11e17f7d602a5246b0ce5ea", null ],
     [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html#a7a2b0a0ae77abf48a640bed4ae2ec5e4", null ],
     [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html#a5c200e70a1b329afb4e21f3d3cbe95fc", null ],
@@ -22,7 +26,7 @@ var classLightweight_1_1DataMapper =
     [ "Delete", "de/d61/classLightweight_1_1DataMapper.html#a708db890dfc02b9ad4183ee9c7ea2512", null ],
     [ "FromTable", "de/d61/classLightweight_1_1DataMapper.html#ac0e2e432c3ad94048fb407883f4dd64d", null ],
     [ "IsModified", "de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f", null ],
-    [ "ClearModifiedState", "de/d61/classLightweight_1_1DataMapper.html#a8caf1defa60f3ab04a507b68931a0cc9", null ],
+    [ "SetModifiedState", "de/d61/classLightweight_1_1DataMapper.html#a488bd29dff332905ebd7975e16b095dc", null ],
     [ "LoadRelations", "de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702", null ],
     [ "ConfigureRelationAutoLoading", "de/d61/classLightweight_1_1DataMapper.html#ab1c4e06b5be5553d6c0d2f045e92ea60", null ],
     [ "Execute", "de/d61/classLightweight_1_1DataMapper.html#a572f96a940e6a856d3d2a2b16ded4591", null ]

@@ -13,6 +13,7 @@ var hierarchy =
     [ "Lightweight::BelongsTo<&Mediatype::MediaTypeId, Lightweight::SqlRealName { \"MediaTypeId\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::BelongsTo<&Track::TrackId, Lightweight::SqlRealName { \"TrackId\" }>", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::Field< bool >", "d2/dd0/structLightweight_1_1Field.html", null ],
+    [ "Lightweight::Field< int, Light::PrimaryKey::AutoAssign >", "d2/dd0/structLightweight_1_1Field.html", null ],
     [ "Lightweight::Field< int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Lightweight::SqlRealName { \"AlbumId\" }>", "d2/dd0/structLightweight_1_1Field.html", null ],
     [ "Lightweight::Field< int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Lightweight::SqlRealName { \"ArtistId\" }>", "d2/dd0/structLightweight_1_1Field.html", null ],
     [ "Lightweight::Field< int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Lightweight::SqlRealName { \"CustomerId\" }>", "d2/dd0/structLightweight_1_1Field.html", null ],

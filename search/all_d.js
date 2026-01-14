@@ -11,7 +11,8 @@ var searchData=
   ['minute_8',['minute',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a87a2b5b93a1dd9151dc3f3f4245062d8',1,'Lightweight::SqlDateTime']]],
   ['model_20and_20business_20logic_20separate_9',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]],
   ['modife_20database_20schema_10',['Create or Modife database schema',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modife-database-schema',1,'']]],
-  ['month_11',['month',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a5dcb89336b1f32506a60b63e62c788d2',1,'Lightweight::SqlDateTime']]],
-  ['multiple_20struct_12',['Mapping query to multiple struct',['../index.html#mapping-query-to-multiple-struct',1,'']]],
-  ['mutablevalue_13',['mutablevalue',['../d0/df7/classLightweight_1_1BelongsTo.html#a9c8d03efe79deeecbe6b949685ee0094',1,'Lightweight::BelongsTo::MutableValue()'],['../d2/dd0/structLightweight_1_1Field.html#a46aa0ba0864c6602fd06e8dcc6fed2d3',1,'Lightweight::Field::MutableValue()']]]
+  ['modifiedstate_11',['ModifiedState',['../de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441',1,'Lightweight::DataMapper']]],
+  ['month_12',['month',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a5dcb89336b1f32506a60b63e62c788d2',1,'Lightweight::SqlDateTime']]],
+  ['multiple_20struct_13',['Mapping query to multiple struct',['../index.html#mapping-query-to-multiple-struct',1,'']]],
+  ['mutablevalue_14',['mutablevalue',['../d2/dd0/structLightweight_1_1Field.html#a46aa0ba0864c6602fd06e8dcc6fed2d3',1,'Lightweight::Field::MutableValue()'],['../d0/df7/classLightweight_1_1BelongsTo.html#a9c8d03efe79deeecbe6b949685ee0094',1,'Lightweight::BelongsTo::MutableValue()']]]
 ];

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['supportbindlogging_0',['SupportBindLogging',['../db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750',1,'Lightweight::SqlLogger']]]
+  ['modifiedstate_0',['ModifiedState',['../de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441',1,'Lightweight::DataMapper']]]
 ];

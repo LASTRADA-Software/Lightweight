@@ -20,6 +20,10 @@ var group__DataMapper =
       [ "SetAutoLoader", "d0/df7/classLightweight_1_1BelongsTo.html#ad47ae72f92dc24e787100cddd36f13b9", null ]
     ] ],
     [ "Lightweight::DataMapper", "de/d61/classLightweight_1_1DataMapper.html", [
+      [ "ModifiedState", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441", [
+        [ "Modified", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441a35e0c8c0b180c95d4e122e55ed62cc64", null ],
+        [ "NotModified", "de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441ac169e6d9a1b9442001384de8dcf49ab9", null ]
+      ] ],
       [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html#a2169593bd11e17f7d602a5246b0ce5ea", null ],
       [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html#a7a2b0a0ae77abf48a640bed4ae2ec5e4", null ],
       [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html#a5c200e70a1b329afb4e21f3d3cbe95fc", null ],
@@ -42,7 +46,7 @@ var group__DataMapper =
       [ "Delete", "de/d61/classLightweight_1_1DataMapper.html#a708db890dfc02b9ad4183ee9c7ea2512", null ],
       [ "FromTable", "de/d61/classLightweight_1_1DataMapper.html#ac0e2e432c3ad94048fb407883f4dd64d", null ],
       [ "IsModified", "de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f", null ],
-      [ "ClearModifiedState", "de/d61/classLightweight_1_1DataMapper.html#a8caf1defa60f3ab04a507b68931a0cc9", null ],
+      [ "SetModifiedState", "de/d61/classLightweight_1_1DataMapper.html#a488bd29dff332905ebd7975e16b095dc", null ],
       [ "LoadRelations", "de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702", null ],
       [ "ConfigureRelationAutoLoading", "de/d61/classLightweight_1_1DataMapper.html#ab1c4e06b5be5553d6c0d2f045e92ea60", null ],
       [ "Execute", "de/d61/classLightweight_1_1DataMapper.html#a572f96a940e6a856d3d2a2b16ded4591", null ]
@@ -52,10 +56,10 @@ var group__DataMapper =
       [ "Field", "d2/dd0/structLightweight_1_1Field.html#a16569717f0639833f7a8c83a983497b7", null ],
       [ "operator=", "d2/dd0/structLightweight_1_1Field.html#aa876b52918921b2f6ca26ed2f83ec312", null ],
       [ "operator<=>", "d2/dd0/structLightweight_1_1Field.html#af57fe81b49577ae3eadbf0b8e963562c", null ],
-      [ "operator==", "d2/dd0/structLightweight_1_1Field.html#ab9a3b96cbaf7cc672991c587ab6c218e", null ],
-      [ "operator!=", "d2/dd0/structLightweight_1_1Field.html#a6ec89306e33d1f91b5c3b2fd70ab66e5", null ],
-      [ "operator==", "d2/dd0/structLightweight_1_1Field.html#a6b72ebd636e0fd29ff8b3f64532c5dee", null ],
-      [ "operator!=", "d2/dd0/structLightweight_1_1Field.html#a2d9ecb75eabddce55d5742d7a8a51ddb", null ],
+      [ "operator==", "d2/dd0/structLightweight_1_1Field.html#a29f409a616dd9028d109f436bf8cca12", null ],
+      [ "operator!=", "d2/dd0/structLightweight_1_1Field.html#adb5aaf52884e59e0614fde72a6c31598", null ],
+      [ "operator==", "d2/dd0/structLightweight_1_1Field.html#a2c422c24094f6180d3c3837e546d35ef", null ],
+      [ "operator!=", "d2/dd0/structLightweight_1_1Field.html#a526143a1f5e23a97cb46958bb6471609", null ],
       [ "InspectValue", "d2/dd0/structLightweight_1_1Field.html#adb44c1c3efd47294593bc757a7c1734c", null ],
       [ "SetModified", "d2/dd0/structLightweight_1_1Field.html#a5d28935f66fa335c491af43a83924200", null ],
       [ "IsModified", "d2/dd0/structLightweight_1_1Field.html#a4296163dab8a3ce341e2b52a18c7c7b7", null ],
