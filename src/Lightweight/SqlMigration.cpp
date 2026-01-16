@@ -87,10 +87,12 @@ void MigrationManager::ApplySingleMigration(MigrationTimestamp timestamp)
 void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
 {
     auto& dm = GetDataMapper();
-    SqlMigrationQueryBuilder migrationBuilder = dm.Connection().Migration();
-    migration.Execute(migrationBuilder);
+    auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
 
-    SqlMigrationPlan const plan = migrationBuilder.GetPlan();
+    SqlMigrationQueryBuilder migrationBuilder = dm.Connection().Migration();
+    migration.Up(migrationBuilder);
+
+    SqlMigrationPlan const plan = std::move(migrationBuilder).GetPlan();
 
     auto stmt = SqlStatement { dm.Connection() };
 
@@ -102,6 +104,36 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
     }
 
     dm.CreateExplicit(SchemaMigration { .version = migration.GetTimestamp().value });
+    transaction.Commit();
+}
+
+void MigrationManager::RevertSingleMigration(MigrationTimestamp timestamp)
+{
+    if (MigrationBase const* migration = GetMigration(timestamp); migration)
+        RevertSingleMigration(*migration);
+}
+
+void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
+{
+    auto& dm = GetDataMapper();
+    auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
+
+    SqlMigrationQueryBuilder migrationBuilder = dm.Connection().Migration();
+    migration.Down(migrationBuilder); // Use Down() to revert
+
+    SqlMigrationPlan const plan = std::move(migrationBuilder).GetPlan();
+
+    auto stmt = SqlStatement { dm.Connection() };
+
+    for (SqlMigrationPlanElement const& step: plan.steps)
+    {
+        auto const sqlScripts = ToSql(dm.Connection().QueryFormatter(), step);
+        for (auto const& sqlScript: sqlScripts)
+            stmt.ExecuteDirect(sqlScript);
+    }
+
+    dm.Query<SchemaMigration>().Where("version", "=", migration.GetTimestamp().value).Delete();
+    transaction.Commit();
 }
 
 size_t MigrationManager::ApplyPendingMigrations(ExecuteCallback const& feedbackCallback)

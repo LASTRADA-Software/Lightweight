@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <compare>
 #include <cstdlib>
 
 using namespace std::string_view_literals;
@@ -85,7 +86,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "access global migration macro", "[Sql
 
     auto conn = SqlConnection {};
     SqlMigrationQueryBuilder builder = SqlQueryBuilder(conn.QueryFormatter()).Migration();
-    migration.Execute(builder);
+    migration.Up(builder);
     auto const sqlQueryString = builder.GetPlan().ToSql();
 
     CAPTURE(sqlQueryString);
@@ -199,4 +200,117 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration with foreign key", "[SqlMig
     auto order = FKTests::Order {};
     order.person = person;
     dm.Create(order);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Revert Migration", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto reversibleMigration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202412102213 },
+        "reversible migration",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("reversible_table").PrimaryKey("id", Integer()); },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("reversible_table"); });
+
+    auto& migrationManager = SqlMigration::MigrationManager::GetInstance();
+    migrationManager.CreateMigrationHistory();
+
+    // Apply
+    CHECK(migrationManager.ApplyPendingMigrations() == 1);
+
+    // Verify Applied
+    auto appliedIds = migrationManager.GetAppliedMigrationIds();
+    CHECK(appliedIds.size() == 1);
+    CHECK(appliedIds[0].value == 202412102213);
+
+    // Verify Side Effect
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        // Should not throw
+        stmt.ExecuteDirect("SELECT count(*) FROM reversible_table");
+    }
+
+    // Revert
+    migrationManager.RevertSingleMigration(reversibleMigration);
+
+    // Verify Reverted
+    appliedIds = migrationManager.GetAppliedMigrationIds();
+    CHECK(appliedIds.empty());
+
+    // Verify Side Effect Reverted
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        // Should throw because table does not exist
+        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT count(*) FROM reversible_table"), SqlException);
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Transaction Rollback", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto badMigration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202412102214 }, "bad migration", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("should_not_exist").PrimaryKey("id", Integer());
+
+            plan.RawSql("THIS_IS_INVALID_SQL_TO_FORCE_FAILURE");
+        });
+
+    auto& migrationManager = SqlMigration::MigrationManager::GetInstance();
+    migrationManager.CreateMigrationHistory();
+
+    // Apply should fail
+    CHECK_THROWS(migrationManager.ApplyPendingMigrations());
+
+    // Verify Not Applied
+    auto appliedIds = migrationManager.GetAppliedMigrationIds();
+    CHECK(appliedIds.empty());
+
+    // Verify Side Effect Rolled Back
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        // Should throw because table should have been rolled back
+        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT count(*) FROM should_not_exist"), SqlException);
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Raw SQL Migration", "[SqlMigration]")
+{
+    auto rawSqlMigration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202412102215 },
+        "raw sql migration",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.RawSql("CREATE TABLE raw_sql_test (id INT PRIMARY KEY)");
+            plan.RawSql("INSERT INTO raw_sql_test (id) VALUES (42)");
+        },
+        [](SqlMigrationQueryBuilder& plan) { plan.RawSql("DROP TABLE raw_sql_test"); });
+
+    auto& migrationManager = SqlMigration::MigrationManager::GetInstance();
+    migrationManager.CreateMigrationHistory();
+
+    // Apply
+    CHECK(migrationManager.ApplyPendingMigrations() == 1);
+
+    // Check
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        // Verify using QueryBuilder to ensure portability
+        stmt.ExecuteDirect("SELECT id FROM raw_sql_test WHERE id = 42");
+        CHECK(stmt.FetchRow());
+        CHECK(stmt.GetColumn<int>(1) == 42);
+    }
+
+    // Revert
+    migrationManager.RevertSingleMigration(rawSqlMigration);
+
+    // Check Revert
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM raw_sql_test"), SqlException);
+    }
 }

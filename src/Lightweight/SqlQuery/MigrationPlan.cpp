@@ -34,9 +34,13 @@ std::vector<std::string> ToSql(SqlQueryFormatter const& formatter, SqlMigrationP
             {
                 return formatter.DropTable(step.tableName);
             }
+            else if constexpr (std::is_same_v<std::decay_t<decltype(step)>, SqlRawSqlPlan>)
+            {
+                return std::vector<std::string> { std::string(step.sql) };
+            }
             else
             {
-                static_assert(false, "non-exhaustive visitor");
+                static_assert(detail::AlwaysFalse<std::decay_t<decltype(step)>>, "non-exhaustive visitor");
             }
         },
         element);

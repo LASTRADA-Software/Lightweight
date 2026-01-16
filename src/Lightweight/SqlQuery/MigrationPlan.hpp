@@ -322,6 +322,15 @@ struct SqlDropTablePlan
     std::string_view tableName;
 };
 
+/// @brief Represents a raw SQL plan.
+///
+/// @ingroup QueryBuilder
+struct SqlRawSqlPlan
+{
+    /// The raw SQL to execute.
+    std::string_view sql;
+};
+
 // clang-format off
 
 /// @brief Represents a single SQL migration plan element.
@@ -332,7 +341,8 @@ struct SqlDropTablePlan
 using SqlMigrationPlanElement = std::variant<
     SqlCreateTablePlan,
     SqlAlterTablePlan,
-    SqlDropTablePlan
+    SqlDropTablePlan,
+    SqlRawSqlPlan
 >;
 
 // clang-format on
