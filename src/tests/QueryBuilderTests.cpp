@@ -395,6 +395,16 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn", "[SqlQueryBuilder]")
                                                    WHERE "foo" IN (1, 2, 3))"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with empty list", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder([](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", std::vector<int> {}); },
+                         QueryExpectations::All(R"(DELETE FROM "That")"));
+
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) { return q.FromTable("That").Delete().WhereIn("foo", std::initializer_list<int> {}); },
+        QueryExpectations::All(R"(DELETE FROM "That")"));
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereIn with strings", "[SqlQueryBuilder]")
 {
     using namespace std::string_view_literals;

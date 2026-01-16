@@ -631,6 +631,8 @@ template <typename ColumnName, std::ranges::input_range InputRange>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn(ColumnName const& columnName,
                                                                                  InputRange const& values)
 {
+    if (values.empty())
+        return static_cast<Derived&>(*this);
     return Where(columnName, "IN", PopulateSqlSetExpression(values));
 }
 
@@ -639,6 +641,8 @@ template <typename ColumnName, typename T>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn(ColumnName const& columnName,
                                                                                  std::initializer_list<T> const& values)
 {
+    if (values.begin() == values.end())
+        return static_cast<Derived&>(*this);
     return Where(columnName, "IN", PopulateSqlSetExpression(values));
 }
 
