@@ -42,7 +42,7 @@ if(${PEDANTIC_COMPILER})
         # TODO: check https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#compilers
         try_add_compile_options(-Qunused-arguments)
         try_add_compile_options(-Wall)
-        #try_add_compile_options(-Wconversion)
+        try_add_compile_options(-Wconversion)
         try_add_compile_options(-Wduplicate-enum)
         try_add_compile_options(-Wduplicated-cond)
         try_add_compile_options(-Wextra)
