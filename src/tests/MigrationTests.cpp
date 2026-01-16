@@ -20,6 +20,8 @@ std::ostream& operator<<(std::ostream& os, Lightweight::SqlMigration::MigrationT
 }
 } // namespace std
 
+using namespace Lightweight;
+
 class SqlMigrationTestFixture: public SqlTestFixture
 {
   public:
@@ -56,8 +58,6 @@ LIGHTWEIGHT_SQL_MIGRATION(20170816112233, "create users") // NOLINT(bugprone-thr
     plan.AlterTable("users").AddColumn("is_active", Bool());
     // clang-format on
 }
-
-#if 0 // TODO: Disabled temporarily, because I need to re-check it against valgrind again (separately)
 
 TEST_CASE_METHOD(SqlMigrationTestFixture, "access global migration macro", "[SqlMigration]")
 {
@@ -128,7 +128,6 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "CreateTable", "[SqlMigration]")
 }
 
 // #include <Lightweight/DataMapper/DataMapper.hpp>
-
 namespace FKTests
 {
 struct Order;
@@ -149,7 +148,7 @@ struct Person
 struct Order
 {
     Field<int64_t, PrimaryKey::AutoAssign> id;
-    BelongsTo<&Person::id> person;
+    BelongsTo<&Person::id, SqlRealName { "person_id" }> person;
     Field<SqlDateTime> created_at = SqlDateTime::Now();
     Field<SqlDateTime> updated_at = SqlDateTime::Now();
 
@@ -164,7 +163,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration with foreign key", "[SqlMig
     // clang-format off
     auto createPersonMigration = SqlMigration::Migration(
         SqlMigration::MigrationTimestamp { 202412102211 },
-        "description here",
+        "create persons",
         [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTable("persons")
                 .PrimaryKey("id", Bigint())
@@ -177,7 +176,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration with foreign key", "[SqlMig
 
     auto createOrderMigration = SqlMigration::Migration(
         SqlMigration::MigrationTimestamp { 202412102212 },
-        "description here",
+        "create orders",
         [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTable("orders")
                 .PrimaryKey("id", Bigint())
@@ -201,4 +200,3 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration with foreign key", "[SqlMig
     order.person = person;
     dm.Create(order);
 }
-#endif
