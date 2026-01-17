@@ -63,5 +63,5 @@ if(LIGHTWEIGHT_BUILD_DOCUMENTATION)
   )
 
 else()
-    message(WARNING "Not building documentation, LIGHTWEIGHT_BUILD_DOCUMENTATION is OFF")
+    message(STATUS "Not building documentation, LIGHTWEIGHT_BUILD_DOCUMENTATION is OFF")
 endif()

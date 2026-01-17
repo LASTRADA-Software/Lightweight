@@ -17,7 +17,7 @@ include(ClangTidy)
 include(PedanticCompiler)
 include(Sanitizers)
 
-find_package(reflection-cpp 0.4.0)
+find_package(reflection-cpp 0.4.0 QUIET)
 find_package(Catch2 CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
 
