@@ -177,4 +177,111 @@ TEST_CASE_METHOD(SqlTestFixture, "Create with defined primary key", "[DataMapper
     REQUIRE(dm.QuerySingle<EntryWithIntPrimaryKey>(42).value().comment.Value() == "Updated Comment");
 }
 
+struct CopyTestAutoIncrement
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
+    Field<SqlAnsiString<30>> name;
+    Field<int> value;
+
+    std::weak_ordering operator<=>(CopyTestAutoIncrement const& other) const = default;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateCopyOf: Auto-increment primary key", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<CopyTestAutoIncrement>();
+
+    // Create original record
+    auto original = CopyTestAutoIncrement { .id = 0, .name = "Original", .value = 42 };
+    dm.Create(original);
+    REQUIRE(original.id.Value() != 0);
+
+    // Create a copy of the original record
+    auto const newId = dm.CreateCopyOf(original);
+
+    // Verify the copy has a different primary key
+    CHECK(newId != original.id.Value());
+
+    // Verify the copy has the same field values
+    auto const copy = dm.QuerySingle<CopyTestAutoIncrement>(newId);
+    REQUIRE(copy.has_value());
+    CHECK(copy.value().name.Value() == original.name.Value());
+    CHECK(copy.value().value.Value() == original.value.Value());
+
+    // Verify original is unchanged
+    auto const queriedOriginal = dm.QuerySingle<CopyTestAutoIncrement>(original.id);
+    REQUIRE(queriedOriginal.has_value());
+    CHECK(queriedOriginal.value().name.Value() == "Original");
+    CHECK(queriedOriginal.value().value.Value() == 42);
+}
+
+struct CopyTestAutoAssign
+{
+    Field<SqlGuid, PrimaryKey::AutoAssign> id;
+    Field<SqlAnsiString<30>> name;
+    Field<int> value;
+
+    std::weak_ordering operator<=>(CopyTestAutoAssign const& other) const = default;
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateCopyOf: Auto-assign (GUID) primary key", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<CopyTestAutoAssign>();
+
+    // Create original record
+    auto original = CopyTestAutoAssign { .id = SqlGuid::Create(), .name = "Original", .value = 100 };
+    dm.Create(original);
+    REQUIRE(original.id.Value());
+
+    // Create a copy of the original record
+    auto const newId = dm.CreateCopyOf(original);
+
+    // Verify the copy has a different primary key
+    CHECK(newId != original.id.Value());
+
+    // Verify the copy has the same field values
+    auto const copy = dm.QuerySingle<CopyTestAutoAssign>(newId);
+    REQUIRE(copy.has_value());
+    CHECK(copy.value().name.Value() == original.name.Value());
+    CHECK(copy.value().value.Value() == original.value.Value());
+
+    // Verify both records exist
+    CHECK(dm.Query<CopyTestAutoAssign>().Count() == 2);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateCopyOf: Multiple copies", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<CopyTestAutoIncrement>();
+
+    // Create original record
+    auto original = CopyTestAutoIncrement { .id = 0, .name = "Master", .value = 1 };
+    dm.Create(original);
+
+    // Create multiple copies
+    auto const copy1Id = dm.CreateCopyOf(original);
+    auto const copy2Id = dm.CreateCopyOf(original);
+    auto const copy3Id = dm.CreateCopyOf(original);
+
+    // Verify all copies have unique primary keys
+    CHECK(copy1Id != original.id.Value());
+    CHECK(copy2Id != original.id.Value());
+    CHECK(copy3Id != original.id.Value());
+    CHECK(copy1Id != copy2Id);
+    CHECK(copy2Id != copy3Id);
+    CHECK(copy1Id != copy3Id);
+
+    // Verify total count
+    CHECK(dm.Query<CopyTestAutoIncrement>().Count() == 4);
+
+    // Verify all copies have the same field values
+    auto const allRecords = dm.Query<CopyTestAutoIncrement>().All();
+    for (auto const& record: allRecords)
+    {
+        CHECK(record.name.Value() == "Master");
+        CHECK(record.value.Value() == 1);
+    }
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)

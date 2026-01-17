@@ -273,5 +273,5 @@ cmake --build build && ./build/src/examples/example
 ## Compile using C++26 reflection support
 
 ``` sh
-docker buildx build --progress=plain -f .github/DockerReflection --load .
+docker buildx build --progress=plain -f .github/Reflection.Dockerfile --load .
 ```

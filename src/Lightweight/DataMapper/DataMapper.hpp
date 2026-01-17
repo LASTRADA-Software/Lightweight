@@ -166,6 +166,17 @@ class DataMapper
     template <typename Record>
     RecordPrimaryKeyType<Record> CreateExplicit(Record const& record);
 
+    /// @brief Creates a copy of an existing record in the database.
+    ///
+    /// This method is useful for duplicating a database record while assigning a new primary key.
+    /// All fields except primary key(s) are copied from the original record.
+    /// The primary key is automatically generated (auto-incremented or auto-assigned).
+    ///
+    /// @param originalRecord The record to copy.
+    /// @return The primary key of the newly created record.
+    template <DataMapperOptions QueryOptions = {}, typename Record>
+    [[nodiscard]] RecordPrimaryKeyType<Record> CreateCopyOf(Record const& originalRecord);
+
     /// @brief Queries a single record (based on primary key) from the database.
     ///
     /// The primary key(s) are used to identify the record to load.
@@ -422,6 +433,21 @@ class DataMapper
 
     template <typename ReferencedRecord, typename ThroughRecord, typename Record, typename Callable>
     void CallOnHasManyThrough(Record& record, Callable const& callback);
+
+    enum class PrimaryKeySource : std::uint8_t
+    {
+        Record,
+        Override,
+    };
+
+    template <typename Record>
+    std::optional<RecordPrimaryKeyType<Record>> GenerateAutoAssignPrimaryKey(Record const& record);
+
+    template <PrimaryKeySource UsePkOverride, typename Record>
+    RecordPrimaryKeyType<Record> CreateInternal(
+        Record const& record,
+        std::optional<std::conditional_t<std::is_void_v<RecordPrimaryKeyType<Record>>, int, RecordPrimaryKeyType<Record>>>
+            pkOverride = std::nullopt);
 
     SqlConnection _connection;
     SqlStatement _stmt;
@@ -1241,7 +1267,43 @@ void DataMapper::CreateTables()
 }
 
 template <typename Record>
-RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
+std::optional<RecordPrimaryKeyType<Record>> DataMapper::GenerateAutoAssignPrimaryKey(Record const& record)
+{
+    std::optional<RecordPrimaryKeyType<Record>> result;
+    Reflection::EnumerateMembers(
+        record, [this, &result]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
+            if constexpr (IsField<PrimaryKeyType> && IsPrimaryKey<PrimaryKeyType>
+                          && detail::IsAutoAssignPrimaryKeyField<PrimaryKeyType>::value)
+            {
+                using ValueType = typename PrimaryKeyType::ValueType;
+                if constexpr (std::same_as<ValueType, SqlGuid>)
+                {
+                    if (!primaryKeyField.Value())
+                        [&](auto& res) {
+                            res.emplace(SqlGuid::Create());
+                        }(result);
+                }
+                else if constexpr (requires { ValueType {} + 1; })
+                {
+                    if (primaryKeyField.Value() == ValueType {})
+                    {
+                        auto maxId = SqlStatement { _connection }.ExecuteDirectScalar<ValueType>(
+                            std::format(R"sql(SELECT MAX("{}") FROM "{}")sql",
+                                        FieldNameAt<PrimaryKeyIndex, Record>,
+                                        RecordTableName<Record>));
+                        result = maxId.value_or(ValueType {}) + 1;
+                    }
+                }
+            }
+        });
+    return result;
+}
+
+template <DataMapper::PrimaryKeySource UsePkOverride, typename Record>
+RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
+    Record const& record,
+    std::optional<std::conditional_t<std::is_void_v<RecordPrimaryKeyType<Record>>, int, RecordPrimaryKeyType<Record>>>
+        pkOverride)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
@@ -1270,15 +1332,25 @@ RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
     {
         using FieldType = typename[:std::meta::type_of(el):];
         if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
-            _stmt.BindInputParameter(i++, record.[:el:], std::meta::identifier_of(el));
+        {
+            if constexpr (IsPrimaryKey<FieldType> && UsePkOverride == PrimaryKeySource::Override)
+                _stmt.BindInputParameter(i++, *pkOverride, std::meta::identifier_of(el));
+            else
+                _stmt.BindInputParameter(i++, record.[:el:], std::meta::identifier_of(el));
+        }
     }
 #else
-    Reflection::CallOnMembers(
-        record,
-        [this, i = SQLSMALLINT { 1 }]<typename Name, typename FieldType>(Name const& name, FieldType const& field) mutable {
-            if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
-                _stmt.BindInputParameter(i++, field, name);
-        });
+    Reflection::CallOnMembers(record,
+                              [this, &pkOverride, i = SQLSMALLINT { 1 }]<typename Name, typename FieldType>(
+                                  Name const& name, FieldType const& field) mutable {
+                                  if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
+                                  {
+                                      if constexpr (IsPrimaryKey<FieldType> && UsePkOverride == PrimaryKeySource::Override)
+                                          _stmt.BindInputParameter(i++, *pkOverride, name);
+                                      else
+                                          _stmt.BindInputParameter(i++, field, name);
+                                  }
+                              });
 #endif
     _stmt.Execute();
 
@@ -1286,32 +1358,34 @@ RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
         return { _stmt.LastInsertId(RecordTableName<Record>) };
     else if constexpr (HasPrimaryKey<Record>)
     {
-        RecordPrimaryKeyType<Record> const* primaryKey = nullptr;
-#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
-        template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
-        {
-            using FieldType = typename[:std::meta::type_of(el):];
-            if constexpr (IsField<FieldType>)
-            {
-                if constexpr (FieldType::IsPrimaryKey)
-                {
-                    primaryKey = &record.[:el:].Value();
-                }
-            }
-        }
-#else
-        Reflection::EnumerateMembers(record, [&]<size_t I, typename FieldType>(FieldType& field) {
-            if constexpr (IsField<FieldType>)
-            {
-                if constexpr (FieldType::IsPrimaryKey)
-                {
-                    primaryKey = &field.Value();
-                }
-            }
-        });
-#endif
-        return *primaryKey;
+        if constexpr (UsePkOverride == PrimaryKeySource::Override)
+            return *pkOverride;
+        else
+            return RecordPrimaryKeyOf(record).Value();
     }
+}
+
+template <typename Record>
+RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
+{
+    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+    return CreateInternal<PrimaryKeySource::Record>(record);
+}
+
+template <DataMapperOptions QueryOptions, typename Record>
+RecordPrimaryKeyType<Record> DataMapper::CreateCopyOf(Record const& originalRecord)
+{
+    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+    static_assert(HasPrimaryKey<Record>, "CreateCopyOf requires a record type with a primary key");
+
+    auto generatedKey = GenerateAutoAssignPrimaryKey(originalRecord);
+    if (generatedKey)
+        return CreateInternal<PrimaryKeySource::Override>(originalRecord, generatedKey);
+
+    if constexpr (HasAutoIncrementPrimaryKey<Record>)
+        return CreateInternal<PrimaryKeySource::Record>(originalRecord);
+
+    return CreateInternal<PrimaryKeySource::Override>(originalRecord, RecordPrimaryKeyType<Record> {});
 }
 
 template <DataMapperOptions QueryOptions, typename Record>
@@ -1320,63 +1394,14 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
     static_assert(!std::is_const_v<Record>);
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
-// If the primary key is not an auto-increment field and the primary key is not set, we need to set it.
-//
-#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
-    constexpr auto ctx = std::meta::access_context::current();
-    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
-    {
-        using FieldType = typename[:std::meta::type_of(el):];
-        if constexpr (IsField<FieldType>)
-            if constexpr (FieldType::IsPrimaryKey)
-                if constexpr (FieldType::IsAutoAssignPrimaryKey)
-                {
-                    using ValueType = typename FieldType::ValueType;
-                    if constexpr (std::same_as<ValueType, SqlGuid>)
-                    {
-                        if (!record.[:el:].Value())
-                            record.[:el:] = SqlGuid::Create();
-                    }
-                    else if constexpr (requires { ValueType {} + 1; })
-                    {
-                        if (record.[:el:].Value() == ValueType {})
-                        {
-                            auto maxId = SqlStatement { _connection }.ExecuteDirectScalar<ValueType>(std::format(
-                                R"sql(SELECT MAX("{}") FROM "{}")sql", FieldNameOf<el>, RecordTableName<Record>));
-                            record.[:el:] = maxId.value_or(ValueType {}) + 1;
-                        }
-                    }
-                }
-    }
-#else
-    CallOnPrimaryKey(record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType& primaryKeyField) {
-        if constexpr (PrimaryKeyType::IsAutoAssignPrimaryKey)
-        {
-            using ValueType = PrimaryKeyType::ValueType;
-            if constexpr (std::same_as<ValueType, SqlGuid>)
-            {
-                if (!primaryKeyField.Value())
-                    primaryKeyField = SqlGuid::Create();
-            }
-            else if constexpr (requires { ValueType {} + 1; })
-            {
-                if (primaryKeyField.Value() == ValueType {})
-                {
-                    auto maxId = SqlStatement { _connection }.ExecuteDirectScalar<ValueType>(
-                        std::format(R"sql(SELECT MAX("{}") FROM "{}")sql",
-                                    FieldNameAt<PrimaryKeyIndex, Record>,
-                                    RecordTableName<Record>));
-                    primaryKeyField = maxId.value_or(ValueType {}) + 1;
-                }
-            }
-        }
-    });
-#endif
+    auto generatedKey = GenerateAutoAssignPrimaryKey(record);
+    if (generatedKey)
+        SetId(record, *generatedKey);
 
-    CreateExplicit(record);
+    auto pk = CreateInternal<PrimaryKeySource::Record>(record);
 
     if constexpr (HasAutoIncrementPrimaryKey<Record>)
-        SetId(record, _stmt.LastInsertId(RecordTableName<Record>));
+        SetId(record, pk);
 
     SetModifiedState<ModifiedState::NotModified>(record);
 
