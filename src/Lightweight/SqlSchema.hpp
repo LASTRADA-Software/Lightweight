@@ -193,6 +193,20 @@ namespace SqlSchema
     LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysFrom(SqlStatement& stmt,
                                                                          FullyQualifiedTableName const& table);
 
+    /// Creats an SQL CREATE TABLE plan for the given table description.
+    ///
+    /// @param tableDescription The description of the table to create the plan for.
+    ///
+    /// @return An SQL CREATE TABLE plan for the given table description.
+    LIGHTWEIGHT_API SqlCreateTablePlan MakeCreateTablePlan(Table const& tableDescription);
+
+    /// Creates an SQL CREATE TABLE plan for all the given table descriptions.
+    ///
+    /// @param tableDescriptions The descriptions of the tables to create the plan for.
+    ///
+    /// @return An SQL CREATE TABLE plan for all the given table descriptions.
+    LIGHTWEIGHT_API std::vector<SqlCreateTablePlan> MakeCreateTablePlan(TableList const& tableDescriptions);
+
 } // namespace SqlSchema
 
 } // namespace Lightweight

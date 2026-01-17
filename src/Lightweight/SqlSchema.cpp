@@ -382,4 +382,46 @@ std::vector<ForeignKeyConstraint> AllForeignKeysFrom(SqlStatement& stmt, FullyQu
     return AllForeignKeys(stmt, FullyQualifiedTableName {}, table);
 }
 
+SqlCreateTablePlan MakeCreateTablePlan(Table const& tableDescription)
+{
+    auto plan = SqlCreateTablePlan {}; // TODO(pr)
+
+    plan.tableName = tableDescription.name;
+
+    for (auto const& columnDescription: tableDescription.columns)
+    {
+        auto columnDecl = SqlColumnDeclaration {
+            .name = columnDescription.name,
+            .type = columnDescription.type,
+            .primaryKey =
+                [&] {
+                    if (columnDescription.isAutoIncrement)
+                        return SqlPrimaryKeyType::AUTO_INCREMENT;
+
+                    if (columnDescription.isPrimaryKey)
+                        return SqlPrimaryKeyType::MANUAL;
+
+                    return SqlPrimaryKeyType::NONE;
+                }(),
+            .foreignKey = {}, // TODO(pr) foreign keys
+            .required = !columnDescription.isNullable,
+            .unique = columnDescription.isUnique,
+        };
+
+        plan.columns.emplace_back(std::move(columnDecl));
+    }
+
+    return plan;
+}
+
+std::vector<SqlCreateTablePlan> MakeCreateTablePlan(TableList const& tableDescriptions)
+{
+    auto result = std::vector<SqlCreateTablePlan>();
+
+    for (auto const& tableDescription: tableDescriptions)
+        result.emplace_back(MakeCreateTablePlan(tableDescription));
+
+    return result;
+}
+
 } // namespace Lightweight::SqlSchema
