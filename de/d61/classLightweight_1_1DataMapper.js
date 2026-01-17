@@ -15,6 +15,7 @@ var classLightweight_1_1DataMapper =
     [ "CreateTables", "de/d61/classLightweight_1_1DataMapper.html#a9876b49397398231200d326dfba78bdb", null ],
     [ "Create", "de/d61/classLightweight_1_1DataMapper.html#ada167653166b773b0421fe2ad31a2c57", null ],
     [ "CreateExplicit", "de/d61/classLightweight_1_1DataMapper.html#aa17c743b55af25f5de7ccdc7a5264661", null ],
+    [ "CreateCopyOf", "de/d61/classLightweight_1_1DataMapper.html#a76f73a232c0f2d58af6e9bdec4db2a69", null ],
     [ "QuerySingle", "de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4", null ],
     [ "QuerySingleWithoutRelationAutoLoading", "de/d61/classLightweight_1_1DataMapper.html#a0ee9df27df1779d4b6c6212aae482f79", null ],
     [ "Query", "de/d61/classLightweight_1_1DataMapper.html#aa6b188d4c0b7e8b267f2722d0e3f1401", null ],
