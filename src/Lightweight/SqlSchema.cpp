@@ -37,13 +37,12 @@ namespace
         return { std::move(first), std::move(second) };
     }
 
-    std::vector<std::string> AllTables(std::string_view database, std::string_view schema)
+    std::vector<std::string> AllTables(SqlStatement& stmt, std::string_view database, std::string_view schema)
     {
         auto const tableType = "TABLE"sv;
         (void) database;
         (void) schema;
 
-        auto stmt = SqlStatement();
         auto sqlResult = SQLTables(stmt.NativeHandle(),
                                    (SQLCHAR*) database.data(),
                                    (SQLSMALLINT) database.size(),
@@ -166,10 +165,9 @@ namespace
 } // namespace
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-void ReadAllTables(std::string_view database, std::string_view schema, EventHandler& eventHandler)
+void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_view schema, EventHandler& eventHandler)
 {
-    auto stmt = SqlStatement {};
-    auto const tableNames = AllTables(database, schema);
+    auto const tableNames = AllTables(stmt, database, schema);
 
     eventHandler.OnTables(tableNames);
 
@@ -199,7 +197,7 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
         for (auto const& foreignKey: incomingForeignKeys)
             eventHandler.OnExternalForeignKey(foreignKey);
 
-        auto columnStmt = SqlStatement();
+        auto columnStmt = SqlStatement { stmt.Connection() };
         auto const sqlResult = SQLColumns(columnStmt.NativeHandle(),
                                           (SQLCHAR*) database.data(),
                                           (SQLSMALLINT) database.size(),
@@ -287,7 +285,10 @@ void ReadAllTables(std::string_view database, std::string_view schema, EventHand
     }
 }
 
-TableList ReadAllTables(std::string_view database, std::string_view schema, ReadAllTablesCallback callback)
+TableList ReadAllTables(SqlStatement& stmt,
+                        std::string_view database,
+                        std::string_view schema,
+                        ReadAllTablesCallback callback)
 {
 
     auto ToLowerCase = [](std::string_view str) -> std::string {
@@ -346,7 +347,7 @@ TableList ReadAllTables(std::string_view database, std::string_view schema, Read
             tables.back().externalForeignKeys.emplace_back(foreignKeyConstraint);
         }
     } eventHandler { tables, std::move(callback) };
-    ReadAllTables(database, schema, eventHandler);
+    ReadAllTables(stmt, database, schema, eventHandler);
 
     std::map<std::string, std::string> tableNameCaseMap;
     for (auto const& table: tables)

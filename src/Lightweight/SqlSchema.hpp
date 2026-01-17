@@ -141,7 +141,17 @@ namespace SqlSchema
     };
 
     /// Reads all tables in the given database and schema and calls the event handler for each table.
-    LIGHTWEIGHT_API void ReadAllTables(std::string_view database, std::string_view schema, EventHandler& eventHandler);
+    ///
+    /// @param stmt The SQL statement to use for reading the database schema.
+    /// @param database The name of the database to read the schema from.
+    /// @param schema The name of the schema to read the schema from.
+    /// @param eventHandler The SAX-style event handler to call for each table.
+    ///
+    /// @note The event handler is called for each table in the database and schema.
+    LIGHTWEIGHT_API void ReadAllTables(SqlStatement& stmt,
+                                       std::string_view database,
+                                       std::string_view schema,
+                                       EventHandler& eventHandler);
 
     /// Holds the definition of a table in a SQL database as read from the database schema.
     struct Table
@@ -170,7 +180,8 @@ namespace SqlSchema
     using ReadAllTablesCallback = std::function<void(std::string_view /*tableName*/, size_t /*current*/, size_t /*total*/)>;
 
     /// Retrieves all tables in the given @p database and @p schema.
-    LIGHTWEIGHT_API TableList ReadAllTables(std::string_view database,
+    LIGHTWEIGHT_API TableList ReadAllTables(SqlStatement& stmt,
+                                            std::string_view database,
                                             std::string_view schema = {},
                                             ReadAllTablesCallback callback = {});
 
