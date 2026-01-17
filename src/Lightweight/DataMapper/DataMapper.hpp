@@ -1269,33 +1269,6 @@ void DataMapper::CreateTables()
 template <typename Record>
 std::optional<RecordPrimaryKeyType<Record>> DataMapper::GenerateAutoAssignPrimaryKey(Record const& record)
 {
-#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
-    constexpr auto ctx = std::meta::access_context::current();
-    template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
-    {
-        using FieldType = typename[:std::meta::type_of(el):];
-        if constexpr (IsField<FieldType>)
-            if constexpr (IsPrimaryKey<FieldType>)
-                if constexpr (detail::IsAutoAssignPrimaryKeyField<FieldType>::value)
-                {
-                    using ValueType = typename FieldType::ValueType;
-                    if constexpr (std::same_as<ValueType, SqlGuid>)
-                    {
-                        if (!record.[:el:].Value())
-                            return RecordPrimaryKeyType<Record>(SqlGuid::Create());
-                    }
-                    else if constexpr (requires { ValueType {} + 1; })
-                    {
-                        if (record.[:el:].Value() == ValueType {})
-                        {
-                            auto maxId = SqlStatement { _connection }.ExecuteDirectScalar<ValueType>(std::format(
-                                R"sql(SELECT MAX("{}") FROM "{}")sql", FieldNameOf<el>, RecordTableName<Record>));
-                            return maxId.value_or(ValueType {}) + 1;
-                        }
-                    }
-                }
-    }
-#else
     std::optional<RecordPrimaryKeyType<Record>> result;
     Reflection::EnumerateMembers(
         record, [this, &result]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
@@ -1323,7 +1296,6 @@ std::optional<RecordPrimaryKeyType<Record>> DataMapper::GenerateAutoAssignPrimar
                 }
             }
         });
-#endif
     return result;
 }
 

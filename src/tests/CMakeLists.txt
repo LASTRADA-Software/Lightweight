@@ -67,6 +67,7 @@ set(SOURCE_FILES
     MigrationTests.cpp
     QueryBuilderTests.cpp
     UnicodeConverterTests.cpp
+    UtilsTests.cpp
     Utils.cpp
 )
 
