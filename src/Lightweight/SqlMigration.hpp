@@ -28,6 +28,8 @@ namespace SqlMigration
     /// @code
     /// MigrationTimestamp { 2026'01'17'00'31'20 };
     /// @endcode
+    ///
+    /// @ingroup SqlMigration
     struct MigrationTimestamp
     {
         uint64_t value {};
@@ -38,6 +40,8 @@ namespace SqlMigration
     /// Main API to use for managing SQL migrations
     ///
     /// This class is a singleton and can be accessed using the GetInstance() method.
+    ///
+    /// @ingroup SqlMigration
     class MigrationManager
     {
       public:
@@ -130,6 +134,8 @@ namespace SqlMigration
     };
 
 /// Requires the user to call LIGHTWEIGHT_MIGRATION_PLUGIN() in exactly one CPP file of the migration plugin.
+///
+/// @ingroup SqlMigration
 #define LIGHTWEIGHT_MIGRATION_PLUGIN()                                                                   \
     /* NOLINTNEXTLINE(bugprone-macro-parentheses) */                                                     \
     extern "C" LIGHTWEIGHT_EXPORT Lightweight::SqlMigration::MigrationManager* AcquireMigrationManager() \
@@ -138,6 +144,8 @@ namespace SqlMigration
     }
 
     /// Represents a single unique SQL migration.
+    ///
+    /// @ingroup SqlMigration
     class MigrationBase
     {
       public:
@@ -188,6 +196,8 @@ namespace SqlMigration
     /// Represents a single unique SQL migration.
     ///
     /// This class is a convenience class that can be used to create a migration.
+    ///
+    /// @ingroup SqlMigration
     class Migration: public MigrationBase
     {
       public:
@@ -237,6 +247,8 @@ namespace SqlMigration
 
 /// @brief Represents the C++ migration object for a given timestamped migration.
 /// @param timestamp Timestamp of the migration.
+///
+/// @ingroup SqlMigration
 #define LIGHTWEIGHT_MIGRATION_INSTANCE(timestamp) migration_##timestamp
 
 /// @brief Creates a new migration.
@@ -255,6 +267,8 @@ namespace SqlMigration
 /// @endcode
 ///
 /// @see Lightweight::SqlMigrationQueryBuilder
+///
+/// @ingroup SqlMigration
 #define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)                                                         \
     struct Migration_##timestamp: public Lightweight::SqlMigration::MigrationBase                                 \
     {                                                                                                             \
