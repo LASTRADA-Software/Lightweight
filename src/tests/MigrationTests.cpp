@@ -8,9 +8,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <compare>
-#include <cstdlib>
-
 using namespace std::string_view_literals;
 
 namespace std
@@ -149,7 +146,7 @@ struct Person
 struct Order
 {
     Field<int64_t, PrimaryKey::AutoAssign> id;
-    BelongsTo<&Person::id, SqlRealName { "person_id" }> person;
+    BelongsTo<Member(Person::id), SqlRealName { "person_id" }> person;
     Field<SqlDateTime> created_at = SqlDateTime::Now();
     Field<SqlDateTime> updated_at = SqlDateTime::Now();
 

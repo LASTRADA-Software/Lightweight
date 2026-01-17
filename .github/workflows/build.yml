@@ -7,16 +7,16 @@ on:
   merge_group:
   push:
     paths-ignore:
-      - 'mkdocs.yml'
-      - '*.sh'
+      - "mkdocs.yml"
+      - "*.sh"
     branches:
       - master
   pull_request:
     paths-ignore:
-      - 'docs/**'
-      - 'LICENSE.txt'
-      - 'mkdocs.yml'
-      - '*.md'
+      - "docs/**"
+      - "LICENSE.txt"
+      - "mkdocs.yml"
+      - "*.md"
     branches:
       - master
 
@@ -29,73 +29,72 @@ env:
   SCCACHE_GHA_ENABLED: "true"
 
 jobs:
-
   # {{{ Common checks
   check_PR_TODOs:
     name: "Check PR-TODOs"
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v6
-    - name: "Checking for open PR-related TODO items"
-      run: ./scripts/check-pr-todos.sh
+      - uses: actions/checkout@v6
+      - name: "Checking for open PR-related TODO items"
+        run: ./scripts/check-pr-todos.sh
 
   check_clang_format:
     name: "Check C++ style"
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v2
-      with:
-        #persist-credentials: true
-        repository: ${{ github.event.pull_request.head.repo.full_name }}
-        ref: ${{ github.event.pull_request.head.ref }}
-        # token: ${{ secrets.CLANG_FORMAT_PAT }}
-    - uses: DoozyX/clang-format-lint-action@v0.20
-      with:
-        source: '.'
-        exclude: 'src/examples/test_chinook/entities'
-        extensions: 'h,hpp,cpp'
-        clangFormatVersion: 20
-        style: file
-        inplace: True
+      - uses: actions/checkout@v2
+        with:
+          #persist-credentials: true
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          # token: ${{ secrets.CLANG_FORMAT_PAT }}
+      - uses: DoozyX/clang-format-lint-action@v0.20
+        with:
+          source: "."
+          exclude: "src/examples/test_chinook/entities"
+          extensions: "h,hpp,cpp"
+          clangFormatVersion: 20
+          style: file
+          inplace: True
     # does not work for now
     # - uses: EndBug/add-and-commit@v9
     #   if: github.event.pull_request.head.repo.full_name == github.repository
     #   with:
     #     message: 'Committing clang-format changes'
     #     default_author: github_actions
-        
+
   check_clang_tidy:
     name: "Check clang-tidy"
     runs-on: ubuntu-24.04
     if: github.ref != 'refs/heads/master'
     steps:
-    - uses: actions/checkout@v6
-    - name: Fetch tags
-      run: git fetch --prune --unshallow --tags
-    - name: ccache
-      uses: hendrikmuhs/ccache-action@v1.2
-      with:
-        key: "ccache-ubuntu2404-clang-tidy"
-        max-size: 256M
-    - name: "update APT database"
-      run: sudo apt -q update
-    - name: Install clang
-      run: |
-        wget https://apt.llvm.org/llvm.sh
-        chmod +x llvm.sh
-        sudo ./llvm.sh 21
-        sudo apt -qy install clang-tidy-21
-        which clang-tidy-21
-    - name: "install dependencies"
-      run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14 libtbb-dev
-    - name: "cmake"
-      run: |
-        cmake --preset linux-clang-debug \
-              -D CMAKE_CXX_COMPILER=clang++-21 \
-              -D CMAKE_C_COMPILER=clang-21 \
-              -B build
-    - name: "run clang-tidy"
-      run: run-clang-tidy -p ./build -clang-tidy-binary clang-tidy-21 -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/).*$'
+      - uses: actions/checkout@v6
+      - name: Fetch tags
+        run: git fetch --prune --unshallow --tags
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: "ccache-ubuntu2404-clang-tidy"
+          max-size: 256M
+      - name: "update APT database"
+        run: sudo apt -q update
+      - name: Install clang
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 21
+          sudo apt -qy install clang-tidy-21
+          which clang-tidy-21
+      - name: "install dependencies"
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14 libtbb-dev
+      - name: "cmake"
+        run: |
+          cmake --preset linux-clang-debug \
+                -D CMAKE_CXX_COMPILER=clang++-21 \
+                -D CMAKE_C_COMPILER=clang-21 \
+                -B build
+      - name: "run clang-tidy"
+        run: run-clang-tidy -p ./build -clang-tidy-binary clang-tidy-21 -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/).*$'
 
   # }}}
   # {{{ Windows
@@ -103,11 +102,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        preset:
-          [
-            "windows-cl-debug",
-            "windows-clangcl-debug",
-          ]
+        preset: ["windows-cl-debug", "windows-clangcl-debug"]
     name: "Windows-${{ matrix.preset }}"
     runs-on: windows-2025
     steps:
@@ -155,11 +150,7 @@ jobs:
       matrix:
         cxx: [23]
         build_type: ["RelWithDebInfo"]
-        compiler:
-          [
-            "GCC 14",
-            "Clang 19",
-          ]
+        compiler: ["GCC 14", "Clang 19"]
     name: "Ubuntu Linux 24.04 (${{ matrix.compiler }}, C++${{ matrix.cxx }})"
     runs-on: ubuntu-24.04
     outputs:
@@ -309,8 +300,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        database:
-          [
+        database: [
             "SQLite3",
             "MS SQL Server 2019",
             "MS SQL Server 2022",
@@ -335,7 +325,7 @@ jobs:
       - name: "Update APT database"
         run: sudo apt -q update
       - name: "install dependencies"
-        run: sudo apt install -y unixodbc odbcinst libuuid1 valgrind
+        run: sudo apt install -y unixodbc odbcinst libuuid1 valgrind libyaml-cpp-dev
       - name: "Setup ${{ matrix.database }}"
         id: setup
         run: bash ./.github/prepare-test-run.sh "${{ matrix.database }}"
@@ -369,17 +359,21 @@ jobs:
           fi
           $CMD_PREFIX LightweightTest
 
+      - name: "Run dbtool tests"
+        run: |
+          set -ex
+          python3 /usr/local/share/Lightweight/tests/test_dbtool.py \
+              --dbtool /usr/local/bin/dbtool \
+              --plugins-dir /usr/local/share/Lightweight/tests/plugins \
+              --connection-string "${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}"
+
   # }}}
   # {{{ Sanitizers
   sanitizers:
     strategy:
       fail-fast: false
       matrix:
-        sanitizer:
-          [
-            "asan-ubsan",
-            "tsan",
-          ]
+        sanitizer: ["asan-ubsan", "tsan"]
     name: "Sanitizers (${{ matrix.sanitizer }})"
     runs-on: ubuntu-24.04
     steps:

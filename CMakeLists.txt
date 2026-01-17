@@ -16,6 +16,7 @@ set(CMAKE_COLOR_DIAGNOSTICS ON)
 include(ClangTidy)
 include(PedanticCompiler)
 include(Sanitizers)
+include(GNUInstallDirs)
 
 find_package(reflection-cpp 0.4.0 QUIET)
 find_package(Catch2 CONFIG REQUIRED)

@@ -46,11 +46,10 @@ namespace SqlMigration
         /// Get the singleton instance of the migration manager.
         ///
         /// @return Reference to the migration manager.
-        LIGHTWEIGHT_API static MigrationManager& GetInstance()
-        {
-            static MigrationManager instance;
-            return instance;
-        }
+        /// Get the singleton instance of the migration manager.
+        ///
+        /// @return Reference to the migration manager.
+        LIGHTWEIGHT_API static MigrationManager& GetInstance();
 
         /// Add a migration to the manager.
         ///
@@ -66,7 +65,7 @@ namespace SqlMigration
         ///
         /// @param timestamp Timestamp of the migration to get.
         /// @return Pointer to the migration if found, nullptr otherwise.
-        [[nodiscard]] LIGHTWEIGHT_API MigrationBase const* GetMigration(MigrationTimestamp timestamp) const;
+        [[nodiscard]] LIGHTWEIGHT_API MigrationBase const* GetMigration(MigrationTimestamp timestamp) const noexcept;
 
         /// Remove all migrations from the manager.
         ///
@@ -81,20 +80,10 @@ namespace SqlMigration
         using ExecuteCallback =
             std::function<void(MigrationBase const& /*migration*/, size_t /*current*/, size_t /*total*/)>;
 
-        /// Apply a single migration by timestamp.
-        ///
-        /// @param timestamp Timestamp of the migration to apply.
-        LIGHTWEIGHT_API void ApplySingleMigration(MigrationTimestamp timestamp);
-
         /// Apply a single migration from a migration object.
         ///
         /// @param migration Pointer to the migration to apply.
         LIGHTWEIGHT_API void ApplySingleMigration(MigrationBase const& migration);
-
-        /// Revert a single migration by timestamp.
-        ///
-        /// @param timestamp Timestamp of the migration to revert.
-        LIGHTWEIGHT_API void RevertSingleMigration(MigrationTimestamp timestamp);
 
         /// Revert a single migration from a migration object.
         ///
@@ -139,6 +128,14 @@ namespace SqlMigration
         MigrationList _migrations;
         mutable DataMapper* _dataMapper { nullptr };
     };
+
+/// Requires the user to call LIGHTWEIGHT_MIGRATION_PLUGIN() in exactly one CPP file of the migration plugin.
+#define LIGHTWEIGHT_MIGRATION_PLUGIN()                                                                   \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */                                                     \
+    extern "C" LIGHTWEIGHT_EXPORT Lightweight::SqlMigration::MigrationManager* AcquireMigrationManager() \
+    {                                                                                                    \
+        return &Lightweight::SqlMigration::MigrationManager::GetInstance();                              \
+    }
 
     /// Represents a single unique SQL migration.
     class MigrationBase
@@ -251,11 +248,13 @@ namespace SqlMigration
 /// @code
 /// #include <Lightweight/SqlMigration.hpp>
 ///
-/// LIGHTWEIGHT_SQL_MIGRATION(2026'01'17'23'41'20, "Create table 'MyTable'")
+/// LIGHTWEIGHT_SQL_MIGRATION(20260117234120, "Create table 'MyTable'")
 /// {
-///     // ...
+///     // Use 'plan' to define the migration steps, for example creating tables.
 /// }
 /// @endcode
+///
+/// @see Lightweight::SqlMigrationQueryBuilder
 #define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)                                                         \
     struct Migration_##timestamp: public Lightweight::SqlMigration::MigrationBase                                 \
     {                                                                                                             \

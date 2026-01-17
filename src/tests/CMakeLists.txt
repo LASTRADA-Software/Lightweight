@@ -80,3 +80,16 @@ enable_testing()
 add_test(NAME LightweightTest COMMAND LightweightTest)
 
 install(TARGETS LightweightTest DESTINATION bin)
+install(FILES test_dbtool.py DESTINATION ${CMAKE_INSTALL_DATADIR}/Lightweight/tests)
+
+add_subdirectory(dummy_migration_plugin)
+add_subdirectory(dummy_migration_plugin_2)
+
+# Register dbtool integration test
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME DbToolIntegrationTest
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_dbtool.py
+        --dbtool $<TARGET_FILE:dbtool>
+        --plugins-dir ${CMAKE_BINARY_DIR}/tests/plugins
+        --connection-string "DRIVER=SQLite3;Database=test_dbtool_ctest.db"
+)

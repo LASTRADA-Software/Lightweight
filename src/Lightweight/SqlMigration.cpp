@@ -11,6 +11,13 @@ namespace Lightweight::SqlMigration
 void MigrationManager::AddMigration(MigrationBase const* migration)
 {
     _migrations.emplace_back(migration);
+    _migrations.sort([](MigrationBase const* a, MigrationBase const* b) { return a->GetTimestamp() < b->GetTimestamp(); });
+}
+
+MigrationManager& MigrationManager::GetInstance()
+{
+    static MigrationManager instance;
+    return instance;
 }
 
 MigrationManager::MigrationList const& MigrationManager::GetAllMigrations() const noexcept
@@ -18,11 +25,10 @@ MigrationManager::MigrationList const& MigrationManager::GetAllMigrations() cons
     return _migrations;
 }
 
-MigrationBase const* MigrationManager::GetMigration(MigrationTimestamp timestamp) const
+MigrationBase const* MigrationManager::GetMigration(MigrationTimestamp timestamp) const noexcept
 {
-    auto const it = std::ranges::find_if(_migrations, [timestamp](MigrationBase const* migration) {
-        return migration->GetTimestamp().value == timestamp.value;
-    });
+    auto const it = std::ranges::find_if(
+        _migrations, [timestamp](MigrationBase const* migration) { return migration->GetTimestamp() == timestamp; });
     return it != std::end(_migrations) ? *it : nullptr;
 }
 
@@ -53,7 +59,14 @@ void MigrationManager::CloseDataMapper()
 
 void MigrationManager::CreateMigrationHistory()
 {
-    GetDataMapper().CreateTable<SchemaMigration>();
+    try
+    {
+        GetDataMapper().CreateTable<SchemaMigration>();
+    }
+    catch (SqlException const&)
+    {
+        ; // TODO: Verify that the exception is indeed "table already exists".
+    }
 }
 
 std::vector<MigrationTimestamp> MigrationManager::GetAppliedMigrationIds() const
@@ -78,12 +91,6 @@ MigrationManager::MigrationList MigrationManager::GetPending() const noexcept
     return pending;
 }
 
-void MigrationManager::ApplySingleMigration(MigrationTimestamp timestamp)
-{
-    if (MigrationBase const* migration = GetMigration(timestamp); migration)
-        ApplySingleMigration(*migration);
-}
-
 void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
 {
     auto& dm = GetDataMapper();
@@ -105,12 +112,6 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
 
     dm.CreateExplicit(SchemaMigration { .version = migration.GetTimestamp().value });
     transaction.Commit();
-}
-
-void MigrationManager::RevertSingleMigration(MigrationTimestamp timestamp)
-{
-    if (MigrationBase const* migration = GetMigration(timestamp); migration)
-        RevertSingleMigration(*migration);
 }
 
 void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
