@@ -47,6 +47,12 @@ struct SqlErrorInfo
         return FromHandle(SQL_HANDLE_STMT, hStmt);
     }
 
+    /// Constructs an ODBC error info object from the given ODBC environment handle.
+    static SqlErrorInfo FromEnvironmentHandle(SQLHENV hEnv)
+    {
+        return FromHandle(SQL_HANDLE_ENV, hEnv);
+    }
+
     /// Asserts that the given result is a success code, otherwise throws an exception.
     static void RequireStatementSuccess(SQLRETURN result, SQLHSTMT hStmt, std::string_view message);
 
