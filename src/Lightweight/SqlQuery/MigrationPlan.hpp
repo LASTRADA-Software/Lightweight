@@ -371,4 +371,15 @@ struct [[nodiscard]] SqlMigrationPlan
     [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> ToSql() const;
 };
 
+/// @brief Formats the given SQL migration plan as a list of SQL statements.
+///
+/// @param formatter The SQL query formatter to use.
+/// @param plans The SQL migration plans to format.
+///
+/// @return A list of SQL statements.
+///
+/// @ingroup QueryBuilder
+[[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> ToSql(SqlQueryFormatter const& formatter,
+                                                             std::vector<SqlMigrationPlan> const& plans);
+
 } // namespace Lightweight
