@@ -210,6 +210,8 @@ class BelongsTo
         return _referencedFieldValue;
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
+
     /// Retrieves a record from the relationship. When the record is not optional
     template <typename Self>
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const& Record(this Self&& self)
@@ -254,6 +256,8 @@ class BelongsTo
         self.RequireLoaded();
         return self._record.get();
     }
+
+    // NOLINTEND(cppcoreguidelines-missing-std-forward)
 
     /// Checks if the field value is NULL.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!() const noexcept

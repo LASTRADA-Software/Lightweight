@@ -126,10 +126,10 @@ struct Field
     constexpr std::weak_ordering operator<=>(Field const& other) const noexcept;
 
     /// Compares the field value with the given value for equality.
-    constexpr bool operator==(Field const& value) const noexcept;
+    constexpr bool operator==(Field const& other) const noexcept;
 
     /// Compares the field value with the given value for inequality.
-    constexpr bool operator!=(Field const& value) const noexcept;
+    constexpr bool operator!=(Field const& other) const noexcept;
 
     /// Compares the field value with the given value for equality.
     template <typename S>

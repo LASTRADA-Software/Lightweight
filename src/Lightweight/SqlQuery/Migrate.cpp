@@ -260,4 +260,12 @@ SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::UniqueIndex()
     return *this;
 }
 
+SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::RawSql(std::string_view sql)
+{
+    _migrationPlan.steps.emplace_back(SqlRawSqlPlan {
+        .sql = sql,
+    });
+    return *this;
+}
+
 } // namespace Lightweight
