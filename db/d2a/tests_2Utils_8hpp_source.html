@@ -289,7 +289,7 @@ $(document).ready(function(){initNavTree('db/d2a/tests_2Utils_8hpp_source.html',
 <div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span> </div>
 <div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>    <span class="keywordtype">void</span> OnPrepare(std::string_view <span class="keyword">const</span>&amp; query)<span class="keyword"> override</span></div>
 <div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>        std::lock_guard lock(m_mutex);</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>        std::scoped_lock lock(m_mutex);</div>
 <div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>        m_lastPreparedQuery = query;</div>
 <div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>    }</div>
 <div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span> </div>
@@ -300,7 +300,7 @@ $(document).ready(function(){initNavTree('db/d2a/tests_2Utils_8hpp_source.html',
 <div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span> </div>
 <div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>    <span class="keywordtype">void</span> OnExecuteBatch()<span class="keyword"> override</span></div>
 <div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>        std::lock_guard lock(m_mutex);</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>        std::scoped_lock lock(m_mutex);</div>
 <div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>        WriteInfo(<span class="stringliteral">&quot;ExecuteBatch: {}&quot;</span>, m_lastPreparedQuery);</div>
 <div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>    }</div>
 <div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span> </div>
@@ -317,7 +317,7 @@ $(document).ready(function(){initNavTree('db/d2a/tests_2Utils_8hpp_source.html',
 <div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>  <span class="keyword">private</span>:</div>
 <div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>    <span class="keywordtype">void</span> WriteDetails(std::source_location sourceLocation)</div>
 <div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>    {</div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>        std::lock_guard lock(m_mutex);</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>        std::scoped_lock lock(m_mutex);</div>
 <div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>        WriteInfo(<span class="stringliteral">&quot;  Source: {}:{}&quot;</span>, sourceLocation.file_name(), sourceLocation.line());</div>
 <div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>        <span class="keywordflow">if</span> (!m_lastPreparedQuery.empty())</div>
 <div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>            WriteInfo(<span class="stringliteral">&quot;  Query: {}&quot;</span>, m_lastPreparedQuery);</div>

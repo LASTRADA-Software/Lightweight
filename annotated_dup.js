@@ -1,10 +1,19 @@
 var annotated_dup =
 [
     [ "Lightweight", null, [
+      [ "SqlMigration", null, [
+        [ "Migration", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration" ],
+        [ "MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase" ],
+        [ "MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager" ],
+        [ "MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", null ]
+      ] ],
       [ "SqlSchema", null, [
         [ "Column", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html", null ],
         [ "EventHandler", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler" ],
         [ "Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", "d3/dda/structLightweight_1_1SqlSchema_1_1Table" ]
+      ] ],
+      [ "Tools", null, [
+        [ "PluginLoader", "d3/df0/classLightweight_1_1Tools_1_1PluginLoader.html", null ]
       ] ],
       [ "BelongsTo", "d0/df7/classLightweight_1_1BelongsTo.html", "d0/df7/classLightweight_1_1BelongsTo" ],
       [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html", "de/d61/classLightweight_1_1DataMapper" ],
@@ -42,6 +51,7 @@ var annotated_dup =
       [ "SqlNumeric", "d6/d1b/structLightweight_1_1SqlNumeric.html", "d6/d1b/structLightweight_1_1SqlNumeric" ],
       [ "SqlQueryBuilder", "de/da0/classLightweight_1_1SqlQueryBuilder.html", "de/da0/classLightweight_1_1SqlQueryBuilder" ],
       [ "SqlQueryFormatter", "d8/df7/classLightweight_1_1SqlQueryFormatter.html", "d8/df7/classLightweight_1_1SqlQueryFormatter" ],
+      [ "SqlRawSqlPlan", "dc/d47/structLightweight_1_1SqlRawSqlPlan.html", "dc/d47/structLightweight_1_1SqlRawSqlPlan" ],
       [ "SqlRealName", "d7/d13/structLightweight_1_1SqlRealName.html", null ],
       [ "SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html", null ],
       [ "SqlResultCursor", "d8/d63/classLightweight_1_1SqlResultCursor.html", "d8/d63/classLightweight_1_1SqlResultCursor" ],

@@ -1,0 +1,17 @@
+var classLightweight_1_1SqlMigration_1_1MigrationManager =
+[
+    [ "AddMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1e2638d4b642e5692df3d2ab24e199a4", null ],
+    [ "GetAllMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a265744d717ca33feffc27bb6c024bb07", null ],
+    [ "GetMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a56194b41fc9b404256d379bd51f5002d", null ],
+    [ "RemoveAllMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a301e0219e6dcd600640c63e5b53839eb", null ],
+    [ "GetPending", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a5f02a99faee92eb68b52a9cb49876c0e", null ],
+    [ "ApplySingleMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#add42626ceb43ee64238c5a1dd0d0d27f", null ],
+    [ "RevertSingleMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a416865e209264f27605aff0e547e7d66", null ],
+    [ "ApplyPendingMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a9f6136aee1902543bdb428d6890574ee", null ],
+    [ "CreateMigrationHistory", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aa670c82bec993bd89189cb4a37007572", null ],
+    [ "GetAppliedMigrationIds", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae7a7e92f9a2ef9cb11402812eaac3566", null ],
+    [ "GetDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094", null ],
+    [ "GetDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322", null ],
+    [ "CloseDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a424f1fa714b26c7b4b0a63a05dccc4b8", null ],
+    [ "Transaction", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a53933c029c1d92dfc61c2301f6d1aa81", null ]
+];
