@@ -41,17 +41,8 @@
       .reveal li {
         margin-bottom: 0.5em;
       }
-      .reveal .slides {
-        width: 100% !important;
-        max-width: 1800px !important;
-      }
-      .reveal .slides > section,
-      .reveal .slides > section > section {
-        padding: 0 20px;
-      }
       .reveal pre {
         width: 100%;
-        margin-left: -5%;
         font-size: 0.5em;
         font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
         box-sizing: border-box;
@@ -464,13 +455,18 @@ dm.Query&lt;Person&gt;().All&lt;^^Person::age&gt;();</code></pre>
     <script src="reveal.js/plugin/zoom/zoom.js"></script>
     <script>
       Reveal.initialize({
-      hash: true,
-      slideNumber: true,
-      progress: true,
-      history: true,
-      center: true,
-      transition: 'slide',
-      plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealZoom ]
+        width: 1400,
+        height: 900,
+        margin: 0.04,
+        minScale: 0.2,
+        maxScale: 2.0,
+        hash: true,
+        slideNumber: true,
+        progress: true,
+        history: true,
+        center: true,
+        transition: 'slide',
+        plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealZoom ]
       });
     </script>
   </body>
