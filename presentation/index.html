@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Lightweight - C++23 ODBC SQL Wrapper</title>
+
+    <link rel="stylesheet" href="node_modules/reveal.js/dist/reset.css">
+    <link rel="stylesheet" href="node_modules/reveal.js/dist/reveal.css">
+    <link rel="stylesheet" href="node_modules/reveal.js/dist/theme/simple.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/foundation.min.css">
+
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+
+      .reveal {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 32px;
+        font-weight: 400;
+        line-height: 1.5;
+      }
+      .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+      .reveal h1 { font-size: 2.2em; }
+      .reveal h2 { font-size: 1.6em; }
+      .reveal h3 { font-size: 1.3em; }
+      .reveal h4 { font-size: 1.1em; }
+      .reveal p, .reveal li {
+        font-size: 0.9em;
+        line-height: 1.6;
+      }
+      .reveal ul, .reveal ol {
+        display: block;
+        margin-left: 1em;
+      }
+      .reveal li {
+        margin-bottom: 0.5em;
+      }
+      .reveal .slides {
+        width: 100% !important;
+        max-width: 1800px !important;
+      }
+      .reveal .slides > section,
+      .reveal .slides > section > section {
+        padding: 0 20px;
+      }
+      .reveal pre {
+        width: 100%;
+        margin-left: -5%;
+        font-size: 0.5em;
+        font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+        box-sizing: border-box;
+      }
+      .reveal pre code {
+        max-height: 550px;
+        padding: 15px;
+        font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+        line-height: 1.4;
+        font-size: 1.8em;
+      }
+      .reveal table {
+        font-size: 0.85em;
+      }
+      .reveal strong {
+        font-weight: 600;
+      }
+      /* All code lines - consistent left border space */
+      .reveal pre code .hljs-ln-line,
+      .reveal pre code tr {
+        border-left: 4px solid transparent;
+      }
+      /* Highlighted code lines */
+      .reveal pre code .hljs-ln-line.highlight-line,
+      .reveal pre code tr.highlight-line {
+        background-color: rgba(184, 255, 181, 0.7);
+        border-left: 4px solid #f5a623;
+      }
+      /* Non-highlighted lines when stepping through */
+      .reveal pre code[data-line-numbers-showing] .hljs-ln-line:not(.highlight-line),
+      .reveal pre code[data-line-numbers-showing] tr:not(.highlight-line) {
+        opacity: 0.4;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+
+        <!-- Title Slide -->
+        <section>
+          <h1>Lightweight</h1>
+          <h3>ODBC SQL Wrapper Library</h3>
+          <p>Thin, fast, and easy-to-use database access for C++</p>
+        </section>
+
+        <!-- What is Lightweight -->
+        <section>
+          <h2>What is Lightweight?</h2>
+          <ul>
+            <li><strong>Thin ODBC wrapper</strong> for C++23</li>
+            <li>Provides <strong>both low-level and high-level</strong> APIs</li>
+            <li>Supports multiple databases through ODBC</li>
+            <li>Modern C++ features with <strong>type safety</strong></li>
+            <li><strong>Experimental C++26 reflection</strong> support</li>
+          </ul>
+        </section>
+
+        <!-- API Levels -->
+        <section>
+          <h2>Abstraction layers</h2>
+            <ul>
+                <li><strong>Low-Level API</strong>: Direct ODBC access</li>
+                <ul>
+                    <li>Connection</li>
+                    <li>Statement execution</li>
+                    <li>Result handling</li>
+                </ul>
+                <li><strong>Query builder</strong>: SQL query construction</li>
+                <li><strong>Data Mapper</strong>: Object-relational mapping (ORM) for C++ objects</li>
+        </section>
+
+        <!-- Low level api -->
+        <section>
+          <section>
+            <h2>Low Level API: Building blocks</h2>
+            <ul>
+                <li><strong>SqlStatement</strong>: Main entry point for database communication</li>
+            <ul>
+                <li>Prepare</li>
+                <li>Execute</li>
+                <li>ExecuteBatch</li>
+                <li>Bind*</li>
+            </ul>
+                <li><strong>SqlTransaction</strong>: Transaction handling</li>
+                <li><strong>SqlMigration</strong>: Database schema updates</li>
+          </section>
+          <section>
+            <h2>Low Level API: Insert data</h2>
+            <pre><code class="language-cpp"  data-line-numbers="|1-2|4-7|"  >SetDefaultConnectionString( { "DRIVER=SQLite3;Database=test.sqlite"});
+auto stmt = Lightweight::SqlStatement {};
+
+stmt.Prepare(R"(INSERT INTO "Employees" ("FirstName", "LastName", "Salary") VALUES (?, ?, ?))");
+stmt.Execute("Alice", "Smith", 5);
+stmt.Execute("Bob", "Johnson", 6);
+stmt.Execute("Charlie", "Brown", 7);
+            </code></pre>
+          </section>
+          <section>
+          <h2>Low Level API: Fetch data</h2>
+          <pre><code class="language-cpp" data-line-numbers="|1-2|4-7|9-15|" >stmt.Prepare(R"(SELECT "FirstName", "LastName", "Salary" FROM "Employees" WHERE "Salary" >= ?)");
+stmt.Execute(6);
+
+(void) stmt.FetchRow();
+stmt.GetColumn&lt;std::string&gt;(1) // "Bob"
+stmt.GetColumn&lt;std::string&gt;(2) // "Johnson"
+stmt.GetColumn&lt;int&gt;(3)         // 6
+
+SqlResultCursor cursor = stmt.GetResultCursor();
+auto record = Record {};
+cursor.BindOutputColumns&lt;Record&gt;(&amp;record.a, &amp;record.b, &amp;record.c);
+(void) stmt.FetchRow();
+// record.a == "Charlie"
+// record.b == "Brown"
+// record.c == 7 </code></pre>
+          </section>
+          <section>
+          <h2>Low Level API: How to extend</h2>
+          <pre><code class="language-cpp"  data-line-numbers="|1-2|4-12|8-10|13-15|">template &lt;typename&gt;
+struct SqlDataBinder;
+
+template &lt;typename T, SQLSMALLINT TheCType, SQLINTEGER TheSqlType, auto TheColumnType&gt;
+struct SqlSimpleDataBinder
+{
+    static constexpr SqlColumnTypeDefinition ColumnType = TheColumnType;
+    SQLRETURN InputParameter(..., T const&amp; value,...);
+    SQLRETURN OutputColumn(..., T* result, ...)
+    SQLRETURN GetColumn(...,T* result, ...)
+    std::string Inspect(T value);
+};
+template &lt;&gt;
+struct SqlDataBinder&lt;int32_t&gt;:
+    SqlSimpleDataBinder&lt;int32_t, SQL_C_SLONG, SQL_INTEGER, SqlColumnTypeDefinitions::Integer {}&gt; {};</code></pre>
+          </section>
+          <section>
+          <h2>Low Level API: Nullable columns</h2>
+          <pre><code class="language-cpp"  data-line-numbers="|1-2|4-13|6-9|">template &lt;typename T&gt;
+struct SqlDataBinder&lt;std::optional&lt;T&gt;&gt;
+{
+    SQLRETURN InputParameter(...,OptionalValue const&amp; value,...)
+    {
+        if (value.has_value())
+            return SqlDataBinder&lt;T&gt;::InputParameter(stmt, column, *value, cb);
+        else
+            return SqlDataBinder&lt;SqlNullType&gt;::InputParameter(stmt, column, SqlNullValue, cb);
+    }
+    SQLRETURN OutputColumn(..., T* result, ...)
+    SQLRETURN GetColumn(...,T* result, ...)
+    std::string Inspect(T value);
+};</code></pre>
+          </section>
+
+          <section>
+          <h2>Low Level API: Some problematic points</h2>
+          <pre><code class="language-cpp">template &lt;typename Utf16StringType&gt;
+struct SqlDataBinder&lt;Utf16StringType&gt;
+{
+    static SQLRETURN InputParameter(...) noexcept
+    {
+        switch (cb.ServerType())
+        {
+            case SqlServerType::POSTGRESQL: {
+                ...
+            }
+            case SqlServerType::ORACLE:
+            case SqlServerType::MYSQL:
+            case SqlServerType::SQLITE: // We assume UTF-16 for SQLite
+            case SqlServerType::MICROSOFT_SQL:
+            case SqlServerType::UNKNOWN: {
+                ...
+            }
+        }
+        std::unreachable();
+    }
+};
+</code></pre>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h2>Query builder</h2>
+          </section>
+          <section>
+                <h2>Query builder: Example</h2>
+                <pre><code class="language-cpp">
+auto query = stmt.Query().FromTable("That").Select().Fields("foo", "bar").OrderBy("id").Range(200, 50);
+// SELECT "foo", "bar" FROM "That" ORDER BY "id" ASC LIMIT 50 OFFSET 200
+stmt.Execute(query);</code></pre>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h2>Base API</h2>
+          <ul>
+            <li>Read/Write</li>
+            <li>Database independent query building</li>
+            <li>Bug prone</li>
+          </ul>
+            <h3>Solution</h3>
+          <ul>
+            <li>Generate booilerplate using external tools</li>
+            <li>User variant-like interface without explicit column names</li>
+          </ul>
+          </section>
+        </section>
+
+        <section>
+          <section>
+            <h2>DataMapper</h2>
+          <p>
+            Inspired by: <a href="https://github.com/stephenberry/glaze">stephenberry/glaze</a>, a serialization library for C++17 and beyond using compile-time reflection.
+          <pre><code class="language-cpp">struct my_struct
+{
+  int i = 287;
+  double d = 3.14;
+  std::string hello = "Hello World";
+  std::array&lt;uint64_t, 3&gt; arr = { 1, 2, 3 };
+  std::map&lt;std::string, int&gt; map{{"one", 1}, {"two", 2}};
+};
+my_struct s{};
+std::string buffer = glz::write_json(s).value_or("error");</code></pre>
+
+          </p>
+          Implementation similar to <a href="https://github.com/boostorg/pfr">boostorg/pfr</a>
+          <pre><code class="language-cpp">boost::pfr::get&lt;1&gt;(s); // returns int&amp; to my_struct::i</code></pre>
+
+            Similar libraries: <a href="https://github.com/getml/sqlgen"> getml/sqlgen</a>
+          </section>
+
+          <section>
+            <h2>DataMapper: Load data</h2>
+<pre><code class="language-cpp" data-line-numbers="|1|2-3|4-5|6-8|9-10|11-13|" >auto dm = DataMapper();
+// Load all Persons
+std::vector&lt;Person&gt; users = dm.Query&lt;Person&gt;().All();
+// Person with primary key 42
+std::optional&lt;Person&gt; user = dm.QuerySingle&lt;Person&gt;(42);
+// First user with the name "John"
+std::optional&lt;Person&gt; userByName = dm.Query&lt;Person&gt;()
+                                    .Where(FieldNameOf&lt;&amp;Person::name&gt;, "=", "John").First();
+// Load Persons, but only their ages
+std::vector&lt;Person&gt; usersWithAge = dm.Query&lt;Person&gt;().All&lt;&amp;Person::age&gt;();
+// Load Persons and Phone Numbers by joining tables
+vector&lt;tuple&lt;Person, PhoneNumber&gt;&gt; personsAndPhoneNumbers = dm.Query&lt;Person, PhoneNumber&gt;()
+                                     .InnerJoin&lt;&amp;PhoneNumber::personId, &amp;Person::id&gt;().All();</code></pre>
+          </section>
+
+          <section>
+            <h2>DataMapper: Entity</h2>
+            <pre><code class="language-cpp">struct Person
+{
+    Field&lt;Light::SqlGuid, Light::PrimaryKey::AutoAssign&gt; id;
+    Field&lt;Light::SqlAnsiString&lt;25&gt;&gt; name;
+    Field&lt;bool, SqlRealName { "active" }&gt; is_active { true };
+    Field&lt;std::optional&lt;int&gt;&gt; age;
+};
+
+template &lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::nullopt&gt;
+struct Field
+{
+    [[nodiscard]] constexpr T const& Value() const noexcept;
+};
+</code></pre>
+          </section>
+
+          <section>
+            <h2>DataMapper: Foreign key relation</h2>
+            <pre><code class="language-cpp">struct PhoneNumber
+{
+    ...
+    // Foreign key to Person
+    BelongsTo&lt;&ampPerson::id, Light::SqlRealName{"person_id"}&gt; person;
+};
+
+auto number = dm.QuerySingle&lt;PersonNumber&gt;(42).value();
+number.person.Value(); // return the value of the foreign key
+number.person->name.Value(); // Lazily loads the related Person entity
+</code></pre>
+          </section>
+
+          <section>
+            <h2>DataMapper: Nullable foreign keys</h2>
+            <pre><code class="language-cpp"  data-line-numbers="|1|3-4|6-11|8-9|10|12-13|" >BelongsTo&lt;&ampPerson::id, Light::SqlRealName{"person_id"}, Light::SqlNullable::Null&gt; person;
+
+auto number = dm.QuerySingle&lt;PersonNumber&gt;(42).value();
+number.person->name.Value(); // Might not exist in the database
+
+template <...> class BelongsTo
+{
+    ReferencedRecord* operator->(this Self&& self) requires(IsMandatory) {...}
+    ReferencedRecord const& Record(this Self&& self) requires(IsMandatory) {...}
+    decltype(auto) Record(this Self&& self) requires(IsOptional) {...}
+};
+// Make sure user knows it might be null
+number.person.Record().transform(Light::Unwrap).value_or({}).name;
+</code></pre>
+          </section>
+          <section>
+            <h2>DataMapper: Other relations</h2>
+            <pre><code class="language-cpp"  data-line-numbers="|2,7,12-13|3,8|" >struct Physician{
+    Light::HasMany&lt;Appointment&gt; appointments;
+    Light::HasManyThrough&lt;Patient, Appointment&gt; patients;
+};
+
+struct Patient{
+    Light::HasMany&lt;Appointment&gt; appointments;
+    Light::HasManyThrough&lt;Physician, Appointment&gt; physicians;
+};
+
+struct Appointment{
+    Light::BelongsTo&lt;Member(Physician::id), Light::SqlRealName { "physician_id" }&gt; physician;
+    Light::BelongsTo&lt;Member(Patient::id), Light::SqlRealName { "patient_id" }&gt; patient;
+};</code></pre>
+          </section>
+
+          </section>
+
+
+        <!-- ddl2cpp -->
+        <section>
+          <section>
+            <h2>Tools: ddl2cpp</h2>
+            <p>Generate C++ code from database schema:</p>
+            <pre><code class="language-bash"># Generate models from existing database
+Usage: ./ddl2cpp [options] [database] [schema]
+Options:
+--trace-sql             Enable SQL tracing
+--connection-string STR ODBC connection string
+--database STR          Database name
+--schema STR            Schema name
+--create-test-tables    Create test tables
+--output STR            Output directory, for every table separate header file will be created
+--generate-example      Generate usage example code
+using generated header and database connection
+--make-aliases          Create aliases for the tables and members
+--naming-convention STR Naming convention for aliases
+[none, snake_case, camelCase]
+--no-warnings           Suppresses warnings
+--help, -h              Display this information
+            </code></pre>
+
+          </section>
+          <section>
+            <h3>Generated header file</h3>
+            <h4>Track.hpp</h4>
+            <pre><code class="language-cpp" data-line-numbers="|3|5-6,10-13|7-9|" >struct Track final
+{
+    static constexpr std::string_view TableName = "Track";
+
+    Field&lt;int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "TrackId" }&gt; TrackId;
+    Field&lt;SqlDynamicUtf16String&lt;200&gt;, SqlRealName { "Name" }&gt; Name;
+    BelongsTo&lt;&amp;Album::AlbumId, SqlRealName { "AlbumId" }, SqlNullable::Null&gt; AlbumId;
+    BelongsTo&lt;&amp;Mediatype::MediaTypeId, SqlRealName { "MediaTypeId" }&gt; MediaTypeId;
+    BelongsTo&lt;&amp;Genre::GenreId, SqlRealName { "GenreId" }, SqlNullable::Null&gt; GenreId;
+    Field&lt;std::optional&lt;SqlDynamicUtf16String&lt;220&gt;&gt;, SqlRealName { "Composer" }&gt; Composer;
+    Field&lt;int32_t, SqlRealName { "Milliseconds" }&gt; Milliseconds;
+    Field&lt;std::optional&lt;int32_t&gt;, SqlRealName { "Bytes" }&gt; Bytes;
+    Field&lt;SqlNumeric&lt;10, 2&gt;, SqlRealName { "UnitPrice" }&gt; UnitPrice;
+};
+            </code></pre>
+          </section>
+
+        </section>
+
+        <section>
+          <section>
+            <h1>Outlook</h1>
+          </section>
+          <section>
+            <h1>Outlook: C++26 reflection</h1>
+            We implemented support for the c++26 reflection, the syntax will change, and instead of `&` user have to use `^^`
+<pre><code class="language-cpp" data-line-numbers="|3|5-6,10-13|7-9|" >dm.Query&lt;Person&gt;().All&lt;&amp;Person::age&gt;();
+dm.Query&lt;Person&gt;().All&lt;^^Person::age&gt;();</code></pre>
+          </section>
+          <section>
+            <h1>Outlook: Annotations</h1>
+            <p>Instead of template arguments, use C++26 annotations for cleaner syntax:</p>
+            <pre><code class="language-cpp"  data-line-numbers="|3-4|4,6,8,10,12|3,5,7,9,11|" >struct Track final
+{
+    [[=PrimaryKey::ServerSideAutoIncrement, =SqlRealName("TrackId")]]
+    int32_t TrackId;
+    [[=SqlRealName("Name")]]
+    SqlDynamicUtf16String&lt;200&gt; Name;
+    [[=SqlRealName("AlbumId"), SqlNullable::Null, ]]
+    BelongsTo&lt;^^Album::AlbumId&rt; AlbumId;
+    [[=SqlRealName("Composer")]]
+    std::optional&lt;SqlDynamicUtf16String&lt;220&gt;&gt; Composer;
+    [[=SqlRealName("UnitPrice")]]
+    SqlNumeric&lt;10, 2&gt; UnitPrice;
+};</code></pre>
+          </section>
+        </section>
+
+        <!-- Thank You -->
+        <section>
+          <h1>Questions?</h1>
+          <p>
+            <a href="https://github.com/LASTRADA-Software/Lightweight">github.com/LASTRADA-Software/Lightweight</a>
+          </p>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="node_modules/reveal.js/dist/reveal.js"></script>
+    <script src="node_modules/reveal.js/plugin/notes/notes.js"></script>
+    <script src="node_modules/reveal.js/plugin/markdown/markdown.js"></script>
+    <script src="node_modules/reveal.js/plugin/highlight/highlight.js"></script>
+    <script src="node_modules/reveal.js/plugin/zoom/zoom.js"></script>
+    <script>
+      Reveal.initialize({
+      hash: true,
+      slideNumber: true,
+      progress: true,
+      history: true,
+      center: true,
+      transition: 'slide',
+      plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealZoom ]
+      });
+    </script>
+  </body>
+</html>
