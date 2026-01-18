@@ -9,7 +9,9 @@ on:
       - 'src/**'
       - 'presentation/**'
       - '.github/workflows/docs.yml'
-  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
 
 concurrency:
   group: docs-${{ github.ref }}
@@ -48,7 +50,7 @@ jobs:
 
       - name: Install presentation dependencies
         working-directory: presentation
-        run: npm install
+        run: npm ci
 
       - name: Build presentation
         working-directory: presentation
