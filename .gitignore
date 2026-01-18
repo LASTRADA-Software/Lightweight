@@ -10,9 +10,16 @@ vcpkg_installed/
 CMakeSettings.json
 compile_commands.json
 *.sqlite
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.zip
 /html/
 .aider*
 /ddl2cpp.yml
 /test.db
 _codeql_build_dir/
 _codeql_detected_source_root
+.test-env.yml
+sandbox
