@@ -29,6 +29,12 @@ namespace detail
     };
 
     template <>
+    struct SqlColumnTypeDefinitionOf<std::string>
+    {
+        static constexpr auto value = SqlColumnTypeDefinitions::Text {};
+    };
+
+    template <>
     struct SqlColumnTypeDefinitionOf<bool>
     {
         static constexpr auto value = SqlColumnTypeDefinitions::Bool {};
@@ -223,12 +229,6 @@ struct SqlCreateTablePlan
 {
     std::string tableName;
     std::vector<SqlColumnDeclaration> columns;
-};
-
-enum class SqlNullable : uint8_t
-{
-    NotNull,
-    Null,
 };
 
 namespace SqlAlterTableCommands

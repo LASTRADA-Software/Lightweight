@@ -65,6 +65,7 @@ set(SOURCE_FILES
     DataMapper/ReadTests.cpp
     DataMapper/RelationTests.cpp
     MigrationTests.cpp
+    MigrationReflectionTests.cpp
     QueryBuilderTests.cpp
     UnicodeConverterTests.cpp
     UtilsTests.cpp

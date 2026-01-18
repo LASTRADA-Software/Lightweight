@@ -4,10 +4,15 @@
 
 #include "../DataBinder/Core.hpp"
 #include "../DataBinder/SqlNullValue.hpp"
-#include "../SqlStatement.hpp"
+#include "../SqlColumnTypeDefinitions.hpp"
 #include "../Utils.hpp"
 #include "Error.hpp"
 #include "Field.hpp"
+
+namespace Lightweight
+{
+class SqlStatement;
+}
 
 #include <compare>
 #include <optional>
@@ -279,7 +284,8 @@ class BelongsTo
         return *_record;
     }
 
-    LIGHTWEIGHT_FORCE_INLINE void BindOutputColumn(SQLSMALLINT outputIndex, SqlStatement& stmt)
+    template <typename Stmt>
+    LIGHTWEIGHT_FORCE_INLINE void BindOutputColumn(SQLSMALLINT outputIndex, Stmt& stmt)
     {
         stmt.BindOutputColumn(outputIndex, &_referencedFieldValue);
     }

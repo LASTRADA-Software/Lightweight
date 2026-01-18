@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "../DataMapper/BelongsTo.hpp"
+#include "../DataMapper/Field.hpp"
+#include "../DataMapper/Record.hpp"
+#include "../Utils.hpp"
 #include "Core.hpp"
 #include "MigrationPlan.hpp"
 
@@ -82,9 +86,33 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// Adds a new column to the table that is non-nullable.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumn(std::string columnName, SqlColumnTypeDefinition columnType);
 
+    /// Adds a new column to the table that is non-nullable.
+    ///
+    /// @tparam MemberPointer The pointer to the member field in the record.
+    ///
+    /// @see AddColumn(std::string, SqlColumnTypeDefinition)
+    template <auto MemberPointer>
+    SqlAlterTableQueryBuilder& AddColumn()
+    {
+        return AddColumn(std::string(FieldNameOf<MemberPointer>),
+                         SqlColumnTypeDefinitionOf<ReferencedFieldTypeOf<MemberPointer>>);
+    }
+
     /// Adds a new column to the table that is nullable.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddNotRequiredColumn(std::string columnName,
                                                                     SqlColumnTypeDefinition columnType);
+
+    /// Adds a new column to the table that is nullable.
+    ///
+    /// @tparam MemberPointer The pointer to the member field in the record.
+    ///
+    /// @see AddNotRequiredColumn(std::string, SqlColumnTypeDefinition)
+    template <auto MemberPointer>
+    SqlAlterTableQueryBuilder& AddNotRequiredColumn()
+    {
+        return AddNotRequiredColumn(std::string(FieldNameOf<MemberPointer>),
+                                    SqlColumnTypeDefinitionOf<ReferencedFieldTypeOf<MemberPointer>>);
+    }
 
     /// @brief Alters the column to have a new non-nullable type.
     ///
@@ -204,6 +232,103 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
 
     /// Drops a table.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& DropTable(std::string_view tableName);
+
+    /// Creates a new table for the given record type.
+    template <typename Record>
+    SqlCreateTableQueryBuilder CreateTable()
+    {
+        static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+
+        auto builder = CreateTable(RecordTableName<Record>);
+
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+        constexpr auto ctx = std::meta::access_context::current();
+        template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+        {
+            using FieldType = typename[:std::meta::type_of(el):];
+            if constexpr (FieldWithStorage<FieldType>)
+            {
+                if constexpr (IsAutoIncrementPrimaryKey<FieldType>)
+                    builder.PrimaryKeyWithAutoIncrement(std::string(FieldNameOf<el>),
+                                                        SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
+                else if constexpr (FieldType::IsPrimaryKey)
+                    builder.PrimaryKey(std::string(FieldNameOf<el>),
+                                       SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
+                else if constexpr (IsBelongsTo<FieldType>)
+                {
+                    constexpr size_t referencedFieldIndex = []() constexpr -> size_t {
+                        auto index = size_t(-1);
+                        Reflection::EnumerateMembers<typename FieldType::ReferencedRecord>(
+                            [&index]<size_t J, typename ReferencedFieldType>() constexpr -> void {
+                                if constexpr (IsField<ReferencedFieldType>)
+                                    if constexpr (ReferencedFieldType::IsPrimaryKey)
+                                        index = J;
+                            });
+                        return index;
+                    }();
+                    builder.ForeignKey(
+                        std::string(FieldNameOf<el>),
+                        SqlColumnTypeDefinitionOf<typename FieldType::ValueType>,
+                        SqlForeignKeyReferenceDefinition {
+                            .tableName = std::string { RecordTableName<typename FieldType::ReferencedRecord> },
+                            .columnName = std::string { FieldNameOf<FieldType::ReferencedField> } });
+                }
+                else if constexpr (FieldType::IsMandatory)
+                    builder.RequiredColumn(std::string(FieldNameOf<el>),
+                                           SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
+                else
+                    builder.Column(std::string(FieldNameOf<el>), SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
+            }
+        }
+#else
+        Reflection::EnumerateMembers<Record>([&builder]<size_t I, typename FieldType>() {
+            if constexpr (FieldWithStorage<FieldType>)
+            {
+                if constexpr (IsAutoIncrementPrimaryKey<FieldType>)
+                    builder.PrimaryKeyWithAutoIncrement(std::string(FieldNameAt<I, Record>),
+                                                        SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
+                else if constexpr (FieldType::IsPrimaryKey)
+                    builder.PrimaryKey(std::string(FieldNameAt<I, Record>),
+                                       SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
+                else if constexpr (IsBelongsTo<FieldType>)
+                {
+                    constexpr size_t referencedFieldIndex = []() constexpr -> size_t {
+                        auto index = size_t(-1);
+                        Reflection::EnumerateMembers<typename FieldType::ReferencedRecord>(
+                            [&index]<size_t J, typename ReferencedFieldType>() constexpr -> void {
+                                if constexpr (IsField<ReferencedFieldType>)
+                                    if constexpr (ReferencedFieldType::IsPrimaryKey)
+                                        index = J;
+                            });
+                        return index;
+                    }();
+                    builder.ForeignKey(
+                        std::string(FieldNameAt<I, Record>),
+                        SqlColumnTypeDefinitionOf<typename FieldType::ValueType>,
+                        SqlForeignKeyReferenceDefinition {
+                            .tableName = std::string { RecordTableName<typename FieldType::ReferencedRecord> },
+                            .columnName =
+                                std::string { FieldNameAt<referencedFieldIndex, typename FieldType::ReferencedRecord> } });
+                }
+                else if constexpr (FieldType::IsMandatory)
+                    builder.RequiredColumn(std::string(FieldNameAt<I, Record>),
+                                           SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
+                else
+                    builder.Column(std::string(FieldNameAt<I, Record>),
+                                   SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
+            }
+        });
+#endif
+        return builder;
+    }
+
+    /// Alters an existing table.
+    template <typename Record>
+    SqlAlterTableQueryBuilder AlterTable()
+    {
+        static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+        return AlterTable(RecordTableName<Record>);
+    }
 
     /// Executes raw SQL.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& RawSql(std::string_view sql);

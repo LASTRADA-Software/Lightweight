@@ -6,6 +6,7 @@
     #include <Windows.h>
 #endif
 
+#include <cstdint>
 #include <optional>
 #include <variant>
 
@@ -14,6 +15,13 @@
 
 namespace Lightweight
 {
+
+/// @brief Represents if a column is nullable or not.
+enum class SqlNullable : uint8_t
+{
+    NotNull,
+    Null,
+};
 
 namespace SqlColumnTypeDefinitions
 {
