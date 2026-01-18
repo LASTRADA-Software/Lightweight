@@ -41,17 +41,8 @@
       .reveal li {
         margin-bottom: 0.5em;
       }
-      .reveal .slides {
-        width: 100% !important;
-        max-width: 1800px !important;
-      }
-      .reveal .slides > section,
-      .reveal .slides > section > section {
-        padding: 0 20px;
-      }
       .reveal pre {
         width: 100%;
-        margin-left: -5%;
         font-size: 0.5em;
         font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
         box-sizing: border-box;
@@ -61,7 +52,7 @@
         padding: 15px;
         font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
         line-height: 1.4;
-        font-size: 1.8em;
+        font-size: 1.6em;
       }
       .reveal table {
         font-size: 0.85em;
@@ -85,6 +76,85 @@
       .reveal pre code[data-line-numbers-showing] tr:not(.highlight-line) {
         opacity: 0.4;
       }
+      /* Gantt Timeline styles */
+      .gantt-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2em;
+        margin-top: 0.5em;
+      }
+      .author-gantt {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1em 1.5em;
+      }
+      .author-gantt h3 {
+        margin: 0 0 0.8em 0;
+        font-size: 1.1em;
+        color: #2c3e50;
+      }
+      .gantt-chart {
+        position: relative;
+        font-size: 0.55em;
+      }
+      .gantt-header {
+        display: flex;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 0.5em;
+        margin-bottom: 0.5em;
+        margin-left: 80px;
+      }
+      .gantt-year {
+        flex: 1;
+        text-align: center;
+        font-weight: 600;
+        color: #6c757d;
+      }
+      .gantt-row {
+        display: flex;
+        align-items: center;
+        height: 36px;
+        margin-bottom: 4px;
+      }
+      .gantt-label {
+        width: 80px;
+        font-weight: 600;
+        font-size: 0.95em;
+        color: #495057;
+      }
+      .gantt-bars {
+        flex: 1;
+        position: relative;
+        height: 28px;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent calc(100% / 11 - 1px),
+          #e9ecef calc(100% / 11 - 1px),
+          #e9ecef calc(100% / 11)
+        );
+      }
+      .gantt-bar {
+        position: absolute;
+        height: 24px;
+        top: 2px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.9em;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+      .lang-cpp { background: linear-gradient(135deg, #667eea, #764ba2); }
+      .lang-delphi { background: linear-gradient(135deg, #ee0979, #ff6a00); }
+      .lang-ruby { background: linear-gradient(135deg, #6495ed, #ff6a00); }
+      .lang-fsharp { background: linear-gradient(135deg, #ee0979, #ffbbff); }
+      .lang-julia { background: linear-gradient(135deg, #11998e, #38ef7d); }
+      .lang-python { background: linear-gradient(135deg, #3776ab, #ffd43b); }
+      .lang-java { background: linear-gradient(135deg, #007396, #ed8b00); }
+      .lang-assembly { background: linear-gradient(135deg, #3776ab, #ffd43b); }
     </style>
   </head>
   <body>
@@ -110,6 +180,128 @@
           </ul>
         </section>
 
+        <!-- Authors -->
+        <section>
+          <h2>Authors</h2>
+          <div class="gantt-container">
+            <!-- Author 1 -->
+            <div class="author-gantt">
+              <h3>Christian Parpart</h3>
+              <div class="gantt-chart">
+                <div class="gantt-header">
+                  <span class="gantt-year">91</span>
+                  <span class="gantt-year">92</span>
+                  <span class="gantt-year">93</span>
+                  <span class="gantt-year">94</span>
+                  <span class="gantt-year">95</span>
+                  <span class="gantt-year">96</span>
+                  <span class="gantt-year">97</span>
+                  <span class="gantt-year">98</span>
+                  <span class="gantt-year">99</span>
+                  <span class="gantt-year">00</span>
+                  <span class="gantt-year">01</span>
+                  <span class="gantt-year">02</span>
+                  <span class="gantt-year">03</span>
+                  <span class="gantt-year">04</span>
+                  <span class="gantt-year">05</span>
+                  <span class="gantt-year">06</span>
+                  <span class="gantt-year">07</span>
+                  <span class="gantt-year">08</span>
+                  <span class="gantt-year">09</span>
+                  <span class="gantt-year">10</span>
+                  <span class="gantt-year">11</span>
+                  <span class="gantt-year">12</span>
+                  <span class="gantt-year">13</span>
+                  <span class="gantt-year">14</span>
+                  <span class="gantt-year">15</span>
+                  <span class="gantt-year">16</span>
+                  <span class="gantt-year">17</span>
+                  <span class="gantt-year">18</span>
+                  <span class="gantt-year">19</span>
+                  <span class="gantt-year">20</span>
+                  <span class="gantt-year">21</span>
+                  <span class="gantt-year">22</span>
+                  <span class="gantt-year">23</span>
+                  <span class="gantt-year">24</span>
+                  <span class="gantt-year">25</span>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">C++</span>
+                  <div class="gantt-bars">
+                    <div class="gantt-bar lang-cpp" style="left: 0%; width: 100%;">C++</div>
+                  </div>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">Assembly</span>
+                  <div class="gantt-bars">
+                    <div class="gantt-bar lang-assembly" style="left: 5%; width: 20.0%;">Assembly</div>
+                  </div>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">Object Pascal</span>
+                  <div class="gantt-bars">
+                    <div class="gantt-bar lang-delphi" style="left: 15%; width: 10.0%;">Object Pascal</div>
+                  </div>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">Ruby</span>
+                  <div class="gantt-bars">
+                    <div class="gantt-bar lang-ruby" style="left: 61%; width: 15.0%;">Ruby</div>
+                  </div>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">F#</span>
+                  <div class="gantt-bars">
+                    <div class="gantt-bar lang-fsharp" style="left: 76.0%; width: 6%;">F#</div>
+                  </div>
+                </div>
+            </div>
+            <!-- Author 2 -->
+            <div class="author-gantt">
+              <h3>Yaraslau Tamashevich</h3>
+              <div class="gantt-chart">
+                <div class="gantt-header">
+                  <span class="gantt-year">2015</span>
+                  <span class="gantt-year">2016</span>
+                  <span class="gantt-year">2017</span>
+                  <span class="gantt-year">2018</span>
+                  <span class="gantt-year">2019</span>
+                  <span class="gantt-year">2020</span>
+                  <span class="gantt-year">2021</span>
+                  <span class="gantt-year">2022</span>
+                  <span class="gantt-year">2023</span>
+                  <span class="gantt-year">2024</span>
+                  <span class="gantt-year">2025</span>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">Delphi</span>
+                  <div class="gantt-bars">
+                    <!-- 2015-2017: 0/11 to 3/11 -->
+                    <div class="gantt-bar lang-delphi" style="left: 0%; width: 27.3%;">Delphi</div>
+                  </div>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">C++</span>
+                  <div class="gantt-bars">
+                    <!-- 2019-2020: 4/11 to 6/11 -->
+                    <div class="gantt-bar lang-cpp" style="left: 36.4%; width: 18.2%;">C++</div>
+                    <!-- 2023-2025: 8/11 to 11/11 -->
+                    <div class="gantt-bar lang-cpp" style="left: 72.7%; width: 27.3%;">C++</div>
+                  </div>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">Julia</span>
+                  <div class="gantt-bars">
+                    <!-- 2021-2025: 6/11 to 11/11 -->
+                    <div class="gantt-bar lang-julia" style="left: 54.5%; width: 36%;">Julia</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
         <!-- API Levels -->
         <section>
           <h2>Abstraction layers</h2>
@@ -132,9 +324,9 @@
                 <li><strong>SqlStatement</strong>: Main entry point for database communication</li>
             <ul>
                 <li>Prepare</li>
-                <li>Execute</li>
-                <li>ExecuteBatch</li>
-                <li>Bind*</li>
+                <li>Execute/ExecuteBatch</li>
+                <li>Bind</li>
+                <li>Fetch</li>
             </ul>
                 <li><strong>SqlTransaction</strong>: Transaction handling</li>
                 <li><strong>SqlMigration</strong>: Database schema updates</li>
@@ -250,12 +442,12 @@ stmt.Execute(query);</code></pre>
           <ul>
             <li>Read/Write</li>
             <li>Database independent query building</li>
-            <li>Bug prone</li>
+            <li>Inconvinient to write for complex tasks</li>
           </ul>
             <h3>Solution</h3>
           <ul>
-            <li>Generate booilerplate using external tools</li>
-            <li>User variant-like interface without explicit column names</li>
+            <li>Generate boilerplate using external tools</li>
+            <li>Use variant-like interface without explicit column names</li>
           </ul>
           </section>
         </section>
@@ -464,13 +656,18 @@ dm.Query&lt;Person&gt;().All&lt;^^Person::age&gt;();</code></pre>
     <script src="node_modules/reveal.js/plugin/zoom/zoom.js"></script>
     <script>
       Reveal.initialize({
-      hash: true,
-      slideNumber: true,
-      progress: true,
-      history: true,
-      center: true,
-      transition: 'slide',
-      plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealZoom ]
+        width: 1400,
+        height: 900,
+        margin: 0.04,
+        minScale: 0.2,
+        maxScale: 2.0,
+        hash: true,
+        slideNumber: true,
+        progress: true,
+        history: true,
+        center: true,
+        transition: 'slide',
+        plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealZoom ]
       });
     </script>
   </body>
