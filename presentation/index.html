@@ -76,6 +76,83 @@
       .reveal pre code[data-line-numbers-showing] tr:not(.highlight-line) {
         opacity: 0.4;
       }
+      /* Gantt Timeline styles */
+      .gantt-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2em;
+        margin-top: 0.5em;
+      }
+      .author-gantt {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1em 1.5em;
+      }
+      .author-gantt h3 {
+        margin: 0 0 0.8em 0;
+        font-size: 1.1em;
+        color: #2c3e50;
+      }
+      .gantt-chart {
+        position: relative;
+        font-size: 0.55em;
+      }
+      .gantt-header {
+        display: flex;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 0.5em;
+        margin-bottom: 0.5em;
+        margin-left: 80px;
+      }
+      .gantt-year {
+        flex: 1;
+        text-align: center;
+        font-weight: 600;
+        color: #6c757d;
+      }
+      .gantt-row {
+        display: flex;
+        align-items: center;
+        height: 36px;
+        margin-bottom: 4px;
+      }
+      .gantt-label {
+        width: 80px;
+        font-weight: 600;
+        font-size: 0.95em;
+        color: #495057;
+      }
+      .gantt-bars {
+        flex: 1;
+        position: relative;
+        height: 28px;
+        background: repeating-linear-gradient(
+          90deg,
+          transparent,
+          transparent calc(100% / 11 - 1px),
+          #e9ecef calc(100% / 11 - 1px),
+          #e9ecef calc(100% / 11)
+        );
+      }
+      .gantt-bar {
+        position: absolute;
+        height: 24px;
+        top: 2px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 0.9em;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+      .lang-cpp { background: linear-gradient(135deg, #667eea, #764ba2); }
+      .lang-delphi { background: linear-gradient(135deg, #ee0979, #ff6a00); }
+      .lang-julia { background: linear-gradient(135deg, #11998e, #38ef7d); }
+      .lang-python { background: linear-gradient(135deg, #3776ab, #ffd43b); }
+      .lang-rust { background: linear-gradient(135deg, #ce422b, #f74c00); }
+      .lang-java { background: linear-gradient(135deg, #007396, #ed8b00); }
     </style>
   </head>
   <body>
@@ -100,6 +177,89 @@
             <li><strong>Experimental C++26 reflection</strong> support</li>
           </ul>
         </section>
+
+        <!-- Authors -->
+        <section>
+          <h2>Authors</h2>
+          <div class="gantt-container">
+            <!-- Author 1 -->
+            <div class="author-gantt">
+              <h3>Christian Parpart</h3>
+              <div class="gantt-chart">
+                <div class="gantt-header">
+                  <span class="gantt-year">2015</span>
+                  <span class="gantt-year">2016</span>
+                  <span class="gantt-year">2017</span>
+                  <span class="gantt-year">2018</span>
+                  <span class="gantt-year">2019</span>
+                  <span class="gantt-year">2020</span>
+                  <span class="gantt-year">2021</span>
+                  <span class="gantt-year">2022</span>
+                  <span class="gantt-year">2023</span>
+                  <span class="gantt-year">2024</span>
+                  <span class="gantt-year">2025</span>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">C++</span>
+                  <div class="gantt-bars">
+                    <!-- 2018-2025: 3/11 to 11/11 = 27.3% to 100% -->
+                    <div class="gantt-bar lang-cpp" style="left: 27.3%; width: 72.7%;">C++</div>
+                  </div>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">Python</span>
+                  <div class="gantt-bars">
+                    <!-- 2016-2019: 1/11 to 4/11 -->
+                    <div class="gantt-bar lang-python" style="left: 9.1%; width: 36.4%;">Python</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Author 2 -->
+            <div class="author-gantt">
+              <h3>Yaraslau Tamashevich</h3>
+              <div class="gantt-chart">
+                <div class="gantt-header">
+                  <span class="gantt-year">2015</span>
+                  <span class="gantt-year">2016</span>
+                  <span class="gantt-year">2017</span>
+                  <span class="gantt-year">2018</span>
+                  <span class="gantt-year">2019</span>
+                  <span class="gantt-year">2020</span>
+                  <span class="gantt-year">2021</span>
+                  <span class="gantt-year">2022</span>
+                  <span class="gantt-year">2023</span>
+                  <span class="gantt-year">2024</span>
+                  <span class="gantt-year">2025</span>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">C++</span>
+                  <div class="gantt-bars">
+                    <!-- 2019-2020: 4/11 to 6/11 -->
+                    <div class="gantt-bar lang-cpp" style="left: 36.4%; width: 18.2%;">C++</div>
+                    <!-- 2023-2025: 8/11 to 11/11 -->
+                    <div class="gantt-bar lang-cpp" style="left: 72.7%; width: 27.3%;">C++</div>
+                  </div>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">Delphi</span>
+                  <div class="gantt-bars">
+                    <!-- 2015-2017: 0/11 to 3/11 -->
+                    <div class="gantt-bar lang-delphi" style="left: 0%; width: 27.3%;">Delphi</div>
+                  </div>
+                </div>
+                <div class="gantt-row">
+                  <span class="gantt-label">Julia</span>
+                  <div class="gantt-bars">
+                    <!-- 2021-2025: 6/11 to 11/11 -->
+                    <div class="gantt-bar lang-julia" style="left: 54.5%; width: 36%;">Julia</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
 
         <!-- API Levels -->
         <section>
