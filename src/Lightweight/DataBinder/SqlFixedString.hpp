@@ -4,8 +4,8 @@
 
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "Core.hpp"
-#include "UnicodeConverter.hpp"
 #include "StringInterface.hpp"
+#include "UnicodeConverter.hpp"
 
 #include <format>
 #include <ranges>
@@ -436,6 +436,6 @@ struct std::formatter<Lightweight::SqlFixedString<N, T, P>>: std::formatter<std:
             return std::formatter<std::string>::format(stdstring, ctx);
         }
         else
-            return std::formatter<std::string>::format(text.c_str(), ctx);
+            return std::formatter<std::string>::format(std::string(text.data(), text.size()), ctx);
     }
 };
