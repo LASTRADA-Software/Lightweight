@@ -430,7 +430,8 @@ struct SqlDataBinder&lt;Utf16StringType&gt;
           <section>
                 <h2>Query builder: Example</h2>
                 <pre><code class="language-cpp">
-auto query = stmt.Query().FromTable("That").Select().Fields("foo", "bar").OrderBy("id").Range(200, 50);
+auto query = stmt.Query().FromTable("That").Select().Fields("foo", "bar")
+                 .OrderBy("id").Range(200, 50);
 // SELECT "foo", "bar" FROM "That" ORDER BY "id" ASC LIMIT 50 OFFSET 200
 stmt.Execute(query);</code></pre>
           </section>
@@ -494,7 +495,7 @@ vector&lt;tuple&lt;Person, PhoneNumber&gt;&gt; personsAndPhoneNumbers = dm.Query
 
           <section>
             <h2>DataMapper: Entity</h2>
-            <pre><code class="language-cpp">struct Person
+            <pre><code class="language-cpp", data-line-numbers="|5|9-16|14-15|">struct Person
 {
     Field&lt;Light::SqlGuid, Light::PrimaryKey::AutoAssign&gt; id;
     Field&lt;Light::SqlAnsiString&lt;25&gt;&gt; name;
@@ -505,38 +506,40 @@ vector&lt;tuple&lt;Person, PhoneNumber&gt;&gt; personsAndPhoneNumbers = dm.Query
 template &lt;detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::nullopt&gt;
 struct Field
 {
-    [[nodiscard]] constexpr T const& Value() const noexcept;
+    [[nodiscard]] constexpr T const&amp; Value() const noexcept;
+  private:
+    ValueType _value {};
+    bool _modified { true };
 };
 </code></pre>
           </section>
 
           <section>
             <h2>DataMapper: Foreign key relation</h2>
-            <pre><code class="language-cpp">struct PhoneNumber
+            <pre><code class="language-cpp", data-line-numbers="|4|7-9|9|" >struct PhoneNumber
 {
-    ...
     // Foreign key to Person
-    BelongsTo&lt;&ampPerson::id, Light::SqlRealName{"person_id"}&gt; person;
+    BelongsTo&lt;&amp;Person::id, Light::SqlRealName{"person_id"}&gt; person;
 };
 
 auto number = dm.QuerySingle&lt;PersonNumber&gt;(42).value();
 number.person.Value(); // return the value of the foreign key
-number.person->name.Value(); // Lazily loads the related Person entity
+number.person-&gt;name.Value(); // Lazily loads the related Person entity
 </code></pre>
           </section>
 
           <section>
             <h2>DataMapper: Nullable foreign keys</h2>
-            <pre><code class="language-cpp"  data-line-numbers="|1|3-4|6-11|8-9|10|12-13|" >BelongsTo&lt;&ampPerson::id, Light::SqlRealName{"person_id"}, Light::SqlNullable::Null&gt; person;
+            <pre><code class="language-cpp"  data-line-numbers="|1|3-4|6-11|8-9|10|12-13|" >BelongsTo&lt;&amp;Person::id, Light::SqlRealName{"person_id"}, Light::SqlNullable::Null&gt; person;
 
 auto number = dm.QuerySingle&lt;PersonNumber&gt;(42).value();
-number.person->name.Value(); // Might not exist in the database
+number.person-&gt;name.Value(); // Might not exist in the database
 
-template <...> class BelongsTo
+template &lt;...&gt; class BelongsTo
 {
-    ReferencedRecord* operator->(this Self&& self) requires(IsMandatory) {...}
-    ReferencedRecord const& Record(this Self&& self) requires(IsMandatory) {...}
-    decltype(auto) Record(this Self&& self) requires(IsOptional) {...}
+    ReferencedRecord* operator-&gt;(this Self&amp;&amp; self) requires(IsMandatory) {...}
+    ReferencedRecord const&amp; Record(this Self&amp;&amp; self) requires(IsMandatory) {...}
+    decltype(auto) Record(this Self&amp;&amp; self) requires(IsOptional) {...}
 };
 // Make sure user knows it might be null
 number.person.Record().transform(Light::Unwrap).value_or({}).name;
@@ -558,6 +561,63 @@ struct Appointment{
     Light::BelongsTo&lt;Member(Physician::id), Light::SqlRealName { "physician_id" }&gt; physician;
     Light::BelongsTo&lt;Member(Patient::id), Light::SqlRealName { "patient_id" }&gt; patient;
 };</code></pre>
+          </section>
+
+          <section>
+            <h2>DataMapper: C++ at it best, Revenge of the Sith</h2>
+            <pre><code class="language-cpp"  data-line-numbers="|2-6|8-13|10-11|13|" >
+void DataMapper::ConfigureRelationAutoLoading(Record&amp; record){
+    field.SetAutoLoader(typename FieldType::Loader {
+        .loadReference = [this, &amp;field]() { LoadBelongsTo(field); },
+    });
+}
+
+Record record{};
+{
+   auto dm = DataMapper();
+   record = dm.QuerySingle&lt;Record&gt;(42).value();
+}
+record.field-&gt;relatedField.Value();
+</code></pre>
+          </section>
+
+          <section>
+            <h2>DataMapper: C++ at it best, New Hope</h2>
+            <pre><code class="language-cpp"  data-line-numbers="|1|3-8|10-15|12-13|15|" >class DataMapper: public std::enable_shared_from_this&lt;DataMapper&gt;{};
+void DataMapper::ConfigureRelationAutoLoading(Record&amp; record){
+    auto self = shared_from_this();
+    field.SetAutoLoader(typename FieldType::Loader {
+        .loadReference = [self, value = field.Value()](){
+            return self-&gt;LoadBelongsTo&lt;FieldType&gt;(value);
+        },
+    });
+}
+Record record{};
+{
+   std::shared_ptr&lt;DataMapper&gt; dm = DataMapper::Create();
+   record = dm-&gt;QuerySingle&lt;Record&gt;(42).value();
+}
+record.field-&gt;relatedField.Value();
+</code></pre>
+          </section>
+
+          <section>
+            <h2>DataMapper: C++ at it best, The Force Awakens</h2>
+            <pre><code class="language-cpp"  data-line-numbers="|2-7|4|9-14|">void DataMapper::ConfigureRelationAutoLoading(Record&amp; record){
+    field.SetAutoLoader(typename FieldType::Loader {
+        .loadReference = [value = field.Value()]() -&gt; std::optional&lt;typename FieldType::ReferencedRecord&gt; {
+            DataMapper&amp; dm = DataMapper::AcquireThreadLocal();
+            return dm.LoadBelongsTo&lt;FieldType&gt;(value);
+        },
+    });
+}
+Record record{};
+{
+   auto dm = DataMapper();
+   record = dm.QuerySingle&lt;Record&gt;(42).value();
+}
+record.field-&gt;relatedField.Value();
+</code></pre>
           </section>
 
           </section>
@@ -616,7 +676,7 @@ using generated header and database connection
           <section>
             <h1>Outlook: C++26 reflection</h1>
             We implemented support for the c++26 reflection, the syntax will change, and instead of `&` user have to use `^^`
-<pre><code class="language-cpp" data-line-numbers="|3|5-6,10-13|7-9|" >dm.Query&lt;Person&gt;().All&lt;&amp;Person::age&gt;();
+<pre><code class="language-cpp" data-line-numbers="" >dm.Query&lt;Person&gt;().All&lt;&amp;Person::age&gt;();
 dm.Query&lt;Person&gt;().All&lt;^^Person::age&gt;();</code></pre>
           </section>
           <section>
@@ -629,7 +689,7 @@ dm.Query&lt;Person&gt;().All&lt;^^Person::age&gt;();</code></pre>
     [[=SqlRealName("Name")]]
     SqlDynamicUtf16String&lt;200&gt; Name;
     [[=SqlRealName("AlbumId"), SqlNullable::Null, ]]
-    BelongsTo&lt;^^Album::AlbumId&rt; AlbumId;
+    BelongsTo&lt;^^Album::AlbumId&gt; AlbumId;
     [[=SqlRealName("Composer")]]
     std::optional&lt;SqlDynamicUtf16String&lt;220&gt;&gt; Composer;
     [[=SqlRealName("UnitPrice")]]
@@ -642,7 +702,13 @@ dm.Query&lt;Person&gt;().All&lt;^^Person::age&gt;();</code></pre>
         <section>
           <h1>Questions?</h1>
           <p>
-            <a href="https://github.com/LASTRADA-Software/Lightweight">github.com/LASTRADA-Software/Lightweight</a>
+            repository: <a href="https://github.com/LASTRADA-Software/Lightweight">github.com/LASTRADA-Software/Lightweight</a>
+          </p>
+          <p>
+            documentation: <a href="https://lastrada-software.github.io/Lightweight">lastrada-software.github.io/Lightweight</a>
+          </p>
+          <p>
+            this presentation: <a href="https://lastrada-software.github.io/Lightweight/presentation">lastrada-software.github.io/Lightweight/presentation</a>
           </p>
         </section>
 
