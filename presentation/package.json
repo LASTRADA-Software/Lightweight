@@ -1,0 +1,24 @@
+{
+  "name": "lightweight-presentation",
+  "version": "1.0.0",
+  "description": "Presentation slides for the Lightweight C++ ODBC library",
+  "scripts": {
+    "dev": "npx live-server --port=8000 --open=index.html",
+    "build": "node build.js",
+    "serve": "npx serve dist"
+  },
+  "devDependencies": {
+    "reveal.js": "^5.1.0",
+    "live-server": "^1.2.2",
+    "serve": "^14.2.0"
+  },
+  "keywords": [
+    "presentation",
+    "slides",
+    "reveal.js",
+    "lightweight",
+    "cpp",
+    "odbc"
+  ],
+  "license": "Apache-2.0"
+}
