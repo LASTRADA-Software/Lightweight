@@ -212,7 +212,6 @@ void SqlConnection::PostConnect()
     auto const mappings = std::array {
         std::pair { "Microsoft SQL Server"sv, SqlServerType::MICROSOFT_SQL },
         std::pair { "PostgreSQL"sv, SqlServerType::POSTGRESQL },
-        std::pair { "Oracle"sv, SqlServerType::ORACLE },
         std::pair { "SQLite"sv, SqlServerType::SQLITE },
         std::pair { "MySQL"sv, SqlServerType::MYSQL },
     };

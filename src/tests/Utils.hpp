@@ -453,7 +453,6 @@ class SqlTestFixture
             }
             case SqlServerType::MICROSOFT_SQL:
             case SqlServerType::POSTGRESQL:
-            case SqlServerType::ORACLE:
             case SqlServerType::MYSQL:
             case SqlServerType::UNKNOWN:
                 break;
@@ -466,14 +465,11 @@ class SqlTestFixture
         auto stmt = Lightweight::SqlStatement();
         REQUIRE(stmt.IsAlive());
 
-        // On Github CI, we use the pre-created database "FREEPDB1" for Oracle
         char dbName[100]; // Buffer to store the database name
         SQLSMALLINT dbNameLen {};
         SQLGetInfo(stmt.Connection().NativeHandle(), SQL_DATABASE_NAME, dbName, sizeof(dbName), &dbNameLen);
         if (dbNameLen > 0)
             testDatabaseName = dbName;
-        else if (stmt.Connection().ServerType() == Lightweight::SqlServerType::ORACLE)
-            testDatabaseName = "FREEPDB1";
 
         DropAllTablesInDatabase(stmt);
     }
@@ -515,7 +511,6 @@ class SqlTestFixture
                 stmt.ExecuteDirect(std::format("USE \"{}\"", testDatabaseName));
                 [[fallthrough]];
             case SqlServerType::SQLITE:
-            case SqlServerType::ORACLE:
             case SqlServerType::UNKNOWN: {
                 auto const tableNames = GetAllTableNames(stmt);
                 for (auto const& tableName: tableNames)
@@ -543,27 +538,8 @@ class SqlTestFixture
     }
 
   private:
-    static std::vector<std::string> GetAllTableNamesForOracle(Lightweight::SqlStatement& stmt)
-    {
-        auto result = std::vector<std::string> {};
-        stmt.Prepare(R"SQL(SELECT table_name
-                           FROM user_tables
-                           WHERE table_name NOT LIKE '%$%'
-                             AND table_name NOT IN ('SCHEDULER_JOB_ARGS_TBL', 'SCHEDULER_PROGRAM_ARGS_TBL', 'SQLPLUS_PRODUCT_PROFILE')
-                           ORDER BY table_name)SQL");
-        stmt.Execute();
-        while (stmt.FetchRow())
-        {
-            result.emplace_back(stmt.GetColumn<std::string>(1));
-        }
-        return result;
-    }
-
     static std::vector<std::string> GetAllTableNames(Lightweight::SqlStatement& stmt)
     {
-        if (stmt.Connection().ServerType() == Lightweight::SqlServerType::ORACLE)
-            return GetAllTableNamesForOracle(stmt);
-
         using namespace std::string_literals;
         auto result = std::vector<std::string>();
         auto const schemaName = [&] {

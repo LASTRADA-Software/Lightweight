@@ -311,7 +311,6 @@ jobs:
             "MS SQL Server 2019",
             "MS SQL Server 2022",
             "PostgreSQL",
-            # TODO: "Oracle"
             # TODO: "MySQL" or "MariaDB"
           ]
     name: "Tests (${{ matrix.database }})"
@@ -335,21 +334,6 @@ jobs:
       - name: "Setup ${{ matrix.database }}"
         id: setup
         run: bash ./.github/prepare-test-run.sh "${{ matrix.database }}"
-      - name: "Enable ODBC tracing"
-        if: ${{ matrix.database == 'Oracle' }}
-        run: |
-          echo "[ODBC]" | sudo tee -a /etc/odbcinst.ini
-          echo "Trace=Yes" | sudo tee -a /etc/odbcinst.ini
-          echo "TraceFile=/dev/stdout" | sudo tee -a /etc/odbcinst.ini
-      - name: "~/.odbc.ini: set ServerName"
-        if: ${{ matrix.database == 'Oracle' }}
-        run: |
-          sed -i "s/ServerName =.*/ServerName = localhost/" ~/.odbc.ini
-      - name: "CI Debug prints"
-        if: ${{ matrix.database == 'Oracle' }}
-        run: |
-          echo "ODBC_CONNECTION_STRING=${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}"
-          ldd /home/runner/oracle/instantclient_21_3/libsqora.so.21.1
       - name: "Inspect dependencies"
         run: ldd /usr/local/bin/LightweightTest
       - name: "Run SQL tests"
@@ -357,9 +341,6 @@ jobs:
           set -ex
           if [[ "${{ matrix.database }}" = "SQLite3" ]]; then
               CMD_PREFIX="valgrind --leak-check=full --leak-resolution=high --num-callers=64 --error-exitcode=1"
-          elif [[ "${{ matrix.database }}" = "Oracle" ]]; then
-              export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/oracle/instantclient_21_3
-              CMD_PREFIX="strace -f"
           fi
           $CMD_PREFIX LightweightTest --test-env=${{ steps.setup.outputs.TEST_ENV_NAME }}
 

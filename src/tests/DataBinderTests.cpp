@@ -334,7 +334,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlTime", "[SqlDataBinder],[SqlVar
 TEST_CASE_METHOD(SqlTestFixture, "InputParameter and GetColumn for very large values", "[SqlDataBinder]")
 {
     auto stmt = SqlStatement {};
-    UNSUPPORTED_DATABASE(stmt, SqlServerType::ORACLE);
     auto const expectedText = MakeLargeText(8 * 1000);
     stmt.MigrateDirect([size = expectedText.size()](auto& migration) {
         migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Text { size });
@@ -385,7 +384,6 @@ TEST_CASE_METHOD(SqlTestFixture, "InputParameter and GetColumn for very large va
 TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode", "[SqlDataBinder],[Unicode]")
 {
     auto stmt = SqlStatement {};
-    UNSUPPORTED_DATABASE(stmt, SqlServerType::ORACLE);
 
     if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
         // SQLite does UTF-8 by default, so we need to switch to UTF-16
@@ -437,7 +435,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode", "[SqlDataBinder],[Uni
 TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode mixed", "[SqlDataBinder],[Unicode]")
 {
     auto stmt = SqlStatement {};
-    UNSUPPORTED_DATABASE(stmt, SqlServerType::ORACLE);
 
     if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
         // SQLite does UTF-8 by default, so we need to switch to UTF-16
@@ -900,9 +897,6 @@ struct TestTypeTraits<std::wstring_view>
 template <>
 struct TestTypeTraits<SqlBinary>
 {
-    static constexpr auto blacklist = std::array {
-        std::pair { SqlServerType::ORACLE, "TODO: Oracle"sv },
-    };
     static constexpr auto sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::Binary { 50 };
     static auto const inline inputValue = SqlBinary { 0x00, 0x02, 0x03, 0x00, 0x05 };
     static auto const inline expectedOutputValue = SqlBinary { 0x00, 0x02, 0x03, 0x00, 0x05 };
@@ -911,9 +905,6 @@ struct TestTypeTraits<SqlBinary>
 template <>
 struct TestTypeTraits<SqlDynamicBinary<8>>
 {
-    static constexpr auto blacklist = std::array {
-        std::pair { SqlServerType::ORACLE, "TODO: Oracle"sv },
-    };
     static auto constexpr sqlColumnTypeNameOverride = SqlColumnTypeDefinitions::VarBinary { 50 };
     static auto const inline inputValue = SqlDynamicBinary<8> {{ 0x00, 0x02, 0x03, 0x00, 0x05, 0x06 }};
     static auto const inline expectedOutputValue = SqlDynamicBinary<8> {{ 0x00, 0x02, 0x03, 0x00, 0x05, 0x06 }};

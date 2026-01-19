@@ -333,7 +333,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch", "[SqlStatement]")
 TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatchNative", "[SqlStatement]")
 {
     auto stmt = Lightweight::SqlStatement {};
-    UNSUPPORTED_DATABASE(stmt, Lightweight::SqlServerType::ORACLE);
 
     stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("Test")
@@ -397,8 +396,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect (invalid)", "[Sq
 TEST_CASE_METHOD(SqlTestFixture, "LastInsertId", "[SqlStatement]")
 {
     auto stmt = Lightweight::SqlStatement {};
-
-    UNSUPPORTED_DATABASE(stmt, Lightweight::SqlServerType::ORACLE);
 
     CreateEmployeesTable(stmt);
     FillEmployeesTable(stmt);

@@ -359,7 +359,6 @@ struct SqlDataBinder<Utf16StringType>
                                         0,
                                         nullptr);
             }
-            case SqlServerType::ORACLE:
             case SqlServerType::MYSQL:
             case SqlServerType::SQLITE: // We assume UTF-16 for SQLite
             case SqlServerType::MICROSOFT_SQL:
@@ -468,7 +467,6 @@ struct SqlDataBinder<Utf32StringType>
                                         0,
                                         nullptr);
             }
-            case SqlServerType::ORACLE:
             case SqlServerType::MYSQL:
             case SqlServerType::SQLITE: // We assume UTF-16 for SQLite
             case SqlServerType::MICROSOFT_SQL:
@@ -551,7 +549,6 @@ struct SqlDataBinder<Utf8StringType>
                                         0,
                                         nullptr);
             }
-            case SqlServerType::ORACLE:
             case SqlServerType::MYSQL:
             case SqlServerType::SQLITE: // We assume UTF-16 for SQLite
             case SqlServerType::MICROSOFT_SQL:

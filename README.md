@@ -17,10 +17,9 @@ a modern enough C++ compiler.
 
 ## Supported databases
 
-- Microsoft SQL
+- Microsoft SQL Server
 - PostgreSQL
 - SQLite3
-- Oracle database (work in progress)
 
 ## Namespace
 

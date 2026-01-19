@@ -19,8 +19,7 @@ class [[nodiscard]] SqlUpdateQueryBuilder final: public SqlWhereClauseBuilder<Sq
   public:
     /// Constructs a new SqlUpdateQueryBuilder object.
     ///
-    /// @param formatter The SQL query formatter to use. One of SqlServerQueryFormatter, OracleSqlQueryFormatter,
-    /// PostgreSqlFormatter
+    /// @param formatter The SQL query formatter to use. One of SqlServerQueryFormatter, PostgreSqlFormatter
     /// @param table The name of the table to update.
     /// @param tableAlias The alias of the table to update.
     /// @param inputBindings The input bindings to use for the query.

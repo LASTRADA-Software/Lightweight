@@ -128,9 +128,6 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// Retrieves the SQL query formatter for PostgreSQL.
     static SqlQueryFormatter const& PostgrSQL();
 
-    /// Retrieves the SQL query formatter for Oracle database.
-    static SqlQueryFormatter const& OracleSQL();
-
     /// Retrieves the SQL query formatter for the given SqlServerType.
     static SqlQueryFormatter const* Get(SqlServerType serverType) noexcept;
 };
