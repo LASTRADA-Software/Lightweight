@@ -291,71 +291,69 @@ $(document).ready(function(){initNavTree('db/d8a/SqlDynamicBinary_8hpp_source.ht
 <div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>                                                             SqlDataBinderCallback&amp; <span class="comment">/*cb*/</span>) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>    {</div>
 <div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>        value._indicator = <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(value.size());</div>
-<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>        <span class="keywordflow">return</span> SQLBindParameter(stmt,</div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>                                column,</div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>                                SQL_PARAM_INPUT,</div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>                                SQL_C_BINARY,</div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>                                SQL_LONGVARBINARY,</div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>                                value.size(),</div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>                                0,</div>
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>                                (SQLPOINTER) value.data(),</div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>                                0,</div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>                                &amp;value._indicator);</div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>    }</div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span> </div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(</div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>        SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>    {</div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>        <span class="keywordflow">if</span> (result-&gt;empty())</div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>            result-&gt;resize(255);</div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span> </div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>        cb.PlanPostProcessOutputColumn([stmt, column, result, indicator]() {</div>
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>            <span class="keywordflow">if</span> (*indicator == SQL_NULL_DATA)</div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>                <span class="comment">// The data is NULL.</span></div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>                result-&gt;clear();</div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>            <span class="keywordflow">else</span> <span class="keywordflow">if</span> (*indicator == SQL_NO_TOTAL)</div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>                <span class="comment">// We have a truncation and the server does not know how much data is left.</span></div>
-<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>                result-&gt;resize(result-&gt;size() - 1);</div>
-<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>            <span class="keywordflow">else</span> <span class="keywordflow">if</span> (*indicator &lt;= <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(result-&gt;size()))</div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>                result-&gt;resize(*indicator);</div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>            <span class="keywordflow">else</span></div>
-<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>            {</div>
-<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>                <span class="comment">// We have a truncation and the server knows how much data is left.</span></div>
-<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>                <span class="comment">// Extend the buffer and fetch the rest via SQLGetData.</span></div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span> </div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>                <span class="keyword">auto</span> <span class="keyword">const</span> totalCharsRequired = *indicator;</div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>                result-&gt;resize(totalCharsRequired + 1);</div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>                <span class="keyword">auto</span> <span class="keyword">const</span> sqlResult =</div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>                    SQLGetData(stmt, column, SQL_C_BINARY, (SQLPOINTER) result-&gt;data(), totalCharsRequired + 1, indicator);</div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>                (void) sqlResult;</div>
-<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>                assert(SQL_SUCCEEDED(sqlResult));</div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>                assert(*indicator == totalCharsRequired);</div>
-<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>                result-&gt;resize(totalCharsRequired);</div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>            }</div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>        });</div>
-<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span> </div>
-<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>        <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_BINARY, (SQLPOINTER) result-&gt;data(), 255, indicator);</div>
-<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>    }</div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span> </div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>                                                        SQLUSMALLINT column,</div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>                                                        ValueType* result,</div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>                                                        SQLLEN* indicator,</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>                                                        SqlDataBinderCallback <span class="keyword">const</span>&amp; <span class="comment">/*cb*/</span>) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>    {</div>
-<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>        <span class="keywordflow">if</span> (result-&gt;empty())</div>
-<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>            result-&gt;resize(255);</div>
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span> </div>
-<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>        <span class="keywordflow">return</span> detail::GetRawColumnArrayData&lt;SQL_C_BINARY&gt;(stmt, column, result, indicator);</div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>    }</div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span> </div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(ValueType <span class="keyword">const</span>&amp; value)</div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>    {</div>
-<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>        <span class="keywordflow">return</span> std::format(<span class="stringliteral">&quot;SqlBinary&lt;{}&gt;(size={})&quot;</span>, N, value.size());</div>
-<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>    }</div>
-<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>};</div>
-<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span> </div>
-<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>        <span class="keyword">auto</span>* ptr = (SQLPOINTER) value.data();</div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>        <span class="keywordflow">if</span> (!ptr &amp;&amp; value.empty())</div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>        {</div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>            <span class="keyword">static</span> uint8_t dummy = 0;</div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>            ptr = &amp;dummy;</div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>        }</div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>        <span class="keywordflow">return</span> SQLBindParameter(</div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>            stmt, column, SQL_PARAM_INPUT, SQL_C_BINARY, SQL_LONGVARBINARY, value.size(), 0, ptr, 0, &amp;value._indicator);</div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>    }</div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span> </div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(</div>
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>        SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>    {</div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>        <span class="keywordflow">if</span> (result-&gt;empty())</div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>            result-&gt;resize(255);</div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span> </div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>        cb.PlanPostProcessOutputColumn([stmt, column, result, indicator]() {</div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>            <span class="keywordflow">if</span> (*indicator == SQL_NULL_DATA)</div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>                <span class="comment">// The data is NULL.</span></div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>                result-&gt;clear();</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>            <span class="keywordflow">else</span> <span class="keywordflow">if</span> (*indicator == SQL_NO_TOTAL)</div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>                <span class="comment">// We have a truncation and the server does not know how much data is left.</span></div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>                result-&gt;resize(result-&gt;size() - 1);</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>            <span class="keywordflow">else</span> <span class="keywordflow">if</span> (*indicator &lt;= <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(result-&gt;size()))</div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>                result-&gt;resize(*indicator);</div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>            <span class="keywordflow">else</span></div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>            {</div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>                <span class="comment">// We have a truncation and the server knows how much data is left.</span></div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>                <span class="comment">// Extend the buffer and fetch the rest via SQLGetData.</span></div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span> </div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>                <span class="keyword">auto</span> <span class="keyword">const</span> totalCharsRequired = *indicator;</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>                result-&gt;resize(totalCharsRequired + 1);</div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>                <span class="keyword">auto</span> <span class="keyword">const</span> sqlResult =</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>                    SQLGetData(stmt, column, SQL_C_BINARY, (SQLPOINTER) result-&gt;data(), totalCharsRequired + 1, indicator);</div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>                (void) sqlResult;</div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>                assert(SQL_SUCCEEDED(sqlResult));</div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>                assert(*indicator == totalCharsRequired);</div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>                result-&gt;resize(totalCharsRequired);</div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>            }</div>
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>        });</div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span> </div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>        <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_BINARY, (SQLPOINTER) result-&gt;data(), 255, indicator);</div>
+<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>    }</div>
+<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span> </div>
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>                                                        SQLUSMALLINT column,</div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>                                                        ValueType* result,</div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>                                                        SQLLEN* indicator,</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>                                                        SqlDataBinderCallback <span class="keyword">const</span>&amp; <span class="comment">/*cb*/</span>) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>    {</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>        <span class="keywordflow">if</span> (result-&gt;empty())</div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>            result-&gt;resize(255);</div>
+<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span> </div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>        <span class="keywordflow">return</span> detail::GetRawColumnArrayData&lt;SQL_C_BINARY&gt;(stmt, column, result, indicator);</div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>    }</div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span> </div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(ValueType <span class="keyword">const</span>&amp; value)</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>    {</div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>        <span class="keywordflow">return</span> std::format(<span class="stringliteral">&quot;SqlBinary&lt;{}&gt;(size={})&quot;</span>, N, value.size());</div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>    }</div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>};</div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span> </div>
+<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1SqlDynamicBinary_html"><div class="ttname"><a href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html">Lightweight::SqlDynamicBinary</a></div><div class="ttdef"><b>Definition</b> <a href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00022">SqlDynamicBinary.hpp:23</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlDynamicBinary_html_a04eaacb2c4add07c79e1a23857d4ac97"><div class="ttname"><a href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a04eaacb2c4add07c79e1a23857d4ac97">Lightweight::SqlDynamicBinary::SqlDynamicBinary</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicBinary(value_type const *s, value_type const *e) noexcept</div><div class="ttdoc">Constructs a fixed-size string from a string pointer and end pointer.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00058">SqlDynamicBinary.hpp:58</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlDynamicBinary_html_a24e4f9758ae81670b16fdb7a422c44a6"><div class="ttname"><a href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a24e4f9758ae81670b16fdb7a422c44a6">Lightweight::SqlDynamicBinary::data</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr decltype(auto) data(this auto &amp;&amp;self) noexcept</div><div class="ttdoc">Retrieves the pointer to the string data.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00097">SqlDynamicBinary.hpp:97</a></div></div>

@@ -74,6 +74,22 @@ var NAVTREE =
       [ "GetColumn()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn", null ],
       [ "Inspect()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect", null ]
     ] ],
+    [ "Lightweight SQL Backup File Format", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html", [
+      [ "1. Archive Structure", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md1-archive-structure", null ],
+      [ "2. Metadata Manifest (<tt>metadata.json</tt>)", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md2-metadata-manifest-metadatajson", [
+        [ "2.1 Table Definition", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md21-table-definition", null ],
+        [ "2.2 Column Definition", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md22-column-definition", null ],
+        [ "2.3 Foreign Key Definition", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md23-foreign-key-definition", null ]
+      ] ],
+      [ "3. Data Chunk Format (<tt>.msgpack</tt>)", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md3-data-chunk-format-msgpack", [
+        [ "3.1 Top-Level Structure", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md31-top-level-structure", null ],
+        [ "3.2 Column Object", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md32-column-object", null ],
+        [ "3.3 Data Types and Encoding", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md33-data-types-and-encoding", null ],
+        [ "3.4 Null Handling (<tt>\"n\"</tt>)", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md34-null-handling-n", null ],
+        [ "3.5 Packed Binary Format", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md35-packed-binary-format", null ]
+      ] ],
+      [ "4. File Extension", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md4-file-extension", null ]
+    ] ],
     [ "Topics", "topics.html", "topics" ],
     [ "Concepts", "concepts.html", "concepts" ],
     [ "Classes", "annotated.html", [
@@ -96,8 +112,9 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#af20732b460e20ac1671e33b5510fbe7f",
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6b49922eb4ac9d74b7f67cb41d6fd111"
+"d6/dfa/structLightweight_1_1SqlDateTime.html#a8936bb67e7a6cccf8b462302175ca0c7",
+"db/dad/classLightweight_1_1SqlStatement.html#af9bd2cf8659ea4e3fce9dd120f623df9",
+"functions_func_e.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
