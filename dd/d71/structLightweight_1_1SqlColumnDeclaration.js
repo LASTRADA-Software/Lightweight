@@ -6,5 +6,7 @@ var structLightweight_1_1SqlColumnDeclaration =
     [ "foreignKey", "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a59119220ab43706394b2a1f22caf183d", null ],
     [ "required", "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a08cf8f2f35c6eec60086b7e18667bc61", null ],
     [ "unique", "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#ac7edfc2036f6d77ebce95c4a17d39fd8", null ],
-    [ "index", "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046", null ]
+    [ "defaultValue", "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a9da76151b89502f7c2d8704e32bdcae6", null ],
+    [ "index", "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046", null ],
+    [ "primaryKeyIndex", "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6", null ]
 ];

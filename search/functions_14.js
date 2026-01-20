@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['year_0',['year',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a149ce3222ef3ab86a5bbcfe65ae08c13',1,'Lightweight::SqlDateTime']]]
+  ['writerow_0',['WriteRow',['../dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26',1,'Lightweight::SqlBackup::ChunkWriter']]]
 ];

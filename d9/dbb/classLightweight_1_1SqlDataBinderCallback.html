@@ -122,17 +122,17 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:abd90cf0b647d60af5bb130b7fe162bd2" id="r_abd90cf0b647d60af5bb130b7fe162bd2"><td class="memItemLeft" align="right" valign="top"><a id="abd90cf0b647d60af5bb130b7fe162bd2" name="abd90cf0b647d60af5bb130b7fe162bd2"></a>
 <a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">SqlDataBinderCallback</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">SqlDataBinderCallback</a> const &amp;)=default</td></tr>
 <tr class="separator:abd90cf0b647d60af5bb130b7fe162bd2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a209f52c2128670486fa0df251261bf80" id="r_a209f52c2128670486fa0df251261bf80"><td class="memItemLeft" align="right" valign="top"><a id="a209f52c2128670486fa0df251261bf80" name="a209f52c2128670486fa0df251261bf80"></a>
-virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>PlanPostExecuteCallback</b> (std::function&lt; void()&gt; &amp;&amp;)=0</td></tr>
+<tr class="memitem:a209f52c2128670486fa0df251261bf80" id="r_a209f52c2128670486fa0df251261bf80"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a209f52c2128670486fa0df251261bf80">PlanPostExecuteCallback</a> (std::function&lt; void()&gt; &amp;&amp;)=0</td></tr>
 <tr class="separator:a209f52c2128670486fa0df251261bf80"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab562de4a035a48baccb4dcd4a54dab30" id="r_ab562de4a035a48baccb4dcd4a54dab30"><td class="memItemLeft" align="right" valign="top"><a id="ab562de4a035a48baccb4dcd4a54dab30" name="ab562de4a035a48baccb4dcd4a54dab30"></a>
-virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>PlanPostProcessOutputColumn</b> (std::function&lt; void()&gt; &amp;&amp;)=0</td></tr>
+<tr class="memitem:ab562de4a035a48baccb4dcd4a54dab30" id="r_ab562de4a035a48baccb4dcd4a54dab30"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ab562de4a035a48baccb4dcd4a54dab30">PlanPostProcessOutputColumn</a> (std::function&lt; void()&gt; &amp;&amp;)=0</td></tr>
 <tr class="separator:ab562de4a035a48baccb4dcd4a54dab30"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa4a1025e0d27d3e8f0c97081e2419875" id="r_aa4a1025e0d27d3e8f0c97081e2419875"><td class="memItemLeft" align="right" valign="top"><a id="aa4a1025e0d27d3e8f0c97081e2419875" name="aa4a1025e0d27d3e8f0c97081e2419875"></a>
-virtual SqlServerType&#160;</td><td class="memItemRight" valign="bottom"><b>ServerType</b> () const noexcept=0</td></tr>
+<tr class="memitem:a7d7b102126f4b2455df46e31906cb189" id="r_a7d7b102126f4b2455df46e31906cb189"><td class="memItemLeft" align="right" valign="top">virtual SQLLEN *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a7d7b102126f4b2455df46e31906cb189">ProvideInputIndicator</a> ()=0</td></tr>
+<tr class="separator:a7d7b102126f4b2455df46e31906cb189"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad2b577cf0e7a7cc9eb671677b42cb914" id="r_ad2b577cf0e7a7cc9eb671677b42cb914"><td class="memItemLeft" align="right" valign="top">virtual SQLLEN *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914">ProvideInputIndicators</a> (size_t rowCount)=0</td></tr>
+<tr class="separator:ad2b577cf0e7a7cc9eb671677b42cb914"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa4a1025e0d27d3e8f0c97081e2419875" id="r_aa4a1025e0d27d3e8f0c97081e2419875"><td class="memItemLeft" align="right" valign="top">virtual SqlServerType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aa4a1025e0d27d3e8f0c97081e2419875">ServerType</a> () const noexcept=0</td></tr>
 <tr class="separator:aa4a1025e0d27d3e8f0c97081e2419875"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a151e499b5da3afcaea3326bfb35d3c36" id="r_a151e499b5da3afcaea3326bfb35d3c36"><td class="memItemLeft" align="right" valign="top"><a id="a151e499b5da3afcaea3326bfb35d3c36" name="a151e499b5da3afcaea3326bfb35d3c36"></a>
-virtual std::string const &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>DriverName</b> () const noexcept=0</td></tr>
+<tr class="memitem:a151e499b5da3afcaea3326bfb35d3c36" id="r_a151e499b5da3afcaea3326bfb35d3c36"><td class="memItemLeft" align="right" valign="top">virtual std::string const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36">DriverName</a> () const noexcept=0</td></tr>
 <tr class="separator:a151e499b5da3afcaea3326bfb35d3c36"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -140,7 +140,183 @@ virtual std::string const &amp;&#160;</td><td class="memItemRight" valign="botto
 <p>This is needed because the SQLBindCol() function does not allow to specify a callback function to be called after the data has been fetched from the database. This is needed to trim strings to the correct size, for example. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00031">31</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
-</div><hr/>The documentation for this class was generated from the following file:<ul>
+</div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a209f52c2128670486fa0df251261bf80" name="a209f52c2128670486fa0df251261bf80"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a209f52c2128670486fa0df251261bf80">&#9670;&#160;</a></span>PlanPostExecuteCallback()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void Lightweight::SqlDataBinderCallback::PlanPostExecuteCallback </td>
+          <td>(</td>
+          <td class="paramtype">std::function&lt; void()&gt; &amp;&amp;&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Plans a callback to be called after the statement has been executed.</p>
+<dl class="section see"><dt>See also</dt><dd>SqlDataBinder::PostExecute() </dd></dl>
+
+</div>
+</div>
+<a id="ab562de4a035a48baccb4dcd4a54dab30" name="ab562de4a035a48baccb4dcd4a54dab30"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab562de4a035a48baccb4dcd4a54dab30">&#9670;&#160;</a></span>PlanPostProcessOutputColumn()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void Lightweight::SqlDataBinderCallback::PlanPostProcessOutputColumn </td>
+          <td>(</td>
+          <td class="paramtype">std::function&lt; void()&gt; &amp;&amp;&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Plans a callback to be called after a column has been processed.</p>
+<dl class="section see"><dt>See also</dt><dd>SqlDataBinder::PostProcessOutputColumn() </dd></dl>
+
+</div>
+</div>
+<a id="a7d7b102126f4b2455df46e31906cb189" name="a7d7b102126f4b2455df46e31906cb189"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7d7b102126f4b2455df46e31906cb189">&#9670;&#160;</a></span>ProvideInputIndicator()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual SQLLEN * Lightweight::SqlDataBinderCallback::ProvideInputIndicator </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Provides a pointer to a single indicator for a single input parameter.</p>
+<dl class="section note"><dt>Note</dt><dd>The caller is responsible for filling the indicator with the length of the data or SQL_NULL_DATA. </dd>
+<dd>
+The indicator must remain valid until the statement is executed.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A pointer to the indicator. </dd></dl>
+
+</div>
+</div>
+<a id="ad2b577cf0e7a7cc9eb671677b42cb914" name="ad2b577cf0e7a7cc9eb671677b42cb914"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad2b577cf0e7a7cc9eb671677b42cb914">&#9670;&#160;</a></span>ProvideInputIndicators()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual SQLLEN * Lightweight::SqlDataBinderCallback::ProvideInputIndicators </td>
+          <td>(</td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>rowCount</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Provides a pointer to a contiguous array of indicators for a batch of input parameters.</p>
+<dl class="section note"><dt>Note</dt><dd>The caller is responsible for filling the indicators with the lengths of the data or SQL_NULL_DATA. </dd>
+<dd>
+The indicators must remain valid until the statement is executed.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">rowCount</td><td>The number of rows in the batch. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A pointer to the first element of the indicator array. </dd></dl>
+
+</div>
+</div>
+<a id="aa4a1025e0d27d3e8f0c97081e2419875" name="aa4a1025e0d27d3e8f0c97081e2419875"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa4a1025e0d27d3e8f0c97081e2419875">&#9670;&#160;</a></span>ServerType()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual SqlServerType Lightweight::SqlDataBinderCallback::ServerType </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<dl class="section return"><dt>Returns</dt><dd>The server type of the database. </dd></dl>
+
+</div>
+</div>
+<a id="a151e499b5da3afcaea3326bfb35d3c36" name="a151e499b5da3afcaea3326bfb35d3c36"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a151e499b5da3afcaea3326bfb35d3c36">&#9670;&#160;</a></span>DriverName()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::string const  &amp; Lightweight::SqlDataBinderCallback::DriverName </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<dl class="section return"><dt>Returns</dt><dd>The driver name of the database. </dd></dl>
+
+</div>
+</div>
+<hr/>The documentation for this class was generated from the following file:<ul>
 <li>Lightweight/DataBinder/<a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a></li>
 </ul>
 </div><!-- contents -->
