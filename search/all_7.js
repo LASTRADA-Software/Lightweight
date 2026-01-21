@@ -26,6 +26,7 @@ var searchData=
   ['bindoutputcolumnstorecord_23',['BindOutputColumnsToRecord',['../db/dad/classLightweight_1_1SqlStatement.html#a92c0aebc9222368af9c3d6fd1897a02f',1,'Lightweight::SqlStatement']]],
   ['bit_20integer_20handling_20in_20oracle_20database_24',['64-bit Integer Handling in Oracle Database',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database',1,'']]],
   ['booleanliteral_25',['BooleanLiteral',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad14092f4293a641b18b103a233b37a8f',1,'Lightweight::SqlQueryFormatter']]],
-  ['builder_26',['SQL Query Builder',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder',1,'']]],
-  ['business_20logic_20separate_27',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]]
+  ['bufferlength_26',['bufferLength',['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e',1,'Lightweight::SqlRawColumnMetadata']]],
+  ['builder_27',['SQL Query Builder',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder',1,'']]],
+  ['business_20logic_20separate_28',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]]
 ];
