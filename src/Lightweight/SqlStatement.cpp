@@ -4,13 +4,18 @@
 #include "SqlStatement.hpp"
 #include "Utils.hpp"
 
+#include <deque>
+#include <vector>
+
 namespace Lightweight
 {
 
 struct SqlStatement::Data
 {
-    std::optional<SqlConnection> ownedConnection; // The connection object (if owned)
-    std::vector<SQLLEN> indicators;               // Holds the indicators for the bound output columns
+    std::optional<SqlConnection> ownedConnection;    // The connection object (if owned)
+    std::vector<SQLLEN> indicators;                  // Holds the indicators for the bound output columns
+    std::deque<SQLLEN> inputIndicators;              // Holds the indicators for the bound input parameters
+    std::deque<std::vector<SQLLEN>> batchIndicators; // Holds the indicators for the bound batch input parameters
     std::vector<std::function<void()>> postExecuteCallbacks;
     std::vector<std::function<void()>> postProcessOutputColumnCallbacks;
 
@@ -35,6 +40,22 @@ void SqlStatement::RequireIndicators()
 SQLLEN* SqlStatement::GetIndicatorForColumn(SQLUSMALLINT column) noexcept
 {
     return &m_data->indicators[column];
+}
+
+SQLLEN* SqlStatement::ProvideInputIndicator()
+{
+    return &m_data->inputIndicators.emplace_back(0);
+}
+
+SQLLEN* SqlStatement::ProvideInputIndicators(size_t rowCount)
+{
+    m_data->batchIndicators.emplace_back(rowCount); // Emplaces a vector of rowCount elements.
+    return m_data->batchIndicators.back().data();
+}
+
+void SqlStatement::ClearBatchIndicators()
+{
+    m_data->batchIndicators.clear();
 }
 
 void SqlStatement::PlanPostExecuteCallback(std::function<void()>&& cb)
@@ -68,16 +89,20 @@ SqlStatement::SqlStatement():
     m_data { new Data {
                  .ownedConnection = SqlConnection(),
                  .indicators = {},
+                 .inputIndicators = {},
+                 .batchIndicators = {},
                  .postExecuteCallbacks = {},
                  .postProcessOutputColumnCallbacks = {},
              },
+
              [](Data* data) {
                  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
                  delete data;
-             } },
-    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-    m_connection { &*m_data->ownedConnection }
+             } }
 {
+    // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
+    m_connection = &*m_data->ownedConnection;
+
     if (m_connection->NativeHandle())
         RequireSuccess(SQLAllocHandle(SQL_HANDLE_STMT, m_connection->NativeHandle(), &m_hStmt));
 }
@@ -125,8 +150,7 @@ SqlStatement::SqlStatement(SqlConnection& relatedConnection):
 }
 
 SqlStatement::SqlStatement(std::nullopt_t /*nullopt*/):
-    m_data { const_cast<Data*>(&Data::NoData), [](Data* /*data*/) {
-            } }
+    m_data { const_cast<Data*>(&Data::NoData), [](Data* /*data*/) {} }
 {
 }
 
@@ -152,6 +176,8 @@ void SqlStatement::Prepare(std::string_view query) &
 
     m_data->postExecuteCallbacks.clear();
     m_data->postProcessOutputColumnCallbacks.clear();
+    m_data->inputIndicators.clear();
+    m_data->batchIndicators.clear();
 
     // Unbinds the columns, if any
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
@@ -170,8 +196,10 @@ void SqlStatement::ExecuteDirect(std::string_view const& query, std::source_loca
     m_preparedQuery.clear();
     m_numColumns.reset();
 
-    // Unbinds the columns, if any
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
+
+    m_data->inputIndicators.clear();
+    m_data->batchIndicators.clear();
 
     SqlLogger::GetLogger().OnExecuteDirect(query);
 
@@ -198,7 +226,9 @@ void SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const& args)
         SqlDataBinder<SqlVariant>::InputParameter(m_hStmt, static_cast<SQLUSMALLINT>(1 + i), arg, *this);
     }
 
-    RequireSuccess(SQLExecute(m_hStmt));
+    auto const rc = SQLExecute(m_hStmt);
+    if (rc != SQL_NO_DATA)
+        RequireSuccess(rc);
     ProcessPostExecuteCallbacks();
 }
 

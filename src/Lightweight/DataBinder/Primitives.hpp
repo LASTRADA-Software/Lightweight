@@ -21,6 +21,13 @@ struct SqlSimpleDataBinder
         return SQLBindParameter(stmt, column, SQL_PARAM_INPUT, TheCType, TheSqlType, 0, 0, (SQLPOINTER) &value, 0, nullptr);
     }
 
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN BatchInputParameter(
+        SQLHSTMT stmt, SQLUSMALLINT column, T const* values, size_t /*rowCount*/, SqlDataBinderCallback& /*cb*/) noexcept
+    {
+        return SQLBindParameter(
+            stmt, column, SQL_PARAM_INPUT, TheCType, TheSqlType, 0, 0, (SQLPOINTER) values, sizeof(T), nullptr);
+    }
+
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, T* result, SQLLEN* indicator, SqlDataBinderCallback& /*unused*/) noexcept
     {
@@ -48,6 +55,9 @@ struct Int64DataBinderHelper
                                                     SQLUSMALLINT column,
                                                     Int64Type const& value,
                                                     SqlDataBinderCallback& cb) noexcept;
+
+    static LIGHTWEIGHT_API SQLRETURN BatchInputParameter(
+        SQLHSTMT stmt, SQLUSMALLINT column, Int64Type const* values, size_t rowCount, SqlDataBinderCallback& cb) noexcept;
 
     static LIGHTWEIGHT_API SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, Int64Type* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept;

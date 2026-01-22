@@ -39,10 +39,39 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
 
     virtual ~SqlDataBinderCallback() = default;
 
+    /// Plans a callback to be called after the statement has been executed.
+    ///
+    /// @see SqlDataBinder::PostExecute()
     virtual void PlanPostExecuteCallback(std::function<void()>&&) = 0;
+
+    /// Plans a callback to be called after a column has been processed.
+    ///
+    /// @see SqlDataBinder::PostProcessOutputColumn()
     virtual void PlanPostProcessOutputColumn(std::function<void()>&&) = 0;
 
+    /// Provides a pointer to a single indicator for a single input parameter.
+    ///
+    /// @note The caller is responsible for filling the indicator with the length of the data or
+    /// SQL_NULL_DATA.
+    /// @note The indicator must remain valid until the statement is executed.
+    ///
+    /// @return A pointer to the indicator.
+    virtual SQLLEN* ProvideInputIndicator() = 0;
+
+    /// Provides a pointer to a contiguous array of indicators for a batch of input parameters.
+    ///
+    /// @note The caller is responsible for filling the indicators with the lengths of the data or
+    /// SQL_NULL_DATA.
+    /// @note The indicators must remain valid until the statement is executed.
+    ///
+    /// @param rowCount The number of rows in the batch.
+    /// @return A pointer to the first element of the indicator array.
+    virtual SQLLEN* ProvideInputIndicators(size_t rowCount) = 0;
+
+    /// @return The server type of the database.
     [[nodiscard]] virtual SqlServerType ServerType() const noexcept = 0;
+
+    /// @return The driver name of the database.
     [[nodiscard]] virtual std::string const& DriverName() const noexcept = 0;
 };
 

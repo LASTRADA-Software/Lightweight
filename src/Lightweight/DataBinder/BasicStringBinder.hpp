@@ -6,6 +6,7 @@
 #include "UnicodeConverter.hpp"
 
 #include <cassert>
+#include <cstring>
 #include <memory>
 #include <utility>
 
@@ -168,10 +169,14 @@ struct SqlDataBinder<AnsiStringType>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              AnsiStringType const& value,
-                                                             SqlDataBinderCallback& /*cb*/) noexcept
+                                                             SqlDataBinderCallback& cb) noexcept
     {
         auto const charCount = StringTraits::Size(&value);
         auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_LONGVARCHAR : SQL_VARCHAR);
+
+        SQLLEN* indicator = cb.ProvideInputIndicator();
+        *indicator = static_cast<SQLLEN>(charCount);
+
         return SQLBindParameter(stmt,
                                 column,
                                 SQL_PARAM_INPUT,
@@ -180,8 +185,40 @@ struct SqlDataBinder<AnsiStringType>
                                 charCount,
                                 0,
                                 (SQLPOINTER) StringTraits::Data(&value),
+                                0,
+                                indicator);
+    }
+
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN BatchInputParameter(SQLHSTMT stmt,
+                                                                  SQLUSMALLINT column,
+                                                                  AnsiStringType const* values,
+                                                                  size_t rowCount,
+                                                                  SqlDataBinderCallback& cb) noexcept
+    {
+        size_t maxLen = 0;
+        SQLLEN* indicators = cb.ProvideInputIndicators(rowCount);
+        for (size_t i = 0; i < rowCount; ++i)
+        {
+            auto const len = StringTraits::Size(&values[i]);
+            auto const* data = StringTraits::Data(&values[i]);
+
+            indicators[i] = static_cast<SQLLEN>(len);
+            if (len > maxLen)
+                maxLen = len;
+        }
+
+        auto const sqlType = static_cast<SQLSMALLINT>(maxLen > SqlOptimalMaxColumnSize ? SQL_LONGVARCHAR : SQL_VARCHAR);
+
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                SQL_C_CHAR,
+                                sqlType,
+                                maxLen,
+                                0,
+                                (SQLPOINTER) values,
                                 sizeof(AnsiStringType),
-                                nullptr);
+                                indicators);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
@@ -348,6 +385,10 @@ struct SqlDataBinder<Utf16StringType>
                 // PostgreSQL only supports UTF-8 as Unicode encoding
                 auto u8String = std::make_shared<std::u8string>(ToUtf8(detail::SqlViewHelper<Utf16StringType>::View(value)));
                 cb.PlanPostExecuteCallback([u8String = u8String]() {}); // Keep the string alive
+
+                SQLLEN* indicator = cb.ProvideInputIndicator();
+                *indicator = static_cast<SQLLEN>(u8String->size());
+
                 return SQLBindParameter(stmt,
                                         column,
                                         SQL_PARAM_INPUT,
@@ -357,7 +398,7 @@ struct SqlDataBinder<Utf16StringType>
                                         0,
                                         (SQLPOINTER) u8String->data(),
                                         0,
-                                        nullptr);
+                                        indicator);
             }
             case SqlServerType::MYSQL:
             case SqlServerType::SQLITE: // We assume UTF-16 for SQLite
@@ -369,8 +410,12 @@ struct SqlDataBinder<Utf16StringType>
                 auto const charCount = StringTraits::Size(&value);
                 auto const sqlType =
                     static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
+
+                SQLLEN* indicator = cb.ProvideInputIndicator();
+                *indicator = static_cast<SQLLEN>(sizeInBytes);
+
                 return SQLBindParameter(
-                    stmt, column, SQL_PARAM_INPUT, CType, sqlType, charCount, 0, (SQLPOINTER) data, sizeInBytes, nullptr);
+                    stmt, column, SQL_PARAM_INPUT, CType, sqlType, charCount, 0, (SQLPOINTER) data, sizeInBytes, indicator);
             }
         }
         std::unreachable();
@@ -456,6 +501,10 @@ struct SqlDataBinder<Utf32StringType>
                 // PostgreSQL only supports UTF-8 as Unicode encoding
                 auto u8String = std::make_shared<std::u8string>(ToUtf8(detail::SqlViewHelper<Utf32StringType>::View(value)));
                 cb.PlanPostExecuteCallback([u8String = u8String]() {}); // Keep the string alive
+
+                SQLLEN* indicator = cb.ProvideInputIndicator();
+                *indicator = static_cast<SQLLEN>(u8String->size());
+
                 return SQLBindParameter(stmt,
                                         column,
                                         SQL_PARAM_INPUT,
@@ -465,7 +514,7 @@ struct SqlDataBinder<Utf32StringType>
                                         0,
                                         (SQLPOINTER) u8String->data(),
                                         0,
-                                        nullptr);
+                                        indicator);
             }
             case SqlServerType::MYSQL:
             case SqlServerType::SQLITE: // We assume UTF-16 for SQLite
@@ -480,8 +529,12 @@ struct SqlDataBinder<Utf32StringType>
                 auto const CType = SQLSMALLINT { SQL_C_WCHAR };
                 auto const sqlType =
                     static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
+
+                SQLLEN* indicator = cb.ProvideInputIndicator();
+                *indicator = static_cast<SQLLEN>(sizeInBytes);
+
                 return SQLBindParameter(
-                    stmt, column, SQL_PARAM_INPUT, CType, sqlType, charCount, 0, (SQLPOINTER) data, sizeInBytes, nullptr);
+                    stmt, column, SQL_PARAM_INPUT, CType, sqlType, charCount, 0, (SQLPOINTER) data, sizeInBytes, indicator);
             }
         }
         std::unreachable();
@@ -538,16 +591,12 @@ struct SqlDataBinder<Utf8StringType>
         {
             case SqlServerType::POSTGRESQL: {
                 // PostgreSQL only supports UTF-8 as Unicode encoding
-                return SQLBindParameter(stmt,
-                                        column,
-                                        SQL_PARAM_INPUT,
-                                        SQL_C_CHAR,
-                                        SQL_VARCHAR,
-                                        value.size(),
-                                        0,
-                                        (SQLPOINTER) value.data(),
-                                        0,
-                                        nullptr);
+                auto const len = value.size();
+                SQLLEN* indicator = cb.ProvideInputIndicator();
+                *indicator = static_cast<SQLLEN>(len);
+
+                return SQLBindParameter(
+                    stmt, column, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, len, 0, (SQLPOINTER) value.data(), 0, indicator);
             }
             case SqlServerType::MYSQL:
             case SqlServerType::SQLITE: // We assume UTF-16 for SQLite
@@ -562,6 +611,10 @@ struct SqlDataBinder<Utf8StringType>
                 auto const byteCount = u16String->size() * sizeof(char16_t);
                 auto const sqlType =
                     static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
+
+                SQLLEN* indicator = cb.ProvideInputIndicator();
+                *indicator = static_cast<SQLLEN>(byteCount);
+
                 return SQLBindParameter(stmt,
                                         column,
                                         SQL_PARAM_INPUT,
@@ -571,7 +624,7 @@ struct SqlDataBinder<Utf8StringType>
                                         0,
                                         (SQLPOINTER) u16String->data(),
                                         byteCount,
-                                        nullptr);
+                                        indicator);
             }
         }
         std::unreachable();

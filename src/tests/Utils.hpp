@@ -101,6 +101,26 @@ inline ostream& operator<<(ostream& os, Lightweight::SqlGuid const& guid)
     return os << format("SqlGuid({})", guid);
 }
 
+inline std::string EscapedBinaryText(std::string_view binary)
+{
+    std::string hexEncodedString;
+    for (auto const& b: binary)
+    {
+        if (std::isprint(b))
+            hexEncodedString += static_cast<char>(b);
+        else
+            hexEncodedString += std::format("\\x{:02x}", static_cast<unsigned char>(b));
+    }
+    return hexEncodedString;
+}
+
+template <size_t N>
+inline ostream& operator<<(ostream& os, Lightweight::SqlDynamicBinary<N> const& binary)
+{
+    auto const hexEncodedString = EscapedBinaryText(std::string_view((char const*) binary.data(), binary.size()));
+    return os << std::format("SqlDynamicBinary<{}>(length: {}, characters: {})", N, binary.size(), hexEncodedString);
+}
+
 } // namespace std
 
 namespace std
@@ -501,6 +521,19 @@ class SqlTestFixture
         stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS \"{}\"", table.table));
     }
 
+    static void DropTableIfExists(Lightweight::SqlConnection& conn, std::string const& tableName)
+    {
+        Lightweight::SqlStatement stmt { conn };
+        try
+        {
+            stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS {}", tableName));
+        }
+        catch (...)
+        {
+            ; // ignore
+        }
+    }
+
     static void DropAllTablesInDatabase(Lightweight::SqlStatement& stmt)
     {
         using Lightweight::SqlServerType;
@@ -537,20 +570,24 @@ class SqlTestFixture
         m_createdTables.clear();
     }
 
+    static std::string GetDefaultSchemaName(Lightweight::SqlConnection const& connection)
+    {
+        using namespace std::string_literals;
+        switch (connection.ServerType())
+        {
+            case Lightweight::SqlServerType::MICROSOFT_SQL:
+                return "dbo"s;
+            default:
+                return ""s;
+        }
+    }
+
   private:
     static std::vector<std::string> GetAllTableNames(Lightweight::SqlStatement& stmt)
     {
         using namespace std::string_literals;
         auto result = std::vector<std::string>();
-        auto const schemaName = [&] {
-            switch (stmt.Connection().ServerType())
-            {
-                case Lightweight::SqlServerType::MICROSOFT_SQL:
-                    return "dbo"s;
-                default:
-                    return ""s;
-            }
-        }();
+        auto const schemaName = GetDefaultSchemaName(stmt.Connection());
         auto const sqlResult = SQLTables(stmt.NativeHandle(),
                                          (SQLCHAR*) testDatabaseName.data(),
                                          (SQLSMALLINT) testDatabaseName.size(),
@@ -686,6 +723,51 @@ inline std::ostream& operator<<(std::ostream& os, Lightweight::SqlDynamicString<
 }
 
 // }}}
+
+/// Enables foreign keys for SQLite (no-op for other DBMS).
+inline void EnableForeignKeysIfNeeded(Lightweight::SqlConnection& conn)
+{
+    if (conn.ServerType() == Lightweight::SqlServerType::SQLITE)
+    {
+        Lightweight::SqlStatement stmt { conn };
+        stmt.ExecuteDirect("PRAGMA foreign_keys = ON");
+    }
+}
+
+/// Disables foreign keys for SQLite (no-op for other DBMS).
+inline void DisableForeignKeysIfNeeded(Lightweight::SqlConnection& conn)
+{
+    if (conn.ServerType() == Lightweight::SqlServerType::SQLITE)
+    {
+        Lightweight::SqlStatement stmt { conn };
+        stmt.ExecuteDirect("PRAGMA foreign_keys = OFF");
+    }
+}
+
+/// Wraps a function with IDENTITY_INSERT ON/OFF for MS SQL.
+/// For other DBMS, the function is called directly.
+template <typename Func>
+inline void WithIdentityInsert(Lightweight::SqlStatement& stmt, std::string_view tableName, Func&& func)
+{
+    if (stmt.Connection().ServerType() == Lightweight::SqlServerType::MICROSOFT_SQL)
+    {
+        stmt.ExecuteDirect(std::format("SET IDENTITY_INSERT \"{}\" ON", tableName));
+        try
+        {
+            std::forward<Func>(func)();
+            stmt.ExecuteDirect(std::format("SET IDENTITY_INSERT \"{}\" OFF", tableName));
+        }
+        catch (...)
+        {
+            stmt.ExecuteDirect(std::format("SET IDENTITY_INSERT \"{}\" OFF", tableName));
+            throw;
+        }
+    }
+    else
+    {
+        std::forward<Func>(func)();
+    }
+}
 
 inline void CreateEmployeesTable(Lightweight::SqlStatement& stmt,
                                  std::source_location location = std::source_location::current())

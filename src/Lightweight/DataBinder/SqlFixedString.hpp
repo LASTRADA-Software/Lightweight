@@ -403,9 +403,22 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
                 {
                     TrimRight(result, indicator);
                 }
+                else
+                {
+                    // Strip trailing null characters for all modes
+                    StripTrailingNulls(result);
+                }
                 break;
             }
         }
+    }
+
+    LIGHTWEIGHT_FORCE_INLINE static void StripTrailingNulls(ValueType* str) noexcept
+    {
+        size_t n = str->size();
+        while (n > 0 && (*str)[n - 1] == '\0')
+            --n;
+        str->setsize(n);
     }
 
     LIGHTWEIGHT_FORCE_INLINE static void TrimRight(ValueType* boundOutputString, SQLLEN indicator) noexcept
@@ -415,7 +428,8 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
 #else
         size_t n = std::min(static_cast<size_t>(indicator), N - 1);
 #endif
-        while (n > 0 && std::isspace((*boundOutputString)[n - 1]))
+        // Strip trailing whitespace and null characters
+        while (n > 0 && (std::isspace((*boundOutputString)[n - 1]) || (*boundOutputString)[n - 1] == '\0'))
             --n;
         boundOutputString->setsize(n);
     }

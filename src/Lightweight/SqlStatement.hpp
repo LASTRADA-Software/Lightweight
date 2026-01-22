@@ -8,7 +8,6 @@
 
 #include "Api.hpp"
 #include "SqlConnection.hpp"
-#include "SqlDataBinder.hpp"
 #include "SqlQuery.hpp"
 #include "SqlServerType.hpp"
 #include "Utils.hpp"
@@ -18,6 +17,7 @@
 #include <optional>
 #include <ranges>
 #include <source_location>
+
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -29,6 +29,8 @@
 
 namespace Lightweight
 {
+
+
 
 /// @brief Represents an SQL query object, that provides a ToSql() method.
 template <typename QueryObject>
@@ -170,6 +172,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches>
     void ExecuteBatch(FirstColumnBatch const& firstColumnBatch, MoreColumnBatches const&... moreColumnBatches);
 
+
     /// Executes the given query directly.
     LIGHTWEIGHT_API void ExecuteDirect(std::string_view const& query,
                                        std::source_location location = std::source_location::current());
@@ -268,6 +271,9 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     [[nodiscard]] LIGHTWEIGHT_API std::string const& DriverName() const noexcept override;
     LIGHTWEIGHT_API void ProcessPostExecuteCallbacks();
 
+    LIGHTWEIGHT_API SQLLEN* ProvideInputIndicator() override;
+    LIGHTWEIGHT_API SQLLEN* ProvideInputIndicators(size_t rowCount) override;
+    LIGHTWEIGHT_API void ClearBatchIndicators();
     LIGHTWEIGHT_API void RequireIndicators();
     LIGHTWEIGHT_API SQLLEN* GetIndicatorForColumn(SQLUSMALLINT column) noexcept;
 
@@ -749,11 +755,13 @@ void SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstColumnBatch,
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, &rowStart, 0));
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0));
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_OPERATION_PTR, SQL_PARAM_PROCEED, 0));
+    ClearBatchIndicators();
     RequireSuccess(SqlDataBinder<std::remove_cvref_t<decltype(*std::ranges::data(firstColumnBatch))>>::
-                                   InputParameter(m_hStmt, 1, *std::ranges::data(firstColumnBatch), *this));
+                       BatchInputParameter(m_hStmt, 1, std::ranges::data(firstColumnBatch), rowCount, *this));
     SQLUSMALLINT column = 1;
     (RequireSuccess(SqlDataBinder<std::remove_cvref_t<decltype(*std::ranges::data(moreColumnBatches))>>::
-                        InputParameter(m_hStmt, ++column, *std::ranges::data(moreColumnBatches), *this)), ...);
+                        BatchInputParameter(m_hStmt, ++column, std::ranges::data(moreColumnBatches), rowCount, *this)),
+     ...);
     RequireSuccess(SQLExecute(m_hStmt));
     ProcessPostExecuteCallbacks();
     // clang-format on
