@@ -20,6 +20,16 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return std::format(R"(INSERT INTO "{}" ({}) VALUES ({}))", intoTable, fields, values);
     }
 
+    [[nodiscard]] std::string Insert(std::string_view schema,
+                                     std::string_view intoTable,
+                                     std::string_view fields,
+                                     std::string_view values) const override
+    {
+        if (schema.empty())
+            return std::format(R"(INSERT INTO "{}" ({}) VALUES ({}))", intoTable, fields, values);
+        return std::format(R"(INSERT INTO "{}"."{}" ({}) VALUES ({}))", schema, intoTable, fields, values);
+    }
+
     [[nodiscard]] std::string QueryLastInsertId(std::string_view /*tableName*/) const override
     {
         // This is SQLite syntax. We might want to provide aspecialized SQLite class instead.
@@ -38,14 +48,39 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
 
     [[nodiscard]] std::string StringLiteral(std::string_view value) const noexcept override
     {
-        // TODO: Implement escaping of special characters.
-        return std::format("'{}'", value);
+        if (value.empty())
+            return "''";
+
+        std::string escaped;
+        escaped.reserve(value.size() + 2);
+        escaped += '\'';
+        for (char const c: value)
+        {
+            if (c == '\'')
+                escaped += "''";
+            else
+                escaped += c;
+        }
+        escaped += '\'';
+        return escaped;
     }
 
     [[nodiscard]] std::string StringLiteral(char value) const noexcept override
     {
-        // TODO: Implement escaping of special characters.
+        if (value == '\'')
+            return "''''";
         return std::format("'{}'", value);
+    }
+
+    [[nodiscard]] std::string BinaryLiteral(std::span<uint8_t const> data) const override
+    {
+        std::string result;
+        result.reserve((data.size() * 2) + 3);
+        result += "X'";
+        for (uint8_t byte: data)
+            result += std::format("{:02X}", byte);
+        result += "'";
+        return result;
     }
 
     [[nodiscard]] std::string SelectCount(bool distinct,
@@ -184,6 +219,9 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         else if (column.primaryKey == SqlPrimaryKeyType::NONE && !column.index && column.unique)
             sqlQueryString << " UNIQUE";
 
+        if (!column.defaultValue.empty())
+            sqlQueryString << " DEFAULT " << column.defaultValue;
+
         return sqlQueryString.str();
     }
 
@@ -198,16 +236,25 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-    [[nodiscard]] StringList CreateTable(std::string_view tableName,
-                                         std::vector<SqlColumnDeclaration> const& columns) const override
+    [[nodiscard]] StringList CreateTable(std::string_view schema,
+                                         std::string_view tableName,
+                                         std::vector<SqlColumnDeclaration> const& columns,
+                                         std::vector<SqlCompositeForeignKeyConstraint> const& foreignKeys) const override
     {
         auto sqlQueries = StringList {};
 
         sqlQueries.emplace_back([&]() {
             std::stringstream sqlQueryString;
-            sqlQueryString << "CREATE TABLE \"" << tableName << "\" (";
+            sqlQueryString << "CREATE TABLE \"";
+            if (!schema.empty())
+            {
+                sqlQueryString << schema;
+                sqlQueryString << "\".\"";
+            }
+            sqlQueryString << tableName;
+            sqlQueryString << "\" (";
+            std::vector<SqlColumnDeclaration const*> pks;
             size_t currentColumn = 0;
-            std::string primaryKeyColumns;
             std::string foreignKeyConstraints;
             for (SqlColumnDeclaration const& column: columns)
             {
@@ -216,22 +263,72 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                 ++currentColumn;
                 sqlQueryString << "\n    ";
                 sqlQueryString << BuildColumnDefinition(column);
-                if (column.primaryKey == SqlPrimaryKeyType::MANUAL || column.primaryKey == SqlPrimaryKeyType::GUID)
-                {
-                    if (!primaryKeyColumns.empty())
-                        primaryKeyColumns += ", ";
-                    primaryKeyColumns += '"';
-                    primaryKeyColumns += column.name;
-                    primaryKeyColumns += '"';
-                }
+
+                if (column.primaryKey != SqlPrimaryKeyType::NONE)
+                    pks.push_back(&column);
+
                 if (column.foreignKey)
                 {
                     foreignKeyConstraints += ",\n    ";
                     foreignKeyConstraints += BuildForeignKeyConstraint(column.name, *column.foreignKey);
                 }
             }
-            if (!primaryKeyColumns.empty())
-                sqlQueryString << ",\n    PRIMARY KEY (" << primaryKeyColumns << ")";
+
+            for (SqlCompositeForeignKeyConstraint const& fk: foreignKeys)
+            {
+                foreignKeyConstraints += ",\n    FOREIGN KEY (";
+                for (size_t i = 0; i < fk.columns.size(); ++i)
+                {
+                    if (i > 0)
+                        foreignKeyConstraints += ", ";
+                    foreignKeyConstraints += '"' + fk.columns[i] + '"';
+                }
+                foreignKeyConstraints += ") REFERENCES \"";
+                foreignKeyConstraints += fk.referencedTableName;
+                foreignKeyConstraints += "\" (";
+                for (size_t i = 0; i < fk.referencedColumns.size(); ++i)
+                {
+                    if (i > 0)
+                        foreignKeyConstraints += ", ";
+                    foreignKeyConstraints += '"' + fk.referencedColumns[i] + '"';
+                }
+                foreignKeyConstraints += ")";
+            }
+
+            // Filter out AUTO_INCREMENT from table-level PK constraint if it's the ONLY PK,
+            // because SQLite handles it inline. But for composite keys involving auto-inc (if that's even valid/used),
+            // or if we just want to be explicit.
+            // SQLite restriction: "INTEGER PRIMARY KEY" must be on the column definition for auto-increment.
+            // If we have AUTO_INCREMENT, it's already in BuildColumnDefinition.
+
+            std::erase_if(
+                pks, [](SqlColumnDeclaration const* col) { return col->primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT; });
+
+            if (!pks.empty())
+            {
+                std::ranges::sort(pks, [](SqlColumnDeclaration const* a, SqlColumnDeclaration const* b) {
+                    // If both have index, use it. If one has 0 (no index), treat it as "after" indexed ones?
+                    // Or just rely on stable sort?
+                    // Let's assume indices are properly set for composite keys.
+                    // 1-based index vs 0. 0 means "unordered".
+                    if (a->primaryKeyIndex != 0 && b->primaryKeyIndex != 0)
+                        return a->primaryKeyIndex < b->primaryKeyIndex;
+                    if (a->primaryKeyIndex != 0)
+                        return true; // a comes first
+                    if (b->primaryKeyIndex != 0)
+                        return false; // b comes first
+                    return false;     // keep original order
+                });
+
+                sqlQueryString << ",\n    PRIMARY KEY (";
+                for (size_t i = 0; i < pks.size(); ++i)
+                {
+                    if (i > 0)
+                        sqlQueryString << ", ";
+                    sqlQueryString << '"' << pks[i]->name << '"';
+                }
+                sqlQueryString << ")";
+            }
 
             sqlQueryString << foreignKeyConstraints;
 
@@ -259,7 +356,8 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return sqlQueries;
     }
 
-    [[nodiscard]] StringList AlterTable(std::string_view tableName,
+    [[nodiscard]] StringList AlterTable(std::string_view schemaName,
+                                        std::string_view tableName,
                                         std::vector<SqlAlterTableCommand> const& commands) const override
     {
         std::stringstream sqlQueryString;
@@ -274,31 +372,35 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
             using namespace SqlAlterTableCommands;
             sqlQueryString << std::visit(
                 detail::overloaded {
-                    [tableName](RenameTable const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE "{}" RENAME TO "{}";)", tableName, actualCommand.newTableName);
+                    [schemaName, tableName](RenameTable const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE {} RENAME TO "{}";)",
+                                           FormatTableName(schemaName, tableName),
+                                           actualCommand.newTableName);
                     },
-                    [tableName, this](AddColumn const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE "{}" ADD COLUMN "{}" {} {};)",
-                                           tableName,
+                    [schemaName, tableName, this](AddColumn const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE {} ADD COLUMN "{}" {} {};)",
+                                           FormatTableName(schemaName, tableName),
                                            actualCommand.columnName,
                                            ColumnType(actualCommand.columnType),
                                            actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                     },
-                    [tableName, this](AlterColumn const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE "{}" ALTER COLUMN "{}" {} {};)",
-                                           tableName,
+                    [schemaName, tableName, this](AlterColumn const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE {} ALTER COLUMN "{}" {} {};)",
+                                           FormatTableName(schemaName, tableName),
                                            actualCommand.columnName,
                                            ColumnType(actualCommand.columnType),
                                            actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                     },
-                    [tableName](RenameColumn const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE "{}" RENAME COLUMN "{}" TO "{}";)",
-                                           tableName,
+                    [schemaName, tableName](RenameColumn const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE {} RENAME COLUMN "{}" TO "{}";)",
+                                           FormatTableName(schemaName, tableName),
                                            actualCommand.oldColumnName,
                                            actualCommand.newColumnName);
                     },
-                    [tableName](DropColumn const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE "{}" DROP COLUMN "{}";)", tableName, actualCommand.columnName);
+                    [schemaName, tableName](DropColumn const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE {} DROP COLUMN "{}";)",
+                                           FormatTableName(schemaName, tableName),
+                                           actualCommand.columnName);
                     },
                     [tableName](AddIndex const& actualCommand) -> std::string {
                         using namespace std::string_view_literals;
@@ -311,16 +413,21 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                     [tableName](DropIndex const& actualCommand) -> std::string {
                         return std::format(R"(DROP INDEX "{0}_{1}_index";)", tableName, actualCommand.columnName);
                     },
-                    [tableName](AddForeignKey const& actualCommand) -> std::string {
+                    [schemaName, tableName](AddForeignKey const& actualCommand) -> std::string {
                         return std::format(
-                            R"(ALTER TABLE "{}" ADD {};)",
-                            tableName,
+                            R"(ALTER TABLE {} ADD {};)",
+                            FormatTableName(schemaName, tableName),
                             BuildForeignKeyConstraint(actualCommand.columnName, actualCommand.referencedColumn));
                     },
-                    [tableName](DropForeignKey const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE "{}" DROP CONSTRAINT "{}";)",
-                                           tableName,
+                    [schemaName, tableName](DropForeignKey const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE {} DROP CONSTRAINT "{}";)",
+                                           FormatTableName(schemaName, tableName),
                                            std::format("FK_{}", actualCommand.columnName));
+                    },
+                    [tableName](AddCompositeForeignKey const& /*actualCommand*/) -> std::string {
+                        // SQLite limitation: ALTER TABLE ADD CONSTRAINT not supported.
+                        // We return empty string or comment to satisfy visitor.
+                        return std::format(R"(-- AddCompositeForeignKey not supported for {};)", tableName);
                     },
                 },
                 command);
@@ -358,9 +465,18 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                           type);
     }
 
-    [[nodiscard]] StringList DropTable(std::string_view const& tableName) const override
+    [[nodiscard]] StringList DropTable(std::string_view schemaName,
+                                       std::string_view const& tableName,
+                                       bool ifExists = false,
+                                       bool cascade = false) const override
     {
-        return { std::format(R"(DROP TABLE "{}";)", tableName) };
+        // SQLite doesn't support CASCADE syntax, but if FK constraints are disabled
+        // (PRAGMA foreign_keys = OFF), dropping works. The cascade flag is ignored.
+        (void) cascade;
+        if (ifExists)
+            return { std::format(R"(DROP TABLE IF EXISTS {};)", FormatTableName(schemaName, tableName)) };
+        else
+            return { std::format(R"(DROP TABLE {};)", FormatTableName(schemaName, tableName)) };
     }
 };
 

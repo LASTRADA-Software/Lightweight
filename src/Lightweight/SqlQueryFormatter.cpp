@@ -12,6 +12,13 @@ using namespace std::string_view_literals;
 namespace Lightweight
 {
 
+std::string SqlQueryFormatter::FormatTableName(std::string_view schema, std::string_view table)
+{
+    if (schema.empty())
+        return std::format(R"("{}")", table);
+    return std::format(R"("{}"."{}")", schema, table);
+}
+
 SqlQueryFormatter const& SqlQueryFormatter::Sqlite()
 {
     static SQLiteQueryFormatter const formatter {};

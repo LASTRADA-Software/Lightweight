@@ -38,6 +38,9 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// Converts a character value to a string literal.
     [[nodiscard]] virtual std::string StringLiteral(char value) const noexcept = 0;
 
+    /// Converts a binary value to a hex-encoded string literal.
+    [[nodiscard]] virtual std::string BinaryLiteral(std::span<uint8_t const> data) const = 0;
+
     /// Constructs an SQL INSERT query.
     ///
     /// @param intoTable The table to insert into.
@@ -46,6 +49,11 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     ///
     /// The fields and values must be in the same order.
     [[nodiscard]] virtual std::string Insert(std::string_view intoTable,
+                                             std::string_view fields,
+                                             std::string_view values) const = 0;
+
+    [[nodiscard]] virtual std::string Insert(std::string_view schema,
+                                             std::string_view intoTable,
                                              std::string_view fields,
                                              std::string_view values) const = 0;
 
@@ -109,15 +117,26 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     [[nodiscard]] virtual std::string ColumnType(SqlColumnTypeDefinition const& type) const = 0;
 
     /// Constructs an SQL CREATE TABLE query.
-    [[nodiscard]] virtual StringList CreateTable(std::string_view tableName,
-                                                 std::vector<SqlColumnDeclaration> const& columns) const = 0;
+    [[nodiscard]] virtual StringList CreateTable(std::string_view schema,
+                                                 std::string_view tableName,
+                                                 std::vector<SqlColumnDeclaration> const& columns,
+                                                 std::vector<SqlCompositeForeignKeyConstraint> const& foreignKeys) const = 0;
 
     /// Constructs an SQL ALTER TABLE query.
-    [[nodiscard]] virtual StringList AlterTable(std::string_view tableName,
+    [[nodiscard]] virtual StringList AlterTable(std::string_view schema,
+                                                std::string_view tableName,
                                                 std::vector<SqlAlterTableCommand> const& commands) const = 0;
 
     /// Constructs an SQL DROP TABLE query.
-    [[nodiscard]] virtual StringList DropTable(std::string_view const& tableName) const = 0;
+    ///
+    /// @param schema The schema name of the table to drop.
+    /// @param tableName The name of the table to drop.
+    /// @param ifExists If true, generates DROP TABLE IF EXISTS instead of DROP TABLE.
+    /// @param cascade If true, drops all foreign key constraints referencing this table first.
+    [[nodiscard]] virtual StringList DropTable(std::string_view schema,
+                                               std::string_view const& tableName,
+                                               bool ifExists = false,
+                                               bool cascade = false) const = 0;
 
     /// Retrieves the SQL query formatter for SQLite.
     static SqlQueryFormatter const& Sqlite();
@@ -130,6 +149,9 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
 
     /// Retrieves the SQL query formatter for the given SqlServerType.
     static SqlQueryFormatter const* Get(SqlServerType serverType) noexcept;
+
+  protected:
+    static std::string FormatTableName(std::string_view schema, std::string_view table);
 };
 
 } // namespace Lightweight
