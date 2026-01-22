@@ -18,7 +18,6 @@ var classLightweight_1_1SqlStatement =
     [ "ExecuteBatchNative", "db/dad/classLightweight_1_1SqlStatement.html#a5de8934a879ddef9062eef0d06342ff4", null ],
     [ "ExecuteBatchSoft", "db/dad/classLightweight_1_1SqlStatement.html#a435c8e2a6927c31c28cd9b6c082a5fad", null ],
     [ "ExecuteBatch", "db/dad/classLightweight_1_1SqlStatement.html#a39e7689e3101f48e5fcafe5d39b5d935", null ],
-    [ "ExecuteBatch", "db/dad/classLightweight_1_1SqlStatement.html#a1053cb70b16c7a53e98f234d7cf92af3", null ],
     [ "ExecuteDirect", "db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f", null ],
     [ "ExecuteDirect", "db/dad/classLightweight_1_1SqlStatement.html#a7bc8ffdd249fff1e8d68e0662b33f2c9", null ],
     [ "MigrateDirect", "db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1", null ],

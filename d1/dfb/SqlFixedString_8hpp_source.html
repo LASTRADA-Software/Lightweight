@@ -104,8 +104,8 @@ $(document).ready(function(){initNavTree('d1/dfb/SqlFixedString_8hpp_source.html
 <div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span> </div>
 <div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="preprocessor">#include &quot;../SqlColumnTypeDefinitions.hpp&quot;</span></div>
 <div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span><span class="preprocessor">#include &quot;Core.hpp&quot;</span></div>
-<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#include &quot;StringInterface.hpp&quot;</span></div>
-<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#include &quot;UnicodeConverter.hpp&quot;</span></div>
+<div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#include &quot;UnicodeConverter.hpp&quot;</span></div>
+<div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span><span class="preprocessor">#include &quot;StringInterface.hpp&quot;</span></div>
 <div class="line"><a id="l00009" name="l00009"></a><span class="lineno">    9</span> </div>
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#include &lt;format&gt;</span></div>
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#include &lt;ranges&gt;</span></div>
@@ -570,7 +570,7 @@ $(document).ready(function(){initNavTree('d1/dfb/SqlFixedString_8hpp_source.html
 <div class="line"><a id="l00436" name="l00436"></a><span class="lineno">  436</span>            <span class="keywordflow">return</span> std::formatter&lt;std::string&gt;::format(stdstring, ctx);</div>
 <div class="line"><a id="l00437" name="l00437"></a><span class="lineno">  437</span>        }</div>
 <div class="line"><a id="l00438" name="l00438"></a><span class="lineno">  438</span>        <span class="keywordflow">else</span></div>
-<div class="line"><a id="l00439" name="l00439"></a><span class="lineno">  439</span>            <span class="keywordflow">return</span> std::formatter&lt;std::string&gt;::format(std::string(text.data(), text.size()), ctx);</div>
+<div class="line"><a id="l00439" name="l00439"></a><span class="lineno">  439</span>            <span class="keywordflow">return</span> std::formatter&lt;std::string&gt;::format(text.c_str(), ctx);</div>
 <div class="line"><a id="l00440" name="l00440"></a><span class="lineno">  440</span>    }</div>
 <div class="line"><a id="l00441" name="l00441"></a><span class="lineno">  441</span>};</div>
 <div class="ttc" id="aclassLightweight_1_1SqlFixedString_html"><div class="ttname"><a href="../../de/dae/classLightweight_1_1SqlFixedString.html">Lightweight::SqlFixedString</a></div><div class="ttdef"><b>Definition</b> <a href="../../d1/dfb/SqlFixedString_8hpp_source.html#l00033">SqlFixedString.hpp:34</a></div></div>
