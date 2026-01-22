@@ -137,10 +137,11 @@ $(document).ready(function(){initNavTree('d0/da9/StandardProgressManager_8hpp_so
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>    <span class="keywordtype">bool</span> _useUnicode = <span class="keyword">false</span>;</div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>    std::vector&lt;std::string&gt; _warnings;</div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>    std::set&lt;std::string&gt; _tablesWithWarnings;</div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>    std::chrono::steady_clock::time_point _startTime = std::chrono::steady_clock::now();</div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>};</div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span> </div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>} <span class="comment">// namespace Lightweight::Tools</span></div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>    std::map&lt;std::string, std::chrono::steady_clock::time_point&gt; _tableStartTimes;</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>    std::chrono::steady_clock::time_point _startTime = std::chrono::steady_clock::now();</div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>};</div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span> </div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>} <span class="comment">// namespace Lightweight::Tools</span></div>
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1ProgressManager_html"><div class="ttname"><a href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html">Lightweight::SqlBackup::ProgressManager</a></div><div class="ttdoc">The interface for progress updates.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00067">SqlBackup.hpp:68</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->

@@ -14,6 +14,7 @@ var searchData=
   ['dropdatabase_11',['DropDatabase',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#ad329c2ef7e306dee1f21351e264ad412',1,'Lightweight::SqlMigrationQueryBuilder']]],
   ['dropforeignkey_12',['DropForeignKey',['../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aae78f7a3b9c5ab16e1c530458a1b9d70',1,'Lightweight::SqlAlterTableQueryBuilder']]],
   ['dropindex_13',['DropIndex',['../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a059bdf98d69fde660cd3527172a2cc62',1,'Lightweight::SqlAlterTableQueryBuilder']]],
-  ['droptable_14',['droptable',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6814368089abf7691cdd525806db0ae6',1,'Lightweight::SqlMigrationQueryBuilder::DropTable()'],['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4cbd85ab1345e81f3b8e8e1df35a4888',1,'Lightweight::SqlQueryFormatter::DropTable()']]],
-  ['droptableifexists_15',['DropTableIfExists',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#af5320c8ec4b5586056ae470f73803b6f',1,'Lightweight::SqlMigrationQueryBuilder']]]
+  ['droptable_14',['droptable',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6814368089abf7691cdd525806db0ae6',1,'Lightweight::SqlMigrationQueryBuilder::DropTable()'],['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9b5cc394c01daeccdafb032bd2da9003',1,'Lightweight::SqlQueryFormatter::DropTable()']]],
+  ['droptablecascade_15',['DropTableCascade',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#aab06c624a00043579e2a0efabd25f2ec',1,'Lightweight::SqlMigrationQueryBuilder']]],
+  ['droptableifexists_16',['DropTableIfExists',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#af5320c8ec4b5586056ae470f73803b6f',1,'Lightweight::SqlMigrationQueryBuilder']]]
 ];

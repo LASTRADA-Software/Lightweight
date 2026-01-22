@@ -469,74 +469,78 @@ $(document).ready(function(){initNavTree('db/d47/MigrationPlan_8hpp_source.html'
 <div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span><span class="comment"></span> </div>
 <div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span><span class="comment">    /// If true, generates DROP TABLE IF EXISTS instead of DROP TABLE.</span></div>
 <div class="line"><a id="l00362" name="l00362"></a><span class="lineno"><a class="line" href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html#af7adb5af3a0ff6c6a366fee2ce29beff">  362</a></span><span class="comment"></span>    <span class="keywordtype">bool</span> <a class="code hl_variable" href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html#af7adb5af3a0ff6c6a366fee2ce29beff">ifExists</a> { <span class="keyword">false</span> };</div>
-<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>};</div>
+<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span><span class="comment"></span> </div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span><span class="comment">    /// If true, drops all foreign key constraints referencing this table first.</span></div>
+<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span><span class="comment">    /// On PostgreSQL, uses CASCADE. On MS SQL, drops FK constraints explicitly.</span></div>
+<div class="line"><a id="l00366" name="l00366"></a><span class="lineno"><a class="line" href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html#a70993d937b9b2479d4fc33bfec3ffd81">  366</a></span><span class="comment"></span>    <span class="keywordtype">bool</span> <a class="code hl_variable" href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html#a70993d937b9b2479d4fc33bfec3ffd81">cascade</a> { <span class="keyword">false</span> };</div>
+<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>};</div>
 </div>
-<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span><span class="comment"></span> </div>
-<div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span><span class="comment">/// @brief Represents a raw SQL plan.</span></div>
-<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span><span class="comment">///</span></div>
-<div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span><span class="comment">/// @ingroup QueryBuilder</span></div>
-<div class="foldopen" id="foldopen00368" data-start="{" data-end="};">
-<div class="line"><a id="l00368" name="l00368"></a><span class="lineno"><a class="line" href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html">  368</a></span><span class="comment"></span><span class="keyword">struct </span><a class="code hl_struct" href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html">SqlRawSqlPlan</a></div>
-<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>{<span class="comment"></span></div>
-<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span><span class="comment">    /// The raw SQL to execute.</span></div>
-<div class="line"><a id="l00371" name="l00371"></a><span class="lineno"><a class="line" href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d">  371</a></span><span class="comment"></span>    std::string_view <a class="code hl_variable" href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d">sql</a>;</div>
-<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>};</div>
+<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span><span class="comment"></span> </div>
+<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span><span class="comment">/// @brief Represents a raw SQL plan.</span></div>
+<div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span><span class="comment">///</span></div>
+<div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="foldopen" id="foldopen00372" data-start="{" data-end="};">
+<div class="line"><a id="l00372" name="l00372"></a><span class="lineno"><a class="line" href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html">  372</a></span><span class="comment"></span><span class="keyword">struct </span><a class="code hl_struct" href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html">SqlRawSqlPlan</a></div>
+<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>{<span class="comment"></span></div>
+<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span><span class="comment">    /// The raw SQL to execute.</span></div>
+<div class="line"><a id="l00375" name="l00375"></a><span class="lineno"><a class="line" href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d">  375</a></span><span class="comment"></span>    std::string_view <a class="code hl_variable" href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d">sql</a>;</div>
+<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>};</div>
 </div>
-<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span> </div>
-<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span><span class="comment">// clang-format off</span></div>
-<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span><span class="comment"></span> </div>
-<div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span><span class="comment">/// @brief Represents a single SQL migration plan element.</span></div>
-<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span><span class="comment">///</span></div>
-<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span><span class="comment">/// This variant represents a single SQL migration plan element.</span></div>
-<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span><span class="comment">///</span></div>
-<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span><span class="comment">/// @ingroup QueryBuilder</span></div>
-<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span><span class="comment"></span><span class="keyword">using </span>SqlMigrationPlanElement = std::variant&lt;</div>
-<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>    SqlCreateTablePlan,</div>
-<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>    <a class="code hl_struct" href="../../dd/d75/structLightweight_1_1SqlAlterTablePlan.html">SqlAlterTablePlan</a>,</div>
-<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span>    <a class="code hl_struct" href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html">SqlDropTablePlan</a>,</div>
-<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>    <a class="code hl_struct" href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html">SqlRawSqlPlan</a></div>
-<div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>&gt;;</div>
-<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span> </div>
-<div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span><span class="comment">// clang-format on</span></div>
-<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span><span class="comment"></span> </div>
-<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span><span class="comment">/// Formats the given SQL migration plan element as a list of SQL statements.</span></div>
-<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span><span class="comment">///</span></div>
-<div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span><span class="comment">/// @param formatter The SQL query formatter to use.</span></div>
-<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span><span class="comment">/// @param element The SQL migration plan element to format.</span></div>
-<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span><span class="comment">///</span></div>
-<div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span><span class="comment">/// @return A list of SQL statements.</span></div>
-<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span><span class="comment">///</span></div>
-<div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span><span class="comment">/// @ingroup QueryBuilder</span></div>
-<div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span><span class="comment"></span>[[nodiscard]] LIGHTWEIGHT_API std::vector&lt;std::string&gt; ToSql(<a class="code hl_class" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; formatter,</div>
-<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>                                                             SqlMigrationPlanElement <span class="keyword">const</span>&amp; element);</div>
-<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span><span class="comment"></span> </div>
-<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span><span class="comment">/// @brief Represents a SQL migration plan.</span></div>
-<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span><span class="comment">///</span></div>
-<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span><span class="comment">/// This structure represents a SQL migration plan that can be executed on a database.</span></div>
-<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span><span class="comment">///</span></div>
-<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span><span class="comment">/// @ingroup QueryBuilder</span></div>
-<div class="foldopen" id="foldopen00406" data-start="{" data-end="};">
-<div class="line"><a id="l00406" name="l00406"></a><span class="lineno"><a class="line" href="../../d3/ded/structLightweight_1_1SqlMigrationPlan.html">  406</a></span><span class="comment"></span><span class="keyword">struct </span>[[nodiscard]] <a class="code hl_struct" href="../../d3/ded/structLightweight_1_1SqlMigrationPlan.html">SqlMigrationPlan</a></div>
-<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>{</div>
-<div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span>    <a class="code hl_class" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; formatter;</div>
-<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span>    std::vector&lt;SqlMigrationPlanElement&gt; steps {};</div>
-<div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span> </div>
-<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span>    [[nodiscard]] LIGHTWEIGHT_API std::vector&lt;std::string&gt; ToSql() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>};</div>
+<div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span> </div>
+<div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span><span class="comment">// clang-format off</span></div>
+<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span><span class="comment"></span> </div>
+<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span><span class="comment">/// @brief Represents a single SQL migration plan element.</span></div>
+<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span><span class="comment">///</span></div>
+<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span><span class="comment">/// This variant represents a single SQL migration plan element.</span></div>
+<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span><span class="comment">///</span></div>
+<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span><span class="comment"></span><span class="keyword">using </span>SqlMigrationPlanElement = std::variant&lt;</div>
+<div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>    SqlCreateTablePlan,</div>
+<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>    <a class="code hl_struct" href="../../dd/d75/structLightweight_1_1SqlAlterTablePlan.html">SqlAlterTablePlan</a>,</div>
+<div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>    <a class="code hl_struct" href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html">SqlDropTablePlan</a>,</div>
+<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span>    <a class="code hl_struct" href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html">SqlRawSqlPlan</a></div>
+<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span>&gt;;</div>
+<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span> </div>
+<div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span><span class="comment">// clang-format on</span></div>
+<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span><span class="comment"></span> </div>
+<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span><span class="comment">/// Formats the given SQL migration plan element as a list of SQL statements.</span></div>
+<div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span><span class="comment">///</span></div>
+<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span><span class="comment">/// @param formatter The SQL query formatter to use.</span></div>
+<div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span><span class="comment">/// @param element The SQL migration plan element to format.</span></div>
+<div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span><span class="comment">///</span></div>
+<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span><span class="comment">/// @return A list of SQL statements.</span></div>
+<div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span><span class="comment">///</span></div>
+<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span><span class="comment"></span>[[nodiscard]] LIGHTWEIGHT_API std::vector&lt;std::string&gt; ToSql(<a class="code hl_class" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; formatter,</div>
+<div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>                                                             SqlMigrationPlanElement <span class="keyword">const</span>&amp; element);</div>
+<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span><span class="comment"></span> </div>
+<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span><span class="comment">/// @brief Represents a SQL migration plan.</span></div>
+<div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span><span class="comment">///</span></div>
+<div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span><span class="comment">/// This structure represents a SQL migration plan that can be executed on a database.</span></div>
+<div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span><span class="comment">///</span></div>
+<div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="foldopen" id="foldopen00410" data-start="{" data-end="};">
+<div class="line"><a id="l00410" name="l00410"></a><span class="lineno"><a class="line" href="../../d3/ded/structLightweight_1_1SqlMigrationPlan.html">  410</a></span><span class="comment"></span><span class="keyword">struct </span>[[nodiscard]] <a class="code hl_struct" href="../../d3/ded/structLightweight_1_1SqlMigrationPlan.html">SqlMigrationPlan</a></div>
+<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span>{</div>
+<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>    <a class="code hl_class" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; formatter;</div>
+<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span>    std::vector&lt;SqlMigrationPlanElement&gt; steps {};</div>
+<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span> </div>
+<div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span>    [[nodiscard]] LIGHTWEIGHT_API std::vector&lt;std::string&gt; ToSql() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span>};</div>
 </div>
-<div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span><span class="comment"></span> </div>
-<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span><span class="comment">/// @brief Formats the given SQL migration plan as a list of SQL statements.</span></div>
-<div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span><span class="comment">///</span></div>
-<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span><span class="comment">/// @param formatter The SQL query formatter to use.</span></div>
-<div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span><span class="comment">/// @param plans The SQL migration plans to format.</span></div>
-<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span><span class="comment">///</span></div>
-<div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span><span class="comment">/// @return A list of SQL statements.</span></div>
-<div class="line"><a id="l00420" name="l00420"></a><span class="lineno">  420</span><span class="comment">///</span></div>
-<div class="line"><a id="l00421" name="l00421"></a><span class="lineno">  421</span><span class="comment">/// @ingroup QueryBuilder</span></div>
-<div class="line"><a id="l00422" name="l00422"></a><span class="lineno">  422</span><span class="comment"></span>[[nodiscard]] LIGHTWEIGHT_API std::vector&lt;std::string&gt; ToSql(<a class="code hl_class" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; formatter,</div>
-<div class="line"><a id="l00423" name="l00423"></a><span class="lineno">  423</span>                                                             std::vector&lt;SqlMigrationPlan&gt; <span class="keyword">const</span>&amp; plans);</div>
-<div class="line"><a id="l00424" name="l00424"></a><span class="lineno">  424</span> </div>
-<div class="line"><a id="l00425" name="l00425"></a><span class="lineno">  425</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span><span class="comment"></span> </div>
+<div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span><span class="comment">/// @brief Formats the given SQL migration plan as a list of SQL statements.</span></div>
+<div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span><span class="comment">///</span></div>
+<div class="line"><a id="l00420" name="l00420"></a><span class="lineno">  420</span><span class="comment">/// @param formatter The SQL query formatter to use.</span></div>
+<div class="line"><a id="l00421" name="l00421"></a><span class="lineno">  421</span><span class="comment">/// @param plans The SQL migration plans to format.</span></div>
+<div class="line"><a id="l00422" name="l00422"></a><span class="lineno">  422</span><span class="comment">///</span></div>
+<div class="line"><a id="l00423" name="l00423"></a><span class="lineno">  423</span><span class="comment">/// @return A list of SQL statements.</span></div>
+<div class="line"><a id="l00424" name="l00424"></a><span class="lineno">  424</span><span class="comment">///</span></div>
+<div class="line"><a id="l00425" name="l00425"></a><span class="lineno">  425</span><span class="comment">/// @ingroup QueryBuilder</span></div>
+<div class="line"><a id="l00426" name="l00426"></a><span class="lineno">  426</span><span class="comment"></span>[[nodiscard]] LIGHTWEIGHT_API std::vector&lt;std::string&gt; ToSql(<a class="code hl_class" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> <span class="keyword">const</span>&amp; formatter,</div>
+<div class="line"><a id="l00427" name="l00427"></a><span class="lineno">  427</span>                                                             std::vector&lt;SqlMigrationPlan&gt; <span class="keyword">const</span>&amp; plans);</div>
+<div class="line"><a id="l00428" name="l00428"></a><span class="lineno">  428</span> </div>
+<div class="line"><a id="l00429" name="l00429"></a><span class="lineno">  429</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1SqlQueryFormatter_html"><div class="ttname"><a href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">Lightweight::SqlQueryFormatter</a></div><div class="ttdoc">API to format SQL queries for different SQL dialects.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00019">SqlQueryFormatter.hpp:20</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlAlterTablePlan_html"><div class="ttname"><a href="../../dd/d75/structLightweight_1_1SqlAlterTablePlan.html">Lightweight::SqlAlterTablePlan</a></div><div class="ttdoc">Represents a SQL ALTER TABLE plan on a given table.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00338">MigrationPlan.hpp:339</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlAlterTablePlan_html_a303553e0c2089a553fd561f196cc039e"><div class="ttname"><a href="../../dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a303553e0c2089a553fd561f196cc039e">Lightweight::SqlAlterTablePlan::schemaName</a></div><div class="ttdeci">std::string_view schemaName</div><div class="ttdoc">The schema name of the table to alter.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00341">MigrationPlan.hpp:341</a></div></div>
@@ -558,14 +562,15 @@ $(document).ready(function(){initNavTree('db/d47/MigrationPlan_8hpp_source.html'
 <div class="ttc" id="astructLightweight_1_1SqlCompositeForeignKeyConstraint_html_aee0a5c26777b65cb014a850b69324214"><div class="ttname"><a href="../../d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html#aee0a5c26777b65cb014a850b69324214">Lightweight::SqlCompositeForeignKeyConstraint::referencedColumns</a></div><div class="ttdeci">std::vector&lt; std::string &gt; referencedColumns</div><div class="ttdoc">The referenced columns in the referenced table.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00246">MigrationPlan.hpp:246</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlDropTablePlan_html"><div class="ttname"><a href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html">Lightweight::SqlDropTablePlan</a></div><div class="ttdoc">Represents a SQL DROP TABLE plan.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00353">MigrationPlan.hpp:354</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlDropTablePlan_html_a36797cc9ea243cafa5f2627920401c91"><div class="ttname"><a href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html#a36797cc9ea243cafa5f2627920401c91">Lightweight::SqlDropTablePlan::schemaName</a></div><div class="ttdeci">std::string_view schemaName</div><div class="ttdoc">The schema name of the table to drop.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00356">MigrationPlan.hpp:356</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlDropTablePlan_html_a70993d937b9b2479d4fc33bfec3ffd81"><div class="ttname"><a href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html#a70993d937b9b2479d4fc33bfec3ffd81">Lightweight::SqlDropTablePlan::cascade</a></div><div class="ttdeci">bool cascade</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00366">MigrationPlan.hpp:366</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlDropTablePlan_html_a881594ba67a9c5f1443d92f285b53bbe"><div class="ttname"><a href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html#a881594ba67a9c5f1443d92f285b53bbe">Lightweight::SqlDropTablePlan::tableName</a></div><div class="ttdeci">std::string_view tableName</div><div class="ttdoc">The name of the table to drop.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00359">MigrationPlan.hpp:359</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlDropTablePlan_html_af7adb5af3a0ff6c6a366fee2ce29beff"><div class="ttname"><a href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html#af7adb5af3a0ff6c6a366fee2ce29beff">Lightweight::SqlDropTablePlan::ifExists</a></div><div class="ttdeci">bool ifExists</div><div class="ttdoc">If true, generates DROP TABLE IF EXISTS instead of DROP TABLE.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00362">MigrationPlan.hpp:362</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlForeignKeyReferenceDefinition_html"><div class="ttname"><a href="../../d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html">Lightweight::SqlForeignKeyReferenceDefinition</a></div><div class="ttdoc">Represents a foreign key reference definition.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00192">MigrationPlan.hpp:193</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlForeignKeyReferenceDefinition_html_a7337bbb0615e5f6eab7908828880f346"><div class="ttname"><a href="../../d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html#a7337bbb0615e5f6eab7908828880f346">Lightweight::SqlForeignKeyReferenceDefinition::tableName</a></div><div class="ttdeci">std::string tableName</div><div class="ttdoc">The table name that the foreign key references.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00195">MigrationPlan.hpp:195</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlForeignKeyReferenceDefinition_html_ae356043d421b3718e00c5c44a95b8b0c"><div class="ttname"><a href="../../d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html#ae356043d421b3718e00c5c44a95b8b0c">Lightweight::SqlForeignKeyReferenceDefinition::columnName</a></div><div class="ttdeci">std::string columnName</div><div class="ttdoc">The column name that the foreign key references.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00198">MigrationPlan.hpp:198</a></div></div>
-<div class="ttc" id="astructLightweight_1_1SqlMigrationPlan_html"><div class="ttname"><a href="../../d3/ded/structLightweight_1_1SqlMigrationPlan.html">Lightweight::SqlMigrationPlan</a></div><div class="ttdoc">Represents a SQL migration plan.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00406">MigrationPlan.hpp:407</a></div></div>
-<div class="ttc" id="astructLightweight_1_1SqlRawSqlPlan_html"><div class="ttname"><a href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html">Lightweight::SqlRawSqlPlan</a></div><div class="ttdoc">Represents a raw SQL plan.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00368">MigrationPlan.hpp:369</a></div></div>
-<div class="ttc" id="astructLightweight_1_1SqlRawSqlPlan_html_a5d326696e3b77aa3f9ab20dd0c5e8d1d"><div class="ttname"><a href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d">Lightweight::SqlRawSqlPlan::sql</a></div><div class="ttdeci">std::string_view sql</div><div class="ttdoc">The raw SQL to execute.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00371">MigrationPlan.hpp:371</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlMigrationPlan_html"><div class="ttname"><a href="../../d3/ded/structLightweight_1_1SqlMigrationPlan.html">Lightweight::SqlMigrationPlan</a></div><div class="ttdoc">Represents a SQL migration plan.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00410">MigrationPlan.hpp:411</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlRawSqlPlan_html"><div class="ttname"><a href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html">Lightweight::SqlRawSqlPlan</a></div><div class="ttdoc">Represents a raw SQL plan.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00372">MigrationPlan.hpp:373</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlRawSqlPlan_html_a5d326696e3b77aa3f9ab20dd0c5e8d1d"><div class="ttname"><a href="../../dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d">Lightweight::SqlRawSqlPlan::sql</a></div><div class="ttdeci">std::string_view sql</div><div class="ttdoc">The raw SQL to execute.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00375">MigrationPlan.hpp:375</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

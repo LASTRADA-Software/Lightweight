@@ -190,8 +190,8 @@ virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><b>CreateT
 virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><b>AlterTable</b> (std::string_view schema, std::string_view tableName, std::vector&lt; SqlAlterTableCommand &gt; const &amp;commands) const =0</td></tr>
 <tr class="memdesc:afe75e53c7277af2f7009a16ac827ad90"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL ALTER TABLE query. <br /></td></tr>
 <tr class="separator:afe75e53c7277af2f7009a16ac827ad90"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4cbd85ab1345e81f3b8e8e1df35a4888" id="r_a4cbd85ab1345e81f3b8e8e1df35a4888"><td class="memItemLeft" align="right" valign="top">virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4cbd85ab1345e81f3b8e8e1df35a4888">DropTable</a> (std::string_view schema, std::string_view const &amp;tableName, bool ifExists=false) const =0</td></tr>
-<tr class="separator:a4cbd85ab1345e81f3b8e8e1df35a4888"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9b5cc394c01daeccdafb032bd2da9003" id="r_a9b5cc394c01daeccdafb032bd2da9003"><td class="memItemLeft" align="right" valign="top">virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9b5cc394c01daeccdafb032bd2da9003">DropTable</a> (std::string_view schema, std::string_view const &amp;tableName, bool ifExists=false, bool cascade=false) const =0</td></tr>
+<tr class="separator:a9b5cc394c01daeccdafb032bd2da9003"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -292,8 +292,8 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 
 </div>
 </div>
-<a id="a4cbd85ab1345e81f3b8e8e1df35a4888" name="a4cbd85ab1345e81f3b8e8e1df35a4888"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4cbd85ab1345e81f3b8e8e1df35a4888">&#9670;&#160;</a></span>DropTable()</h2>
+<a id="a9b5cc394c01daeccdafb032bd2da9003" name="a9b5cc394c01daeccdafb032bd2da9003"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9b5cc394c01daeccdafb032bd2da9003">&#9670;&#160;</a></span>DropTable()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -317,7 +317,13 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>ifExists</em> = <code>false</code>&#160;</td>
+          <td class="paramname"><em>ifExists</em> = <code>false</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>cascade</em> = <code>false</code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -337,6 +343,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
     <tr><td class="paramname">schema</td><td>The schema name of the table to drop. </td></tr>
     <tr><td class="paramname">tableName</td><td>The name of the table to drop. </td></tr>
     <tr><td class="paramname">ifExists</td><td>If true, generates DROP TABLE IF EXISTS instead of DROP TABLE. </td></tr>
+    <tr><td class="paramname">cascade</td><td>If true, drops all foreign key constraints referencing this table first. </td></tr>
   </table>
   </dd>
 </dl>

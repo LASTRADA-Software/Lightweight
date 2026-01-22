@@ -205,41 +205,45 @@ $(document).ready(function(){initNavTree('d1/d69/SqlBackup_2SqlBackup_8hpp_sourc
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span><span class="comment">/// @param concurrency the number of concurrent jobs.</span></div>
 <div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span><span class="comment">/// @param progress the progress manager to use for progress updates.</span></div>
 <div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span><span class="comment">/// @param schema the database schema to backup (optional).</span></div>
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> Backup(std::filesystem::path <span class="keyword">const</span>&amp; outputFile,</div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>                            SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>                            <span class="keywordtype">unsigned</span> concurrency,</div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>                            ProgressManager&amp; progress,</div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>                            std::string <span class="keyword">const</span>&amp; schema = {});</div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span><span class="comment"></span> </div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span><span class="comment">/// Restores the database from a file.</span></div>
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span><span class="comment">///</span></div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span><span class="comment">/// @param inputFile the input file.</span></div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span><span class="comment">/// @param concurrency the number of concurrent jobs.</span></div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span><span class="comment">/// @param progress the progress manager to use for progress updates.</span></div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span><span class="comment">/// @param schema the database schema to restore into (optional, overrides backup metadata).</span></div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> Restore(std::filesystem::path <span class="keyword">const</span>&amp; inputFile,</div>
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>                             SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>                             <span class="keywordtype">unsigned</span> concurrency,</div>
-<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>                             ProgressManager&amp; progress,</div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>                             std::string <span class="keyword">const</span>&amp; schema = {});</div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span><span class="comment"></span> </div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span><span class="comment">/// Creates the metadata JSON content.</span></div>
-<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span><span class="comment">///</span></div>
-<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
-<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span><span class="comment">/// @param tables the list of tables to backup.</span></div>
-<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span><span class="comment">/// @param schema the database schema used for these tables (optional).</span></div>
-<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span><span class="comment"></span>LIGHTWEIGHT_API std::string CreateMetadata(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>                                           SqlSchema::TableList <span class="keyword">const</span>&amp; tables,</div>
-<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>                                           std::string <span class="keyword">const</span>&amp; schema = {});</div>
-<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span><span class="comment"></span> </div>
-<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span><span class="comment">/// Parses the metadata JSON content and returns a map of table info.</span></div>
-<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span><span class="comment">///</span></div>
-<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span><span class="comment">/// @param metadataJson content of the metadata.json file.</span></div>
-<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span><span class="comment"></span>LIGHTWEIGHT_API std::map&lt;std::string, TableInfo&gt; ParseSchema(std::string_view metadataJson,</div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>                                                             ProgressManager* progress = <span class="keyword">nullptr</span>);</div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span> </div>
-<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>} <span class="comment">// namespace Lightweight::SqlBackup</span></div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span><span class="comment">/// @param tableFilter comma-separated table filter patterns (default: &quot;*&quot; for all tables).</span></div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span><span class="comment">///        Supports glob wildcards (* and ?) and schema.table notation.</span></div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span><span class="comment">///        Examples: &quot;Users,Products&quot;, &quot;*_log&quot;, &quot;dbo.Users&quot;, &quot;sales.*&quot;</span></div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> Backup(std::filesystem::path <span class="keyword">const</span>&amp; outputFile,</div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>                            SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>                            <span class="keywordtype">unsigned</span> concurrency,</div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>                            ProgressManager&amp; progress,</div>
+<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>                            std::string <span class="keyword">const</span>&amp; schema = {},</div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>                            std::string <span class="keyword">const</span>&amp; tableFilter = <span class="stringliteral">&quot;*&quot;</span>);</div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span><span class="comment"></span> </div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span><span class="comment">/// Restores the database from a file.</span></div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span><span class="comment">///</span></div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span><span class="comment">/// @param inputFile the input file.</span></div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span><span class="comment">/// @param concurrency the number of concurrent jobs.</span></div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span><span class="comment">/// @param progress the progress manager to use for progress updates.</span></div>
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span><span class="comment">/// @param schema the database schema to restore into (optional, overrides backup metadata).</span></div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">void</span> Restore(std::filesystem::path <span class="keyword">const</span>&amp; inputFile,</div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>                             SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>                             <span class="keywordtype">unsigned</span> concurrency,</div>
+<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>                             ProgressManager&amp; progress,</div>
+<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>                             std::string <span class="keyword">const</span>&amp; schema = {});</div>
+<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span><span class="comment"></span> </div>
+<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span><span class="comment">/// Creates the metadata JSON content.</span></div>
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span><span class="comment">///</span></div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span><span class="comment">/// @param connectionString the connection string used to connect to the database.</span></div>
+<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span><span class="comment">/// @param tables the list of tables to backup.</span></div>
+<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span><span class="comment">/// @param schema the database schema used for these tables (optional).</span></div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span><span class="comment"></span>LIGHTWEIGHT_API std::string CreateMetadata(SqlConnectionString <span class="keyword">const</span>&amp; connectionString,</div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>                                           SqlSchema::TableList <span class="keyword">const</span>&amp; tables,</div>
+<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>                                           std::string <span class="keyword">const</span>&amp; schema = {});</div>
+<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span><span class="comment"></span> </div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span><span class="comment">/// Parses the metadata JSON content and returns a map of table info.</span></div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span><span class="comment">///</span></div>
+<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span><span class="comment">/// @param metadataJson content of the metadata.json file.</span></div>
+<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span><span class="comment"></span>LIGHTWEIGHT_API std::map&lt;std::string, TableInfo&gt; ParseSchema(std::string_view metadataJson,</div>
+<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>                                                             ProgressManager* progress = <span class="keyword">nullptr</span>);</div>
+<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span> </div>
+<div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span>} <span class="comment">// namespace Lightweight::SqlBackup</span></div>
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1ProgressManager_html"><div class="ttname"><a href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html">Lightweight::SqlBackup::ProgressManager</a></div><div class="ttdoc">The interface for progress updates.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00067">SqlBackup.hpp:68</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1ProgressManager_html_a288e37cbeb6478a6b73c04d26dbc3d3d"><div class="ttname"><a href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a288e37cbeb6478a6b73c04d26dbc3d3d">Lightweight::SqlBackup::ProgressManager::Update</a></div><div class="ttdeci">virtual void Update(Progress const &amp;p)=0</div><div class="ttdoc">Gets called when the progress of an individual backup/restore operation changes.</div></div>
 <div class="ttc" id="astructLightweight_1_1SqlBackup_1_1ProgressManager_html_a4a9389bbea21719f1856d7c461af4066"><div class="ttname"><a href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a4a9389bbea21719f1856d7c461af4066">Lightweight::SqlBackup::ProgressManager::SetMaxTableNameLength</a></div><div class="ttdeci">virtual void SetMaxTableNameLength(size_t)</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00084">SqlBackup.hpp:84</a></div></div>

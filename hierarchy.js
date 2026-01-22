@@ -58,6 +58,7 @@ var hierarchy =
     [ "Lightweight::SqlBackup::ColumnBatch", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html", null ],
     [ "Lightweight::SqlBackup::Progress", "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html", null ],
     [ "Lightweight::SqlBackup::ProgressManager", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html", null ],
+    [ "Lightweight::SqlBackup::TableFilter", "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html", null ],
     [ "Lightweight::SqlBackup::TableInfo", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html", null ],
     [ "Lightweight::SqlColumnDeclaration", "dd/d71/structLightweight_1_1SqlColumnDeclaration.html", null ],
     [ "Lightweight::SqlCompositeForeignKeyConstraint", "d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html", null ],

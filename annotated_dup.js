@@ -7,6 +7,7 @@ var annotated_dup =
         [ "ColumnBatch", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch" ],
         [ "Progress", "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html", "d5/db5/structLightweight_1_1SqlBackup_1_1Progress" ],
         [ "ProgressManager", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager" ],
+        [ "TableFilter", "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html", "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter" ],
         [ "TableInfo", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo" ]
       ] ],
       [ "SqlMigration", null, [
