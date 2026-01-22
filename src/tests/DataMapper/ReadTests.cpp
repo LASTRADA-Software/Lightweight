@@ -393,7 +393,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Strings with null", "[String]")
 
     CHECK(person.name.Value() == nameWithNull);
     CHECK(person.name.Value().size() == SizeOfStringWithNull);
-    CHECK(std::format("{}", person.name.Value()).size() == SizeOfStringWithNull - 1);
+    CHECK(std::format("{}", person.name.Value()).size() == SizeOfStringWithNull);
     CHECK(person.name.Value().ToString() == nameWithNull);
     CHECK(person.name.Value().ToStringView() == std::string_view(nameWithNull));
 
