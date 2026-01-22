@@ -8,6 +8,24 @@ DBMS="$1" # One of: "SQLite3", "MS SQL Server 2019", "MS SQL Server 2022" "Postg
 DB_PASSWORD="BlahThat."
 DB_NAME="LightweightTest"
 
+# Creates .test-env.yml file with the connection string
+# Usage: create_test_env_file <env_name> <connection_string>
+create_test_env_file() {
+    local env_name="$1"
+    local connection_string="$2"
+    local yaml_file=".test-env.yml"
+
+    echo "Creating ${yaml_file} with environment '${env_name}'..."
+    cat > "${yaml_file}" <<EOF
+ODBC_CONNECTION_STRING:
+  ${env_name}: "${connection_string}"
+EOF
+
+    if [ -n "$GITHUB_OUTPUT" ]; then
+        echo "TEST_ENV_NAME=${env_name}" >> "${GITHUB_OUTPUT}"
+    fi
+}
+
 setup_sqlite3() {
     echo "Setting up SQLite3..."
     sudo apt install -y \
@@ -16,10 +34,12 @@ setup_sqlite3() {
                  sqlite3 \
                  unixodbc-dev
 
+    local connection_string="DRIVER=SQLite3;DATABASE=test.db"
+    create_test_env_file "sqlite" "${connection_string}"
+
     if [ -n "$GITHUB_OUTPUT" ]; then
         echo "Exporting ODBC_CONNECTION_INFO..."
-        # expose the ODBC connection string to connect to the database
-        echo "ODBC_CONNECTION_STRING=DRIVER=SQLite3;DATABASE=test.db" >> "${GITHUB_OUTPUT}"
+        echo "ODBC_CONNECTION_STRING=${connection_string}" >> "${GITHUB_OUTPUT}"
     fi
 }
 
@@ -83,10 +103,12 @@ setup_sqlserver() {
     # create a test database
     sqlcmd -S localhost -U SA -P "${DB_PASSWORD}" -Q "CREATE DATABASE ${DB_NAME}"
 
+    local connection_string="DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost;PORT=1433;UID=SA;PWD=${DB_PASSWORD};TrustServerCertificate=yes;DATABASE=${DB_NAME}"
+    create_test_env_file "mssql${SS_VERSION}" "${connection_string}"
+
     if [ -n "$GITHUB_OUTPUT" ]; then
         echo "Exporting ODBC_CONNECTION_INFO..."
-        # expose the ODBC connection string to connect to the database server
-        echo "ODBC_CONNECTION_STRING=DRIVER={ODBC Driver 18 for SQL Server};SERVER=localhost;PORT=1433;UID=SA;PWD=${DB_PASSWORD};TrustServerCertificate=yes;DATABASE=${DB_NAME}" >> "${GITHUB_OUTPUT}"
+        echo "ODBC_CONNECTION_STRING=${connection_string}" >> "${GITHUB_OUTPUT}"
     fi
 }
 
@@ -130,9 +152,12 @@ setup_postgres() {
     echo "Create database..."
     sudo -u postgres createdb $DB_NAME
 
+    local connection_string="Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=$DB_USER;Pwd=$DB_PASSWORD;Database=$DB_NAME"
+    create_test_env_file "pgsql" "${connection_string}"
+
     if [ -n "$GITHUB_OUTPUT" ]; then
         echo "Exporting ODBC_CONNECTION_INFO..."
-        echo "ODBC_CONNECTION_STRING=Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=$DB_USER;Pwd=$DB_PASSWORD;Database=$DB_NAME" >> "${GITHUB_OUTPUT}"
+        echo "ODBC_CONNECTION_STRING=${connection_string}" >> "${GITHUB_OUTPUT}"
     fi
 }
 
@@ -195,9 +220,13 @@ setup_oracle() {
     echo "SELECT table_name FROM user_tables WHERE ROWNUM <= 5;" \
         | ${target_dir}/instantclient_21_3/sqlplus -S "$DB_USER/$DB_PASSWORD@localhost:1521/$DB_NAME"
 
-    echo "Exporting ODBC_CONNECTION_INFO..."
-    # expose the ODBC connection string to connect to the database
-    echo "ODBC_CONNECTION_STRING=DRIVER=Oracle ${oracle_odbc_ver_major} ODBC driver;SERVER=localhost;PORT=1521;UID=$DB_USER;PWD=$DB_PASSWORD;DBQ=$DB_NAME;DBA=W" >> "${GITHUB_OUTPUT}"
+    local connection_string="DRIVER=Oracle ${oracle_odbc_ver_major} ODBC driver;SERVER=localhost;PORT=1521;UID=$DB_USER;PWD=$DB_PASSWORD;DBQ=$DB_NAME;DBA=W"
+    create_test_env_file "oracle" "${connection_string}"
+
+    if [ -n "$GITHUB_OUTPUT" ]; then
+        echo "Exporting ODBC_CONNECTION_INFO..."
+        echo "ODBC_CONNECTION_STRING=${connection_string}" >> "${GITHUB_OUTPUT}"
+    fi
 }
 
 setup_mysql() {
