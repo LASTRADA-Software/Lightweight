@@ -5,7 +5,6 @@ var classLightweight_1_1SqlMigrationQueryBuilder =
     [ "CreateTable", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a09624a9cd55e3d64955ca8d5b4344c37", null ],
     [ "AlterTable", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a3731b7ec6676cd87f087c41aa4a89ded", null ],
     [ "DropTable", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6814368089abf7691cdd525806db0ae6", null ],
-    [ "DropTableIfExists", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#af5320c8ec4b5586056ae470f73803b6f", null ],
     [ "CreateTable", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a13fdb830c85dfa8759f391e57be1bd08", null ],
     [ "AlterTable", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a95479644c39a4f2e98701951813f3e79", null ],
     [ "RawSql", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a2363ab60bde2e2467972747a5646a7e5", null ],
