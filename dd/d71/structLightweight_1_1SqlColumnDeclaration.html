@@ -122,15 +122,9 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:ac7edfc2036f6d77ebce95c4a17d39fd8" id="r_ac7edfc2036f6d77ebce95c4a17d39fd8"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#ac7edfc2036f6d77ebce95c4a17d39fd8">unique</a> { false }</td></tr>
 <tr class="memdesc:ac7edfc2036f6d77ebce95c4a17d39fd8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates if the column is unique.  <br /></td></tr>
 <tr class="separator:ac7edfc2036f6d77ebce95c4a17d39fd8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9da76151b89502f7c2d8704e32bdcae6" id="r_a9da76151b89502f7c2d8704e32bdcae6"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a9da76151b89502f7c2d8704e32bdcae6">defaultValue</a></td></tr>
-<tr class="memdesc:a9da76151b89502f7c2d8704e32bdcae6"><td class="mdescLeft">&#160;</td><td class="mdescRight">The default value of the column.  <br /></td></tr>
-<tr class="separator:a9da76151b89502f7c2d8704e32bdcae6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a22f0cff41af2b13c21aaeb2091c72046" id="r_a22f0cff41af2b13c21aaeb2091c72046"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046">index</a> { false }</td></tr>
 <tr class="memdesc:a22f0cff41af2b13c21aaeb2091c72046"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates if the column is indexed.  <br /></td></tr>
 <tr class="separator:a22f0cff41af2b13c21aaeb2091c72046"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adc6c2316125cc865139f3dae21badfb6" id="r_adc6c2316125cc865139f3dae21badfb6"><td class="memItemLeft" align="right" valign="top">uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6">primaryKeyIndex</a> { 0 }</td></tr>
-<tr class="memdesc:adc6c2316125cc865139f3dae21badfb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">The 1-based index in the primary key (0 if not part of a specific order).  <br /></td></tr>
-<tr class="separator:adc6c2316125cc865139f3dae21badfb6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a SQL column declaration. </p>
@@ -245,24 +239,6 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a9da76151b89502f7c2d8704e32bdcae6" name="a9da76151b89502f7c2d8704e32bdcae6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9da76151b89502f7c2d8704e32bdcae6">&#9670;&#160;</a></span>defaultValue</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::string Lightweight::SqlColumnDeclaration::defaultValue</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>The default value of the column. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00225">225</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
-
-</div>
-</div>
 <a id="a22f0cff41af2b13c21aaeb2091c72046" name="a22f0cff41af2b13c21aaeb2091c72046"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a22f0cff41af2b13c21aaeb2091c72046">&#9670;&#160;</a></span>index</h2>
 
@@ -277,25 +253,7 @@ Public Attributes</h2></td></tr>
 
 <p>Indicates if the column is indexed. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00228">228</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
-
-</div>
-</div>
-<a id="adc6c2316125cc865139f3dae21badfb6" name="adc6c2316125cc865139f3dae21badfb6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adc6c2316125cc865139f3dae21badfb6">&#9670;&#160;</a></span>primaryKeyIndex</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint16_t Lightweight::SqlColumnDeclaration::primaryKeyIndex { 0 }</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>The 1-based index in the primary key (0 if not part of a specific order). </p>
-
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00231">231</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00225">225</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>

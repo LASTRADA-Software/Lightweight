@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['name_0',['name',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a4f44edc807219a6714f522cf31bc4953',1,'Lightweight::SqlColumnDeclaration::name'],['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#ae37d4398d5efb5c7829fcc3c4117d70e',1,'Lightweight::SqlSchema::Table::name']]],
-  ['nullable_1',['nullable',['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10',1,'Lightweight::SqlRawColumnMetadata']]]
+  ['recordstoragefieldcount_0',['RecordStorageFieldCount',['../d7/d2f/group__DataMapper.html#gac7df2f7b61cdd663f50496fe92c80a73',1,'Lightweight']]],
+  ['recordtablename_1',['RecordTableName',['../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab',1,'Lightweight']]],
+  ['referencedfield_2',['ReferencedField',['../d0/df7/classLightweight_1_1BelongsTo.html#a39e9e2c9ac0ad6140225dbd78f01929e',1,'Lightweight::BelongsTo']]],
+  ['required_3',['required',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a08cf8f2f35c6eec60086b7e18667bc61',1,'Lightweight::SqlColumnDeclaration']]]
 ];
