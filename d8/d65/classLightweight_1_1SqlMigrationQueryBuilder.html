@@ -106,6 +106,9 @@ $(document).ready(function(){initNavTree('d8/d65/classLightweight_1_1SqlMigratio
 Public Member Functions</h2></td></tr>
 <tr class="memitem:acf94f2759fca0c7925114b0608acfba2" id="r_acf94f2759fca0c7925114b0608acfba2"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#acf94f2759fca0c7925114b0608acfba2">SqlMigrationQueryBuilder</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter)</td></tr>
 <tr class="separator:acf94f2759fca0c7925114b0608acfba2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a711667d1ef5b5b5a168aa21b2150a394" id="r_a711667d1ef5b5b5a168aa21b2150a394"><td class="memItemLeft" align="right" valign="top"><a id="a711667d1ef5b5b5a168aa21b2150a394" name="a711667d1ef5b5b5a168aa21b2150a394"></a>
+LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>WithSchema</b> (std::string schemaName)</td></tr>
+<tr class="separator:a711667d1ef5b5b5a168aa21b2150a394"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:affdfdca7abe4cc98091837f185c55f4c" id="r_affdfdca7abe4cc98091837f185c55f4c"><td class="memItemLeft" align="right" valign="top"><a id="affdfdca7abe4cc98091837f185c55f4c" name="affdfdca7abe4cc98091837f185c55f4c"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>CreateDatabase</b> (std::string_view databaseName)</td></tr>
 <tr class="memdesc:affdfdca7abe4cc98091837f185c55f4c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new database. <br /></td></tr>
@@ -126,6 +129,10 @@ LIGHTWEIGHT_API <a class="el" href="../../d8/dad/classLightweight_1_1SqlAlterTab
 LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>DropTable</b> (std::string_view tableName)</td></tr>
 <tr class="memdesc:a6814368089abf7691cdd525806db0ae6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Drops a table. <br /></td></tr>
 <tr class="separator:a6814368089abf7691cdd525806db0ae6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af5320c8ec4b5586056ae470f73803b6f" id="r_af5320c8ec4b5586056ae470f73803b6f"><td class="memItemLeft" align="right" valign="top"><a id="af5320c8ec4b5586056ae470f73803b6f" name="af5320c8ec4b5586056ae470f73803b6f"></a>
+LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>DropTableIfExists</b> (std::string_view tableName)</td></tr>
+<tr class="memdesc:af5320c8ec4b5586056ae470f73803b6f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Drops a table if it exists. <br /></td></tr>
+<tr class="separator:af5320c8ec4b5586056ae470f73803b6f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a13fdb830c85dfa8759f391e57be1bd08" id="r_a13fdb830c85dfa8759f391e57be1bd08"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
 <tr class="memitem:a13fdb830c85dfa8759f391e57be1bd08"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a13fdb830c85dfa8759f391e57be1bd08">CreateTable</a> ()</td></tr>
 <tr class="memdesc:a13fdb830c85dfa8759f391e57be1bd08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new table for the given record type.  <br /></td></tr>
@@ -160,7 +167,7 @@ LIGHTWEIGHT_API <a class="el" href="../../d3/ded/structLightweight_1_1SqlMigrati
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Query builder for building SQL migration queries. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00212">212</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00217">217</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="acf94f2759fca0c7925114b0608acfba2" name="acf94f2759fca0c7925114b0608acfba2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#acf94f2759fca0c7925114b0608acfba2">&#9670;&#160;</a></span>SqlMigrationQueryBuilder()</h2>
@@ -186,7 +193,7 @@ LIGHTWEIGHT_API <a class="el" href="../../d3/ded/structLightweight_1_1SqlMigrati
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00215">215</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00220">220</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>
@@ -218,7 +225,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Creates a new table for the given record type. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00238">238</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00248">248</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00195">Lightweight::SqlForeignKeyReferenceDefinition::tableName</a>.</p>
 
@@ -251,7 +258,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Alters an existing table. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00327">327</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00337">337</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>

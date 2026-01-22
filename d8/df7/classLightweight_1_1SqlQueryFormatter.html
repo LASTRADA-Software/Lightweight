@@ -94,6 +94,7 @@ $(document).ready(function(){initNavTree('d8/df7/classLightweight_1_1SqlQueryFor
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-static-methods">Static Public Member Functions</a> &#124;
+<a href="#pro-static-methods">Static Protected Member Functions</a> &#124;
 <a href="../../d5/dc1/classLightweight_1_1SqlQueryFormatter-members.html">List of all members</a>  </div>
   <div class="headertitle"><div class="title">Lightweight::SqlQueryFormatter Class Reference<span class="mlabels"><span class="mlabel">abstract</span></span></div></div>
 </div><!--header-->
@@ -140,8 +141,15 @@ virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>String
 virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>StringLiteral</b> (char value) const noexcept=0</td></tr>
 <tr class="memdesc:af7b245464e7f0324ccbe281451c1399f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts a character value to a string literal. <br /></td></tr>
 <tr class="separator:af7b245464e7f0324ccbe281451c1399f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae999d42f3595eb42865e6e1929ec14f2" id="r_ae999d42f3595eb42865e6e1929ec14f2"><td class="memItemLeft" align="right" valign="top"><a id="ae999d42f3595eb42865e6e1929ec14f2" name="ae999d42f3595eb42865e6e1929ec14f2"></a>
+virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>BinaryLiteral</b> (std::span&lt; uint8_t const &gt; data) const =0</td></tr>
+<tr class="memdesc:ae999d42f3595eb42865e6e1929ec14f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts a binary value to a hex-encoded string literal. <br /></td></tr>
+<tr class="separator:ae999d42f3595eb42865e6e1929ec14f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa82cdee7e05bc78bca8345a4bebea3fd" id="r_aa82cdee7e05bc78bca8345a4bebea3fd"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#aa82cdee7e05bc78bca8345a4bebea3fd">Insert</a> (std::string_view intoTable, std::string_view fields, std::string_view values) const =0</td></tr>
 <tr class="separator:aa82cdee7e05bc78bca8345a4bebea3fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad79a80ce62604a72855a4de796655131" id="r_ad79a80ce62604a72855a4de796655131"><td class="memItemLeft" align="right" valign="top"><a id="ad79a80ce62604a72855a4de796655131" name="ad79a80ce62604a72855a4de796655131"></a>
+virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>Insert</b> (std::string_view schema, std::string_view intoTable, std::string_view fields, std::string_view values) const =0</td></tr>
+<tr class="separator:ad79a80ce62604a72855a4de796655131"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae5c1899d98fac7ec8340f1cd0cfeae1a" id="r_ae5c1899d98fac7ec8340f1cd0cfeae1a"><td class="memItemLeft" align="right" valign="top"><a id="ae5c1899d98fac7ec8340f1cd0cfeae1a" name="ae5c1899d98fac7ec8340f1cd0cfeae1a"></a>
 virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>QueryLastInsertId</b> (std::string_view tableName) const =0</td></tr>
 <tr class="memdesc:ae5c1899d98fac7ec8340f1cd0cfeae1a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the last insert ID of the given table. <br /></td></tr>
@@ -174,18 +182,16 @@ virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>Delete
 virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>ColumnType</b> (SqlColumnTypeDefinition const &amp;type) const =0</td></tr>
 <tr class="memdesc:a9d7c9b20efff3182019134922431f9dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert the given column type definition to the SQL type. <br /></td></tr>
 <tr class="separator:a9d7c9b20efff3182019134922431f9dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6c40d5d2726d69ed231f13289e221518" id="r_a6c40d5d2726d69ed231f13289e221518"><td class="memItemLeft" align="right" valign="top"><a id="a6c40d5d2726d69ed231f13289e221518" name="a6c40d5d2726d69ed231f13289e221518"></a>
-virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><b>CreateTable</b> (std::string_view tableName, std::vector&lt; <a class="el" href="../../dd/d71/structLightweight_1_1SqlColumnDeclaration.html">SqlColumnDeclaration</a> &gt; const &amp;columns) const =0</td></tr>
-<tr class="memdesc:a6c40d5d2726d69ed231f13289e221518"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL CREATE TABLE query. <br /></td></tr>
-<tr class="separator:a6c40d5d2726d69ed231f13289e221518"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a84d811dffef9a4ad26f6d2001d5ac05b" id="r_a84d811dffef9a4ad26f6d2001d5ac05b"><td class="memItemLeft" align="right" valign="top"><a id="a84d811dffef9a4ad26f6d2001d5ac05b" name="a84d811dffef9a4ad26f6d2001d5ac05b"></a>
-virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><b>AlterTable</b> (std::string_view tableName, std::vector&lt; SqlAlterTableCommand &gt; const &amp;commands) const =0</td></tr>
-<tr class="memdesc:a84d811dffef9a4ad26f6d2001d5ac05b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL ALTER TABLE query. <br /></td></tr>
-<tr class="separator:a84d811dffef9a4ad26f6d2001d5ac05b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad3dac3bc0f6b00ef7edab0d77f9131d7" id="r_ad3dac3bc0f6b00ef7edab0d77f9131d7"><td class="memItemLeft" align="right" valign="top"><a id="ad3dac3bc0f6b00ef7edab0d77f9131d7" name="ad3dac3bc0f6b00ef7edab0d77f9131d7"></a>
-virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><b>DropTable</b> (std::string_view const &amp;tableName) const =0</td></tr>
-<tr class="memdesc:ad3dac3bc0f6b00ef7edab0d77f9131d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL DROP TABLE query. <br /></td></tr>
-<tr class="separator:ad3dac3bc0f6b00ef7edab0d77f9131d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3796bd20c66271ded515e68c705db0f2" id="r_a3796bd20c66271ded515e68c705db0f2"><td class="memItemLeft" align="right" valign="top"><a id="a3796bd20c66271ded515e68c705db0f2" name="a3796bd20c66271ded515e68c705db0f2"></a>
+virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><b>CreateTable</b> (std::string_view schema, std::string_view tableName, std::vector&lt; <a class="el" href="../../dd/d71/structLightweight_1_1SqlColumnDeclaration.html">SqlColumnDeclaration</a> &gt; const &amp;columns, std::vector&lt; <a class="el" href="../../d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html">SqlCompositeForeignKeyConstraint</a> &gt; const &amp;foreignKeys) const =0</td></tr>
+<tr class="memdesc:a3796bd20c66271ded515e68c705db0f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL CREATE TABLE query. <br /></td></tr>
+<tr class="separator:a3796bd20c66271ded515e68c705db0f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afe75e53c7277af2f7009a16ac827ad90" id="r_afe75e53c7277af2f7009a16ac827ad90"><td class="memItemLeft" align="right" valign="top"><a id="afe75e53c7277af2f7009a16ac827ad90" name="afe75e53c7277af2f7009a16ac827ad90"></a>
+virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><b>AlterTable</b> (std::string_view schema, std::string_view tableName, std::vector&lt; SqlAlterTableCommand &gt; const &amp;commands) const =0</td></tr>
+<tr class="memdesc:afe75e53c7277af2f7009a16ac827ad90"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL ALTER TABLE query. <br /></td></tr>
+<tr class="separator:afe75e53c7277af2f7009a16ac827ad90"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4cbd85ab1345e81f3b8e8e1df35a4888" id="r_a4cbd85ab1345e81f3b8e8e1df35a4888"><td class="memItemLeft" align="right" valign="top">virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4cbd85ab1345e81f3b8e8e1df35a4888">DropTable</a> (std::string_view schema, std::string_view const &amp;tableName, bool ifExists=false) const =0</td></tr>
+<tr class="separator:a4cbd85ab1345e81f3b8e8e1df35a4888"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -201,14 +207,16 @@ static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.ht
 static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>PostgrSQL</b> ()</td></tr>
 <tr class="memdesc:a1dcad31b87db906a61205bbfc9561bd1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the SQL query formatter for PostgreSQL. <br /></td></tr>
 <tr class="separator:a1dcad31b87db906a61205bbfc9561bd1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3fe23b854526eca1c55ebb0d5d1fe7cc" id="r_a3fe23b854526eca1c55ebb0d5d1fe7cc"><td class="memItemLeft" align="right" valign="top"><a id="a3fe23b854526eca1c55ebb0d5d1fe7cc" name="a3fe23b854526eca1c55ebb0d5d1fe7cc"></a>
-static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>OracleSQL</b> ()</td></tr>
-<tr class="memdesc:a3fe23b854526eca1c55ebb0d5d1fe7cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the SQL query formatter for Oracle database. <br /></td></tr>
-<tr class="separator:a3fe23b854526eca1c55ebb0d5d1fe7cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae278f613f446cd02e0fc8f038b3a7065" id="r_ae278f613f446cd02e0fc8f038b3a7065"><td class="memItemLeft" align="right" valign="top"><a id="ae278f613f446cd02e0fc8f038b3a7065" name="ae278f613f446cd02e0fc8f038b3a7065"></a>
 static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const *&#160;</td><td class="memItemRight" valign="bottom"><b>Get</b> (SqlServerType serverType) noexcept</td></tr>
 <tr class="memdesc:ae278f613f446cd02e0fc8f038b3a7065"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the SQL query formatter for the given SqlServerType. <br /></td></tr>
 <tr class="separator:ae278f613f446cd02e0fc8f038b3a7065"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-static-methods" name="pro-static-methods"></a>
+Static Protected Member Functions</h2></td></tr>
+<tr class="memitem:ad7ec395951f5c23df2f0aae0e84bb9d6" id="r_ad7ec395951f5c23df2f0aae0e84bb9d6"><td class="memItemLeft" align="right" valign="top"><a id="ad7ec395951f5c23df2f0aae0e84bb9d6" name="ad7ec395951f5c23df2f0aae0e84bb9d6"></a>
+static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatTableName</b> (std::string_view schema, std::string_view table)</td></tr>
+<tr class="separator:ad7ec395951f5c23df2f0aae0e84bb9d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>API to format SQL queries for different SQL dialects. </p>
@@ -227,7 +235,7 @@ static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.ht
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00106">106</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00114">114</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -281,6 +289,57 @@ static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.ht
   </dd>
 </dl>
 <p>The fields and values must be in the same order. </p>
+
+</div>
+</div>
+<a id="a4cbd85ab1345e81f3b8e8e1df35a4888" name="a4cbd85ab1345e81f3b8e8e1df35a4888"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4cbd85ab1345e81f3b8e8e1df35a4888">&#9670;&#160;</a></span>DropTable()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual StringList Lightweight::SqlQueryFormatter::DropTable </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>schema</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::string_view const &amp;&#160;</td>
+          <td class="paramname"><em>tableName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>ifExists</em> = <code>false</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Constructs an SQL DROP TABLE query.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">schema</td><td>The schema name of the table to drop. </td></tr>
+    <tr><td class="paramname">tableName</td><td>The name of the table to drop. </td></tr>
+    <tr><td class="paramname">ifExists</td><td>If true, generates DROP TABLE IF EXISTS instead of DROP TABLE. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
