@@ -10,8 +10,10 @@
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <yaml-cpp/yaml.h>
 
 #include <algorithm>
+#include <filesystem>
 #include <chrono>
 #include <format>
 #include <mutex>
@@ -263,6 +265,31 @@ constexpr void FixedPointIterate(Getter const& getter, Callable const& callable)
     }
 }
 
+// Searches upward from current working directory for .test-env.yml
+// Stops at directory containing .git (project root boundary) or filesystem root
+inline std::optional<std::filesystem::path> FindTestEnvFile()
+{
+    auto currentDir = std::filesystem::current_path();
+
+    while (true)
+    {
+        auto testEnvPath = currentDir / ".test-env.yml";
+        if (std::filesystem::exists(testEnvPath))
+            return testEnvPath;
+
+        // Stop at project root (directory containing .git) or filesystem root
+        auto gitPath = currentDir / ".git";
+        if (std::filesystem::exists(gitPath))
+            return std::nullopt; // Reached project root, file not found
+
+        auto parentDir = currentDir.parent_path();
+        if (parentDir == currentDir)
+            return std::nullopt; // Reached filesystem root
+
+        currentDir = parentDir;
+    }
+}
+
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class SqlTestFixture
 {
@@ -278,6 +305,7 @@ class SqlTestFixture
         Lightweight::SqlLogger::SetLogger(TestSuiteSqlLogger::GetLogger());
 
         using namespace std::string_view_literals;
+        std::optional<std::string> testEnvName;
         int i = 1;
         for (; i < argc; ++i)
         {
@@ -285,9 +313,16 @@ class SqlTestFixture
                 Lightweight::SqlLogger::SetLogger(Lightweight::SqlLogger::TraceLogger());
             else if (argv[i] == "--trace-odbc"sv)
                 odbcTrace = true;
+            else if (std::string_view(argv[i]).starts_with("--test-env="))
+                testEnvName = std::string_view(argv[i]).substr(11);
             else if (argv[i] == "--help"sv || argv[i] == "-h"sv)
             {
-                std::println("{} [--trace-sql] [--trace-odbc] [[--] [Catch2 flags ...]]", argv[0]);
+                std::println("{} [--test-env=NAME] [--trace-sql] [--trace-odbc] [[--] [Catch2 flags ...]]", argv[0]);
+                std::println("");
+                std::println("Options:");
+                std::println("  --test-env=NAME   Use connection string from .test-env.yml (e.g., pgsql, mssql, sqlite)");
+                std::println("  --trace-sql       Enable SQL tracing");
+                std::println("  --trace-odbc      Enable ODBC tracing");
                 return { EXIT_SUCCESS };
             }
             else if (argv[i] == "--"sv)
@@ -302,24 +337,75 @@ class SqlTestFixture
         if (i < argc)
             argv[i - 1] = argv[0];
 
-#if defined(_MSC_VER)
-        char* envBuffer = nullptr;
-        size_t envBufferLen = 0;
-        _dupenv_s(&envBuffer, &envBufferLen, "ODBC_CONNECTION_STRING");
-        if (auto const* s = envBuffer; s && *s)
-#else
-        if (auto const* s = std::getenv("ODBC_CONNECTION_STRING"); s && *s)
-#endif
+        // Connection string priority:
+        // 1. --test-env=NAME (must find valid entry, error if not found)
+        // 2. Environment variable ODBC_CONNECTION_STRING
+        // 3. Default SQLite3
 
+        if (testEnvName)
         {
-            std::println("Using ODBC connection string: '{}'", Lightweight::SqlConnectionString::SanitizePwd(s));
-            Lightweight::SqlConnection::SetDefaultConnectionString(Lightweight::SqlConnectionString { s });
+            auto configPath = FindTestEnvFile();
+            if (!configPath)
+            {
+                std::println(stderr,
+                             "Error: .test-env.yml not found (searched from '{}' to project root)",
+                             std::filesystem::current_path().string());
+                return { EXIT_FAILURE };
+            }
+
+            try
+            {
+                YAML::Node config = YAML::LoadFile(configPath->string());
+                auto connectionStrings = config["ODBC_CONNECTION_STRING"];
+                if (!connectionStrings || !connectionStrings[*testEnvName])
+                {
+                    std::println(stderr, "Error: Key '{}' not found in ODBC_CONNECTION_STRING", *testEnvName);
+                    if (connectionStrings && connectionStrings.IsMap())
+                    {
+                        std::print(stderr, "Available environments:");
+                        for (auto const& entry: connectionStrings)
+                            std::print(stderr, " {}", entry.first.as<std::string>());
+                        std::println(stderr, "");
+                    }
+                    return { EXIT_FAILURE };
+                }
+                auto connStr = connectionStrings[*testEnvName].as<std::string>();
+                if (connStr.empty())
+                {
+                    std::println(stderr, "Error: Connection string for '{}' is empty", *testEnvName);
+                    return { EXIT_FAILURE };
+                }
+                std::println("Using test environment '{}' from: {}", *testEnvName, configPath->string());
+                std::println("Using ODBC connection string: '{}'", Lightweight::SqlConnectionString::SanitizePwd(connStr));
+                Lightweight::SqlConnection::SetDefaultConnectionString(Lightweight::SqlConnectionString { connStr });
+            }
+            catch (YAML::Exception const& e)
+            {
+                std::println(stderr, "Error parsing {}: {}", configPath->string(), e.what());
+                return { EXIT_FAILURE };
+            }
         }
         else
         {
-            // Use an in-memory SQLite3 database by default (for testing purposes)
-            std::println("Using default ODBC connection string: '{}'", DefaultTestConnectionString.value);
-            Lightweight::SqlConnection::SetDefaultConnectionString(DefaultTestConnectionString);
+#if defined(_MSC_VER)
+            char* envBuffer = nullptr;
+            size_t envBufferLen = 0;
+            _dupenv_s(&envBuffer, &envBufferLen, "ODBC_CONNECTION_STRING");
+            if (auto const* s = envBuffer; s && *s)
+#else
+            if (auto const* s = std::getenv("ODBC_CONNECTION_STRING"); s && *s)
+#endif
+
+            {
+                std::println("Using ODBC connection string: '{}'", Lightweight::SqlConnectionString::SanitizePwd(s));
+                Lightweight::SqlConnection::SetDefaultConnectionString(Lightweight::SqlConnectionString { s });
+            }
+            else
+            {
+                // Use an in-memory SQLite3 database by default (for testing purposes)
+                std::println("Using default ODBC connection string: '{}'", DefaultTestConnectionString.value);
+                Lightweight::SqlConnection::SetDefaultConnectionString(DefaultTestConnectionString);
+            }
         }
 
         Lightweight::SqlConnection::SetPostConnectedHook(&SqlTestFixture::PostConnectedHook);

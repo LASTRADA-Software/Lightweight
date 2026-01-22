@@ -136,11 +136,17 @@ jobs:
           sqllocaldb start MSSQLLocalDB
           sqlcmd -S "(LocalDB)\MSSQLLocalDB" -Q "CREATE DATABASE TestDB;"
           sqlcmd -S "(LocalDB)\MSSQLLocalDB" -Q "SELECT name FROM sys.databases WHERE name = 'TestDB';"
+      - name: Create .test-env.yml
+        if: ${{ endsWith(matrix.preset, 'windows-cl-debug') }}
+        shell: powershell
+        run: |
+          @"
+          ODBC_CONNECTION_STRING:
+            mssql: "Driver={ODBC Driver 17 for SQL Server};Server=(LocalDB)\\MSSQLLocalDB;Database=TestDB;Trusted_Connection=Yes;"
+          "@ | Out-File -FilePath .test-env.yml -Encoding utf8
       - name: "Test"
         if: ${{ endsWith(matrix.preset, 'windows-cl-debug') }}
-        run: ./out/build/${{ matrix.preset }}/target/Debug/LightweightTest.exe --trace-sql --trace-odbc
-        env:
-          ODBC_CONNECTION_STRING: "Driver={ODBC Driver 17 for SQL Server};Server=(LocalDB)\\MSSQLLocalDB;Database=TestDB;Trusted_Connection=Yes;"
+        run: ./out/build/${{ matrix.preset }}/target/Debug/LightweightTest.exe --test-env=mssql --trace-sql --trace-odbc
 
   # }}}
   # {{{ Ubuntu build CC matrix
@@ -347,8 +353,6 @@ jobs:
       - name: "Inspect dependencies"
         run: ldd /usr/local/bin/LightweightTest
       - name: "Run SQL tests"
-        env:
-          ODBC_CONNECTION_STRING: "${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}"
         run: |
           set -ex
           if [[ "${{ matrix.database }}" = "SQLite3" ]]; then
@@ -357,7 +361,7 @@ jobs:
               export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/oracle/instantclient_21_3
               CMD_PREFIX="strace -f"
           fi
-          $CMD_PREFIX LightweightTest
+          $CMD_PREFIX LightweightTest --test-env=${{ steps.setup.outputs.TEST_ENV_NAME }}
 
       - name: "Run dbtool tests"
         run: |
@@ -406,11 +410,10 @@ jobs:
         run: bash ./.github/prepare-test-run.sh "SQLite3"
       - name: "Run tests with ${{ matrix.sanitizer }}"
         env:
-          ODBC_CONNECTION_STRING: "${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}"
           ASAN_OPTIONS: "detect_leaks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1"
           UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
           TSAN_OPTIONS: "second_deadlock_stack=1"
         run: |
-          ./out/build/linux-clang-${{ matrix.sanitizer }}/src/tests/LightweightTest
+          ./out/build/linux-clang-${{ matrix.sanitizer }}/src/tests/LightweightTest --test-env=${{ steps.setup.outputs.TEST_ENV_NAME }}
 
   # }}}

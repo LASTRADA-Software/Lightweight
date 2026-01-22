@@ -30,7 +30,7 @@ find_package(Catch2 REQUIRED)
 add_executable(LightweightTest)
 target_compile_features(LightweightTest PUBLIC cxx_std_23)
 
-set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools)
+set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp)
 if(MSVC)
     # clang-cl does not support /MP
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
