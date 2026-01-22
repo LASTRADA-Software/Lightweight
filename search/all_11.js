@@ -1,14 +1,16 @@
 var searchData=
 [
-  ['queries_0',['Raw SQL Queries',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries',1,'']]],
-  ['query_1',['query',['../de/d61/classLightweight_1_1DataMapper.html#abc16383a3cfcc043de94a70742545903',1,'Lightweight::DataMapper::Query(std::string_view sqlQueryString, InputParameters &amp;&amp;... inputParameters)'],['../de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747',1,'Lightweight::DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const &amp;selectQuery, InputParameters &amp;&amp;... inputParameters)'],['../de/d61/classLightweight_1_1DataMapper.html#a861abe24982b3d6a0ae7a786a9907b3a',1,'Lightweight::DataMapper::Query()'],['../de/d61/classLightweight_1_1DataMapper.html#a2b2b5b2f4bc610b6a8f518ce88a6e485',1,'Lightweight::DataMapper::Query()'],['../da/da8/classLightweight_1_1SqlConnection.html#a40304c8c5a364f85cdd0a5e1afcd461f',1,'Lightweight::SqlConnection::Query()'],['../db/dad/classLightweight_1_1SqlStatement.html#a72af4b178ad4eb42b27e35b8ebfa2310',1,'Lightweight::SqlStatement::Query()'],['../de/d61/classLightweight_1_1DataMapper.html#aa6b188d4c0b7e8b267f2722d0e3f1401',1,'Lightweight::DataMapper::Query()'],['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html',1,'SQL Query']]],
-  ['query_20builder_2',['SQL Query Builder',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder',1,'']]],
-  ['query_20result_20row_20columns_20in_20order_3',['Query Result Row Columns in Order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
-  ['query_20results_20to_20a_20simple_20struct_4',['Mapping query results to a simple struct',['../index.html#mapping-query-results-to-a-simple-struct',1,'']]],
-  ['query_20to_20multiple_20struct_5',['Mapping query to multiple struct',['../index.html#mapping-query-to-multiple-struct',1,'']]],
-  ['queryas_6',['queryas',['../db/dad/classLightweight_1_1SqlStatement.html#a1a71ae6cfe36477d1b0e2632e50312ef',1,'Lightweight::SqlStatement::QueryAs()'],['../da/da8/classLightweight_1_1SqlConnection.html#a4165425040fb439fdbfc44efdad7f550',1,'Lightweight::SqlConnection::QueryAs(std::string_view const &amp;table, std::string_view const &amp;tableAlias) const']]],
-  ['queryformatter_7',['QueryFormatter',['../da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32',1,'Lightweight::SqlConnection']]],
-  ['querylastinsertid_8',['QueryLastInsertId',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ae5c1899d98fac7ec8340f1cd0cfeae1a',1,'Lightweight::SqlQueryFormatter']]],
-  ['querysingle_9',['QuerySingle',['../de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4',1,'Lightweight::DataMapper']]],
-  ['querysinglewithoutrelationautoloading_10',['QuerySingleWithoutRelationAutoLoading',['../de/d61/classLightweight_1_1DataMapper.html#a0ee9df27df1779d4b6c6212aae482f79',1,'Lightweight::DataMapper']]]
+  ['lasterror_0',['lasterror',['../da/da8/classLightweight_1_1SqlConnection.html#ab40ae26f82d6690050a2a6a622f7cdec',1,'Lightweight::SqlConnection::LastError()'],['../db/dad/classLightweight_1_1SqlStatement.html#a5f356550905482daeb99d1a985b93110',1,'Lightweight::SqlStatement::LastError()']]],
+  ['lastinsertid_1',['lastinsertid',['../de/da0/classLightweight_1_1SqlQueryBuilder.html#ad9d7e0290e84a1b8560e32a9f37d5a1f',1,'Lightweight::SqlQueryBuilder::LastInsertId()'],['../db/dad/classLightweight_1_1SqlStatement.html#a34c08cddca600ab42f61f92c3bef7d1a',1,'Lightweight::SqlStatement::LastInsertId()']]],
+  ['lastused_2',['LastUsed',['../da/da8/classLightweight_1_1SqlConnection.html#ad02b8090e26e09ac511f37aad3a277df',1,'Lightweight::SqlConnection']]],
+  ['level_20api_3',['High level API',['../index.html#high-level-api',1,'']]],
+  ['level_20data_20mapping_4',['High level Data Mapping',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping',1,'']]],
+  ['level_20structure_5',['3.1 Top-Level Structure',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md31-top-level-structure',1,'']]],
+  ['lightweight_20an_20odbc_20sql_20api_20for_20c_2023_6',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
+  ['lightweight_20sql_20backup_20file_20format_7',['Lightweight SQL Backup File Format',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html',1,'']]],
+  ['lightweight_3a_3adatamapperrecord_8',['DataMapperRecord',['../de/d36/conceptLightweight_1_1DataMapperRecord.html',1,'Lightweight']]],
+  ['lightweight_3a_3afieldwithstorage_9',['FieldWithStorage',['../dd/da7/conceptLightweight_1_1FieldWithStorage.html',1,'Lightweight']]],
+  ['lightweight_3a_3asqlqueryobject_10',['SqlQueryObject',['../d4/da8/conceptLightweight_1_1SqlQueryObject.html',1,'Lightweight']]],
+  ['loadrelations_11',['LoadRelations',['../de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702',1,'Lightweight::DataMapper']]],
+  ['logic_20separate_12',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]]
 ];

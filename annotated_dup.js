@@ -1,6 +1,14 @@
 var annotated_dup =
 [
     [ "Lightweight", null, [
+      [ "SqlBackup", null, [
+        [ "ChunkReader", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader" ],
+        [ "ChunkWriter", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter" ],
+        [ "ColumnBatch", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch" ],
+        [ "Progress", "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html", "d5/db5/structLightweight_1_1SqlBackup_1_1Progress" ],
+        [ "ProgressManager", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager" ],
+        [ "TableInfo", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo" ]
+      ] ],
       [ "SqlMigration", null, [
         [ "Migration", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration" ],
         [ "MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase" ],
@@ -27,12 +35,13 @@ var annotated_dup =
       [ "SqlAlterTableQueryBuilder", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder" ],
       [ "SqlBinary", "db/db6/classLightweight_1_1SqlBinary.html", null ],
       [ "SqlColumnDeclaration", "dd/d71/structLightweight_1_1SqlColumnDeclaration.html", "dd/d71/structLightweight_1_1SqlColumnDeclaration" ],
+      [ "SqlCompositeForeignKeyConstraint", "d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html", "d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint" ],
       [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html", "da/da8/classLightweight_1_1SqlConnection" ],
       [ "SqlConnectionDataSource", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html", null ],
       [ "SqlConnectionString", "de/d6a/structLightweight_1_1SqlConnectionString.html", null ],
       [ "SqlCoreDataMapperQueryBuilder", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder" ],
       [ "SqlCreateTableQueryBuilder", "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html", "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder" ],
-      [ "SqlDataBinderCallback", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html", null ],
+      [ "SqlDataBinderCallback", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html", "d9/dbb/classLightweight_1_1SqlDataBinderCallback" ],
       [ "SqlDate", "d9/de1/structLightweight_1_1SqlDate.html", "d9/de1/structLightweight_1_1SqlDate" ],
       [ "SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html", "d6/dfa/structLightweight_1_1SqlDateTime" ],
       [ "SqlDeleteQueryBuilder", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html", null ],
@@ -51,6 +60,8 @@ var annotated_dup =
       [ "SqlNumeric", "d6/d1b/structLightweight_1_1SqlNumeric.html", "d6/d1b/structLightweight_1_1SqlNumeric" ],
       [ "SqlQueryBuilder", "de/da0/classLightweight_1_1SqlQueryBuilder.html", "de/da0/classLightweight_1_1SqlQueryBuilder" ],
       [ "SqlQueryFormatter", "d8/df7/classLightweight_1_1SqlQueryFormatter.html", "d8/df7/classLightweight_1_1SqlQueryFormatter" ],
+      [ "SqlRawColumn", "da/d7e/structLightweight_1_1SqlRawColumn.html", "da/d7e/structLightweight_1_1SqlRawColumn" ],
+      [ "SqlRawColumnMetadata", "da/d07/structLightweight_1_1SqlRawColumnMetadata.html", "da/d07/structLightweight_1_1SqlRawColumnMetadata" ],
       [ "SqlRawSqlPlan", "dc/d47/structLightweight_1_1SqlRawSqlPlan.html", "dc/d47/structLightweight_1_1SqlRawSqlPlan" ],
       [ "SqlRealName", "d7/d13/structLightweight_1_1SqlRealName.html", null ],
       [ "SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html", null ],

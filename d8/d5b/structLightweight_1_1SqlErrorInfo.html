@@ -111,6 +111,9 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a8c5df558d7e9cd5263d15c3b13461944" id="r_a8c5df558d7e9cd5263d15c3b13461944"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8c5df558d7e9cd5263d15c3b13461944">FromStatementHandle</a> (SQLHSTMT hStmt)</td></tr>
 <tr class="memdesc:a8c5df558d7e9cd5263d15c3b13461944"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an ODBC error info object from the given ODBC statement handle.  <br /></td></tr>
 <tr class="separator:a8c5df558d7e9cd5263d15c3b13461944"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ada8b1480bd08bb27fd10fcc96639483d" id="r_ada8b1480bd08bb27fd10fcc96639483d"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#ada8b1480bd08bb27fd10fcc96639483d">FromEnvironmentHandle</a> (SQLHENV hEnv)</td></tr>
+<tr class="memdesc:ada8b1480bd08bb27fd10fcc96639483d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an ODBC error info object from the given ODBC environment handle.  <br /></td></tr>
+<tr class="separator:ada8b1480bd08bb27fd10fcc96639483d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7de5c5fd32fc8eed7cd2baa12f716669" id="r_a7de5c5fd32fc8eed7cd2baa12f716669"><td class="memItemLeft" align="right" valign="top"><a id="a7de5c5fd32fc8eed7cd2baa12f716669" name="a7de5c5fd32fc8eed7cd2baa12f716669"></a>
 static void&#160;</td><td class="memItemRight" valign="bottom"><b>RequireStatementSuccess</b> (SQLRETURN result, SQLHSTMT hStmt, std::string_view message)</td></tr>
 <tr class="memdesc:a7de5c5fd32fc8eed7cd2baa12f716669"><td class="mdescLeft">&#160;</td><td class="mdescRight">Asserts that the given result is a success code, otherwise throws an exception. <br /></td></tr>
@@ -190,7 +193,37 @@ Public Attributes</h2></td></tr>
 
 <p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00045">45</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00674">Lightweight::SqlStatement::Execute()</a>, and <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00598">Lightweight::SqlStatement::LastError()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00685">Lightweight::SqlStatement::Execute()</a>, and <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00609">Lightweight::SqlStatement::LastError()</a>.</p>
+
+</div>
+</div>
+<a id="ada8b1480bd08bb27fd10fcc96639483d" name="ada8b1480bd08bb27fd10fcc96639483d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ada8b1480bd08bb27fd10fcc96639483d">&#9670;&#160;</a></span>FromEnvironmentHandle()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a> Lightweight::SqlErrorInfo::FromEnvironmentHandle </td>
+          <td>(</td>
+          <td class="paramtype">SQLHENV&#160;</td>
+          <td class="paramname"><em>hEnv</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Constructs an ODBC error info object from the given ODBC environment handle. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00051">51</a> of file <a class="el" href="../../d9/d02/SqlError_8hpp_source.html">SqlError.hpp</a>.</p>
 
 </div>
 </div>
