@@ -1,6 +1,7 @@
 var searchData=
 [
-  ['scale_0',['Scale',['../d6/d1b/structLightweight_1_1SqlNumeric.html#a7a12c223c8ecd62e79c02249c3543a1e',1,'Lightweight::SqlNumeric']]],
-  ['sql_1',['sql',['../dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d',1,'Lightweight::SqlRawSqlPlan']]],
-  ['sqlnullvalue_2',['SqlNullValue',['../d4/d7c/group__DataTypes.html#ga557658392c27465b9ba0a5ecacdc7f45',1,'Lightweight']]]
+  ['precision_0',['Precision',['../d6/d1b/structLightweight_1_1SqlNumeric.html#a4d0e788a6bd81554e8afb79cae14c5fa',1,'Lightweight::SqlNumeric']]],
+  ['primarykey_1',['primaryKey',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a64c002c93535164bed683e2a3de11ae7',1,'Lightweight::SqlColumnDeclaration']]],
+  ['primarykeyindex_2',['primaryKeyIndex',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6',1,'Lightweight::SqlColumnDeclaration']]],
+  ['primarykeys_3',['primaryKeys',['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#a887fd3f6aeda2b77532b4ad88c9c9ed3',1,'Lightweight::SqlSchema::Table']]]
 ];
