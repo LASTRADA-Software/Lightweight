@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include "Core.hpp"
 
 std::string Lightweight::detail::ComposedQuery::ToSql() const

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlQuery/Migrate.hpp>
 

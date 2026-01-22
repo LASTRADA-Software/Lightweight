@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include "PluginLoader.hpp"
 
 #if defined(_WIN32)
