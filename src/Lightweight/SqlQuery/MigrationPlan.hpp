@@ -221,14 +221,37 @@ struct SqlColumnDeclaration
     /// Indicates if the column is unique.
     bool unique { false };
 
+    /// The default value of the column.
+    std::string defaultValue;
+
     /// Indicates if the column is indexed.
     bool index { false };
+
+    /// The 1-based index in the primary key (0 if not part of a specific order).
+    uint16_t primaryKeyIndex { 0 };
+};
+
+/// @brief Represents a composite foreign key constraint.
+///
+/// @ingroup QueryBuilder
+struct SqlCompositeForeignKeyConstraint
+{
+    /// The columns in the current table.
+    std::vector<std::string> columns;
+
+    /// The referenced table name.
+    std::string referencedTableName;
+
+    /// The referenced columns in the referenced table.
+    std::vector<std::string> referencedColumns;
 };
 
 struct SqlCreateTablePlan
 {
+    std::string schemaName;
     std::string tableName;
     std::vector<SqlColumnDeclaration> columns;
+    std::vector<SqlCompositeForeignKeyConstraint> foreignKeys;
 };
 
 namespace SqlAlterTableCommands
@@ -281,6 +304,13 @@ namespace SqlAlterTableCommands
         SqlForeignKeyReferenceDefinition referencedColumn;
     };
 
+    struct AddCompositeForeignKey
+    {
+        std::vector<std::string> columns;
+        std::string referencedTableName;
+        std::vector<std::string> referencedColumns;
+    };
+
     struct DropForeignKey
     {
         std::string columnName;
@@ -299,6 +329,7 @@ using SqlAlterTableCommand = std::variant<SqlAlterTableCommands::RenameTable,
                                           SqlAlterTableCommands::DropColumn,
                                           SqlAlterTableCommands::DropIndex,
                                           SqlAlterTableCommands::AddForeignKey,
+                                          SqlAlterTableCommands::AddCompositeForeignKey,
                                           SqlAlterTableCommands::DropForeignKey>;
 
 /// @brief Represents a SQL ALTER TABLE plan on a given table.
@@ -306,6 +337,9 @@ using SqlAlterTableCommand = std::variant<SqlAlterTableCommands::RenameTable,
 /// @ingroup QueryBuilder
 struct SqlAlterTablePlan
 {
+    /// The schema name of the table to alter.
+    std::string_view schemaName;
+
     /// The name of the table to alter.
     std::string_view tableName;
 
@@ -318,8 +352,18 @@ struct SqlAlterTablePlan
 /// @ingroup QueryBuilder
 struct SqlDropTablePlan
 {
+    /// The schema name of the table to drop.
+    std::string_view schemaName;
+
     /// The name of the table to drop.
     std::string_view tableName;
+
+    /// If true, generates DROP TABLE IF EXISTS instead of DROP TABLE.
+    bool ifExists { false };
+
+    /// If true, drops all foreign key constraints referencing this table first.
+    /// On PostgreSQL, uses CASCADE. On MS SQL, drops FK constraints explicitly.
+    bool cascade { false };
 };
 
 /// @brief Represents a raw SQL plan.

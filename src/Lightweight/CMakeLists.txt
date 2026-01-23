@@ -7,6 +7,19 @@ if(NOT WIN32)
     pkg_check_modules(ODBC REQUIRED odbc)
 endif()
 
+CPMAddPackage(
+    NAME libzip
+    GITHUB_REPOSITORY nih-at/libzip
+    GIT_TAG v1.11.3
+    OPTIONS "BUILD_SHARED_LIBS OFF" "BUILD_DOC OFF" "BUILD_EXAMPLES OFF" "BUILD_REGRESS OFF" "BUILD_TOOLS OFF" "ENABLE_OPENSSL OFF" "ENABLE_COMMONCRYPTO OFF" "ENABLE_GNUTLS OFF" "ENABLE_MBEDTLS OFF" "ENABLE_WINDOWS_CRYPTO OFF" "ENABLE_ZSTD OFF" "ENABLE_LZMA OFF"
+)
+
+CPMAddPackage(
+    NAME nlohmann_json
+    GITHUB_REPOSITORY nlohmann/json
+    VERSION 3.11.3
+)
+
 set(HEADER_FILES
     DataBinder/BasicStringBinder.hpp
     DataBinder/Core.hpp
@@ -44,11 +57,16 @@ set(HEADER_FILES
     DataMapper/HasOneThrough.hpp
     DataMapper/QueryBuilders.hpp
 
+    SqlBackup.hpp
+    SqlBackup/TableFilter.hpp
+    SqlBackupFormats.hpp
     SqlConnectInfo.hpp
     SqlConnection.hpp
     SqlError.hpp
+    SqlErrorDetection.hpp
     SqlLogger.hpp
     SqlMigration.hpp
+    SqlMigrationLock.hpp
     SqlQueryFormatter.hpp
     SqlSchema.hpp
     SqlScopedTraceLogger.hpp
@@ -64,11 +82,16 @@ set(SOURCE_FILES
 
     DataMapper/DataMapper.cpp
 
+    SqlBackup/BatchManager.cpp
+    SqlBackup/MsgPackChunkFormats.cpp
+    SqlBackup/SqlBackup.cpp
+    SqlBackup/TableFilter.cpp
     SqlConnectInfo.cpp
     SqlConnection.cpp
     SqlError.cpp
     SqlLogger.cpp
     SqlMigration.cpp
+    SqlMigrationLock.cpp
     SqlQuery.cpp
     SqlQuery/Core.cpp
     SqlQuery/Migrate.cpp
@@ -125,6 +148,7 @@ target_include_directories(Lightweight PUBLIC
 )
 
 target_link_libraries(Lightweight PUBLIC reflection-cpp::reflection-cpp)
+target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json> zip)
 
 if(MSVC)
     target_compile_options(Lightweight PRIVATE /W4 /WX)

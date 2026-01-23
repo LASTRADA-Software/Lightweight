@@ -30,7 +30,7 @@ find_package(Catch2 REQUIRED)
 add_executable(LightweightTest)
 target_compile_features(LightweightTest PUBLIC cxx_std_23)
 
-set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp)
+set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib zip nlohmann_json::nlohmann_json)
 if(MSVC)
     # clang-cl does not support /MP
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -67,9 +67,23 @@ set(SOURCE_FILES
     MigrationTests.cpp
     MigrationReflectionTests.cpp
     QueryBuilderTests.cpp
+    SqlBackup/BatchManagerIntegrationTests.cpp
+    SqlBackup/BatchManagerTests.cpp
+    SqlBackup/MsgPackChunkFormatsTests.cpp
+    SqlBackup/BatchManagerIntegrationTests.cpp
+    SqlBackup/BatchManagerTests.cpp
+    SqlBackup/MsgPackChunkFormatsTests.cpp
+    SqlBackup/MultiPkTests.cpp
+    SqlBackup/Benchmarks.cpp
+    SqlBackup/RobustnessTests.cpp
+    SqlBackup/TableFilterTests.cpp
+    SqlBackup/Tests.cpp
+    SqlBackup/SqlBackupCompositeFKTests.cpp
+    SqlBackup/ProductionReadinessTests.cpp
+    dbtool/StandardProgressManagerTests.cpp
     UnicodeConverterTests.cpp
-    UtilsTests.cpp
     Utils.cpp
+    UtilsTests.cpp
 )
 
 if(LIGHTWEIGHT_HAS_STDEXEC)

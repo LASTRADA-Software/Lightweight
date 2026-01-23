@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "DataBinder/SqlRawColumn.hpp"
 #include "SqlQuery.hpp"
 #include "SqlStatement.hpp"
 #include "Utils.hpp"
@@ -229,6 +230,32 @@ void SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const& args)
     auto const rc = SQLExecute(m_hStmt);
     if (rc != SQL_NO_DATA)
         RequireSuccess(rc);
+    ProcessPostExecuteCallbacks();
+}
+
+void SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount)
+{
+    SqlLogger::GetLogger().OnExecute(m_preparedQuery);
+
+    if (m_expectedParameterCount != static_cast<SQLSMALLINT>(columns.size()))
+        throw std::invalid_argument { "Invalid number of columns" };
+
+    static SQLLEN ZeroOffset = 0;
+    // clang-format off
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) rowCount, 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, &ZeroOffset, 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_OPERATION_PTR, SQL_PARAM_PROCEED, 0));
+    // clang-format on
+
+    SQLUSMALLINT column = 1;
+    for (auto const& col: columns)
+    {
+        RequireSuccess(SqlDataBinder<SqlRawColumn>::InputParameter(m_hStmt, column++, col, *this));
+    }
+
+    RequireSuccess(SQLExecute(m_hStmt));
     ProcessPostExecuteCallbacks();
 }
 

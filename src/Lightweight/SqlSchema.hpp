@@ -6,6 +6,7 @@
 #include "SqlQuery/MigrationPlan.hpp"
 
 #include <format>
+#include <functional>
 #include <string_view>
 #include <tuple>
 #include <vector>
@@ -179,11 +180,39 @@ namespace SqlSchema
 
     using ReadAllTablesCallback = std::function<void(std::string_view /*tableName*/, size_t /*current*/, size_t /*total*/)>;
 
+    /// Callback invoked when a table's schema is fully read.
+    ///
+    /// This callback is called for each table as soon as its schema (columns, keys, constraints)
+    /// is complete. Useful for streaming tables to consumers without waiting for all tables.
+    using TableReadyCallback = std::function<void(Table&&)>;
+
+    /// Predicate to filter tables before reading their full schema.
+    ///
+    /// @param schema The schema name.
+    /// @param tableName The table name.
+    /// @return true to include the table (read its full schema), false to skip it.
+    ///
+    /// When provided, tables that don't match the predicate will have their detailed
+    /// schema (columns, keys, constraints) skipped, improving performance when only
+    /// a subset of tables is needed.
+    using TableFilterPredicate = std::function<bool(std::string_view /*schema*/, std::string_view /*tableName*/)>;
+
     /// Retrieves all tables in the given @p database and @p schema.
+    ///
+    /// @param stmt The SQL statement to use for reading.
+    /// @param database The database name.
+    /// @param schema The schema name (optional).
+    /// @param callback Progress callback invoked for each table during scanning.
+    /// @param tableReadyCallback Callback invoked when each table's schema is complete.
+    /// @param tableFilter Optional predicate to filter tables before reading their full schema.
+    ///                    If provided, only tables where the predicate returns true will have
+    ///                    their columns, keys, and constraints read.
     LIGHTWEIGHT_API TableList ReadAllTables(SqlStatement& stmt,
                                             std::string_view database,
                                             std::string_view schema = {},
-                                            ReadAllTablesCallback callback = {});
+                                            ReadAllTablesCallback callback = {},
+                                            TableReadyCallback tableReadyCallback = {},
+                                            TableFilterPredicate tableFilter = {});
 
     /// Retrieves all tables in the given database and schema that have a foreign key to the given table.
     LIGHTWEIGHT_API std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt,

@@ -55,6 +55,11 @@ class [[nodiscard]] SqlCreateTableQueryBuilder final
                                                                    SqlColumnTypeDefinition columnType,
                                                                    SqlForeignKeyReferenceDefinition foreignKey);
 
+    /// Adds a composite foreign key constraint.
+    LIGHTWEIGHT_API SqlCreateTableQueryBuilder& ForeignKey(std::vector<std::string> columns,
+                                                           std::string referencedTableName,
+                                                           std::vector<std::string> referencedColumns);
+
     /// Enables the UNIQUE constraint on the last declared column.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& Unique();
 
@@ -218,6 +223,8 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     {
     }
 
+    LIGHTWEIGHT_API SqlMigrationQueryBuilder& WithSchema(std::string schemaName);
+
     /// Creates a new database.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& CreateDatabase(std::string_view databaseName);
 
@@ -232,6 +239,13 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
 
     /// Drops a table.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& DropTable(std::string_view tableName);
+
+    /// Drops a table if it exists.
+    LIGHTWEIGHT_API SqlMigrationQueryBuilder& DropTableIfExists(std::string_view tableName);
+
+    /// Drops a table and all foreign key constraints referencing it.
+    /// On PostgreSQL, uses CASCADE. On MS SQL, drops FK constraints first.
+    LIGHTWEIGHT_API SqlMigrationQueryBuilder& DropTableCascade(std::string_view tableName);
 
     /// Creates a new table for the given record type.
     template <typename Record>
@@ -352,6 +366,7 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
 
   private:
     SqlQueryFormatter const& _formatter;
+    std::string _schemaName;
     SqlMigrationPlan _migrationPlan;
 };
 

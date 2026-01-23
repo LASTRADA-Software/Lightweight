@@ -7,11 +7,17 @@ on:
       - master
     paths:
       - 'src/**'
+      - 'docs/**'
       - 'presentation/**'
       - '.github/workflows/docs.yml'
   pull_request:
     branches:
       - master
+    paths:
+      - 'src/**'
+      - 'docs/**'
+      - 'presentation/**'
+      - '.github/workflows/docs.yml'
 
 concurrency:
   group: docs-${{ github.ref }}

@@ -17,7 +17,7 @@
 #include <optional>
 #include <ranges>
 #include <source_location>
-
+#include <span>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -30,7 +30,7 @@
 namespace Lightweight
 {
 
-
+struct SqlRawColumn;
 
 /// @brief Represents an SQL query object, that provides a ToSql() method.
 template <typename QueryObject>
@@ -172,6 +172,11 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches>
     void ExecuteBatch(FirstColumnBatch const& firstColumnBatch, MoreColumnBatches const&... moreColumnBatches);
 
+    /// Executes the prepared statement on a batch of SqlRawColumn-prepared data.
+    ///
+    /// @param columns The columns to bind as input parameters.
+    /// @param rowCount The number of rows to execute.
+    LIGHTWEIGHT_API void ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount);
 
     /// Executes the given query directly.
     LIGHTWEIGHT_API void ExecuteDirect(std::string_view const& query,

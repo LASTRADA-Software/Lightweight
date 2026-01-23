@@ -239,6 +239,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Revert Migration", "[SqlMigration]")
     {
         auto conn = SqlConnection {};
         auto stmt = SqlStatement { conn };
+        auto const _ = ScopedSqlNullLogger {};
         // Should throw because table does not exist
         CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT count(*) FROM reversible_table"), SqlException);
     }
@@ -259,7 +260,10 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Transaction Rollback", "[SqlMigration
     migrationManager.CreateMigrationHistory();
 
     // Apply should fail
-    CHECK_THROWS(migrationManager.ApplyPendingMigrations());
+    {
+        auto const _ = ScopedSqlNullLogger {}; // suppress the error message, we are testing for it
+        CHECK_THROWS(migrationManager.ApplyPendingMigrations());
+    }
 
     // Verify Not Applied
     auto appliedIds = migrationManager.GetAppliedMigrationIds();
@@ -269,6 +273,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Transaction Rollback", "[SqlMigration
     {
         auto conn = SqlConnection {};
         auto stmt = SqlStatement { conn };
+        auto const _ = ScopedSqlNullLogger {};
         // Should throw because table should have been rolled back
         CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT count(*) FROM should_not_exist"), SqlException);
     }
@@ -308,7 +313,10 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Raw SQL Migration", "[SqlMigration]")
     {
         auto conn = SqlConnection {};
         auto stmt = SqlStatement { conn };
-        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM raw_sql_test"), SqlException);
+        {
+            auto const _ = ScopedSqlNullLogger {}; // suppress the error message, we are testing for it
+            CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM raw_sql_test"), SqlException);
+        }
     }
 }
 

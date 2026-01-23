@@ -97,9 +97,18 @@ void MigrationManager::CreateMigrationHistory()
 std::vector<MigrationTimestamp> MigrationManager::GetAppliedMigrationIds() const
 {
     auto result = std::vector<MigrationTimestamp> {};
-
     auto& dm = GetDataMapper();
-    auto const records = dm.Query<SchemaMigration>().OrderBy("version", SqlResultOrdering::ASCENDING).All();
+    auto records = std::vector<SchemaMigration> {};
+
+    try
+    {
+        records = dm.Query<SchemaMigration>().OrderBy("version", SqlResultOrdering::ASCENDING).All();
+    }
+    catch (SqlException const&)
+    {
+        return result;
+    }
+
     for (auto const& record: records)
         result.emplace_back(MigrationTimestamp { record.version.Value() });
 
@@ -109,10 +118,10 @@ std::vector<MigrationTimestamp> MigrationManager::GetAppliedMigrationIds() const
 MigrationManager::MigrationList MigrationManager::GetPending() const noexcept
 {
     auto const applied = GetAppliedMigrationIds();
-    MigrationList pending;
+    auto pending = MigrationList {};
     for (auto const* migration: _migrations)
-        if (std::ranges::find(applied, migration->GetTimestamp()) == std::end(applied))
-            pending.push_back(migration); // TODO: filter those that weren't applied yet
+        if (!std::ranges::contains(applied, migration->GetTimestamp()))
+            pending.push_back(migration);
     return pending;
 }
 
