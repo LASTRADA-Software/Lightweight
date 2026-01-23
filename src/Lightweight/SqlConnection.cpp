@@ -136,6 +136,11 @@ void SqlConnection::ResetPostConnectedHook()
 
 bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
 {
+    EnsureHandlesAllocated();
+
+    if (m_hDbc)
+        SQLDisconnect(m_hDbc);
+
     // NOLINTNEXTLINE(performance-no-int-to-ptr)
     SQLRETURN sqlReturn = SQLSetConnectAttrA(m_hDbc, SQL_LOGIN_TIMEOUT, (SQLPOINTER) info.timeout.count(), 0);
     if (!SQL_SUCCEEDED(sqlReturn))
@@ -174,9 +179,11 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
     return true;
 }
 
-// Connects to the given database with the given username and password.
+// Connects to the given database with the given connection string.
 bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
 {
+    EnsureHandlesAllocated();
+
     if (m_hDbc)
         SQLDisconnect(m_hDbc);
 
@@ -250,6 +257,16 @@ void SqlConnection::PostConnect()
         // However, for high-concurrency restoration, it is highly recommended.
         // Let's stick to busy_timeout for now as it's purely a runtime behavior change.
     }
+}
+
+void SqlConnection::EnsureHandlesAllocated()
+{
+    if (m_hEnv)
+        return; // Handles already allocated
+
+    SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_hEnv);
+    SQLSetEnvAttr(m_hEnv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER) SQL_OV_ODBC3, 0);
+    SQLAllocHandle(SQL_HANDLE_DBC, m_hEnv, &m_hDbc);
 }
 
 SqlErrorInfo SqlConnection::LastError() const

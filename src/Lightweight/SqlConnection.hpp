@@ -91,11 +91,17 @@ class SqlConnection final
 
     /// Connects to the given database with the given username and password.
     ///
+    /// This method can be called on a connection that has been closed via Close().
+    /// If the ODBC handles have been freed, they will be automatically reallocated.
+    ///
     /// @retval true if the connection was successful.
     /// @retval false if the connection failed. Use LastError() to retrieve the error information.
     LIGHTWEIGHT_API bool Connect(SqlConnectionDataSource const& info) noexcept;
 
-    /// Connects to the given database with the given username and password.
+    /// Connects to the given database with the given connection string.
+    ///
+    /// This method can be called on a connection that has been closed via Close().
+    /// If the ODBC handles have been freed, they will be automatically reallocated.
     ///
     /// @retval true if the connection was successful.
     /// @retval false if the connection failed. Use LastError() to retrieve the error information.
@@ -170,6 +176,10 @@ class SqlConnection final
                                         std::source_location sourceLocation = std::source_location::current()) const;
 
   private:
+    /// Ensures ODBC handles are allocated. Called by Connect() methods.
+    /// If handles were freed by Close(), this method reallocates them.
+    void EnsureHandlesAllocated();
+
     void PostConnect();
 
     // Private data members
