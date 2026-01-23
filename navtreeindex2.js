@@ -1,5 +1,13 @@
 var NAVTREEINDEX2 =
 {
+"db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1":[9,0,0,51,21],
+"db/dad/classLightweight_1_1SqlStatement.html#a34c08cddca600ab42f61f92c3bef7d1a":[9,0,0,51,26],
+"db/dad/classLightweight_1_1SqlStatement.html#a34d2659a84a934d2c67c6b31f64a7d4a":[9,0,0,51,3],
+"db/dad/classLightweight_1_1SqlStatement.html#a39e7689e3101f48e5fcafe5d39b5d935":[9,0,0,51,17],
+"db/dad/classLightweight_1_1SqlStatement.html#a435c8e2a6927c31c28cd9b6c082a5fad":[9,0,0,51,16],
+"db/dad/classLightweight_1_1SqlStatement.html#a4f267c964dcea21646008280e5531aa8":[9,0,0,51,28],
+"db/dad/classLightweight_1_1SqlStatement.html#a5072cda5b6433463ec8850296c906d9b":[9,0,0,51,25],
+"db/dad/classLightweight_1_1SqlStatement.html#a540bcb492f2600c3165a96349599f47b":[9,0,0,51,13],
 "db/dad/classLightweight_1_1SqlStatement.html#a5de8934a879ddef9062eef0d06342ff4":[9,0,0,51,15],
 "db/dad/classLightweight_1_1SqlStatement.html#a5f356550905482daeb99d1a985b93110":[9,0,0,51,5],
 "db/dad/classLightweight_1_1SqlStatement.html#a696b3c702137a05dcad3178bc27113b7":[9,0,0,51,30],
@@ -241,13 +249,5 @@ var NAVTREEINDEX2 =
 "df/d63/classLightweight_1_1HasOneThrough.html#addf0d59cd5a9403b6fac56a00c340ad9":[7,2,8,1],
 "df/d63/classLightweight_1_1HasOneThrough.html#ae492b111cd0d54d642a2e507b1217350":[7,2,8,4],
 "df/d63/classLightweight_1_1HasOneThrough.html#af4d6a310537dbf2367da7a1aef991843":[7,2,8,11],
-"df/d7c/structLightweight_1_1SqlGuid.html":[7,0,6],
-"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html":[9,0,0,49],
-"df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html":[9,0,0,2,1],
-"df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a38e6606ee966480e7a5ab0b1069cf659":[9,0,0,2,1,0],
-"df/db7/QueryBuilders_8hpp_source.html":[10,0,1,1,8],
-"df/dcd/UnicodeConverter_8hpp_source.html":[10,0,1,0,21],
-"dir_07cc544e6394bf3dfdd028b8dfeac742.html":[10,0,1],
-"dir_1563a38af0d3a5e4a6330d6d45e9792a.html":[10,0,3],
-"dir_20a36fc8a4949d7efb0c8c5bf02352ee.html":[10,0,1,2]
+"df/d7c/structLightweight_1_1SqlGuid.html":[7,0,6]
 };

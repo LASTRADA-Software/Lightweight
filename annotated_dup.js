@@ -5,8 +5,11 @@ var annotated_dup =
         [ "ChunkReader", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader" ],
         [ "ChunkWriter", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter" ],
         [ "ColumnBatch", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch" ],
+        [ "ErrorTrackingProgressManager", "df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html", "df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager" ],
         [ "Progress", "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html", "d5/db5/structLightweight_1_1SqlBackup_1_1Progress" ],
         [ "ProgressManager", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager" ],
+        [ "RetrySettings", "d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html", "d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings" ],
+        [ "Sha256", "d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html", null ],
         [ "TableFilter", "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html", "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter" ],
         [ "TableInfo", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo" ]
       ] ],

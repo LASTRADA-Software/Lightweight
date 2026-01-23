@@ -57,7 +57,11 @@ var hierarchy =
     [ "Lightweight::SqlBackup::ChunkWriter", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html", null ],
     [ "Lightweight::SqlBackup::ColumnBatch", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html", null ],
     [ "Lightweight::SqlBackup::Progress", "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html", null ],
-    [ "Lightweight::SqlBackup::ProgressManager", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html", null ],
+    [ "Lightweight::SqlBackup::ProgressManager", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html", [
+      [ "Lightweight::SqlBackup::ErrorTrackingProgressManager", "df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html", null ]
+    ] ],
+    [ "Lightweight::SqlBackup::RetrySettings", "d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html", null ],
+    [ "Lightweight::SqlBackup::Sha256", "d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html", null ],
     [ "Lightweight::SqlBackup::TableFilter", "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html", null ],
     [ "Lightweight::SqlBackup::TableInfo", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html", null ],
     [ "Lightweight::SqlColumnDeclaration", "dd/d71/structLightweight_1_1SqlColumnDeclaration.html", null ],

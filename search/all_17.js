@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['range_0',['range',['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af0bb9fac51166cdbd7346d78b668be09',1,'Lightweight::SqlSelectQueryBuilder::Range()'],['../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ad4234fec2da873f7a938a6c436451cf9',1,'Lightweight::SqlCoreDataMapperQueryBuilder::Range()']]],
+  ['range_0',['range',['../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ad4234fec2da873f7a938a6c436451cf9',1,'Lightweight::SqlCoreDataMapperQueryBuilder::Range()'],['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af0bb9fac51166cdbd7346d78b668be09',1,'Lightweight::SqlSelectQueryBuilder::Range()']]],
   ['raw_20sql_20queries_1',['Raw SQL Queries',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries',1,'']]],
   ['rawsql_2',['RawSql',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a2363ab60bde2e2467972747a5646a7e5',1,'Lightweight::SqlMigrationQueryBuilder']]],
   ['readbatch_3',['ReadBatch',['../d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html#a3ab96599a03fe02a203abdeb39d89a31',1,'Lightweight::SqlBackup::ChunkReader']]],
@@ -11,7 +11,7 @@ var searchData=
   ['referencedcolumns_8',['referencedColumns',['../d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html#aee0a5c26777b65cb014a850b69324214',1,'Lightweight::SqlCompositeForeignKeyConstraint']]],
   ['referencedfield_9',['ReferencedField',['../d0/df7/classLightweight_1_1BelongsTo.html#a39e9e2c9ac0ad6140225dbd78f01929e',1,'Lightweight::BelongsTo']]],
   ['referencedfieldtypeof_10',['ReferencedFieldTypeOf',['../d7/d2f/group__DataMapper.html#gaeebbb701afbe9efa3118910e348b4e61',1,'Lightweight']]],
-  ['referencedrecord_11',['referencedrecord',['../de/d73/classLightweight_1_1HasManyThrough.html#af76d1ffc037c720dbec3a13d6aa2bb3b',1,'Lightweight::HasManyThrough::ReferencedRecord'],['../d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b',1,'Lightweight::BelongsTo::ReferencedRecord'],['../da/df4/classLightweight_1_1HasMany.html#aa55567dd568d83b2bf1a17980f856553',1,'Lightweight::HasMany::ReferencedRecord'],['../df/d63/classLightweight_1_1HasOneThrough.html#addf0d59cd5a9403b6fac56a00c340ad9',1,'Lightweight::HasOneThrough::ReferencedRecord']]],
+  ['referencedrecord_11',['referencedrecord',['../da/df4/classLightweight_1_1HasMany.html#aa55567dd568d83b2bf1a17980f856553',1,'Lightweight::HasMany::ReferencedRecord'],['../d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b',1,'Lightweight::BelongsTo::ReferencedRecord'],['../df/d63/classLightweight_1_1HasOneThrough.html#addf0d59cd5a9403b6fac56a00c340ad9',1,'Lightweight::HasOneThrough::ReferencedRecord'],['../de/d73/classLightweight_1_1HasManyThrough.html#af76d1ffc037c720dbec3a13d6aa2bb3b',1,'Lightweight::HasManyThrough::ReferencedRecord']]],
   ['referencedrecordlist_12',['referencedrecordlist',['../de/d73/classLightweight_1_1HasManyThrough.html#a449b45f68f5a2303de48e650280ec808',1,'Lightweight::HasManyThrough::ReferencedRecordList'],['../da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb',1,'Lightweight::HasMany::ReferencedRecordList']]],
   ['referencedtablename_13',['referencedTableName',['../d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html#ac8eedd4823a74f4f1d1ca3fc3305269e',1,'Lightweight::SqlCompositeForeignKeyConstraint']]],
   ['reflection_20support_14',['Compile using C++26 reflection support',['../index.html#compile-using-c26-reflection-support',1,'']]],
@@ -32,9 +32,10 @@ var searchData=
   ['result_20row_20columns_20in_20order_29',['Query Result Row Columns in Order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
   ['results_20to_20a_20simple_20struct_30',['Mapping query results to a simple struct',['../index.html#mapping-query-results-to-a-simple-struct',1,'']]],
   ['retrieval_20via_20structs_31',['Simple row retrieval via structs',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'']]],
-  ['revertsinglemigration_32',['RevertSingleMigration',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a416865e209264f27605aff0e547e7d66',1,'Lightweight::SqlMigration::MigrationManager']]],
-  ['rollback_33',['Rollback',['../d0/ddc/classLightweight_1_1SqlTransaction.html#a6ed3f7b26252e7d105675187cd37d71b',1,'Lightweight::SqlTransaction']]],
-  ['row_20columns_20in_20order_34',['Query Result Row Columns in Order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
-  ['row_20retrieval_20via_20structs_35',['Simple row retrieval via structs',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'']]],
-  ['rowcount_36',['rowCount',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2',1,'Lightweight::SqlBackup::TableInfo']]]
+  ['retrysettings_32',['RetrySettings',['../d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html',1,'Lightweight::SqlBackup']]],
+  ['revertsinglemigration_33',['RevertSingleMigration',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a416865e209264f27605aff0e547e7d66',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['rollback_34',['Rollback',['../d0/ddc/classLightweight_1_1SqlTransaction.html#a6ed3f7b26252e7d105675187cd37d71b',1,'Lightweight::SqlTransaction']]],
+  ['row_20columns_20in_20order_35',['Query Result Row Columns in Order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
+  ['row_20retrieval_20via_20structs_36',['Simple row retrieval via structs',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'']]],
+  ['rowcount_37',['rowCount',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2',1,'Lightweight::SqlBackup::TableInfo']]]
 ];

@@ -101,8 +101,15 @@ $(document).ready(function(){initNavTree('d2/d4a/structLightweight_1_1SqlBackup_
  <a href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>&gt;</code></p>
-
-<p>Inherited by Lightweight::SqlBackup::NullProgressManager, and Lightweight::Tools::StandardProgressManager.</p>
+<div class="dynheader">
+Inheritance diagram for Lightweight::SqlBackup::ProgressManager:</div>
+<div class="dyncontent">
+ <div class="center">
+  <img src="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.png" usemap="#Lightweight::SqlBackup::ProgressManager_map" alt=""/>
+  <map id="Lightweight::SqlBackup::ProgressManager_map" name="Lightweight::SqlBackup::ProgressManager_map">
+<area href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html" title="Base class for progress managers that tracks errors automatically." alt="Lightweight::SqlBackup::ErrorTrackingProgressManager" shape="rect" coords="0,56,327,80"/>
+  </map>
+</div></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -118,9 +125,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ad41159824c9045430aa15a230fb6c3b5" id="r_ad41159824c9045430aa15a230fb6c3b5"><td class="memItemLeft" align="right" valign="top"><a id="ad41159824c9045430aa15a230fb6c3b5" name="ad41159824c9045430aa15a230fb6c3b5"></a>
 <a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html">ProgressManager</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html">ProgressManager</a> &amp;&amp;)=default</td></tr>
 <tr class="separator:ad41159824c9045430aa15a230fb6c3b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a288e37cbeb6478a6b73c04d26dbc3d3d" id="r_a288e37cbeb6478a6b73c04d26dbc3d3d"><td class="memItemLeft" align="right" valign="top"><a id="a288e37cbeb6478a6b73c04d26dbc3d3d" name="a288e37cbeb6478a6b73c04d26dbc3d3d"></a>
-virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>Update</b> (<a class="el" href="../../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html">Progress</a> const &amp;p)=0</td></tr>
-<tr class="memdesc:a288e37cbeb6478a6b73c04d26dbc3d3d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets called when the progress of an individual backup/restore operation changes. <br /></td></tr>
+<tr class="memitem:a288e37cbeb6478a6b73c04d26dbc3d3d" id="r_a288e37cbeb6478a6b73c04d26dbc3d3d"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a288e37cbeb6478a6b73c04d26dbc3d3d">Update</a> (<a class="el" href="../../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html">Progress</a> const &amp;p)=0</td></tr>
+<tr class="memdesc:a288e37cbeb6478a6b73c04d26dbc3d3d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets called when the progress of an individual backup/restore operation changes.  <br /></td></tr>
 <tr class="separator:a288e37cbeb6478a6b73c04d26dbc3d3d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adc492c8b63e8e44fd4f72b251f908c89" id="r_adc492c8b63e8e44fd4f72b251f908c89"><td class="memItemLeft" align="right" valign="top"><a id="adc492c8b63e8e44fd4f72b251f908c89" name="adc492c8b63e8e44fd4f72b251f908c89"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> ()=0</td></tr>
@@ -128,12 +134,45 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
 <tr class="separator:adc492c8b63e8e44fd4f72b251f908c89"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4a9389bbea21719f1856d7c461af4066" id="r_a4a9389bbea21719f1856d7c461af4066"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a4a9389bbea21719f1856d7c461af4066">SetMaxTableNameLength</a> (size_t)</td></tr>
 <tr class="separator:a4a9389bbea21719f1856d7c461af4066"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4e2b371cc4658c3e205254cb2623ae3b" id="r_a4e2b371cc4658c3e205254cb2623ae3b"><td class="memItemLeft" align="right" valign="top">virtual size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a4e2b371cc4658c3e205254cb2623ae3b">ErrorCount</a> () const noexcept</td></tr>
+<tr class="memdesc:a4e2b371cc4658c3e205254cb2623ae3b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of errors encountered during the operation.  <br /></td></tr>
+<tr class="separator:a4e2b371cc4658c3e205254cb2623ae3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The interface for progress updates. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00067">67</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00084">84</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a288e37cbeb6478a6b73c04d26dbc3d3d" name="a288e37cbeb6478a6b73c04d26dbc3d3d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a288e37cbeb6478a6b73c04d26dbc3d3d">&#9670;&#160;</a></span>Update()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void Lightweight::SqlBackup::ProgressManager::Update </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html">Progress</a> const &amp;&#160;</td>
+          <td class="paramname"><em>p</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Gets called when the progress of an individual backup/restore operation changes. </p>
+
+<p>Implemented in <a class="el" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb">Lightweight::SqlBackup::ErrorTrackingProgressManager</a>.</p>
+
+</div>
+</div>
 <a id="a4a9389bbea21719f1856d7c461af4066" name="a4a9389bbea21719f1856d7c461af4066"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a4a9389bbea21719f1856d7c461af4066">&#9670;&#160;</a></span>SetMaxTableNameLength()</h2>
 
@@ -159,7 +198,38 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
 </div><div class="memdoc">
 <p>Sets the maximum length of a table name. This is used to align the output of the progress manager. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00084">84</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00101">101</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a4e2b371cc4658c3e205254cb2623ae3b" name="a4e2b371cc4658c3e205254cb2623ae3b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4e2b371cc4658c3e205254cb2623ae3b">&#9670;&#160;</a></span>ErrorCount()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual size_t Lightweight::SqlBackup::ProgressManager::ErrorCount </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the number of errors encountered during the operation. </p>
+
+<p>Reimplemented in <a class="el" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8">Lightweight::SqlBackup::ErrorTrackingProgressManager</a>.</p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00104">104</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
