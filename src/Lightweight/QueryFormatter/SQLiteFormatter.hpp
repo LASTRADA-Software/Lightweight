@@ -478,6 +478,11 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         else
             return { std::format(R"(DROP TABLE {};)", FormatTableName(schemaName, tableName)) };
     }
+
+    [[nodiscard]] std::string QueryServerVersion() const override
+    {
+        return "SELECT sqlite_version()";
+    }
 };
 
 } // namespace Lightweight

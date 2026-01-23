@@ -138,6 +138,14 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
                                                bool ifExists = false,
                                                bool cascade = false) const = 0;
 
+    /// Returns the SQL query to retrieve the full server version string.
+    ///
+    /// This query returns detailed version information specific to each database:
+    /// - SQL Server: Returns result of SELECT @@VERSION (includes build, edition, OS info)
+    /// - PostgreSQL: Returns result of SELECT version() (includes build info)
+    /// - SQLite: Returns result of SELECT sqlite_version()
+    [[nodiscard]] virtual std::string QueryServerVersion() const = 0;
+
     /// Retrieves the SQL query formatter for SQLite.
     static SqlQueryFormatter const& Sqlite();
 

@@ -448,6 +448,11 @@ EXEC sp_executesql @sql;)",
 
         return { sqlQueryString.str() };
     }
+
+    [[nodiscard]] std::string QueryServerVersion() const override
+    {
+        return "SELECT @@VERSION";
+    }
 };
 
 } // namespace Lightweight

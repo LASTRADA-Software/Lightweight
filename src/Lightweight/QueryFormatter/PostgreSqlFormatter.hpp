@@ -238,6 +238,11 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
 
         return { sqlQueryString.str() };
     }
+
+    [[nodiscard]] std::string QueryServerVersion() const override
+    {
+        return "SELECT version()";
+    }
 };
 
 } // namespace Lightweight
