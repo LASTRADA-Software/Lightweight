@@ -1,5 +1,9 @@
 var annotated_dup =
 [
+    [ "LargeDb", null, [
+      [ "GeneratorConfig", "dc/d12/structLargeDb_1_1GeneratorConfig.html", "dc/d12/structLargeDb_1_1GeneratorConfig" ],
+      [ "SeededRandom", "d1/d21/classLargeDb_1_1SeededRandom.html", "d1/d21/classLargeDb_1_1SeededRandom" ]
+    ] ],
     [ "Lightweight", null, [
       [ "SqlAlterTableCommands", null, [
         [ "AddColumnIfNotExists", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html", null ],
@@ -93,5 +97,17 @@ var annotated_dup =
       [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html", "df/d3f/structLightweight_1_1SqlVariant" ],
       [ "ThreadSafeQueue", "d4/d9e/classLightweight_1_1ThreadSafeQueue.html", "d4/d9e/classLightweight_1_1ThreadSafeQueue" ],
       [ "UniqueNameBuilder", "da/d15/classLightweight_1_1UniqueNameBuilder.html", "da/d15/classLightweight_1_1UniqueNameBuilder" ]
-    ] ]
+    ] ],
+    [ "LargeDb_ActivityLog", "d9/dcd/structLargeDb__ActivityLog.html", null ],
+    [ "LargeDb_Article", "dd/ded/structLargeDb__Article.html", null ],
+    [ "LargeDb_Category", "d9/d78/structLargeDb__Category.html", null ],
+    [ "LargeDb_Order", "d4/d01/structLargeDb__Order.html", null ],
+    [ "LargeDb_OrderItem", "d0/dcb/structLargeDb__OrderItem.html", null ],
+    [ "LargeDb_Product", "dc/d33/structLargeDb__Product.html", null ],
+    [ "LargeDb_ProductImage", "d1/d27/structLargeDb__ProductImage.html", null ],
+    [ "LargeDb_ProductTag", "d7/de2/structLargeDb__ProductTag.html", null ],
+    [ "LargeDb_Review", "d5/daa/structLargeDb__Review.html", null ],
+    [ "LargeDb_SystemAuditLog", "d0/d20/structLargeDb__SystemAuditLog.html", null ],
+    [ "LargeDb_Tag", "db/d6f/structLargeDb__Tag.html", null ],
+    [ "LargeDb_User", "d4/d09/structLargeDb__User.html", null ]
 ];

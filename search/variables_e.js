@@ -1,7 +1,11 @@
 var searchData=
 [
-  ['tablename_0',['tablename',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#ab985d9d131e68d85195d7d507b909a98',1,'Lightweight::SqlBackup::Progress::tableName'],['../d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html#a7337bbb0615e5f6eab7908828880f346',1,'Lightweight::SqlForeignKeyReferenceDefinition::tableName'],['../dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07',1,'Lightweight::SqlAlterTablePlan::tableName'],['../dd/d47/structLightweight_1_1SqlDropTablePlan.html#a881594ba67a9c5f1443d92f285b53bbe',1,'Lightweight::SqlDropTablePlan::tableName']]],
-  ['totalregistered_1',['totalRegistered',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a5ae7285c2d9fe56478bbd53631e5fb27',1,'Lightweight::SqlMigration::MigrationStatus']]],
-  ['totalrows_2',['totalRows',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a8df65a3b3070a699900888e0f69730e3',1,'Lightweight::SqlBackup::Progress']]],
-  ['type_3',['type',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a4368430137de8b3dbb77d7b31b0112b1',1,'Lightweight::SqlColumnDeclaration']]]
+  ['scale_0',['Scale',['../d6/d1b/structLightweight_1_1SqlNumeric.html#a7a12c223c8ecd62e79c02249c3543a1e',1,'Lightweight::SqlNumeric']]],
+  ['schemaname_1',['schemaname',['../dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a303553e0c2089a553fd561f196cc039e',1,'Lightweight::SqlAlterTablePlan::schemaName'],['../dd/d47/structLightweight_1_1SqlDropTablePlan.html#a36797cc9ea243cafa5f2627920401c91',1,'Lightweight::SqlDropTablePlan::schemaName']]],
+  ['seed_2',['seed',['../dc/d12/structLargeDb_1_1GeneratorConfig.html#ad3420692bbfca13a79f3f8965737e725',1,'LargeDb::GeneratorConfig']]],
+  ['size_3',['size',['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a76a7fc936dc18d3af22496f7e3d88017',1,'Lightweight::SqlRawColumnMetadata']]],
+  ['sql_4',['sql',['../dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d',1,'Lightweight::SqlRawSqlPlan']]],
+  ['sqlnullvalue_5',['SqlNullValue',['../d4/d7c/group__DataTypes.html#ga557658392c27465b9ba0a5ecacdc7f45',1,'Lightweight']]],
+  ['sqltype_6',['sqlType',['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#abccc1073f563291d8caf94685890f64d',1,'Lightweight::SqlRawColumnMetadata']]],
+  ['state_7',['state',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a7532c06b2575869bb04450eeb733ec24',1,'Lightweight::SqlBackup::Progress']]]
 ];
