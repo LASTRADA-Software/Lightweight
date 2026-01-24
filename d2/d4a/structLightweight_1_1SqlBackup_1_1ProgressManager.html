@@ -137,6 +137,10 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
 <tr class="memitem:a4e2b371cc4658c3e205254cb2623ae3b" id="r_a4e2b371cc4658c3e205254cb2623ae3b"><td class="memItemLeft" align="right" valign="top">virtual size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a4e2b371cc4658c3e205254cb2623ae3b">ErrorCount</a> () const noexcept</td></tr>
 <tr class="memdesc:a4e2b371cc4658c3e205254cb2623ae3b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of errors encountered during the operation.  <br /></td></tr>
 <tr class="separator:a4e2b371cc4658c3e205254cb2623ae3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae7bc2d20f37470fa2b4bb9ae7f93e191" id="r_ae7bc2d20f37470fa2b4bb9ae7f93e191"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#ae7bc2d20f37470fa2b4bb9ae7f93e191">SetTotalItems</a> (size_t)</td></tr>
+<tr class="separator:ae7bc2d20f37470fa2b4bb9ae7f93e191"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a45fcd6ba81e485568f4452533250ffe5" id="r_a45fcd6ba81e485568f4452533250ffe5"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a45fcd6ba81e485568f4452533250ffe5">OnItemsProcessed</a> (size_t)</td></tr>
+<tr class="separator:a45fcd6ba81e485568f4452533250ffe5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The interface for progress updates. </p>
@@ -230,6 +234,74 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
 <p>Reimplemented in <a class="el" href="../../df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8">Lightweight::SqlBackup::ErrorTrackingProgressManager</a>.</p>
 
 <p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00154">154</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ae7bc2d20f37470fa2b4bb9ae7f93e191" name="ae7bc2d20f37470fa2b4bb9ae7f93e191"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae7bc2d20f37470fa2b4bb9ae7f93e191">&#9670;&#160;</a></span>SetTotalItems()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void Lightweight::SqlBackup::ProgressManager::SetTotalItems </td>
+          <td>(</td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Sets the total number of items to be processed (for ETA calculation). </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">totalItems</td><td>Total number of items (rows) to process across all tables. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00161">161</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a45fcd6ba81e485568f4452533250ffe5" name="a45fcd6ba81e485568f4452533250ffe5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a45fcd6ba81e485568f4452533250ffe5">&#9670;&#160;</a></span>OnItemsProcessed()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void Lightweight::SqlBackup::ProgressManager::OnItemsProcessed </td>
+          <td>(</td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Called when items are processed (for rate and ETA calculation). </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">count</td><td>Number of items (rows) just processed. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00165">165</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>

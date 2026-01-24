@@ -1,5 +1,7 @@
 var NAVTREEINDEX2 =
 {
+"da/d7e/structLightweight_1_1SqlRawColumn.html#abafa148d105f4f791595f95b1e68a162":[9,0,0,42,1],
+"da/d96/structLightweight_1_1SqlNullType.html":[7,0,7],
 "da/da8/classLightweight_1_1SqlConnection.html":[9,0,0,18],
 "da/da8/classLightweight_1_1SqlConnection.html#a0938e714f9d74d7e64e080ad23161201":[9,0,0,18,25],
 "da/da8/classLightweight_1_1SqlConnection.html#a293cb2130d482e71c2e2758f9f7aa08a":[9,0,0,18,10],
@@ -247,7 +249,5 @@ var NAVTREEINDEX2 =
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inputparameter":[5,1],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect":[5,4],
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#outputcolumn":[5,2],
-"de/dbb/StdString_8hpp_source.html":[10,0,1,0,17],
-"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html":[9,0,0,34],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html":[9,0,0,2,2]
+"de/dbb/StdString_8hpp_source.html":[10,0,1,0,17]
 };

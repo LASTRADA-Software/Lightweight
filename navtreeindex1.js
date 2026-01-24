@@ -1,5 +1,7 @@
 var NAVTREEINDEX1 =
 {
+"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca12d868c18cb29bf58f02b504be9033fd":[9,0,0,1,5,0,1],
+"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca8428552d86c0d262a542a528af490afa":[9,0,0,1,5,0,0],
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca8f3d10eb21bd36347c258679eba9e92b":[9,0,0,1,5,0,2],
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca902b0d55fddef6f8d651fe1035b7d4bd":[9,0,0,1,5,0,3],
 "d5/de3/SqlVariant_8hpp_source.html":[10,0,1,0,15],
@@ -247,7 +249,5 @@ var NAVTREEINDEX1 =
 "da/d62/SQLiteFormatter_8hpp_source.html":[10,0,1,2,1],
 "da/d7e/structLightweight_1_1SqlRawColumn.html":[9,0,0,42],
 "da/d7e/structLightweight_1_1SqlRawColumn.html#a46be282ffe105f3df50dd090c0419d68":[9,0,0,42,0],
-"da/d7e/structLightweight_1_1SqlRawColumn.html#a9125efddb4978d91a258ef9525c0ea3d":[9,0,0,42,2],
-"da/d7e/structLightweight_1_1SqlRawColumn.html#abafa148d105f4f791595f95b1e68a162":[9,0,0,42,1],
-"da/d96/structLightweight_1_1SqlNullType.html":[7,0,7]
+"da/d7e/structLightweight_1_1SqlRawColumn.html#a9125efddb4978d91a258ef9525c0ea3d":[9,0,0,42,2]
 };
