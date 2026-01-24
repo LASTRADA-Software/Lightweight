@@ -1161,6 +1161,78 @@ namespace
         }
     }
 
+    /// Restores indexes for all tables after data has been restored.
+    ///
+    /// This function creates indexes that were backed up in the metadata.
+    /// It is called after FK constraints are restored to ensure indexes are created
+    /// on the final table structure.
+    ///
+    /// @param connectionString The connection string to use.
+    /// @param schema The schema name.
+    /// @param tableMap Map of table names to their metadata including indexes.
+    /// @param progress Progress manager for reporting status.
+    void RestoreIndexes(SqlConnectionString const& connectionString,
+                        std::string const& schema,
+                        std::map<std::string, TableInfo> const& tableMap,
+                        ProgressManager& progress)
+    {
+        SqlConnection conn;
+        if (!conn.Connect(connectionString))
+        {
+            progress.Update({ .state = Progress::State::Error,
+                              .tableName = "",
+                              .currentRows = 0,
+                              .totalRows = std::nullopt,
+                              .message = "Failed to connect for index restoration: " + conn.LastError().message });
+            return;
+        }
+
+        for (auto const& [tableName, info]: tableMap)
+        {
+            if (info.indexes.empty())
+                continue;
+
+            for (auto const& idx: info.indexes)
+            {
+                try
+                {
+                    // Build column list for the CREATE INDEX statement
+                    std::string columnList;
+                    for (size_t i = 0; i < idx.columns.size(); ++i)
+                    {
+                        if (i > 0)
+                            columnList += ", ";
+                        columnList += std::format(R"("{}")", idx.columns[i]);
+                    }
+
+                    // Build the CREATE INDEX statement
+                    std::string const uniqueKeyword = idx.isUnique ? "UNIQUE " : "";
+                    std::string const formattedTableName = FormatTableName(schema, tableName);
+                    std::string const sql = std::format(
+                        R"(CREATE {}INDEX "{}" ON {} ({}))", uniqueKeyword, idx.name, formattedTableName, columnList);
+
+                    SqlStatement { conn }.ExecuteDirect(sql);
+
+                    progress.Update({ .state = Progress::State::InProgress,
+                                      .tableName = tableName,
+                                      .currentRows = 0,
+                                      .totalRows = std::nullopt,
+                                      .message = std::format("Created index {}", idx.name) });
+                }
+                catch (std::exception const& e)
+                {
+                    // Index may already exist or there might be other issues
+                    // Log as warning but continue with other indexes
+                    progress.Update({ .state = Progress::State::Warning,
+                                      .tableName = tableName,
+                                      .currentRows = 0,
+                                      .totalRows = std::nullopt,
+                                      .message = std::format("Failed to create index {}: {}", idx.name, e.what()) });
+                }
+            }
+        }
+    }
+
     void ApplyDatabaseConstraints(SqlConnectionString const& connectionString,
                                   std::string const& schema,
                                   std::map<std::string, TableInfo> const& tableMap,
@@ -1527,6 +1599,16 @@ std::string CreateMetadata(SqlConnectionString const& connectionString,
             f["referenced_table"] = fk.primaryKey.table.table;
             f["referenced_columns"] = fk.primaryKey.columns;
             t["foreign_keys"].push_back(f);
+        }
+
+        t["indexes"] = nlohmann::json::array();
+        for (auto const& idx: table.indexes)
+        {
+            nlohmann::json indexJson;
+            indexJson["name"] = idx.name;
+            indexJson["columns"] = idx.columns;
+            indexJson["is_unique"] = idx.isUnique;
+            t["indexes"].push_back(indexJson);
         }
 
         t["primary_keys"] = table.primaryKeys;
@@ -1904,6 +1986,19 @@ std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson, Prog
             }
         }
 
+        // Parse indexes (backward compatible - older backups may not have this field)
+        if (tableJson.contains("indexes"))
+        {
+            for (auto const& indexJson: tableJson["indexes"])
+            {
+                SqlSchema::IndexDefinition idx;
+                idx.name = indexJson["name"];
+                idx.columns = indexJson["columns"].get<std::vector<std::string>>();
+                idx.isUnique = indexJson.value("is_unique", false);
+                info.indexes.push_back(idx);
+            }
+        }
+
         if (tableJson.contains("primary_keys"))
         {
             auto const pks = tableJson["primary_keys"].get<std::vector<std::string>>();
@@ -2102,6 +2197,7 @@ void Restore(std::filesystem::path const& inputFile,
         t.join();
 
     ApplyDatabaseConstraints(connectionString, effectiveSchema, tableMap, progress);
+    RestoreIndexes(connectionString, effectiveSchema, tableMap, progress);
 
     zip_close(zip);
     progress.Update({ .state = Progress::State::Finished,

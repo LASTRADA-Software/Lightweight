@@ -95,6 +95,19 @@ namespace SqlSchema
         return std::tie(a.foreignKey, a.primaryKey) < std::tie(b.foreignKey, b.primaryKey);
     }
 
+    /// Represents an index definition on a table.
+    struct IndexDefinition
+    {
+        /// The name of the index.
+        std::string name;
+
+        /// The columns in the index (in order for composite indexes).
+        std::vector<std::string> columns;
+
+        /// Whether the index enforces uniqueness.
+        bool isUnique = false;
+    };
+
     using KeyPair = std::pair<FullyQualifiedTableName /*fk table*/, FullyQualifiedTableName /*pk table*/>;
 
     inline bool operator<(KeyPair const& a, KeyPair const& b)
@@ -138,6 +151,7 @@ namespace SqlSchema
         virtual void OnForeignKey(ForeignKeyConstraint const& foreignKeyConstraint) = 0;
         virtual void OnColumn(Column const& column) = 0;
         virtual void OnExternalForeignKey(ForeignKeyConstraint const& foreignKeyConstraint) = 0;
+        virtual void OnIndexes(std::vector<IndexDefinition> const& indexes) = 0;
         virtual void OnTableEnd() = 0;
     };
 
@@ -173,6 +187,9 @@ namespace SqlSchema
 
         /// The primary keys of the table.
         std::vector<std::string> primaryKeys {};
+
+        /// The indexes on the table (excluding primary key index).
+        std::vector<IndexDefinition> indexes {};
     };
 
     /// A list of tables.

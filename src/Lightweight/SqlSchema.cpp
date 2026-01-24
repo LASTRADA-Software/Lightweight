@@ -250,6 +250,121 @@ namespace
         return uniqueColumns;
     }
 
+    /// Retrieves all non-primary key indexes for a table using ODBC SQLStatistics.
+    ///
+    /// @param stmt The SQL statement to use for reading.
+    /// @param table The fully qualified table name.
+    /// @param primaryKeys The list of primary key columns (used to filter out PK indexes).
+    /// @return A vector of index definitions, excluding primary key indexes.
+    std::vector<IndexDefinition> AllIndexes(SqlStatement& stmt,
+                                            FullyQualifiedTableName const& table,
+                                            std::vector<std::string> const& primaryKeys)
+    {
+        try
+        {
+            // Use a separate statement to avoid issues with pending cursors from previous operations
+            auto indexStmt = SqlStatement { stmt.Connection() };
+
+            auto* pkCatalog = (SQLCHAR*) (!table.catalog.empty() ? table.catalog.c_str() : nullptr);
+            auto* pkSchema = (SQLCHAR*) (!table.schema.empty() ? table.schema.c_str() : nullptr);
+            auto* pkTable = (SQLCHAR*) (!table.table.empty() ? table.table.c_str() : nullptr);
+
+            // Use SQL_INDEX_ALL to retrieve all index types
+            auto sqlResult = SQLStatistics(indexStmt.NativeHandle(),
+                                           pkCatalog,
+                                           (SQLSMALLINT) table.catalog.size(),
+                                           pkSchema,
+                                           (SQLSMALLINT) table.schema.size(),
+                                           pkTable,
+                                           (SQLSMALLINT) table.table.size(),
+                                           SQL_INDEX_ALL,
+                                           SQL_ENSURE);
+
+            if (!SQL_SUCCEEDED(sqlResult))
+                return {};
+
+            // Map: index_name -> (columns sorted by ordinal_position, isUnique)
+            struct IndexInfo
+            {
+                std::vector<std::pair<int16_t, std::string>> columnsWithOrdinal; // (ordinal, column_name)
+                bool isUnique = false;
+            };
+            std::map<std::string, IndexInfo> indexMap;
+
+            while (indexStmt.FetchRow())
+            {
+                // Column mappings from SQLStatistics result set:
+                //   4: NON_UNIQUE (0 = unique, 1 = not unique, NULL for statistics rows)
+                //   6: INDEX_NAME
+                //   7: TYPE (SQL_TABLE_STAT=0, SQL_INDEX_CLUSTERED=1, SQL_INDEX_HASHED=2, SQL_INDEX_OTHER=3)
+                //   8: ORDINAL_POSITION (column position in index)
+                //   9: COLUMN_NAME
+
+                // Skip statistics rows (TYPE == 0)
+                auto typeOpt = indexStmt.GetNullableColumn<int16_t>(7);
+                if (!typeOpt || *typeOpt == 0)
+                    continue;
+
+                auto indexNameOpt = indexStmt.GetNullableColumn<std::string>(6);
+                auto columnNameOpt = indexStmt.GetNullableColumn<std::string>(9);
+
+                if (!indexNameOpt || indexNameOpt->empty() || !columnNameOpt || columnNameOpt->empty())
+                    continue;
+
+                auto ordinalOpt = indexStmt.GetNullableColumn<int16_t>(8);
+                auto nonUniqueOpt = indexStmt.GetNullableColumn<int16_t>(4);
+
+                IndexInfo& info = indexMap[*indexNameOpt];
+                info.columnsWithOrdinal.emplace_back(ordinalOpt.value_or(1), *columnNameOpt);
+                // NON_UNIQUE: 0 means unique, 1 means not unique
+                info.isUnique = (nonUniqueOpt.value_or(1) == 0);
+            }
+
+            // Convert map to vector, sorting columns by ordinal position
+            std::vector<IndexDefinition> result;
+            result.reserve(indexMap.size());
+
+            for (auto& [indexName, info]: indexMap)
+            {
+                // Sort columns by ordinal position
+                std::ranges::sort(info.columnsWithOrdinal, [](auto const& a, auto const& b) { return a.first < b.first; });
+
+                // Extract column names
+                std::vector<std::string> columns;
+                columns.reserve(info.columnsWithOrdinal.size());
+                for (auto const& [ordinal, col]: info.columnsWithOrdinal)
+                    columns.push_back(col);
+
+                // Filter out primary key indexes by comparing columns
+                // An index matches the PK if it has the same columns in the same order
+                bool isPrimaryKeyIndex = (columns.size() == primaryKeys.size())
+                                         && std::ranges::equal(columns, primaryKeys, [](auto const& a, auto const& b) {
+                                                // Case-insensitive comparison for some databases
+                                                return std::ranges::equal(a, b, [](char c1, char c2) {
+                                                    return std::tolower(static_cast<unsigned char>(c1))
+                                                           == std::tolower(static_cast<unsigned char>(c2));
+                                                });
+                                            });
+
+                if (isPrimaryKeyIndex)
+                    continue;
+
+                result.push_back(IndexDefinition {
+                    .name = indexName,
+                    .columns = std::move(columns),
+                    .isUnique = info.isUnique,
+                });
+            }
+
+            return result;
+        }
+        catch (std::exception const&)
+        {
+            // Index retrieval is optional - if it fails, return empty list
+            return {};
+        }
+    }
+
     std::vector<std::string> AllIdentityColumns(SqlStatement& stmt, FullyQualifiedTableName const& table)
     {
         if (stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL)
@@ -329,6 +444,9 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
 
         for (auto const& foreignKey: incomingForeignKeys)
             eventHandler.OnExternalForeignKey(foreignKey);
+
+        auto const indexes = AllIndexes(stmt, fullyQualifiedTableName, primaryKeys);
+        eventHandler.OnIndexes(indexes);
 
         auto columnStmt = SqlStatement { stmt.Connection() };
         auto const sqlResult = SQLColumns(columnStmt.NativeHandle(),
@@ -509,7 +627,6 @@ TableList ReadAllTables(SqlStatement& stmt,
         }
 
       public:
-
         bool OnTable(std::string_view table) override
         {
             ++currentlyProcessedTablesCount;
@@ -558,6 +675,11 @@ TableList ReadAllTables(SqlStatement& stmt,
         void OnExternalForeignKey(SqlSchema::ForeignKeyConstraint const& foreignKeyConstraint) override
         {
             tables.back().externalForeignKeys.emplace_back(foreignKeyConstraint);
+        }
+
+        void OnIndexes(std::vector<SqlSchema::IndexDefinition> const& indexes) override
+        {
+            tables.back().indexes = indexes;
         }
     } eventHandler { tables, tableNameCaseMap, std::move(callback), std::move(tableReadyCallback), std::move(tableFilter),
                      schema };

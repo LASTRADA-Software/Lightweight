@@ -94,6 +94,9 @@ struct TableInfo
     /// The list of foreign key constraints in the table.
     std::vector<SqlSchema::ForeignKeyConstraint> foreignKeys;
 
+    /// The indexes on the table (excluding primary key index).
+    std::vector<SqlSchema::IndexDefinition> indexes;
+
     /// The number of rows in the table.
     size_t rowCount = 0;
 };
