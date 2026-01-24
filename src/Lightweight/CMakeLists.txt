@@ -1,3 +1,17 @@
+# Define shared library option early, before dependencies that need to know about it
+set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT OFF)
+if(WIN32)
+    set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT ON)
+endif()
+
+option(LIGHTWEIGHT_BUILD_SHARED "Build Lightweight as a shared library" ${LIGHTWEIGHT_BUILD_SHARED_DEFAULT})
+
+if(LIGHTWEIGHT_BUILD_SHARED)
+    set(LIGHTWEIGHT_LIBRARY_TYPE SHARED)
+else()
+    set(LIGHTWEIGHT_LIBRARY_TYPE STATIC)
+endif()
+
 if(NOT WIN32)
     find_package(SQLite3 REQUIRED)
     include_directories(${SQLITE3_INCLUDE_DIR})
@@ -12,11 +26,30 @@ if(WIN32)
     # vcpkg provides libzip::zip, create alias to match CPM target name
     add_library(zip ALIAS libzip::zip)
 else()
+    # Build libzip options - add PIC when building shared library
+    set(LIBZIP_OPTIONS
+        "BUILD_SHARED_LIBS OFF"
+        "BUILD_DOC OFF"
+        "BUILD_EXAMPLES OFF"
+        "BUILD_REGRESS OFF"
+        "BUILD_TOOLS OFF"
+        "ENABLE_OPENSSL OFF"
+        "ENABLE_COMMONCRYPTO OFF"
+        "ENABLE_GNUTLS OFF"
+        "ENABLE_MBEDTLS OFF"
+        "ENABLE_WINDOWS_CRYPTO OFF"
+        "ENABLE_ZSTD OFF"
+        "ENABLE_LZMA OFF"
+    )
+    if(LIGHTWEIGHT_BUILD_SHARED)
+        list(APPEND LIBZIP_OPTIONS "CMAKE_POSITION_INDEPENDENT_CODE ON")
+    endif()
+
     CPMAddPackage(
         NAME libzip
         GITHUB_REPOSITORY nih-at/libzip
         GIT_TAG v1.11.3
-        OPTIONS "BUILD_SHARED_LIBS OFF" "BUILD_DOC OFF" "BUILD_EXAMPLES OFF" "BUILD_REGRESS OFF" "BUILD_TOOLS OFF" "ENABLE_OPENSSL OFF" "ENABLE_COMMONCRYPTO OFF" "ENABLE_GNUTLS OFF" "ENABLE_MBEDTLS OFF" "ENABLE_WINDOWS_CRYPTO OFF" "ENABLE_ZSTD OFF" "ENABLE_LZMA OFF"
+        OPTIONS ${LIBZIP_OPTIONS}
     )
 endif()
 
@@ -109,19 +142,6 @@ set(SOURCE_FILES
     SqlTransaction.cpp
     Utils.cpp
 )
-
-set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT OFF)
-if(WIN32)
-    set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT ON)
-endif()
-
-option(LIGHTWEIGHT_BUILD_SHARED "Build Lightweight as a shared library" ${LIGHTWEIGHT_BUILD_SHARED_DEFAULT})
-
-if(LIGHTWEIGHT_BUILD_SHARED)
-    set(LIGHTWEIGHT_LIBRARY_TYPE SHARED)
-else()
-    set(LIGHTWEIGHT_LIBRARY_TYPE STATIC)
-endif()
 
 add_library(Lightweight ${LIGHTWEIGHT_LIBRARY_TYPE})
 

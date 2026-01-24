@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "../Api.hpp"
 #include "SqlBackupFormats.hpp"
 
 #include <iosfwd>
@@ -10,9 +11,9 @@ namespace Lightweight::SqlBackup
 {
 
 /// Factory for creating chunk writers.
-std::unique_ptr<ChunkWriter> CreateMsgPackChunkWriter(size_t limitBytes = 10 * 1024 * 1024);
+LIGHTWEIGHT_API std::unique_ptr<ChunkWriter> CreateMsgPackChunkWriter(size_t limitBytes = 10 * 1024 * 1024);
 
 /// Factory for creating chunk readers.
-std::unique_ptr<ChunkReader> CreateMsgPackChunkReader(std::istream& input);
+LIGHTWEIGHT_API std::unique_ptr<ChunkReader> CreateMsgPackChunkReader(std::istream& input);
 
 } // namespace Lightweight::SqlBackup

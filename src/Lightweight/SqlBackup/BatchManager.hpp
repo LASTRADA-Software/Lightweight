@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "../Api.hpp"
 #include "../DataBinder/SqlRawColumn.hpp" // For SqlRawColumn
 #include "../SqlSchema.hpp"
 #include "../SqlServerType.hpp"
@@ -16,7 +17,7 @@ namespace Lightweight::detail
 struct BatchColumn;
 
 /// A batch manager that manages multiple batch columns for a statement.
-struct BatchManager
+struct LIGHTWEIGHT_API BatchManager
 {
     using BatchExecutor = std::function<void(std::vector<SqlRawColumn> const&, size_t)>;
 
