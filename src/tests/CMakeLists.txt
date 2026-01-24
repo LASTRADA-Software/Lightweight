@@ -64,6 +64,8 @@ set(SOURCE_FILES
     DataMapper/NamingTests.cpp
     DataMapper/ReadTests.cpp
     DataMapper/RelationTests.cpp
+    LargeTestDatabase/DataGenerator.cpp
+    LargeTestDatabase/LargeTestDatabaseTests.cpp
     MigrationTests.cpp
     MigrationReflectionTests.cpp
     QueryBuilderTests.cpp
