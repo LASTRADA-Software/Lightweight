@@ -548,11 +548,11 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
             column.isForeignKey = std::ranges::any_of(foreignKeys, [&column](ForeignKeyConstraint const& fk) {
                 return std::ranges::contains(fk.foreignKey.columns, column.name);
             });
-            if (auto const p = std::ranges::find_if(incomingForeignKeys,
+            if (auto const p = std::ranges::find_if(foreignKeys,
                                                     [&column](ForeignKeyConstraint const& fk) {
                                                         return std::ranges::contains(fk.foreignKey.columns, column.name);
                                                     });
-                p != incomingForeignKeys.end())
+                p != foreignKeys.end())
             {
                 column.foreignKeyConstraint = *p;
             }
@@ -716,12 +716,29 @@ std::vector<ForeignKeyConstraint> AllForeignKeysFrom(SqlStatement& stmt, FullyQu
 
 SqlCreateTablePlan MakeCreateTablePlan(Table const& tableDescription)
 {
-    auto plan = SqlCreateTablePlan {}; // TODO(pr)
+    auto plan = SqlCreateTablePlan {};
 
     plan.tableName = tableDescription.name;
 
     for (auto const& columnDescription: tableDescription.columns)
     {
+        // Extract per-column foreign key reference for single-column foreign keys.
+        auto const foreignKeyRef = [&]() -> std::optional<SqlForeignKeyReferenceDefinition> {
+            if (!columnDescription.foreignKeyConstraint)
+                return std::nullopt;
+
+            auto const& fkConstraint = *columnDescription.foreignKeyConstraint;
+            // Only populate per-column foreign key for single-column constraints
+            if (fkConstraint.foreignKey.columns.size() == 1 && fkConstraint.primaryKey.columns.size() == 1)
+            {
+                return SqlForeignKeyReferenceDefinition {
+                    .tableName = fkConstraint.primaryKey.table.table,
+                    .columnName = fkConstraint.primaryKey.columns.front(),
+                };
+            }
+            return std::nullopt;
+        }();
+
         auto columnDecl = SqlColumnDeclaration {
             .name = columnDescription.name,
             .type = columnDescription.type,
@@ -735,7 +752,7 @@ SqlCreateTablePlan MakeCreateTablePlan(Table const& tableDescription)
 
                     return SqlPrimaryKeyType::NONE;
                 }(),
-            .foreignKey = {}, // TODO(pr) foreign keys
+            .foreignKey = foreignKeyRef,
             .required = !columnDescription.isNullable,
             .unique = columnDescription.isUnique,
             .defaultValue = columnDescription.defaultValue,
