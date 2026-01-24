@@ -6,6 +6,12 @@
 #include <format>
 #include <iostream>
 
+#ifdef _WIN32
+#include <io.h> // for _isatty, _fileno
+#else
+#include <unistd.h> // for isatty, fileno
+#endif
+
 namespace Lightweight::Tools
 {
 

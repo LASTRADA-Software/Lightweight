@@ -73,11 +73,34 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
         case SQL_WLONGVARCHAR: // long Unicode (UTF-16) string
             returnCode =
                 SqlDataBinder<std::u16string>::GetColumn(stmt, column, &variant.emplace<std::u16string>(), indicator, cb);
+
+            if (cb.ServerType() == SqlServerType::SQLITE && SQL_SUCCEEDED(returnCode))
+            {
+                // The SQLite driver may return GUID columns as Unicode strings.
+                // Convert to UTF-8 and try to parse as GUID.
+                auto const& wstr = std::get<std::u16string>(variant);
+                auto u8str = ToUtf8(std::u16string_view(wstr));
+                std::string utf8str(reinterpret_cast<char const*>(u8str.data()), u8str.size());
+                if (auto maybeGuid = SqlGuid::TryParse(utf8str); maybeGuid)
+                {
+                    variant = maybeGuid.value();
+                }
+            }
             break;
         case SQL_BINARY:        // fixed-length binary
         case SQL_VARBINARY:     // variable-length binary
         case SQL_LONGVARBINARY: // long binary
             returnCode = SqlDataBinder<std::string>::GetColumn(stmt, column, &variant.emplace<std::string>(), indicator, cb);
+
+            if (cb.ServerType() == SqlServerType::SQLITE && SQL_SUCCEEDED(returnCode))
+            {
+                // The SQLite driver may return GUID columns as binary data.
+                // Try to parse as GUID if the string looks like one.
+                if (auto maybeGuid = SqlGuid::TryParse(std::get<std::string>(variant)); maybeGuid)
+                {
+                    variant = maybeGuid.value();
+                }
+            }
             break;
         case SQL_DATE:
             // Oracle ODBC driver returns SQL_DATE for DATE columns

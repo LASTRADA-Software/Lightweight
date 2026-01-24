@@ -11,6 +11,11 @@
 namespace Lightweight::SqlBackup
 {
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4251) // STL types in DLL interface
+#endif
+
 /// Filters tables by name patterns with glob-style wildcards.
 ///
 /// Supports:
@@ -60,5 +65,9 @@ class LIGHTWEIGHT_API TableFilter
     /// @return true if text matches the pattern.
     static bool GlobMatch(std::string_view pattern, std::string_view text);
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 } // namespace Lightweight::SqlBackup

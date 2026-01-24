@@ -26,6 +26,7 @@ target_include_directories(large-db-generator PRIVATE
 
 target_link_libraries(large-db-generator PRIVATE
     Lightweight::Lightweight
+    Catch2::Catch2
 )
 
 install(TARGETS large-db-generator DESTINATION bin OPTIONAL)

@@ -16,6 +16,11 @@ namespace Lightweight::detail
 
 struct BatchColumn;
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4251) // STL types in DLL interface
+#endif
+
 /// A batch manager that manages multiple batch columns for a statement.
 struct LIGHTWEIGHT_API BatchManager
 {
@@ -36,8 +41,8 @@ struct LIGHTWEIGHT_API BatchManager
 
     BatchManager(BatchManager const&) = delete;
     BatchManager& operator=(BatchManager const&) = delete;
-    BatchManager(BatchManager&&) = default;
-    BatchManager& operator=(BatchManager&&) = default;
+    BatchManager(BatchManager&&) noexcept;
+    BatchManager& operator=(BatchManager&&) noexcept;
 
     /// Push a row to the batch manager.
     void PushRow(std::vector<SqlBackup::BackupValue> const& row);
@@ -57,5 +62,9 @@ struct LIGHTWEIGHT_API BatchManager
     std::vector<std::unique_ptr<BatchColumn>> columns;
     SqlServerType serverType = SqlServerType::UNKNOWN;
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 } // namespace Lightweight::detail

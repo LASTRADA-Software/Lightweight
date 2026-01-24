@@ -312,7 +312,7 @@ std::string CxxModelPrinter::MakeType(
             [](Date const&) -> std::string { return "Light::SqlDate"; },
             [](DateTime const&) -> std::string { return "Light::SqlDateTime"; },
             [](Decimal const& type) -> std::string {
-                return std::format("Light::SqlNumeric<{}, {}>", type.scale, type.precision);
+                return std::format("Light::SqlNumeric<{}, {}>", type.precision, type.scale);
             },
             [](Guid const&) -> std::string { return "Light::SqlGuid"; },
             [](Integer const&) -> std::string { return "int32_t"; },

@@ -84,10 +84,10 @@
         { "name": "linux-clang-tsan",        "displayName": "Linux - Clang - ThreadSanitizer", "configurePreset": "linux-clang-tsan" }
     ],
     "testPresets": [
-        { "name": "windows-cl-debug", "configurePreset": "windows-cl-debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "windows-cl-release", "configurePreset": "windows-cl-release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "windows-clangcl-debug", "configurePreset": "windows-clangcl-debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "windows-clangcl-release", "configurePreset": "windows-clangcl-release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "windows-cl-debug", "configurePreset": "windows-cl-debug", "configuration": "Debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "windows-cl-release", "configurePreset": "windows-cl-release", "configuration": "Release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "windows-clangcl-debug", "configurePreset": "windows-clangcl-debug", "configuration": "Debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "windows-clangcl-release", "configurePreset": "windows-clangcl-release", "configuration": "Release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
         { "name": "linux-gcc-debug", "configurePreset": "linux-gcc-debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
         { "name": "linux-gcc-release", "configurePreset": "linux-gcc-release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
         { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },

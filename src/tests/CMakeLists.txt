@@ -30,7 +30,13 @@ find_package(Catch2 REQUIRED)
 add_executable(LightweightTest)
 target_compile_features(LightweightTest PUBLIC cxx_std_23)
 
-set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib zip nlohmann_json::nlohmann_json)
+if(WIN32)
+    find_package(libzip CONFIG REQUIRED)
+    set(ZIP_LIB libzip::zip)
+else()
+    set(ZIP_LIB zip)
+endif()
+set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib ${ZIP_LIB} nlohmann_json::nlohmann_json)
 if(MSVC)
     # clang-cl does not support /MP
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -105,9 +111,14 @@ add_subdirectory(dummy_migration_plugin_2)
 
 # Register dbtool integration test
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+if(WIN32)
+    set(SQLITE_DRIVER_NAME "{SQLite3 ODBC Driver}")
+else()
+    set(SQLITE_DRIVER_NAME "SQLite3")
+endif()
 add_test(NAME DbToolIntegrationTest
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_dbtool.py
         --dbtool $<TARGET_FILE:dbtool>
-        --plugins-dir ${CMAKE_BINARY_DIR}/tests/plugins
-        --connection-string "DRIVER=SQLite3;Database=test_dbtool_ctest.db"
+        --plugins-dir $<TARGET_FILE_DIR:dummy_migration_plugin>
+        --connection-string "DRIVER=${SQLITE_DRIVER_NAME};Database=test_dbtool_ctest.db"
 )

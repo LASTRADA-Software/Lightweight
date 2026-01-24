@@ -74,9 +74,12 @@ constexpr SqlGuid SqlGuid::UnsafeParse(std::string_view const& text) noexcept
     if (!('1' <= version && version <= '5'))
         return { "\x03" };
 
-    // Variant must be 8, 9, A, or B
-    auto const variant = text[21];
-    if (variant != '8' && variant != '9' && variant != 'A' && variant != 'B' && variant != 'a' && variant != 'b')
+    // Variant nibble at position 19 must be a valid hex digit
+    // We accept all variants (RFC 4122: 8-B, Microsoft: C-D, etc.)
+    auto const variant = text[19];
+    auto const isHexDigit = (variant >= '0' && variant <= '9') || (variant >= 'A' && variant <= 'F')
+                            || (variant >= 'a' && variant <= 'f');
+    if (!isHexDigit)
         return { "\x04" };
 
     // clang-format off
@@ -84,7 +87,7 @@ constexpr SqlGuid SqlGuid::UnsafeParse(std::string_view const& text) noexcept
     for (auto const index: { 0, 2, 4, 6,
                              9, 11,
                              14, 16,
-                             21, 19,
+                             19, 21,
                              24, 26, 28, 30, 32, 34 })
     {
         if (std::from_chars(text.data() + index, text.data() + index + 2, guid.data[i], 16).ec != std::errc())
@@ -111,7 +114,7 @@ struct std::formatter<Lightweight::SqlGuid>: std::formatter<std::string>
                     (uint32_t) guid.data[1] << 16 | (uint32_t) guid.data[0] << 24,
                 (uint16_t) guid.data[5] | (uint16_t) guid.data[4] << 8,
                 (uint16_t) guid.data[7] | (uint16_t) guid.data[6] << 8,
-                (uint16_t) guid.data[8] | (uint16_t) guid.data[9] << 8,
+                (uint16_t) guid.data[9] | (uint16_t) guid.data[8] << 8,
                 (uint64_t) guid.data[15] | (uint64_t) guid.data[14] << 8 |
                     (uint64_t) guid.data[13] << 16 | (uint64_t) guid.data[12] << 24 |
                     (uint64_t) guid.data[11] << 32 | (uint64_t) guid.data[10] << 40

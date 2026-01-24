@@ -1500,6 +1500,10 @@ BatchManager::BatchManager(BatchExecutor executor,
 
 BatchManager::~BatchManager() = default;
 
+BatchManager::BatchManager(BatchManager&&) noexcept = default;
+
+BatchManager& BatchManager::operator=(BatchManager&&) noexcept = default;
+
 std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration const& col) const
 {
     SqlRawColumnMetadata meta {};
@@ -1509,7 +1513,7 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
             {
                 meta.size = t.precision;
                 if constexpr (requires { t.scale; })
-                    meta.decimalDigits = t.scale;
+                    meta.decimalDigits = static_cast<SQLSMALLINT>(t.scale);
             }
             else if constexpr (requires { t.size; })
             {

@@ -510,8 +510,8 @@ namespace
                     std::cerr << "DEBUG: FetchRow returned true for " << tableName << "\n";
 #endif
                     row.clear();
-                    int const cols = static_cast<int>(columnCount);
-                    for (int i = 1; i <= cols; ++i)
+                    auto const cols = static_cast<SQLUSMALLINT>(columnCount);
+                    for (SQLUSMALLINT i = 1; i <= cols; ++i)
                     {
                         auto const& colDef = table.columns[i - 1];
                         using namespace SqlColumnTypeDefinitions;
@@ -538,7 +538,7 @@ namespace
                                         row.emplace_back(std::monostate {});
                                     }
                                 }
-                                catch (std::exception const& e)
+                                catch ([[maybe_unused]] std::exception const& e)
                                 {
 #ifdef DEBUG_BACKUP_WORKER
                                     std::cerr << "DEBUG: Exception in Binary col " << i << " (" << colDef.name
@@ -674,7 +674,7 @@ namespace
                                     row.emplace_back(std::monostate {});
                             }
                         }
-                        catch (std::exception const& e)
+                        catch ([[maybe_unused]] std::exception const& e)
                         {
 #ifdef DEBUG_BACKUP_WORKER
                             std::cerr << "DEBUG: Exception processing row for table " << tableName << " col " << i << " ("
@@ -688,7 +688,7 @@ namespace
                     {
                         writer->WriteRow(row);
                     }
-                    catch (std::exception const& e)
+                    catch ([[maybe_unused]] std::exception const& e)
                     {
 #ifdef DEBUG_BACKUP_WORKER
                         std::cerr << "DEBUG: Exception in WriteRow for table " << tableName << ": " << e.what() << "\n";
@@ -753,7 +753,7 @@ namespace
                 stmt = SqlStatement { conn };
                 // Loop will rebuild query with new offset
             }
-            catch (std::exception const& e)
+            catch ([[maybe_unused]] std::exception const& e)
             {
 #ifdef DEBUG_BACKUP_WORKER
                 std::cerr << "DEBUG: Exception in FetchRow loop for table " << tableName << ": " << e.what() << "\n";
@@ -778,7 +778,7 @@ namespace
                                   .totalRows = totalRows,
                                   .message = "Finished table backup"s });
         }
-        catch (std::exception const& e)
+        catch ([[maybe_unused]] std::exception const& e)
         {
 #ifdef DEBUG_BACKUP_WORKER
             std::cerr << "DEBUG: Exception in Final FlushChunk for table " << tableName << ": " << e.what() << "\n";
