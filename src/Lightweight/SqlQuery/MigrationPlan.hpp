@@ -165,6 +165,18 @@ namespace detail
         static constexpr auto value = SqlColumnTypeDefinitionOf<T>::value;
     };
 
+    template <>
+    struct SqlColumnTypeDefinitionOf<SqlText>
+    {
+        static constexpr auto value = SqlColumnTypeDefinitions::Text {};
+    };
+
+    template <size_t N>
+    struct SqlColumnTypeDefinitionOf<SqlDynamicBinary<N>>
+    {
+        static constexpr auto value = SqlColumnTypeDefinitions::VarBinary { N };
+    };
+
 } // namespace detail
 
 /// @brief Represents a SQL column type definition of T.
