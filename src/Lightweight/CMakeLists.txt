@@ -7,12 +7,18 @@ if(NOT WIN32)
     pkg_check_modules(ODBC REQUIRED odbc)
 endif()
 
-CPMAddPackage(
-    NAME libzip
-    GITHUB_REPOSITORY nih-at/libzip
-    GIT_TAG v1.11.3
-    OPTIONS "BUILD_SHARED_LIBS OFF" "BUILD_DOC OFF" "BUILD_EXAMPLES OFF" "BUILD_REGRESS OFF" "BUILD_TOOLS OFF" "ENABLE_OPENSSL OFF" "ENABLE_COMMONCRYPTO OFF" "ENABLE_GNUTLS OFF" "ENABLE_MBEDTLS OFF" "ENABLE_WINDOWS_CRYPTO OFF" "ENABLE_ZSTD OFF" "ENABLE_LZMA OFF"
-)
+if(WIN32)
+    find_package(libzip CONFIG REQUIRED)
+    # vcpkg provides libzip::zip, create alias to match CPM target name
+    add_library(zip ALIAS libzip::zip)
+else()
+    CPMAddPackage(
+        NAME libzip
+        GITHUB_REPOSITORY nih-at/libzip
+        GIT_TAG v1.11.3
+        OPTIONS "BUILD_SHARED_LIBS OFF" "BUILD_DOC OFF" "BUILD_EXAMPLES OFF" "BUILD_REGRESS OFF" "BUILD_TOOLS OFF" "ENABLE_OPENSSL OFF" "ENABLE_COMMONCRYPTO OFF" "ENABLE_GNUTLS OFF" "ENABLE_MBEDTLS OFF" "ENABLE_WINDOWS_CRYPTO OFF" "ENABLE_ZSTD OFF" "ENABLE_LZMA OFF"
+    )
+endif()
 
 CPMAddPackage(
     NAME nlohmann_json

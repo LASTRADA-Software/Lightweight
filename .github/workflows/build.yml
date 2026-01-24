@@ -94,7 +94,7 @@ jobs:
                 -D CMAKE_C_COMPILER=clang-21 \
                 -B build
       - name: "run clang-tidy"
-        run: run-clang-tidy -p ./build -clang-tidy-binary clang-tidy-21 -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/).*$'
+        run: run-clang-tidy -p ./build -clang-tidy-binary clang-tidy-21 -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/|(.*/)?libzip-src/).*$'
 
   # }}}
   # {{{ Windows

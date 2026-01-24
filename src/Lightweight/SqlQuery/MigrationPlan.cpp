@@ -10,7 +10,10 @@ std::vector<std::string> SqlMigrationPlan::ToSql() const
 {
     std::vector<std::string> result;
     for (auto const& step: steps)
-        result.append_range(Lightweight::ToSql(formatter, step));
+    {
+        auto sql = Lightweight::ToSql(formatter, step);
+        result.insert(result.end(), sql.begin(), sql.end());
+    }
     return result;
 }
 
@@ -49,8 +52,13 @@ std::vector<std::string> ToSql(std::vector<SqlMigrationPlan> const& plans)
     std::vector<std::string> result;
 
     for (auto const& plan: plans)
+    {
         for (auto const& step: plan.steps)
-            result.append_range(ToSql(plan.formatter, step));
+        {
+            auto sql = ToSql(plan.formatter, step);
+            result.insert(result.end(), sql.begin(), sql.end());
+        }
+    }
 
     return result;
 }
