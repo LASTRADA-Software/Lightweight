@@ -9,6 +9,8 @@
 
 #include <functional>
 #include <list>
+#include <optional>
+#include <vector>
 
 namespace Lightweight
 {
@@ -47,6 +49,28 @@ namespace SqlMigration
         std::string storedChecksum;
         std::string computedChecksum;
         bool matches;
+    };
+
+    /// Result of reverting multiple migrations.
+    ///
+    /// @ingroup SqlMigration
+    struct RevertResult
+    {
+        std::vector<MigrationTimestamp> revertedTimestamps; ///< Successfully reverted migrations
+        std::optional<MigrationTimestamp> failedAt;         ///< Migration that failed, if any
+        std::string errorMessage;                           ///< Error message if failed
+    };
+
+    /// Status summary of migrations.
+    ///
+    /// @ingroup SqlMigration
+    struct MigrationStatus
+    {
+        size_t appliedCount {};        ///< Number of migrations that have been applied
+        size_t pendingCount {};        ///< Number of migrations waiting to be applied
+        size_t mismatchCount {};       ///< Number of applied migrations with checksum mismatches
+        size_t unknownAppliedCount {}; ///< Number of applied migrations not found in registered list
+        size_t totalRegistered {};     ///< Total number of registered migrations
     };
 
     /// Main API to use for managing SQL migrations
@@ -166,6 +190,38 @@ namespace SqlMigration
         /// @return Vector of verification results for migrations with mismatched or missing checksums.
         [[nodiscard]] LIGHTWEIGHT_API std::vector<ChecksumVerificationResult> VerifyChecksums() const;
 
+        /// Mark a migration as applied without executing its Up() method.
+        ///
+        /// This is useful for:
+        /// - Baseline migrations when setting up an existing database
+        /// - Marking migrations that were applied manually or through other means
+        /// - Skipping migrations that are not applicable to a specific environment
+        ///
+        /// @param migration The migration to mark as applied.
+        /// @throws std::runtime_error if the migration is already applied.
+        LIGHTWEIGHT_API void MarkMigrationAsApplied(MigrationBase const& migration);
+
+        /// Revert all migrations applied after the target timestamp.
+        ///
+        /// This method reverts migrations in reverse chronological order,
+        /// rolling back from the most recent to just after the target.
+        /// The target migration itself is NOT reverted.
+        ///
+        /// @param target Target timestamp to revert to. Migrations > target are reverted.
+        /// @param feedbackCallback Optional callback for progress updates.
+        /// @return Result containing list of reverted timestamps or error information.
+        /// @note Stops on first error. Previously reverted migrations in this call are NOT rolled back.
+        [[nodiscard]] LIGHTWEIGHT_API RevertResult RevertToMigration(MigrationTimestamp target,
+                                                                     ExecuteCallback const& feedbackCallback = {});
+
+        /// Get a summary status of all migrations.
+        ///
+        /// This method provides a quick overview of the migration state without
+        /// needing to iterate through individual migrations.
+        ///
+        /// @return Status struct with counts of applied, pending, and mismatched migrations.
+        [[nodiscard]] LIGHTWEIGHT_API MigrationStatus GetMigrationStatus() const;
+
       private:
         MigrationList _migrations;
         mutable DataMapper* _dataMapper { nullptr };
@@ -209,6 +265,18 @@ namespace SqlMigration
         ///
         /// @param plan Query builder to use for building the migration plan.
         virtual void Down(SqlMigrationQueryBuilder& /*plan*/) const {}
+
+        /// Check if this migration has a Down() implementation for rollback.
+        ///
+        /// This method determines whether the migration can be safely reverted.
+        /// The default implementation returns false. Derived classes that implement
+        /// Down() should override this to return true.
+        ///
+        /// @return true if Down() is implemented and can revert this migration.
+        [[nodiscard]] virtual bool HasDownImplementation() const noexcept
+        {
+            return false;
+        }
 
         /// Get the timestamp of the migration.
         ///
@@ -280,6 +348,14 @@ namespace SqlMigration
         {
             if (_down)
                 _down(builder);
+        }
+
+        /// Check if this migration has a Down() implementation.
+        ///
+        /// @return true if a down function was provided.
+        [[nodiscard]] bool HasDownImplementation() const noexcept override
+        {
+            return static_cast<bool>(_down);
         }
 
       private:

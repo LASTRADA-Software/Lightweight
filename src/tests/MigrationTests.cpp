@@ -416,3 +416,278 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Checksum Stored on Migration", "[SqlM
     auto mismatches = manager.VerifyChecksums();
     CHECK(mismatches.empty());
 }
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "HasDownImplementation", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // Migration with Down() should return true
+    auto migrationWithDown = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240001 },
+        "with down",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("with_down_test").PrimaryKey("id", Integer()); },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("with_down_test"); });
+
+    CHECK(migrationWithDown.HasDownImplementation() == true);
+
+    // Migration without Down() should return false
+    auto migrationWithoutDown = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240002 }, "without down", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("without_down_test").PrimaryKey("id", Integer());
+        });
+
+    CHECK(migrationWithoutDown.HasDownImplementation() == false);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "RevertSingleMigration throws without Down", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migrationWithoutDown = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240003 }, "no down migration", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("no_down_test").PrimaryKey("id", Integer());
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    // Apply the migration first
+    CHECK(manager.ApplyPendingMigrations() == 1);
+
+    // Attempt to revert should throw with descriptive message
+    {
+        auto const _ = ScopedSqlNullLogger {};
+        CHECK_THROWS_AS(manager.RevertSingleMigration(migrationWithoutDown), std::runtime_error);
+    }
+
+    // Migration should still be in applied list
+    auto appliedIds = manager.GetAppliedMigrationIds();
+    CHECK(appliedIds.size() == 1);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "MarkMigrationAsApplied", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240004 }, "mark applied test", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("mark_applied_test").PrimaryKey("id", Integer());
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    // Mark as applied without executing
+    manager.MarkMigrationAsApplied(migration);
+
+    // Should appear in applied list
+    auto appliedIds = manager.GetAppliedMigrationIds();
+    CHECK(appliedIds.size() == 1);
+    CHECK(appliedIds[0].value == 202501240004);
+
+    // Table should NOT exist (we didn't execute, just marked)
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        auto const _ = ScopedSqlNullLogger {};
+        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM mark_applied_test"), SqlException);
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "MarkMigrationAsApplied duplicate throws", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240005 },
+        "duplicate mark test",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dup_mark_test").PrimaryKey("id", Integer()); },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("dup_mark_test"); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    // Actually apply the migration
+    CHECK(manager.ApplyPendingMigrations() == 1);
+
+    // Attempting to mark as applied again should throw
+    CHECK_THROWS_AS(manager.MarkMigrationAsApplied(migration), std::runtime_error);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "RevertToMigration", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migration1 = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240010 },
+        "migration 1",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("revert_to_1").PrimaryKey("id", Integer()); },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("revert_to_1"); });
+
+    auto migration2 = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240011 },
+        "migration 2",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("revert_to_2").PrimaryKey("id", Integer()); },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("revert_to_2"); });
+
+    auto migration3 = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240012 },
+        "migration 3",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("revert_to_3").PrimaryKey("id", Integer()); },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("revert_to_3"); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    // Apply all 3 migrations
+    CHECK(manager.ApplyPendingMigrations() == 3);
+    CHECK(manager.GetAppliedMigrationIds().size() == 3);
+
+    // Revert to migration 1 (should revert migrations 2 and 3)
+    auto result = manager.RevertToMigration(SqlMigration::MigrationTimestamp { 202501240010 });
+
+    CHECK(result.revertedTimestamps.size() == 2);
+    CHECK(!result.failedAt.has_value());
+    CHECK(result.errorMessage.empty());
+
+    // Should now have only 1 applied migration
+    auto appliedIds = manager.GetAppliedMigrationIds();
+    CHECK(appliedIds.size() == 1);
+    CHECK(appliedIds[0].value == 202501240010);
+
+    // Tables 2 and 3 should not exist
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        auto const _ = ScopedSqlNullLogger {};
+        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM revert_to_2"), SqlException);
+        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM revert_to_3"), SqlException);
+    }
+
+    // Table 1 should still exist
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        stmt.ExecuteDirect("SELECT * FROM revert_to_1");
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "GetMigrationStatus", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migration1 = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240020 },
+        "status test 1",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("status_test_1").PrimaryKey("id", Integer()); },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("status_test_1"); });
+
+    auto migration2 = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240021 },
+        "status test 2",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("status_test_2").PrimaryKey("id", Integer()); },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("status_test_2"); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    // Initial status - all pending
+    auto status = manager.GetMigrationStatus();
+    CHECK(status.totalRegistered == 2);
+    CHECK(status.appliedCount == 0);
+    CHECK(status.pendingCount == 2);
+    CHECK(status.mismatchCount == 0);
+    CHECK(status.unknownAppliedCount == 0);
+
+    // Apply first migration
+    manager.ApplySingleMigration(migration1);
+
+    status = manager.GetMigrationStatus();
+    CHECK(status.totalRegistered == 2);
+    CHECK(status.appliedCount == 1);
+    CHECK(status.pendingCount == 1);
+    CHECK(status.mismatchCount == 0);
+
+    // Apply second migration
+    manager.ApplySingleMigration(migration2);
+
+    status = manager.GetMigrationStatus();
+    CHECK(status.totalRegistered == 2);
+    CHECK(status.appliedCount == 2);
+    CHECK(status.pendingCount == 0);
+    CHECK(status.mismatchCount == 0);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "CreateTableIfNotExists", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migration1 = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240030 },
+        "create table if not exists",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTableIfNotExists("idempotent_table").PrimaryKey("id", Integer()).RequiredColumn("name", Varchar(50));
+        },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTableIfExists("idempotent_table"); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    // Apply first time - should create table
+    CHECK(manager.ApplyPendingMigrations() == 1);
+
+    // Manually create a second migration that also tries to create the same table
+    auto migration2 = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240031 },
+        "create same table again",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTableIfNotExists("idempotent_table").PrimaryKey("id", Integer()).RequiredColumn("name", Varchar(50));
+        },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTableIfExists("idempotent_table"); });
+
+    // Should not throw - IF NOT EXISTS handles existing table
+    CHECK_NOTHROW(manager.ApplyPendingMigrations());
+
+    // Table should exist
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        stmt.ExecuteDirect("SELECT * FROM idempotent_table");
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "DropIndexIfExists", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto createMigration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240040 },
+        "create with index",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("drop_index_test").PrimaryKey("id", Integer()).RequiredColumn("name", Varchar(50)).Index();
+        },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("drop_index_test"); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    // Create table with index
+    CHECK(manager.ApplyPendingMigrations() == 1);
+
+    auto dropIndexMigration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240041 },
+        "drop index if exists",
+        [](SqlMigrationQueryBuilder& plan) { plan.AlterTable("drop_index_test").DropIndexIfExists("name"); },
+        [](SqlMigrationQueryBuilder& plan) { plan.AlterTable("drop_index_test").AddIndex("name"); });
+
+    // First drop should succeed
+    CHECK(manager.ApplyPendingMigrations() == 1);
+
+    auto dropIndexAgainMigration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501240042 }, "drop index if exists again", [](SqlMigrationQueryBuilder& plan) {
+            plan.AlterTable("drop_index_test").DropIndexIfExists("name");
+        });
+
+    // Second drop should not throw - IF EXISTS handles non-existent index
+    CHECK_NOTHROW(manager.ApplyPendingMigrations());
+}

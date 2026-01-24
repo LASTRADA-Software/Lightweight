@@ -171,6 +171,14 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
 
 void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
 {
+    // Check if Down() is implemented before attempting revert
+    if (!migration.HasDownImplementation())
+    {
+        throw std::runtime_error(std::format("Migration '{}' (timestamp {}) cannot be reverted: Down() is not implemented.",
+                                             migration.GetTitle(),
+                                             migration.GetTimestamp().value));
+    }
+
     auto& dm = GetDataMapper();
     auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
 
@@ -338,6 +346,115 @@ std::vector<ChecksumVerificationResult> MigrationManager::VerifyChecksums() cons
     }
 
     return results;
+}
+
+void MigrationManager::MarkMigrationAsApplied(MigrationBase const& migration)
+{
+    auto& dm = GetDataMapper();
+
+    // Check if already applied
+    auto const appliedIds = GetAppliedMigrationIds();
+    if (std::ranges::contains(appliedIds, migration.GetTimestamp()))
+    {
+        throw std::runtime_error(std::format("Migration '{}' (timestamp {}) is already marked as applied.",
+                                             migration.GetTitle(),
+                                             migration.GetTimestamp().value));
+    }
+
+    // Compute checksum using the current formatter
+    auto const checksum = migration.ComputeChecksum(dm.Connection().QueryFormatter());
+
+    // Insert into schema_migrations without executing Up()
+    dm.CreateExplicit(SchemaMigration {
+        .version = migration.GetTimestamp().value,
+        .checksum = checksum,
+        .applied_at = SqlDateTime::Now(),
+    });
+}
+
+RevertResult MigrationManager::RevertToMigration(MigrationTimestamp target, ExecuteCallback const& feedbackCallback)
+{
+    RevertResult result;
+
+    // Get all applied migrations
+    auto appliedIds = GetAppliedMigrationIds();
+
+    // Filter to only migrations > target and sort in reverse order (newest first)
+    std::vector<MigrationTimestamp> toRevert;
+    for (auto const& id: appliedIds)
+    {
+        if (id > target)
+            toRevert.push_back(id);
+    }
+
+    // Sort in descending order (revert newest first)
+    std::ranges::sort(toRevert, std::greater<> {});
+
+    if (toRevert.empty())
+    {
+        return result; // Nothing to revert
+    }
+
+    // Revert each migration
+    size_t current = 0;
+    for (auto const& timestamp: toRevert)
+    {
+        auto const* migration = GetMigration(timestamp);
+
+        if (!migration)
+        {
+            result.failedAt = timestamp;
+            result.errorMessage = std::format(
+                "Migration with timestamp {} is applied but not found in registered migrations.", timestamp.value);
+            return result;
+        }
+
+        if (feedbackCallback)
+        {
+            feedbackCallback(*migration, current, toRevert.size());
+        }
+
+        try
+        {
+            RevertSingleMigration(*migration);
+            result.revertedTimestamps.push_back(timestamp);
+        }
+        catch (std::exception const& ex)
+        {
+            result.failedAt = timestamp;
+            result.errorMessage = ex.what();
+            return result;
+        }
+
+        ++current;
+    }
+
+    return result;
+}
+
+MigrationStatus MigrationManager::GetMigrationStatus() const
+{
+    MigrationStatus status {};
+
+    auto const appliedIds = GetAppliedMigrationIds();
+    auto const pending = GetPending();
+    auto const mismatches = VerifyChecksums();
+
+    status.appliedCount = appliedIds.size();
+    status.pendingCount = pending.size();
+    status.mismatchCount = mismatches.size();
+    status.totalRegistered = _migrations.size();
+
+    // Count unknown applied migrations (applied but not in registered list)
+    for (auto const& id: appliedIds)
+    {
+        if (!GetMigration(id))
+        {
+            ++status.unknownAppliedCount;
+        }
+    }
+
+    return status;
 }
 
 } // namespace Lightweight::SqlMigration
