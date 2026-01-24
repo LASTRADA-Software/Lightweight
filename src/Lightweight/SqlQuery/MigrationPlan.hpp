@@ -252,6 +252,7 @@ struct SqlCreateTablePlan
     std::string tableName;
     std::vector<SqlColumnDeclaration> columns;
     std::vector<SqlCompositeForeignKeyConstraint> foreignKeys;
+    bool ifNotExists { false }; ///< If true, generates CREATE TABLE IF NOT EXISTS.
 };
 
 namespace SqlAlterTableCommands
@@ -316,6 +317,26 @@ namespace SqlAlterTableCommands
         std::string columnName;
     };
 
+    /// Adds a column only if it does not already exist.
+    struct AddColumnIfNotExists
+    {
+        std::string columnName;
+        SqlColumnTypeDefinition columnType;
+        SqlNullable nullable = SqlNullable::Null;
+    };
+
+    /// Drops a column only if it exists.
+    struct DropColumnIfExists
+    {
+        std::string columnName;
+    };
+
+    /// Drops an index only if it exists.
+    struct DropIndexIfExists
+    {
+        std::string columnName;
+    };
+
 } // namespace SqlAlterTableCommands
 
 /// @brief Represents a single SQL ALTER TABLE command.
@@ -323,11 +344,14 @@ namespace SqlAlterTableCommands
 /// @ingroup QueryBuilder
 using SqlAlterTableCommand = std::variant<SqlAlterTableCommands::RenameTable,
                                           SqlAlterTableCommands::AddColumn,
+                                          SqlAlterTableCommands::AddColumnIfNotExists,
                                           SqlAlterTableCommands::AlterColumn,
                                           SqlAlterTableCommands::AddIndex,
                                           SqlAlterTableCommands::RenameColumn,
                                           SqlAlterTableCommands::DropColumn,
+                                          SqlAlterTableCommands::DropColumnIfExists,
                                           SqlAlterTableCommands::DropIndex,
+                                          SqlAlterTableCommands::DropIndexIfExists,
                                           SqlAlterTableCommands::AddForeignKey,
                                           SqlAlterTableCommands::AddCompositeForeignKey,
                                           SqlAlterTableCommands::DropForeignKey>;

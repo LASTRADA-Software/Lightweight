@@ -21,7 +21,8 @@ std::vector<std::string> ToSql(SqlQueryFormatter const& formatter, SqlMigrationP
         [&](auto const& step) {
             if constexpr (std::is_same_v<std::decay_t<decltype(step)>, SqlCreateTablePlan>)
             {
-                return formatter.CreateTable(step.schemaName, step.tableName, step.columns, step.foreignKeys);
+                return formatter.CreateTable(
+                    step.schemaName, step.tableName, step.columns, step.foreignKeys, step.ifNotExists);
             }
             else if constexpr (std::is_same_v<std::decay_t<decltype(step)>, SqlAlterTablePlan>)
             {

@@ -117,10 +117,17 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     [[nodiscard]] virtual std::string ColumnType(SqlColumnTypeDefinition const& type) const = 0;
 
     /// Constructs an SQL CREATE TABLE query.
+    ///
+    /// @param schema The schema name of the table to create.
+    /// @param tableName The name of the table to create.
+    /// @param columns The columns of the table.
+    /// @param foreignKeys The foreign key constraints of the table.
+    /// @param ifNotExists If true, generates CREATE TABLE IF NOT EXISTS instead of CREATE TABLE.
     [[nodiscard]] virtual StringList CreateTable(std::string_view schema,
                                                  std::string_view tableName,
                                                  std::vector<SqlColumnDeclaration> const& columns,
-                                                 std::vector<SqlCompositeForeignKeyConstraint> const& foreignKeys) const = 0;
+                                                 std::vector<SqlCompositeForeignKeyConstraint> const& foreignKeys,
+                                                 bool ifNotExists = false) const = 0;
 
     /// Constructs an SQL ALTER TABLE query.
     [[nodiscard]] virtual StringList AlterTable(std::string_view schema,

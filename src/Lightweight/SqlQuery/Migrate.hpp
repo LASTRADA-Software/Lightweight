@@ -151,6 +151,22 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// @param columnName The name of the column to drop.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropColumn(std::string_view columnName);
 
+    /// Adds a new column to the table only if it does not already exist.
+    ///
+    /// @note Database support varies:
+    /// - PostgreSQL: Native IF NOT EXISTS support
+    /// - SQL Server: Uses conditional IF NOT EXISTS query
+    /// - SQLite: Limited support (may require raw SQL)
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumnIfNotExists(std::string columnName,
+                                                                    SqlColumnTypeDefinition columnType);
+
+    /// Adds a new nullable column to the table only if it does not already exist.
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddNotRequiredColumnIfNotExists(std::string columnName,
+                                                                               SqlColumnTypeDefinition columnType);
+
+    /// Drops a column from the table only if it exists.
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropColumnIfExists(std::string_view columnName);
+
     /// Add an index to the table for the specified column.
     /// @param columnName The name of the column to index.
     ///
@@ -180,6 +196,10 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// // Will execute DROP INDEX "Table_column_index";
     /// @endcode
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropIndex(std::string_view columnName);
+
+    /// Drop an index from the table only if it exists.
+    /// @param columnName The name of the column to drop the index from.
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropIndexIfExists(std::string_view columnName);
 
     /// Adds a foreign key column @p columnName to @p referencedColumn to an existing column.
     ///
@@ -233,6 +253,14 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
 
     /// Creates a new table.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder CreateTable(std::string_view tableName);
+
+    /// Creates a new table only if it does not already exist.
+    ///
+    /// @note Database support:
+    /// - SQLite: Native CREATE TABLE IF NOT EXISTS
+    /// - PostgreSQL: Native CREATE TABLE IF NOT EXISTS
+    /// - SQL Server: Uses conditional IF NOT EXISTS block
+    LIGHTWEIGHT_API SqlCreateTableQueryBuilder CreateTableIfNotExists(std::string_view tableName);
 
     /// Alters an existing table.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder AlterTable(std::string_view tableName);

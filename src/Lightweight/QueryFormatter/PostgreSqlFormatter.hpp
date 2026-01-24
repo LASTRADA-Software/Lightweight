@@ -232,6 +232,31 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
                         ss << ");";
                         return ss.str();
                     },
+                    [schemaName, tableName, this](AddColumnIfNotExists const& actualCommand) -> std::string {
+                        // PostgreSQL has native IF NOT EXISTS support for ADD COLUMN
+                        return std::format(R"(ALTER TABLE {} ADD COLUMN IF NOT EXISTS "{}" {} {};)",
+                                           FormatTableName(schemaName, tableName),
+                                           actualCommand.columnName,
+                                           ColumnType(actualCommand.columnType),
+                                           actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
+                    },
+                    [schemaName, tableName](DropColumnIfExists const& actualCommand) -> std::string {
+                        // PostgreSQL has native IF EXISTS support for DROP COLUMN
+                        return std::format(R"(ALTER TABLE {} DROP COLUMN IF EXISTS "{}";)",
+                                           FormatTableName(schemaName, tableName),
+                                           actualCommand.columnName);
+                    },
+                    [schemaName, tableName](DropIndexIfExists const& actualCommand) -> std::string {
+                        // PostgreSQL has native IF EXISTS support for DROP INDEX
+                        if (schemaName.empty())
+                            return std::format(
+                                R"(DROP INDEX IF EXISTS "{0}_{1}_index";)", tableName, actualCommand.columnName);
+                        else
+                            return std::format(R"(DROP INDEX IF EXISTS "{0}_{1}_{2}_index";)",
+                                               schemaName,
+                                               tableName,
+                                               actualCommand.columnName);
+                    },
                 },
                 command);
         }

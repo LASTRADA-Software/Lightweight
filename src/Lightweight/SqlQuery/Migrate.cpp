@@ -60,6 +60,19 @@ SqlCreateTableQueryBuilder SqlMigrationQueryBuilder::CreateTable(std::string_vie
         .tableName = std::string(tableName),
         .columns = {},
         .foreignKeys = {},
+        .ifNotExists = false,
+    });
+    return SqlCreateTableQueryBuilder { std::get<SqlCreateTablePlan>(_migrationPlan.steps.back()) };
+}
+
+SqlCreateTableQueryBuilder SqlMigrationQueryBuilder::CreateTableIfNotExists(std::string_view tableName)
+{
+    _migrationPlan.steps.emplace_back(SqlCreateTablePlan {
+        .schemaName = _schemaName,
+        .tableName = std::string(tableName),
+        .columns = {},
+        .foreignKeys = {},
+        .ifNotExists = true,
     });
     return SqlCreateTableQueryBuilder { std::get<SqlCreateTablePlan>(_migrationPlan.steps.back()) };
 }
@@ -155,6 +168,44 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::DropIndex(std::string_view
 {
     _plan.commands.emplace_back(SqlAlterTableCommands::DropIndex {
         .columnName = columnName,
+    });
+    return *this;
+}
+
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddColumnIfNotExists(std::string columnName,
+                                                                           SqlColumnTypeDefinition columnType)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::AddColumnIfNotExists {
+        .columnName = std::move(columnName),
+        .columnType = columnType,
+        .nullable = SqlNullable::NotNull,
+    });
+    return *this;
+}
+
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddNotRequiredColumnIfNotExists(std::string columnName,
+                                                                                      SqlColumnTypeDefinition columnType)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::AddColumnIfNotExists {
+        .columnName = std::move(columnName),
+        .columnType = columnType,
+        .nullable = SqlNullable::Null,
+    });
+    return *this;
+}
+
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::DropColumnIfExists(std::string_view columnName)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::DropColumnIfExists {
+        .columnName = std::string(columnName),
+    });
+    return *this;
+}
+
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::DropIndexIfExists(std::string_view columnName)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::DropIndexIfExists {
+        .columnName = std::string(columnName),
     });
     return *this;
 }

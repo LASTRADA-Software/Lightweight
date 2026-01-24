@@ -197,9 +197,20 @@ EXEC sp_executesql @sql;)",
     [[nodiscard]] StringList CreateTable(std::string_view schema,
                                          std::string_view tableName,
                                          std::vector<SqlColumnDeclaration> const& columns,
-                                         std::vector<SqlCompositeForeignKeyConstraint> const& foreignKeys) const override
+                                         std::vector<SqlCompositeForeignKeyConstraint> const& foreignKeys,
+                                         bool ifNotExists = false) const override
     {
         std::stringstream ss;
+
+        // SQL Server doesn't have CREATE TABLE IF NOT EXISTS, use conditional block
+        if (ifNotExists)
+        {
+            std::string schemaFilter = schema.empty() ? "dbo" : std::string(schema);
+            ss << std::format("IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = '{}' AND schema_id = SCHEMA_ID('{}'))\n",
+                              tableName,
+                              schemaFilter);
+        }
+
         ss << std::format("CREATE TABLE {} (", FormatTableName(schema, tableName));
 
         bool first = true;
@@ -441,6 +452,43 @@ EXEC sp_executesql @sql;)",
                         }
                         ss << ");";
                         return ss.str();
+                    },
+                    [schemaName, tableName, this](AddColumnIfNotExists const& actualCommand) -> std::string {
+                        // SQL Server uses conditional IF NOT EXISTS
+                        return std::format(
+                            R"(IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('{}') AND name = '{}')
+ALTER TABLE {} ADD "{}" {} {};)",
+                            FormatTableName(schemaName, tableName),
+                            actualCommand.columnName,
+                            FormatTableName(schemaName, tableName),
+                            actualCommand.columnName,
+                            ColumnType(actualCommand.columnType),
+                            actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
+                    },
+                    [schemaName, tableName](DropColumnIfExists const& actualCommand) -> std::string {
+                        // SQL Server uses conditional IF EXISTS
+                        return std::format(
+                            R"(IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('{}') AND name = '{}')
+ALTER TABLE {} DROP COLUMN "{}";)",
+                            FormatTableName(schemaName, tableName),
+                            actualCommand.columnName,
+                            FormatTableName(schemaName, tableName),
+                            actualCommand.columnName);
+                    },
+                    [schemaName, tableName](DropIndexIfExists const& actualCommand) -> std::string {
+                        if (schemaName.empty())
+                            return std::format(
+                                R"(IF EXISTS (SELECT * FROM sys.indexes WHERE name = '{0}_{1}_index' AND object_id = OBJECT_ID('{0}'))
+DROP INDEX "{0}_{1}_index" ON "{0}";)",
+                                tableName,
+                                actualCommand.columnName);
+                        else
+                            return std::format(
+                                R"(IF EXISTS (SELECT * FROM sys.indexes WHERE name = '{0}_{1}_{2}_index')
+DROP INDEX "{0}_{1}_{2}_index" ON "{0}"."{1}";)",
+                                schemaName,
+                                tableName,
+                                actualCommand.columnName);
                     },
                 },
                 command);
