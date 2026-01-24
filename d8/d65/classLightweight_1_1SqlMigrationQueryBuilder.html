@@ -121,6 +121,8 @@ LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigratio
 LIGHTWEIGHT_API <a class="el" href="../../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><b>CreateTable</b> (std::string_view tableName)</td></tr>
 <tr class="memdesc:a09624a9cd55e3d64955ca8d5b4344c37"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new table. <br /></td></tr>
 <tr class="separator:a09624a9cd55e3d64955ca8d5b4344c37"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4290b5a70e3635cd356d83de3983c4b8" id="r_a4290b5a70e3635cd356d83de3983c4b8"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a4290b5a70e3635cd356d83de3983c4b8">CreateTableIfNotExists</a> (std::string_view tableName)</td></tr>
+<tr class="separator:a4290b5a70e3635cd356d83de3983c4b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3731b7ec6676cd87f087c41aa4a89ded" id="r_a3731b7ec6676cd87f087c41aa4a89ded"><td class="memItemLeft" align="right" valign="top"><a id="a3731b7ec6676cd87f087c41aa4a89ded" name="a3731b7ec6676cd87f087c41aa4a89ded"></a>
 LIGHTWEIGHT_API <a class="el" href="../../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><b>AlterTable</b> (std::string_view tableName)</td></tr>
 <tr class="memdesc:a3731b7ec6676cd87f087c41aa4a89ded"><td class="mdescLeft">&#160;</td><td class="mdescRight">Alters an existing table. <br /></td></tr>
@@ -169,7 +171,7 @@ LIGHTWEIGHT_API <a class="el" href="../../d3/ded/structLightweight_1_1SqlMigrati
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Query builder for building SQL migration queries. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00217">217</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00237">237</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="acf94f2759fca0c7925114b0608acfba2" name="acf94f2759fca0c7925114b0608acfba2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#acf94f2759fca0c7925114b0608acfba2">&#9670;&#160;</a></span>SqlMigrationQueryBuilder()</h2>
@@ -195,11 +197,36 @@ LIGHTWEIGHT_API <a class="el" href="../../d3/ded/structLightweight_1_1SqlMigrati
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00220">220</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00240">240</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="a4290b5a70e3635cd356d83de3983c4b8" name="a4290b5a70e3635cd356d83de3983c4b8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4290b5a70e3635cd356d83de3983c4b8">&#9670;&#160;</a></span>CreateTableIfNotExists()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html">SqlCreateTableQueryBuilder</a> Lightweight::SqlMigrationQueryBuilder::CreateTableIfNotExists </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>tableName</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Creates a new table only if it does not already exist.</p>
+<dl class="section note"><dt>Note</dt><dd>Database support:<ul>
+<li>SQLite: Native CREATE TABLE IF NOT EXISTS</li>
+<li>PostgreSQL: Native CREATE TABLE IF NOT EXISTS</li>
+<li>SQL Server: Uses conditional IF NOT EXISTS block </li>
+</ul>
+</dd></dl>
+
+</div>
+</div>
 <a id="aab06c624a00043579e2a0efabd25f2ec" name="aab06c624a00043579e2a0efabd25f2ec"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aab06c624a00043579e2a0efabd25f2ec">&#9670;&#160;</a></span>DropTableCascade()</h2>
 
@@ -246,7 +273,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Creates a new table for the given record type. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00252">252</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00280">280</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00195">Lightweight::SqlForeignKeyReferenceDefinition::tableName</a>.</p>
 
@@ -279,7 +306,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Alters an existing table. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00341">341</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00369">369</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>

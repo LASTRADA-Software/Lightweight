@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['backoffmultiplier_0',['backoffMultiplier',['../d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html#a2ff324101347d9918088e8a9356f2fec',1,'Lightweight::SqlBackup::RetrySettings']]],
-  ['bufferlength_1',['bufferLength',['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e',1,'Lightweight::SqlRawColumnMetadata']]]
+  ['appliedcount_0',['appliedCount',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a1ac8a6b73ea294f3a7bee66b97feb2c1',1,'Lightweight::SqlMigration::MigrationStatus']]]
 ];

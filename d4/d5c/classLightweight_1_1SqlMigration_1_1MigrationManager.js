@@ -16,5 +16,8 @@ var classLightweight_1_1SqlMigration_1_1MigrationManager =
     [ "Transaction", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a53933c029c1d92dfc61c2301f6d1aa81", null ],
     [ "PreviewMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a9b64d3bec74b85d054215a4321cbcad8", null ],
     [ "PreviewPendingMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a3b9961110aefc26051c06c6934e26e69", null ],
-    [ "VerifyChecksums", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a63ce9461c4cd37394364f25f4e9f0cc8", null ]
+    [ "VerifyChecksums", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a63ce9461c4cd37394364f25f4e9f0cc8", null ],
+    [ "MarkMigrationAsApplied", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a0ddf3ef0e6d833b829509ac769d04530", null ],
+    [ "RevertToMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1dece4a4dc2811ac8cd8dce1c1130b11", null ],
+    [ "GetMigrationStatus", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aaaca2ec37763d11612d487ecad5daebf", null ]
 ];

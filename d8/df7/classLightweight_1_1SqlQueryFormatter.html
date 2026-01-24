@@ -182,10 +182,8 @@ virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>Delete
 virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>ColumnType</b> (SqlColumnTypeDefinition const &amp;type) const =0</td></tr>
 <tr class="memdesc:a9d7c9b20efff3182019134922431f9dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert the given column type definition to the SQL type. <br /></td></tr>
 <tr class="separator:a9d7c9b20efff3182019134922431f9dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3796bd20c66271ded515e68c705db0f2" id="r_a3796bd20c66271ded515e68c705db0f2"><td class="memItemLeft" align="right" valign="top"><a id="a3796bd20c66271ded515e68c705db0f2" name="a3796bd20c66271ded515e68c705db0f2"></a>
-virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><b>CreateTable</b> (std::string_view schema, std::string_view tableName, std::vector&lt; <a class="el" href="../../dd/d71/structLightweight_1_1SqlColumnDeclaration.html">SqlColumnDeclaration</a> &gt; const &amp;columns, std::vector&lt; <a class="el" href="../../d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html">SqlCompositeForeignKeyConstraint</a> &gt; const &amp;foreignKeys) const =0</td></tr>
-<tr class="memdesc:a3796bd20c66271ded515e68c705db0f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL CREATE TABLE query. <br /></td></tr>
-<tr class="separator:a3796bd20c66271ded515e68c705db0f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab9502d79df4bc885858166ea11c493a0" id="r_ab9502d79df4bc885858166ea11c493a0"><td class="memItemLeft" align="right" valign="top">virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab9502d79df4bc885858166ea11c493a0">CreateTable</a> (std::string_view schema, std::string_view tableName, std::vector&lt; <a class="el" href="../../dd/d71/structLightweight_1_1SqlColumnDeclaration.html">SqlColumnDeclaration</a> &gt; const &amp;columns, std::vector&lt; <a class="el" href="../../d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html">SqlCompositeForeignKeyConstraint</a> &gt; const &amp;foreignKeys, bool ifNotExists=false) const =0</td></tr>
+<tr class="separator:ab9502d79df4bc885858166ea11c493a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afe75e53c7277af2f7009a16ac827ad90" id="r_afe75e53c7277af2f7009a16ac827ad90"><td class="memItemLeft" align="right" valign="top"><a id="afe75e53c7277af2f7009a16ac827ad90" name="afe75e53c7277af2f7009a16ac827ad90"></a>
 virtual StringList&#160;</td><td class="memItemRight" valign="bottom"><b>AlterTable</b> (std::string_view schema, std::string_view tableName, std::vector&lt; SqlAlterTableCommand &gt; const &amp;commands) const =0</td></tr>
 <tr class="memdesc:afe75e53c7277af2f7009a16ac827ad90"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an SQL ALTER TABLE query. <br /></td></tr>
@@ -291,6 +289,71 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
   </dd>
 </dl>
 <p>The fields and values must be in the same order. </p>
+
+</div>
+</div>
+<a id="ab9502d79df4bc885858166ea11c493a0" name="ab9502d79df4bc885858166ea11c493a0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab9502d79df4bc885858166ea11c493a0">&#9670;&#160;</a></span>CreateTable()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual StringList Lightweight::SqlQueryFormatter::CreateTable </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>schema</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>tableName</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; <a class="el" href="../../dd/d71/structLightweight_1_1SqlColumnDeclaration.html">SqlColumnDeclaration</a> &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>columns</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; <a class="el" href="../../d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html">SqlCompositeForeignKeyConstraint</a> &gt; const &amp;&#160;</td>
+          <td class="paramname"><em>foreignKeys</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>ifNotExists</em> = <code>false</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Constructs an SQL CREATE TABLE query.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">schema</td><td>The schema name of the table to create. </td></tr>
+    <tr><td class="paramname">tableName</td><td>The name of the table to create. </td></tr>
+    <tr><td class="paramname">columns</td><td>The columns of the table. </td></tr>
+    <tr><td class="paramname">foreignKeys</td><td>The foreign key constraints of the table. </td></tr>
+    <tr><td class="paramname">ifNotExists</td><td>If true, generates CREATE TABLE IF NOT EXISTS instead of CREATE TABLE. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

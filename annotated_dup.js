@@ -1,6 +1,11 @@
 var annotated_dup =
 [
     [ "Lightweight", null, [
+      [ "SqlAlterTableCommands", null, [
+        [ "AddColumnIfNotExists", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html", null ],
+        [ "DropColumnIfExists", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists.html", null ],
+        [ "DropIndexIfExists", "d9/dd1/structLightweight_1_1SqlAlterTableCommands_1_1DropIndexIfExists.html", null ]
+      ] ],
       [ "SqlBackup", null, [
         [ "BackupSettings", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings" ],
         [ "ChunkReader", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader" ],
@@ -20,7 +25,9 @@ var annotated_dup =
         [ "MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase" ],
         [ "MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock" ],
         [ "MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager" ],
-        [ "MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", null ]
+        [ "MigrationStatus", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus" ],
+        [ "MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", null ],
+        [ "RevertResult", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult" ]
       ] ],
       [ "SqlSchema", null, [
         [ "Column", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html", null ],

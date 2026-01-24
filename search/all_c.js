@@ -10,12 +10,13 @@ var searchData=
   ['getinstance_7',['GetInstance',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8',1,'Lightweight::SqlMigration::MigrationManager']]],
   ['getlogger_8',['GetLogger',['../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899',1,'Lightweight::SqlLogger']]],
   ['getmigration_9',['GetMigration',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a56194b41fc9b404256d379bd51f5002d',1,'Lightweight::SqlMigration::MigrationManager']]],
-  ['getnullablecolumn_10',['getnullablecolumn',['../db/dad/classLightweight_1_1SqlStatement.html#ac4e7bc8a5e62d553623b67c089a4af58',1,'Lightweight::SqlStatement::GetNullableColumn()'],['../d8/d63/classLightweight_1_1SqlResultCursor.html#a9584b83387781b98d5251839cf2c581d',1,'Lightweight::SqlResultCursor::GetNullableColumn()']]],
-  ['getpending_11',['GetPending',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a5f02a99faee92eb68b52a9cb49876c0e',1,'Lightweight::SqlMigration::MigrationManager']]],
-  ['getplan_12',['getplan',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() const &amp;'],['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a503a9d905ab222a68bb4fcbec1510154',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() &amp;&amp;']]],
-  ['getprimarykeyfield_13',['GetPrimaryKeyField',['../d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33',1,'Lightweight']]],
-  ['getresultcursor_14',['GetResultCursor',['../db/dad/classLightweight_1_1SqlStatement.html#a6a00a9d4de7a50e8e8108b5bce77663f',1,'Lightweight::SqlStatement']]],
-  ['gettimestamp_15',['GetTimestamp',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e',1,'Lightweight::SqlMigration::MigrationBase']]],
-  ['gettitle_16',['GetTitle',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0',1,'Lightweight::SqlMigration::MigrationBase']]],
-  ['getvariantrowcursor_17',['GetVariantRowCursor',['../db/dad/classLightweight_1_1SqlStatement.html#a696b3c702137a05dcad3178bc27113b7',1,'Lightweight::SqlStatement']]]
+  ['getmigrationstatus_10',['GetMigrationStatus',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aaaca2ec37763d11612d487ecad5daebf',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['getnullablecolumn_11',['getnullablecolumn',['../db/dad/classLightweight_1_1SqlStatement.html#ac4e7bc8a5e62d553623b67c089a4af58',1,'Lightweight::SqlStatement::GetNullableColumn()'],['../d8/d63/classLightweight_1_1SqlResultCursor.html#a9584b83387781b98d5251839cf2c581d',1,'Lightweight::SqlResultCursor::GetNullableColumn()']]],
+  ['getpending_12',['GetPending',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a5f02a99faee92eb68b52a9cb49876c0e',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['getplan_13',['getplan',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() const &amp;'],['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a503a9d905ab222a68bb4fcbec1510154',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() &amp;&amp;']]],
+  ['getprimarykeyfield_14',['GetPrimaryKeyField',['../d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33',1,'Lightweight']]],
+  ['getresultcursor_15',['GetResultCursor',['../db/dad/classLightweight_1_1SqlStatement.html#a6a00a9d4de7a50e8e8108b5bce77663f',1,'Lightweight::SqlStatement']]],
+  ['gettimestamp_16',['GetTimestamp',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e',1,'Lightweight::SqlMigration::MigrationBase']]],
+  ['gettitle_17',['GetTitle',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0',1,'Lightweight::SqlMigration::MigrationBase']]],
+  ['getvariantrowcursor_18',['GetVariantRowCursor',['../db/dad/classLightweight_1_1SqlStatement.html#a696b3c702137a05dcad3178bc27113b7',1,'Lightweight::SqlStatement']]]
 ];

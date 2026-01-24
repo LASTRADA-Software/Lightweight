@@ -16,5 +16,6 @@ var searchData=
   ['resetpostconnectedhook_13',['ResetPostConnectedHook',['../da/da8/classLightweight_1_1SqlConnection.html#a0b3647d6ae196fc982e28179829cf315',1,'Lightweight::SqlConnection']]],
   ['resize_14',['resize',['../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a6aa0a000a098211561c47112383a8225',1,'Lightweight::SqlDynamicBinary::resize()'],['../d7/d9a/classLightweight_1_1SqlDynamicString.html#afabe49e0b301a332521f723358f91417',1,'Lightweight::SqlDynamicString::resize()'],['../de/dae/classLightweight_1_1SqlFixedString.html#a4c3ec565ffd7b94f60bb27a966e7a552',1,'Lightweight::SqlFixedString::resize()']]],
   ['revertsinglemigration_15',['RevertSingleMigration',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a416865e209264f27605aff0e547e7d66',1,'Lightweight::SqlMigration::MigrationManager']]],
-  ['rollback_16',['Rollback',['../d0/ddc/classLightweight_1_1SqlTransaction.html#a6ed3f7b26252e7d105675187cd37d71b',1,'Lightweight::SqlTransaction']]]
+  ['reverttomigration_16',['RevertToMigration',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1dece4a4dc2811ac8cd8dce1c1130b11',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['rollback_17',['Rollback',['../d0/ddc/classLightweight_1_1SqlTransaction.html#a6ed3f7b26252e7d105675187cd37d71b',1,'Lightweight::SqlTransaction']]]
 ];

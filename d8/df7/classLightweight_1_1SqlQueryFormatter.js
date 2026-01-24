@@ -13,7 +13,7 @@ var classLightweight_1_1SqlQueryFormatter =
     [ "Update", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a725b026c92dcdf60b1a0ed60dc5b9a81", null ],
     [ "Delete", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a747bb2c6c82c186199ebfc698e4d5c3a", null ],
     [ "ColumnType", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9d7c9b20efff3182019134922431f9dd", null ],
-    [ "CreateTable", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a3796bd20c66271ded515e68c705db0f2", null ],
+    [ "CreateTable", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab9502d79df4bc885858166ea11c493a0", null ],
     [ "AlterTable", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#afe75e53c7277af2f7009a16ac827ad90", null ],
     [ "DropTable", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9b5cc394c01daeccdafb032bd2da9003", null ],
     [ "QueryServerVersion", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8513eaca58ba6015cecfd88973c18d4b", null ]

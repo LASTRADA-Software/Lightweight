@@ -119,9 +119,9 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d6/d1b/structLightweight_1_1SqlNumeric.html#a3f58e8cd8937cd26664f72ecd5ff07e2",
-"da/daf/HasManyThrough_8hpp_source.html",
-"df/d3f/structLightweight_1_1SqlVariant.html#a85d63925ea745ef33eb62b182563b1d7"
+"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca902b0d55fddef6f8d651fe1035b7d4bd",
+"da/da8/classLightweight_1_1SqlConnection.html#a3c238ed531289bd1efff63f44ec1bb70",
+"de/dfe/structLightweight_1_1SqlText.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
