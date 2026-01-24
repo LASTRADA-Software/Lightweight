@@ -2,6 +2,7 @@ var annotated_dup =
 [
     [ "Lightweight", null, [
       [ "SqlBackup", null, [
+        [ "BackupSettings", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings" ],
         [ "ChunkReader", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader" ],
         [ "ChunkWriter", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter" ],
         [ "ColumnBatch", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch" ],
@@ -14,8 +15,10 @@ var annotated_dup =
         [ "TableInfo", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html", "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo" ]
       ] ],
       [ "SqlMigration", null, [
+        [ "ChecksumVerificationResult", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html", null ],
         [ "Migration", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration" ],
         [ "MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase" ],
+        [ "MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock" ],
         [ "MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager" ],
         [ "MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", null ]
       ] ],
@@ -80,6 +83,7 @@ var annotated_dup =
       [ "SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html", "d0/ddc/classLightweight_1_1SqlTransaction" ],
       [ "SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html", null ],
       [ "SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html", "df/d3f/structLightweight_1_1SqlVariant" ],
+      [ "ThreadSafeQueue", "d4/d9e/classLightweight_1_1ThreadSafeQueue.html", "d4/d9e/classLightweight_1_1ThreadSafeQueue" ],
       [ "UniqueNameBuilder", "da/d15/classLightweight_1_1UniqueNameBuilder.html", "da/d15/classLightweight_1_1UniqueNameBuilder" ]
     ] ]
 ];

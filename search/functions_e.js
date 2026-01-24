@@ -4,6 +4,7 @@ var searchData=
   ['queryas_1',['queryas',['../da/da8/classLightweight_1_1SqlConnection.html#a4165425040fb439fdbfc44efdad7f550',1,'Lightweight::SqlConnection::QueryAs()'],['../db/dad/classLightweight_1_1SqlStatement.html#a1a71ae6cfe36477d1b0e2632e50312ef',1,'Lightweight::SqlStatement::QueryAs()']]],
   ['queryformatter_2',['QueryFormatter',['../da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32',1,'Lightweight::SqlConnection']]],
   ['querylastinsertid_3',['QueryLastInsertId',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ae5c1899d98fac7ec8340f1cd0cfeae1a',1,'Lightweight::SqlQueryFormatter']]],
-  ['querysingle_4',['QuerySingle',['../de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4',1,'Lightweight::DataMapper']]],
-  ['querysinglewithoutrelationautoloading_5',['QuerySingleWithoutRelationAutoLoading',['../de/d61/classLightweight_1_1DataMapper.html#a0ee9df27df1779d4b6c6212aae482f79',1,'Lightweight::DataMapper']]]
+  ['queryserverversion_4',['QueryServerVersion',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8513eaca58ba6015cecfd88973c18d4b',1,'Lightweight::SqlQueryFormatter']]],
+  ['querysingle_5',['QuerySingle',['../de/d61/classLightweight_1_1DataMapper.html#acc18932e94446a8a198017a5a8772bc4',1,'Lightweight::DataMapper']]],
+  ['querysinglewithoutrelationautoloading_6',['QuerySingleWithoutRelationAutoLoading',['../de/d61/classLightweight_1_1DataMapper.html#a0ee9df27df1779d4b6c6212aae482f79',1,'Lightweight::DataMapper']]]
 ];

@@ -15,5 +15,6 @@ var classLightweight_1_1SqlQueryFormatter =
     [ "ColumnType", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9d7c9b20efff3182019134922431f9dd", null ],
     [ "CreateTable", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a3796bd20c66271ded515e68c705db0f2", null ],
     [ "AlterTable", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#afe75e53c7277af2f7009a16ac827ad90", null ],
-    [ "DropTable", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9b5cc394c01daeccdafb032bd2da9003", null ]
+    [ "DropTable", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9b5cc394c01daeccdafb032bd2da9003", null ],
+    [ "QueryServerVersion", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8513eaca58ba6015cecfd88973c18d4b", null ]
 ];

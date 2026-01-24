@@ -13,5 +13,8 @@ var classLightweight_1_1SqlMigration_1_1MigrationManager =
     [ "GetDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094", null ],
     [ "GetDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322", null ],
     [ "CloseDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a424f1fa714b26c7b4b0a63a05dccc4b8", null ],
-    [ "Transaction", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a53933c029c1d92dfc61c2301f6d1aa81", null ]
+    [ "Transaction", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a53933c029c1d92dfc61c2301f6d1aa81", null ],
+    [ "PreviewMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a9b64d3bec74b85d054215a4321cbcad8", null ],
+    [ "PreviewPendingMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a3b9961110aefc26051c06c6934e26e69", null ],
+    [ "VerifyChecksums", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a63ce9461c4cd37394364f25f4e9f0cc8", null ]
 ];

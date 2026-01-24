@@ -14,8 +14,10 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "SqlConnection.hpp", "d5/df9/SqlConnection_8hpp_source.html", null ],
     [ "SqlDataBinder.hpp", "d0/d55/SqlDataBinder_8hpp_source.html", null ],
     [ "SqlError.hpp", "d9/d02/SqlError_8hpp_source.html", null ],
+    [ "SqlErrorDetection.hpp", "d4/d5f/SqlErrorDetection_8hpp_source.html", null ],
     [ "SqlLogger.hpp", "d9/de5/SqlLogger_8hpp_source.html", null ],
     [ "SqlMigration.hpp", "d6/d35/SqlMigration_8hpp_source.html", null ],
+    [ "SqlMigrationLock.hpp", "d9/dd6/SqlMigrationLock_8hpp_source.html", null ],
     [ "SqlQuery.hpp", "dc/dcc/SqlQuery_8hpp_source.html", null ],
     [ "SqlQueryFormatter.hpp", "df/d13/SqlQueryFormatter_8hpp_source.html", null ],
     [ "SqlRealName.hpp", "d0/dd1/SqlRealName_8hpp_source.html", null ],
@@ -24,5 +26,6 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "SqlServerType.hpp", "d1/d42/SqlServerType_8hpp_source.html", null ],
     [ "SqlStatement.hpp", "d9/d6e/SqlStatement_8hpp_source.html", null ],
     [ "SqlTransaction.hpp", "d9/da6/SqlTransaction_8hpp_source.html", null ],
+    [ "ThreadSafeQueue.hpp", "d4/d48/ThreadSafeQueue_8hpp_source.html", null ],
     [ "Utils.hpp", "d7/d04/Lightweight_2Utils_8hpp_source.html", null ]
 ];

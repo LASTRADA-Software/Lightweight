@@ -53,6 +53,7 @@ var hierarchy =
     [ "Lightweight::HasOneThrough< OtherTable, ThroughTable >", "df/d63/classLightweight_1_1HasOneThrough.html", null ],
     [ "Lightweight::SqlAlterTablePlan", "dd/d75/structLightweight_1_1SqlAlterTablePlan.html", null ],
     [ "Lightweight::SqlAlterTableQueryBuilder", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html", null ],
+    [ "Lightweight::SqlBackup::BackupSettings", "d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html", null ],
     [ "Lightweight::SqlBackup::ChunkReader", "d2/d99/structLightweight_1_1SqlBackup_1_1ChunkReader.html", null ],
     [ "Lightweight::SqlBackup::ChunkWriter", "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html", null ],
     [ "Lightweight::SqlBackup::ColumnBatch", "d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html", null ],
@@ -86,9 +87,11 @@ var hierarchy =
     [ "Lightweight::SqlGuid", "df/d7c/structLightweight_1_1SqlGuid.html", null ],
     [ "Lightweight::SqlInsertQueryBuilder", "de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html", null ],
     [ "Lightweight::SqlLogger", "db/dfd/classLightweight_1_1SqlLogger.html", null ],
+    [ "Lightweight::SqlMigration::ChecksumVerificationResult", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html", null ],
     [ "Lightweight::SqlMigration::MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", [
       [ "Lightweight::SqlMigration::Migration", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html", null ]
     ] ],
+    [ "Lightweight::SqlMigration::MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html", null ],
     [ "Lightweight::SqlMigration::MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", null ],
     [ "Lightweight::SqlMigration::MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", null ],
     [ "Lightweight::SqlMigrationPlan", "d3/ded/structLightweight_1_1SqlMigrationPlan.html", null ],
@@ -113,6 +116,7 @@ var hierarchy =
     [ "Lightweight::SqlTime", "d7/d53/structLightweight_1_1SqlTime.html", null ],
     [ "Lightweight::SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html", null ],
     [ "Lightweight::SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html", null ],
+    [ "Lightweight::ThreadSafeQueue< T >", "d4/d9e/classLightweight_1_1ThreadSafeQueue.html", null ],
     [ "Lightweight::Tools::PluginLoader", "d3/df0/classLightweight_1_1Tools_1_1PluginLoader.html", null ],
     [ "Lightweight::UniqueNameBuilder", "da/d15/classLightweight_1_1UniqueNameBuilder.html", null ],
     [ "Lightweight::SqlCoreDataMapperQueryBuilder< Record, SqlAllFieldsQueryBuilder< Record, QueryOptions >, QueryOptions >", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", [

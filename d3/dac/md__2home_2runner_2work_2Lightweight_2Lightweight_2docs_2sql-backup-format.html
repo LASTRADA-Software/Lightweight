@@ -116,14 +116,35 @@ $(document).ready(function(){initNavTree('d3/dac/md__2home_2runner_2work_2Lightw
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Field   </th><th class="markdownTableHeadNone">Type   </th><th class="markdownTableHeadNone">Description    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>creation_time</code>   </td><td class="markdownTableBodyNone">ISO 8601 String   </td><td class="markdownTableBodyNone">Timestamp of when the backup was created (e.g., <code>2024-01-01T12:00:00Z</code>).    </td></tr>
+<td class="markdownTableBodyNone"><code>format_version</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The backup format version (e.g., <code>1.0</code>).    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>original_connection_string</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The connection string used to create the backup.    </td></tr>
+<td class="markdownTableBodyNone"><code>creation_time</code>   </td><td class="markdownTableBodyNone">ISO 8601 String   </td><td class="markdownTableBodyNone">Timestamp of when the backup was created (e.g., <code>2024-01-01T12:00:00Z</code>).    </td></tr>
 <tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>original_connection_string</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The connection string used to create the backup.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>schema_name</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The database schema name (e.g., <code>dbo</code> for SQL Server).    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>server</code>   </td><td class="markdownTableBodyNone">Object   </td><td class="markdownTableBodyNone">Server identification information.    </td></tr>
+<tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>schema</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">A list of table definitions.   </td></tr>
 </table>
-<h2><a class="anchor" id="autotoc_md21-table-definition"></a>
-2.1 Table Definition</h2>
+<h2><a class="anchor" id="autotoc_md21-server-identification"></a>
+2.1 Server Identification</h2>
+<p>The <code>server</code> object contains information about the source database server:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Field   </th><th class="markdownTableHeadNone">Type   </th><th class="markdownTableHeadNone">Description    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>name</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The DBMS name (e.g., <code>Microsoft SQL Server</code>, <code>PostgreSQL</code>, <code>SQLite</code>).    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>version</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The DBMS version string reported by ODBC (e.g., <code>16.00.4165</code>).    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>driver</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">The ODBC driver name used for the connection.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>full_version</code>   </td><td class="markdownTableBodyNone">String   </td><td class="markdownTableBodyNone">(Optional) Full version string from the database server. For SQL Server this is the result of <code>SELECT @@VERSION</code>, for PostgreSQL <code>SELECT version()</code>, and for SQLite <code>SELECT sqlite_version()</code>.   </td></tr>
+</table>
+<h2><a class="anchor" id="autotoc_md22-table-definition"></a>
+2.2 Table Definition</h2>
 <p>Each object in the <code>schema</code> array represents a table:</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
@@ -135,10 +156,12 @@ $(document).ready(function(){initNavTree('d3/dac/md__2home_2runner_2work_2Lightw
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>columns</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">List of column definitions.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>foreign_keys</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">List of foreign key constraints.   </td></tr>
+<td class="markdownTableBodyNone"><code>foreign_keys</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">List of foreign key constraints.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>primary_keys</code>   </td><td class="markdownTableBodyNone">Array   </td><td class="markdownTableBodyNone">List of column names that form the primary key.   </td></tr>
 </table>
-<h2><a class="anchor" id="autotoc_md22-column-definition"></a>
-2.2 Column Definition</h2>
+<h2><a class="anchor" id="autotoc_md23-column-definition"></a>
+2.3 Column Definition</h2>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Field   </th><th class="markdownTableHeadNone">Type   </th><th class="markdownTableHeadNone">Description    </th></tr>
@@ -163,8 +186,8 @@ $(document).ready(function(){initNavTree('d3/dac/md__2home_2runner_2work_2Lightw
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>scale</code>   </td><td class="markdownTableBodyNone">Integer   </td><td class="markdownTableBodyNone">(Optional) Scale for <code>decimal</code>.   </td></tr>
 </table>
-<h2><a class="anchor" id="autotoc_md23-foreign-key-definition"></a>
-2.3 Foreign Key Definition</h2>
+<h2><a class="anchor" id="autotoc_md24-foreign-key-definition"></a>
+2.4 Foreign Key Definition</h2>
 <p>Each object in the <code>foreign_keys</code> array represents a foreign key constraint:</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
@@ -236,8 +259,48 @@ $(document).ready(function(){initNavTree('d3/dac/md__2home_2runner_2work_2Lightw
 4. File Extension</h1>
 <ul>
 <li><b>Extension</b>: <code>.msgpack</code></li>
-<li>The file names are sequential 4-digit numbers starting from <code>0001</code> (e.g., <code>0001.msgpack</code>, <code>0120.msgpack</code>). </li>
+<li>The file names are sequential 4-digit numbers starting from <code>0001</code> (e.g., <code>0001.msgpack</code>, <code>0120.msgpack</code>).</li>
 </ul>
+<h1><a class="anchor" id="autotoc_md5-compression"></a>
+5. Compression</h1>
+<p>The backup file supports various compression methods for ZIP entries. Compression is configured using the <code>--compression</code> and <code>--compression-level</code> options in <code>dbtool</code>.</p>
+<h2><a class="anchor" id="autotoc_md51-supported-compression-methods"></a>
+5.1 Supported Compression Methods</h2>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Method   </th><th class="markdownTableHeadNone">Description   </th><th class="markdownTableHeadNone">Compatibility    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>none</code> / <code>store</code>   </td><td class="markdownTableBodyNone">No compression (ZIP_CM_STORE)   </td><td class="markdownTableBodyNone">Universal - all ZIP tools    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>deflate</code>   </td><td class="markdownTableBodyNone">Deflate compression (ZIP_CM_DEFLATE)   </td><td class="markdownTableBodyNone">Universal - default, most compatible    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>bzip2</code>   </td><td class="markdownTableBodyNone">Bzip2 compression (ZIP_CM_BZIP2)   </td><td class="markdownTableBodyNone">Good - most modern tools    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>lzma</code>   </td><td class="markdownTableBodyNone">LZMA compression (ZIP_CM_LZMA)   </td><td class="markdownTableBodyNone">Limited - requires LZMA support    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>zstd</code>   </td><td class="markdownTableBodyNone">Zstandard compression (ZIP_CM_ZSTD)   </td><td class="markdownTableBodyNone">Limited - requires Zstd support    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>xz</code>   </td><td class="markdownTableBodyNone">XZ compression (ZIP_CM_XZ)   </td><td class="markdownTableBodyNone">Limited - requires XZ support   </td></tr>
+</table>
+<h2><a class="anchor" id="autotoc_md52-compression-levels"></a>
+5.2 Compression Levels</h2>
+<p>The compression level is specified as an integer from 0 to 9:</p>
+<ul>
+<li><b>0</b>: No compression (fastest)</li>
+<li><b>1-3</b>: Fast compression with lower ratio</li>
+<li><b>4-6</b>: Balanced compression (default: 6)</li>
+<li><b>7-9</b>: Best compression ratio (slowest)</li>
+</ul>
+<h2><a class="anchor" id="autotoc_md53-runtime-availability"></a>
+5.3 Runtime Availability</h2>
+<p>Not all compression methods may be available depending on how libzip was compiled. Use <code>dbtool</code> to check which methods are supported on your system:</p>
+<ul>
+<li>Methods that are not supported will result in an error message listing available alternatives.</li>
+<li>The <code>deflate</code> method is typically always available and is the recommended default.</li>
+</ul>
+<h2><a class="anchor" id="autotoc_md54-restoration-compatibility"></a>
+5.4 Restoration Compatibility</h2>
+<p>Backup files can be restored regardless of which compression method was used, as long as the restoring system's libzip supports the compression method used during backup. For maximum portability, use <code>deflate</code> compression. </p>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->

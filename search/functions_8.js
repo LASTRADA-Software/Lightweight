@@ -10,6 +10,7 @@ var searchData=
   ['iscolliding_7',['IsColliding',['../da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3',1,'Lightweight::UniqueNameBuilder']]],
   ['isempty_8',['isempty',['../da/df4/classLightweight_1_1HasMany.html#a6940bf064197ff19dc320fcdfa927707',1,'Lightweight::HasMany::IsEmpty()'],['../de/d73/classLightweight_1_1HasManyThrough.html#aa0f11a7350c2a6e43c11a1b6ad9e4d92',1,'Lightweight::HasManyThrough::IsEmpty()']]],
   ['isloaded_9',['IsLoaded',['../df/d63/classLightweight_1_1HasOneThrough.html#ad1c8894f124db4b45117abafe918e51f',1,'Lightweight::HasOneThrough']]],
-  ['ismodified_10',['ismodified',['../d0/df7/classLightweight_1_1BelongsTo.html#a760ee5ea51fd3c714f26a1d1f3366a37',1,'Lightweight::BelongsTo::IsModified()'],['../de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f',1,'Lightweight::DataMapper::IsModified()'],['../d2/dd0/structLightweight_1_1Field.html#a4296163dab8a3ce341e2b52a18c7c7b7',1,'Lightweight::Field::IsModified()']]],
-  ['isnull_11',['IsNull',['../df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021',1,'Lightweight::SqlVariant']]]
+  ['islocked_10',['IsLocked',['../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#a097efefa7b59595476424596436760d8',1,'Lightweight::SqlMigration::MigrationLock']]],
+  ['ismodified_11',['ismodified',['../d0/df7/classLightweight_1_1BelongsTo.html#a760ee5ea51fd3c714f26a1d1f3366a37',1,'Lightweight::BelongsTo::IsModified()'],['../de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f',1,'Lightweight::DataMapper::IsModified()'],['../d2/dd0/structLightweight_1_1Field.html#a4296163dab8a3ce341e2b52a18c7c7b7',1,'Lightweight::Field::IsModified()']]],
+  ['isnull_12',['IsNull',['../df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021',1,'Lightweight::SqlVariant']]]
 ];

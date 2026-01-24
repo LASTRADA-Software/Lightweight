@@ -7,8 +7,11 @@ var searchData=
   ['pop_5fback_4',['pop_back',['../de/dae/classLightweight_1_1SqlFixedString.html#af7208a623058c1f470f0829ce892afda',1,'Lightweight::SqlFixedString']]],
   ['postgrsql_5',['PostgrSQL',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1dcad31b87db906a61205bbfc9561bd1',1,'Lightweight::SqlQueryFormatter']]],
   ['prepare_6',['prepare',['../db/dad/classLightweight_1_1SqlStatement.html#a0123c0f721c9374f8992e7c454294721',1,'Lightweight::SqlStatement::Prepare(std::string_view query) &amp;'],['../db/dad/classLightweight_1_1SqlStatement.html#aa021a10c4473e6f7051618708f19574e',1,'Lightweight::SqlStatement::Prepare(SqlQueryObject auto const &amp;queryObject) &amp;']]],
-  ['primarykey_7',['PrimaryKey',['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#abc42e76bbbae288ae9b6f214cbe4a4d0',1,'Lightweight::SqlCreateTableQueryBuilder']]],
-  ['provideinputindicator_8',['ProvideInputIndicator',['../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a7d7b102126f4b2455df46e31906cb189',1,'Lightweight::SqlDataBinderCallback']]],
-  ['provideinputindicators_9',['ProvideInputIndicators',['../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914',1,'Lightweight::SqlDataBinderCallback']]],
-  ['push_5fback_10',['push_back',['../de/dae/classLightweight_1_1SqlFixedString.html#a50438c4dd3511d7dba129606f23950a8',1,'Lightweight::SqlFixedString']]]
+  ['previewmigration_7',['PreviewMigration',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a9b64d3bec74b85d054215a4321cbcad8',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['previewpendingmigrations_8',['PreviewPendingMigrations',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a3b9961110aefc26051c06c6934e26e69',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['primarykey_9',['PrimaryKey',['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#abc42e76bbbae288ae9b6f214cbe4a4d0',1,'Lightweight::SqlCreateTableQueryBuilder']]],
+  ['provideinputindicator_10',['ProvideInputIndicator',['../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a7d7b102126f4b2455df46e31906cb189',1,'Lightweight::SqlDataBinderCallback']]],
+  ['provideinputindicators_11',['ProvideInputIndicators',['../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914',1,'Lightweight::SqlDataBinderCallback']]],
+  ['push_12',['Push',['../d4/d9e/classLightweight_1_1ThreadSafeQueue.html#a63735e069a31797b01b4ae891794ab8a',1,'Lightweight::ThreadSafeQueue']]],
+  ['push_5fback_13',['push_back',['../de/dae/classLightweight_1_1SqlFixedString.html#a50438c4dd3511d7dba129606f23950a8',1,'Lightweight::SqlFixedString']]]
 ];
