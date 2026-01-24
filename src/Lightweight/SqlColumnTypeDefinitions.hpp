@@ -107,14 +107,14 @@ constexpr std::optional<SqlColumnTypeDefinition> MakeColumnTypeFromNative(int va
         case SQL_BIT: return Bool {};
         case SQL_CHAR: return Char { size };
         case SQL_DATE: return Date {};
-        case SQL_DECIMAL: return Decimal { .precision = precision, .scale = size };
+        case SQL_DECIMAL: return Decimal { .precision = size, .scale = precision };
         case SQL_DOUBLE: return Real { .precision = 53 };
         case SQL_FLOAT: return Real { . precision = precision };
         case SQL_GUID: return Guid {};
         case SQL_INTEGER: return Integer {};
         case SQL_LONGVARBINARY: return VarBinary { size };
         case SQL_LONGVARCHAR: return Varchar { size };
-        case SQL_NUMERIC: return Decimal { .precision = precision, .scale = size };
+        case SQL_NUMERIC: return Decimal { .precision = size, .scale = precision };
         case SQL_REAL: return Real { .precision = 24 };
         case SQL_SMALLINT: return Smallint {};
         case SQL_TIME: return Time {};
