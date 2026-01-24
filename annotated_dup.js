@@ -32,6 +32,7 @@ var annotated_dup =
       [ "SqlSchema", null, [
         [ "Column", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html", null ],
         [ "EventHandler", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler" ],
+        [ "IndexDefinition", "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html", "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition" ],
         [ "Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", "d3/dda/structLightweight_1_1SqlSchema_1_1Table" ]
       ] ],
       [ "Tools", null, [

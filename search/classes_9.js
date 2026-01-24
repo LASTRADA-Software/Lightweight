@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['retrysettings_0',['RetrySettings',['../d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html',1,'Lightweight::SqlBackup']]],
-  ['revertresult_1',['RevertResult',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html',1,'Lightweight::SqlMigration']]]
+  ['pluginloader_0',['PluginLoader',['../d3/df0/classLightweight_1_1Tools_1_1PluginLoader.html',1,'Lightweight::Tools']]],
+  ['progress_1',['Progress',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html',1,'Lightweight::SqlBackup']]],
+  ['progressmanager_2',['ProgressManager',['../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html',1,'Lightweight::SqlBackup']]]
 ];

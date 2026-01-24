@@ -1,5 +1,11 @@
 var NAVTREEINDEX2 =
 {
+"da/da8/classLightweight_1_1SqlConnection.html":[9,0,0,18],
+"da/da8/classLightweight_1_1SqlConnection.html#a0938e714f9d74d7e64e080ad23161201":[9,0,0,18,25],
+"da/da8/classLightweight_1_1SqlConnection.html#a293cb2130d482e71c2e2758f9f7aa08a":[9,0,0,18,10],
+"da/da8/classLightweight_1_1SqlConnection.html#a2cf1b575719f949078c4a5c31145e501":[9,0,0,18,12],
+"da/da8/classLightweight_1_1SqlConnection.html#a2ebd525676d985a7c81aa9fe233915e7":[9,0,0,18,17],
+"da/da8/classLightweight_1_1SqlConnection.html#a31d2a2e32bc2c8cd6473a312359f3c8d":[9,0,0,18,18],
 "da/da8/classLightweight_1_1SqlConnection.html#a3c238ed531289bd1efff63f44ec1bb70":[9,0,0,18,20],
 "da/da8/classLightweight_1_1SqlConnection.html#a40304c8c5a364f85cdd0a5e1afcd461f":[9,0,0,18,15],
 "da/da8/classLightweight_1_1SqlConnection.html#a4165425040fb439fdbfc44efdad7f550":[9,0,0,18,16],
@@ -243,11 +249,5 @@ var NAVTREEINDEX2 =
 "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#outputcolumn":[5,2],
 "de/dbb/StdString_8hpp_source.html":[10,0,1,0,17],
 "de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html":[9,0,0,34],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html":[9,0,0,2,2],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a08e7f32b9ae6147732e6cc89cf6ac35e":[9,0,0,2,2,0],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e":[9,0,0,2,2,3],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0":[9,0,0,2,2,4],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#aa636d346b468e93ae3e1e2bec48bc26e":[9,0,0,2,2,1],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#aa91e611caafae9e19e8850e786baf5c0":[9,0,0,2,2,5],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#ae34f5e169eb26bf9318270631669f8d4":[9,0,0,2,2,2]
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html":[9,0,0,2,2]
 };

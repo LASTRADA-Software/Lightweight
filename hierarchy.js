@@ -113,6 +113,7 @@ var hierarchy =
     [ "Lightweight::SqlRowIterator< T >", "d2/d8e/classLightweight_1_1SqlRowIterator.html", null ],
     [ "Lightweight::SqlSchema::Column", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html", null ],
     [ "Lightweight::SqlSchema::EventHandler", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html", null ],
+    [ "Lightweight::SqlSchema::IndexDefinition", "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html", null ],
     [ "Lightweight::SqlSchema::Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", null ],
     [ "Lightweight::SqlScopedTimeLogger", "dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html", null ],
     [ "Lightweight::SqlScopedTraceLogger", "df/d9c/classLightweight_1_1SqlScopedTraceLogger.html", null ],

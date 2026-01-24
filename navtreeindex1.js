@@ -1,5 +1,6 @@
 var NAVTREEINDEX1 =
 {
+"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca8f3d10eb21bd36347c258679eba9e92b":[9,0,0,1,5,0,2],
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca902b0d55fddef6f8d651fe1035b7d4bd":[9,0,0,1,5,0,3],
 "d5/de3/SqlVariant_8hpp_source.html":[10,0,1,0,15],
 "d5/de7/SqlTime_8hpp_source.html":[10,0,1,0,14],
@@ -36,6 +37,10 @@ var NAVTREEINDEX1 =
 "d6/db6/classLightweight_1_1SqlDynamicBinary.html#aa8ebdeb76e7f5d970bb7d1bf2b74484e":[7,0,3,4],
 "d6/db6/classLightweight_1_1SqlDynamicBinary.html#ad874ad04435364a64cbd464b33eb5f86":[7,0,3,1],
 "d6/dc2/BasicStringBinder_8hpp_source.html":[10,0,1,0,0],
+"d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html":[9,0,0,3,2],
+"d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#a8d75bccd08fdf35b48d793ca62eb0e82":[9,0,0,3,2,0],
+"d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#ab877b33adddf8288d0b91db1d1cef4a2":[9,0,0,3,2,1],
+"d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#afc6863e451eb5828a2c241e56743c600":[9,0,0,3,2,2],
 "d6/dfa/structLightweight_1_1SqlDateTime.html":[7,0,2],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a149ce3222ef3ab86a5bbcfe65ae08c13":[7,0,2,3],
 "d6/dfa/structLightweight_1_1SqlDateTime.html#a1cc6eb89a127b62c44a7cce37131c657":[7,0,2,5],
@@ -203,8 +208,9 @@ var NAVTREEINDEX1 =
 "d9/de1/structLightweight_1_1SqlDate.html#a5aede1f305a6af7ac5b89c5516b0b1e6":[7,0,1,1],
 "d9/de5/SqlLogger_8hpp_source.html":[10,0,1,15],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html":[9,0,0,1,10],
-"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2":[9,0,0,1,10,4],
+"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2":[9,0,0,1,10,5],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a9de53272af6d3db165c4f8964223d8a1":[9,0,0,1,10,2],
+"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ac5078f37747a5a12b4d3d7e8df8b7595":[9,0,0,1,10,4],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad0650ea29db5c33bcebf5af75b9be9d8":[9,0,0,1,10,1],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad1aedd312e0a7ea569f6d9ac712a39e6":[9,0,0,1,10,3],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ae825585f8af8a8d21b07068e9bfc9e98":[9,0,0,1,10,0],
@@ -243,11 +249,5 @@ var NAVTREEINDEX1 =
 "da/d7e/structLightweight_1_1SqlRawColumn.html#a46be282ffe105f3df50dd090c0419d68":[9,0,0,42,0],
 "da/d7e/structLightweight_1_1SqlRawColumn.html#a9125efddb4978d91a258ef9525c0ea3d":[9,0,0,42,2],
 "da/d7e/structLightweight_1_1SqlRawColumn.html#abafa148d105f4f791595f95b1e68a162":[9,0,0,42,1],
-"da/d96/structLightweight_1_1SqlNullType.html":[7,0,7],
-"da/da8/classLightweight_1_1SqlConnection.html":[9,0,0,18],
-"da/da8/classLightweight_1_1SqlConnection.html#a0938e714f9d74d7e64e080ad23161201":[9,0,0,18,25],
-"da/da8/classLightweight_1_1SqlConnection.html#a293cb2130d482e71c2e2758f9f7aa08a":[9,0,0,18,10],
-"da/da8/classLightweight_1_1SqlConnection.html#a2cf1b575719f949078c4a5c31145e501":[9,0,0,18,12],
-"da/da8/classLightweight_1_1SqlConnection.html#a2ebd525676d985a7c81aa9fe233915e7":[9,0,0,18,17],
-"da/da8/classLightweight_1_1SqlConnection.html#a31d2a2e32bc2c8cd6473a312359f3c8d":[9,0,0,18,18]
+"da/d96/structLightweight_1_1SqlNullType.html":[7,0,7]
 };
