@@ -311,3 +311,100 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Raw SQL Migration", "[SqlMigration]")
         CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM raw_sql_test"), SqlException);
     }
 }
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Duplicate Timestamp Prevention", "[SqlMigration]")
+{
+    // First migration should succeed
+    auto migration1 = SqlMigration::Migration(SqlMigration::MigrationTimestamp { 202501230001 },
+                                              "First migration",
+                                              [](SqlMigrationQueryBuilder& plan) { plan.RawSql("SELECT 1"); });
+
+    // Second migration with same timestamp should throw
+    CHECK_THROWS_AS(SqlMigration::Migration(SqlMigration::MigrationTimestamp { 202501230001 },
+                                            "Duplicate migration",
+                                            [](SqlMigrationQueryBuilder& plan) { plan.RawSql("SELECT 2"); }),
+                    std::runtime_error);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Dry Run Migration", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501230002 }, "Dry run test", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("dry_run_test").PrimaryKey("id", Integer());
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    // Preview should return SQL statements without executing
+    auto statements = manager.PreviewPendingMigrations();
+    CHECK(!statements.empty());
+
+    // Table should NOT exist (dry run only - we only previewed)
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        auto const _ = ScopedSqlNullLogger {};
+        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM dry_run_test"), SqlException);
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Checksum Computation", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501230003 }, "Checksum test", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("checksum_test").PrimaryKey("id", Integer());
+        });
+
+    auto& dm = SqlMigration::MigrationManager::GetInstance().GetDataMapper();
+    auto checksum1 = migration.ComputeChecksum(dm.Connection().QueryFormatter());
+    auto checksum2 = migration.ComputeChecksum(dm.Connection().QueryFormatter());
+
+    // Checksum should be deterministic
+    CHECK(checksum1 == checksum2);
+
+    // SHA-256 hex should be 64 characters
+    CHECK(checksum1.length() == 64);
+
+    // Checksum should be alphanumeric hex
+    CHECK(std::ranges::all_of(checksum1, [](char c) { return std::isxdigit(c); }));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Checksum Stored on Migration", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // Drop old schema_migrations table to ensure we have the new schema with checksum column
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        auto const _ = ScopedSqlNullLogger {};
+        try
+        {
+            stmt.ExecuteDirect("DROP TABLE schema_migrations");
+        }
+        catch (SqlException const&)
+        {
+            // Table may not exist, ignore
+        }
+    }
+
+    auto migration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202501230004 }, "Checksum storage test", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("checksum_storage_test").PrimaryKey("id", Integer());
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    // Apply the migration
+    CHECK(manager.ApplyPendingMigrations() == 1);
+
+    // Verify checksums - should return empty since all should match
+    auto mismatches = manager.VerifyChecksums();
+    CHECK(mismatches.empty());
+}

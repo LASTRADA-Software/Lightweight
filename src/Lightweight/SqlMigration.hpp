@@ -37,6 +37,18 @@ namespace SqlMigration
         constexpr std::weak_ordering operator<=>(MigrationTimestamp const& other) const noexcept = default;
     };
 
+    /// Result of verifying a migration's checksum.
+    ///
+    /// @ingroup SqlMigration
+    struct ChecksumVerificationResult
+    {
+        MigrationTimestamp timestamp;
+        std::string_view title;
+        std::string storedChecksum;
+        std::string computedChecksum;
+        bool matches;
+    };
+
     /// Main API to use for managing SQL migrations
     ///
     /// This class is a singleton and can be accessed using the GetInstance() method.
@@ -128,6 +140,32 @@ namespace SqlMigration
         /// @return Transaction.
         LIGHTWEIGHT_API SqlTransaction Transaction();
 
+        /// Preview SQL statements for a single migration without executing.
+        ///
+        /// This is useful for dry-run mode to see what SQL would be executed.
+        ///
+        /// @param migration The migration to preview.
+        /// @return Vector of SQL statements that would be executed.
+        [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> PreviewMigration(MigrationBase const& migration) const;
+
+        /// Preview SQL statements for all pending migrations without executing.
+        ///
+        /// This is useful for dry-run mode to see what SQL would be executed.
+        ///
+        /// @param feedbackCallback Optional callback to be called for each migration.
+        /// @return Vector of all SQL statements that would be executed.
+        [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> PreviewPendingMigrations(
+            ExecuteCallback const& feedbackCallback = {}) const;
+
+        /// Verify checksums of all applied migrations.
+        ///
+        /// Compares the stored checksums in the database with the computed checksums
+        /// of the current migration definitions. This helps detect if migrations
+        /// have been modified after they were applied.
+        ///
+        /// @return Vector of verification results for migrations with mismatched or missing checksums.
+        [[nodiscard]] LIGHTWEIGHT_API std::vector<ChecksumVerificationResult> VerifyChecksums() const;
+
       private:
         MigrationList _migrations;
         mutable DataMapper* _dataMapper { nullptr };
@@ -187,6 +225,16 @@ namespace SqlMigration
         {
             return _title;
         }
+
+        /// Compute SHA-256 checksum of migration's Up() SQL statements.
+        ///
+        /// The checksum is computed from the SQL statements that would be executed
+        /// by this migration. This allows detecting if a migration has been modified
+        /// after it was applied.
+        ///
+        /// @param formatter The SQL query formatter to use for generating SQL.
+        /// @return SHA-256 hex string (64 characters).
+        [[nodiscard]] LIGHTWEIGHT_API std::string ComputeChecksum(SqlQueryFormatter const& formatter) const;
 
       private:
         MigrationTimestamp _timestamp;
