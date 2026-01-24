@@ -9,6 +9,7 @@
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlMigration.hpp>
+#include <Lightweight/SqlMigrationLock.hpp>
 #include <Lightweight/SqlSchema.hpp>
 
 #include <expected>
@@ -107,15 +108,20 @@ void PrintUsage()
     std::println("{}Usage:{} {}dbtool{} <command> [options]\n", c.heading, c.reset, c.bold, c.reset);
 
     std::println("{}Commands:{}", c.heading, c.reset);
-    std::println("  {}migrate{}                Applies pending migrations", c.command, c.reset);
-    std::println("  {}list-pending{}           Lists pending migrations", c.command, c.reset);
-    std::println("  {}list-applied{}           Lists applied migrations", c.command, c.reset);
-    std::println("  {}apply{} {}<TIMESTAMP>{}      Applies the migration with the given timestamp",
+    std::println("  {}migrate{}                  Applies pending migrations", c.command, c.reset);
+    std::println("  {}list-pending{}             Lists pending migrations", c.command, c.reset);
+    std::println("  {}list-applied{}             Lists applied migrations", c.command, c.reset);
+    std::println("  {}apply{} {}<TIMESTAMP>{}        Applies the migration with the given timestamp",
                  c.command, c.reset, c.param, c.reset);
-    std::println("  {}rollback{} {}<TIMESTAMP>{}   Rolls back the migration with the given timestamp",
+    std::println("  {}rollback{} {}<TIMESTAMP>{}     Rolls back the migration with the given timestamp",
                  c.command, c.reset, c.param, c.reset);
-    std::println("  {}backup{} --output FILE   Backs up the database to a file", c.command, c.reset);
-    std::println("  {}restore{} --input FILE   Restores the database from a file", c.command, c.reset);
+    std::println("  {}rollback-to{} {}<TIMESTAMP>{}  Rolls back all migrations after the given timestamp",
+                 c.command, c.reset, c.param, c.reset);
+    std::println("  {}status{}                   Shows migration status summary", c.command, c.reset);
+    std::println("  {}mark-applied{} {}<TIMESTAMP>{} Marks a migration as applied without executing",
+                 c.command, c.reset, c.param, c.reset);
+    std::println("  {}backup{} --output FILE     Backs up the database to a file", c.command, c.reset);
+    std::println("  {}restore{} --input FILE     Restores the database from a file", c.command, c.reset);
     std::println("");
 
     // Descriptions start at column 29 (longest option is 27 chars + 2 space minimum gap)
@@ -153,6 +159,8 @@ void PrintUsage()
                  c.option, c.reset, c.param, c.reset);
     std::println("  {}--dry-run{}, {}-n{}             Show what would be done without doing it",
                  c.option, c.reset, c.option, c.reset);
+    std::println("  {}--no-lock{}                 Skip migration locking for write operations",
+                 c.option, c.reset);
     std::println("  {}--quiet{}                   Suppress progress output", c.option, c.reset);
     std::println("  {}--help{}                    Show this help message", c.option, c.reset);
     std::println("");
@@ -229,6 +237,7 @@ struct Options
     bool pluginsDirSet = false;
     bool connectionStringSet = false;
     bool dryRun = false; ///< If true, show what would be done without actually doing it
+    bool noLock = false; ///< If true, skip migration locking for write operations
 };
 
 std::filesystem::path GetDefaultConfigPath()
@@ -448,6 +457,10 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         {
             options.dryRun = true;
         }
+        else if (arg == "--no-lock")
+        {
+            options.noLock = true;
+        }
         else if (options.command.empty())
         {
             options.command = arg;
@@ -654,6 +667,156 @@ int RollbackMigration(MigrationManager& manager, std::string_view argument)
         })
         .value();
 }
+
+/// Displays a summary of migration status including applied, pending, and checksum mismatches.
+///
+/// @param manager The migration manager instance.
+/// @return EXIT_SUCCESS on success, EXIT_FAILURE on error.
+int Status(MigrationManager& manager)
+{
+    auto const status = manager.GetMigrationStatus();
+    auto const mismatches = manager.VerifyChecksums();
+
+    std::println("Migration Status:");
+    std::println("");
+    std::println("  Registered migrations: {}", status.totalRegistered);
+    std::println("  Applied migrations:    {}", status.appliedCount);
+    std::println("  Pending migrations:    {}", status.pendingCount);
+
+    if (status.unknownAppliedCount > 0)
+    {
+        std::println("  Unknown applied:       {} (applied but not registered)", status.unknownAppliedCount);
+    }
+
+    std::println("");
+
+    if (!mismatches.empty())
+    {
+        std::println("Checksum Mismatches ({}):", mismatches.size());
+        for (auto const& result: mismatches)
+        {
+            std::println("  {} - {}", result.timestamp.value, result.title);
+            std::println("      Stored:   {}", result.storedChecksum.empty() ? "(none)" : result.storedChecksum);
+            std::println("      Computed: {}",
+                         result.computedChecksum.empty() ? "(migration not found)" : result.computedChecksum);
+        }
+        std::println("");
+        std::println(
+            "WARNING: {} migration(s) have checksum mismatches. The migration code may have changed after application.",
+            mismatches.size());
+    }
+    else
+    {
+        std::println("All applied migrations have valid checksums.");
+    }
+
+    return EXIT_SUCCESS;
+}
+
+/// Marks a migration as applied without executing its Up() method.
+///
+/// @param manager The migration manager instance.
+/// @param argument The migration timestamp to mark as applied.
+/// @return EXIT_SUCCESS on success, EXIT_FAILURE on error.
+int MarkApplied(MigrationManager& manager, std::string_view argument)
+{
+    return GetMigration(manager, argument)
+        .and_then([&manager](MigrationBase const* migration) -> std::expected<int, std::string> {
+            try
+            {
+                manager.MarkMigrationAsApplied(*migration);
+                std::println("Marked migration {} - {} as applied.", migration->GetTimestamp().value, migration->GetTitle());
+                return EXIT_SUCCESS;
+            }
+            catch (std::exception const& e)
+            {
+                return std::unexpected(e.what());
+            }
+        })
+        .transform_error([](std::string const& error) {
+            std::println(std::cerr, "Error: {}", error);
+            return EXIT_FAILURE;
+        })
+        .value();
+}
+
+/// Rolls back all migrations applied after the specified timestamp.
+///
+/// @param manager The migration manager instance.
+/// @param argument The target migration timestamp.
+/// @return EXIT_SUCCESS on success, EXIT_FAILURE on error.
+int RollbackTo(MigrationManager& manager, std::string_view argument)
+{
+    if (argument.empty())
+    {
+        std::println(std::cerr, "Error: Target migration timestamp is required.");
+        return EXIT_FAILURE;
+    }
+
+    auto targetTs = uint64_t {};
+    auto const res = std::from_chars(argument.data(), argument.data() + argument.size(), targetTs);
+    if (res.ec != std::errc {})
+    {
+        std::println(std::cerr, "Error: Migration timestamp is invalid.");
+        return EXIT_FAILURE;
+    }
+
+    auto const targetTimestamp = MigrationTimestamp { targetTs };
+
+    // Verify the target migration exists
+    if (!manager.GetMigration(targetTimestamp))
+    {
+        std::println(std::cerr, "Error: Target migration {} not found.", targetTs);
+        return EXIT_FAILURE;
+    }
+
+    std::println("Rolling back migrations after timestamp {}...", targetTs);
+    std::println("");
+
+    auto const result = manager.RevertToMigration(targetTimestamp, [](MigrationBase const& m, size_t i, size_t n) {
+        std::println("[{}/{}] Rolling back {} - {}", i + 1, n, m.GetTimestamp().value, m.GetTitle());
+    });
+
+    if (result.revertedTimestamps.empty() && !result.failedAt.has_value())
+    {
+        std::println("No migrations to rollback. Database is already at or before timestamp {}.", targetTs);
+        return EXIT_SUCCESS;
+    }
+
+    if (result.failedAt.has_value())
+    {
+        std::println(std::cerr, "");
+        std::println(std::cerr, "Error: Failed to rollback migration {}: {}", result.failedAt->value, result.errorMessage);
+        std::println(std::cerr,
+                     "Rollback stopped. {} migration(s) were rolled back before the failure.",
+                     result.revertedTimestamps.size());
+        return EXIT_FAILURE;
+    }
+
+    std::println("");
+    std::println("Successfully rolled back {} migration(s).", result.revertedTimestamps.size());
+    return EXIT_SUCCESS;
+}
+
+/// RAII wrapper for optional migration locking.
+///
+/// Acquires a migration lock if locking is enabled, otherwise does nothing.
+/// The lock is automatically released when the wrapper goes out of scope.
+class OptionalMigrationLock
+{
+  public:
+    OptionalMigrationLock(MigrationManager& manager, bool noLock):
+        _lock(noLock ? std::nullopt : std::make_optional<MigrationLock>(manager.GetDataMapper().Connection()))
+    {
+        if (_lock && !_lock->IsLocked())
+        {
+            throw std::runtime_error("Failed to acquire migration lock. Another migration may be in progress.");
+        }
+    }
+
+  private:
+    std::optional<MigrationLock> _lock;
+};
 
 class SimpleEventProgressManager: public Lightweight::SqlBackup::ErrorTrackingProgressManager
 {
@@ -1144,16 +1307,45 @@ int main(int argc, char** argv)
         if (!SetupConnectionString(options.connectionString))
             return EXIT_FAILURE;
 
+        // Read-only commands (no lock needed)
         if (options.command == "list-pending")
             return ListPendingMigrations(GetMigrationManager(options));
         else if (options.command == "list-applied")
             return ListAppliedMigrations(GetMigrationManager(options));
+        else if (options.command == "status")
+            return Status(GetMigrationManager(options));
+
+        // Write commands (lock recommended)
         else if (options.command == "migrate")
-            return Migrate(GetMigrationManager(options), options.dryRun);
+        {
+            auto& manager = GetMigrationManager(options);
+            OptionalMigrationLock lock(manager, options.noLock || options.dryRun);
+            return Migrate(manager, options.dryRun);
+        }
         else if (options.command == "apply")
-            return ApplyMigration(GetMigrationManager(options), options.argument);
+        {
+            auto& manager = GetMigrationManager(options);
+            OptionalMigrationLock lock(manager, options.noLock);
+            return ApplyMigration(manager, options.argument);
+        }
         else if (options.command == "rollback")
-            return RollbackMigration(GetMigrationManager(options), options.argument);
+        {
+            auto& manager = GetMigrationManager(options);
+            OptionalMigrationLock lock(manager, options.noLock);
+            return RollbackMigration(manager, options.argument);
+        }
+        else if (options.command == "rollback-to")
+        {
+            auto& manager = GetMigrationManager(options);
+            OptionalMigrationLock lock(manager, options.noLock);
+            return RollbackTo(manager, options.argument);
+        }
+        else if (options.command == "mark-applied")
+        {
+            auto& manager = GetMigrationManager(options);
+            OptionalMigrationLock lock(manager, options.noLock);
+            return MarkApplied(manager, options.argument);
+        }
         else if (options.command == "backup")
             return Backup(options);
         else if (options.command == "restore")
