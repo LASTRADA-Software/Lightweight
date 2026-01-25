@@ -1258,10 +1258,20 @@ int Restore(Options const& options)
 
 MigrationManager& GetMigrationManager(Options const& options)
 {
+    // Keep plugins loaded for the lifetime of the program.
+    // The MigrationManager holds references to migration code from these plugins,
+    // so they must not be unloaded (via dlclose) while migrations may still be accessed.
+    static std::vector<Tools::PluginLoader> plugins;
+    static bool initialized = false;
+
     auto& manager = MigrationManager::GetInstance();
-    std::vector<Tools::PluginLoader> plugins = LoadPlugins(options.pluginsDir);
-    CollectMigrations(plugins, manager);
-    manager.CreateMigrationHistory();
+    if (!initialized)
+    {
+        plugins = LoadPlugins(options.pluginsDir);
+        CollectMigrations(plugins, manager);
+        manager.CreateMigrationHistory();
+        initialized = true;
+    }
     return manager;
 }
 

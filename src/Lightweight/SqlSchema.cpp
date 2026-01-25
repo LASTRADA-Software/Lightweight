@@ -101,6 +101,14 @@ namespace
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLForeignKeys failed: {}", stmt.LastError()));
 
+        // ODBC SQLForeignKeys() should return at least 14 columns per the spec.
+        // However, some drivers (e.g., MS SQL ODBC Driver 18 in certain environments) may
+        // return fewer columns. We need at least 9 columns (KEY_SEQ) to process foreign keys.
+        constexpr size_t MinRequiredColumns = 9;
+        auto const numColumns = stmt.NumColumnsAffected();
+        if (numColumns < MinRequiredColumns)
+            return {}; // Driver didn't return expected columns, return empty result
+
         using ColumnList = std::vector<std::pair<std::string /*fk*/, std::string /*pk*/>>;
         auto constraints = std::map<KeyPair, ColumnList>();
         while (stmt.FetchRow())
