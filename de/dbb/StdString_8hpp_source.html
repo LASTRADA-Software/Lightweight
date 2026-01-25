@@ -152,7 +152,7 @@ $(document).ready(function(){initNavTree('de/dbb/StdString_8hpp_source.html','..
 <div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> Resize(StringType* str, SQLLEN indicator) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>    {</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>        <span class="keywordflow">if</span> (indicator &gt;= 0)</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>            str-&gt;resize(indicator);</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>            str-&gt;resize(<span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(indicator));</div>
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>    }</div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>};</div>
 <div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span> </div>

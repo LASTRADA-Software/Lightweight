@@ -154,7 +154,7 @@ $(document).ready(function(){initNavTree('d6/d45/BatchManager_8hpp_source.html',
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span><span class="comment"></span>    <span class="keywordtype">void</span> Flush();</div>
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span> </div>
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>    <span class="comment">// private:</span></div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>    std::unique_ptr&lt;BatchColumn&gt; CreateColumn(SqlColumnDeclaration const&amp; col) const;</div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>    [[nodiscard]] std::unique_ptr&lt;BatchColumn&gt; CreateColumn(SqlColumnDeclaration const&amp; col) const;</div>
 <div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span> </div>
 <div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>    <span class="keywordtype">size_t</span> rowCount = 0;</div>
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>    <span class="keywordtype">size_t</span> capacity = 1000;</div>

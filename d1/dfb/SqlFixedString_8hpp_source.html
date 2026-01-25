@@ -516,7 +516,7 @@ $(document).ready(function(){initNavTree('d1/dfb/SqlFixedString_8hpp_source.html
 <div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span> </div>
 <div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>    <span class="keyword">static</span> <span class="keywordtype">void</span> Resize(ValueType* str, SQLLEN indicator) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span>    {</div>
-<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>        str-&gt;resize(indicator);</div>
+<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>        str-&gt;resize(<span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(indicator));</div>
 <div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>    }</div>
 <div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span> </div>
 <div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>    <span class="keyword">static</span> <span class="keywordtype">void</span> PostProcessOutputColumn(ValueType* result, SQLLEN indicator)</div>

@@ -534,7 +534,7 @@ $(document).ready(function(){initNavTree('d5/d1f/SqlDynamicString_8hpp_source.ht
 <div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span> </div>
 <div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>    <span class="keyword">static</span> <span class="keywordtype">void</span> Resize(ValueType* str, SQLLEN indicator) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>    {</div>
-<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>        str-&gt;value().resize(indicator);</div>
+<div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>        str-&gt;value().resize(<span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(indicator));</div>
 <div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>    }</div>
 <div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>};</div>
 <div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span> </div>

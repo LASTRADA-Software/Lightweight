@@ -178,7 +178,7 @@ $(document).ready(function(){initNavTree('d9/d02/SqlError_8hpp_source.html','../
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>                       (SQLCHAR*) info.message.data(),</div>
 <div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>                       (SQLSMALLINT) info.message.capacity(),</div>
 <div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>                       &amp;msgLen);</div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>        info.message.resize(msgLen);</div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>        info.message.resize(<span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(msgLen));</div>
 <div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>        <span class="keywordflow">return</span> info;</div>
 <div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>    }</div>
 <div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>};</div>
