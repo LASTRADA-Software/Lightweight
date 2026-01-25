@@ -513,7 +513,7 @@ namespace detail
     }
 
     template <typename Record>
-    void BindAllOutputColumnsWithOffset(SqlResultCursor& reader, Record& record, SQLSMALLINT startOffset)
+    void BindAllOutputColumnsWithOffset(SqlResultCursor& reader, Record& record, SQLUSMALLINT startOffset)
     {
         Reflection::EnumerateMembers(record,
                                      [reader = &reader, i = startOffset]<size_t I, typename Field>(Field& field) mutable {

@@ -669,7 +669,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindInputParameter(SQLSMALLIN
 {
     // tell Execute() that we don't know the expected count
     m_expectedParameterCount = (std::numeric_limits<decltype(m_expectedParameterCount)>::max)();
-    RequireSuccess(SqlDataBinder<Arg>::InputParameter(m_hStmt, columnIndex, arg, *this));
+    RequireSuccess(SqlDataBinder<Arg>::InputParameter(m_hStmt, static_cast<SQLUSMALLINT>(columnIndex), arg, *this));
 }
 
 template <SqlInputParameterBinder Arg, typename ColumnName>

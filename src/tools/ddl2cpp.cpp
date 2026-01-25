@@ -431,7 +431,7 @@ auto TimedExecution(std::string_view title, auto&& func)
         {
             auto const end = std::chrono::high_resolution_clock::now();
             auto const duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-            std::println("{} took {:.3} seconds", title, duration / 1000.0);
+            std::println("{} took {:.3} seconds", title, static_cast<double>(duration) / 1000.0);
         }
     } scopeExit { title };
     return func();

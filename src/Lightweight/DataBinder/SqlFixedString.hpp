@@ -382,7 +382,7 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
 
     static void Resize(ValueType* str, SQLLEN indicator) noexcept
     {
-        str->resize(indicator);
+        str->resize(static_cast<size_t>(indicator));
     }
 
     static void PostProcessOutputColumn(ValueType* result, SQLLEN indicator)

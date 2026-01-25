@@ -21,6 +21,7 @@ StandardProgressManager::StandardProgressManager(bool useUnicode, std::ostream& 
 {
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 bool StandardProgressManager::IsPinnedTable(std::string const& tableName) const
 {
     // "Scanning schema" is the meta-task that should be pinned at the bottom
@@ -47,6 +48,11 @@ struct SynchronizedOutputGuard
     {
         End();
     }
+
+    SynchronizedOutputGuard(SynchronizedOutputGuard const&) = delete;
+    SynchronizedOutputGuard& operator=(SynchronizedOutputGuard const&) = delete;
+    SynchronizedOutputGuard(SynchronizedOutputGuard&&) = delete;
+    SynchronizedOutputGuard& operator=(SynchronizedOutputGuard&&) = delete;
 
     static bool IsStdoutTerminal()
     {
@@ -79,6 +85,7 @@ struct SynchronizedOutputGuard
     }
 };
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void StandardProgressManager::Update(SqlBackup::Progress const& p)
 {
     std::scoped_lock lock(_mutex);
@@ -102,7 +109,7 @@ void StandardProgressManager::Update(SqlBackup::Progress const& p)
         _tableStartTimes[p.tableName] = std::chrono::steady_clock::now();
 
         // Check if this table name is longer than current max - will need to repaint all lines
-        bool const needsRepaint = static_cast<int>(p.tableName.size()) > _maxTableNameLength;
+        bool const needsRepaint = std::cmp_greater(p.tableName.size(), _maxTableNameLength);
         if (needsRepaint)
         {
             _maxTableNameLength = static_cast<int>(p.tableName.size());
@@ -139,7 +146,7 @@ void StandardProgressManager::Update(SqlBackup::Progress const& p)
 
             // Assign new table to the old pinned position
             _tableLines[p.tableName] = newIndex;
-            _lineTableMapping[newIndex] = p.tableName;
+            _lineTableMapping[static_cast<size_t>(newIndex)] = p.tableName;
 
             _nextLineIndex++;
             _out << "\n"; // Reserve a new line
@@ -210,16 +217,16 @@ void StandardProgressManager::Update(SqlBackup::Progress const& p)
                 // Shift others down
                 for (int i = currentIndex; i > targetIndex; --i)
                 {
-                    _lineTableMapping[i] = _lineTableMapping[i - 1];
-                    _tableLines[_lineTableMapping[i]] = i;
+                    _lineTableMapping[static_cast<size_t>(i)] = _lineTableMapping[static_cast<size_t>(i - 1)];
+                    _tableLines[_lineTableMapping[static_cast<size_t>(i)]] = i;
                 }
-                _lineTableMapping[targetIndex] = p.tableName;
+                _lineTableMapping[static_cast<size_t>(targetIndex)] = p.tableName;
                 _tableLines[p.tableName] = targetIndex;
 
                 // Repaint affected lines
                 for (int i = targetIndex; i <= currentIndex; ++i)
                 {
-                    PrintLine(i, _tableProgresses[_lineTableMapping[i]]);
+                    PrintLine(i, _tableProgresses[_lineTableMapping[static_cast<size_t>(i)]]);
                 }
             }
             else
@@ -285,13 +292,13 @@ void StandardProgressManager::SetMaxTableNameLength(size_t len)
 
 void StandardProgressManager::RepaintAllLines()
 {
-    for (int i = 0; i < _nextLineIndex; ++i)
+    for (int i = 0; std::cmp_less(i, _nextLineIndex); ++i)
     {
         // Ensure index is within bounds of _lineTableMapping
-        if (i >= static_cast<int>(_lineTableMapping.size()))
+        if (std::cmp_greater_equal(i, _lineTableMapping.size()))
             continue;
 
-        auto const& tableName = _lineTableMapping[i];
+        auto const& tableName = _lineTableMapping[static_cast<size_t>(i)];
         if (_tableProgresses.contains(tableName))
         {
             PrintLine(i, _tableProgresses[tableName]);
@@ -454,7 +461,7 @@ void StandardProgressManager::OnItemsProcessed(size_t count)
         }
         else
         {
-            _smoothedRate = 0.3 * instantRate + 0.7 * _smoothedRate;
+            _smoothedRate = (0.3 * instantRate) + (0.7 * _smoothedRate);
         }
 
         _lastRateSampleTime = now;
@@ -468,6 +475,7 @@ void StandardProgressManager::OnItemsProcessed(size_t count)
     }
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void StandardProgressManager::PrintSummaryLine()
 {
     if (!_hasSummaryLine || !_summaryLineAllocated || _totalItems == 0)
