@@ -393,7 +393,7 @@ jobs:
       - name: "Run tests with ${{ matrix.sanitizer }}"
         env:
           ASAN_OPTIONS: "detect_leaks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1"
-          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
+          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/.github/ubsan.suppressions"
           TSAN_OPTIONS: "second_deadlock_stack=1"
         run: |
           ./out/build/linux-clang-${{ matrix.sanitizer }}/src/tests/LightweightTest --test-env=${{ steps.setup.outputs.TEST_ENV_NAME }}
