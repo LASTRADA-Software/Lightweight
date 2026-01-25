@@ -52,7 +52,7 @@ struct SqlBasicStringOperations<std::basic_string<CharT>>
     static LIGHTWEIGHT_FORCE_INLINE void Resize(StringType* str, SQLLEN indicator) noexcept
     {
         if (indicator >= 0)
-            str->resize(indicator);
+            str->resize(static_cast<size_t>(indicator));
     }
 };
 

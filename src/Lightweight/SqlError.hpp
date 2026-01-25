@@ -71,7 +71,7 @@ struct SqlErrorInfo
                        (SQLCHAR*) info.message.data(),
                        (SQLSMALLINT) info.message.capacity(),
                        &msgLen);
-        info.message.resize(msgLen);
+        info.message.resize(static_cast<size_t>(msgLen));
         return info;
     }
 };

@@ -192,7 +192,7 @@ struct SqlDateTime
             .hour = (SQLUSMALLINT) hms.hours().count(),
             .minute = (SQLUSMALLINT) hms.minutes().count(),
             .second = (SQLUSMALLINT) hms.seconds().count(),
-            .fraction = (SQLUINTEGER) (((std::chrono::duration_cast<std::chrono::nanoseconds>(hms.to_duration()).count() % 1'000'000'000LLU) / 100) * 100)
+            .fraction = (SQLUINTEGER) (((static_cast<unsigned long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(hms.to_duration()).count()) % 1'000'000'000LLU) / 100) * 100)
         };
         // clang-format on
     }
