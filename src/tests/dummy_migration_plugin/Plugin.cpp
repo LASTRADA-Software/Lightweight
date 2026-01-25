@@ -34,6 +34,11 @@ struct Migration_20230102000000: public Lightweight::SqlMigration::MigrationBase
     {
         plan.AlterTable("dummy_users").DropColumn("email");
     }
+
+    [[nodiscard]] bool HasDownImplementation() const noexcept override
+    {
+        return true;
+    }
 };
 
 static Migration_20230102000000 migration_20230102000000;

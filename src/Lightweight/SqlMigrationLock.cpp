@@ -195,18 +195,26 @@ void MigrationLock::ReleaseLockPostgreSQL()
     stmt.ExecuteDirect(sql);
 }
 
-// SQLite implementation using busy_timeout and immediate transaction
+// SQLite implementation using a lock table
+// SQLite doesn't have advisory locks, and using BEGIN IMMEDIATE interferes with
+// migration transactions. Instead, we use a lock table with a unique constraint.
 void MigrationLock::AcquireLockSQLite(std::chrono::milliseconds timeout)
 {
     auto stmt = SqlStatement { *_connection };
 
-    // Set busy timeout
+    // Set busy timeout for waiting on locks
     stmt.ExecuteDirect(std::format("PRAGMA busy_timeout = {};", timeout.count()));
 
-    // BEGIN IMMEDIATE acquires a write lock immediately, blocking others
+    // Create lock table if it doesn't exist
+    stmt.ExecuteDirect("CREATE TABLE IF NOT EXISTS \"_migration_locks\" ("
+                       "\"lock_name\" VARCHAR(255) PRIMARY KEY, "
+                       "\"acquired_at\" TEXT DEFAULT CURRENT_TIMESTAMP"
+                       ");");
+
+    // Try to insert a lock record - this will fail if already locked
     try
     {
-        stmt.ExecuteDirect("BEGIN IMMEDIATE;");
+        stmt.ExecuteDirect(std::format("INSERT INTO \"_migration_locks\" (\"lock_name\") VALUES ('{}');", _lockName));
         _locked = true;
     }
     catch (SqlException const&)
@@ -218,23 +226,15 @@ void MigrationLock::AcquireLockSQLite(std::chrono::milliseconds timeout)
 
 void MigrationLock::ReleaseLockSQLite()
 {
-    // For SQLite, we need to commit or rollback the transaction
-    // Since we're just using it for locking, we'll commit (no changes made in lock scope)
+    // Delete the lock record to release the lock
     auto stmt = SqlStatement { *_connection };
     try
     {
-        stmt.ExecuteDirect("COMMIT;");
+        stmt.ExecuteDirect(std::format("DELETE FROM \"_migration_locks\" WHERE \"lock_name\" = '{}';", _lockName));
     }
-    catch (SqlException const&)
+    catch (...)
     {
-        // If commit fails, try rollback
-        try
-        {
-            stmt.ExecuteDirect("ROLLBACK;");
-        }
-        catch (...)
-        {
-        }
+        // Suppress errors on release
     }
 }
 
