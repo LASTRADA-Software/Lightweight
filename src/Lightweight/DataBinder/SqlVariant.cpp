@@ -17,6 +17,7 @@ SQLRETURN SqlDataBinder<SqlVariant>::InputParameter(SQLHSTMT stmt,
                       variantValue.value);
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
     SQLHSTMT stmt, SQLUSMALLINT column, SqlVariant* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
 {

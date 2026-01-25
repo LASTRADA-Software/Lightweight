@@ -99,11 +99,10 @@ SqlStatement::SqlStatement():
              [](Data* data) {
                  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
                  delete data;
-             } }
-{
+             } },
     // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
-    m_connection = &*m_data->ownedConnection;
-
+    m_connection { &*m_data->ownedConnection }
+{
     if (m_connection->NativeHandle())
         RequireSuccess(SQLAllocHandle(SQL_HANDLE_STMT, m_connection->NativeHandle(), &m_hStmt));
 }
@@ -186,7 +185,7 @@ void SqlStatement::Prepare(std::string_view query) &
     // Prepares the statement
     RequireSuccess(SQLPrepareA(m_hStmt, (SQLCHAR*) query.data(), (SQLINTEGER) query.size()));
     RequireSuccess(SQLNumParams(m_hStmt, &m_expectedParameterCount));
-    m_data->indicators.resize(m_expectedParameterCount + 1);
+    m_data->indicators.resize(static_cast<size_t>(m_expectedParameterCount) + 1);
 }
 
 void SqlStatement::ExecuteDirect(std::string_view const& query, std::source_location location)
@@ -264,7 +263,7 @@ size_t SqlStatement::NumRowsAffected() const
 {
     SQLLEN numRowsAffected {};
     RequireSuccess(SQLRowCount(m_hStmt, &numRowsAffected));
-    return numRowsAffected;
+    return static_cast<size_t>(numRowsAffected);
 }
 
 // Retrieves the number of columns affected by the last query.
@@ -277,7 +276,7 @@ size_t SqlStatement::NumColumnsAffected() const
         const_cast<SqlStatement*>(this)->m_numColumns = numColumns;
     }
 
-    return m_numColumns.value(); // NOLINT(bugprone-unchecked-optional-access)
+    return static_cast<size_t>(m_numColumns.value()); // NOLINT(bugprone-unchecked-optional-access)
 }
 
 // Retrieves the last insert ID of the last query's primary key.

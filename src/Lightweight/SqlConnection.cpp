@@ -243,7 +243,7 @@ void SqlConnection::PostConnect()
 
         if (auto ret = SQLGetInfo(m_hDbc, SQL_DRIVER_NAME, driverName, sizeof(driverName), &driverNameLen);
             SQL_SUCCEEDED(ret))
-            m_driverName = std::string(reinterpret_cast<char const*>(driverName), driverNameLen);
+            m_driverName = std::string(reinterpret_cast<char const*>(driverName), static_cast<size_t>(driverNameLen));
     }
 
     if (m_serverType == SqlServerType::SQLITE)
@@ -294,7 +294,7 @@ std::string SqlConnection::DatabaseName() const
     std::string name(128, '\0');
     SQLSMALLINT nameLen {};
     RequireSuccess(SQLGetInfoA(m_hDbc, SQL_DATABASE_NAME, name.data(), (SQLSMALLINT) name.size(), &nameLen));
-    name.resize(nameLen);
+    name.resize(static_cast<size_t>(nameLen));
     return name;
 }
 
@@ -303,7 +303,7 @@ std::string SqlConnection::UserName() const
     std::string name(128, '\0');
     SQLSMALLINT nameLen {};
     RequireSuccess(SQLGetInfoA(m_hDbc, SQL_USER_NAME, name.data(), (SQLSMALLINT) name.size(), &nameLen));
-    name.resize(nameLen);
+    name.resize(static_cast<size_t>(nameLen));
     return name;
 }
 
@@ -312,7 +312,7 @@ std::string SqlConnection::ServerName() const
     std::string name(128, '\0');
     SQLSMALLINT nameLen {};
     RequireSuccess(SQLGetInfoA(m_hDbc, SQL_DBMS_NAME, (SQLPOINTER) name.data(), (SQLSMALLINT) name.size(), &nameLen));
-    name.resize(nameLen);
+    name.resize(static_cast<size_t>(nameLen));
     return name;
 }
 
@@ -321,7 +321,7 @@ std::string SqlConnection::ServerVersion() const
     std::string text(128, '\0');
     SQLSMALLINT textLen {};
     RequireSuccess(SQLGetInfoA(m_hDbc, SQL_DBMS_VER, (SQLPOINTER) text.data(), (SQLSMALLINT) text.size(), &textLen));
-    text.resize(textLen);
+    text.resize(static_cast<size_t>(textLen));
     return text;
 }
 

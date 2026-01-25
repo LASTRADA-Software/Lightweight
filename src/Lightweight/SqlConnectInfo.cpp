@@ -61,7 +61,7 @@ std::string SqlConnectionString::SanitizePwd(std::string_view input)
 SqlConnectionStringMap ParseConnectionString(SqlConnectionString const& connectionString)
 {
     auto pairs = connectionString.value | std::views::split(';') | std::views::transform([](auto pair_view) {
-                     return std::string_view(&*pair_view.begin(), std::ranges::distance(pair_view));
+                     return std::string_view(&*pair_view.begin(), static_cast<size_t>(std::ranges::distance(pair_view)));
                  });
 
     SqlConnectionStringMap result;
