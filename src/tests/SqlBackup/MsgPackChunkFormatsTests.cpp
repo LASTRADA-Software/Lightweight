@@ -4,6 +4,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <array>
+#include <bit>
 #include <cstring>
 #include <sstream>
 #include <string>
