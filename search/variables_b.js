@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['orderitemcount_0',['orderItemCount',['../dc/d12/structLargeDb_1_1GeneratorConfig.html#a053a901a54fb38ea24fbe9413b5361d2',1,'LargeDb::GeneratorConfig']]]
+  ['unique_0',['unique',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#ac7edfc2036f6d77ebce95c4a17d39fd8',1,'Lightweight::SqlColumnDeclaration']]]
 ];

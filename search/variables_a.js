@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['name_0',['name',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a4f44edc807219a6714f522cf31bc4953',1,'Lightweight::SqlColumnDeclaration::name'],['../d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#a8d75bccd08fdf35b48d793ca62eb0e82',1,'Lightweight::SqlSchema::IndexDefinition::name'],['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#ae37d4398d5efb5c7829fcc3c4117d70e',1,'Lightweight::SqlSchema::Table::name']]],
-  ['nullable_1',['nullable',['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10',1,'Lightweight::SqlRawColumnMetadata']]]
+  ['tablename_0',['tablename',['../d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html#a7337bbb0615e5f6eab7908828880f346',1,'Lightweight::SqlForeignKeyReferenceDefinition::tableName'],['../dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07',1,'Lightweight::SqlAlterTablePlan::tableName'],['../dd/d47/structLightweight_1_1SqlDropTablePlan.html#a881594ba67a9c5f1443d92f285b53bbe',1,'Lightweight::SqlDropTablePlan::tableName']]],
+  ['type_1',['type',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a4368430137de8b3dbb77d7b31b0112b1',1,'Lightweight::SqlColumnDeclaration']]]
 ];

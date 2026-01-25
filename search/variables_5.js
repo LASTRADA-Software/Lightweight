@@ -1,10 +1,9 @@
 var searchData=
 [
-  ['failedat_0',['failedAt',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a44e625e09b82ed9a3612acc9faf3eac8',1,'Lightweight::SqlMigration::RevertResult']]],
-  ['fieldnameat_1',['FieldNameAt',['../d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24',1,'Lightweight']]],
-  ['fields_2',['fields',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ae825585f8af8a8d21b07068e9bfc9e98',1,'Lightweight::SqlBackup::TableInfo']]],
-  ['foreignkey_3',['foreignKey',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a59119220ab43706394b2a1f22caf183d',1,'Lightweight::SqlColumnDeclaration']]],
-  ['foreignkeys_4',['foreignkeys',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad1aedd312e0a7ea569f6d9ac712a39e6',1,'Lightweight::SqlBackup::TableInfo::foreignKeys'],['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#a774feb3fa67174c1d22ffa9463877e9e',1,'Lightweight::SqlSchema::Table::foreignKeys']]],
-  ['fullyqualifiednameof_5',['FullyQualifiedNameOf',['../d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03',1,'Lightweight']]],
-  ['fullyqualifiednamesof_6',['FullyQualifiedNamesOf',['../d7/d2f/group__DataMapper.html#ga8e59547a0c0c6f118824cab220ae43c4',1,'Lightweight']]]
+  ['index_0',['index',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046',1,'Lightweight::SqlColumnDeclaration']]],
+  ['isautoassignprimarykey_1',['IsAutoAssignPrimaryKey',['../d2/dd0/structLightweight_1_1Field.html#ad1ae892c7681d1d9de767871ca93e484',1,'Lightweight::Field']]],
+  ['isautoincrementprimarykey_2',['IsAutoIncrementPrimaryKey',['../d2/dd0/structLightweight_1_1Field.html#aff726016ae5bc77803f91ebdfc1b4921',1,'Lightweight::Field']]],
+  ['ismandatory_3',['IsMandatory',['../d2/dd0/structLightweight_1_1Field.html#aa408ad47ef3d6a169dad4dbf5ef243ce',1,'Lightweight::Field']]],
+  ['isoptional_4',['IsOptional',['../d2/dd0/structLightweight_1_1Field.html#aca64dd154091663b93852e0589c95630',1,'Lightweight::Field']]],
+  ['isprimarykey_5',['IsPrimaryKey',['../d2/dd0/structLightweight_1_1Field.html#a844764f259e40daa34fbacd27ef8e4a9',1,'Lightweight::Field']]]
 ];
