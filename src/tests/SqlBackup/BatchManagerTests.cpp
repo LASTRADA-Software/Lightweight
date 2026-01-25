@@ -13,8 +13,8 @@ using namespace Lightweight::SqlBackup; // For BackupValue
 
 TEST_CASE("BatchManager: Basic Flow", "[SqlBackup]")
 {
-    std::vector<SqlColumnDeclaration> cols = { { "id", SqlColumnTypeDefinitions::Integer {} },
-                                               { "name", SqlColumnTypeDefinitions::Text {} } };
+    std::vector<SqlColumnDeclaration> cols = { { .name = "id", .type = SqlColumnTypeDefinitions::Integer {} },
+                                               { .name = "name", .type = SqlColumnTypeDefinitions::Text {} } };
 
     int flushCount = 0;
     size_t lastRowCount = 0;
@@ -62,12 +62,12 @@ TEST_CASE("BatchManager: Basic Flow", "[SqlBackup]")
 
 TEST_CASE("BatchManager: PushBatch splitting", "[SqlBackup]")
 {
-    std::vector<SqlColumnDeclaration> cols = { { "val", SqlColumnTypeDefinitions::Integer {} } };
+    std::vector<SqlColumnDeclaration> cols = { { .name = "val", .type = SqlColumnTypeDefinitions::Integer {} } };
 
     int flushCount = 0;
     std::vector<size_t> flushedSizes;
 
-    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& /*rawCols*/, size_t count) {
         flushCount++;
         flushedSizes.push_back(count);
     };
@@ -113,7 +113,7 @@ TEST_CASE("BatchManager: PushBatch splitting", "[SqlBackup]")
 TEST_CASE("BatchManager: String Content", "[SqlBackup]")
 {
     std::vector<SqlColumnDeclaration> cols = {
-        { "txt", SqlColumnTypeDefinitions::Text { .size = 10 } } // maxLen 10
+        { .name = "txt", .type = SqlColumnTypeDefinitions::Text { .size = 10 } } // maxLen 10
     };
 
     std::vector<std::string> capturedStrings;
@@ -129,7 +129,7 @@ TEST_CASE("BatchManager: String Content", "[SqlBackup]")
 
         for (size_t i = 0; i < count; ++i)
         {
-            char const* s = buf + i * strideBytes;
+            char const* s = buf + (i * strideBytes);
             // Get length from indicator
             SQLLEN len = col.indicators[i];
             REQUIRE(len != SQL_NULL_DATA);
