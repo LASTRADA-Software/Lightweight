@@ -243,6 +243,18 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::DropForeignKey(std::string
     return *this;
 }
 
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddCompositeForeignKey(std::vector<std::string> columns,
+                                                                              std::string referencedTableName,
+                                                                              std::vector<std::string> referencedColumns)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::AddCompositeForeignKey {
+        .columns = std::move(columns),
+        .referencedTableName = std::move(referencedTableName),
+        .referencedColumns = std::move(referencedColumns),
+    });
+    return *this;
+}
+
 SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::Column(SqlColumnDeclaration column)
 {
     _plan.columns.emplace_back(std::move(column));
@@ -369,6 +381,64 @@ SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::RawSql(std::string_view sql)
         .sql = sql,
     });
     return *this;
+}
+
+SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::CreateIndex(std::string indexName,
+                                                                 std::string tableName,
+                                                                 std::vector<std::string> columns,
+                                                                 bool unique)
+{
+    _migrationPlan.steps.emplace_back(SqlCreateIndexPlan {
+        .schemaName = _schemaName,
+        .indexName = std::move(indexName),
+        .tableName = std::move(tableName),
+        .columns = std::move(columns),
+        .unique = unique,
+        .ifNotExists = false,
+    });
+    return *this;
+}
+
+SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::CreateUniqueIndex(std::string indexName,
+                                                                       std::string tableName,
+                                                                       std::vector<std::string> columns)
+{
+    return CreateIndex(std::move(indexName), std::move(tableName), std::move(columns), true);
+}
+
+SqlMigrationInsertBuilder SqlMigrationQueryBuilder::Insert(std::string_view tableName)
+{
+    _migrationPlan.steps.emplace_back(SqlInsertDataPlan {
+        .schemaName = _schemaName,
+        .tableName = std::string(tableName),
+        .columns = {},
+    });
+    return SqlMigrationInsertBuilder { std::get<SqlInsertDataPlan>(_migrationPlan.steps.back()) };
+}
+
+SqlMigrationUpdateBuilder SqlMigrationQueryBuilder::Update(std::string_view tableName)
+{
+    _migrationPlan.steps.emplace_back(SqlUpdateDataPlan {
+        .schemaName = _schemaName,
+        .tableName = std::string(tableName),
+        .setColumns = {},
+        .whereColumn = {},
+        .whereOp = {},
+        .whereValue = {},
+    });
+    return SqlMigrationUpdateBuilder { std::get<SqlUpdateDataPlan>(_migrationPlan.steps.back()) };
+}
+
+SqlMigrationDeleteBuilder SqlMigrationQueryBuilder::Delete(std::string_view tableName)
+{
+    _migrationPlan.steps.emplace_back(SqlDeleteDataPlan {
+        .schemaName = _schemaName,
+        .tableName = std::string(tableName),
+        .whereColumn = {},
+        .whereOp = {},
+        .whereValue = {},
+    });
+    return SqlMigrationDeleteBuilder { std::get<SqlDeleteDataPlan>(_migrationPlan.steps.back()) };
 }
 
 } // namespace Lightweight

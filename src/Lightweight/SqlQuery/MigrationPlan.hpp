@@ -411,6 +411,98 @@ struct SqlRawSqlPlan
     std::string_view sql;
 };
 
+/// @brief Represents a SQL INSERT data plan for migrations.
+///
+/// This structure represents an INSERT statement for a migration plan.
+///
+/// @ingroup QueryBuilder
+struct SqlInsertDataPlan
+{
+    /// The schema name of the table to insert into.
+    std::string schemaName;
+
+    /// The name of the table to insert into.
+    std::string tableName;
+
+    /// The columns and their values to insert.
+    std::vector<std::pair<std::string, SqlVariant>> columns;
+};
+
+/// @brief Represents a SQL UPDATE data plan for migrations.
+///
+/// This structure represents an UPDATE statement for a migration plan.
+///
+/// @ingroup QueryBuilder
+struct SqlUpdateDataPlan
+{
+    /// The schema name of the table to update.
+    std::string schemaName;
+
+    /// The name of the table to update.
+    std::string tableName;
+
+    /// The columns and their values to set.
+    std::vector<std::pair<std::string, SqlVariant>> setColumns;
+
+    /// The column name for the WHERE clause.
+    std::string whereColumn;
+
+    /// The comparison operator for the WHERE clause (e.g., "=", "<>", etc.).
+    std::string whereOp;
+
+    /// The value for the WHERE clause.
+    SqlVariant whereValue;
+};
+
+/// @brief Represents a SQL DELETE data plan for migrations.
+///
+/// This structure represents a DELETE statement for a migration plan.
+///
+/// @ingroup QueryBuilder
+struct SqlDeleteDataPlan
+{
+    /// The schema name of the table to delete from.
+    std::string schemaName;
+
+    /// The name of the table to delete from.
+    std::string tableName;
+
+    /// The column name for the WHERE clause.
+    std::string whereColumn;
+
+    /// The comparison operator for the WHERE clause (e.g., "=", "<>", etc.).
+    std::string whereOp;
+
+    /// The value for the WHERE clause.
+    SqlVariant whereValue;
+};
+
+/// @brief Represents a SQL CREATE INDEX plan for migrations.
+///
+/// This structure represents a CREATE INDEX statement for a migration plan.
+///
+/// @ingroup QueryBuilder
+struct SqlCreateIndexPlan
+{
+    /// The schema name of the table to create the index on.
+    std::string schemaName;
+
+    /// The name of the index to create.
+    std::string indexName;
+
+    /// The name of the table to create the index on.
+    std::string tableName;
+
+    /// The columns to include in the index.
+    std::vector<std::string> columns;
+
+    /// If true, creates a UNIQUE index.
+    bool unique { false };
+
+    /// If true, generates CREATE INDEX IF NOT EXISTS.
+    bool ifNotExists { false };
+};
+
 // clang-format off
 
 /// @brief Represents a single SQL migration plan element.
@@ -422,7 +514,11 @@ using SqlMigrationPlanElement = std::variant<
     SqlCreateTablePlan,
     SqlAlterTablePlan,
     SqlDropTablePlan,
-    SqlRawSqlPlan
+    SqlCreateIndexPlan,
+    SqlRawSqlPlan,
+    SqlInsertDataPlan,
+    SqlUpdateDataPlan,
+    SqlDeleteDataPlan
 >;
 
 // clang-format on
