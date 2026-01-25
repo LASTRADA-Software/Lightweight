@@ -95,8 +95,7 @@ if(NOT WIN32)
             GIT_TAG v1.11.3
             OPTIONS ${LIBZIP_OPTIONS}
         )
-        # Create alias to match system libzip target name
-        add_library(zip ALIAS libzip::zip)
+        # Note: CPM-built libzip already creates a `zip` target (libzip::zip is an alias to it)
     endif()
 endif()
 
