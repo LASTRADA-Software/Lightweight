@@ -71,22 +71,31 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
         case SQL_WCHAR:        // fixed-length Unicode (UTF-16) string
         case SQL_WVARCHAR:     // variable-length Unicode (UTF-16) string
         case SQL_WLONGVARCHAR: // long Unicode (UTF-16) string
-            returnCode =
-                SqlDataBinder<std::u16string>::GetColumn(stmt, column, &variant.emplace<std::u16string>(), indicator, cb);
+        {
+            std::u16string u16str;
+            returnCode = SqlDataBinder<std::u16string>::GetColumn(stmt, column, &u16str, indicator, cb);
 
-            if (cb.ServerType() == SqlServerType::SQLITE && SQL_SUCCEEDED(returnCode))
+            if (SQL_SUCCEEDED(returnCode))
             {
-                // The SQLite driver may return GUID columns as Unicode strings.
-                // Convert to UTF-8 and try to parse as GUID.
-                auto const& wstr = std::get<std::u16string>(variant);
-                auto u8str = ToUtf8(std::u16string_view(wstr));
+                // Convert UTF-16 to UTF-8 for consistent storage
+                auto u8str = ToUtf8(std::u16string_view(u16str));
                 std::string utf8str(reinterpret_cast<char const*>(u8str.data()), u8str.size());
-                if (auto maybeGuid = SqlGuid::TryParse(utf8str); maybeGuid)
+
+                // Try to parse as GUID first (SQLite may return GUID columns as Unicode strings)
+                if (cb.ServerType() == SqlServerType::SQLITE)
                 {
-                    variant = maybeGuid.value();
+                    if (auto maybeGuid = SqlGuid::TryParse(utf8str); maybeGuid)
+                    {
+                        variant = maybeGuid.value();
+                        break;
+                    }
                 }
+
+                // Store as std::string for easier handling
+                variant = std::move(utf8str);
             }
             break;
+        }
         case SQL_BINARY:        // fixed-length binary
         case SQL_VARBINARY:     // variable-length binary
         case SQL_LONGVARBINARY: // long binary
@@ -183,6 +192,11 @@ std::string SqlVariant::ToString() const
         [&](std::string_view v) { return std::string(v); },
         [&](std::u16string_view v) {
             auto u8String = ToUtf8(v);
+            auto stdString = std::string_view((char const*) u8String.data(), u8String.size());
+            return std::format("{}", stdString);
+        },
+        [&](std::u16string const& v) {
+            auto u8String = ToUtf8(std::u16string_view(v));
             auto stdString = std::string_view((char const*) u8String.data(), u8String.size());
             return std::format("{}", stdString);
         },
