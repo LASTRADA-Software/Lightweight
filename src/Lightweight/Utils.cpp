@@ -23,8 +23,11 @@ void RequireSuccess(SQLHSTMT hStmt, SQLRETURN error, std::source_location source
     auto const errorInfo = SqlErrorInfo::FromStatementHandle(hStmt);
     if (errorInfo.sqlState == "07009")
     {
-        SqlLogger::GetLogger().OnError(errorInfo, sourceLocation);
-        throw std::invalid_argument(std::format("SQL error: {}", errorInfo));
+        // Invalid Descriptor Index (07009) is expected when accessing optional ODBC columns
+        // that some drivers don't return. Don't log this as an error - the calling code
+        // handles it gracefully by catching the exception and using default values.
+        throw std::invalid_argument(
+            std::format("SQL error: {} in {}:{}", errorInfo, sourceLocation.file_name(), sourceLocation.line()));
     }
     else
         throw SqlException(errorInfo);
