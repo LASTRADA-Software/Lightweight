@@ -101,7 +101,14 @@ endif()
 target_sources(LightweightTest PRIVATE ${SOURCE_FILES})
 
 enable_testing()
-add_test(NAME LightweightTest COMMAND LightweightTest)
+
+# Optional extra arguments to pass to test executables
+# Usage: cmake -DLIGHTWEIGHT_TEST_ARGS="--test-env=sqlite3" ...
+# Or:    ctest --preset linux-clang-debug (after configuring with the above)
+set(LIGHTWEIGHT_TEST_ARGS "" CACHE STRING "Extra arguments to pass to test executables")
+separate_arguments(LIGHTWEIGHT_TEST_ARGS_LIST NATIVE_COMMAND "${LIGHTWEIGHT_TEST_ARGS}")
+
+add_test(NAME LightweightTest COMMAND LightweightTest ${LIGHTWEIGHT_TEST_ARGS_LIST})
 
 install(TARGETS LightweightTest DESTINATION bin)
 install(FILES test_dbtool.py DESTINATION ${CMAKE_INSTALL_DATADIR}/Lightweight/tests)
@@ -121,4 +128,5 @@ add_test(NAME DbToolIntegrationTest
         --dbtool $<TARGET_FILE:dbtool>
         --plugins-dir $<TARGET_FILE_DIR:dummy_migration_plugin>
         --connection-string "DRIVER=${SQLITE_DRIVER_NAME};Database=test_dbtool_ctest.db"
+        ${LIGHTWEIGHT_TEST_ARGS_LIST}
 )
