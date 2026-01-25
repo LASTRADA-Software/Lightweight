@@ -1639,7 +1639,12 @@ TEST_CASE("SqlBackup: Restore rejects unsupported format version", "[SqlBackup]"
             else
             {
                 // Copy other entries as-is
+#if LIBZIP_VERSION_MAJOR > 1 || (LIBZIP_VERSION_MAJOR == 1 && LIBZIP_VERSION_MINOR >= 8)
                 zip_source_t* src = zip_source_zip_file(dstZip, srcZip, static_cast<zip_uint64_t>(i), 0, 0, -1, nullptr);
+#else
+                // NOLINTNEXTLINE(clang-diagnostic-deprecated-declarations)
+                zip_source_t* src = zip_source_zip(dstZip, srcZip, static_cast<zip_uint64_t>(i), 0, 0, -1);
+#endif
                 (void) zip_file_add(dstZip, name, src, ZIP_FL_OVERWRITE);
             }
         }
