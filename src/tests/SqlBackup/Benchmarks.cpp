@@ -20,7 +20,7 @@ namespace
 
 struct LambdaProgressManager: SqlBackup::ProgressManager
 {
-    void Update(SqlBackup::Progress const&) override {}
+    void Update(SqlBackup::Progress const& /*p*/) override {}
     void AllDone() override {}
 };
 
@@ -62,7 +62,8 @@ void SetupBenchmarkDatabase(size_t rows)
     stmt.ExecuteDirect("DROP TABLE IF EXISTS bench_table");
 
     // Create a table with mix of types to stress packed formats
-    std::string const idType = conn.ServerType() == SqlServerType::MICROSOFT_SQL ? "INT IDENTITY(1,1) PRIMARY KEY" : "INTEGER PRIMARY KEY";
+    std::string const idType =
+        conn.ServerType() == SqlServerType::MICROSOFT_SQL ? "INT IDENTITY(1,1) PRIMARY KEY" : "INTEGER PRIMARY KEY";
     stmt.ExecuteDirect(std::format(R"(
         CREATE TABLE bench_table (
             id {},
@@ -70,7 +71,8 @@ void SetupBenchmarkDatabase(size_t rows)
             val_real REAL,
             val_text VARCHAR(100)
         )
-    )", idType));
+    )",
+                                   idType));
 
     stmt.ExecuteDirect("BEGIN TRANSACTION");
     stmt.Prepare("INSERT INTO bench_table (val_int, val_real, val_text) VALUES (?, ?, ?)");

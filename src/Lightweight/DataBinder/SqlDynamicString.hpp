@@ -398,7 +398,7 @@ struct SqlBasicStringOperations<SqlDynamicString<N, T>>
 
     static void Resize(ValueType* str, SQLLEN indicator) noexcept
     {
-        str->value().resize(indicator);
+        str->value().resize(static_cast<size_t>(indicator));
     }
 };
 

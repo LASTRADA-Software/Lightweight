@@ -139,8 +139,10 @@ TEST_CASE_METHOD(SqlTestFixture,
 
     // Verify 'parent_id' column has per-column foreign key reference
     REQUIRE(parentIdIt->foreignKey.has_value());
+    // NOLINTBEGIN(bugprone-unchecked-optional-access) - checked by REQUIRE above
     CHECK(parentIdIt->foreignKey->tableName == "FkTestParent");
     CHECK(parentIdIt->foreignKey->columnName == "id");
+    // NOLINTEND(bugprone-unchecked-optional-access)
 
     // Verify foreign keys are also present at table level
     REQUIRE(plan.foreignKeys.size() == 1);

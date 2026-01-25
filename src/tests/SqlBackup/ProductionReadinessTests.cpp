@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <fstream>
 
+// NOLINTBEGIN(*) - third-party libzip header
 #if defined(__clang__)
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Wnullability-extension"
@@ -20,6 +21,7 @@
 #if defined(__clang__)
     #pragma clang diagnostic pop
 #endif
+// NOLINTEND(*)
 
 #include <nlohmann/json.hpp>
 
@@ -68,7 +70,10 @@ struct ScopedFileRemoved
         RemoveIfExists();
     }
 
-    ~ScopedFileRemoved() { RemoveIfExists(); }
+    ~ScopedFileRemoved()
+    {
+        RemoveIfExists();
+    }
 
     ScopedFileRemoved(ScopedFileRemoved const&) = delete;
     ScopedFileRemoved& operator=(ScopedFileRemoved const&) = delete;
@@ -152,11 +157,13 @@ TEST_CASE("SqlBackup: Format version in metadata", "[SqlBackup][ProductionReadin
 
     zip_int64_t const metadataIndex = zip_name_locate(zip, "metadata.json", 0);
     REQUIRE(metadataIndex >= 0);
+    auto const metadataIndexU = static_cast<zip_uint64_t>(metadataIndex);
 
     zip_stat_t metaStat;
-    zip_stat_index(zip, metadataIndex, 0, &metaStat);
+    zip_stat_index(zip, metadataIndexU, 0, &metaStat);
 
-    zip_file_t* file = zip_fopen_index(zip, metadataIndex, 0);
+    zip_file_t* file = zip_fopen_index(zip, metadataIndexU, 0);
+    REQUIRE(file != nullptr);
     std::string metadataStr(metaStat.size, '\0');
     zip_fread(file, metadataStr.data(), metaStat.size);
     zip_fclose(file);
@@ -184,11 +191,13 @@ TEST_CASE("SqlBackup: Checksums in backup", "[SqlBackup][ProductionReadiness]")
 
     zip_int64_t const checksumIndex = zip_name_locate(zip, "checksums.json", 0);
     REQUIRE(checksumIndex >= 0);
+    auto const checksumIndexU = static_cast<zip_uint64_t>(checksumIndex);
 
     zip_stat_t checksumStat;
-    zip_stat_index(zip, checksumIndex, 0, &checksumStat);
+    zip_stat_index(zip, checksumIndexU, 0, &checksumStat);
 
-    zip_file_t* file = zip_fopen_index(zip, checksumIndex, 0);
+    zip_file_t* file = zip_fopen_index(zip, checksumIndexU, 0);
+    REQUIRE(file != nullptr);
     std::string checksumStr(checksumStat.size, '\0');
     zip_fread(file, checksumStr.data(), checksumStat.size);
     zip_fclose(file);
@@ -261,7 +270,9 @@ TEST_CASE("SqlBackup: Filter tables in restore", "[SqlBackup][ProductionReadines
 
         // users_table should exist and have data
         auto userCount = stmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM users_table");
-        REQUIRE(userCount == 1);
+        REQUIRE(userCount.has_value());
+        // NOLINTNEXTLINE(bugprone-unchecked-optional-access) - checked by REQUIRE above
+        REQUIRE(userCount.value() == 1);
 
         // products_table and orders_table should not exist
         // (attempting to query them would throw, so we check via schema)

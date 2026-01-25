@@ -6,8 +6,8 @@
 #include <cstdint>
 #include <cstring>
 #include <iomanip>
-#include <sstream>
 #include <span>
+#include <sstream>
 #include <string>
 
 namespace Lightweight::SqlBackup
@@ -20,7 +20,10 @@ class Sha256
     static constexpr size_t DigestSize = 32;
     static constexpr size_t BlockSize = 64;
 
-    Sha256() { Reset(); }
+    Sha256()
+    {
+        Reset();
+    }
 
     void Reset()
     {
@@ -70,9 +73,15 @@ class Sha256
         }
     }
 
-    void Update(std::span<uint8_t const> data) { Update(data.data(), data.size()); }
+    void Update(std::span<uint8_t const> data)
+    {
+        Update(data.data(), data.size());
+    }
 
-    void Update(std::string_view data) { Update(data.data(), data.size()); }
+    void Update(std::string_view data)
+    {
+        Update(data.data(), data.size());
+    }
 
     std::array<uint8_t, DigestSize> Finalize()
     {
@@ -90,13 +99,13 @@ class Sha256
 
         // Append bit count (big-endian)
         std::array<uint8_t, 8> countBytes {};
-        for (int i = 0; i < 8; ++i)
+        for (size_t i = 0; i < 8; ++i)
             countBytes[i] = static_cast<uint8_t>(bitCount >> (56 - i * 8));
         Update(countBytes.data(), 8);
 
         // Output hash
         std::array<uint8_t, DigestSize> digest {};
-        for (int i = 0; i < 8; ++i)
+        for (size_t i = 0; i < 8; ++i)
         {
             digest[(i * 4) + 0] = static_cast<uint8_t>(_state[i] >> 24);
             digest[(i * 4) + 1] = static_cast<uint8_t>(_state[i] >> 16);
@@ -121,7 +130,10 @@ class Sha256
         return ToHex(hasher.Finalize());
     }
 
-    static std::string Hash(std::string_view data) { return Hash(data.data(), data.size()); }
+    static std::string Hash(std::string_view data)
+    {
+        return Hash(data.data(), data.size());
+    }
 
   private:
     static constexpr std::array<uint32_t, 64> K = {
@@ -135,33 +147,52 @@ class Sha256
         0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
     };
 
-    static uint32_t RotateRight(uint32_t x, int n) { return (x >> n) | (x << (32 - n)); }
+    static uint32_t RotateRight(uint32_t x, int n)
+    {
+        return (x >> n) | (x << (32 - n));
+    }
 
-    static uint32_t Ch(uint32_t x, uint32_t y, uint32_t z) { return (x & y) ^ (~x & z); }
+    static uint32_t Ch(uint32_t x, uint32_t y, uint32_t z)
+    {
+        return (x & y) ^ (~x & z);
+    }
 
-    static uint32_t Maj(uint32_t x, uint32_t y, uint32_t z) { return (x & y) ^ (x & z) ^ (y & z); }
+    static uint32_t Maj(uint32_t x, uint32_t y, uint32_t z)
+    {
+        return (x & y) ^ (x & z) ^ (y & z);
+    }
 
-    static uint32_t Sigma0(uint32_t x) { return RotateRight(x, 2) ^ RotateRight(x, 13) ^ RotateRight(x, 22); }
+    static uint32_t Sigma0(uint32_t x)
+    {
+        return RotateRight(x, 2) ^ RotateRight(x, 13) ^ RotateRight(x, 22);
+    }
 
-    static uint32_t Sigma1(uint32_t x) { return RotateRight(x, 6) ^ RotateRight(x, 11) ^ RotateRight(x, 25); }
+    static uint32_t Sigma1(uint32_t x)
+    {
+        return RotateRight(x, 6) ^ RotateRight(x, 11) ^ RotateRight(x, 25);
+    }
 
-    static uint32_t LowerSigma0(uint32_t x) { return RotateRight(x, 7) ^ RotateRight(x, 18) ^ (x >> 3); }
+    static uint32_t LowerSigma0(uint32_t x)
+    {
+        return RotateRight(x, 7) ^ RotateRight(x, 18) ^ (x >> 3);
+    }
 
-    static uint32_t LowerSigma1(uint32_t x) { return RotateRight(x, 17) ^ RotateRight(x, 19) ^ (x >> 10); }
+    static uint32_t LowerSigma1(uint32_t x)
+    {
+        return RotateRight(x, 17) ^ RotateRight(x, 19) ^ (x >> 10);
+    }
 
     void ProcessBlock(uint8_t const* block)
     {
         std::array<uint32_t, 64> W {};
 
         // Prepare message schedule
-        for (int i = 0; i < 16; ++i)
+        for (size_t i = 0; i < 16; ++i)
         {
-            W[i] = (static_cast<uint32_t>(block[i * 4]) << 24)
-                   | (static_cast<uint32_t>(block[(i * 4) + 1]) << 16)
-                   | (static_cast<uint32_t>(block[(i * 4) + 2]) << 8)
-                   | static_cast<uint32_t>(block[(i * 4) + 3]);
+            W[i] = (static_cast<uint32_t>(block[i * 4]) << 24) | (static_cast<uint32_t>(block[(i * 4) + 1]) << 16)
+                   | (static_cast<uint32_t>(block[(i * 4) + 2]) << 8) | static_cast<uint32_t>(block[(i * 4) + 3]);
         }
-        for (int i = 16; i < 64; ++i)
+        for (size_t i = 16; i < 64; ++i)
             W[i] = LowerSigma1(W[i - 2]) + W[i - 7] + LowerSigma0(W[i - 15]) + W[i - 16];
 
         // Working variables
@@ -175,7 +206,7 @@ class Sha256
         uint32_t h = _state[7];
 
         // Compression
-        for (int i = 0; i < 64; ++i)
+        for (size_t i = 0; i < 64; ++i)
         {
             uint32_t const T1 = h + Sigma1(e) + Ch(e, f, g) + K[i] + W[i];
             uint32_t const T2 = Sigma0(a) + Maj(a, b, c);

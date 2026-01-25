@@ -61,7 +61,7 @@ namespace
                 continue;
 
             auto const schemaName = schemaOpt.value_or("");
-            auto const name = *nameOpt;
+            auto const& name = *nameOpt;
             auto const type = typeOpt.value_or("");
 
             if (schemaName == "sys" || schemaName == "INFORMATION_SCHEMA")
@@ -160,7 +160,7 @@ namespace
             // SQLite ODBC driver might return incorrect KEY_SEQ. Use PRAGMA table_info instead.
             std::string query;
             if (!table.schema.empty())
-                query = std::format("PRAGMA \"{}\".table_info(\"{}\")", table.schema, table.table);
+                query = std::format(R"(PRAGMA "{}".table_info("{}"))", table.schema, table.table);
             else
                 query = std::format("PRAGMA table_info(\"{}\")", table.table);
 
@@ -581,9 +581,9 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
                     column.type = SqlColumnTypeDefinitions::Bool {};
                 }
             }
+            // NOLINTNEXTLINE(bugprone-empty-catch) - intentionally ignoring column type detection errors
             catch (std::exception&)
             {
-                // ignore
             }
 
             // accumulated properties

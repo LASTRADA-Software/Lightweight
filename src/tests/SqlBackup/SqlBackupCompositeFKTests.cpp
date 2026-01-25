@@ -70,7 +70,7 @@ struct LambdaProgressManager: SqlBackup::ProgressManager
 
     void AllDone() override {}
 
-    void SetMaxTableNameLength(size_t) override {}
+    void SetMaxTableNameLength(size_t /*len*/) override {}
 };
 
 } // namespace
@@ -164,26 +164,29 @@ TEST_CASE("SqlBackup: Composite Foreign Keys", "[SqlBackup][ForeignKeys]")
         SqlStatement stmt { conn };
 
         // Check data
-        auto countParents = stmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM Parents").value();
-        REQUIRE(countParents == 2);
+        // NOLINTBEGIN(bugprone-unchecked-optional-access) - Catch2 REQUIRE checks has_value()
+        auto countParents = stmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM Parents");
+        REQUIRE(countParents.has_value());
+        REQUIRE(countParents.value() == 2);
 
-        auto countChildren = stmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM Children").value();
-        REQUIRE(countChildren == 2);
+        auto countChildren = stmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM Children");
+        REQUIRE(countChildren.has_value());
+        REQUIRE(countChildren.value() == 2);
 
         if (conn.ServerType() == SqlServerType::MICROSOFT_SQL)
         {
             // Check Foreign Keys (MSSQL specific check)
             auto fkCount = stmt.ExecuteDirectScalar<int>(
-                                   "SELECT COUNT(*) FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID('Children')")
-                               .value();
-            REQUIRE(fkCount == 1);
+                "SELECT COUNT(*) FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID('Children')");
+            REQUIRE(fkCount.has_value());
+            REQUIRE(fkCount.value() == 1);
 
             // Detailed check on columns
-            auto fkColCount =
-                stmt.ExecuteDirectScalar<int>(
-                        "SELECT COUNT(*) FROM sys.foreign_key_columns WHERE parent_object_id = OBJECT_ID('Children')")
-                    .value();
-            REQUIRE(fkColCount == 2);
+            auto fkColCount = stmt.ExecuteDirectScalar<int>(
+                "SELECT COUNT(*) FROM sys.foreign_key_columns WHERE parent_object_id = OBJECT_ID('Children')");
+            REQUIRE(fkColCount.has_value());
+            REQUIRE(fkColCount.value() == 2);
         }
+        // NOLINTEND(bugprone-unchecked-optional-access)
     }
 }

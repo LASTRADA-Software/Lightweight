@@ -803,8 +803,10 @@ void SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColumnBatch, Mo
                 RequireSuccess(SQLExecute(m_hStmt));
                 ProcessPostExecuteCallbacks();
             },
-            std::make_tuple(std::ref(*std::ranges::next(std::ranges::begin(firstColumnBatch), rowIndex)),
-                            std::ref(*std::ranges::next(std::ranges::begin(moreColumnBatches), rowIndex))...));
+            std::make_tuple(
+                std::ref(*std::ranges::next(std::ranges::begin(firstColumnBatch), static_cast<std::ptrdiff_t>(rowIndex))),
+                std::ref(
+                    *std::ranges::next(std::ranges::begin(moreColumnBatches), static_cast<std::ptrdiff_t>(rowIndex)))...));
     }
 }
 

@@ -67,12 +67,14 @@ struct TypedBatchColumn: BatchColumn
         indicators.push_back(SQL_NULL_DATA);
     }
 
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
                        std::vector<bool> const& nulls,
                        size_t offset,
                        size_t count) override
     {
         std::visit(
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
                 for (size_t i = 0; i < count; ++i)
@@ -291,6 +293,7 @@ struct DateTimeBatchColumn: BatchColumn
                        size_t count) override
     {
         std::visit(
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
                 for (size_t i = 0; i < count; ++i)
@@ -425,6 +428,7 @@ struct DateBatchColumn: BatchColumn
                        size_t count) override
     {
         std::visit(
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
                 for (size_t i = 0; i < count; ++i)
@@ -562,6 +566,7 @@ struct TimeBatchColumn: BatchColumn
                        size_t count) override
     {
         std::visit(
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
                 for (size_t i = 0; i < count; ++i)
@@ -681,6 +686,7 @@ struct StringTimeBatchColumn: BatchColumn
                        size_t count) override
     {
         std::visit(
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
                 for (size_t i = 0; i < count; ++i)
@@ -841,6 +847,7 @@ struct MsTimeBatchColumn: BatchColumn
                        size_t count) override
     {
         std::visit(
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
                 for (size_t i = 0; i < count; ++i)
@@ -923,12 +930,14 @@ struct StringBatchColumn: BatchColumn
             metadata.sqlType = maxLen > 255 ? SQL_LONGVARCHAR : SQL_VARCHAR;
     }
 
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
                        std::vector<bool> const& nulls,
                        size_t offset,
                        size_t count) override
     {
         std::visit(
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
                 for (size_t i = 0; i < count; ++i)
@@ -1001,7 +1010,9 @@ struct StringBatchColumn: BatchColumn
         buffer.resize(bufOffset + maxLen);
         std::memcpy(buffer.data() + bufOffset, s.data(), copyLen);
         // We don't need null terminator for SQL_C_BINARY, but zeroing rest is good practice
-        std::fill(buffer.begin() + bufOffset + copyLen, buffer.begin() + bufOffset + maxLen, 0);
+        std::fill(buffer.begin() + static_cast<std::ptrdiff_t>(bufOffset + copyLen),
+                  buffer.begin() + static_cast<std::ptrdiff_t>(bufOffset + maxLen),
+                  0);
         indicators.push_back(static_cast<SQLLEN>(copyLen));
     }
 
@@ -1047,12 +1058,14 @@ struct WideStringBatchColumn: BatchColumn
             metadata.sqlType = maxLen > 255 ? SQL_WLONGVARCHAR : SQL_WVARCHAR;
     }
 
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
                        std::vector<bool> const& nulls,
                        size_t offset,
                        size_t count) override
     {
         std::visit(
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
                 for (size_t i = 0; i < count; ++i)
@@ -1090,10 +1103,9 @@ struct WideStringBatchColumn: BatchColumn
                     {
                         if (idx < inVec.size())
                         {
-                            auto val = inVec[idx];
                             if constexpr (!std::is_same_v<typename VecT::value_type, std::vector<uint8_t>>)
                             {
-                                PushString(std::format("{}", val));
+                                PushString(std::format("{}", inVec[idx]));
                             }
                             else
                             {
@@ -1198,12 +1210,14 @@ struct BinaryBatchColumn: BatchColumn
             metadata.sqlType = maxLen > 255 ? SQL_LONGVARBINARY : SQL_VARBINARY;
     }
 
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
                        std::vector<bool> const& nulls,
                        size_t offset,
                        size_t count) override
     {
         std::visit(
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
                 for (size_t i = 0; i < count; ++i)
@@ -1261,17 +1275,17 @@ struct BinaryBatchColumn: BatchColumn
                                 for (size_t b = 0; b < copyLen; ++b)
                                 {
                                     char h1 = s[b * 2];
-                                    char h2 = s[b * 2 + 1];
+                                    char h2 = s[(b * 2) + 1];
                                     auto fromHex = [](char c) -> uint8_t {
                                         if (c >= '0' && c <= '9')
-                                            return c - '0';
+                                            return static_cast<uint8_t>(c - '0');
                                         if (c >= 'A' && c <= 'F')
-                                            return c - 'A' + 10;
+                                            return static_cast<uint8_t>(c - 'A' + 10);
                                         if (c >= 'a' && c <= 'f')
-                                            return c - 'a' + 10;
+                                            return static_cast<uint8_t>(c - 'a' + 10);
                                         return 0;
                                     };
-                                    buffer[bufOffset + b] = (fromHex(h1) << 4) | fromHex(h2);
+                                    buffer[bufOffset + b] = static_cast<uint8_t>((fromHex(h1) << 4) | fromHex(h2));
                                 }
 
                                 if (copyLen < maxLen)
@@ -1391,6 +1405,7 @@ struct GuidBatchColumn: BatchColumn
                        size_t count) override
     {
         std::visit(
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
                 for (size_t i = 0; i < count; ++i)
@@ -1504,6 +1519,7 @@ BatchManager::BatchManager(BatchManager&&) noexcept = default;
 
 BatchManager& BatchManager::operator=(BatchManager&&) noexcept = default;
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration const& col) const
 {
     SqlRawColumnMetadata meta {};

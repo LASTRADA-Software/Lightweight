@@ -1373,7 +1373,7 @@ RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
     else if constexpr (HasPrimaryKey<Record>)
     {
         if constexpr (UsePkOverride == PrimaryKeySource::Override)
-            return *pkOverride;
+            return *pkOverride; // NOLINT(bugprone-unchecked-optional-access)
         else
             return RecordPrimaryKeyOf(record).Value();
     }
@@ -2206,7 +2206,7 @@ Record& DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
     }
 #else
     Reflection::EnumerateMembers<ElementMask>(
-        record, [stmt, i = SQLSMALLINT { InitialOffset }]<size_t I, typename Field>(Field& field) mutable {
+        record, [stmt, i = SQLUSMALLINT { InitialOffset }]<size_t I, typename Field>(Field& field) mutable {
             if constexpr (IsField<Field>)
             {
                 stmt->BindOutputColumn(i++, &field.MutableValue());

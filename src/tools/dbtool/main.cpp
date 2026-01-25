@@ -1192,10 +1192,17 @@ int Restore(Options const& options)
             return EXIT_FAILURE;
         }
 
+        auto const metadataIndexU = static_cast<zip_uint64_t>(metadataIndex);
         zip_stat_t metaStat;
-        zip_stat_index(zip, metadataIndex, 0, &metaStat);
+        zip_stat_index(zip, metadataIndexU, 0, &metaStat);
 
-        zip_file_t* file = zip_fopen_index(zip, metadataIndex, 0);
+        zip_file_t* file = zip_fopen_index(zip, metadataIndexU, 0);
+        if (!file)
+        {
+            std::println(std::cerr, "Error: Failed to open metadata.json in backup.");
+            zip_close(zip);
+            return EXIT_FAILURE;
+        }
         std::string metadataStr(metaStat.size, '\0');
         zip_fread(file, metadataStr.data(), metaStat.size);
         zip_fclose(file);

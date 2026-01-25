@@ -39,6 +39,11 @@ struct ScopedFileRemoved
     {
         RemoveIfExists();
     }
+
+    ScopedFileRemoved(ScopedFileRemoved const&) = delete;
+    ScopedFileRemoved& operator=(ScopedFileRemoved const&) = delete;
+    ScopedFileRemoved(ScopedFileRemoved&&) = delete;
+    ScopedFileRemoved& operator=(ScopedFileRemoved&&) = delete;
 };
 
 struct SilentProgressManager: SqlBackup::ProgressManager
@@ -138,8 +143,8 @@ TEST_CASE("SqlBackup: Composite Primary Key Order", "[SqlBackup][MultiPk]")
                     explicitPks.emplace_back(pk, name);
                 }
             }
-            std::sort(explicitPks.begin(), explicitPks.end());
-            for (auto const& p : explicitPks)
+            std::ranges::sort(explicitPks);
+            for (auto const& p: explicitPks)
                 pkColumns.push_back(p.second);
         }
 

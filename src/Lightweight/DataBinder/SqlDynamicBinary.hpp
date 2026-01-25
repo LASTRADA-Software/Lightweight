@@ -202,20 +202,20 @@ struct SqlDataBinder<SqlDynamicBinary<N>>
                 // We have a truncation and the server does not know how much data is left.
                 result->resize(result->size() - 1);
             else if (*indicator <= static_cast<SQLLEN>(result->size()))
-                result->resize(*indicator);
+                result->resize(static_cast<size_t>(*indicator));
             else
             {
                 // We have a truncation and the server knows how much data is left.
                 // Extend the buffer and fetch the rest via SQLGetData.
 
                 auto const totalCharsRequired = *indicator;
-                result->resize(totalCharsRequired + 1);
+                result->resize(static_cast<size_t>(totalCharsRequired + 1));
                 auto const sqlResult =
                     SQLGetData(stmt, column, SQL_C_BINARY, (SQLPOINTER) result->data(), totalCharsRequired + 1, indicator);
                 (void) sqlResult;
                 assert(SQL_SUCCEEDED(sqlResult));
                 assert(*indicator == totalCharsRequired);
-                result->resize(totalCharsRequired);
+                result->resize(static_cast<size_t>(totalCharsRequired));
             }
         });
 

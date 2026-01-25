@@ -145,7 +145,7 @@ namespace
         for (unsigned i = 0; i < attempt; ++i)
         {
             delay = std::chrono::duration_cast<std::chrono::milliseconds>(
-                std::chrono::duration<double, std::milli>(delay.count() * settings.backoffMultiplier));
+                std::chrono::duration<double, std::milli>(static_cast<double>(delay.count()) * settings.backoffMultiplier));
         }
         return std::min(delay, settings.maxDelay);
     }
@@ -159,7 +159,7 @@ namespace
     /// @return The result of the function.
     /// @throws SqlException if max retries exceeded or non-transient error occurs.
     template <typename Func>
-    auto RetryOnTransientError(Func&& func,
+    auto RetryOnTransientError(Func&& func, // NOLINT(cppcoreguidelines-missing-std-forward)
                                RetrySettings const& settings,
                                ProgressManager& progress,
                                std::string const& operation) -> decltype(func())
@@ -228,16 +228,16 @@ namespace
 
     struct ZipEntryInfo
     {
-        zip_int64_t index;
+        zip_int64_t index {};
         std::string name;
-        zip_uint64_t size;
+        zip_uint64_t size {};
         bool valid = false;
     };
 
     template <typename Container>
     Container ReadZipEntry(zip_t* zip, zip_int64_t index, zip_uint64_t size)
     {
-        zip_file_t* file = zip_fopen_index(zip, index, 0);
+        zip_file_t* file = zip_fopen_index(zip, static_cast<zip_uint64_t>(index), 0);
         if (!file)
             return {};
 
@@ -247,7 +247,7 @@ namespace
         zip_int64_t bytesRead = zip_fread(file, data.data(), size);
         zip_fclose(file);
 
-        if (bytesRead < 0 || static_cast<zip_uint64_t>(bytesRead) != size)
+        if (bytesRead < 0 || std::cmp_not_equal(bytesRead, size))
             return {};
 
         return data;
@@ -281,6 +281,7 @@ namespace
     ///
     /// For MS SQL Server, DECIMAL columns are wrapped in CONVERT(VARCHAR, ...) to preserve
     /// full precision, as the ODBC driver loses precision when reading DECIMAL as SQL_C_CHAR.
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     std::string BuildSelectQueryWithOffset(SqlQueryFormatter const& formatter,
                                            SqlServerType serverType,
                                            std::string const& tableName,
@@ -292,9 +293,8 @@ namespace
 
         // Check if we need special handling for MSSQL DECIMAL columns
         bool const needsMssqlDecimalConvert =
-            serverType == SqlServerType::MICROSOFT_SQL && std::any_of(columns.begin(), columns.end(), [](auto const& c) {
-                return std::holds_alternative<Decimal>(c.type);
-            });
+            serverType == SqlServerType::MICROSOFT_SQL
+            && std::ranges::any_of(columns, [](auto const& c) { return std::holds_alternative<Decimal>(c.type); });
 
         if (needsMssqlDecimalConvert)
         {
@@ -450,7 +450,8 @@ namespace
 
             // libzip defers writing until close(), so we must ensure the buffer survives.
             // We give ownership to libzip by allocating with malloc and passing freeData=true.
-            // NOLINTNEXTLINE(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory)
+            // zip_source_buffer takes ownership when freeData=1, and zip_file_add takes ownership of source on success.
+            // NOLINTNEXTLINE(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory,clang-analyzer-unix.Malloc)
             void* persistentData = std::malloc(data.size());
             if (!persistentData)
                 throw std::bad_alloc();
@@ -465,8 +466,12 @@ namespace
                 throw std::bad_alloc();
             }
 
-            zip_int64_t const entryIndex =
-                zip_file_add(ctx.zip, entryName.c_str(), source, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
+            // libzip takes ownership via zip_source_buffer(freeData=1), so no leak
+            zip_int64_t const entryIndex = zip_file_add( // NOLINT(clang-analyzer-unix.Malloc)
+                ctx.zip,
+                entryName.c_str(),
+                source,
+                ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
             if (entryIndex < 0)
             {
                 zip_source_free(source);
@@ -1066,9 +1071,9 @@ namespace
                                 SqlStatement { workerConn }.ExecuteDirect(
                                     std::format("SET IDENTITY_INSERT {} OFF", identityTable));
                             }
-                            catch (...)
+                            catch (...) // NOLINT(bugprone-empty-catch)
                             {
-                                // Ignore errors during cleanup
+                                // Best-effort cleanup - failure doesn't affect restore correctness
                             }
                         }
 
@@ -1259,6 +1264,7 @@ namespace
                 continue;
 
             std::vector<SqlAlterTableCommand> commands;
+            commands.reserve(info.foreignKeys.size());
             for (auto const& fk: info.foreignKeys)
             {
                 commands.emplace_back(
@@ -1284,6 +1290,7 @@ namespace
         }
     }
 
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void RecreateDatabaseSchema(SqlConnectionString const& connectionString,
                                 std::string const& schema,
                                 std::map<std::string, TableInfo> const& tableMap,
@@ -1390,9 +1397,9 @@ namespace
                         SqlStatement { conn }.ExecuteDirect(
                             std::format("ALTER TABLE {} DROP CONSTRAINT IF EXISTS \"{}\"", formattedTableName, fkName));
                     }
-                    catch (...)
+                    catch (...) // NOLINT(bugprone-empty-catch)
                     {
-                        // Ignore errors - constraint might not exist
+                        // Best-effort cleanup - constraint might not exist
                     }
                 }
             }
@@ -1451,6 +1458,7 @@ namespace
     }
 } // namespace
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::string CreateMetadata(SqlConnectionString const& connectionString,
                            SqlSchema::TableList const& tables,
                            std::string const& schema)
@@ -1481,9 +1489,9 @@ std::string CreateMetadata(SqlConnectionString const& connectionString,
         if (fullVersion.has_value())
             serverInfo["full_version"] = fullVersion.value();
     }
-    catch (...)
+    catch (...) // NOLINT(bugprone-empty-catch)
     {
-        // If the query fails, we still have the basic server info
+        // Best-effort - if the query fails, we still have the basic server info
     }
 
     metadata["server"] = serverInfo;
@@ -1772,7 +1780,8 @@ void Backup(std::filesystem::path const& outputFile,
         // Add metadata.json to ZIP
         // Use malloc for metadata to ensure consistent memory management with chunks.
         // We transfer ownership to libzip (freep=1).
-        // NOLINTNEXTLINE(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory)
+        // zip_source_buffer takes ownership when freeData=1, and zip_file_add takes ownership of source on success.
+        // NOLINTNEXTLINE(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory,clang-analyzer-unix.Malloc)
         void* persistentMeta = std::malloc(metadataJson.size());
         if (!persistentMeta)
             throw std::bad_alloc();
@@ -1786,6 +1795,7 @@ void Backup(std::filesystem::path const& outputFile,
             throw std::bad_alloc();
         }
 
+        // NOLINTNEXTLINE(clang-analyzer-unix.Malloc) - libzip takes ownership via zip_source_buffer(freeData=1)
         zip_int64_t const metaIndex = zip_file_add(zip, "metadata.json", metaSource, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
         if (metaIndex < 0)
         {
@@ -1809,7 +1819,8 @@ void Backup(std::filesystem::path const& outputFile,
 
             std::string const checksumsStr = checksumsJson.dump();
 
-            // NOLINTNEXTLINE(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory)
+            // zip_source_buffer takes ownership when freeData=1, and zip_file_add takes ownership of source on success.
+            // NOLINTNEXTLINE(cppcoreguidelines-no-malloc,cppcoreguidelines-owning-memory,clang-analyzer-unix.Malloc)
             void* persistentChecksums = std::malloc(checksumsStr.size());
             if (!persistentChecksums)
                 throw std::bad_alloc();
@@ -1823,8 +1834,12 @@ void Backup(std::filesystem::path const& outputFile,
                 throw std::bad_alloc();
             }
 
-            zip_int64_t const checksumIndex =
-                zip_file_add(zip, "checksums.json", checksumSource, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
+            // libzip takes ownership via zip_source_buffer(freeData=1), so no leak
+            zip_int64_t const checksumIndex = zip_file_add( // NOLINT(clang-analyzer-unix.Malloc)
+                zip,
+                "checksums.json",
+                checksumSource,
+                ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8);
             if (checksumIndex < 0)
             {
                 zip_source_free(checksumSource);
@@ -1922,12 +1937,12 @@ std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson, Prog
                 col.type = SqlColumnTypeDefinitions::Bool {};
             else if (typeStr == "binary")
             {
-                size_t s = colJson.value<size_t>("size", 8192);
+                auto s = colJson.value<size_t>("size", 8192);
                 col.type = SqlColumnTypeDefinitions::Binary { .size = s ? s : 65535 };
             }
             else if (typeStr == "varbinary")
             {
-                size_t s = colJson.value<size_t>("size", 8192);
+                auto s = colJson.value<size_t>("size", 8192);
                 col.type = SqlColumnTypeDefinitions::VarBinary { .size = s ? s : 65535 };
             }
             else if (typeStr == "date")
@@ -2005,9 +2020,8 @@ std::map<std::string, TableInfo> ParseSchema(std::string_view metadataJson, Prog
             for (size_t i = 0; i < pks.size(); ++i)
             {
                 auto const& pkName = pks[i];
-                auto it = std::find_if(info.columns.begin(), info.columns.end(), [&](SqlColumnDeclaration const& d) {
-                    return d.name == pkName;
-                });
+                auto it =
+                    std::ranges::find_if(info.columns, [&](SqlColumnDeclaration const& d) { return d.name == pkName; });
                 if (it != info.columns.end())
                 {
                     it->primaryKeyIndex = static_cast<uint16_t>(i + 1);
@@ -2073,7 +2087,7 @@ void Restore(std::filesystem::path const& inputFile,
     }
 
     zip_stat_t metaStat;
-    if (zip_stat_index(zip, metadataIndex, 0, &metaStat) < 0)
+    if (zip_stat_index(zip, static_cast<zip_uint64_t>(metadataIndex), 0, &metaStat) < 0)
     {
         progress.Update({ .state = Progress::State::Error,
                           .tableName = "",
@@ -2084,7 +2098,7 @@ void Restore(std::filesystem::path const& inputFile,
         return;
     }
 
-    std::string const metadataStr = ReadZipEntry<std::string>(zip, metadataIndex, metaStat.size);
+    auto const metadataStr = ReadZipEntry<std::string>(zip, metadataIndex, metaStat.size);
     nlohmann::json const metadata = nlohmann::json::parse(metadataStr);
 
     // Validate format version
@@ -2108,9 +2122,9 @@ void Restore(std::filesystem::path const& inputFile,
     if (checksumIndex >= 0)
     {
         zip_stat_t checksumStat;
-        if (zip_stat_index(zip, checksumIndex, 0, &checksumStat) >= 0)
+        if (zip_stat_index(zip, static_cast<zip_uint64_t>(checksumIndex), 0, &checksumStat) >= 0)
         {
-            std::string const checksumsStr = ReadZipEntry<std::string>(zip, checksumIndex, checksumStat.size);
+            auto const checksumsStr = ReadZipEntry<std::string>(zip, checksumIndex, checksumStat.size);
             try
             {
                 nlohmann::json const checksumsJson = nlohmann::json::parse(checksumsStr);
@@ -2147,7 +2161,7 @@ void Restore(std::filesystem::path const& inputFile,
     for (zip_int64_t i = 0; i < numEntries; ++i)
     {
         zip_stat_t stat;
-        if (zip_stat_index(zip, i, 0, &stat) < 0)
+        if (zip_stat_index(zip, static_cast<zip_uint64_t>(i), 0, &stat) < 0)
             continue;
 
         std::string name = stat.name;

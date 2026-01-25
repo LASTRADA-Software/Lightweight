@@ -107,14 +107,10 @@ GeneratorConfig CreateScaledConfig(double scaleFactor)
     config.articleCount = static_cast<size_t>(static_cast<double>(config.articleCount) * scaleFactor);
 
     // Ensure minimum counts
-    if (config.userCount < 10)
-        config.userCount = 10;
-    if (config.categoryCount < 5)
-        config.categoryCount = 5;
-    if (config.productCount < 10)
-        config.productCount = 10;
-    if (config.tagCount < 5)
-        config.tagCount = 5;
+    config.userCount = std::max(config.userCount, size_t { 10 });
+    config.categoryCount = std::max(config.categoryCount, size_t { 5 });
+    config.productCount = std::max(config.productCount, size_t { 10 });
+    config.tagCount = std::max(config.tagCount, size_t { 5 });
 
     return config;
 }
@@ -193,7 +189,7 @@ std::string SeededRandom::GenerateJson(size_t targetSize)
         if (i > 0)
             json += ",\n";
 
-        json += std::format("  \"field_{}\": \"{}\"", i, GenerateText(30));
+        json += std::format(R"(  "field_{}": "{}")", i, GenerateText(30));
     }
 
     json += "\n}";
@@ -209,17 +205,21 @@ std::string SeededRandom::GenerateJson(size_t targetSize)
     return json;
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 std::string SeededRandom::GenerateEmail(int64_t userId)
 {
-    auto const firstName = FirstNames[static_cast<size_t>(userId % FirstNames.size())];
-    auto const lastName = LastNames[static_cast<size_t>((userId / FirstNames.size()) % LastNames.size())];
+    auto const userIdU = static_cast<size_t>(userId);
+    auto const firstName = FirstNames[userIdU % FirstNames.size()];
+    auto const lastName = LastNames[(userIdU / FirstNames.size()) % LastNames.size()];
     return std::format("{}.{}{}@example.com", firstName, lastName, userId);
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
 std::string SeededRandom::GenerateProductName(int64_t productId)
 {
-    auto const adj = ProductAdjectives[static_cast<size_t>(productId % ProductAdjectives.size())];
-    auto const noun = ProductNouns[static_cast<size_t>((productId / ProductAdjectives.size()) % ProductNouns.size())];
+    auto const productIdU = static_cast<size_t>(productId);
+    auto const adj = ProductAdjectives[productIdU % ProductAdjectives.size()];
+    auto const noun = ProductNouns[(productIdU / ProductAdjectives.size()) % ProductNouns.size()];
     return std::format("{} {} {}", adj, noun, productId);
 }
 
@@ -274,9 +274,9 @@ void DropSchema(Light::DataMapper& dm)
         {
             stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS \"{}\"", table));
         }
+        // NOLINTNEXTLINE(bugprone-empty-catch) - intentionally ignoring errors during cleanup
         catch (...)
         {
-            // Ignore errors during cleanup
         }
     }
 }
@@ -294,6 +294,7 @@ namespace
 
 } // anonymous namespace
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void PopulateDatabase(Light::DataMapper& dm,
                       GeneratorConfig const& config,
                       std::function<void(double, std::string_view)> progressCallback)
@@ -459,12 +460,9 @@ void PopulateDatabase(Light::DataMapper& dm,
         LargeDb_User userRef;
         userRef.id = userId;
 
-        auto const statusIdx = i % 5;
-        std::string_view status = (statusIdx == 0)   ? "pending"
-                                  : (statusIdx == 1) ? "processing"
-                                  : (statusIdx == 2) ? "shipped"
-                                  : (statusIdx == 3) ? "delivered"
-                                                     : "cancelled";
+        static constexpr std::array OrderStatuses = { "pending", "processing", "shipped", "delivered", "cancelled" };
+        auto const statusIdx = i % OrderStatuses.size();
+        std::string_view status = OrderStatuses[statusIdx];
 
         auto subtotalVal = rng.NextDouble(10.0, 500.0);
         auto taxVal = subtotalVal * 0.08;
@@ -604,8 +602,9 @@ void PopulateDatabase(Light::DataMapper& dm,
         LargeDb_User userRef;
         userRef.id = userId;
 
-        auto statusIdx = i % 3;
-        std::string_view status = (statusIdx == 0) ? "draft" : (statusIdx == 1) ? "published" : "archived";
+        static constexpr std::array ArticleStatuses = { "draft", "published", "archived" };
+        auto const statusIdx = i % ArticleStatuses.size();
+        std::string_view status = ArticleStatuses[statusIdx];
 
         LargeDb_Article article;
         article.title = std::format("Article Title {} - {}", i, rng.GenerateText(50)).substr(0, 200);

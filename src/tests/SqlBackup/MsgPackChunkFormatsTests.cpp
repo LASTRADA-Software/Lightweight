@@ -96,7 +96,7 @@ TEST_CASE("MsgPackChunkFormats: Packed Nulls and Bools", "[SqlBackup]")
     writer->WriteRow(row1);
     writer->WriteRow(row2);
 
-    std::string data = writer->Flush();
+    [[maybe_unused]] std::string data = writer->Flush();
 
     // Check if size is small (Packed)
     // 2 rows. 20 cols each? No, WriteRow writes a single row of values.

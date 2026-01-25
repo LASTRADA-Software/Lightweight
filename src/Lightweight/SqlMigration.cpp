@@ -233,7 +233,7 @@ size_t MigrationManager::ApplyPendingMigrations(ExecuteCallback const& feedbackC
     {
 #endif
         if (feedbackCallback)
-            feedbackCallback(*migration, index, _migrations.size());
+            feedbackCallback(*migration, static_cast<size_t>(index), _migrations.size());
         ApplySingleMigration(*migration);
     }
 

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+// NOLINTBEGIN(bugprone-unchecked-optional-access) - Catch2 REQUIRE macro checks optionals
 
 #include "../Utils.hpp"
 
@@ -132,7 +133,7 @@ TEST_CASE("SqlBackup: Backup and Restore", "[SqlBackup]")
     {
         SetupDatabase();
 
-        auto callback = [](SqlBackup::Progress const& p) {
+        auto callback = [](SqlBackup::Progress const& /*p*/) {
             // CHECK(p.currentRows <= p.totalRows); // totalRows might be 0 or accurate
         };
         LambdaProgressManager pm { callback };
@@ -658,6 +659,7 @@ TEST_CASE("SqlBackup: DateTime Columns", "[SqlBackup]")
         auto const count = stmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM datetime_backup_test");
         REQUIRE(count == 3);
 
+        // NOLINTBEGIN(bugprone-unchecked-optional-access) - Catch2 REQUIRE checks has_value()
         // Verify row 1
         auto const dt1 = stmt.ExecuteDirectScalar<SqlDateTime>("SELECT created_at FROM datetime_backup_test WHERE id=1");
         REQUIRE(dt1.has_value());
@@ -677,6 +679,7 @@ TEST_CASE("SqlBackup: DateTime Columns", "[SqlBackup]")
         REQUIRE(dt2->sqlValue.hour == 23);
         REQUIRE(dt2->sqlValue.minute == 59);
         REQUIRE(dt2->sqlValue.second == 59);
+        // NOLINTEND(bugprone-unchecked-optional-access)
 
         // Verify row 3 - NULL datetime
         auto const dtNull = stmt.ExecuteDirectScalar<SqlDateTime>("SELECT created_at FROM datetime_backup_test WHERE id=3");
@@ -985,7 +988,7 @@ TEST_CASE("SqlBackup: Decimal Precision", "[SqlBackup]")
             migration.CreateTable("decimal_backup_test")
                 .PrimaryKey("id", Integer {})
                 .Column("name", Varchar { 50 })
-                .Column("amount", Decimal { 28, 10 }); // High precision decimal
+                .Column("amount", Decimal { .precision = 28, .scale = 10 }); // High precision decimal
         });
 
         // Insert test data with high-precision values
@@ -1119,3 +1122,5 @@ TEST_CASE("SqlBackup: Decimal Precision", "[SqlBackup]")
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTableIfExists("decimal_backup_test"); });
     }
 }
+
+// NOLINTEND(bugprone-unchecked-optional-access)

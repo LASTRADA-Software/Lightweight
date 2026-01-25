@@ -395,9 +395,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Checksum Stored on Migration", "[SqlM
         {
             stmt.ExecuteDirect("DROP TABLE schema_migrations");
         }
+        // NOLINTNEXTLINE(bugprone-empty-catch) - Table may not exist, intentionally ignoring
         catch (SqlException const&)
         {
-            // Table may not exist, ignore
         }
     }
 
