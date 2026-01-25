@@ -12,6 +12,7 @@ var dir_6f1d6fa2b219487ffef8a5d5282640f4 =
     [ "SqlGuid.hpp", "d9/dc2/SqlGuid_8hpp_source.html", null ],
     [ "SqlNullValue.hpp", "d3/de6/SqlNullValue_8hpp_source.html", null ],
     [ "SqlNumeric.hpp", "d1/d26/SqlNumeric_8hpp_source.html", null ],
+    [ "SqlRawColumn.hpp", "d8/da1/SqlRawColumn_8hpp_source.html", null ],
     [ "SqlText.hpp", "dd/dad/SqlText_8hpp_source.html", null ],
     [ "SqlTime.hpp", "d5/de7/SqlTime_8hpp_source.html", null ],
     [ "SqlVariant.hpp", "d5/de3/SqlVariant_8hpp_source.html", null ],

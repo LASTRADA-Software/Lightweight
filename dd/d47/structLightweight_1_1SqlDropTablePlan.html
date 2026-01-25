@@ -104,15 +104,41 @@ $(document).ready(function(){initNavTree('dd/d47/structLightweight_1_1SqlDropTab
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
+<tr class="memitem:a36797cc9ea243cafa5f2627920401c91" id="r_a36797cc9ea243cafa5f2627920401c91"><td class="memItemLeft" align="right" valign="top">std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html#a36797cc9ea243cafa5f2627920401c91">schemaName</a></td></tr>
+<tr class="memdesc:a36797cc9ea243cafa5f2627920401c91"><td class="mdescLeft">&#160;</td><td class="mdescRight">The schema name of the table to drop.  <br /></td></tr>
+<tr class="separator:a36797cc9ea243cafa5f2627920401c91"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a881594ba67a9c5f1443d92f285b53bbe" id="r_a881594ba67a9c5f1443d92f285b53bbe"><td class="memItemLeft" align="right" valign="top">std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html#a881594ba67a9c5f1443d92f285b53bbe">tableName</a></td></tr>
 <tr class="memdesc:a881594ba67a9c5f1443d92f285b53bbe"><td class="mdescLeft">&#160;</td><td class="mdescRight">The name of the table to drop.  <br /></td></tr>
 <tr class="separator:a881594ba67a9c5f1443d92f285b53bbe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af7adb5af3a0ff6c6a366fee2ce29beff" id="r_af7adb5af3a0ff6c6a366fee2ce29beff"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html#af7adb5af3a0ff6c6a366fee2ce29beff">ifExists</a> { false }</td></tr>
+<tr class="memdesc:af7adb5af3a0ff6c6a366fee2ce29beff"><td class="mdescLeft">&#160;</td><td class="mdescRight">If true, generates DROP TABLE IF EXISTS instead of DROP TABLE.  <br /></td></tr>
+<tr class="separator:af7adb5af3a0ff6c6a366fee2ce29beff"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a70993d937b9b2479d4fc33bfec3ffd81" id="r_a70993d937b9b2479d4fc33bfec3ffd81"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/d47/structLightweight_1_1SqlDropTablePlan.html#a70993d937b9b2479d4fc33bfec3ffd81">cascade</a> { false }</td></tr>
+<tr class="separator:a70993d937b9b2479d4fc33bfec3ffd81"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a SQL DROP TABLE plan. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00319">319</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00389">389</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
+<a id="a36797cc9ea243cafa5f2627920401c91" name="a36797cc9ea243cafa5f2627920401c91"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a36797cc9ea243cafa5f2627920401c91">&#9670;&#160;</a></span>schemaName</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string_view Lightweight::SqlDropTablePlan::schemaName</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The schema name of the table to drop. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00392">392</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
 <a id="a881594ba67a9c5f1443d92f285b53bbe" name="a881594ba67a9c5f1443d92f285b53bbe"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a881594ba67a9c5f1443d92f285b53bbe">&#9670;&#160;</a></span>tableName</h2>
 
@@ -127,7 +153,42 @@ Public Attributes</h2></td></tr>
 
 <p>The name of the table to drop. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00322">322</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00395">395</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
+<a id="af7adb5af3a0ff6c6a366fee2ce29beff" name="af7adb5af3a0ff6c6a366fee2ce29beff"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af7adb5af3a0ff6c6a366fee2ce29beff">&#9670;&#160;</a></span>ifExists</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Lightweight::SqlDropTablePlan::ifExists { false }</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>If true, generates DROP TABLE IF EXISTS instead of DROP TABLE. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00398">398</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a70993d937b9b2479d4fc33bfec3ffd81" name="a70993d937b9b2479d4fc33bfec3ffd81"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a70993d937b9b2479d4fc33bfec3ffd81">&#9670;&#160;</a></span>cascade</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Lightweight::SqlDropTablePlan::cascade { false }</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>If true, drops all foreign key constraints referencing this table first. On PostgreSQL, uses CASCADE. On MS SQL, drops FK constraints explicitly. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00402">402</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>

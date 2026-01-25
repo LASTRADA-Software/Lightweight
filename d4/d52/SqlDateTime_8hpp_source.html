@@ -321,7 +321,7 @@ $(document).ready(function(){initNavTree('d4/d52/SqlDateTime_8hpp_source.html','
 <div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>            .hour = (SQLUSMALLINT) hms.hours().count(),</div>
 <div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>            .minute = (SQLUSMALLINT) hms.minutes().count(),</div>
 <div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>            .second = (SQLUSMALLINT) hms.seconds().count(),</div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>            .fraction = (SQLUINTEGER) (((std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(hms.to_duration()).count() % 1&#39;000&#39;000&#39;000LLU) / 100) * 100)</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>            .fraction = (SQLUINTEGER) (((<span class="keyword">static_cast&lt;</span><span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span><span class="keyword">&gt;</span>(std::chrono::duration_cast&lt;std::chrono::nanoseconds&gt;(hms.to_duration()).count()) % 1&#39;000&#39;000&#39;000LLU) / 100) * 100)</div>
 <div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>        };</div>
 <div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>        <span class="comment">// clang-format on</span></div>
 <div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>    }</div>

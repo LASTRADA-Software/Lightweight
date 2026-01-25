@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['name_0',['name',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a4f44edc807219a6714f522cf31bc4953',1,'Lightweight::SqlColumnDeclaration::name'],['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#ae37d4398d5efb5c7829fcc3c4117d70e',1,'Lightweight::SqlSchema::Table::name']]]
+  ['hasautoincrementprimarykey_0',['HasAutoIncrementPrimaryKey',['../d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0',1,'Lightweight']]],
+  ['hasprimarykey_1',['HasPrimaryKey',['../d7/d2f/group__DataMapper.html#gae0874e29a73741a5badb14bacafae06e',1,'Lightweight']]]
 ];
