@@ -234,7 +234,7 @@ struct SqlColumnDeclaration
     bool unique { false };
 
     /// The default value of the column.
-    std::string defaultValue;
+    std::string defaultValue {};
 
     /// Indicates if the column is indexed.
     bool index { false };

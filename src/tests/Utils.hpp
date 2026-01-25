@@ -247,8 +247,8 @@ class TestSuiteSqlLogger: public Lightweight::SqlLogger::Null
 
 #if __has_include(<stacktrace>)
         auto stackTrace = std::stacktrace::current(1, 25);
-        for (std::size_t const i: std::views::iota(std::size_t(0), stackTrace.size()))
-            WriteInfo("    [{:>2}] {}", i, stackTrace[i]);
+        for (auto const& entry: stackTrace)
+            WriteInfo("    {}", entry);
 #endif
     }
 };
@@ -320,6 +320,7 @@ class SqlTestFixture
 
     using MainProgramArgs = std::tuple<int, char**>;
 
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     static std::variant<MainProgramArgs, int> Initialize(int argc, char** argv)
     {
         Lightweight::SqlLogger::SetLogger(TestSuiteSqlLogger::GetLogger());

@@ -22,6 +22,7 @@ namespace Lightweight::SqlBackup
 /// The values correspond to the ZIP compression method IDs used by libzip.
 /// Not all methods may be available at runtime depending on how libzip was compiled.
 /// Use IsCompressionMethodSupported() to check availability.
+// NOLINTNEXTLINE(performance-enum-size) - Values must match libzip ZIP_CM_* constants
 enum class CompressionMethod : std::int32_t
 {
     Store = 0,   ///< No compression (ZIP_CM_STORE)
@@ -115,13 +116,13 @@ struct Progress
     };
 
     /// The state of an individual backup/restore operation.
-    State state;
+    State state {};
 
     /// The name of the table being backed up / restored.
     std::string tableName;
 
     /// The current number of rows processed.
-    size_t currentRows;
+    size_t currentRows {};
 
     /// The total number of rows to be processed, if known.
     std::optional<size_t> totalRows;
