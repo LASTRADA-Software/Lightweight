@@ -1,6 +1,11 @@
-# Lightweight Presentation
+# Lightweight Presentations
 
-This directory contains the presentation slides for the Lightweight C++ ODBC library, built with [reveal.js](https://revealjs.com/).
+This directory contains presentation slides for the Lightweight C++ ODBC library, built with [reveal.js](https://revealjs.com/).
+
+## Available Presentations
+
+- **[index.html](index.html)** - Main Lightweight library overview (low-level API, Query Builder, DataMapper)
+- **[sql-migrations.html](sql-migrations.html)** - SQL Migrations API and dbtool CLI
 
 ## Quick Start
 

@@ -55,6 +55,8 @@ if(LIGHTWEIGHT_BUILD_DOCUMENTATION)
     "${PROJECT_SOURCE_DIR}/docs/best-practices.md"
     "${PROJECT_SOURCE_DIR}/docs/data-binder.md"
     "${PROJECT_SOURCE_DIR}/docs/sql-backup-format.md"
+    "${PROJECT_SOURCE_DIR}/docs/dbtool.md"
+    "${PROJECT_SOURCE_DIR}/docs/sql-migrations.md"
   )
   doxygen_add_docs(doc
     ${DOCS_SOURCES}
