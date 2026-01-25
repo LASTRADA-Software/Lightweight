@@ -128,6 +128,7 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
                           type);
     }
 
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     [[nodiscard]] StringList AlterTable(std::string_view schemaName,
                                         std::string_view tableName,
                                         std::vector<SqlAlterTableCommand> const& commands) const override

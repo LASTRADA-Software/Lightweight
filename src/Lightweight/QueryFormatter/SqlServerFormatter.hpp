@@ -49,7 +49,7 @@ EXEC sp_executesql @sql;)",
     [[nodiscard]] std::string BinaryLiteral(std::span<uint8_t const> data) const override
     {
         std::string result;
-        result.reserve(data.size() * 2 + 2);
+        result.reserve((data.size() * 2) + 2);
         result += "0x";
         for (uint8_t byte: data)
             result += std::format("{:02X}", byte);
@@ -194,6 +194,7 @@ EXEC sp_executesql @sql;)",
         return sqlQueryString.str();
     }
 
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     [[nodiscard]] StringList CreateTable(std::string_view schema,
                                          std::string_view tableName,
                                          std::vector<SqlColumnDeclaration> const& columns,
@@ -350,6 +351,7 @@ EXEC sp_executesql @sql;)",
         return result;
     }
 
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     [[nodiscard]] StringList AlterTable(std::string_view schemaName,
                                         std::string_view tableName,
                                         std::vector<SqlAlterTableCommand> const& commands) const override

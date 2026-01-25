@@ -245,6 +245,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     {
         auto sqlQueries = StringList {};
 
+        // NOLINTNEXTLINE(readability-function-cognitive-complexity)
         sqlQueries.emplace_back([&]() {
             std::stringstream sqlQueryString;
             sqlQueryString << "CREATE TABLE ";

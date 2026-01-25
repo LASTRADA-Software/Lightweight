@@ -24,6 +24,7 @@ MigrationLock::~MigrationLock()
         {
             ReleaseLock();
         }
+        // NOLINTNEXTLINE(bugprone-empty-catch)
         catch (...)
         {
             // Suppress exceptions in destructor
@@ -50,6 +51,7 @@ MigrationLock& MigrationLock::operator=(MigrationLock&& other) noexcept
             {
                 ReleaseLock();
             }
+            // NOLINTNEXTLINE(bugprone-empty-catch)
             catch (...)
             {
             }
@@ -214,7 +216,7 @@ void MigrationLock::AcquireLockSQLite(std::chrono::milliseconds timeout)
     // Try to insert a lock record - this will fail if already locked
     try
     {
-        stmt.ExecuteDirect(std::format("INSERT INTO \"_migration_locks\" (\"lock_name\") VALUES ('{}');", _lockName));
+        stmt.ExecuteDirect(std::format(R"(INSERT INTO "_migration_locks" ("lock_name") VALUES ('{}');)", _lockName));
         _locked = true;
     }
     catch (SqlException const&)
@@ -230,8 +232,9 @@ void MigrationLock::ReleaseLockSQLite()
     auto stmt = SqlStatement { *_connection };
     try
     {
-        stmt.ExecuteDirect(std::format("DELETE FROM \"_migration_locks\" WHERE \"lock_name\" = '{}';", _lockName));
+        stmt.ExecuteDirect(std::format(R"(DELETE FROM "_migration_locks" WHERE "lock_name" = '{}';)", _lockName));
     }
+    // NOLINTNEXTLINE(bugprone-empty-catch)
     catch (...)
     {
         // Suppress errors on release
