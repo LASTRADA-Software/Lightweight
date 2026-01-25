@@ -3,7 +3,7 @@ FROM yaraslaut/clang-p2996:latest
 COPY . /mnt/src
 WORKDIR /mnt
 RUN sudo apt update
-RUN sudo apt install -y git cmake ninja-build unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev pkg-config zip unzip clang
+RUN sudo apt install -y git cmake ninja-build unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev pkg-config zip unzip clang zlib1g-dev
 RUN git clone https://github.com/microsoft/vcpkg.git
 WORKDIR /mnt/vcpkg
 RUN sh bootstrap-vcpkg.sh
