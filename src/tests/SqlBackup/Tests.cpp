@@ -248,8 +248,6 @@ void VerifyComplexDatabase()
     // Relaxed check: Allow NULL if we cannot read binary correctly (library limitation workaround)
     REQUIRE((b == expectedBinary || (!expectedBinary.empty() && !b.has_value())));
 
-    // Verify Char (trimmed?) SQLite might not pad char check?
-    // SQLite CHAR is just TEXT. "HI" is "HI".
     auto const c = stmt.ExecuteDirectScalar<std::string>("SELECT c FROM complex_table WHERE id=1");
     REQUIRE(c == "HI");
 
@@ -559,11 +557,6 @@ TEST_CASE("SqlBackup: Table With Spaces", "[SqlBackup]")
     }
 
     // Restore
-
-    // We must ensure this file is cleaned up too, but for simplicity let's stick to using same connection string but
-    // different DB? The test framework uses `ConnectionString` which points to `SqliteDatabasePath`. Let's just
-    // restore to the same DB (after DROP TABLE).
-
     SqlBackup::Restore(BackupFile, GetConnectionString(), 1, pm);
     REQUIRE(progress.state == SqlBackup::Progress::State::Finished);
 

@@ -532,19 +532,6 @@ namespace
             if (cursor_ >= end_)
                 return false;
 
-            // Auto-detect format?
-            // If strictly new format: expect Array of Columns.
-            // But if we want back-compat, we check if it looks like [Val, Val] or [ {t:..}, ... ]
-            // Simplification: Assume new format if first element is Map?
-            // Actually, "Array of Columns". So top level is Array.
-            // Inside, element 0 is Column. Column is Map.
-            // Old format: Array of Rows. Row is Array.
-            // So: Check top array. Check first element. If Map -> New. If Array -> Old.
-
-            // BUT: "Packed Writer" implemented above writes Array of Maps.
-            // "Baseline Writer" wrote Array of Arrays.
-
-            // Let's implement reading the packed columns first.
             batch.Clear();
 
             uint32_t len = 0;
@@ -774,9 +761,6 @@ namespace
             if (cursor_ + bytes > end_)
                 throw std::out_of_range("MsgPackReader: Unexpected EOF in ReadPackedDouble Data");
 
-            // Read as uint64_t to swap, then cast
-            // However, we can read directly into the vector memory, then fix up
-            // std::vector<double> has double. We need to treat them as uint64 for swapping.
             static_assert(sizeof(double) == sizeof(uint64_t));
 
             if (bytes > 0)

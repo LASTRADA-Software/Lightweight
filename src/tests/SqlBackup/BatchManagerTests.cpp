@@ -20,12 +20,6 @@ TEST_CASE("BatchManager: Basic Flow", "[SqlBackup]")
     size_t lastRowCount = 0;
     std::vector<std::vector<BackupValue>> receivedRows;
 
-    // We can't easily inspect raw columns content without decoding them back.
-    // So checking row count and flush count is primary.
-    // To check content, we might relies on knowledge of implementation (TypedBatchColumn).
-
-    // Actually, we can check if it compiles and runs first.
-
     BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
         flushCount++;
         lastRowCount = count;
@@ -82,13 +76,6 @@ TEST_CASE("BatchManager: PushBatch splitting", "[SqlBackup]")
     sourceBatch.nullIndicators[0].resize(5, false); // no nulls
     sourceBatch.columns.resize(1);
 
-    // We need to populate column data.
-    // BatchManager uses std::visit.
-    // ColumnBatch::ColumnData is std::variant<... std::vector<int64_t> ...>?
-    // Wait, BackupValue uses int64_t.
-    // ColumnBatch definition in SqlBackupFormats.hpp
-
-    // Let's assume int64_t is supported.
     std::vector<int64_t> data = { 10, 20, 30, 40, 50 };
     sourceBatch.columns[0] = data;
 

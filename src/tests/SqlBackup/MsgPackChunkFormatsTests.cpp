@@ -37,22 +37,6 @@ TEST_CASE("MsgPackChunkFormats: Write and Read Roundtrip", "[SqlBackup]")
 
     REQUIRE(batch.rowCount == 3);
     REQUIRE(batch.columns.size() == 3); // 3 columns based on data
-
-    // Verify Row 1: { 10, "hello", 3.14 }
-    // Batch is columnar.
-    // Col 0 (Ints):
-    // We expect checking types inside variant.
-
-    // Helper to extract value from batch at (col, row)
-    // This is hard because ColumnBatch stores vectors of types.
-    // But we can verify broadly.
-
-    // We can assume the batch reader implementation groups correct types.
-    // Col 0 should be int64 or similar.
-    // Col 1 should be string.
-    // Col 2 should be mixed (double, null, bool).
-
-    // Let's verify rowCount at least and maybe some content if accessible.
 }
 
 TEST_CASE("MsgPackChunkFormats: Chunk Limit", "[SqlBackup]")
@@ -65,10 +49,7 @@ TEST_CASE("MsgPackChunkFormats: Chunk Limit", "[SqlBackup]")
     writer->WriteRow(row);
     REQUIRE_FALSE(writer->IsChunkFull());
 
-    writer->WriteRow(row); // 80 + 80 = 160 > 100
-    // It might explicitly check AFTER writing or predict.
-    // MsgPackChunkWriter implementation checks `estimatedBytes_ >= limitBytes_`.
-    // estimatedBytes_ increases by row size.
+    writer->WriteRow(row);
     REQUIRE(writer->IsChunkFull());
 
     std::string data = writer->Flush();
@@ -97,43 +78,6 @@ TEST_CASE("MsgPackChunkFormats: Packed Nulls and Bools", "[SqlBackup]")
     writer->WriteRow(row2);
 
     [[maybe_unused]] std::string data = writer->Flush();
-
-    // Check if size is small (Packed)
-    // 2 rows. 20 cols each? No, WriteRow writes a single row of values.
-    // Wait. row1 is a row with 20 columns?
-    // WriteRow takes generic row.
-    // If we call WriteRow(row1), we have 20 columns.
-    // If we call WriteRow(row2), we have 20 columns.
-    // Are they the same columns?
-    // MsgPackChunkWriter assumes consistent schema within a chunk (batch).
-    // First WriteRow determines columns.
-    // Row 1: 20 nulls. All columns are Monostate?
-    // Row 2: 20 bools.
-    // If 1st row is all nulls, existing logic:
-    // AppendToColumn (nulls -> push true, colData -> push default).
-    // If colData is monostate, it stays monostate?
-    // If 2nd row comes with bools:
-    // AppendToColumn (nulls -> push false).
-    // Visit colData (which is monostate).
-    // Visit value (bool). Pushes bool.
-    // "1. If column is uninitialized (monostate), init with type (VecT)".
-    // So colData becomes vector<bool>.
-    // "Fill missing defaults". (nulls.size() - 1).
-    // So it fills 1 false (default bool) for row 1.
-    // Then pushes value for row 2.
-
-    // Result: 20 columns. Each column has 2 rows.
-    // Row 1: Null (value default false)
-    // Row 2: Bool value.
-
-    // Nulls vector for each column should contain [true, false].
-    // Data vector for each column should contain [false, bool_val].
-
-    // Nulls packing: 2 bits per column.
-
-    // Let's make it bigger to test multi-byte packing.
-    // We want ROWS.
-    // 1 Column. 20 Rows.
 
     auto writer2 = CreateMsgPackChunkWriter(4096);
     std::vector<bool> expectedBools;
