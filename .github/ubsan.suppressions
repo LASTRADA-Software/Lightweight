@@ -5,5 +5,6 @@
 
 # libzip has a bug where it loads a non-valid bool value (128)
 # See: https://github.com/nih-at/libzip/issues
-# Location: lib/zip_close.c:568
-bool:zip_close.c
+# Location: lib/zip_close.c:568 in function add_data
+bool:add_data
+bool:zip_close
