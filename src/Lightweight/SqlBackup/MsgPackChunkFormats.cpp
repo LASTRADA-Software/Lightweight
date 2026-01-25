@@ -28,6 +28,7 @@ namespace
 {
 
     // Helper to append a value to a column, promoting the column type if necessary.
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void AppendToColumn(ColumnBatch::ColumnData& colData, std::vector<bool>& nulls, BackupValue const& val)
     {
         // Handle NULL
@@ -48,6 +49,7 @@ namespace
 
         // Append logic
         std::visit(
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto&& v) {
                 using T = std::decay_t<decltype(v)>;
                 if constexpr (std::is_same_v<T, std::monostate>)
@@ -107,11 +109,11 @@ namespace
                                     for (auto const& elem: existingVec)
                                     {
                                         if constexpr (std::is_same_v<typename ExVecT::value_type, std::vector<uint8_t>>)
-                                            newStrVec.push_back("<binary>"); // TODO: base64?
+                                            newStrVec.emplace_back("<binary>"); // TODO: base64?
                                         else if constexpr (std::is_same_v<typename ExVecT::value_type, bool>)
-                                            newStrVec.push_back(static_cast<bool>(elem) ? "true" : "false");
+                                            newStrVec.emplace_back(static_cast<bool>(elem) ? "true" : "false");
                                         else
-                                            newStrVec.push_back(std::format("{}", elem));
+                                            newStrVec.emplace_back(std::format("{}", elem));
                                     }
                                 }
                             },
@@ -123,9 +125,9 @@ namespace
                     // Now append new value as string
                     auto& strVec = std::get<std::vector<std::string>>(colData);
                     if constexpr (std::is_same_v<T, std::vector<uint8_t>>)
-                        strVec.push_back("<binary>");
+                        strVec.emplace_back("<binary>");
                     else
-                        strVec.push_back(std::format("{}", v));
+                        strVec.emplace_back(std::format("{}", v));
                 }
             },
             val);
@@ -166,7 +168,7 @@ namespace
 #if defined(__GNUC__) || defined(__clang__)
     #pragma GCC diagnostic pop
 #endif
-    }; // namespace Mp
+    } // namespace Mp
 
     class MsgPackChunkWriter: public ChunkWriter
     {
@@ -206,6 +208,7 @@ namespace
             batch_.rowCount++;
         }
 
+        // NOLINTNEXTLINE(readability-function-cognitive-complexity)
         std::string Flush() override
         {
             // Serialize batch_ to Packed Columnar MsgPack
@@ -360,7 +363,7 @@ namespace
             {
                 if constexpr (std::endian::native == std::endian::little)
                     v = std::byteswap(v);
-                auto p = reinterpret_cast<uint8_t const*>(&v);
+                auto const* p = reinterpret_cast<uint8_t const*>(&v);
                 buffer_.insert(buffer_.end(), p, p + sizeof(T));
             }
         }
@@ -786,7 +789,7 @@ namespace
                     // Type punning via pointer cast is UB, but practically works on most compilers?
                     // Better: std::bit_cast loop or simply reading as distinct buffer if strict aliasing is a concern.
                     // But wait, we can just iterate.
-                    uint64_t* ptr = reinterpret_cast<uint64_t*>(vec.data());
+                    auto* ptr = reinterpret_cast<uint64_t*>(vec.data());
                     for (size_t i = 0; i < count; ++i)
                     {
                         ptr[i] = std::byteswap(ptr[i]);
@@ -962,15 +965,15 @@ namespace
             }
             if ((head & 0xF0) == 0x90)
             { // fixarray
-                uint8_t len = head & 0x0F;
-                for (int i = 0; i < len; ++i)
+                auto const len = static_cast<unsigned>(head & 0x0F);
+                for (unsigned i = 0; i < len; ++i)
                     SkipValue();
                 return;
             }
             if ((head & 0xF0) == 0x80)
             { // fixmap
-                uint8_t len = head & 0x0F;
-                for (int i = 0; i < len * 2; ++i)
+                auto const len = static_cast<unsigned>(head & 0x0F);
+                for (unsigned i = 0; i < len * 2; ++i)
                     SkipValue();
                 return;
             }
@@ -1009,25 +1012,25 @@ namespace
                     break;
 
                 case Mp::Array16: {
-                    uint16_t len = ReadBe<uint16_t>();
-                    for (int i = 0; i < len; ++i)
+                    auto len = ReadBe<uint16_t>();
+                    for (uint16_t i = 0; i < len; ++i)
                         SkipValue();
                     break;
                 }
                 case Mp::Array32: {
-                    uint32_t len = ReadBe<uint32_t>();
+                    auto len = ReadBe<uint32_t>();
                     for (uint32_t i = 0; i < len; ++i)
                         SkipValue();
                     break;
                 }
                 case Mp::Map16: {
-                    uint16_t len = ReadBe<uint16_t>();
-                    for (int i = 0; i < len * 2; ++i)
+                    auto len = ReadBe<uint16_t>();
+                    for (unsigned i = 0; i < static_cast<unsigned>(len) * 2; ++i)
                         SkipValue();
                     break;
                 }
                 case Mp::Map32: {
-                    uint32_t len = ReadBe<uint32_t>();
+                    auto len = ReadBe<uint32_t>();
                     for (uint32_t i = 0; i < len * 2; ++i)
                         SkipValue();
                     break;

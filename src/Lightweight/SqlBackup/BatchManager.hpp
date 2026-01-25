@@ -54,7 +54,7 @@ struct LIGHTWEIGHT_API BatchManager
     void Flush();
 
     // private:
-    std::unique_ptr<BatchColumn> CreateColumn(SqlColumnDeclaration const& col) const;
+    [[nodiscard]] std::unique_ptr<BatchColumn> CreateColumn(SqlColumnDeclaration const& col) const;
 
     size_t rowCount = 0;
     size_t capacity = 1000;

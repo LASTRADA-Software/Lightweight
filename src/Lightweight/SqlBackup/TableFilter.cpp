@@ -20,6 +20,7 @@ namespace
     }
 } // namespace
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 TableFilter TableFilter::Parse(std::string_view filterSpec)
 {
     TableFilter filter;
