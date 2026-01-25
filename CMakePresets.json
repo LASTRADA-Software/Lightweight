@@ -61,7 +61,7 @@
         { "name": "linux-clang",            "hidden": true, "inherits": "linux-common", "cacheVariables": { "CMAKE_CXX_COMPILER": "clang++" } },
         { "name": "linux-gcc",              "hidden": true, "inherits": "linux-common", "cacheVariables": { "CMAKE_CXX_COMPILER": "g++" } },
         { "name": "linux-clang-release",    "displayName": "Linux (Clang) Release", "inherits": ["linux-clang", "linux-common-release"] },
-        { "name": "linux-clang-debug",      "displayName": "Linux (Clang) Debug", "inherits": ["linux-clang", "debug"] },
+        { "name": "linux-clang-debug",      "displayName": "Linux (Clang) Debug", "inherits": ["linux-clang", "debug", "pedantic", "asan-ubsan"], "cacheVariables": { "ENABLE_TIDY": "ON" } },
         { "name": "linux-gcc-release",      "displayName": "Linux (GCC) Release", "inherits": ["linux-gcc", "linux-common-release"] },
         { "name": "linux-gcc-debug",        "displayName": "Linux (GCC) Debug", "inherits": ["linux-gcc", "debug", "pedantic"] },
         { "name": "linux-clang-asan-ubsan", "displayName": "Linux (Clang) ASan+UBSan", "inherits": ["linux-clang", "debug", "asan-ubsan"] },
