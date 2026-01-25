@@ -116,6 +116,12 @@ install(FILES test_dbtool.py DESTINATION ${CMAKE_INSTALL_DATADIR}/Lightweight/te
 add_subdirectory(dummy_migration_plugin)
 add_subdirectory(dummy_migration_plugin_2)
 
+# Enable coverage instrumentation and add coverage targets
+if(ENABLE_COVERAGE)
+    enable_coverage_for_target(LightweightTest)
+    add_coverage_targets(LightweightTest)
+endif()
+
 # Register dbtool integration test
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 if(WIN32)

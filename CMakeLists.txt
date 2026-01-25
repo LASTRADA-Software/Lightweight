@@ -16,6 +16,7 @@ set(CMAKE_COLOR_DIAGNOSTICS ON)
 include(ClangTidy)
 include(PedanticCompiler)
 include(Sanitizers)
+include(Coverage)
 include(GNUInstallDirs)
 
 find_package(reflection-cpp 0.4.0 QUIET)
@@ -65,19 +66,37 @@ if(NOT WIN32)
 
     if(LIBZIP_FOUND)
         message(STATUS "System libzip found: ${LIBZIP_VERSION}")
+        # Create an imported interface target for system libzip so all targets can use `zip` consistently
+        add_library(zip INTERFACE IMPORTED GLOBAL)
+        target_include_directories(zip INTERFACE ${LIBZIP_INCLUDE_DIRS})
+        target_link_libraries(zip INTERFACE ${LIBZIP_LINK_LIBRARIES})
+        target_link_options(zip INTERFACE ${LIBZIP_LDFLAGS})
     else()
         message(STATUS "System libzip not found, downloading via CPM...")
+        # Build options - disable crypto/compression features we don't need
+        set(LIBZIP_OPTIONS
+            "BUILD_SHARED_LIBS OFF"
+            "BUILD_DOC OFF"
+            "BUILD_EXAMPLES OFF"
+            "BUILD_REGRESS OFF"
+            "BUILD_TOOLS OFF"
+            "BUILD_OSSFUZZ OFF"
+            "ENABLE_OPENSSL OFF"
+            "ENABLE_COMMONCRYPTO OFF"
+            "ENABLE_GNUTLS OFF"
+            "ENABLE_MBEDTLS OFF"
+            "ENABLE_WINDOWS_CRYPTO OFF"
+            "ENABLE_ZSTD OFF"
+            "ENABLE_LZMA OFF"
+        )
         CPMAddPackage(
             NAME libzip
             GITHUB_REPOSITORY nih-at/libzip
-            GIT_TAG v1.11.2
-            OPTIONS
-                "BUILD_TOOLS OFF"
-                "BUILD_REGRESS OFF"
-                "BUILD_OSSFUZZ OFF"
-                "BUILD_EXAMPLES OFF"
-                "BUILD_DOC OFF"
+            GIT_TAG v1.11.3
+            OPTIONS ${LIBZIP_OPTIONS}
         )
+        # Create alias to match system libzip target name
+        add_library(zip ALIAS libzip::zip)
     endif()
 endif()
 

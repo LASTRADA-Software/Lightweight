@@ -20,3 +20,7 @@ if(UNIX)
 endif()
 
 install(TARGETS dbtool DESTINATION bin)
+
+# Enable coverage instrumentation
+enable_coverage_for_target(dbtool_lib)
+enable_coverage_for_target(dbtool)

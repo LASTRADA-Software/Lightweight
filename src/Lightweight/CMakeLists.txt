@@ -25,33 +25,8 @@ if(WIN32)
     find_package(libzip CONFIG REQUIRED)
     # vcpkg provides libzip::zip, create alias to match CPM target name
     add_library(zip ALIAS libzip::zip)
-else()
-    # Build libzip options - add PIC when building shared library
-    set(LIBZIP_OPTIONS
-        "BUILD_SHARED_LIBS OFF"
-        "BUILD_DOC OFF"
-        "BUILD_EXAMPLES OFF"
-        "BUILD_REGRESS OFF"
-        "BUILD_TOOLS OFF"
-        "ENABLE_OPENSSL OFF"
-        "ENABLE_COMMONCRYPTO OFF"
-        "ENABLE_GNUTLS OFF"
-        "ENABLE_MBEDTLS OFF"
-        "ENABLE_WINDOWS_CRYPTO OFF"
-        "ENABLE_ZSTD OFF"
-        "ENABLE_LZMA OFF"
-    )
-    if(LIGHTWEIGHT_BUILD_SHARED)
-        list(APPEND LIBZIP_OPTIONS "CMAKE_POSITION_INDEPENDENT_CODE ON")
-    endif()
-
-    CPMAddPackage(
-        NAME libzip
-        GITHUB_REPOSITORY nih-at/libzip
-        GIT_TAG v1.11.3
-        OPTIONS ${LIBZIP_OPTIONS}
-    )
 endif()
+# Note: libzip for non-Windows is handled in root CMakeLists.txt (system pkg-config or CPM fallback)
 
 CPMAddPackage(
     NAME nlohmann_json
@@ -169,12 +144,16 @@ if(CLANG_TIDY_EXE)
     set_target_properties(LightweightTools PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
 endif()
 
+# Enable coverage instrumentation for library targets
+enable_coverage_for_target(Lightweight)
+enable_coverage_for_target(LightweightTools)
+
 target_include_directories(Lightweight PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
 )
 
 target_link_libraries(Lightweight PUBLIC reflection-cpp::reflection-cpp)
-target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json> zip)
+target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>)
 
 if(MSVC)
     target_compile_options(Lightweight PRIVATE /W4 /WX)
@@ -183,6 +162,8 @@ if(MSVC)
         target_compile_options(Lightweight PRIVATE /MP)
     endif()
     target_link_libraries(Lightweight PUBLIC odbc32)
+    # Link libzip (vcpkg provides libzip::zip, aliased to zip above)
+    target_link_libraries(Lightweight PRIVATE zip)
 else()
     target_compile_options(Lightweight PRIVATE -Wall -Wextra -pedantic -Werror)
     target_compile_options(Lightweight PUBLIC ${ODBC_CFLAGS})
@@ -198,15 +179,8 @@ else()
         target_link_libraries(Lightweight PUBLIC ${UUID_LDFLAGS})
     endif()
 
-    # Link libzip
-    if(LIBZIP_FOUND)
-        # System libzip via pkg-config
-        target_include_directories(Lightweight PRIVATE ${LIBZIP_INCLUDE_DIRS})
-        target_link_libraries(Lightweight PUBLIC ${LIBZIP_LDFLAGS})
-    else()
-        # CPM-fetched libzip
-        target_link_libraries(Lightweight PUBLIC libzip::zip)
-    endif()
+    # Link libzip (zip target is created in root CMakeLists.txt)
+    target_link_libraries(Lightweight PRIVATE zip)
 endif()
 
 set_target_properties(Lightweight PROPERTIES
