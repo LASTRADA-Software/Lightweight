@@ -95,7 +95,7 @@ std::string_view CompressionMethodName(CompressionMethod method) noexcept
         case CompressionMethod::Xz:
             return "xz";
     }
-    return "unknown";
+    return "unknown"; // LCOV_EXCL_LINE - unreachable default case
 }
 
 namespace
@@ -239,7 +239,7 @@ namespace
     {
         zip_file_t* file = zip_fopen_index(zip, static_cast<zip_uint64_t>(index), 0);
         if (!file)
-            return {};
+            return {}; // LCOV_EXCL_LINE - zip file open failure
 
         Container data;
         data.resize(size);
@@ -248,7 +248,7 @@ namespace
         zip_fclose(file);
 
         if (bytesRead < 0 || std::cmp_not_equal(bytesRead, size))
-            return {};
+            return {}; // LCOV_EXCL_LINE - zip file read failure
 
         return data;
     }
@@ -1860,6 +1860,7 @@ void Backup(std::filesystem::path const& outputFile,
         }
         progress.AllDone();
     }
+    // LCOV_EXCL_START - Exception handlers for backup failures
     catch (std::exception const& e)
     {
         progress.Update({ .state = Progress::State::Error,
@@ -1876,6 +1877,7 @@ void Backup(std::filesystem::path const& outputFile,
                           .totalRows = 0,
                           .message = "Backup failed: Unknown error" });
     }
+    // LCOV_EXCL_STOP
 }
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -2060,6 +2062,7 @@ void Restore(std::filesystem::path const& inputFile,
 
     int err = 0;
     zip_t* zip = zip_open(inputFile.string().c_str(), ZIP_RDONLY, &err);
+    // LCOV_EXCL_START - Error handling for zip file operations
     if (!zip)
     {
         zip_error_t zerr;
@@ -2073,8 +2076,10 @@ void Restore(std::filesystem::path const& inputFile,
                           .message = "Failed to open ZIP archive: " + errMsg });
         return;
     }
+    // LCOV_EXCL_STOP
 
     zip_int64_t metadataIndex = zip_name_locate(zip, "metadata.json", 0);
+    // LCOV_EXCL_START - Error handling for missing metadata
     if (metadataIndex < 0)
     {
         progress.Update({ .state = Progress::State::Error,
@@ -2085,8 +2090,10 @@ void Restore(std::filesystem::path const& inputFile,
         zip_close(zip);
         return;
     }
+    // LCOV_EXCL_STOP
 
     zip_stat_t metaStat;
+    // LCOV_EXCL_START - Error handling for metadata stat failure
     if (zip_stat_index(zip, static_cast<zip_uint64_t>(metadataIndex), 0, &metaStat) < 0)
     {
         progress.Update({ .state = Progress::State::Error,
@@ -2097,6 +2104,7 @@ void Restore(std::filesystem::path const& inputFile,
         zip_close(zip);
         return;
     }
+    // LCOV_EXCL_STOP
 
     auto const metadataStr = ReadZipEntry<std::string>(zip, metadataIndex, metaStat.size);
     nlohmann::json const metadata = nlohmann::json::parse(metadataStr);
@@ -2134,6 +2142,7 @@ void Restore(std::filesystem::path const& inputFile,
                         checksums[name] = hash.get<std::string>();
                 }
             }
+            // LCOV_EXCL_START - Error handling for checksums parsing failure
             catch (...)
             {
                 progress.Update({ .state = Progress::State::Warning,
@@ -2142,6 +2151,7 @@ void Restore(std::filesystem::path const& inputFile,
                                   .totalRows = std::nullopt,
                                   .message = "Failed to parse checksums.json, skipping verification" });
             }
+            // LCOV_EXCL_STOP
         }
     }
 

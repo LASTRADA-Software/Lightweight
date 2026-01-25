@@ -14,6 +14,15 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wnullability-extension"
+#endif
+#include <zip.h>
+#if defined(__clang__)
+    #pragma clang diagnostic pop
+#endif
+
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -1113,6 +1122,555 @@ TEST_CASE("SqlBackup: Decimal Precision", "[SqlBackup]")
 
         // Cleanup
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTableIfExists("decimal_backup_test"); });
+    }
+}
+
+// =============================================================================
+// Compression Method Tests
+// =============================================================================
+
+TEST_CASE("SqlBackup: Compression Method Support", "[SqlBackup]")
+{
+    SECTION("IsCompressionMethodSupported")
+    {
+        // Store should always be supported (no compression)
+        REQUIRE(SqlBackup::IsCompressionMethodSupported(SqlBackup::CompressionMethod::Store));
+
+        // Deflate should always be supported (standard zlib)
+        REQUIRE(SqlBackup::IsCompressionMethodSupported(SqlBackup::CompressionMethod::Deflate));
+
+        // Check other methods - they may or may not be supported depending on build
+        // Just verify the function doesn't crash
+        (void) SqlBackup::IsCompressionMethodSupported(SqlBackup::CompressionMethod::Bzip2);
+        (void) SqlBackup::IsCompressionMethodSupported(SqlBackup::CompressionMethod::Lzma);
+        (void) SqlBackup::IsCompressionMethodSupported(SqlBackup::CompressionMethod::Zstd);
+        (void) SqlBackup::IsCompressionMethodSupported(SqlBackup::CompressionMethod::Xz);
+    }
+
+    SECTION("GetSupportedCompressionMethods")
+    {
+        auto const methods = SqlBackup::GetSupportedCompressionMethods();
+
+        // At minimum, Store and Deflate should be present
+        REQUIRE_FALSE(methods.empty());
+
+        bool hasStore = false;
+        bool hasDeflate = false;
+        for (auto m: methods)
+        {
+            if (m == SqlBackup::CompressionMethod::Store)
+                hasStore = true;
+            if (m == SqlBackup::CompressionMethod::Deflate)
+                hasDeflate = true;
+        }
+        REQUIRE(hasStore);
+        REQUIRE(hasDeflate);
+    }
+
+    SECTION("CompressionMethodName")
+    {
+        REQUIRE(SqlBackup::CompressionMethodName(SqlBackup::CompressionMethod::Store) == "store");
+        REQUIRE(SqlBackup::CompressionMethodName(SqlBackup::CompressionMethod::Deflate) == "deflate");
+        REQUIRE(SqlBackup::CompressionMethodName(SqlBackup::CompressionMethod::Bzip2) == "bzip2");
+        REQUIRE(SqlBackup::CompressionMethodName(SqlBackup::CompressionMethod::Lzma) == "lzma");
+        REQUIRE(SqlBackup::CompressionMethodName(SqlBackup::CompressionMethod::Zstd) == "zstd");
+        REQUIRE(SqlBackup::CompressionMethodName(SqlBackup::CompressionMethod::Xz) == "xz");
+    }
+}
+
+TEST_CASE("SqlBackup: Backup with Custom Compression", "[SqlBackup]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    ScopedFileRemoved const backupFileCleaner { BackupFile };
+
+    // Setup a simple table
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+            migration.DropTableIfExists("compression_test");
+            migration.CreateTable("compression_test").PrimaryKey("id", Integer {}).Column("data", Varchar { 100 });
+        });
+
+        stmt.Prepare("INSERT INTO compression_test (id, data) VALUES (?, ?)");
+        for (int i = 1; i <= 10; ++i)
+            stmt.Execute(i, std::format("Row data {}", i));
+    }
+
+    LambdaProgressManager pm { [](auto&&) {} };
+
+    SECTION("Backup with Store (no compression)")
+    {
+        SqlBackup::BackupSettings settings { .method = SqlBackup::CompressionMethod::Store, .level = 0 };
+        REQUIRE_NOTHROW(SqlBackup::Backup(BackupFile, GetConnectionString(), 1, pm, "", "", {}, settings));
+        REQUIRE(std::filesystem::exists(BackupFile));
+    }
+
+    SECTION("Backup with Deflate compression")
+    {
+        SqlBackup::BackupSettings settings { .method = SqlBackup::CompressionMethod::Deflate, .level = 6 };
+        REQUIRE_NOTHROW(SqlBackup::Backup(BackupFile, GetConnectionString(), 1, pm, "", "", {}, settings));
+        REQUIRE(std::filesystem::exists(BackupFile));
+    }
+
+    // Cleanup
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTableIfExists("compression_test"); });
+    }
+}
+
+// =============================================================================
+// Table Filter Tests
+// =============================================================================
+
+TEST_CASE("SqlBackup: Backup with Table Filter", "[SqlBackup]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    ScopedFileRemoved const backupFileCleaner { BackupFile };
+
+    // Setup multiple tables
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+            migration.DropTableIfExists("filter_table_a");
+            migration.DropTableIfExists("filter_table_b");
+            migration.DropTableIfExists("other_table");
+
+            migration.CreateTable("filter_table_a").PrimaryKey("id", Integer {}).Column("data", Varchar { 50 });
+            migration.CreateTable("filter_table_b").PrimaryKey("id", Integer {}).Column("data", Varchar { 50 });
+            migration.CreateTable("other_table").PrimaryKey("id", Integer {}).Column("data", Varchar { 50 });
+        });
+
+        stmt.ExecuteDirect("INSERT INTO filter_table_a (id, data) VALUES (1, 'A1')");
+        stmt.ExecuteDirect("INSERT INTO filter_table_b (id, data) VALUES (1, 'B1')");
+        stmt.ExecuteDirect("INSERT INTO other_table (id, data) VALUES (1, 'O1')");
+    }
+
+    LambdaProgressManager pm { [](auto&&) {} };
+
+    SECTION("Filter with wildcard pattern")
+    {
+        // Backup only tables matching "filter_table_*"
+        REQUIRE_NOTHROW(SqlBackup::Backup(BackupFile, GetConnectionString(), 1, pm, "", "filter_table_*"));
+        REQUIRE(std::filesystem::exists(BackupFile));
+
+        // Drop all tables
+        {
+            SqlConnection conn;
+            conn.Connect(GetConnectionString());
+            SqlStatement stmt { conn };
+            stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+                migration.DropTableIfExists("filter_table_a");
+                migration.DropTableIfExists("filter_table_b");
+                migration.DropTableIfExists("other_table");
+            });
+        }
+
+        // Restore
+        LambdaProgressManager restorePm { [](auto&&) {} };
+        REQUIRE_NOTHROW(SqlBackup::Restore(BackupFile, GetConnectionString(), 1, restorePm));
+
+        // Verify only filter_table_a and filter_table_b were restored
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+
+        auto const countA = stmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM filter_table_a");
+        REQUIRE(countA == 1);
+
+        auto const countB = stmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM filter_table_b");
+        REQUIRE(countB == 1);
+
+        // other_table should not exist (backup didn't include it)
+        bool otherTableExists = true;
+        try
+        {
+            (void) stmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM other_table");
+        }
+        catch (...)
+        {
+            otherTableExists = false;
+        }
+        REQUIRE_FALSE(otherTableExists);
+    }
+
+    SECTION("Filter with specific table name")
+    {
+        // Backup only "filter_table_a"
+        REQUIRE_NOTHROW(SqlBackup::Backup(BackupFile, GetConnectionString(), 1, pm, "", "filter_table_a"));
+        REQUIRE(std::filesystem::exists(BackupFile));
+    }
+
+    // Cleanup
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+            migration.DropTableIfExists("filter_table_a");
+            migration.DropTableIfExists("filter_table_b");
+            migration.DropTableIfExists("other_table");
+        });
+    }
+}
+
+// =============================================================================
+// Retry Settings Tests
+// =============================================================================
+
+TEST_CASE("SqlBackup: RetrySettings configuration", "[SqlBackup]")
+{
+    // Test that RetrySettings can be configured and used
+    SqlBackup::RetrySettings settings {
+        .maxRetries = 5,
+        .initialDelay = std::chrono::milliseconds(100),
+        .backoffMultiplier = 2.0,
+        .maxDelay = std::chrono::seconds(10),
+    };
+
+    REQUIRE(settings.maxRetries == 5);
+    REQUIRE(settings.initialDelay == std::chrono::milliseconds(100));
+    REQUIRE(settings.maxDelay == std::chrono::seconds(10));
+    REQUIRE(settings.backoffMultiplier == 2.0);
+
+    // Use with backup (even if no retries occur, it should be accepted)
+    ScopedFileRemoved const backupFileCleaner { BackupFile };
+    SetupDatabase();
+
+    LambdaProgressManager pm { [](auto&&) {} };
+    REQUIRE_NOTHROW(SqlBackup::Backup(BackupFile, GetConnectionString(), 1, pm, "", "", settings));
+    REQUIRE(std::filesystem::exists(BackupFile));
+}
+
+// =============================================================================
+// Error Handling Tests
+// =============================================================================
+
+TEST_CASE("SqlBackup: Restore nonexistent file", "[SqlBackup]")
+{
+    std::filesystem::path const nonexistentFile = "nonexistent_backup.zip";
+
+    bool errorReceived = false;
+    std::string errorMessage;
+
+    LambdaProgressManager pm { [&](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+        {
+            errorReceived = true;
+            errorMessage = p.message;
+        }
+    } };
+
+    // Should not throw, but should report error via progress
+    REQUIRE_NOTHROW(SqlBackup::Restore(nonexistentFile, GetConnectionString(), 1, pm));
+    REQUIRE(errorReceived);
+    REQUIRE(errorMessage.find("does not exist") != std::string::npos);
+}
+
+TEST_CASE("SqlBackup: Restore with invalid ZIP file", "[SqlBackup]")
+{
+    std::filesystem::path const invalidFile = "invalid_backup.zip";
+
+    // Create an invalid ZIP file (just some garbage data)
+    {
+        std::ofstream f(invalidFile, std::ios::binary);
+        f << "This is not a valid ZIP file";
+    }
+
+    bool errorReceived = false;
+
+    LambdaProgressManager pm { [&](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+            errorReceived = true;
+    } };
+
+    REQUIRE_NOTHROW(SqlBackup::Restore(invalidFile, GetConnectionString(), 1, pm));
+    REQUIRE(errorReceived);
+
+    // Cleanup
+    std::filesystem::remove(invalidFile);
+}
+
+// =============================================================================
+// ParseSchema Tests - Testing all column type parsing branches
+// =============================================================================
+
+TEST_CASE("SqlBackup: ParseSchema with all column types", "[SqlBackup]")
+{
+    // JSON metadata with all supported column types
+    std::string const metadataJson = R"({
+        "format_version": "1.0",
+        "schema_name": "test",
+        "schema": [
+            {
+                "name": "test_table",
+                "columns": [
+                    {"name": "col_integer", "type": "integer", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_bigint", "type": "bigint", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_smallint", "type": "smallint", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_tinyint", "type": "tinyint", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_real", "type": "real", "precision": 24, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_text", "type": "text", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_varchar", "type": "varchar", "size": 100, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_nvarchar", "type": "nvarchar", "size": 200, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_char", "type": "char", "size": 10, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_nchar", "type": "nchar", "size": 20, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_bool", "type": "bool", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_binary", "type": "binary", "size": 50, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_varbinary", "type": "varbinary", "size": 100, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_date", "type": "date", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_datetime", "type": "datetime", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_time", "type": "time", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_timestamp", "type": "timestamp", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_decimal", "type": "decimal", "precision": 18, "scale": 4, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_guid", "type": "guid", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true}
+                ]
+            }
+        ]
+    })";
+
+    auto tableMap = SqlBackup::ParseSchema(metadataJson, nullptr);
+
+    REQUIRE(tableMap.size() == 1);
+    REQUIRE(tableMap.contains("test_table"));
+
+    auto const& info = tableMap.at("test_table");
+    REQUIRE(info.columns.size() == 19);
+
+    // Verify field list was built correctly
+    REQUIRE_FALSE(info.fields.empty());
+}
+
+TEST_CASE("SqlBackup: ParseSchema with primary key types", "[SqlBackup]")
+{
+    std::string const metadataJson = R"({
+        "format_version": "1.0",
+        "schema_name": "test",
+        "schema": [
+            {
+                "name": "pk_table",
+                "columns": [
+                    {"name": "id_auto", "type": "integer", "is_primary_key": true, "is_auto_increment": true, "is_nullable": false},
+                    {"name": "id_manual", "type": "integer", "is_primary_key": true, "is_auto_increment": false, "is_nullable": false},
+                    {"name": "regular", "type": "varchar", "size": 50, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true}
+                ]
+            }
+        ]
+    })";
+
+    auto tableMap = SqlBackup::ParseSchema(metadataJson, nullptr);
+
+    REQUIRE(tableMap.size() == 1);
+    auto const& info = tableMap.at("pk_table");
+    REQUIRE(info.columns.size() == 3);
+
+    // AUTO_INCREMENT primary key
+    REQUIRE(info.columns[0].primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT);
+    // Manual primary key
+    REQUIRE(info.columns[1].primaryKey == SqlPrimaryKeyType::MANUAL);
+    // Not a primary key
+    REQUIRE(info.columns[2].primaryKey == SqlPrimaryKeyType::NONE);
+}
+
+TEST_CASE("SqlBackup: ParseSchema with unknown column type", "[SqlBackup]")
+{
+    std::string const metadataJson = R"({
+        "format_version": "1.0",
+        "schema_name": "test",
+        "schema": [
+            {
+                "name": "unknown_type_table",
+                "columns": [
+                    {"name": "col_unknown", "type": "some_unknown_type", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true}
+                ]
+            }
+        ]
+    })";
+
+    bool warningReceived = false;
+    LambdaProgressManager pm { [&](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Warning && p.message.find("unknown type") != std::string::npos)
+            warningReceived = true;
+    } };
+
+    auto tableMap = SqlBackup::ParseSchema(metadataJson, &pm);
+
+    REQUIRE(tableMap.size() == 1);
+    REQUIRE(warningReceived); // Should warn about unknown type
+}
+
+TEST_CASE("SqlBackup: ParseSchema with column attributes", "[SqlBackup]")
+{
+    std::string const metadataJson = R"({
+        "format_version": "1.0",
+        "schema_name": "test",
+        "schema": [
+            {
+                "name": "attr_table",
+                "columns": [
+                    {"name": "col_required", "type": "integer", "is_primary_key": false, "is_auto_increment": false, "is_nullable": false},
+                    {"name": "col_unique", "type": "varchar", "size": 50, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true, "is_unique": true},
+                    {"name": "col_default", "type": "integer", "is_primary_key": false, "is_auto_increment": false, "is_nullable": true, "default_value": "42"}
+                ]
+            }
+        ]
+    })";
+
+    auto tableMap = SqlBackup::ParseSchema(metadataJson, nullptr);
+
+    REQUIRE(tableMap.size() == 1);
+    auto const& info = tableMap.at("attr_table");
+    REQUIRE(info.columns.size() == 3);
+
+    // Required (not nullable)
+    REQUIRE(info.columns[0].required == true);
+    // Unique
+    REQUIRE(info.columns[1].unique == true);
+    // Default value
+    REQUIRE(info.columns[2].defaultValue == "42");
+}
+
+TEST_CASE("SqlBackup: ParseSchema with binary column markers", "[SqlBackup]")
+{
+    std::string const metadataJson = R"({
+        "format_version": "1.0",
+        "schema_name": "test",
+        "schema": [
+            {
+                "name": "binary_table",
+                "columns": [
+                    {"name": "col_text", "type": "varchar", "size": 100, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_binary", "type": "binary", "size": 50, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true},
+                    {"name": "col_varbinary", "type": "varbinary", "size": 100, "is_primary_key": false, "is_auto_increment": false, "is_nullable": true}
+                ]
+            }
+        ]
+    })";
+
+    auto tableMap = SqlBackup::ParseSchema(metadataJson, nullptr);
+
+    REQUIRE(tableMap.size() == 1);
+    auto const& info = tableMap.at("binary_table");
+    REQUIRE(info.isBinaryColumn.size() == 3);
+
+    // varchar is not binary
+    REQUIRE(info.isBinaryColumn[0] == false);
+    // binary is binary
+    REQUIRE(info.isBinaryColumn[1] == true);
+    // varbinary is binary
+    REQUIRE(info.isBinaryColumn[2] == true);
+}
+
+// =============================================================================
+// Format Version Validation Tests
+// =============================================================================
+
+TEST_CASE("SqlBackup: Restore rejects unsupported format version", "[SqlBackup]")
+{
+    // First create a valid backup
+    ScopedFileRemoved const backupFileCleaner { BackupFile };
+
+    // Cleanup from any previous failed runs
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTableIfExists("version_test_table"); });
+    }
+
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+            migration.CreateTable("version_test_table").Column("id", SqlColumnTypeDefinitions::Integer {});
+        });
+        stmt.ExecuteDirect("INSERT INTO version_test_table (id) VALUES (1)");
+    }
+
+    SqlBackup::NullProgressManager pm;
+    REQUIRE_NOTHROW(SqlBackup::Backup(BackupFile, GetConnectionString(), 1, pm));
+
+    // Now modify the backup to have an invalid format version
+    // We'll create a new ZIP with modified metadata
+    std::filesystem::path const modifiedBackup = "modified_backup.zip";
+    ScopedFileRemoved const modifiedBackupCleaner { modifiedBackup };
+
+    // NOLINTBEGIN(clang-analyzer-nullability.*)
+    {
+        // Read the original backup
+        int err = 0;
+        zip_t* srcZip = zip_open(BackupFile.string().c_str(), ZIP_RDONLY, &err);
+        REQUIRE(srcZip != nullptr);
+
+        // Create a new backup with modified version
+        zip_t* dstZip = zip_open(modifiedBackup.string().c_str(), ZIP_CREATE | ZIP_TRUNCATE, &err);
+        REQUIRE(dstZip != nullptr);
+
+        // Create modified metadata with wrong version - must outlive zip_close
+        std::string const modifiedMetadata = R"({
+            "format_version": "99.0",
+            "schema_name": "",
+            "schema": []
+        })";
+
+        // Copy all entries except metadata.json
+        zip_int64_t numEntries = zip_get_num_entries(srcZip, 0);
+        for (zip_int64_t i = 0; i < numEntries; ++i)
+        {
+            char const* name = zip_get_name(srcZip, static_cast<zip_uint64_t>(i), 0);
+            if (name == nullptr)
+                continue;
+            if (std::string_view(name) == "metadata.json")
+            {
+                zip_source_t* src = zip_source_buffer(dstZip, modifiedMetadata.c_str(), modifiedMetadata.size(), 0);
+                (void) zip_file_add(dstZip, "metadata.json", src, ZIP_FL_OVERWRITE);
+            }
+            else
+            {
+                // Copy other entries as-is
+                zip_source_t* src = zip_source_zip_file(dstZip, srcZip, static_cast<zip_uint64_t>(i), 0, 0, -1, nullptr);
+                (void) zip_file_add(dstZip, name, src, ZIP_FL_OVERWRITE);
+            }
+        }
+
+        zip_close(dstZip);
+        zip_close(srcZip);
+    }
+    // NOLINTEND(clang-analyzer-nullability.*)
+
+    // Try to restore - should fail with error about unsupported version
+    bool errorReceived = false;
+    std::string errorMessage;
+
+    LambdaProgressManager errorPm { [&](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+        {
+            errorReceived = true;
+            errorMessage = p.message;
+        }
+    } };
+
+    REQUIRE_NOTHROW(SqlBackup::Restore(modifiedBackup, GetConnectionString(), 1, errorPm));
+    REQUIRE(errorReceived);
+    REQUIRE(errorMessage.find("Unsupported backup format version") != std::string::npos);
+
+    // Cleanup
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTableIfExists("version_test_table"); });
     }
 }
 

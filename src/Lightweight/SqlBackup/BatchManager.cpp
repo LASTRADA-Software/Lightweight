@@ -493,8 +493,9 @@ struct DateBatchColumn: BatchColumn
 };
 
 /// A batch column for Time columns using standard SQL_TIME_STRUCT.
-/// Used for databases like PostgreSQL that support standard ODBC TIME binding.
+/// Used for databases that don't support fractional seconds in TIME.
 /// Note: SQL_TIME_STRUCT (6 bytes) does not support fractional seconds.
+/// This is only used for MySQL and unknown server types (not MSSQL, PostgreSQL, or SQLite).
 struct TimeBatchColumn: BatchColumn
 {
     SqlRawColumnMetadata metadata;
