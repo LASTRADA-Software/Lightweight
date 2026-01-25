@@ -16,6 +16,7 @@ set(CMAKE_COLOR_DIAGNOSTICS ON)
 include(ClangTidy)
 include(PedanticCompiler)
 include(Sanitizers)
+include(Coverage)
 include(GNUInstallDirs)
 
 find_package(reflection-cpp 0.4.0 QUIET)
@@ -30,16 +31,24 @@ if(LIGHTWEIGHT_CXX26_REFLECTION)
     message(STATUS "C++26 reflection support enabled.")
 endif()
 
+set(CPM_DOWNLOAD_VERSION 0.40.2)
+if(CPM_SOURCE_CACHE)
+    set(CPM_DOWNLOAD_LOCATION "${CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+elseif(DEFINED ENV{CPM_SOURCE_CACHE})
+    set(CPM_DOWNLOAD_LOCATION "$ENV{CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+else()
+    set(CPM_DOWNLOAD_LOCATION "${CMAKE_BINARY_DIR}/cmake/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
+endif()
 
+if(NOT (EXISTS ${CPM_DOWNLOAD_LOCATION}))
+    message(STATUS "Downloading CPM.cmake to ${CPM_DOWNLOAD_LOCATION}")
+    file(DOWNLOAD
+         https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
+         ${CPM_DOWNLOAD_LOCATION}
+    )
+endif()
 
-file(
-  DOWNLOAD
-  https://github.com/cpm-cmake/CPM.cmake/releases/download/v0.40.8/CPM.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake
-  EXPECTED_HASH SHA256=78ba32abdf798bc616bab7c73aac32a17bbd7b06ad9e26a6add69de8f3ae4791
-)
-include(${CMAKE_CURRENT_BINARY_DIR}/cmake/CPM.cmake)
-
+include(${CPM_DOWNLOAD_LOCATION})
 
 if(reflection-cpp_FOUND)
     message(STATUS "reflection-cpp found: ${reflection-cpp_INCLUDE_DIRS}")
@@ -57,19 +66,36 @@ if(NOT WIN32)
 
     if(LIBZIP_FOUND)
         message(STATUS "System libzip found: ${LIBZIP_VERSION}")
+        # Create an imported interface target for system libzip so all targets can use `zip` consistently
+        add_library(zip INTERFACE IMPORTED GLOBAL)
+        target_include_directories(zip INTERFACE ${LIBZIP_INCLUDE_DIRS})
+        target_link_libraries(zip INTERFACE ${LIBZIP_LINK_LIBRARIES})
+        target_link_options(zip INTERFACE ${LIBZIP_LDFLAGS})
     else()
         message(STATUS "System libzip not found, downloading via CPM...")
+        # Build options - disable crypto/compression features we don't need
+        set(LIBZIP_OPTIONS
+            "BUILD_SHARED_LIBS OFF"
+            "BUILD_DOC OFF"
+            "BUILD_EXAMPLES OFF"
+            "BUILD_REGRESS OFF"
+            "BUILD_TOOLS OFF"
+            "BUILD_OSSFUZZ OFF"
+            "ENABLE_OPENSSL OFF"
+            "ENABLE_COMMONCRYPTO OFF"
+            "ENABLE_GNUTLS OFF"
+            "ENABLE_MBEDTLS OFF"
+            "ENABLE_WINDOWS_CRYPTO OFF"
+            "ENABLE_ZSTD OFF"
+            "ENABLE_LZMA OFF"
+        )
         CPMAddPackage(
             NAME libzip
             GITHUB_REPOSITORY nih-at/libzip
-            GIT_TAG v1.11.2
-            OPTIONS
-                "BUILD_TOOLS OFF"
-                "BUILD_REGRESS OFF"
-                "BUILD_OSSFUZZ OFF"
-                "BUILD_EXAMPLES OFF"
-                "BUILD_DOC OFF"
+            GIT_TAG v1.11.3
+            OPTIONS ${LIBZIP_OPTIONS}
         )
+        # Note: CPM-built libzip already creates a `zip` target (libzip::zip is an alias to it)
     endif()
 endif()
 

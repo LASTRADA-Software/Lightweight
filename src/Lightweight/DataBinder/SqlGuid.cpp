@@ -89,9 +89,12 @@ std::optional<SqlGuid> SqlGuid::TryParse(std::string_view const& text) noexcept
     if (!('1' <= version && version <= '5'))
         return std::nullopt;
 
-    // Variant must be 8, 9, A, or B
-    auto const variant = text[21];
-    if (variant != '8' && variant != '9' && variant != 'A' && variant != 'B' && variant != 'a' && variant != 'b')
+    // Variant nibble at position 19 must be a valid hex digit
+    // We accept all variants (RFC 4122: 8-B, Microsoft: C-D, etc.)
+    auto const variant = text[19];
+    auto const isHexDigit = (variant >= '0' && variant <= '9') || (variant >= 'A' && variant <= 'F')
+                            || (variant >= 'a' && variant <= 'f');
+    if (!isHexDigit)
         return std::nullopt;
 
     // clang-format off
@@ -99,7 +102,7 @@ std::optional<SqlGuid> SqlGuid::TryParse(std::string_view const& text) noexcept
     for (auto const index: { 0, 2, 4, 6,
                              9, 11,
                              14, 16,
-                             21, 19,
+                             19, 21,
                              24, 26, 28, 30, 32, 34 })
     {
         if (std::from_chars(text.data() + index, text.data() + index + 2, guid.data[i], 16).ec != std::errc())
@@ -126,17 +129,6 @@ SQLRETURN SqlDataBinder<SqlGuid>::InputParameter(SQLHSTMT stmt,
                 cb.PlanPostExecuteCallback([text = std::move(text)] {});
             return rv;
         }
-        case SqlServerType::ORACLE:
-            return SQLBindParameter(stmt,
-                                    column,
-                                    SQL_PARAM_INPUT,
-                                    SQL_C_BINARY,
-                                    SQL_BINARY,
-                                    sizeof(value.data),
-                                    0,
-                                    (SQLPOINTER) &value.data,
-                                    sizeof(value),
-                                    nullptr);
         case SqlServerType::MYSQL: // TODO
         case SqlServerType::POSTGRESQL:
         case SqlServerType::MICROSOFT_SQL:
@@ -162,8 +154,6 @@ SQLRETURN SqlDataBinder<SqlGuid>::OutputColumn(
                     [text = std::move(text), result] { *result = SqlGuid::TryParse(*text).value_or(SqlGuid {}); });
             return rv;
         }
-        case SqlServerType::ORACLE:
-            return SQLBindCol(stmt, column, SQL_C_BINARY, (SQLPOINTER) result->data, sizeof(result->data), indicator);
         case SqlServerType::MYSQL: // TODO
         case SqlServerType::POSTGRESQL:
         case SqlServerType::MICROSOFT_SQL:
@@ -188,8 +178,6 @@ SQLRETURN SqlDataBinder<SqlGuid>::GetColumn(
                 *result = SqlGuid::TryParse(text).value_or(SqlGuid {});
             return rv;
         }
-        case SqlServerType::ORACLE:
-            return SQLGetData(stmt, column, SQL_C_BINARY, result->data, sizeof(result->data), indicator);
         case SqlServerType::MYSQL: // TODO
         case SqlServerType::MICROSOFT_SQL:
         case SqlServerType::POSTGRESQL:

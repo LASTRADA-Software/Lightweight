@@ -165,6 +165,18 @@ namespace detail
         static constexpr auto value = SqlColumnTypeDefinitionOf<T>::value;
     };
 
+    template <>
+    struct SqlColumnTypeDefinitionOf<SqlText>
+    {
+        static constexpr auto value = SqlColumnTypeDefinitions::Text {};
+    };
+
+    template <size_t N>
+    struct SqlColumnTypeDefinitionOf<SqlDynamicBinary<N>>
+    {
+        static constexpr auto value = SqlColumnTypeDefinitions::VarBinary { N };
+    };
+
 } // namespace detail
 
 /// @brief Represents a SQL column type definition of T.
@@ -221,14 +233,38 @@ struct SqlColumnDeclaration
     /// Indicates if the column is unique.
     bool unique { false };
 
+    /// The default value of the column.
+    std::string defaultValue {};
+
     /// Indicates if the column is indexed.
     bool index { false };
+
+    /// The 1-based index in the primary key (0 if not part of a specific order).
+    uint16_t primaryKeyIndex { 0 };
+};
+
+/// @brief Represents a composite foreign key constraint.
+///
+/// @ingroup QueryBuilder
+struct SqlCompositeForeignKeyConstraint
+{
+    /// The columns in the current table.
+    std::vector<std::string> columns;
+
+    /// The referenced table name.
+    std::string referencedTableName;
+
+    /// The referenced columns in the referenced table.
+    std::vector<std::string> referencedColumns;
 };
 
 struct SqlCreateTablePlan
 {
+    std::string schemaName;
     std::string tableName;
     std::vector<SqlColumnDeclaration> columns;
+    std::vector<SqlCompositeForeignKeyConstraint> foreignKeys;
+    bool ifNotExists { false }; ///< If true, generates CREATE TABLE IF NOT EXISTS.
 };
 
 namespace SqlAlterTableCommands
@@ -281,7 +317,34 @@ namespace SqlAlterTableCommands
         SqlForeignKeyReferenceDefinition referencedColumn;
     };
 
+    struct AddCompositeForeignKey
+    {
+        std::vector<std::string> columns;
+        std::string referencedTableName;
+        std::vector<std::string> referencedColumns;
+    };
+
     struct DropForeignKey
+    {
+        std::string columnName;
+    };
+
+    /// Adds a column only if it does not already exist.
+    struct AddColumnIfNotExists
+    {
+        std::string columnName;
+        SqlColumnTypeDefinition columnType;
+        SqlNullable nullable = SqlNullable::Null;
+    };
+
+    /// Drops a column only if it exists.
+    struct DropColumnIfExists
+    {
+        std::string columnName;
+    };
+
+    /// Drops an index only if it exists.
+    struct DropIndexIfExists
     {
         std::string columnName;
     };
@@ -293,12 +356,16 @@ namespace SqlAlterTableCommands
 /// @ingroup QueryBuilder
 using SqlAlterTableCommand = std::variant<SqlAlterTableCommands::RenameTable,
                                           SqlAlterTableCommands::AddColumn,
+                                          SqlAlterTableCommands::AddColumnIfNotExists,
                                           SqlAlterTableCommands::AlterColumn,
                                           SqlAlterTableCommands::AddIndex,
                                           SqlAlterTableCommands::RenameColumn,
                                           SqlAlterTableCommands::DropColumn,
+                                          SqlAlterTableCommands::DropColumnIfExists,
                                           SqlAlterTableCommands::DropIndex,
+                                          SqlAlterTableCommands::DropIndexIfExists,
                                           SqlAlterTableCommands::AddForeignKey,
+                                          SqlAlterTableCommands::AddCompositeForeignKey,
                                           SqlAlterTableCommands::DropForeignKey>;
 
 /// @brief Represents a SQL ALTER TABLE plan on a given table.
@@ -306,6 +373,9 @@ using SqlAlterTableCommand = std::variant<SqlAlterTableCommands::RenameTable,
 /// @ingroup QueryBuilder
 struct SqlAlterTablePlan
 {
+    /// The schema name of the table to alter.
+    std::string_view schemaName;
+
     /// The name of the table to alter.
     std::string_view tableName;
 
@@ -318,8 +388,18 @@ struct SqlAlterTablePlan
 /// @ingroup QueryBuilder
 struct SqlDropTablePlan
 {
+    /// The schema name of the table to drop.
+    std::string_view schemaName;
+
     /// The name of the table to drop.
     std::string_view tableName;
+
+    /// If true, generates DROP TABLE IF EXISTS instead of DROP TABLE.
+    bool ifExists { false };
+
+    /// If true, drops all foreign key constraints referencing this table first.
+    /// On PostgreSQL, uses CASCADE. On MS SQL, drops FK constraints explicitly.
+    bool cascade { false };
 };
 
 /// @brief Represents a raw SQL plan.
@@ -370,5 +450,16 @@ struct [[nodiscard]] SqlMigrationPlan
 
     [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> ToSql() const;
 };
+
+/// @brief Formats the given SQL migration plan as a list of SQL statements.
+///
+/// @param formatter The SQL query formatter to use.
+/// @param plans The SQL migration plans to format.
+///
+/// @return A list of SQL statements.
+///
+/// @ingroup QueryBuilder
+[[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> ToSql(SqlQueryFormatter const& formatter,
+                                                             std::vector<SqlMigrationPlan> const& plans);
 
 } // namespace Lightweight

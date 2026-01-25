@@ -76,7 +76,7 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo", "[DataMapper][relations]")
                                     "address" VARCHAR(30) NOT NULL,
                                     "user_id" GUID,
                                     PRIMARY KEY ("id"),
-                                    CONSTRAINT FK_user_id FOREIGN KEY ("user_id") REFERENCES "User"("id")
+                                    CONSTRAINT FK_Email_user_id FOREIGN KEY ("user_id") REFERENCES "User"("id")
                                     );)"));
     }
 }
@@ -527,8 +527,8 @@ TEST_CASE_METHOD(SqlTestFixture, "HasManyThrough", "[DataMapper][relations]")
                                     "physician_id" GUID,
                                     "patient_id" GUID,
                                     PRIMARY KEY ("id"),
-                                    CONSTRAINT FK_physician_id FOREIGN KEY ("physician_id") REFERENCES "Physician"("id"),
-                                    CONSTRAINT FK_patient_id FOREIGN KEY ("patient_id") REFERENCES "Patient"("id")
+                                    CONSTRAINT FK_Appointment_physician_id FOREIGN KEY ("physician_id") REFERENCES "Physician"("id"),
+                                    CONSTRAINT FK_Appointment_patient_id FOREIGN KEY ("patient_id") REFERENCES "Patient"("id")
                                     );)"));
     }
 }
@@ -588,7 +588,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Table with aliased column names", "[DataMapper
                 == NormalizeText(R"(CREATE TABLE "BelongsToAliasedRecord" (
                                     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                                     "record_id" BIGINT,
-                                    CONSTRAINT FK_record_id FOREIGN KEY ("record_id") REFERENCES "TheAliasedRecord"("pk")
+                                    CONSTRAINT FK_BelongsToAliasedRecord_record_id FOREIGN KEY ("record_id") REFERENCES "TheAliasedRecord"("pk")
                                     );)"));
     }
 
@@ -615,9 +615,9 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo Optinal records", "[DataMapper]")
     REQUIRE(nullableFKUser.user.Record().transform(Light::Unwrap).value().id == user.id);
 
     auto nullableFKUserNotSet = NullableForeignKeyUser {};
-    dm.Create<Light::DataMapperOptions{.loadRelations = false}>(nullableFKUserNotSet);
+    dm.Create<Light::DataMapperOptions { .loadRelations = false }>(nullableFKUserNotSet);
     REQUIRE(!nullableFKUserNotSet.user.Value().has_value());
-    REQUIRE(!nullableFKUserNotSet.user.Record().transform(Light::Unwrap).value_or(User{}).id.Value());
+    REQUIRE(!nullableFKUserNotSet.user.Record().transform(Light::Unwrap).value_or(User {}).id.Value());
 }
 
 bool CheckFieldInEntityConstCorrectness(auto const& nullableFKUser)

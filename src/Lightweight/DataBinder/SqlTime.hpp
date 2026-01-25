@@ -156,7 +156,7 @@ struct std::formatter<Lightweight::SqlTime>: std::formatter<std::string>
 {
     auto format(Lightweight::SqlTime const& value, std::format_context& ctx) const -> std::format_context::iterator
     {
-        return std::formatter<std::string>::format(std::format("{:02}:{:02}:{:02}:{:06}",
+        return std::formatter<std::string>::format(std::format("{:02}:{:02}:{:02}.{:06}",
                                                                value.sqlValue.hour,
                                                                value.sqlValue.minute,
                                                                value.sqlValue.second,

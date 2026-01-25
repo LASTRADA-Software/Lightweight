@@ -155,7 +155,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Loading of the dependent records after create"
     REQUIRE(nullableFKUser.user.Record().has_value());
 
     auto nullableFKUserNotSet = NullableForeignKeyUser {};
-    dm.Create<Light::DataMapperOptions{.loadRelations = false}>(nullableFKUserNotSet);
+    dm.Create<Light::DataMapperOptions { .loadRelations = false }>(nullableFKUserNotSet);
     REQUIRE(!nullableFKUserNotSet.user.Value().has_value());
     REQUIRE(!nullableFKUserNotSet.user.Record().has_value());
 }
@@ -192,7 +192,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateCopyOf: Auto-increment primary key", "[D
     dm.CreateTable<CopyTestAutoIncrement>();
 
     // Create original record
-    auto original = CopyTestAutoIncrement { .id = 0, .name = "Original", .value = 42 };
+    auto original = CopyTestAutoIncrement { .id = 0UL, .name = "Original", .value = 42 };
     dm.Create(original);
     REQUIRE(original.id.Value() != 0);
 
@@ -256,7 +256,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateCopyOf: Multiple copies", "[DataMapper]"
     dm.CreateTable<CopyTestAutoIncrement>();
 
     // Create original record
-    auto original = CopyTestAutoIncrement { .id = 0, .name = "Master", .value = 1 };
+    auto original = CopyTestAutoIncrement { .id = 0UL, .name = "Master", .value = 1 };
     dm.Create(original);
 
     // Create multiple copies

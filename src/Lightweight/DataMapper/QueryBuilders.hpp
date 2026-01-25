@@ -34,6 +34,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     SqlQueryFormatter const& _formatter;
 
     std::string _fields;
+    std::vector<SqlVariant> _boundInputs;
 
     friend class SqlWhereClauseBuilder<Derived>;
 

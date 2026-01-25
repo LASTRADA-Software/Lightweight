@@ -289,8 +289,8 @@ namespace
 #if __has_include(<stacktrace>)
             stream << std::format("  Stack trace:");
             auto stackTrace = std::stacktrace::current(1, 25);
-            for (std::size_t const i: std::views::iota(std::size_t(0), stackTrace.size()))
-                stream << std::format("    [{:>2}] {}", i, stackTrace[i]);
+            for (auto const& entry: stackTrace)
+                stream << std::format("    {}", entry);
 #endif
 
             WriteMessage("{}", stream.str());

@@ -22,12 +22,11 @@ struct QueryExpectations
     std::string_view sqlite;
     std::string_view postgres;
     std::string_view sqlServer;
-    std::string_view oracle;
 
     static QueryExpectations All(std::string_view query)
     {
         // NOLINTNEXTLINE(modernize-use-designated-initializers)
-        return { query, query, query, query };
+        return { query, query, query };
     }
 };
 
@@ -62,7 +61,6 @@ void CheckSqlQueryBuilder(TheSqlQuery const& sqlQueryBuilder,
     checkOne(SqlQueryFormatter::Sqlite(), "SQLite", expectations.sqlite);
     checkOne(SqlQueryFormatter::PostgrSQL(), "Postgres", expectations.postgres);
     checkOne(SqlQueryFormatter::SqlServer(), "SQL Server", expectations.sqlServer);
-    // TODO: checkOne(SqlQueryFormatter::OracleSQL(), "Oracle", expectations.oracle);
 }
 
 struct QueryBuilderCheck
@@ -162,8 +160,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.First", "[SqlQueryBuild
                            ORDER BY "id" ASC LIMIT 1)",
             .sqlServer = R"(SELECT TOP 1 "field1" FROM "That"
                             ORDER BY "id" ASC)",
-            .oracle = R"(SELECT "field1" FROM "That"
-                         ORDER BY "id" ASC FETCH FIRST 1 ROWS ONLY)",
         });
 }
 
@@ -178,8 +174,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Select.Range", "[SqlQueryBuild
                            ORDER BY "id" ASC LIMIT 50 OFFSET 200)",
             .sqlServer = R"(SELECT "foo", "bar" FROM "That"
                             ORDER BY "id" ASC OFFSET 200 ROWS FETCH NEXT 50 ROWS ONLY)",
-            .oracle = R"(SELECT "foo", "bar" FROM "That"
-                         ORDER BY "id" ASC OFFSET 200 ROWS FETCH NEXT 50 ROWS ONLY)",
         });
 }
 
@@ -254,7 +248,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsForFieldMembers", "[SqlQ
                              .sqlite = R"(SELECT "name", "address" FROM "Users" LIMIT 1)",
                              .postgres = R"(SELECT "name", "address" FROM "Users" LIMIT 1)",
                              .sqlServer = R"(SELECT TOP 1 "name", "address" FROM "Users")",
-                             .oracle = R"(SELECT "name", "address" FROM "Users" FETCH FIRST 1 ROWS ONLY)",
                          });
 }
 
@@ -274,7 +267,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsWithBelongsTo", "[SqlQue
             .sqlite = R"(SELECT "email", "user_id" FROM "QueryBuilderTestEmail" LIMIT 1)",
             .postgres = R"(SELECT "email", "user_id" FROM "QueryBuilderTestEmail" LIMIT 1)",
             .sqlServer = R"(SELECT TOP 1 "email", "user_id" FROM "QueryBuilderTestEmail")",
-            .oracle = R"(SELECT "email", "user_id" FROM "QueryBuilderTestEmail" FETCH FIRST 1 ROWS ONLY)",
         });
 
 }
@@ -296,7 +288,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FieldsWithBelongsToAndAliases"
             .sqlite = R"(SELECT "FAX_ADRESS", "USER_REC" FROM "QueryBuilderTestEmail" LIMIT 1)",
             .postgres = R"(SELECT "FAX_ADRESS", "USER_REC" FROM "QueryBuilderTestEmail" LIMIT 1)",
             .sqlServer = R"(SELECT TOP 1 "FAX_ADRESS", "USER_REC" FROM "QueryBuilderTestEmail")",
-            .oracle = R"(SELECT "FAX_ADRESS", "USER_REC" FROM "QueryBuilderTestEmail" FETCH FIRST 1 ROWS ONLY)",
         });
 
 }
@@ -986,10 +977,6 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Column: Guid", "[SqlQueryBuil
                                 "column" UNIQUEIDENTIFIER NOT NULL
                             );
             )sql",
-            .oracle = R"sql(CREATE TABLE "Test" (
-                                "column" RAW(16) NOT NULL
-                            );
-            )sql",
         });
 }
 
@@ -1031,10 +1018,6 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with PrimaryKeyWithAutoIncrement",
                                 "pk" BIGINT NOT NULL IDENTITY(1,1) PRIMARY KEY
                             );
                            )sql",
-            .oracle = R"sql(CREATE TABLE "Test" (
-                                "pk" NUMBER(19,0) NOT NULL PRIMARY KEY
-                            );
-                            )sql",
         });
 }
 
@@ -1071,19 +1054,15 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with foreign key", "[SqlQueryBuild
         QueryExpectations {
             .sqlite = R"sql(CREATE TABLE "Table" (
                                    "other_id" INTEGER,
-                                   CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                   CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
                                      );)sql",
             .postgres = R"sql(CREATE TABLE "Table" (
                                    "other_id" INTEGER,
-                                   CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                   CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
                                      );)sql",
             .sqlServer = R"sql(CREATE TABLE "Table" (
                                    "other_id" INTEGER,
-                                   CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
-                                     );)sql",
-            .oracle = R"sql(CREATE TABLE "Table" (
-                                   "other_id" INTEGER,
-                                   CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                   CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
                                      );)sql",
         });
 }
@@ -1134,16 +1113,6 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable complex demo", "[SqlQueryBuilder][
                     CREATE INDEX "Test_c_index" ON "Test"("c");
                     CREATE UNIQUE INDEX "Test_d_index" ON "Test"("d");
                 )sql",
-            .oracle = R"sql(
-                    CREATE TABLE "Test" (
-                        "a" NUMBER GENERATED BY DEFAULT ON NULL AS IDENTITY PRIMARY KEY
-                        "b" VARCHAR2(32 CHAR) NOT NULL UNIQUE,
-                        "c" DATETIME,
-                        "d" VARCHAR2(255 CHAR)
-                    );
-                    CREATE INDEX "Test_c_index" ON "Test"("c");
-                    CREATE UNIQUE INDEX "Test_d_index" ON "Test"("d");
-                )sql",
         });
 }
 
@@ -1160,7 +1129,6 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddColumn", "[SqlQueryBuilder][Migr
             .sqlite = R"sql(ALTER TABLE "Table" ADD COLUMN "column" BIGINT NOT NULL;)sql",
             .postgres = R"sql(ALTER TABLE "Table" ADD COLUMN "column" BIGINT NOT NULL;)sql",
             .sqlServer = R"sql(ALTER TABLE "Table" ADD "column" BIGINT NOT NULL;)sql",
-            .oracle = R"sql(ALTER TABLE "Table" ADD COLUMN "column" NUMBER NOT NULL;)sql",
         });
 }
 
@@ -1219,9 +1187,6 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable multiple AddColumn calls", "[SqlQue
                        )sql",
             .sqlServer = R"sql(ALTER TABLE "Table" ADD "column" BIGINT NOT NULL;
                              ALTER TABLE "Table" ADD "column2" VARCHAR(255) NOT NULL;
-                       )sql",
-            .oracle = R"sql(ALTER TABLE "Table" ADD COLUMN "column" NUMBER NOT NULL;
-                             ALTER TABLE "Table" ADD COLUMN "column2" VARCHAR2(255 CHAR) NOT NULL;
                        )sql",
         });
 }
@@ -1302,19 +1267,15 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddForeignKeyColumn", "[SqlQueryBui
         QueryExpectations {
             .sqlite = R"sql(
                         ALTER TABLE "Table" ADD COLUMN "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                        ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
                     )sql",
             .postgres = R"sql(
                         ALTER TABLE "Table" ADD COLUMN "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                        ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
                     )sql",
             .sqlServer = R"sql(
                         ALTER TABLE "Table" ADD "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
-                    )sql",
-            .oracle = R"sql(
-                        ALTER TABLE "Table" ADD "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                        ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
                     )sql",
         });
 }

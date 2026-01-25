@@ -393,7 +393,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Strings with null", "[String]")
 
     CHECK(person.name.Value() == nameWithNull);
     CHECK(person.name.Value().size() == SizeOfStringWithNull);
-    CHECK(std::format("{}", person.name.Value()).size() == SizeOfStringWithNull - 1);
+    CHECK(std::format("{}", person.name.Value()).size() == SizeOfStringWithNull);
     CHECK(person.name.Value().ToString() == nameWithNull);
     CHECK(person.name.Value().ToStringView() == std::string_view(nameWithNull));
 
@@ -523,7 +523,7 @@ TEST_CASE_METHOD(SqlTestFixture, "MapForJointStatement", "[DataMapper]")
     for (int const i: std::views::iota(1, 100))
     {
         auto a = JoinA { .value_a_first = i, .value_a_second = 10 + i, .value_a_third = 100 + i };
-        auto b = JoinB { .a_id = 49 + i, .c_id = i };
+        auto b = JoinB { .a_id = static_cast<uint64_t>(49 + i), .c_id = static_cast<uint64_t>(i) };
         auto c =
             JoinC { .value_c_first = i, .value_c_second = 10 + i, .value_c_third = 100 + i, .value_c_fourth = 1000 + i };
         dm.Create(a);

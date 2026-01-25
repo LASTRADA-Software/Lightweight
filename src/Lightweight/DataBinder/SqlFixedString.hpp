@@ -4,8 +4,8 @@
 
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "Core.hpp"
-#include "UnicodeConverter.hpp"
 #include "StringInterface.hpp"
+#include "UnicodeConverter.hpp"
 
 #include <format>
 #include <ranges>
@@ -382,7 +382,7 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
 
     static void Resize(ValueType* str, SQLLEN indicator) noexcept
     {
-        str->resize(indicator);
+        str->resize(static_cast<size_t>(indicator));
     }
 
     static void PostProcessOutputColumn(ValueType* result, SQLLEN indicator)
@@ -403,9 +403,22 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
                 {
                     TrimRight(result, indicator);
                 }
+                else
+                {
+                    // Strip trailing null characters for all modes
+                    StripTrailingNulls(result);
+                }
                 break;
             }
         }
+    }
+
+    LIGHTWEIGHT_FORCE_INLINE static void StripTrailingNulls(ValueType* str) noexcept
+    {
+        size_t n = str->size();
+        while (n > 0 && (*str)[n - 1] == '\0')
+            --n;
+        str->setsize(n);
     }
 
     LIGHTWEIGHT_FORCE_INLINE static void TrimRight(ValueType* boundOutputString, SQLLEN indicator) noexcept
@@ -415,7 +428,8 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
 #else
         size_t n = std::min(static_cast<size_t>(indicator), N - 1);
 #endif
-        while (n > 0 && std::isspace((*boundOutputString)[n - 1]))
+        // Strip trailing whitespace and null characters
+        while (n > 0 && (std::isspace((*boundOutputString)[n - 1]) || (*boundOutputString)[n - 1] == '\0'))
             --n;
         boundOutputString->setsize(n);
     }
@@ -436,6 +450,6 @@ struct std::formatter<Lightweight::SqlFixedString<N, T, P>>: std::formatter<std:
             return std::formatter<std::string>::format(stdstring, ctx);
         }
         else
-            return std::formatter<std::string>::format(text.c_str(), ctx);
+            return std::formatter<std::string>::format(std::string(text.data(), text.size()), ctx);
     }
 };

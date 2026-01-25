@@ -83,8 +83,9 @@ jobs:
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 21
-          sudo apt -qy install clang-tidy-21
+          sudo apt -qy install clang-tidy-21 clang-tools-21
           which clang-tidy-21
+          which run-clang-tidy-21
       - name: "install dependencies"
         run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14 libtbb-dev libzip-dev
       - name: "cmake"
@@ -94,7 +95,7 @@ jobs:
                 -D CMAKE_C_COMPILER=clang-21 \
                 -B build
       - name: "run clang-tidy"
-        run: run-clang-tidy -p ./build -clang-tidy-binary clang-tidy-21 -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/).*$'
+        run: run-clang-tidy-21 -p ./build -clang-tidy-binary clang-tidy-21 -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/|(.*/)?libzip-src/).*$' -source-filter='^(?!.*_deps/).*$'
 
   # }}}
   # {{{ Windows
@@ -311,7 +312,6 @@ jobs:
             "MS SQL Server 2019",
             "MS SQL Server 2022",
             "PostgreSQL",
-            # TODO: "Oracle"
             # TODO: "MySQL" or "MariaDB"
           ]
     name: "Tests (${{ matrix.database }})"
@@ -335,21 +335,6 @@ jobs:
       - name: "Setup ${{ matrix.database }}"
         id: setup
         run: bash ./.github/prepare-test-run.sh "${{ matrix.database }}"
-      - name: "Enable ODBC tracing"
-        if: ${{ matrix.database == 'Oracle' }}
-        run: |
-          echo "[ODBC]" | sudo tee -a /etc/odbcinst.ini
-          echo "Trace=Yes" | sudo tee -a /etc/odbcinst.ini
-          echo "TraceFile=/dev/stdout" | sudo tee -a /etc/odbcinst.ini
-      - name: "~/.odbc.ini: set ServerName"
-        if: ${{ matrix.database == 'Oracle' }}
-        run: |
-          sed -i "s/ServerName =.*/ServerName = localhost/" ~/.odbc.ini
-      - name: "CI Debug prints"
-        if: ${{ matrix.database == 'Oracle' }}
-        run: |
-          echo "ODBC_CONNECTION_STRING=${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}"
-          ldd /home/runner/oracle/instantclient_21_3/libsqora.so.21.1
       - name: "Inspect dependencies"
         run: ldd /usr/local/bin/LightweightTest
       - name: "Run SQL tests"
@@ -357,9 +342,6 @@ jobs:
           set -ex
           if [[ "${{ matrix.database }}" = "SQLite3" ]]; then
               CMD_PREFIX="valgrind --leak-check=full --leak-resolution=high --num-callers=64 --error-exitcode=1"
-          elif [[ "${{ matrix.database }}" = "Oracle" ]]; then
-              export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/oracle/instantclient_21_3
-              CMD_PREFIX="strace -f"
           fi
           $CMD_PREFIX LightweightTest --test-env=${{ steps.setup.outputs.TEST_ENV_NAME }}
 
@@ -411,7 +393,7 @@ jobs:
       - name: "Run tests with ${{ matrix.sanitizer }}"
         env:
           ASAN_OPTIONS: "detect_leaks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1"
-          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
+          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/.github/ubsan.suppressions"
           TSAN_OPTIONS: "second_deadlock_stack=1"
         run: |
           ./out/build/linux-clang-${{ matrix.sanitizer }}/src/tests/LightweightTest --test-env=${{ steps.setup.outputs.TEST_ENV_NAME }}

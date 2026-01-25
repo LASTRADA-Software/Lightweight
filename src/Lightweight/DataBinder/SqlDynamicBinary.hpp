@@ -22,7 +22,6 @@ template <std::size_t N>
 class SqlDynamicBinary final
 {
     using BaseType = std::vector<uint8_t>;
-    BaseType _base;
 
   public:
     using value_type = uint8_t;
@@ -96,6 +95,7 @@ class SqlDynamicBinary final
     /// Retrieves the pointer to the string data.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr decltype(auto) data(this auto&& self) noexcept
     {
+        self.EnsureNonNullBuffer();
         return self._base.data();
     }
 
@@ -106,6 +106,16 @@ class SqlDynamicBinary final
     }
 
   private:
+    void EnsureNonNullBuffer() const
+    {
+        if (_base.data() == nullptr)
+        {
+            const_cast<SqlDynamicBinary<N>*>(this)->_base.resize(8);
+            const_cast<SqlDynamicBinary<N>*>(this)->_base.clear();
+        }
+    }
+
+    BaseType _base;
     mutable SQLLEN _indicator = 0;
 
     friend struct SqlDataBinder<SqlDynamicBinary<N>>;
@@ -169,16 +179,13 @@ struct SqlDataBinder<SqlDynamicBinary<N>>
                                                              SqlDataBinderCallback& /*cb*/) noexcept
     {
         value._indicator = static_cast<SQLLEN>(value.size());
-        return SQLBindParameter(stmt,
-                                column,
-                                SQL_PARAM_INPUT,
-                                SQL_C_BINARY,
-                                SQL_LONGVARBINARY,
-                                value.size(),
-                                0,
-                                (SQLPOINTER) value.data(),
-                                0,
-                                &value._indicator);
+
+        auto const sqlType = static_cast<SQLSMALLINT>(value.size() > 8000 ? SQL_LONGVARBINARY : SQL_VARBINARY);
+        auto const bufferSize = static_cast<SQLULEN>(value.size());
+        auto* const ptr = (SQLPOINTER) value.data();
+
+        return SQLBindParameter(
+            stmt, column, SQL_PARAM_INPUT, SQL_C_BINARY, sqlType, bufferSize, 0, ptr, 0, &value._indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
@@ -195,20 +202,20 @@ struct SqlDataBinder<SqlDynamicBinary<N>>
                 // We have a truncation and the server does not know how much data is left.
                 result->resize(result->size() - 1);
             else if (*indicator <= static_cast<SQLLEN>(result->size()))
-                result->resize(*indicator);
+                result->resize(static_cast<size_t>(*indicator));
             else
             {
                 // We have a truncation and the server knows how much data is left.
                 // Extend the buffer and fetch the rest via SQLGetData.
 
                 auto const totalCharsRequired = *indicator;
-                result->resize(totalCharsRequired + 1);
+                result->resize(static_cast<size_t>(totalCharsRequired + 1));
                 auto const sqlResult =
                     SQLGetData(stmt, column, SQL_C_BINARY, (SQLPOINTER) result->data(), totalCharsRequired + 1, indicator);
                 (void) sqlResult;
                 assert(SQL_SUCCEEDED(sqlResult));
                 assert(*indicator == totalCharsRequired);
-                result->resize(totalCharsRequired);
+                result->resize(static_cast<size_t>(totalCharsRequired));
             }
         });
 

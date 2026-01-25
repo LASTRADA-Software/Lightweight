@@ -13,6 +13,27 @@
 #include <sql.h>
 #include <sqlext.h>
 
+// Microsoft SQL Server extension for TIME(7) with fractional seconds.
+// This is supported by SQL Server 2008 and later, MariaDB and MySQL ODBC drivers.
+// clang-format off
+#if !defined(SQL_SS_TIME2)
+    #define SQL_SS_TIME2 (-154)
+
+    struct SQL_SS_TIME2_STRUCT
+    {
+        SQLUSMALLINT hour;
+        SQLUSMALLINT minute;
+        SQLUSMALLINT second;
+        SQLUINTEGER fraction;
+    };
+
+    static_assert(
+        sizeof(SQL_SS_TIME2_STRUCT) == 12,
+        "SQL_SS_TIME2_STRUCT size must be padded 12 bytes, as per ODBC extension spec."
+    );
+#endif
+// clang-format on
+
 namespace Lightweight
 {
 
@@ -86,14 +107,14 @@ constexpr std::optional<SqlColumnTypeDefinition> MakeColumnTypeFromNative(int va
         case SQL_BIT: return Bool {};
         case SQL_CHAR: return Char { size };
         case SQL_DATE: return Date {};
-        case SQL_DECIMAL: return Decimal { .precision = precision, .scale = size };
+        case SQL_DECIMAL: return Decimal { .precision = size, .scale = precision };
         case SQL_DOUBLE: return Real { .precision = 53 };
         case SQL_FLOAT: return Real { . precision = precision };
         case SQL_GUID: return Guid {};
         case SQL_INTEGER: return Integer {};
         case SQL_LONGVARBINARY: return VarBinary { size };
         case SQL_LONGVARCHAR: return Varchar { size };
-        case SQL_NUMERIC: return Decimal { .precision = precision, .scale = size };
+        case SQL_NUMERIC: return Decimal { .precision = size, .scale = precision };
         case SQL_REAL: return Real { .precision = 24 };
         case SQL_SMALLINT: return Smallint {};
         case SQL_TIME: return Time {};
@@ -101,6 +122,7 @@ constexpr std::optional<SqlColumnTypeDefinition> MakeColumnTypeFromNative(int va
         case SQL_TINYINT: return Tinyint {};
         case SQL_TYPE_DATE: return Date {};
         case SQL_TYPE_TIME: return Time {};
+        case SQL_SS_TIME2: return Time {}; // Microsoft SQL Server extension
         case SQL_TYPE_TIMESTAMP: return DateTime {};
         case SQL_VARBINARY: return Binary { size };
         case SQL_VARCHAR: return Varchar { size };

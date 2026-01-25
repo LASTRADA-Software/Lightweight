@@ -97,7 +97,7 @@ struct SqlVariant
     /// @brief Construct a new SqlVariant from a SqlFixedString.
     template <std::size_t N, typename T = char, SqlFixedStringMode Mode>
     constexpr LIGHTWEIGHT_FORCE_INLINE SqlVariant(SqlFixedString<N, T, Mode> const& other):
-        value { std::string_view { other.data(), other.size() } }
+        value { std::string { other.data(), other.size() } }
     {
     }
 

@@ -55,7 +55,7 @@ Checks: >-
   -readability-redundant-parentheses
 WarningsAsErrors: "*"
 UseColor: true
-HeaderFilterRegex: 'src/'
+HeaderFilterRegex: '.*/Lightweight/src/.*'
 FormatStyle:     none
 CheckOptions:
   - key:             readability-function-cognitive-complexity.Threshold

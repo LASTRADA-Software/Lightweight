@@ -4,12 +4,9 @@
 
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "Core.hpp"
-#include "UnicodeConverter.hpp"
 
-#include <concepts>
 #include <cstdlib>
 #include <string>
-#include <type_traits>
 
 namespace Lightweight
 {
@@ -54,8 +51,8 @@ struct SqlBasicStringOperations<std::basic_string<CharT>>
 
     static LIGHTWEIGHT_FORCE_INLINE void Resize(StringType* str, SQLLEN indicator) noexcept
     {
-        if (indicator > 0)
-            str->resize(indicator);
+        if (indicator >= 0)
+            str->resize(static_cast<size_t>(indicator));
     }
 };
 

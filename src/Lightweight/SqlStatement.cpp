@@ -1,16 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "DataBinder/SqlRawColumn.hpp"
 #include "SqlQuery.hpp"
 #include "SqlStatement.hpp"
 #include "Utils.hpp"
+
+#include <deque>
+#include <vector>
 
 namespace Lightweight
 {
 
 struct SqlStatement::Data
 {
-    std::optional<SqlConnection> ownedConnection; // The connection object (if owned)
-    std::vector<SQLLEN> indicators;               // Holds the indicators for the bound output columns
+    std::optional<SqlConnection> ownedConnection;    // The connection object (if owned)
+    std::vector<SQLLEN> indicators;                  // Holds the indicators for the bound output columns
+    std::deque<SQLLEN> inputIndicators;              // Holds the indicators for the bound input parameters
+    std::deque<std::vector<SQLLEN>> batchIndicators; // Holds the indicators for the bound batch input parameters
     std::vector<std::function<void()>> postExecuteCallbacks;
     std::vector<std::function<void()>> postProcessOutputColumnCallbacks;
 
@@ -35,6 +41,22 @@ void SqlStatement::RequireIndicators()
 SQLLEN* SqlStatement::GetIndicatorForColumn(SQLUSMALLINT column) noexcept
 {
     return &m_data->indicators[column];
+}
+
+SQLLEN* SqlStatement::ProvideInputIndicator()
+{
+    return &m_data->inputIndicators.emplace_back(0);
+}
+
+SQLLEN* SqlStatement::ProvideInputIndicators(size_t rowCount)
+{
+    m_data->batchIndicators.emplace_back(rowCount); // Emplaces a vector of rowCount elements.
+    return m_data->batchIndicators.back().data();
+}
+
+void SqlStatement::ClearBatchIndicators()
+{
+    m_data->batchIndicators.clear();
 }
 
 void SqlStatement::PlanPostExecuteCallback(std::function<void()>&& cb)
@@ -68,9 +90,12 @@ SqlStatement::SqlStatement():
     m_data { new Data {
                  .ownedConnection = SqlConnection(),
                  .indicators = {},
+                 .inputIndicators = {},
+                 .batchIndicators = {},
                  .postExecuteCallbacks = {},
                  .postProcessOutputColumnCallbacks = {},
              },
+
              [](Data* data) {
                  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
                  delete data;
@@ -125,8 +150,7 @@ SqlStatement::SqlStatement(SqlConnection& relatedConnection):
 }
 
 SqlStatement::SqlStatement(std::nullopt_t /*nullopt*/):
-    m_data { const_cast<Data*>(&Data::NoData), [](Data* /*data*/) {
-            } }
+    m_data { const_cast<Data*>(&Data::NoData), [](Data* /*data*/) {} }
 {
 }
 
@@ -152,6 +176,8 @@ void SqlStatement::Prepare(std::string_view query) &
 
     m_data->postExecuteCallbacks.clear();
     m_data->postProcessOutputColumnCallbacks.clear();
+    m_data->inputIndicators.clear();
+    m_data->batchIndicators.clear();
 
     // Unbinds the columns, if any
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
@@ -159,7 +185,7 @@ void SqlStatement::Prepare(std::string_view query) &
     // Prepares the statement
     RequireSuccess(SQLPrepareA(m_hStmt, (SQLCHAR*) query.data(), (SQLINTEGER) query.size()));
     RequireSuccess(SQLNumParams(m_hStmt, &m_expectedParameterCount));
-    m_data->indicators.resize(m_expectedParameterCount + 1);
+    m_data->indicators.resize(static_cast<size_t>(m_expectedParameterCount) + 1);
 }
 
 void SqlStatement::ExecuteDirect(std::string_view const& query, std::source_location location)
@@ -170,8 +196,10 @@ void SqlStatement::ExecuteDirect(std::string_view const& query, std::source_loca
     m_preparedQuery.clear();
     m_numColumns.reset();
 
-    // Unbinds the columns, if any
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
+
+    m_data->inputIndicators.clear();
+    m_data->batchIndicators.clear();
 
     SqlLogger::GetLogger().OnExecuteDirect(query);
 
@@ -198,6 +226,34 @@ void SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const& args)
         SqlDataBinder<SqlVariant>::InputParameter(m_hStmt, static_cast<SQLUSMALLINT>(1 + i), arg, *this);
     }
 
+    auto const rc = SQLExecute(m_hStmt);
+    if (rc != SQL_NO_DATA)
+        RequireSuccess(rc);
+    ProcessPostExecuteCallbacks();
+}
+
+void SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount)
+{
+    SqlLogger::GetLogger().OnExecute(m_preparedQuery);
+
+    if (m_expectedParameterCount != static_cast<SQLSMALLINT>(columns.size()))
+        throw std::invalid_argument { "Invalid number of columns" };
+
+    static SQLLEN ZeroOffset = 0;
+    // clang-format off
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) rowCount, 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, &ZeroOffset, 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_OPERATION_PTR, SQL_PARAM_PROCEED, 0));
+    // clang-format on
+
+    SQLUSMALLINT column = 1;
+    for (auto const& col: columns)
+    {
+        RequireSuccess(SqlDataBinder<SqlRawColumn>::InputParameter(m_hStmt, column++, col, *this));
+    }
+
     RequireSuccess(SQLExecute(m_hStmt));
     ProcessPostExecuteCallbacks();
 }
@@ -207,7 +263,7 @@ size_t SqlStatement::NumRowsAffected() const
 {
     SQLLEN numRowsAffected {};
     RequireSuccess(SQLRowCount(m_hStmt, &numRowsAffected));
-    return numRowsAffected;
+    return static_cast<size_t>(numRowsAffected);
 }
 
 // Retrieves the number of columns affected by the last query.
@@ -220,7 +276,7 @@ size_t SqlStatement::NumColumnsAffected() const
         const_cast<SqlStatement*>(this)->m_numColumns = numColumns;
     }
 
-    return m_numColumns.value(); // NOLINT(bugprone-unchecked-optional-access)
+    return static_cast<size_t>(m_numColumns.value()); // NOLINT(bugprone-unchecked-optional-access)
 }
 
 // Retrieves the last insert ID of the last query's primary key.

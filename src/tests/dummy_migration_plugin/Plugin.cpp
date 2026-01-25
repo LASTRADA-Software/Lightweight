@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlQuery/Migrate.hpp>
 
@@ -31,6 +33,11 @@ struct Migration_20230102000000: public Lightweight::SqlMigration::MigrationBase
     void Down(Lightweight::SqlMigrationQueryBuilder& plan) const override
     {
         plan.AlterTable("dummy_users").DropColumn("email");
+    }
+
+    [[nodiscard]] bool HasDownImplementation() const noexcept override
+    {
+        return true;
     }
 };
 

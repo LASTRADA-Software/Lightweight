@@ -333,7 +333,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch", "[SqlStatement]")
 TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatchNative", "[SqlStatement]")
 {
     auto stmt = Lightweight::SqlStatement {};
-    UNSUPPORTED_DATABASE(stmt, Lightweight::SqlServerType::ORACLE);
 
     stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("Test")
@@ -394,11 +393,49 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect (invalid)", "[Sq
     CHECK(!conn.IsAlive());
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: reconnect after Close", "[SqlConnection]")
+{
+    // This test verifies that SqlConnection can be reused after Close() has been called.
+    // Close() frees the ODBC handles, so Connect() must reallocate them before reconnecting.
+
+    auto conn = Lightweight::SqlConnection { std::nullopt };
+    REQUIRE(!conn.IsAlive());
+
+    // Initial connect
+    CHECK(conn.Connect(Lightweight::SqlConnection::DefaultConnectionString()));
+    REQUIRE(conn.IsAlive());
+
+    // Verify the connection works
+    auto stmt = Lightweight::SqlStatement { conn };
+    CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42").value_or(-1) == 42);
+
+    // Close the connection (this frees ODBC handles)
+    conn.Close();
+    REQUIRE(!conn.IsAlive());
+
+    // Reconnect - this should reallocate handles and connect successfully
+    CHECK(conn.Connect(Lightweight::SqlConnection::DefaultConnectionString()));
+    REQUIRE(conn.IsAlive());
+
+    // Verify the reconnected connection works
+    stmt = Lightweight::SqlStatement { conn };
+    CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42").value_or(-1) == 42);
+
+    // Test multiple close/reconnect cycles
+    for (int i = 0; i < 3; ++i)
+    {
+        conn.Close();
+        REQUIRE(!conn.IsAlive());
+        CHECK(conn.Connect(Lightweight::SqlConnection::DefaultConnectionString()));
+        REQUIRE(conn.IsAlive());
+        stmt = Lightweight::SqlStatement { conn };
+        CHECK(stmt.ExecuteDirectScalar<int>("SELECT 42").value_or(-1) == 42);
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "LastInsertId", "[SqlStatement]")
 {
     auto stmt = Lightweight::SqlStatement {};
-
-    UNSUPPORTED_DATABASE(stmt, Lightweight::SqlServerType::ORACLE);
 
     CreateEmployeesTable(stmt);
     FillEmployeesTable(stmt);

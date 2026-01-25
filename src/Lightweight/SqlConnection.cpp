@@ -3,6 +3,7 @@
 #include "SqlConnection.hpp"
 #include "SqlQuery.hpp"
 #include "SqlQueryFormatter.hpp"
+#include "SqlStatement.hpp"
 
 #include <sql.h>
 
@@ -135,6 +136,11 @@ void SqlConnection::ResetPostConnectedHook()
 
 bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
 {
+    EnsureHandlesAllocated();
+
+    if (m_hDbc)
+        SQLDisconnect(m_hDbc);
+
     // NOLINTNEXTLINE(performance-no-int-to-ptr)
     SQLRETURN sqlReturn = SQLSetConnectAttrA(m_hDbc, SQL_LOGIN_TIMEOUT, (SQLPOINTER) info.timeout.count(), 0);
     if (!SQL_SUCCEEDED(sqlReturn))
@@ -173,9 +179,11 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
     return true;
 }
 
-// Connects to the given database with the given username and password.
+// Connects to the given database with the given connection string.
 bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
 {
+    EnsureHandlesAllocated();
+
     if (m_hDbc)
         SQLDisconnect(m_hDbc);
 
@@ -212,7 +220,6 @@ void SqlConnection::PostConnect()
     auto const mappings = std::array {
         std::pair { "Microsoft SQL Server"sv, SqlServerType::MICROSOFT_SQL },
         std::pair { "PostgreSQL"sv, SqlServerType::POSTGRESQL },
-        std::pair { "Oracle"sv, SqlServerType::ORACLE },
         std::pair { "SQLite"sv, SqlServerType::SQLITE },
         std::pair { "MySQL"sv, SqlServerType::MYSQL },
     };
@@ -236,8 +243,30 @@ void SqlConnection::PostConnect()
 
         if (auto ret = SQLGetInfo(m_hDbc, SQL_DRIVER_NAME, driverName, sizeof(driverName), &driverNameLen);
             SQL_SUCCEEDED(ret))
-            m_driverName = std::string(reinterpret_cast<char const*>(driverName), driverNameLen);
+            m_driverName = std::string(reinterpret_cast<char const*>(driverName), static_cast<size_t>(driverNameLen));
     }
+
+    if (m_serverType == SqlServerType::SQLITE)
+    {
+        // Set a busy timeout to prevent "database is locked" errors during concurrent access.
+        // 60 seconds should be sufficient for most operations.
+        SqlStatement stmt(*this);
+        stmt.ExecuteDirect("PRAGMA busy_timeout = 60000");
+
+        // We could also enable WAL mode here, but that changes the database file structure.
+        // However, for high-concurrency restoration, it is highly recommended.
+        // Let's stick to busy_timeout for now as it's purely a runtime behavior change.
+    }
+}
+
+void SqlConnection::EnsureHandlesAllocated()
+{
+    if (m_hEnv)
+        return; // Handles already allocated
+
+    SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &m_hEnv);
+    SQLSetEnvAttr(m_hEnv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER) SQL_OV_ODBC3, 0);
+    SQLAllocHandle(SQL_HANDLE_DBC, m_hEnv, &m_hDbc);
 }
 
 SqlErrorInfo SqlConnection::LastError() const
@@ -265,7 +294,7 @@ std::string SqlConnection::DatabaseName() const
     std::string name(128, '\0');
     SQLSMALLINT nameLen {};
     RequireSuccess(SQLGetInfoA(m_hDbc, SQL_DATABASE_NAME, name.data(), (SQLSMALLINT) name.size(), &nameLen));
-    name.resize(nameLen);
+    name.resize(static_cast<size_t>(nameLen));
     return name;
 }
 
@@ -274,7 +303,7 @@ std::string SqlConnection::UserName() const
     std::string name(128, '\0');
     SQLSMALLINT nameLen {};
     RequireSuccess(SQLGetInfoA(m_hDbc, SQL_USER_NAME, name.data(), (SQLSMALLINT) name.size(), &nameLen));
-    name.resize(nameLen);
+    name.resize(static_cast<size_t>(nameLen));
     return name;
 }
 
@@ -283,7 +312,7 @@ std::string SqlConnection::ServerName() const
     std::string name(128, '\0');
     SQLSMALLINT nameLen {};
     RequireSuccess(SQLGetInfoA(m_hDbc, SQL_DBMS_NAME, (SQLPOINTER) name.data(), (SQLSMALLINT) name.size(), &nameLen));
-    name.resize(nameLen);
+    name.resize(static_cast<size_t>(nameLen));
     return name;
 }
 
@@ -292,7 +321,7 @@ std::string SqlConnection::ServerVersion() const
     std::string text(128, '\0');
     SQLSMALLINT textLen {};
     RequireSuccess(SQLGetInfoA(m_hDbc, SQL_DBMS_VER, (SQLPOINTER) text.data(), (SQLSMALLINT) text.size(), &textLen));
-    text.resize(textLen);
+    text.resize(static_cast<size_t>(textLen));
     return text;
 }
 

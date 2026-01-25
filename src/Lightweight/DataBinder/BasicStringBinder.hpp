@@ -6,6 +6,7 @@
 #include "UnicodeConverter.hpp"
 
 #include <cassert>
+#include <cstring>
 #include <memory>
 #include <utility>
 
@@ -55,21 +56,22 @@ namespace detail
             if (*indicator == SQL_NULL_DATA)
                 result->clear();
             else
-                result->resize(*indicator / sizeof(CharType));
+                result->resize(static_cast<size_t>(*indicator) / sizeof(CharType));
             return sqlResult;
         }
 
         if (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator > static_cast<SQLLEN>(result->size()))
         {
             // We have a truncation and the server knows how much data is left.
-            auto const totalCharCount = *indicator / sizeof(CharType);
+            auto const totalCharCount = static_cast<size_t>(*indicator) / sizeof(CharType);
             auto const charsWritten = result->size() - 1;
             result->resize(totalCharCount + 1);
             auto* bufferCont = result->data() + charsWritten;
             auto const bufferCharsAvailable = (totalCharCount + 1) - charsWritten;
-            sqlResult = SQLGetData(stmt, column, CType, bufferCont, bufferCharsAvailable * sizeof(CharType), indicator);
+            sqlResult = SQLGetData(
+                stmt, column, CType, bufferCont, static_cast<SQLLEN>(bufferCharsAvailable * sizeof(CharType)), indicator);
             if (SQL_SUCCEEDED(sqlResult))
-                result->resize(charsWritten + (*indicator / sizeof(CharType)));
+                result->resize(charsWritten + (static_cast<size_t>(*indicator) / sizeof(CharType)));
             return sqlResult;
         }
 
@@ -81,7 +83,7 @@ namespace detail
             result->resize(result->size() * 2);
             auto* const bufferStart = result->data() + writeIndex;
             size_t const bufferCharsAvailable = result->size() - writeIndex;
-            sqlResult = SQLGetData(stmt, column, CType, bufferStart, bufferCharsAvailable, indicator);
+            sqlResult = SQLGetData(stmt, column, CType, bufferStart, static_cast<SQLLEN>(bufferCharsAvailable), indicator);
         }
         return sqlResult;
     }
@@ -119,10 +121,10 @@ namespace detail
             else if (*indicator == SQL_NO_TOTAL)
                 ; // We don't know the size of the data
             else if (std::cmp_less_equal(*indicator, u16String->size() * sizeof(char16_t)))
-                u16String->resize(*indicator / sizeof(char16_t));
+                u16String->resize(static_cast<size_t>(*indicator) / sizeof(char16_t));
             else
             {
-                auto const totalCharsRequired = static_cast<SQLLEN>(*indicator / sizeof(char16_t));
+                auto const totalCharsRequired = static_cast<size_t>(*indicator) / sizeof(char16_t);
                 *indicator += sizeof(char16_t); // Add space to hold the null terminator
                 u16String->resize(totalCharsRequired);
                 auto const sqlResult = SQLGetData(stmt, column, SQL_C_WCHAR, u16String->data(), *indicator, indicator);
@@ -168,10 +170,14 @@ struct SqlDataBinder<AnsiStringType>
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              AnsiStringType const& value,
-                                                             SqlDataBinderCallback& /*cb*/) noexcept
+                                                             SqlDataBinderCallback& cb) noexcept
     {
         auto const charCount = StringTraits::Size(&value);
         auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_LONGVARCHAR : SQL_VARCHAR);
+
+        SQLLEN* indicator = cb.ProvideInputIndicator();
+        *indicator = static_cast<SQLLEN>(charCount);
+
         return SQLBindParameter(stmt,
                                 column,
                                 SQL_PARAM_INPUT,
@@ -180,8 +186,38 @@ struct SqlDataBinder<AnsiStringType>
                                 charCount,
                                 0,
                                 (SQLPOINTER) StringTraits::Data(&value),
+                                0,
+                                indicator);
+    }
+
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN BatchInputParameter(SQLHSTMT stmt,
+                                                                  SQLUSMALLINT column,
+                                                                  AnsiStringType const* values,
+                                                                  size_t rowCount,
+                                                                  SqlDataBinderCallback& cb) noexcept
+    {
+        size_t maxLen = 0;
+        SQLLEN* indicators = cb.ProvideInputIndicators(rowCount);
+        for (size_t i = 0; i < rowCount; ++i)
+        {
+            auto const len = StringTraits::Size(&values[i]);
+            indicators[i] = static_cast<SQLLEN>(len);
+            if (len > maxLen)
+                maxLen = len;
+        }
+
+        auto const sqlType = static_cast<SQLSMALLINT>(maxLen > SqlOptimalMaxColumnSize ? SQL_LONGVARCHAR : SQL_VARCHAR);
+
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                SQL_C_CHAR,
+                                sqlType,
+                                maxLen,
+                                0,
+                                (SQLPOINTER) values,
                                 sizeof(AnsiStringType),
-                                nullptr);
+                                indicators);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
@@ -214,7 +250,7 @@ struct SqlDataBinder<AnsiStringType>
         if (*indicator == SQL_NO_TOTAL)
         {
             // We have a truncation and the server does not know how much data is left.
-            StringTraits::Resize(result, StringTraits::Size(result) - 1);
+            StringTraits::Resize(result, static_cast<SQLLEN>(StringTraits::Size(result)) - 1);
         }
         else if (*indicator == SQL_NULL_DATA)
         {
@@ -223,7 +259,7 @@ struct SqlDataBinder<AnsiStringType>
         }
         else if (*indicator <= static_cast<SQLLEN>(StringTraits::Size(result)))
         {
-            StringTraits::Resize(result, static_cast<size_t>(*indicator));
+            StringTraits::Resize(result, *indicator);
         }
         else
         {
@@ -258,7 +294,8 @@ struct SqlDataBinder<AnsiStringType>
                 if (*indicator == SQL_NULL_DATA)
                     StringTraits::Resize(result, 0);
                 else if (*indicator != SQL_NO_TOTAL)
-                    StringTraits::Resize(result, (std::min) (AnsiStringType::Capacity, static_cast<size_t>(*indicator)));
+                    StringTraits::Resize(
+                        result, static_cast<SQLLEN>((std::min) (AnsiStringType::Capacity, static_cast<size_t>(*indicator))));
             }
             if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
                 StringTraits::PostProcessOutputColumn(result, *indicator);
@@ -273,7 +310,8 @@ struct SqlDataBinder<AnsiStringType>
             {
                 auto* const bufferStart = StringTraits::Data(result) + writeIndex;
                 size_t const bufferSize = StringTraits::Size(result) - writeIndex;
-                SQLRETURN const rv = SQLGetData(stmt, column, SQL_C_CHAR, bufferStart, bufferSize, indicator);
+                SQLRETURN const rv =
+                    SQLGetData(stmt, column, SQL_C_CHAR, bufferStart, static_cast<SQLLEN>(bufferSize), indicator);
                 switch (rv)
                 {
                     case SQL_SUCCESS:
@@ -281,8 +319,8 @@ struct SqlDataBinder<AnsiStringType>
                         // last successive call
                         if (*indicator != SQL_NULL_DATA)
                         {
-                            StringTraits::Resize(result, writeIndex + *indicator);
-                            *indicator = StringTraits::Size(result);
+                            StringTraits::Resize(result, static_cast<SQLLEN>(writeIndex) + *indicator);
+                            *indicator = static_cast<SQLLEN>(StringTraits::Size(result));
                         }
                         return SQL_SUCCESS;
                     case SQL_SUCCESS_WITH_INFO: {
@@ -291,18 +329,18 @@ struct SqlDataBinder<AnsiStringType>
                         {
                             // We have a truncation and the server does not know how much data is left.
                             writeIndex += bufferSize - 1;
-                            StringTraits::Resize(result, (2 * writeIndex) + 1);
+                            StringTraits::Resize(result, static_cast<SQLLEN>((2 * writeIndex) + 1));
                         }
                         else if (std::cmp_greater_equal(*indicator, bufferSize))
                         {
                             // We have a truncation and the server knows how much data is left.
                             writeIndex += bufferSize - 1;
-                            StringTraits::Resize(result, writeIndex + *indicator);
+                            StringTraits::Resize(result, static_cast<SQLLEN>(writeIndex) + *indicator);
                         }
                         else
                         {
                             // We have no truncation and the server knows how much data is left.
-                            StringTraits::Resize(result, writeIndex + *indicator - 1);
+                            StringTraits::Resize(result, static_cast<SQLLEN>(writeIndex) + *indicator - 1);
                             return SQL_SUCCESS;
                         }
                         break;
@@ -348,6 +386,10 @@ struct SqlDataBinder<Utf16StringType>
                 // PostgreSQL only supports UTF-8 as Unicode encoding
                 auto u8String = std::make_shared<std::u8string>(ToUtf8(detail::SqlViewHelper<Utf16StringType>::View(value)));
                 cb.PlanPostExecuteCallback([u8String = u8String]() {}); // Keep the string alive
+
+                SQLLEN* indicator = cb.ProvideInputIndicator();
+                *indicator = static_cast<SQLLEN>(u8String->size());
+
                 return SQLBindParameter(stmt,
                                         column,
                                         SQL_PARAM_INPUT,
@@ -357,9 +399,8 @@ struct SqlDataBinder<Utf16StringType>
                                         0,
                                         (SQLPOINTER) u8String->data(),
                                         0,
-                                        nullptr);
+                                        indicator);
             }
-            case SqlServerType::ORACLE:
             case SqlServerType::MYSQL:
             case SqlServerType::SQLITE: // We assume UTF-16 for SQLite
             case SqlServerType::MICROSOFT_SQL:
@@ -370,8 +411,20 @@ struct SqlDataBinder<Utf16StringType>
                 auto const charCount = StringTraits::Size(&value);
                 auto const sqlType =
                     static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
-                return SQLBindParameter(
-                    stmt, column, SQL_PARAM_INPUT, CType, sqlType, charCount, 0, (SQLPOINTER) data, sizeInBytes, nullptr);
+
+                SQLLEN* indicator = cb.ProvideInputIndicator();
+                *indicator = static_cast<SQLLEN>(sizeInBytes);
+
+                return SQLBindParameter(stmt,
+                                        column,
+                                        SQL_PARAM_INPUT,
+                                        CType,
+                                        sqlType,
+                                        charCount,
+                                        0,
+                                        (SQLPOINTER) data,
+                                        static_cast<SQLLEN>(sizeInBytes),
+                                        indicator);
             }
         }
         std::unreachable();
@@ -400,10 +453,10 @@ struct SqlDataBinder<Utf16StringType>
                 else if (*indicator == SQL_NO_TOTAL)
                     ; // We don't know the size of the data
                 else if (*indicator <= static_cast<SQLLEN>(result->size() * sizeof(char16_t)))
-                    result->resize(*indicator / sizeof(char16_t));
+                    result->resize(static_cast<size_t>(*indicator) / sizeof(char16_t));
                 else
                 {
-                    auto const totalCharsRequired = static_cast<SQLLEN>(*indicator / sizeof(char16_t));
+                    auto const totalCharsRequired = static_cast<size_t>(*indicator) / sizeof(char16_t);
                     *indicator += sizeof(char16_t); // Add space to hold the null terminator
                     result->resize(totalCharsRequired);
                     auto const sqlResult = SQLGetData(stmt, column, SQL_C_WCHAR, result->data(), *indicator, indicator);
@@ -457,6 +510,10 @@ struct SqlDataBinder<Utf32StringType>
                 // PostgreSQL only supports UTF-8 as Unicode encoding
                 auto u8String = std::make_shared<std::u8string>(ToUtf8(detail::SqlViewHelper<Utf32StringType>::View(value)));
                 cb.PlanPostExecuteCallback([u8String = u8String]() {}); // Keep the string alive
+
+                SQLLEN* indicator = cb.ProvideInputIndicator();
+                *indicator = static_cast<SQLLEN>(u8String->size());
+
                 return SQLBindParameter(stmt,
                                         column,
                                         SQL_PARAM_INPUT,
@@ -466,9 +523,8 @@ struct SqlDataBinder<Utf32StringType>
                                         0,
                                         (SQLPOINTER) u8String->data(),
                                         0,
-                                        nullptr);
+                                        indicator);
             }
-            case SqlServerType::ORACLE:
             case SqlServerType::MYSQL:
             case SqlServerType::SQLITE: // We assume UTF-16 for SQLite
             case SqlServerType::MICROSOFT_SQL:
@@ -482,8 +538,20 @@ struct SqlDataBinder<Utf32StringType>
                 auto const CType = SQLSMALLINT { SQL_C_WCHAR };
                 auto const sqlType =
                     static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
-                return SQLBindParameter(
-                    stmt, column, SQL_PARAM_INPUT, CType, sqlType, charCount, 0, (SQLPOINTER) data, sizeInBytes, nullptr);
+
+                SQLLEN* indicator = cb.ProvideInputIndicator();
+                *indicator = static_cast<SQLLEN>(sizeInBytes);
+
+                return SQLBindParameter(stmt,
+                                        column,
+                                        SQL_PARAM_INPUT,
+                                        CType,
+                                        sqlType,
+                                        charCount,
+                                        0,
+                                        (SQLPOINTER) data,
+                                        static_cast<SQLLEN>(sizeInBytes),
+                                        indicator);
             }
         }
         std::unreachable();
@@ -507,7 +575,7 @@ struct SqlDataBinder<Utf32StringType>
             return sqlResult;
 
         auto const u32String = ToUtf32(u16String);
-        StringTraits::Resize(result, u32String.size());
+        StringTraits::Resize(result, static_cast<SQLLEN>(u32String.size()));
         std::copy_n((CharType const*) u32String.data(), u32String.size(), StringTraits::Data(result));
 
         return sqlResult;
@@ -540,18 +608,13 @@ struct SqlDataBinder<Utf8StringType>
         {
             case SqlServerType::POSTGRESQL: {
                 // PostgreSQL only supports UTF-8 as Unicode encoding
-                return SQLBindParameter(stmt,
-                                        column,
-                                        SQL_PARAM_INPUT,
-                                        SQL_C_CHAR,
-                                        SQL_VARCHAR,
-                                        value.size(),
-                                        0,
-                                        (SQLPOINTER) value.data(),
-                                        0,
-                                        nullptr);
+                auto const len = value.size();
+                SQLLEN* indicator = cb.ProvideInputIndicator();
+                *indicator = static_cast<SQLLEN>(len);
+
+                return SQLBindParameter(
+                    stmt, column, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR, len, 0, (SQLPOINTER) value.data(), 0, indicator);
             }
-            case SqlServerType::ORACLE:
             case SqlServerType::MYSQL:
             case SqlServerType::SQLITE: // We assume UTF-16 for SQLite
             case SqlServerType::MICROSOFT_SQL:
@@ -565,6 +628,10 @@ struct SqlDataBinder<Utf8StringType>
                 auto const byteCount = u16String->size() * sizeof(char16_t);
                 auto const sqlType =
                     static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
+
+                SQLLEN* indicator = cb.ProvideInputIndicator();
+                *indicator = static_cast<SQLLEN>(byteCount);
+
                 return SQLBindParameter(stmt,
                                         column,
                                         SQL_PARAM_INPUT,
@@ -573,8 +640,8 @@ struct SqlDataBinder<Utf8StringType>
                                         charCount,
                                         0,
                                         (SQLPOINTER) u16String->data(),
-                                        byteCount,
-                                        nullptr);
+                                        static_cast<SQLLEN>(byteCount),
+                                        indicator);
             }
         }
         std::unreachable();

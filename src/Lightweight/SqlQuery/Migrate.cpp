@@ -19,16 +19,60 @@ SqlMigrationPlan SqlMigrationQueryBuilder::GetPlan() &&
 SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::DropTable(std::string_view tableName)
 {
     _migrationPlan.steps.emplace_back(SqlDropTablePlan {
+        .schemaName = {},
         .tableName = tableName,
+        .ifExists = false,
     });
+    return *this;
+}
+
+SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::DropTableIfExists(std::string_view tableName)
+{
+    _migrationPlan.steps.emplace_back(SqlDropTablePlan {
+        .schemaName = {},
+        .tableName = tableName,
+        .ifExists = true,
+    });
+    return *this;
+}
+
+SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::DropTableCascade(std::string_view tableName)
+{
+    _migrationPlan.steps.emplace_back(SqlDropTablePlan {
+        .schemaName = {},
+        .tableName = tableName,
+        .ifExists = true,
+        .cascade = true,
+    });
+    return *this;
+}
+
+SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::WithSchema(std::string schemaName)
+{
+    _schemaName = std::move(schemaName);
     return *this;
 }
 
 SqlCreateTableQueryBuilder SqlMigrationQueryBuilder::CreateTable(std::string_view tableName)
 {
     _migrationPlan.steps.emplace_back(SqlCreateTablePlan {
+        .schemaName = _schemaName,
         .tableName = std::string(tableName),
         .columns = {},
+        .foreignKeys = {},
+        .ifNotExists = false,
+    });
+    return SqlCreateTableQueryBuilder { std::get<SqlCreateTablePlan>(_migrationPlan.steps.back()) };
+}
+
+SqlCreateTableQueryBuilder SqlMigrationQueryBuilder::CreateTableIfNotExists(std::string_view tableName)
+{
+    _migrationPlan.steps.emplace_back(SqlCreateTablePlan {
+        .schemaName = _schemaName,
+        .tableName = std::string(tableName),
+        .columns = {},
+        .foreignKeys = {},
+        .ifNotExists = true,
     });
     return SqlCreateTableQueryBuilder { std::get<SqlCreateTablePlan>(_migrationPlan.steps.back()) };
 }
@@ -36,6 +80,7 @@ SqlCreateTableQueryBuilder SqlMigrationQueryBuilder::CreateTable(std::string_vie
 SqlAlterTableQueryBuilder SqlMigrationQueryBuilder::AlterTable(std::string_view tableName)
 {
     _migrationPlan.steps.emplace_back(SqlAlterTablePlan {
+        .schemaName = _schemaName,
         .tableName = tableName,
         .commands = {},
     });
@@ -127,6 +172,44 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::DropIndex(std::string_view
     return *this;
 }
 
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddColumnIfNotExists(std::string columnName,
+                                                                           SqlColumnTypeDefinition columnType)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::AddColumnIfNotExists {
+        .columnName = std::move(columnName),
+        .columnType = columnType,
+        .nullable = SqlNullable::NotNull,
+    });
+    return *this;
+}
+
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddNotRequiredColumnIfNotExists(std::string columnName,
+                                                                                      SqlColumnTypeDefinition columnType)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::AddColumnIfNotExists {
+        .columnName = std::move(columnName),
+        .columnType = columnType,
+        .nullable = SqlNullable::Null,
+    });
+    return *this;
+}
+
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::DropColumnIfExists(std::string_view columnName)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::DropColumnIfExists {
+        .columnName = std::string(columnName),
+    });
+    return *this;
+}
+
+SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::DropIndexIfExists(std::string_view columnName)
+{
+    _plan.commands.emplace_back(SqlAlterTableCommands::DropIndexIfExists {
+        .columnName = std::string(columnName),
+    });
+    return *this;
+}
+
 SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddForeignKey(std::string columnName,
                                                                     SqlForeignKeyReferenceDefinition referencedColumn)
 {
@@ -171,6 +254,7 @@ SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::Column(std::string colum
     return Column(SqlColumnDeclaration {
         .name = std::move(columnName),
         .type = columnType,
+        .defaultValue = {},
     });
 }
 
@@ -181,6 +265,7 @@ SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::RequiredColumn(std::stri
         .name = std::move(columnName),
         .type = columnType,
         .required = true,
+        .defaultValue = {},
     });
 }
 
@@ -200,6 +285,7 @@ SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::PrimaryKey(std::string c
         .primaryKey = SqlPrimaryKeyType::MANUAL,
         .required = true,
         .unique = true,
+        .defaultValue = {},
         .index = true,
     });
 }
@@ -213,6 +299,7 @@ SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::PrimaryKeyWithAutoIncrem
         .primaryKey = SqlPrimaryKeyType::AUTO_INCREMENT,
         .required = true,
         .unique = true,
+        .defaultValue = {},
         .index = true,
     });
 }
@@ -224,8 +311,10 @@ SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::ForeignKey(std::string c
     return Column(SqlColumnDeclaration {
         .name = std::move(columnName),
         .type = columnType,
+        .primaryKey = SqlPrimaryKeyType::NONE,
         .foreignKey = std::move(foreignKey),
         .required = false,
+        .defaultValue = {},
     });
 }
 
@@ -236,9 +325,23 @@ SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::RequiredForeignKey(std::
     return Column(SqlColumnDeclaration {
         .name = std::move(columnName),
         .type = columnType,
+        .primaryKey = SqlPrimaryKeyType::NONE,
         .foreignKey = std::move(foreignKey),
         .required = true,
+        .defaultValue = {},
     });
+}
+
+SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::ForeignKey(std::vector<std::string> columns,
+                                                                   std::string referencedTableName,
+                                                                   std::vector<std::string> referencedColumns)
+{
+    _plan.foreignKeys.emplace_back(SqlCompositeForeignKeyConstraint {
+        .columns = std::move(columns),
+        .referencedTableName = std::move(referencedTableName),
+        .referencedColumns = std::move(referencedColumns),
+    });
+    return *this;
 }
 
 SqlCreateTableQueryBuilder& SqlCreateTableQueryBuilder::Unique()

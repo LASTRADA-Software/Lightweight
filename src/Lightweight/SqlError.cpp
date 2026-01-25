@@ -6,11 +6,12 @@
 namespace Lightweight
 {
 
-SqlException::SqlException(SqlErrorInfo info, std::source_location sourceLocation):
+SqlException::SqlException(SqlErrorInfo info, std::source_location /*sourceLocation*/):
     std::runtime_error(std::format("{}", info)),
     _info { std::move(info) }
 {
-    SqlLogger::GetLogger().OnError(_info, sourceLocation);
+    // Note: We don't log here because the exception will be thrown and handled by the caller.
+    // Logging should happen at the point where errors are silently handled, not where they're thrown.
 }
 
 void SqlErrorInfo::RequireStatementSuccess(SQLRETURN result, SQLHSTMT hStmt, std::string_view message)

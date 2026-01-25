@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "QueryFormatter/OracleFormatter.hpp"
 #include "QueryFormatter/PostgreSqlFormatter.hpp"
 #include "QueryFormatter/SQLiteFormatter.hpp"
 #include "QueryFormatter/SqlServerFormatter.hpp"
@@ -12,6 +11,13 @@ using namespace std::string_view_literals;
 
 namespace Lightweight
 {
+
+std::string SqlQueryFormatter::FormatTableName(std::string_view schema, std::string_view table)
+{
+    if (schema.empty())
+        return std::format(R"("{}")", table);
+    return std::format(R"("{}"."{}")", schema, table);
+}
 
 SqlQueryFormatter const& SqlQueryFormatter::Sqlite()
 {
@@ -31,19 +37,12 @@ SqlQueryFormatter const& SqlQueryFormatter::PostgrSQL()
     return formatter;
 }
 
-SqlQueryFormatter const& SqlQueryFormatter::OracleSQL()
-{
-    static OracleSqlQueryFormatter const formatter {};
-    return formatter;
-}
-
 SqlQueryFormatter const* SqlQueryFormatter::Get(SqlServerType serverType) noexcept
 {
-    static std::array<SqlQueryFormatter const*, 6> const formatters = {
+    static std::array<SqlQueryFormatter const*, 5> const formatters = {
         nullptr,
         &SqlQueryFormatter::SqlServer(),
         &SqlQueryFormatter::PostgrSQL(),
-        &SqlQueryFormatter::OracleSQL(),
         &SqlQueryFormatter::Sqlite(),
         nullptr, // MySQL
     };

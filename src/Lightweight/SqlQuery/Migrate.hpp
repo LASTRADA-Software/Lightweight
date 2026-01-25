@@ -55,6 +55,11 @@ class [[nodiscard]] SqlCreateTableQueryBuilder final
                                                                    SqlColumnTypeDefinition columnType,
                                                                    SqlForeignKeyReferenceDefinition foreignKey);
 
+    /// Adds a composite foreign key constraint.
+    LIGHTWEIGHT_API SqlCreateTableQueryBuilder& ForeignKey(std::vector<std::string> columns,
+                                                           std::string referencedTableName,
+                                                           std::vector<std::string> referencedColumns);
+
     /// Enables the UNIQUE constraint on the last declared column.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& Unique();
 
@@ -146,6 +151,22 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// @param columnName The name of the column to drop.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropColumn(std::string_view columnName);
 
+    /// Adds a new column to the table only if it does not already exist.
+    ///
+    /// @note Database support varies:
+    /// - PostgreSQL: Native IF NOT EXISTS support
+    /// - SQL Server: Uses conditional IF NOT EXISTS query
+    /// - SQLite: Limited support (may require raw SQL)
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddColumnIfNotExists(std::string columnName,
+                                                                    SqlColumnTypeDefinition columnType);
+
+    /// Adds a new nullable column to the table only if it does not already exist.
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddNotRequiredColumnIfNotExists(std::string columnName,
+                                                                               SqlColumnTypeDefinition columnType);
+
+    /// Drops a column from the table only if it exists.
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropColumnIfExists(std::string_view columnName);
+
     /// Add an index to the table for the specified column.
     /// @param columnName The name of the column to index.
     ///
@@ -175,6 +196,10 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// // Will execute DROP INDEX "Table_column_index";
     /// @endcode
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropIndex(std::string_view columnName);
+
+    /// Drop an index from the table only if it exists.
+    /// @param columnName The name of the column to drop the index from.
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropIndexIfExists(std::string_view columnName);
 
     /// Adds a foreign key column @p columnName to @p referencedColumn to an existing column.
     ///
@@ -218,6 +243,8 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     {
     }
 
+    LIGHTWEIGHT_API SqlMigrationQueryBuilder& WithSchema(std::string schemaName);
+
     /// Creates a new database.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& CreateDatabase(std::string_view databaseName);
 
@@ -227,11 +254,26 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     /// Creates a new table.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder CreateTable(std::string_view tableName);
 
+    /// Creates a new table only if it does not already exist.
+    ///
+    /// @note Database support:
+    /// - SQLite: Native CREATE TABLE IF NOT EXISTS
+    /// - PostgreSQL: Native CREATE TABLE IF NOT EXISTS
+    /// - SQL Server: Uses conditional IF NOT EXISTS block
+    LIGHTWEIGHT_API SqlCreateTableQueryBuilder CreateTableIfNotExists(std::string_view tableName);
+
     /// Alters an existing table.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder AlterTable(std::string_view tableName);
 
     /// Drops a table.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& DropTable(std::string_view tableName);
+
+    /// Drops a table if it exists.
+    LIGHTWEIGHT_API SqlMigrationQueryBuilder& DropTableIfExists(std::string_view tableName);
+
+    /// Drops a table and all foreign key constraints referencing it.
+    /// On PostgreSQL, uses CASCADE. On MS SQL, drops FK constraints first.
+    LIGHTWEIGHT_API SqlMigrationQueryBuilder& DropTableCascade(std::string_view tableName);
 
     /// Creates a new table for the given record type.
     template <typename Record>
@@ -352,6 +394,7 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
 
   private:
     SqlQueryFormatter const& _formatter;
+    std::string _schemaName;
     SqlMigrationPlan _migrationPlan;
 };
 

@@ -245,9 +245,8 @@ std::u16string ToUtf16(std::basic_string_view<T> const u32InputString)
 {
     std::u16string u16OutputString;
     u16OutputString.reserve(u32InputString.size());
-    detail::UnicodeConverter<char16_t> converter;
     for (auto const c: u32InputString)
-        converter.Convert(c, std::back_inserter(u16OutputString));
+        detail::UnicodeConverter<char16_t>::Convert(static_cast<char32_t>(c), std::back_inserter(u16OutputString));
     return u16OutputString;
 }
 
@@ -286,7 +285,7 @@ T ToUtf32(std::u16string_view u16InputString)
         if (c16 < 0xD800 || c16 >= 0xDC00)
             result.push_back(static_cast<char32_t>(c16));
         else
-            result.push_back(0x10000 + ((c16 & 0x3FF) | ((c16 & 0x3FF) << 10)));
+            result.push_back(static_cast<char32_t>(0x10000 + ((c16 & 0x3FF) | ((c16 & 0x3FF) << 10))));
     }
 
     return result;

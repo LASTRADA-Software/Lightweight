@@ -1,3 +1,17 @@
+# Define shared library option early, before dependencies that need to know about it
+set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT OFF)
+if(WIN32)
+    set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT ON)
+endif()
+
+option(LIGHTWEIGHT_BUILD_SHARED "Build Lightweight as a shared library" ${LIGHTWEIGHT_BUILD_SHARED_DEFAULT})
+
+if(LIGHTWEIGHT_BUILD_SHARED)
+    set(LIGHTWEIGHT_LIBRARY_TYPE SHARED)
+else()
+    set(LIGHTWEIGHT_LIBRARY_TYPE STATIC)
+endif()
+
 if(NOT WIN32)
     find_package(SQLite3 REQUIRED)
     include_directories(${SQLITE3_INCLUDE_DIR})
@@ -6,6 +20,19 @@ if(NOT WIN32)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(ODBC REQUIRED odbc)
 endif()
+
+if(WIN32)
+    find_package(libzip CONFIG REQUIRED)
+    # vcpkg provides libzip::zip, create alias to match CPM target name
+    add_library(zip ALIAS libzip::zip)
+endif()
+# Note: libzip for non-Windows is handled in root CMakeLists.txt (system pkg-config or CPM fallback)
+
+CPMAddPackage(
+    NAME nlohmann_json
+    GITHUB_REPOSITORY nlohmann/json
+    VERSION 3.11.3
+)
 
 set(HEADER_FILES
     DataBinder/BasicStringBinder.hpp
@@ -44,11 +71,16 @@ set(HEADER_FILES
     DataMapper/HasOneThrough.hpp
     DataMapper/QueryBuilders.hpp
 
+    SqlBackup.hpp
+    SqlBackup/TableFilter.hpp
+    SqlBackupFormats.hpp
     SqlConnectInfo.hpp
     SqlConnection.hpp
     SqlError.hpp
+    SqlErrorDetection.hpp
     SqlLogger.hpp
     SqlMigration.hpp
+    SqlMigrationLock.hpp
     SqlQueryFormatter.hpp
     SqlSchema.hpp
     SqlScopedTraceLogger.hpp
@@ -64,11 +96,16 @@ set(SOURCE_FILES
 
     DataMapper/DataMapper.cpp
 
+    SqlBackup/BatchManager.cpp
+    SqlBackup/MsgPackChunkFormats.cpp
+    SqlBackup/SqlBackup.cpp
+    SqlBackup/TableFilter.cpp
     SqlConnectInfo.cpp
     SqlConnection.cpp
     SqlError.cpp
     SqlLogger.cpp
     SqlMigration.cpp
+    SqlMigrationLock.cpp
     SqlQuery.cpp
     SqlQuery/Core.cpp
     SqlQuery/Migrate.cpp
@@ -80,19 +117,6 @@ set(SOURCE_FILES
     SqlTransaction.cpp
     Utils.cpp
 )
-
-set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT OFF)
-if(WIN32)
-    set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT ON)
-endif()
-
-option(LIGHTWEIGHT_BUILD_SHARED "Build Lightweight as a shared library" ${LIGHTWEIGHT_BUILD_SHARED_DEFAULT})
-
-if(LIGHTWEIGHT_BUILD_SHARED)
-    set(LIGHTWEIGHT_LIBRARY_TYPE SHARED)
-else()
-    set(LIGHTWEIGHT_LIBRARY_TYPE STATIC)
-endif()
 
 add_library(Lightweight ${LIGHTWEIGHT_LIBRARY_TYPE})
 
@@ -120,11 +144,16 @@ if(CLANG_TIDY_EXE)
     set_target_properties(LightweightTools PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
 endif()
 
+# Enable coverage instrumentation for library targets
+enable_coverage_for_target(Lightweight)
+enable_coverage_for_target(LightweightTools)
+
 target_include_directories(Lightweight PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
 )
 
 target_link_libraries(Lightweight PUBLIC reflection-cpp::reflection-cpp)
+target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>)
 
 if(MSVC)
     target_compile_options(Lightweight PRIVATE /W4 /WX)
@@ -133,6 +162,8 @@ if(MSVC)
         target_compile_options(Lightweight PRIVATE /MP)
     endif()
     target_link_libraries(Lightweight PUBLIC odbc32)
+    # Link libzip (vcpkg provides libzip::zip, aliased to zip above)
+    target_link_libraries(Lightweight PRIVATE zip)
 else()
     target_compile_options(Lightweight PRIVATE -Wall -Wextra -pedantic -Werror)
     target_compile_options(Lightweight PUBLIC ${ODBC_CFLAGS})
@@ -148,15 +179,8 @@ else()
         target_link_libraries(Lightweight PUBLIC ${UUID_LDFLAGS})
     endif()
 
-    # Link libzip
-    if(LIBZIP_FOUND)
-        # System libzip via pkg-config
-        target_include_directories(Lightweight PRIVATE ${LIBZIP_INCLUDE_DIRS})
-        target_link_libraries(Lightweight PUBLIC ${LIBZIP_LDFLAGS})
-    else()
-        # CPM-fetched libzip
-        target_link_libraries(Lightweight PUBLIC libzip::zip)
-    endif()
+    # Link libzip (zip target is created in root CMakeLists.txt)
+    target_link_libraries(Lightweight PRIVATE zip)
 endif()
 
 set_target_properties(Lightweight PROPERTIES

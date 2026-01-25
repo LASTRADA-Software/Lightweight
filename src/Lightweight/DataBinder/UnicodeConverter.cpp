@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 #include "UnicodeConverter.hpp"
 
 #include <codecvt>
@@ -31,7 +33,7 @@ std::u8string ToUtf8(std::u16string_view u16InputString)
     {
         if (c16 >= 0xD800 && c16 < 0xDC00)
         {
-            codePoint = (c16 & 0x3FF) << 10;
+            codePoint = static_cast<char32_t>((c16 & 0x3FF) << 10);
             codeUnits = 1;
         }
         else if (c16 >= 0xDC00 && c16 < 0xE000)

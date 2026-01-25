@@ -15,7 +15,6 @@ enum class SqlServerType : uint8_t
     UNKNOWN,
     MICROSOFT_SQL,
     POSTGRESQL,
-    ORACLE,
     SQLITE,
     MYSQL,
 };
@@ -37,9 +36,6 @@ struct std::formatter<Lightweight::SqlServerType>: std::formatter<std::string_vi
                 break;
             case SqlServerType::POSTGRESQL:
                 name = "PostgreSQL"sv;
-                break;
-            case SqlServerType::ORACLE:
-                name = "Oracle"sv;
                 break;
             case SqlServerType::SQLITE:
                 name = "SQLite"sv;

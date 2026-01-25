@@ -312,7 +312,7 @@ std::string CxxModelPrinter::MakeType(
             [](Date const&) -> std::string { return "Light::SqlDate"; },
             [](DateTime const&) -> std::string { return "Light::SqlDateTime"; },
             [](Decimal const& type) -> std::string {
-                return std::format("Light::SqlNumeric<{}, {}>", type.scale, type.precision);
+                return std::format("Light::SqlNumeric<{}, {}>", type.precision, type.scale);
             },
             [](Guid const&) -> std::string { return "Light::SqlGuid"; },
             [](Integer const&) -> std::string { return "int32_t"; },
@@ -408,7 +408,7 @@ void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> co
     }
 #else
     for (auto const& [index, table]: std::views::enumerate(tables))
-        numberOfForeignKeys[index] = static_cast<int>(table.foreignKeys.size());
+        numberOfForeignKeys[static_cast<size_t>(index)] = static_cast<int>(table.foreignKeys.size());
 #endif
 
     auto const updateForeignKeyCountAfterPrinted = [&](auto const& tablePrinted) {
@@ -417,17 +417,19 @@ void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> co
         for (auto const table: tables)
         {
             ++index;
+            auto const idx = static_cast<size_t>(index);
 #else
         for (auto const [index, table]: std::views::enumerate(tables))
         {
+            auto const idx = static_cast<size_t>(index);
 #endif
             if (table.name == tablePrinted.name)
-                numberOfForeignKeys[index] = std::nullopt;
+                numberOfForeignKeys[idx] = std::nullopt;
 
             for (auto const& foreignKey: table.foreignKeys)
             {
-                if ((foreignKey.primaryKey.table.table == tablePrinted.name) && numberOfForeignKeys[index].has_value())
-                    numberOfForeignKeys[index] = numberOfForeignKeys[index].value() - 1;
+                if ((foreignKey.primaryKey.table.table == tablePrinted.name) && numberOfForeignKeys[idx].has_value())
+                    numberOfForeignKeys[idx] = numberOfForeignKeys[idx].value() - 1;
             }
         }
     };
@@ -448,15 +450,17 @@ void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> co
         for (auto const table: tables)
         {
             ++index;
+            auto const idx = static_cast<size_t>(index);
 #else
         for (auto const [index, table]: std::views::enumerate(tables))
         {
+            auto const idx = static_cast<size_t>(index);
 #endif
-            if (!numberOfForeignKeys[index]) // NOLINT(bugprone-unchecked-optional-access)
+            if (!numberOfForeignKeys[idx]) // NOLINT(bugprone-unchecked-optional-access)
                 continue;
-            if (numberOfForeignKeys[index].value() == 0) //  NOLINT(bugprone-unchecked-optional-access)
+            if (numberOfForeignKeys[idx].value() == 0) //  NOLINT(bugprone-unchecked-optional-access)
             {
-                printTable(index, table);
+                printTable(idx, table);
             }
             else
             {
@@ -469,16 +473,18 @@ void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> co
                 for (auto const& otherTable: tables)
                 {
                     ++otherIndex;
+                    auto const otherIdx = static_cast<size_t>(otherIndex);
 #else
                 for (auto const [otherIndex, otherTable]: std::views::enumerate(tables))
                 {
+                    auto const otherIdx = static_cast<size_t>(otherIndex);
 #endif
-                    if (numberOfForeignKeys[otherIndex] == 0)
+                    if (numberOfForeignKeys[otherIdx] == 0)
                         found = true;
                 }
                 // we need to print this table so that we do not print it again
                 if (!found)
-                    printTable(index, table);
+                    printTable(idx, table);
             }
         }
     }

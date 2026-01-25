@@ -242,7 +242,7 @@ TEST_CASE_METHOD(SqlTestFixture, "TestDynamicData", "[DataMapper]")
     TestDynamicData data {};
     dm.Create(data);
 
-    auto const checkSize = [&](auto size) {
+    auto const checkSize = [&](size_t size) {
         INFO(size);
 
         data.stringAnsi = std::string(size, 'a');
@@ -277,7 +277,7 @@ TEST_CASE_METHOD(SqlTestFixture, "TestQuerySingleDynamicData", "[DataMapper]")
     data.stringWide = std::basic_string<wchar_t>(10, L'a');
     dm.Create(data);
 
-    auto const checkSize = [&](auto size) {
+    auto const checkSize = [&](size_t size) {
         INFO(size);
         data.stringWide = std::basic_string<wchar_t>(size, L'a');
         dm.Update(data);
@@ -305,7 +305,7 @@ TEST_CASE_METHOD(SqlTestFixture, "TestQuerySparseDynamicData", "[DataMapper]")
     data.stringWide = std::basic_string<wchar_t>(10, L'a');
     dm.Create(data);
 
-    auto const checkSize = [&](auto size) {
+    auto const checkSize = [&](size_t size) {
         INFO(size);
         data.stringUtf16 = std::basic_string<char16_t>(size, u'a');
         data.stringUtf32 = std::basic_string<char32_t>(size, U'a');
@@ -341,7 +341,7 @@ TEST_CASE_METHOD(SqlTestFixture, "TestOptionalDynamicData", "[DataMapper]")
     TestOptionalDynamicData data {};
     dm.Create(data);
 
-    auto const checkSize = [&](auto size) {
+    auto const checkSize = [&](size_t size) {
         INFO(size);
 
         if (size / 5 == 0)
