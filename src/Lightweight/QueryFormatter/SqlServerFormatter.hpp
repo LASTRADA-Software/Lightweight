@@ -300,7 +300,7 @@ EXEC sp_executesql @sql;)",
         {
             if (column.foreignKey)
             {
-                ss << ",\n    " << BuildForeignKeyConstraint(column.name, *column.foreignKey);
+                ss << ",\n    " << BuildForeignKeyConstraint(tableName, column.name, *column.foreignKey);
             }
         }
 
@@ -422,12 +422,12 @@ EXEC sp_executesql @sql;)",
                         return std::format(
                             R"(ALTER TABLE {} ADD {};)",
                             FormatTableName(schemaName, tableName),
-                            BuildForeignKeyConstraint(actualCommand.columnName, actualCommand.referencedColumn));
+                            BuildForeignKeyConstraint(tableName, actualCommand.columnName, actualCommand.referencedColumn));
                     },
                     [schemaName, tableName](DropForeignKey const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE {} DROP CONSTRAINT "{}";)",
                                            FormatTableName(schemaName, tableName),
-                                           std::format("FK_{}", actualCommand.columnName));
+                                           std::format("FK_{}_{}", tableName, actualCommand.columnName));
                     },
                     [schemaName, tableName](AddCompositeForeignKey const& actualCommand) -> std::string {
                         std::stringstream ss;

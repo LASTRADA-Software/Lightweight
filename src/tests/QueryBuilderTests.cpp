@@ -1054,15 +1054,15 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with foreign key", "[SqlQueryBuild
         QueryExpectations {
             .sqlite = R"sql(CREATE TABLE "Table" (
                                    "other_id" INTEGER,
-                                   CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                   CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
                                      );)sql",
             .postgres = R"sql(CREATE TABLE "Table" (
                                    "other_id" INTEGER,
-                                   CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                   CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
                                      );)sql",
             .sqlServer = R"sql(CREATE TABLE "Table" (
                                    "other_id" INTEGER,
-                                   CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                   CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
                                      );)sql",
         });
 }
@@ -1267,15 +1267,15 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddForeignKeyColumn", "[SqlQueryBui
         QueryExpectations {
             .sqlite = R"sql(
                         ALTER TABLE "Table" ADD COLUMN "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                        ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
                     )sql",
             .postgres = R"sql(
                         ALTER TABLE "Table" ADD COLUMN "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                        ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
                     )sql",
             .sqlServer = R"sql(
                         ALTER TABLE "Table" ADD "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                        ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
                     )sql",
         });
 }

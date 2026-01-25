@@ -225,11 +225,12 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return sqlQueryString.str();
     }
 
-    [[nodiscard]] static std::string BuildForeignKeyConstraint(std::string_view columnName,
+    [[nodiscard]] static std::string BuildForeignKeyConstraint(std::string_view tableName,
+                                                               std::string_view columnName,
                                                                SqlForeignKeyReferenceDefinition const& referencedColumn)
     {
         return std::format(R"(CONSTRAINT {} FOREIGN KEY ("{}") REFERENCES "{}"("{}"))",
-                           std::format("FK_{}", columnName),
+                           std::format("FK_{}_{}", tableName, columnName),
                            columnName,
                            referencedColumn.tableName,
                            referencedColumn.columnName);
@@ -274,7 +275,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                 if (column.foreignKey)
                 {
                     foreignKeyConstraints += ",\n    ";
-                    foreignKeyConstraints += BuildForeignKeyConstraint(column.name, *column.foreignKey);
+                    foreignKeyConstraints += BuildForeignKeyConstraint(tableName, column.name, *column.foreignKey);
                 }
             }
 
@@ -421,12 +422,12 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                         return std::format(
                             R"(ALTER TABLE {} ADD {};)",
                             FormatTableName(schemaName, tableName),
-                            BuildForeignKeyConstraint(actualCommand.columnName, actualCommand.referencedColumn));
+                            BuildForeignKeyConstraint(tableName, actualCommand.columnName, actualCommand.referencedColumn));
                     },
                     [schemaName, tableName](DropForeignKey const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE {} DROP CONSTRAINT "{}";)",
                                            FormatTableName(schemaName, tableName),
-                                           std::format("FK_{}", actualCommand.columnName));
+                                           std::format("FK_{}_{}", tableName, actualCommand.columnName));
                     },
                     [tableName](AddCompositeForeignKey const& /*actualCommand*/) -> std::string {
                         // SQLite limitation: ALTER TABLE ADD CONSTRAINT not supported.
