@@ -83,8 +83,9 @@ jobs:
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
           sudo ./llvm.sh 21
-          sudo apt -qy install clang-tidy-21
+          sudo apt -qy install clang-tidy-21 clang-tools-21
           which clang-tidy-21
+          which run-clang-tidy-21
       - name: "install dependencies"
         run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14 libtbb-dev libzip-dev
       - name: "cmake"
@@ -94,7 +95,7 @@ jobs:
                 -D CMAKE_C_COMPILER=clang-21 \
                 -B build
       - name: "run clang-tidy"
-        run: run-clang-tidy -p ./build -clang-tidy-binary clang-tidy-21 -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/|(.*/)?libzip-src/).*$' -source-filter='^(?!.*_deps/).*$'
+        run: run-clang-tidy-21 -p ./build -clang-tidy-binary clang-tidy-21 -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/|(.*/)?libzip-src/).*$' -source-filter='^(?!.*_deps/).*$'
 
   # }}}
   # {{{ Windows
