@@ -147,6 +147,16 @@ else()
     if(UUID_FOUND)
         target_link_libraries(Lightweight PUBLIC ${UUID_LDFLAGS})
     endif()
+
+    # Link libzip
+    if(LIBZIP_FOUND)
+        # System libzip via pkg-config
+        target_include_directories(Lightweight PRIVATE ${LIBZIP_INCLUDE_DIRS})
+        target_link_libraries(Lightweight PUBLIC ${LIBZIP_LDFLAGS})
+    else()
+        # CPM-fetched libzip
+        target_link_libraries(Lightweight PUBLIC libzip::zip)
+    endif()
 endif()
 
 set_target_properties(Lightweight PROPERTIES

@@ -86,7 +86,7 @@ jobs:
           sudo apt -qy install clang-tidy-21
           which clang-tidy-21
       - name: "install dependencies"
-        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14 libtbb-dev
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14 libtbb-dev libzip-dev
       - name: "cmake"
         run: |
           cmake --preset linux-clang-debug \
@@ -178,7 +178,7 @@ jobs:
           CC_VERSION=$( echo "${{ matrix.compiler }}" | awk '{ print $2; }')
           echo "CC_VERSION=${CC_VERSION}" >> "$GITHUB_OUTPUT"
       - name: "install dependencies"
-        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libtbb-dev
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libtbb-dev libzip-dev
       - name: Install GCC
         if: ${{ startsWith(matrix.compiler, 'GCC') }}
         run: sudo apt install -y g++-${{ steps.extract_matrix.outputs.CC_VERSION }}
@@ -285,7 +285,7 @@ jobs:
         run: |
           sudo tar -xvf Lightweight-Linux-CI.tar.gz --strip-components=1 -C /usr/local
       - name: "install dependencies"
-        run: sudo apt install -y unixodbc-dev unixodbc libsqliteodbc odbcinst uuid-dev sqlite3 uuid-dev libyaml-cpp-dev
+        run: sudo apt install -y unixodbc-dev unixodbc libsqliteodbc odbcinst uuid-dev sqlite3 uuid-dev libyaml-cpp-dev libzip4
       - name: "Setup ms sql server"
         id: setup
         run: |
@@ -294,7 +294,7 @@ jobs:
         run: |
           DDL2CPP=/usr/local/bin/ddl2cpp  ODBC_CONNECTION_STRING="${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}" ./src/tools/test_chinook.sh
       - name: "install dependencies"
-        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev g++-14 libstdc++-14-dev
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev g++-14 libstdc++-14-dev libzip-dev
       - name: "Configure cmake"
         run: cmake --preset linux-gcc-release -B build -D CMAKE_CXX_COMPILER=g++-14
       - name: "Configure cmake"
@@ -331,7 +331,7 @@ jobs:
       - name: "Update APT database"
         run: sudo apt -q update
       - name: "install dependencies"
-        run: sudo apt install -y unixodbc odbcinst libuuid1 valgrind libyaml-cpp-dev
+        run: sudo apt install -y unixodbc odbcinst libuuid1 valgrind libyaml-cpp-dev libzip4
       - name: "Setup ${{ matrix.database }}"
         id: setup
         run: bash ./.github/prepare-test-run.sh "${{ matrix.database }}"
@@ -397,7 +397,7 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 19
       - name: "install dependencies"
-        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev
       - name: "cmake"
         run: |
           cmake --preset linux-clang-${{ matrix.sanitizer }} \

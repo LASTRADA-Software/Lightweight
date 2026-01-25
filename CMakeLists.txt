@@ -48,6 +48,31 @@ else()
     CPMAddPackage("gh:contour-terminal/reflection-cpp#master")
 endif()
 
+# libzip support (Linux only)
+if(NOT WIN32)
+    find_package(PkgConfig QUIET)
+    if(PKG_CONFIG_FOUND)
+        pkg_check_modules(LIBZIP QUIET libzip)
+    endif()
+
+    if(LIBZIP_FOUND)
+        message(STATUS "System libzip found: ${LIBZIP_VERSION}")
+    else()
+        message(STATUS "System libzip not found, downloading via CPM...")
+        CPMAddPackage(
+            NAME libzip
+            GITHUB_REPOSITORY nih-at/libzip
+            GIT_TAG v1.11.2
+            OPTIONS
+                "BUILD_TOOLS OFF"
+                "BUILD_REGRESS OFF"
+                "BUILD_OSSFUZZ OFF"
+                "BUILD_EXAMPLES OFF"
+                "BUILD_DOC OFF"
+        )
+    endif()
+endif()
+
 # Detect clang-cl
 set(CLANG_CL FALSE)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
