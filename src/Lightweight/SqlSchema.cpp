@@ -237,6 +237,14 @@ namespace
         if (!SQL_SUCCEEDED(sqlResult))
             return {}; // Ignore errors or throw? Safest to ignore for now as some drivers might not support it fully.
 
+        // ODBC SQLStatistics() should return at least 13 columns per the spec.
+        // However, some drivers (e.g., MS SQL ODBC Driver 18 in certain environments) may
+        // return fewer columns. We need at least 9 columns (COLUMN_NAME) to process unique columns.
+        constexpr size_t MinRequiredColumns = 9;
+        auto const numColumns = stmt.NumColumnsAffected();
+        if (numColumns < MinRequiredColumns)
+            return {}; // Driver didn't return expected columns, return empty result
+
         std::map<std::string, std::vector<std::string>> uniqueIndices;
 
         while (stmt.FetchRow())
@@ -290,6 +298,14 @@ namespace
 
             if (!SQL_SUCCEEDED(sqlResult))
                 return {};
+
+            // ODBC SQLStatistics() should return at least 13 columns per the spec.
+            // However, some drivers (e.g., MS SQL ODBC Driver 18 in certain environments) may
+            // return fewer columns. We need at least 9 columns (COLUMN_NAME) to process indexes.
+            constexpr size_t MinRequiredColumns = 9;
+            auto const numColumns = indexStmt.NumColumnsAffected();
+            if (numColumns < MinRequiredColumns)
+                return {}; // Driver didn't return expected columns, return empty result
 
             // Map: index_name -> (columns sorted by ordinal_position, isUnique)
             struct IndexInfo
@@ -469,6 +485,11 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLColumns failed: {}", columnStmt.LastError()));
 
+        // ODBC SQLColumns() should return 18 columns per the spec.
+        // However, some drivers may return fewer columns. Track the actual column count
+        // to avoid accessing non-existent columns which causes ODBC errors.
+        auto const numColumns = columnStmt.NumColumnsAffected();
+
         Column column;
 
         while (columnStmt.FetchRow())
@@ -486,7 +507,7 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
                 column.size = rawSize > 0 ? static_cast<size_t>(rawSize) : 0;
 
                 // 8 - bufferLength
-                column.decimalDigits = columnStmt.GetNullableColumn<uint16_t>(9).value_or(0);
+                column.decimalDigits = numColumns >= 9 ? columnStmt.GetNullableColumn<uint16_t>(9).value_or(0) : 0;
             }
             catch (std::exception const&)
             {
@@ -495,20 +516,37 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
             }
 
             // 10 - NUM_PREC_RADIX
-            try
+            // 11 - NULLABLE
+            if (numColumns >= 11)
             {
-                column.isNullable = columnStmt.GetColumn<bool>(11);
+                try
+                {
+                    column.isNullable = columnStmt.GetColumn<bool>(11);
+                }
+                catch (std::exception&)
+                {
+                    column.isNullable = true;
+                }
             }
-            catch (std::exception&)
+            else
             {
                 column.isNullable = true;
             }
-            // 12 - remarks
-            try
+
+            // 12 - REMARKS
+            // 13 - COLUMN_DEF
+            if (numColumns >= 13)
             {
-                column.defaultValue = columnStmt.GetNullableColumn<std::string>(13).value_or("");
+                try
+                {
+                    column.defaultValue = columnStmt.GetNullableColumn<std::string>(13).value_or("");
+                }
+                catch (std::exception&)
+                {
+                    column.defaultValue = {};
+                }
             }
-            catch (std::exception&)
+            else
             {
                 column.defaultValue = {};
             }
