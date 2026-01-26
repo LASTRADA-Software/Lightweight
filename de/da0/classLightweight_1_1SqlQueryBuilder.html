@@ -123,6 +123,8 @@ LIGHTWEIGHT_API <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBui
 LIGHTWEIGHT_API <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html">SqlQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>FromTableAs</b> (std::string table, std::string alias)</td></tr>
 <tr class="memdesc:a017af051177b1185b32816e0e49e5ab8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a new query builder for the given table with an alias. <br /></td></tr>
 <tr class="separator:a017af051177b1185b32816e0e49e5ab8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a06617b326815751e2e22a114b3f0300e" id="r_a06617b326815751e2e22a114b3f0300e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html">SqlQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a06617b326815751e2e22a114b3f0300e">FromSchemaTable</a> (std::string_view schema, std::string_view table)</td></tr>
+<tr class="separator:a06617b326815751e2e22a114b3f0300e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a779ace23d8860b4c47ba61750a068065" id="r_a779ace23d8860b4c47ba61750a068065"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html">SqlInsertQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a779ace23d8860b4c47ba61750a068065">Insert</a> (std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; *boundInputs=nullptr) noexcept</td></tr>
 <tr class="separator:a779ace23d8860b4c47ba61750a068065"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad9d7e0290e84a1b8560e32a9f37d5a1f" id="r_ad9d7e0290e84a1b8560e32a9f37d5a1f"><td class="memItemLeft" align="right" valign="top"><a id="ad9d7e0290e84a1b8560e32a9f37d5a1f" name="ad9d7e0290e84a1b8560e32a9f37d5a1f"></a>
@@ -191,7 +193,7 @@ LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigratio
 
 <p>Constructs a new query builder for the given table. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html#l00084">84</a> of file <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html">SqlQuery.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html#l00090">90</a> of file <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html">SqlQuery.hpp</a>.</p>
 
 </div>
 </div>
@@ -225,6 +227,41 @@ template&lt;size_t N&gt; </div>
 <p>Constructs a new query builder for the given table. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html#l00044">44</a> of file <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html">SqlQuery.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a06617b326815751e2e22a114b3f0300e" name="a06617b326815751e2e22a114b3f0300e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a06617b326815751e2e22a114b3f0300e">&#9670;&#160;</a></span>FromSchemaTable()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html">SqlQueryBuilder</a> &amp; Lightweight::SqlQueryBuilder::FromSchemaTable </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>schema</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>table</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Constructs a new query builder for the given schema and table. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">schema</td><td>The schema name (e.g., "public", "dbo") </td></tr>
+    <tr><td class="paramname">table</td><td>The table name </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

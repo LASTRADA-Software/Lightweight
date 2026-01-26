@@ -120,9 +120,8 @@ Public Member Functions</h2></td></tr>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnTables</b> (std::vector&lt; std::string &gt; const &amp;tables)=0</td></tr>
 <tr class="memdesc:a38e6606ee966480e7a5ab0b1069cf659"><td class="mdescLeft">&#160;</td><td class="mdescRight">Called when the names of all tables are read. <br /></td></tr>
 <tr class="separator:a38e6606ee966480e7a5ab0b1069cf659"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aff60691387dd67db7689fc69d04f7022" id="r_aff60691387dd67db7689fc69d04f7022"><td class="memItemLeft" align="right" valign="top"><a id="aff60691387dd67db7689fc69d04f7022" name="aff60691387dd67db7689fc69d04f7022"></a>
-virtual bool&#160;</td><td class="memItemRight" valign="bottom"><b>OnTable</b> (std::string_view table)=0</td></tr>
-<tr class="separator:aff60691387dd67db7689fc69d04f7022"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8870abb3a72671cdff7649b1b65f1db2" id="r_a8870abb3a72671cdff7649b1b65f1db2"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a8870abb3a72671cdff7649b1b65f1db2">OnTable</a> (std::string_view schema, std::string_view table)=0</td></tr>
+<tr class="separator:a8870abb3a72671cdff7649b1b65f1db2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2b6dcf255de2b88db441e5f99a8853c2" id="r_a2b6dcf255de2b88db441e5f99a8853c2"><td class="memItemLeft" align="right" valign="top"><a id="a2b6dcf255de2b88db441e5f99a8853c2" name="a2b6dcf255de2b88db441e5f99a8853c2"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnPrimaryKeys</b> (std::string_view table, std::vector&lt; std::string &gt; const &amp;columns)=0</td></tr>
 <tr class="separator:a2b6dcf255de2b88db441e5f99a8853c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -146,7 +145,51 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnTableEnd</b
 <div class="textblock"><p>Callback interface for handling events while reading a database schema. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00136">136</a> of file <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html">SqlSchema.hpp</a>.</p>
-</div><hr/>The documentation for this class was generated from the following file:<ul>
+</div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a8870abb3a72671cdff7649b1b65f1db2" name="a8870abb3a72671cdff7649b1b65f1db2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8870abb3a72671cdff7649b1b65f1db2">&#9670;&#160;</a></span>OnTable()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual bool Lightweight::SqlSchema::EventHandler::OnTable </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>schema</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>table</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Called for each table. Returns true to process this table, false to skip it. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">schema</td><td>The schema the table belongs to. </td></tr>
+    <tr><td class="paramname">table</td><td>The name of the table. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<hr/>The documentation for this class was generated from the following file:<ul>
 <li>Lightweight/<a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html">SqlSchema.hpp</a></li>
 </ul>
 </div><!-- contents -->

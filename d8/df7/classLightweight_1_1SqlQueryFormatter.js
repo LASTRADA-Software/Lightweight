@@ -4,6 +4,7 @@ var classLightweight_1_1SqlQueryFormatter =
     [ "StringLiteral", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a150a177da7cc5510ebd3f5461b555b4e", null ],
     [ "StringLiteral", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#af7b245464e7f0324ccbe281451c1399f", null ],
     [ "BinaryLiteral", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ae999d42f3595eb42865e6e1929ec14f2", null ],
+    [ "QualifiedTableName", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a28d630a4ecd3bb5946d20de498d95176", null ],
     [ "Insert", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#aa82cdee7e05bc78bca8345a4bebea3fd", null ],
     [ "QueryLastInsertId", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#ae5c1899d98fac7ec8340f1cd0cfeae1a", null ],
     [ "SelectAll", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#af0395f9fa984ef77525d2a3749f6ab1f", null ],

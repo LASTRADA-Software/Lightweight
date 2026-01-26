@@ -94,6 +94,7 @@ var hierarchy =
     [ "Lightweight::SqlBackup::ProgressManager", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html", [
       [ "Lightweight::SqlBackup::ErrorTrackingProgressManager", "df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html", null ]
     ] ],
+    [ "Lightweight::SqlBackup::RestoreSettings", "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html", null ],
     [ "Lightweight::SqlBackup::RetrySettings", "d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html", null ],
     [ "Lightweight::SqlBackup::Sha256", "d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html", null ],
     [ "Lightweight::SqlBackup::TableFilter", "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html", null ],
@@ -154,6 +155,7 @@ var hierarchy =
     [ "Lightweight::SqlVariant", "df/d3f/structLightweight_1_1SqlVariant.html", null ],
     [ "Lightweight::ThreadSafeQueue< T >", "d4/d9e/classLightweight_1_1ThreadSafeQueue.html", null ],
     [ "Lightweight::Tools::PluginLoader", "d3/df0/classLightweight_1_1Tools_1_1PluginLoader.html", null ],
+    [ "Lightweight::Tools::TableIssue", "d4/dcb/structLightweight_1_1Tools_1_1TableIssue.html", null ],
     [ "Lightweight::UniqueNameBuilder", "da/d15/classLightweight_1_1UniqueNameBuilder.html", null ],
     [ "Lightweight::SqlCoreDataMapperQueryBuilder< Record, SqlAllFieldsQueryBuilder< Record, QueryOptions >, QueryOptions >", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html", [
       [ "Lightweight::SqlAllFieldsQueryBuilder< Record, QueryOptions >", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ]

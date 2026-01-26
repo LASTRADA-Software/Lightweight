@@ -1,10 +1,18 @@
 var NAVTREEINDEX2 =
 {
+"d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ae2ac5e8f6feb4b31de19ad64fce540f5":[9,0,1,1,10,0],
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html":[9,0,1,43],
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a2838b8c9fd55745b05cc38a622836419":[9,0,1,43,0],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a76a7fc936dc18d3af22496f7e3d88017":[9,0,1,43,2],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e":[9,0,1,43,5],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a8ce0577acded3840d02009304a73888a":[9,0,1,43,3],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10":[9,0,1,43,4],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#abccc1073f563291d8caf94685890f64d":[9,0,1,43,1],
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html":[9,0,1,1,7],
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a066abf8c9d7c35374587d6fe850d8d2d":[9,0,1,1,7,3],
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a537031b2f22d3a8b8372965543208aee":[9,0,1,1,7,0],
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#adf28af73f0aa2dd90a6691179f11e6d5":[9,0,1,1,7,2],
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5":[9,0,1,1,7,1],
 "da/d15/classLightweight_1_1UniqueNameBuilder.html":[9,0,1,59],
 "da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26":[9,0,1,59,2],
 "da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3":[9,0,1,59,0],
@@ -241,13 +249,5 @@ var NAVTREEINDEX2 =
 "de/d73/classLightweight_1_1HasManyThrough.html#a2b350192660de51a40c8a7c242e0313d":[7,2,7,10],
 "de/d73/classLightweight_1_1HasManyThrough.html#a3136d004f0dfe3f81262ae9f3f788270":[7,2,7,4],
 "de/d73/classLightweight_1_1HasManyThrough.html#a449b45f68f5a2303de48e650280ec808":[7,2,7,2],
-"de/d73/classLightweight_1_1HasManyThrough.html#a45f3f4dbef894b9074c9ed7172ca0a6a":[7,2,7,3],
-"de/d73/classLightweight_1_1HasManyThrough.html#a57d4420d41ec66436af386a3d3fd20a8":[7,2,7,13],
-"de/d73/classLightweight_1_1HasManyThrough.html#a63dbc415ce91baf7f84465f1c3e18834":[7,2,7,12],
-"de/d73/classLightweight_1_1HasManyThrough.html#a6c541b2db604dfddcdfdce46588bf314":[7,2,7,8],
-"de/d73/classLightweight_1_1HasManyThrough.html#a99b76d65f3af60cf70826b5936c28848":[7,2,7,0],
-"de/d73/classLightweight_1_1HasManyThrough.html#aa0f11a7350c2a6e43c11a1b6ad9e4d92":[7,2,7,7],
-"de/d73/classLightweight_1_1HasManyThrough.html#abc7b43211d3b31a0b425476983ecfd40":[7,2,7,11],
-"de/d73/classLightweight_1_1HasManyThrough.html#ae63eccfc25a5ab0cf7d0bfa69edd4da1":[7,2,7,9],
-"de/d73/classLightweight_1_1HasManyThrough.html#af0243a918b74bd0570627d0ce6363f06":[7,2,7,5]
+"de/d73/classLightweight_1_1HasManyThrough.html#a45f3f4dbef894b9074c9ed7172ca0a6a":[7,2,7,3]
 };

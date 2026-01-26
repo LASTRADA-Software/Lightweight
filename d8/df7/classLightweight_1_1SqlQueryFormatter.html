@@ -145,6 +145,8 @@ virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>String
 virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>BinaryLiteral</b> (std::span&lt; uint8_t const &gt; data) const =0</td></tr>
 <tr class="memdesc:ae999d42f3595eb42865e6e1929ec14f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts a binary value to a hex-encoded string literal. <br /></td></tr>
 <tr class="separator:ae999d42f3595eb42865e6e1929ec14f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a28d630a4ecd3bb5946d20de498d95176" id="r_a28d630a4ecd3bb5946d20de498d95176"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a28d630a4ecd3bb5946d20de498d95176">QualifiedTableName</a> (std::string_view schema, std::string_view table) const =0</td></tr>
+<tr class="separator:a28d630a4ecd3bb5946d20de498d95176"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa82cdee7e05bc78bca8345a4bebea3fd" id="r_aa82cdee7e05bc78bca8345a4bebea3fd"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#aa82cdee7e05bc78bca8345a4bebea3fd">Insert</a> (std::string_view intoTable, std::string_view fields, std::string_view values) const =0</td></tr>
 <tr class="separator:aa82cdee7e05bc78bca8345a4bebea3fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad79a80ce62604a72855a4de796655131" id="r_ad79a80ce62604a72855a4de796655131"><td class="memItemLeft" align="right" valign="top"><a id="ad79a80ce62604a72855a4de796655131" name="ad79a80ce62604a72855a4de796655131"></a>
@@ -235,11 +237,55 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00114">114</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00120">120</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="a28d630a4ecd3bb5946d20de498d95176" name="a28d630a4ecd3bb5946d20de498d95176"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a28d630a4ecd3bb5946d20de498d95176">&#9670;&#160;</a></span>QualifiedTableName()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::string Lightweight::SqlQueryFormatter::QualifiedTableName </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>schema</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>table</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Formats a qualified table name with proper quoting for this database. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">schema</td><td>The schema name (can be empty for default schema) </td></tr>
+    <tr><td class="paramname">table</td><td>The table name </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The properly quoted qualified table name (e.g., "schema"."table" or [schema].[table]) </dd></dl>
+
+</div>
+</div>
 <a id="aa82cdee7e05bc78bca8345a4bebea3fd" name="aa82cdee7e05bc78bca8345a4bebea3fd"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aa82cdee7e05bc78bca8345a4bebea3fd">&#9670;&#160;</a></span>Insert()</h2>
 

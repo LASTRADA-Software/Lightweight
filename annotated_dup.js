@@ -18,6 +18,7 @@ var annotated_dup =
         [ "ErrorTrackingProgressManager", "df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html", "df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager" ],
         [ "Progress", "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html", "d5/db5/structLightweight_1_1SqlBackup_1_1Progress" ],
         [ "ProgressManager", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html", "d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager" ],
+        [ "RestoreSettings", "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html", "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings" ],
         [ "RetrySettings", "d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html", "d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings" ],
         [ "Sha256", "d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html", null ],
         [ "TableFilter", "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html", "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter" ],
@@ -40,7 +41,8 @@ var annotated_dup =
         [ "Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", "d3/dda/structLightweight_1_1SqlSchema_1_1Table" ]
       ] ],
       [ "Tools", null, [
-        [ "PluginLoader", "d3/df0/classLightweight_1_1Tools_1_1PluginLoader.html", null ]
+        [ "PluginLoader", "d3/df0/classLightweight_1_1Tools_1_1PluginLoader.html", null ],
+        [ "TableIssue", "d4/dcb/structLightweight_1_1Tools_1_1TableIssue.html", null ]
       ] ],
       [ "BelongsTo", "d0/df7/classLightweight_1_1BelongsTo.html", "d0/df7/classLightweight_1_1BelongsTo" ],
       [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html", "de/d61/classLightweight_1_1DataMapper" ],

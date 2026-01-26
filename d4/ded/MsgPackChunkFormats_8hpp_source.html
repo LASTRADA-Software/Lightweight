@@ -115,8 +115,18 @@ $(document).ready(function(){initNavTree('d4/ded/MsgPackChunkFormats_8hpp_source
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="comment"></span> </div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="comment">/// Factory for creating chunk readers.</span></div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="comment"></span>LIGHTWEIGHT_API std::unique_ptr&lt;ChunkReader&gt; CreateMsgPackChunkReader(std::istream&amp; input);</div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span> </div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>} <span class="comment">// namespace Lightweight::SqlBackup</span></div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment"></span> </div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="comment">/// Factory for creating chunk readers from an existing buffer (zero-copy).</span></div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="comment">///</span></div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="comment">/// This variant avoids copying the buffer into the reader, reducing memory usage</span></div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="comment">/// during restore operations. The caller must ensure the buffer remains valid</span></div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="comment">/// for the lifetime of the reader.</span></div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="comment">///</span></div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="comment">/// @param buffer The buffer containing MsgPack data to read from.</span></div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span><span class="comment">/// @return A unique pointer to the chunk reader.</span></div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span><span class="comment"></span>LIGHTWEIGHT_API std::unique_ptr&lt;ChunkReader&gt; CreateMsgPackChunkReaderFromBuffer(std::span&lt;uint8_t const&gt; buffer);</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span> </div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>} <span class="comment">// namespace Lightweight::SqlBackup</span></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
