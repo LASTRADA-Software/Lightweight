@@ -52,6 +52,37 @@ struct BackupSettings
     std::size_t chunkSizeBytes = 10 * 1024 * 1024;
 };
 
+/// Configuration for restore operations including memory management.
+struct RestoreSettings
+{
+    /// Batch size for insert operations (rows per batch).
+    /// Default: 0 (auto-calculated based on available memory).
+    std::size_t batchSize = 0;
+
+    /// Maximum rows before an intermediate commit within a chunk.
+    /// Helps reduce transaction log / WAL memory accumulation.
+    /// Default: 10000. Set to 0 to disable intermediate commits.
+    std::size_t maxRowsPerCommit = 10000;
+
+    /// Database page cache size in KB (used for SQLite PRAGMA cache_size,
+    /// could be extended for other DBMS memory hints).
+    /// Default: 65536 (64MB). Set to 0 to use database default.
+    std::size_t cacheSizeKB = 65536;
+
+    /// Memory limit in bytes (0 = auto-detect from system).
+    std::size_t memoryLimitBytes = 0;
+};
+
+/// Returns available system memory in bytes.
+LIGHTWEIGHT_API std::size_t GetAvailableSystemMemory() noexcept;
+
+/// Calculates optimal restore settings based on available memory.
+///
+/// @param availableMemory Available system memory in bytes.
+/// @param concurrency Number of concurrent restore workers.
+/// @return RestoreSettings optimized for the given memory constraints.
+LIGHTWEIGHT_API RestoreSettings CalculateRestoreSettings(std::size_t availableMemory, unsigned concurrency);
+
 /// Checks if a compression method is supported by the current libzip installation.
 ///
 /// @param method The compression method to check.
@@ -238,6 +269,25 @@ LIGHTWEIGHT_API void Restore(std::filesystem::path const& inputFile,
                              std::string const& schema = {},
                              std::string const& tableFilter = "*",
                              RetrySettings const& retrySettings = {});
+
+/// Restores the database from a file with explicit memory management settings.
+///
+/// @param inputFile the input file.
+/// @param connectionString the connection string used to connect to the database.
+/// @param concurrency the number of concurrent jobs.
+/// @param progress the progress manager to use for progress updates.
+/// @param schema the database schema to restore into (optional, overrides backup metadata).
+/// @param tableFilter comma-separated table filter patterns (default: "*" for all tables).
+/// @param retrySettings configuration for retry behavior on transient errors.
+/// @param restoreSettings configuration for memory management during restore.
+LIGHTWEIGHT_API void Restore(std::filesystem::path const& inputFile,
+                             SqlConnectionString const& connectionString,
+                             unsigned concurrency,
+                             ProgressManager& progress,
+                             std::string const& schema,
+                             std::string const& tableFilter,
+                             RetrySettings const& retrySettings,
+                             RestoreSettings const& restoreSettings);
 
 /// Creates the metadata JSON content.
 ///
