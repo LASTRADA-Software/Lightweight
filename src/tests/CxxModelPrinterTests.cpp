@@ -101,6 +101,7 @@ TEST_CASE("CxxModelPrinter: simple table with default settings", "[CxxModelPrint
     auto cxxModelPrinter = CxxModelPrinter { CxxModelPrinter::Config {} };
 
     cxxModelPrinter.PrintTable( Lightweight::SqlSchema::Table {
+        .schema = "",
         .name = "test",
         .columns = {
             Lightweight::SqlSchema::Column {

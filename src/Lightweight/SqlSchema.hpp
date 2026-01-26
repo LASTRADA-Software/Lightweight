@@ -146,7 +146,10 @@ namespace SqlSchema
         /// Called when the names of all tables are read.
         virtual void OnTables(std::vector<std::string> const& tables) = 0;
 
-        virtual bool OnTable(std::string_view table) = 0;
+        /// Called for each table. Returns true to process this table, false to skip it.
+        /// @param schema The schema the table belongs to.
+        /// @param table The name of the table.
+        virtual bool OnTable(std::string_view schema, std::string_view table) = 0;
         virtual void OnPrimaryKeys(std::string_view table, std::vector<std::string> const& columns) = 0;
         virtual void OnForeignKey(ForeignKeyConstraint const& foreignKeyConstraint) = 0;
         virtual void OnColumn(Column const& column) = 0;
@@ -172,6 +175,9 @@ namespace SqlSchema
     struct Table
     {
         // FullyQualifiedTableName name;
+
+        /// The schema the table belongs to.
+        std::string schema;
 
         /// The name of the table.
         std::string name;
