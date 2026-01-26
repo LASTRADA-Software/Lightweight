@@ -12,6 +12,17 @@ namespace Lightweight
 
 class SQLiteQueryFormatter: public SqlQueryFormatter
 {
+  protected:
+    /// Formats a table name for use in a FROM clause.
+    /// If the table name is already quoted (starts with " or [), returns it as-is.
+    /// Otherwise, wraps it in double quotes.
+    [[nodiscard]] static std::string FormatFromTable(std::string_view table)
+    {
+        if (!table.empty() && (table.front() == '"' || table.front() == '['))
+            return std::string(table); // Already quoted/qualified
+        return std::format(R"("{}")", table);
+    }
+
   public:
     [[nodiscard]] std::string Insert(std::string_view intoTable,
                                      std::string_view fields,
@@ -83,19 +94,29 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return result;
     }
 
+    [[nodiscard]] std::string QualifiedTableName(std::string_view schema, std::string_view table) const override
+    {
+        // SQLite doesn't use schemas in the same way - just return the quoted table name
+        if (schema.empty())
+            return std::format(R"("{}")", table);
+        // For SQLite attached databases, use database.table syntax
+        return std::format(R"("{}"."{}")", schema, table);
+    }
+
     [[nodiscard]] std::string SelectCount(bool distinct,
                                           std::string_view fromTable,
                                           std::string_view fromTableAlias,
                                           std::string_view tableJoins,
                                           std::string_view whereCondition) const override
     {
+        auto const formattedTable = FormatFromTable(fromTable);
         if (fromTableAlias.empty())
             return std::format(
-                R"(SELECT{} COUNT(*) FROM "{}"{}{})", distinct ? " DISTINCT" : "", fromTable, tableJoins, whereCondition);
+                "SELECT{} COUNT(*) FROM {}{}{}", distinct ? " DISTINCT" : "", formattedTable, tableJoins, whereCondition);
         else
-            return std::format(R"(SELECT{} COUNT(*) FROM "{}" AS "{}"{}{})",
+            return std::format(R"(SELECT{} COUNT(*) FROM {} AS "{}"{}{})",
                                distinct ? " DISTINCT" : "",
-                               fromTable,
+                               formattedTable,
                                fromTableAlias,
                                tableJoins,
                                whereCondition);
@@ -116,7 +137,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         if (distinct)
             sqlQueryString << "DISTINCT ";
         sqlQueryString << fields;
-        sqlQueryString << " FROM \"" << fromTable << '"';
+        sqlQueryString << " FROM " << FormatFromTable(fromTable);
         if (!fromTableAlias.empty())
             sqlQueryString << " AS \"" << fromTableAlias << '"';
         sqlQueryString << tableJoins;
@@ -141,7 +162,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         sqlQueryString << "SELECT " << fields;
         if (distinct)
             sqlQueryString << " DISTINCT";
-        sqlQueryString << " FROM \"" << fromTable << "\"";
+        sqlQueryString << " FROM " << FormatFromTable(fromTable);
         if (!fromTableAlias.empty())
             sqlQueryString << " AS \"" << fromTableAlias << "\"";
         sqlQueryString << tableJoins;
@@ -167,7 +188,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         sqlQueryString << "SELECT " << fields;
         if (distinct)
             sqlQueryString << " DISTINCT";
-        sqlQueryString << " FROM \"" << fromTable << "\"";
+        sqlQueryString << " FROM " << FormatFromTable(fromTable);
         if (!fromTableAlias.empty())
             sqlQueryString << " AS \"" << fromTableAlias << "\"";
         sqlQueryString << tableJoins;
@@ -183,10 +204,11 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                                      std::string_view setFields,
                                      std::string_view whereCondition) const override
     {
+        auto const formattedTable = FormatFromTable(table);
         if (tableAlias.empty())
-            return std::format(R"(UPDATE "{}" SET {}{})", table, setFields, whereCondition);
+            return std::format("UPDATE {} SET {}{}", formattedTable, setFields, whereCondition);
         else
-            return std::format(R"(UPDATE "{}" AS "{}" SET {}{})", table, tableAlias, setFields, whereCondition);
+            return std::format(R"(UPDATE {} AS "{}" SET {}{})", formattedTable, tableAlias, setFields, whereCondition);
     }
 
     [[nodiscard]] std::string Delete(std::string_view fromTable,
@@ -194,10 +216,11 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                                      std::string_view tableJoins,
                                      std::string_view whereCondition) const override
     {
+        auto const formattedTable = FormatFromTable(fromTable);
         if (fromTableAlias.empty())
-            return std::format(R"(DELETE FROM "{}"{}{})", fromTable, tableJoins, whereCondition);
+            return std::format("DELETE FROM {}{}{}", formattedTable, tableJoins, whereCondition);
         else
-            return std::format(R"(DELETE FROM "{}" AS "{}"{}{})", fromTable, fromTableAlias, tableJoins, whereCondition);
+            return std::format(R"(DELETE FROM {} AS "{}"{}{})", formattedTable, fromTableAlias, tableJoins, whereCondition);
     }
 
     [[nodiscard]] virtual std::string BuildColumnDefinition(SqlColumnDeclaration const& column) const

@@ -24,6 +24,13 @@ SqlQueryBuilder& SqlQueryBuilder::FromTableAs(std::string table, std::string ali
     return *this;
 }
 
+SqlQueryBuilder& SqlQueryBuilder::FromSchemaTable(std::string_view schema, std::string_view table)
+{
+    // Use the formatter to create a properly quoted qualified table name
+    m_table = m_formatter.QualifiedTableName(schema, table);
+    return *this;
+}
+
 SqlInsertQueryBuilder SqlQueryBuilder::Insert(std::vector<SqlVariant>* boundInputs) noexcept
 {
     return SqlInsertQueryBuilder(m_formatter, std::move(m_table), boundInputs);
