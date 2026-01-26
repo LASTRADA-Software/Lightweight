@@ -66,5 +66,6 @@ var searchData=
   ['field_3c_20std_3a_3aoptional_3c_20lightweight_3a_3asqlfixedstring_3c_20500_20_3e_20_3e_20_3e_63',['Field&lt; std::optional&lt; Lightweight::SqlFixedString&lt; 500 &gt; &gt; &gt;',['../d2/dd0/structLightweight_1_1Field.html',1,'Lightweight']]],
   ['field_3c_20std_3a_3aoptional_3c_20lightweight_3a_3asqltext_20_3e_20_3e_64',['Field&lt; std::optional&lt; Lightweight::SqlText &gt; &gt;',['../d2/dd0/structLightweight_1_1Field.html',1,'Lightweight']]],
   ['field_3c_20std_3a_3aoptional_3c_20uint64_5ft_20_3e_20_3e_65',['Field&lt; std::optional&lt; uint64_t &gt; &gt;',['../d2/dd0/structLightweight_1_1Field.html',1,'Lightweight']]],
-  ['field_3c_20uint64_5ft_2c_20light_3a_3aprimarykey_3a_3aserversideautoincrement_20_3e_66',['Field&lt; uint64_t, Light::PrimaryKey::ServerSideAutoIncrement &gt;',['../d2/dd0/structLightweight_1_1Field.html',1,'Lightweight']]]
+  ['field_3c_20uint64_5ft_2c_20light_3a_3aprimarykey_3a_3aserversideautoincrement_20_3e_66',['Field&lt; uint64_t, Light::PrimaryKey::ServerSideAutoIncrement &gt;',['../d2/dd0/structLightweight_1_1Field.html',1,'Lightweight']]],
+  ['foreignkeydef_67',['ForeignKeyDef',['../db/d4c/structLup2DbTool_1_1ForeignKeyDef.html',1,'Lup2DbTool']]]
 ];
