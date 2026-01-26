@@ -1372,12 +1372,26 @@ namespace
         }
     }
 
+    /// Recreates the database schema by dropping and creating tables from the backup metadata.
+    ///
+    /// This function creates tables in dependency order for SQLite (to satisfy FK constraints on CREATE),
+    /// or alphabetically for other databases (where FKs are added via ALTER TABLE later).
+    ///
+    /// @param connectionString The connection string for the target database.
+    /// @param schema The database schema name to create tables in.
+    /// @param tableMap Map of table names to their metadata from the backup.
+    /// @param progress Progress manager for reporting errors and status updates.
+    /// @return Set of table names that were successfully created. Tables that fail to create
+    ///         (e.g., due to type incompatibilities) are excluded from the returned set,
+    ///         allowing the caller to skip data restoration for those tables.
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-    void RecreateDatabaseSchema(SqlConnectionString const& connectionString,
-                                std::string const& schema,
-                                std::map<std::string, TableInfo> const& tableMap,
-                                ProgressManager& progress)
+    std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connectionString,
+                                                 std::string const& schema,
+                                                 std::map<std::string, TableInfo> const& tableMap,
+                                                 ProgressManager& progress)
     {
+        std::set<std::string> createdTables;
+
         SqlConnection conn;
         if (!conn.Connect(connectionString))
         {
@@ -1386,7 +1400,7 @@ namespace
                               .currentRows = 0,
                               .totalRows = std::nullopt,
                               .message = "Failed to connect for schema recreation: " + conn.LastError().message });
-            return;
+            return createdTables;
         }
         SqlStatement stmt { conn };
         bool const isSQLite = conn.ServerType() == SqlServerType::SQLITE;
@@ -1495,6 +1509,7 @@ namespace
             if (!DropTableIfExists(conn, schema, tableName, progress))
                 continue;
 
+            bool tableCreated = true;
             try
             {
                 std::vector<SqlCompositeForeignKeyConstraint> foreignKeys;
@@ -1520,6 +1535,7 @@ namespace
                     }
                     catch (std::exception const& e)
                     {
+                        tableCreated = false;
                         progress.Update({ .state = Progress::State::Error,
                                           .tableName = tableName,
                                           .currentRows = 0,
@@ -1530,13 +1546,19 @@ namespace
             }
             catch (std::exception const& e)
             {
+                tableCreated = false;
                 progress.Update({ .state = Progress::State::Error,
                                   .tableName = tableName,
                                   .currentRows = 0,
                                   .totalRows = 0,
                                   .message = std::string("CreateTable generation failed: ") + e.what() });
             }
+
+            if (tableCreated)
+                createdTables.insert(tableName);
         }
+
+        return createdTables;
     }
 } // namespace
 
@@ -2261,7 +2283,35 @@ void Restore(std::filesystem::path const& inputFile,
         std::erase_if(tableMap, [&](auto const& pair) { return !filter.Matches(effectiveSchema, pair.first); });
     }
 
-    RecreateDatabaseSchema(connectionString, effectiveSchema, tableMap, progress);
+    std::set<std::string> const createdTables =
+        RecreateDatabaseSchema(connectionString, effectiveSchema, tableMap, progress);
+
+    // Report summary of schema creation
+    size_t const failedTables = tableMap.size() - createdTables.size();
+    if (failedTables > 0)
+    {
+        progress.Update({ .state = Progress::State::Warning,
+                          .tableName = "",
+                          .currentRows = 0,
+                          .totalRows = std::nullopt,
+                          .message = std::format("Schema creation: {} of {} tables created, {} failed",
+                                                 createdTables.size(),
+                                                 tableMap.size(),
+                                                 failedTables) });
+    }
+
+    // Early exit if all tables failed
+    if (createdTables.empty() && !tableMap.empty())
+    {
+        progress.Update({ .state = Progress::State::Error,
+                          .tableName = "",
+                          .currentRows = 0,
+                          .totalRows = std::nullopt,
+                          .message = "Restore aborted: No tables could be created" });
+        zip_close(zip);
+        progress.AllDone();
+        return;
+    }
 
     std::deque<ZipEntryInfo> dataQueue;
     zip_int64_t numEntries = zip_get_num_entries(zip, 0);
@@ -2274,6 +2324,17 @@ void Restore(std::filesystem::path const& inputFile,
         std::string name = stat.name;
         if (name.starts_with("data/") && name.ends_with(".msgpack"))
         {
+            // Extract table name from path: data/TABLE_NAME/chunk.msgpack
+            auto const firstSlash = name.find('/');
+            auto const secondSlash = name.find('/', firstSlash + 1);
+            if (firstSlash != std::string::npos && secondSlash != std::string::npos)
+            {
+                std::string const tableName = name.substr(firstSlash + 1, secondSlash - firstSlash - 1);
+                // Skip chunks for tables that failed to create
+                if (!createdTables.contains(tableName))
+                    continue;
+            }
+
             dataQueue.push_back(ZipEntryInfo {
                 .index = i,
                 .name = std::move(name),
@@ -2290,17 +2351,29 @@ void Restore(std::filesystem::path const& inputFile,
     size_t totalRows = 0;
     for (auto const& [name, info]: tableMap)
     {
-        tableProgress[name] = std::make_shared<std::atomic<size_t>>(0);
-        totalRows += info.rowCount;
+        // Only track progress for successfully created tables
+        if (createdTables.contains(name))
+        {
+            tableProgress[name] = std::make_shared<std::atomic<size_t>>(0);
+            totalRows += info.rowCount;
+        }
     }
 
     // Set total items for ETA calculation
     progress.SetTotalItems(totalRows);
 
+    // Filter tableMap to only include created tables for RestoreContext
+    std::map<std::string, TableInfo> filteredTableMap;
+    for (auto const& [name, info]: tableMap)
+    {
+        if (createdTables.contains(name))
+            filteredTableMap[name] = info;
+    }
+
     RestoreContext ctx {
         .connectionString = connectionString,
         .schema = effectiveSchema,
-        .tableMap = tableMap,
+        .tableMap = filteredTableMap,
         .dataQueue = dataQueue,
         .zip = zip,
         .queueMutex = queueMutex,
@@ -2317,8 +2390,8 @@ void Restore(std::filesystem::path const& inputFile,
     for (auto& t: threads)
         t.join();
 
-    ApplyDatabaseConstraints(connectionString, effectiveSchema, tableMap, progress);
-    RestoreIndexes(connectionString, effectiveSchema, tableMap, progress);
+    ApplyDatabaseConstraints(connectionString, effectiveSchema, filteredTableMap, progress);
+    RestoreIndexes(connectionString, effectiveSchema, filteredTableMap, progress);
 
     zip_close(zip);
     progress.Update({ .state = Progress::State::Finished,
