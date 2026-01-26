@@ -1021,6 +1021,8 @@ namespace
         std::mutex& fileMutex;
         ProgressManager& progress;
         std::map<std::string, std::shared_ptr<std::atomic<size_t>>> tableProgress;
+        std::map<std::string, std::shared_ptr<std::atomic<size_t>>> chunksProcessed; // Per-table processed chunk count
+        std::map<std::string, size_t> totalChunks;                                   // Per-table total chunk count
         std::map<std::string, std::string> const* checksums; // entryName -> expected SHA-256 hash (optional)
         RetrySettings const& retrySettings;
         RestoreSettings restoreSettings;
@@ -1079,6 +1081,41 @@ namespace
                     content = ReadZipEntry<std::vector<uint8_t>>(ctx.zip, entryInfo.index, entryInfo.size);
                 }
 
+                // Parse path FIRST to get tableName for chunk-based completion tracking.
+                // Path format: data/TABLE_NAME/chunk_ID.msgpack
+                // All queued entries passed validation during queueing, so these checks are defensive.
+                std::string const path = entryInfo.name;
+                auto const firstSlash = path.find('/');
+                if (firstSlash == std::string::npos)
+                    continue; // Defensive: wasn't counted if path is malformed
+
+                auto const secondSlash = path.find('/', firstSlash + 1);
+                if (secondSlash == std::string::npos)
+                    continue; // Defensive: wasn't counted if path is malformed
+
+                std::string const tableName = path.substr(firstSlash + 1, secondSlash - firstSlash - 1);
+                if (!ctx.tableMap.contains(tableName))
+                    continue; // Defensive: wasn't counted if table not in map
+
+                // Helper lambda to increment chunk counter and report completion/error
+                auto const incrementChunkCounter = [&ctx, &tableName](bool success) {
+                    auto& chunkCounter = *ctx.chunksProcessed.at(tableName);
+                    size_t const processedChunks = chunkCounter.fetch_add(1) + 1;
+                    size_t const totalChunksForTable = ctx.totalChunks.at(tableName);
+
+                    if (processedChunks >= totalChunksForTable)
+                    {
+                        auto& rowCounter = *ctx.tableProgress.at(tableName);
+                        size_t const actualRowCount = rowCounter.load();
+                        ctx.progress.Update(
+                            { .state = success ? Progress::State::Finished : Progress::State::Error,
+                              .tableName = tableName,
+                              .currentRows = actualRowCount,
+                              .totalRows = actualRowCount,
+                              .message = success ? "Restore complete" : "Restore incomplete: errors occurred" });
+                    }
+                };
+
                 // Verify checksum if available
                 if (ctx.checksums)
                 {
@@ -1089,39 +1126,29 @@ namespace
                         if (actualHash != it->second)
                         {
                             ctx.progress.Update({ .state = Progress::State::Error,
-                                                  .tableName = entryInfo.name,
+                                                  .tableName = tableName,
                                                   .currentRows = 0,
                                                   .totalRows = std::nullopt,
                                                   .message = std::format("Checksum mismatch for {}: expected {}, got {}",
                                                                          entryInfo.name,
                                                                          it->second,
                                                                          actualHash) });
+                            // Must increment chunk counter even on failure to prevent hang
+                            incrementChunkCounter(false);
                             continue;
                         }
                     }
                 }
-
-                // Parse standard chunk filenames: table_name.chunk_index.msgpack
-                // Backup writes: data/table_name/chunk_ID.extension
-                std::string const path = entryInfo.name;
-                auto const firstSlash = path.find('/');
-                if (firstSlash == std::string::npos)
-                    continue;
-
-                auto const secondSlash = path.find('/', firstSlash + 1);
-                if (secondSlash == std::string::npos)
-                    continue;
-                std::string const tableName = path.substr(firstSlash + 1, secondSlash - firstSlash - 1);
-                if (!ctx.tableMap.contains(tableName))
-                    continue;
                 auto const& tableInfo = ctx.tableMap.at(tableName);
                 std::string const& fields = tableInfo.fields;
 
                 size_t const currentTotal1 = ctx.tableProgress.at(tableName)->load();
+                std::optional<size_t> const displayTotal =
+                    tableInfo.rowCount > 0 ? std::optional { tableInfo.rowCount } : std::nullopt;
                 ctx.progress.Update({ .state = Progress::State::InProgress,
                                       .tableName = tableName,
                                       .currentRows = currentTotal1,
-                                      .totalRows = tableInfo.rowCount,
+                                      .totalRows = displayTotal,
                                       .message = "Restoring chunk " + path });
 
                 // Retry loop for chunk processing
@@ -1215,7 +1242,7 @@ namespace
                                 ctx.progress.Update({ .state = Progress::State::InProgress,
                                                       .tableName = tableName,
                                                       .currentRows = currentTotal,
-                                                      .totalRows = tableInfo.rowCount,
+                                                      .totalRows = displayTotal,
                                                       .message = "Restoring chunk " + path });
 
                                 // Report items processed for ETA calculation
@@ -1308,16 +1335,8 @@ namespace
                 content.clear();
                 content.shrink_to_fit();
 
-                auto& atomicCounter = *ctx.tableProgress.at(tableName);
-                size_t currentTotal = atomicCounter.load();
-                if (currentTotal >= tableInfo.rowCount)
-                {
-                    ctx.progress.Update({ .state = Progress::State::Finished,
-                                          .tableName = tableName,
-                                          .currentRows = currentTotal,
-                                          .totalRows = tableInfo.rowCount,
-                                          .message = "Restore complete" });
-                }
+                // Use chunk-based completion detection instead of row counts (fixes stall when rowCount=0)
+                incrementChunkCounter(true);
             }
         }
         catch (std::exception const& e)
@@ -2409,6 +2428,7 @@ void Restore(std::filesystem::path const& inputFile,
     }
 
     std::deque<ZipEntryInfo> dataQueue;
+    std::map<std::string, size_t> totalChunksPerTable; // Count chunks per table for completion detection
     zip_int64_t numEntries = zip_get_num_entries(zip, 0);
     for (zip_int64_t i = 0; i < numEntries; ++i)
     {
@@ -2428,14 +2448,18 @@ void Restore(std::filesystem::path const& inputFile,
                 // Skip chunks for tables that failed to create
                 if (!createdTables.contains(tableName))
                     continue;
-            }
 
-            dataQueue.push_back(ZipEntryInfo {
-                .index = i,
-                .name = std::move(name),
-                .size = stat.size,
-                .valid = true,
-            });
+                // Count chunks per table for chunk-based completion detection
+                totalChunksPerTable[tableName]++;
+
+                // Only add entries that pass validation AND are counted
+                dataQueue.push_back(ZipEntryInfo {
+                    .index = i,
+                    .name = std::move(name),
+                    .size = stat.size,
+                    .valid = true,
+                });
+            }
         }
     }
 
@@ -2443,19 +2467,25 @@ void Restore(std::filesystem::path const& inputFile,
     std::mutex fileMutex;
 
     std::map<std::string, std::shared_ptr<std::atomic<size_t>>> tableProgress;
+    std::map<std::string, std::shared_ptr<std::atomic<size_t>>> chunksProcessed;
     size_t totalRows = 0;
+    bool hasUnknownRowCounts = false;
     for (auto const& [name, info]: tableMap)
     {
         // Only track progress for successfully created tables
         if (createdTables.contains(name))
         {
             tableProgress[name] = std::make_shared<std::atomic<size_t>>(0);
+            chunksProcessed[name] = std::make_shared<std::atomic<size_t>>(0);
             totalRows += info.rowCount;
+            if (info.rowCount == 0)
+                hasUnknownRowCounts = true;
         }
     }
 
-    // Set total items for ETA calculation
-    progress.SetTotalItems(totalRows);
+    // Only set total items for ETA calculation when all row counts are valid
+    if (!hasUnknownRowCounts)
+        progress.SetTotalItems(totalRows);
 
     // Filter tableMap to only include created tables for RestoreContext
     std::map<std::string, TableInfo> filteredTableMap;
@@ -2480,6 +2510,8 @@ void Restore(std::filesystem::path const& inputFile,
         .fileMutex = fileMutex,
         .progress = progress,
         .tableProgress = tableProgress,
+        .chunksProcessed = chunksProcessed,
+        .totalChunks = totalChunksPerTable,
         .checksums = checksums.empty() ? nullptr : &checksums,
         .retrySettings = retrySettings,
         .restoreSettings = effectiveSettings,

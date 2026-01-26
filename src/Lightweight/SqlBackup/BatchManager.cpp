@@ -1709,16 +1709,22 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
         || std::holds_alternative<SqlColumnTypeDefinitions::Char>(col.type)
         || std::holds_alternative<SqlColumnTypeDefinitions::Decimal>(col.type))
     {
+        // Cap string column sizes to prevent memory exhaustion with VARCHAR(MAX)/TEXT types.
+        // VARCHAR(MAX) has size INT_MAX (2147483647), which would allocate 2GB per row.
+        // Using 64KB as default - large enough for most data, small enough to not exhaust memory.
+        // Data larger than this will be truncated during batch insert.
+        size_t constexpr maxStringSize = 65535;
+        size_t constexpr defaultStringSize = 4096;
         size_t size = 8192;
         if (auto const* vc = std::get_if<SqlColumnTypeDefinitions::Varchar>(&col.type))
-            size = vc->size > 0 ? vc->size : 4096;
+            size = (vc->size > 0 && vc->size <= maxStringSize) ? vc->size : defaultStringSize;
         else if (auto const* txt = std::get_if<SqlColumnTypeDefinitions::Text>(&col.type))
         {
-            size = txt->size > 0 ? txt->size : 4096;
+            size = (txt->size > 0 && txt->size <= maxStringSize) ? txt->size : defaultStringSize;
             meta.sqlType = SQL_LONGVARCHAR;
         }
         else if (auto const* ch = std::get_if<SqlColumnTypeDefinitions::Char>(&col.type))
-            size = ch->size > 0 ? ch->size : 4096;
+            size = (ch->size > 0 && ch->size <= maxStringSize) ? ch->size : defaultStringSize;
         else if (auto const* dec = std::get_if<SqlColumnTypeDefinitions::Decimal>(&col.type))
         {
             // For Decimal columns bound as strings, the size needs to accommodate:
@@ -1742,11 +1748,16 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
     if (std::holds_alternative<SqlColumnTypeDefinitions::NVarchar>(col.type)
         || std::holds_alternative<SqlColumnTypeDefinitions::NChar>(col.type))
     {
+        // Cap wide string column sizes to prevent memory exhaustion with NVARCHAR(MAX) types.
+        // NVARCHAR(MAX) has size INT_MAX, which would allocate 4GB per row (2 bytes per char).
+        // Using 32K characters (64KB) as max - large enough for most data, small enough to not exhaust memory.
+        size_t constexpr maxWideStringSize = 32767;
+        size_t constexpr defaultWideStringSize = 4096;
         size_t size = 8192;
         if (auto const* nvc = std::get_if<SqlColumnTypeDefinitions::NVarchar>(&col.type))
-            size = nvc->size > 0 ? nvc->size : 4096;
+            size = (nvc->size > 0 && nvc->size <= maxWideStringSize) ? nvc->size : defaultWideStringSize;
         else if (auto const* nch = std::get_if<SqlColumnTypeDefinitions::NChar>(&col.type))
-            size = nch->size > 0 ? nch->size : 4096;
+            size = (nch->size > 0 && nch->size <= maxWideStringSize) ? nch->size : defaultWideStringSize;
 
         if (meta.size == 0 || meta.size >= 2000)
         {
@@ -1761,15 +1772,17 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
     if (std::holds_alternative<SqlColumnTypeDefinitions::VarBinary>(col.type)
         || std::holds_alternative<SqlColumnTypeDefinitions::Binary>(col.type))
     {
-        // Use a reasonable default size for binary columns when size is 0 (MAX types).
-        // Using 64KB as default - large enough for most data, small enough to not exhaust memory.
+        // Cap binary column sizes to prevent memory exhaustion with VARBINARY(MAX) types.
+        // VARBINARY(MAX) has size INT_MAX (2147483647), which would allocate 2GB per row.
+        // Using 64KB as max - large enough for most data, small enough to not exhaust memory.
         // Data larger than this will be truncated during batch insert.
+        size_t constexpr maxBinarySize = 65535;
         size_t constexpr defaultBinarySize = 65535;
         size_t size = defaultBinarySize;
         if (auto const* bin = std::get_if<SqlColumnTypeDefinitions::VarBinary>(&col.type))
-            size = bin->size > 0 ? bin->size : defaultBinarySize;
+            size = (bin->size > 0 && bin->size <= maxBinarySize) ? bin->size : defaultBinarySize;
         else if (auto const* bin2 = std::get_if<SqlColumnTypeDefinitions::Binary>(&col.type))
-            size = bin2->size > 0 ? bin2->size : defaultBinarySize;
+            size = (bin2->size > 0 && bin2->size <= maxBinarySize) ? bin2->size : defaultBinarySize;
 
         if (meta.size == 0 || meta.size >= 4000)
         {
