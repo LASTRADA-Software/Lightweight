@@ -50,10 +50,65 @@
 
 #include <nlohmann/json.hpp>
 
+#if defined(__linux__)
+    #include <sys/sysinfo.h>
+#elif defined(_WIN32)
+    #include <windows.h>
+#elif defined(__APPLE__)
+    #include <sys/sysctl.h>
+
+    #include <mach/mach.h>
+#endif
+
 using namespace std::string_literals;
 
 namespace Lightweight::SqlBackup
 {
+
+std::size_t GetAvailableSystemMemory() noexcept
+{
+#if defined(__linux__)
+    struct sysinfo info {};
+    if (sysinfo(&info) == 0)
+        return static_cast<std::size_t>(info.freeram) * static_cast<std::size_t>(info.mem_unit);
+#elif defined(_WIN32)
+    MEMORYSTATUSEX status;
+    status.dwLength = sizeof(status);
+    if (GlobalMemoryStatusEx(&status))
+        return static_cast<std::size_t>(status.ullAvailPhys);
+#elif defined(__APPLE__)
+    // On macOS, get total memory and estimate available as half
+    int mib[2] = { CTL_HW, HW_MEMSIZE };
+    uint64_t memsize = 0;
+    size_t len = sizeof(memsize);
+    if (sysctl(mib, 2, &memsize, &len, nullptr, 0) == 0)
+        return static_cast<std::size_t>(memsize / 2); // Use half of total as "available"
+#endif
+    return std::size_t { 4 } * 1024 * 1024 * 1024; // Default: 4GB
+}
+
+RestoreSettings CalculateRestoreSettings(std::size_t availableMemory, unsigned concurrency)
+{
+    RestoreSettings settings;
+
+    // Reserve memory for OS and other processes (use 75% of available)
+    std::size_t const usableMemory = availableMemory * 3 / 4;
+    std::size_t const memoryPerWorker = usableMemory / std::max(1U, concurrency);
+
+    // Calculate batch size: assume ~1KB per row average
+    // Target: each worker uses max 256MB for batch buffers
+    std::size_t const maxBatchMemory = std::min(memoryPerWorker / 4, std::size_t { 256 } * 1024 * 1024);
+    settings.batchSize = std::clamp(maxBatchMemory / 1024, std::size_t { 100 }, std::size_t { 4000 });
+
+    // SQLite cache: 64MB per worker, max 256MB total
+    settings.cacheSizeKB = std::min(std::size_t { 65536 }, memoryPerWorker / 1024 / 4);
+
+    // Commit interval: more frequent commits if low memory
+    settings.maxRowsPerCommit = (memoryPerWorker < 512 * 1024 * 1024) ? 5000 : 10000;
+
+    settings.memoryLimitBytes = availableMemory;
+    return settings;
+}
 
 bool IsCompressionMethodSupported(CompressionMethod method) noexcept
 {
@@ -284,6 +339,7 @@ namespace
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     std::string BuildSelectQueryWithOffset(SqlQueryFormatter const& formatter,
                                            SqlServerType serverType,
+                                           std::string_view schema,
                                            std::string const& tableName,
                                            std::vector<SqlSchema::Column> const& columns,
                                            std::vector<std::string> const& primaryKeys,
@@ -323,7 +379,10 @@ namespace
                 }
             }
 
-            sql << " FROM [" << tableName << "]";
+            if (schema.empty())
+                sql << " FROM [" << tableName << "]";
+            else
+                sql << " FROM [" << schema << "].[" << tableName << "]";
 
             // ORDER BY is required for OFFSET
             sql << " ORDER BY ";
@@ -349,8 +408,9 @@ namespace
             return sql.str();
         }
 
-        // Use Query Builder for non-MSSQL or when no DECIMAL columns
-        auto query = SqlQueryBuilder(formatter).FromTable(tableName).Select();
+        // Use Query Builder with schema support
+        auto query = schema.empty() ? SqlQueryBuilder(formatter).FromTable(tableName).Select()
+                                    : SqlQueryBuilder(formatter).FromSchemaTable(schema, tableName).Select();
 
         for (auto const& col: columns)
             query.Field(col.name);
@@ -403,7 +463,7 @@ namespace
         SqlStatement stmt { conn };
         auto const& formatter = conn.QueryFormatter();
 
-        auto const formattedTableName = FormatTableName(ctx.schema, tableName);
+        auto const formattedTableName = FormatTableName(table.schema, tableName);
         auto const totalRows = static_cast<size_t>(
             stmt.ExecuteDirectScalar<int64_t>(std::format("SELECT COUNT(*) FROM {}", formattedTableName)).value_or(0));
 
@@ -506,7 +566,7 @@ namespace
             {
                 // Build query with current offset for resumption
                 auto const selectQuery = BuildSelectQueryWithOffset(
-                    formatter, conn.ServerType(), tableName, table.columns, table.primaryKeys, processedRows);
+                    formatter, conn.ServerType(), table.schema, tableName, table.columns, table.primaryKeys, processedRows);
                 stmt.ExecuteDirect(selectQuery);
 
                 while (stmt.FetchRow())
@@ -918,7 +978,7 @@ namespace
 
                 if (hasTable)
                 {
-                    auto const formattedTableName = FormatTableName(ctx.schema, tableToCount.name);
+                    auto const formattedTableName = FormatTableName(tableToCount.schema, tableToCount.name);
                     auto const rowCount = static_cast<size_t>(
                         counterStmt.ExecuteDirectScalar<int64_t>(std::format("SELECT COUNT(*) FROM {}", formattedTableName))
                             .value_or(0));
@@ -963,12 +1023,14 @@ namespace
         std::map<std::string, std::shared_ptr<std::atomic<size_t>>> tableProgress;
         std::map<std::string, std::string> const* checksums; // entryName -> expected SHA-256 hash (optional)
         RetrySettings const& retrySettings;
+        RestoreSettings restoreSettings;
     };
 
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void RestoreWorker(RestoreContext ctx)
     {
-        constexpr size_t batchCapacity = 4000;
+        // Use batch size from settings, or default to 4000 if not specified
+        size_t const batchCapacity = ctx.restoreSettings.batchSize > 0 ? ctx.restoreSettings.batchSize : 4000;
 
         try
         {
@@ -989,6 +1051,12 @@ namespace
                 SqlStatement { workerConn }.ExecuteDirect("PRAGMA synchronous = OFF");
                 SqlStatement { workerConn }.ExecuteDirect("PRAGMA journal_mode = WAL");
                 SqlStatement { workerConn }.ExecuteDirect("PRAGMA foreign_keys = OFF");
+                // Limit cache size to reduce memory usage (negative value = KB)
+                if (ctx.restoreSettings.cacheSizeKB > 0)
+                {
+                    SqlStatement { workerConn }.ExecuteDirect(
+                        std::format("PRAGMA cache_size = -{}", ctx.restoreSettings.cacheSizeKB));
+                }
             }
 
             while (true)
@@ -1062,9 +1130,11 @@ namespace
                 {
                     try
                     {
-                        std::stringstream ss(std::string(content.begin(), content.end()));
+                        // Use zero-copy reader directly from buffer (eliminates 2 memory copies)
+                        auto reader = CreateMsgPackChunkReaderFromBuffer(content);
 
                         bool const isMsSql = workerConn.ServerType() == SqlServerType::MICROSOFT_SQL;
+                        bool const isSQLite = workerConn.ServerType() == SqlServerType::SQLITE;
                         bool hasIdentity = false;
                         std::string identityTable;
 
@@ -1086,9 +1156,6 @@ namespace
                                     std::format("SET IDENTITY_INSERT {} ON", identityTable));
                             }
                         }
-
-                        // Detect format
-                        auto reader = CreateMsgPackChunkReader(ss);
 
                         {
                             auto const& formatter = workerConn.QueryFormatter();
@@ -1113,6 +1180,10 @@ namespace
                             // We default to ROLLBACK on destruction to ensure atomic application of the chunk.
                             SqlTransaction transaction(workerConn, SqlTransactionMode::ROLLBACK);
 
+                            // For SQLite: track rows since last commit for intermediate commits
+                            size_t rowsSinceCommit = 0;
+                            size_t const maxRowsPerCommit = ctx.restoreSettings.maxRowsPerCommit;
+
                             ColumnBatch batch;
                             while (reader->ReadBatch(batch))
                             {
@@ -1126,6 +1197,16 @@ namespace
                                 }
 
                                 batchManager.PushBatch(batch);
+                                rowsSinceCommit += batch.rowCount;
+
+                                // Intermediate commit for SQLite to reduce WAL memory accumulation
+                                if (isSQLite && maxRowsPerCommit > 0 && rowsSinceCommit >= maxRowsPerCommit)
+                                {
+                                    batchManager.Flush();
+                                    transaction.Commit();
+                                    transaction = SqlTransaction(workerConn, SqlTransactionMode::ROLLBACK);
+                                    rowsSinceCommit = 0;
+                                }
 
                                 auto& atomicCounter = *ctx.tableProgress.at(tableName);
                                 size_t const previousTotal = atomicCounter.fetch_add(batch.rowCount);
@@ -1203,6 +1284,11 @@ namespace
                             SqlStatement { workerConn }.ExecuteDirect("PRAGMA synchronous = OFF");
                             SqlStatement { workerConn }.ExecuteDirect("PRAGMA journal_mode = WAL");
                             SqlStatement { workerConn }.ExecuteDirect("PRAGMA foreign_keys = OFF");
+                            if (ctx.restoreSettings.cacheSizeKB > 0)
+                            {
+                                SqlStatement { workerConn }.ExecuteDirect(
+                                    std::format("PRAGMA cache_size = -{}", ctx.restoreSettings.cacheSizeKB));
+                            }
                         }
 
                         // Loop will re-process the same chunk
@@ -1217,6 +1303,10 @@ namespace
                         break;
                     }
                 }
+
+                // Release content buffer memory after chunk processing to reduce memory footprint
+                content.clear();
+                content.shrink_to_fit();
 
                 auto& atomicCounter = *ctx.tableProgress.at(tableName);
                 size_t currentTotal = atomicCounter.load();
@@ -2169,7 +2259,8 @@ void Restore(std::filesystem::path const& inputFile,
              ProgressManager& progress,
              std::string const& schema,
              std::string const& tableFilter,
-             RetrySettings const& retrySettings)
+             RetrySettings const& retrySettings,
+             RestoreSettings const& restoreSettings)
 {
     concurrency = std::max(1U, concurrency);
 
@@ -2374,6 +2465,11 @@ void Restore(std::filesystem::path const& inputFile,
             filteredTableMap[name] = info;
     }
 
+    // Calculate restore settings based on available memory and concurrency
+    RestoreSettings const effectiveSettings = restoreSettings.memoryLimitBytes > 0
+                                                  ? restoreSettings
+                                                  : CalculateRestoreSettings(GetAvailableSystemMemory(), concurrency);
+
     RestoreContext ctx {
         .connectionString = connectionString,
         .schema = effectiveSchema,
@@ -2386,6 +2482,7 @@ void Restore(std::filesystem::path const& inputFile,
         .tableProgress = tableProgress,
         .checksums = checksums.empty() ? nullptr : &checksums,
         .retrySettings = retrySettings,
+        .restoreSettings = effectiveSettings,
     };
 
     std::vector<std::thread> threads;
@@ -2404,6 +2501,18 @@ void Restore(std::filesystem::path const& inputFile,
                       .totalRows = std::nullopt,
                       .message = "Restore complete" });
     progress.AllDone();
+}
+
+void Restore(std::filesystem::path const& inputFile,
+             SqlConnectionString const& connectionString,
+             unsigned concurrency,
+             ProgressManager& progress,
+             std::string const& schema,
+             std::string const& tableFilter,
+             RetrySettings const& retrySettings)
+{
+    // Forward to the main implementation with default RestoreSettings
+    Restore(inputFile, connectionString, concurrency, progress, schema, tableFilter, retrySettings, RestoreSettings {});
 }
 
 } // namespace Lightweight::SqlBackup
