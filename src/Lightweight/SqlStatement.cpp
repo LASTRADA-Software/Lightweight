@@ -57,6 +57,7 @@ SQLLEN* SqlStatement::ProvideInputIndicators(size_t rowCount)
 void SqlStatement::ClearBatchIndicators()
 {
     m_data->batchIndicators.clear();
+    m_data->batchIndicators.shrink_to_fit();
 }
 
 void SqlStatement::PlanPostExecuteCallback(std::function<void()>&& cb)
@@ -256,6 +257,7 @@ void SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns, size_t ro
 
     RequireSuccess(SQLExecute(m_hStmt));
     ProcessPostExecuteCallbacks();
+    ClearBatchIndicators();
 }
 
 // Retrieves the number of rows affected by the last query.
