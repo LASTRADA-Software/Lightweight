@@ -87,6 +87,7 @@ set(SOURCE_FILES
     SqlBackup/TableFilterTests.cpp
     SqlBackup/Tests.cpp
     SqlBackup/SqlBackupCompositeFKTests.cpp
+    SqlBackup/SqlBackupIndexTests.cpp
     SqlBackup/ProductionReadinessTests.cpp
     dbtool/StandardProgressManagerTests.cpp
     UnicodeConverterTests.cpp
