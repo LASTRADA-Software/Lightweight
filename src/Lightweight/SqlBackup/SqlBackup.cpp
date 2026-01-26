@@ -874,6 +874,8 @@ namespace
         std::vector<SqlSchema::Table>& completedTables;
         std::mutex& completedTablesMutex;
         std::atomic<bool>& schemaScanningComplete;
+        std::mutex& schemaScanningDone_mutex;
+        std::condition_variable& schemaScanningDone_cv;
         ProgressManager& progress;
     };
 
@@ -881,11 +883,19 @@ namespace
     ///
     /// This thread processes tables as they become available in completedTables,
     /// running COUNT(*) queries and reporting totals to the progress manager.
-    /// Runs in parallel with both schema scanning and backup workers.
+    /// Runs in parallel with backup workers, but waits for schema scanning to complete first
+    /// to avoid database contention during schema metadata queries.
     void RowCounterThread(RowCounterContext ctx)
     {
         try
         {
+            // Wait until schema scanning is complete before starting to count.
+            // This avoids database contention during schema metadata queries.
+            {
+                std::unique_lock lock(ctx.schemaScanningDone_mutex);
+                ctx.schemaScanningDone_cv.wait(lock, [&ctx] { return ctx.schemaScanningComplete.load(); });
+            }
+
             auto counterConn = SqlConnection(ctx.connectionString);
             auto counterStmt = SqlStatement { counterConn };
 
@@ -1775,14 +1785,20 @@ void Backup(std::filesystem::path const& outputFile,
 
         // Flag to signal when schema scanning is complete (for counter thread)
         std::atomic<bool> schemaScanningComplete { false };
+        std::mutex schemaScanningDone_mutex;
+        std::condition_variable schemaScanningDone_cv;
 
-        // Counter thread: counts rows for ETA calculation in parallel with backup
+        // Counter thread: counts rows for ETA calculation in parallel with backup.
+        // Waits for schema scanning to complete before starting COUNT(*) queries
+        // to avoid database contention during schema metadata queries.
         RowCounterContext counterCtx {
             .connectionString = connectionString,
             .schema = schema,
             .completedTables = completedTables,
             .completedTablesMutex = completedTablesMutex,
             .schemaScanningComplete = schemaScanningComplete,
+            .schemaScanningDone_mutex = schemaScanningDone_mutex,
+            .schemaScanningDone_cv = schemaScanningDone_cv,
             .progress = progress,
         };
         std::thread counterThread(RowCounterThread, counterCtx);
@@ -1842,6 +1858,10 @@ void Backup(std::filesystem::path const& outputFile,
 
         // Signal schema scanning is complete - tables already pushed by callback
         schemaScanningComplete = true;
+        {
+            std::scoped_lock lock(schemaScanningDone_mutex);
+        }
+        schemaScanningDone_cv.notify_one();
         tableQueue.MarkFinished();
 
         // Wait for all workers to complete
