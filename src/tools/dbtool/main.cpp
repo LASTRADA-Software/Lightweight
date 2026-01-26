@@ -155,6 +155,11 @@ void PrintUsage()
     std::println("  {}--chunk-size{} {}<SIZE>{}       Chunk size for backup data (default: 10M)",
                  c.option, c.reset, c.param, c.reset);
     std::println("                            Accepts: bytes, K/KB, M/MB, G/GB suffixes");
+    std::println("  {}--memory-limit{} {}<SIZE>{}     Memory limit for restore (default: auto-detect)",
+                 c.option, c.reset, c.param, c.reset);
+    std::println("                            Accepts: bytes, K/KB, M/MB, G/GB suffixes");
+    std::println("  {}--batch-size{} {}<N>{}          Batch size for restore (default: auto-calculated)",
+                 c.option, c.reset, c.param, c.reset);
     std::println("  {}--progress{} {}<TYPE>{}         Progress output type: unicode (default), ascii, logline",
                  c.option, c.reset, c.param, c.reset);
     std::println("  {}--dry-run{}, {}-n{}             Show what would be done without doing it",
@@ -234,6 +239,8 @@ struct Options
     std::string compressionMethod = "deflate"; ///< Compression method for backup
     unsigned compressionLevel = 6;             ///< Compression level (0-9)
     std::string chunkSize = "10M";             ///< Chunk size for backup (supports K/M/G suffixes)
+    std::string memoryLimit;                   ///< Memory limit for restore (supports K/M/G suffixes)
+    std::string batchSize;                     ///< Batch size for restore (rows per batch)
     bool pluginsDirSet = false;
     bool connectionStringSet = false;
     bool dryRun = false; ///< If true, show what would be done without actually doing it
@@ -423,6 +430,26 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         else if (arg.starts_with("--chunk-size="))
         {
             options.chunkSize = arg.substr(13);
+        }
+        else if (arg == "--memory-limit")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --memory-limit requires an argument" };
+            options.memoryLimit = argv[++i];
+        }
+        else if (arg.starts_with("--memory-limit="))
+        {
+            options.memoryLimit = arg.substr(15);
+        }
+        else if (arg == "--batch-size")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --batch-size requires an argument" };
+            options.batchSize = argv[++i];
+        }
+        else if (arg.starts_with("--batch-size="))
+        {
+            options.batchSize = arg.substr(13);
         }
         else if (arg.starts_with("--filter-tables="))
         {
@@ -1180,6 +1207,37 @@ int Backup(Options const& options)
     return pm->ErrorCount() > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
+/// Parses restore settings from CLI options.
+///
+/// @param options The CLI options.
+/// @return RestoreSettings or an error message.
+std::expected<Lightweight::SqlBackup::RestoreSettings, std::string> ParseRestoreSettings(Options const& options)
+{
+    Lightweight::SqlBackup::RestoreSettings settings;
+
+    if (!options.memoryLimit.empty())
+    {
+        auto memoryResult = ParseSizeWithSuffix(options.memoryLimit);
+        if (!memoryResult)
+            return std::unexpected { std::format("Invalid memory limit: {}", memoryResult.error()) };
+        settings.memoryLimitBytes = memoryResult.value();
+    }
+
+    if (!options.batchSize.empty())
+    {
+        try
+        {
+            settings.batchSize = std::stoull(options.batchSize);
+        }
+        catch (std::exception const&)
+        {
+            return std::unexpected { std::format("Invalid batch size: {}", options.batchSize) };
+        }
+    }
+
+    return settings;
+}
+
 int Restore(Options const& options)
 {
     if (options.inputFile.empty())
@@ -1256,6 +1314,14 @@ int Restore(Options const& options)
     auto pm = CreateProgressManager(options);
     Lightweight::SqlBackup::RetrySettings retrySettings { .maxRetries = options.maxRetries };
 
+    // Parse restore settings from CLI options
+    auto restoreSettingsResult = ParseRestoreSettings(options);
+    if (!restoreSettingsResult)
+    {
+        std::println(std::cerr, "Error: {}", restoreSettingsResult.error());
+        return EXIT_FAILURE;
+    }
+
     try
     {
         Lightweight::SqlBackup::Restore(options.inputFile,
@@ -1264,7 +1330,8 @@ int Restore(Options const& options)
                                         *pm,
                                         options.schema,
                                         options.filterTables,
-                                        retrySettings);
+                                        retrySettings,
+                                        restoreSettingsResult.value());
     }
     catch (SqlException const& e)
     {
