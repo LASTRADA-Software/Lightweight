@@ -18,6 +18,5 @@ var classLightweight_1_1SqlAlterTableQueryBuilder =
     [ "AddForeignKey", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#acb8f4c9ca3abc544b7c967a07163ae1c", null ],
     [ "AddForeignKeyColumn", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#ae48b1defb3a1271985038dde52202726", null ],
     [ "AddNotRequiredForeignKeyColumn", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a7235bc6bb433d4dcdcd6cbfab27ad262", null ],
-    [ "DropForeignKey", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aae78f7a3b9c5ab16e1c530458a1b9d70", null ],
-    [ "AddCompositeForeignKey", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aedb47de8e25f2f4eaae7373d65e3b4bd", null ]
+    [ "DropForeignKey", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aae78f7a3b9c5ab16e1c530458a1b9d70", null ]
 ];

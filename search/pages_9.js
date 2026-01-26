@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['management_20cli_0',['dbtool - Database Management CLI',['../d5/dc4/dbtool.html',1,'']]],
-  ['migrations_1',['SQL Migrations',['../d2/da6/sql-migrations.html',1,'']]]
+  ['odbc_20sql_20api_20for_20c_2023_0',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]]
 ];

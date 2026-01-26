@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['parse_0',['parse',['../d2/d87/structLup2DbTool_1_1LupVersion.html#a2894df7b0c176dbcb156bc5f935b7885',1,'Lup2DbTool::LupVersion::Parse()'],['../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ab326c477a2829655f68d334d1c6c00c0',1,'Lightweight::SqlBackup::TableFilter::Parse(std::string_view filterSpec)']]],
+  ['parse_0',['Parse',['../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ab326c477a2829655f68d334d1c6c00c0',1,'Lightweight::SqlBackup::TableFilter']]],
   ['patterncount_1',['PatternCount',['../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#adcfe1f8e73b8c0d8dc52f90db2302f97',1,'Lightweight::SqlBackup::TableFilter']]],
   ['pick_2',['Pick',['../d1/d21/classLargeDb_1_1SeededRandom.html#a91cb1375a1b6e19182ef004ad74090a5',1,'LargeDb::SeededRandom']]],
   ['planpostexecutecallback_3',['PlanPostExecuteCallback',['../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a209f52c2128670486fa0df251261bf80',1,'Lightweight::SqlDataBinderCallback']]],

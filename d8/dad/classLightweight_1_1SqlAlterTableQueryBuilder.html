@@ -159,8 +159,6 @@ LIGHTWEIGHT_API <a class="el" href="../../d8/dad/classLightweight_1_1SqlAlterTab
 LIGHTWEIGHT_API <a class="el" href="../../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>DropForeignKey</b> (std::string columnName)</td></tr>
 <tr class="memdesc:aae78f7a3b9c5ab16e1c530458a1b9d70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Drops a foreign key for the column <code>columnName</code> from the table. <br /></td></tr>
 <tr class="separator:aae78f7a3b9c5ab16e1c530458a1b9d70"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aedb47de8e25f2f4eaae7373d65e3b4bd" id="r_aedb47de8e25f2f4eaae7373d65e3b4bd"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#aedb47de8e25f2f4eaae7373d65e3b4bd">AddCompositeForeignKey</a> (std::vector&lt; std::string &gt; columns, std::string referencedTableName, std::vector&lt; std::string &gt; referencedColumns)</td></tr>
-<tr class="separator:aedb47de8e25f2f4eaae7373d65e3b4bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Query builder for building ALTER TABLE queries. </p>
@@ -646,49 +644,6 @@ template&lt;auto MemberPointer&gt; </div>
     <tr><td class="paramname">columnName</td><td>The name of the column to add. </td></tr>
     <tr><td class="paramname">columnType</td><td>The type of the column to add. </td></tr>
     <tr><td class="paramname">referencedColumn</td><td>The column to reference. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-</div>
-</div>
-<a id="aedb47de8e25f2f4eaae7373d65e3b4bd" name="aedb47de8e25f2f4eaae7373d65e3b4bd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aedb47de8e25f2f4eaae7373d65e3b4bd">&#9670;&#160;</a></span>AddCompositeForeignKey()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html">SqlAlterTableQueryBuilder</a> &amp; Lightweight::SqlAlterTableQueryBuilder::AddCompositeForeignKey </td>
-          <td>(</td>
-          <td class="paramtype">std::vector&lt; std::string &gt;&#160;</td>
-          <td class="paramname"><em>columns</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string&#160;</td>
-          <td class="paramname"><em>referencedTableName</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::vector&lt; std::string &gt;&#160;</td>
-          <td class="paramname"><em>referencedColumns</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Adds a composite foreign key constraint.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">columns</td><td>The columns in the current table. </td></tr>
-    <tr><td class="paramname">referencedTableName</td><td>The referenced table name. </td></tr>
-    <tr><td class="paramname">referencedColumns</td><td>The referenced columns in the referenced table. </td></tr>
   </table>
   </dd>
 </dl>
