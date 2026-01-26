@@ -1274,6 +1274,9 @@ namespace
             return;
         }
 
+        // SQLite doesn't support schemas - skip schema prefix for SQLite
+        bool const isSQLite = conn.ServerType() == SqlServerType::SQLITE;
+
         for (auto const& [tableName, info]: tableMap)
         {
             if (info.indexes.empty())
@@ -1294,7 +1297,8 @@ namespace
 
                     // Build the CREATE INDEX statement
                     std::string const uniqueKeyword = idx.isUnique ? "UNIQUE " : "";
-                    std::string const formattedTableName = FormatTableName(schema, tableName);
+                    std::string const formattedTableName =
+                        isSQLite ? std::format(R"("{}")", tableName) : FormatTableName(schema, tableName);
                     std::string const sql = std::format(
                         R"(CREATE {}INDEX "{}" ON {} ({}))", uniqueKeyword, idx.name, formattedTableName, columnList);
 

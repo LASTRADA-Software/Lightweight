@@ -31,14 +31,13 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return std::format(R"(INSERT INTO "{}" ({}) VALUES ({}))", intoTable, fields, values);
     }
 
-    [[nodiscard]] std::string Insert(std::string_view schema,
+    [[nodiscard]] std::string Insert(std::string_view /*schema*/,
                                      std::string_view intoTable,
                                      std::string_view fields,
                                      std::string_view values) const override
     {
-        if (schema.empty())
-            return std::format(R"(INSERT INTO "{}" ({}) VALUES ({}))", intoTable, fields, values);
-        return std::format(R"(INSERT INTO "{}"."{}" ({}) VALUES ({}))", schema, intoTable, fields, values);
+        // SQLite doesn't support schemas - ignore schema parameter
+        return std::format(R"(INSERT INTO "{}" ({}) VALUES ({}))", intoTable, fields, values);
     }
 
     [[nodiscard]] std::string QueryLastInsertId(std::string_view /*tableName*/) const override
@@ -274,14 +273,9 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
             sqlQueryString << "CREATE TABLE ";
             if (ifNotExists)
                 sqlQueryString << "IF NOT EXISTS ";
-            sqlQueryString << "\"";
-            if (!schema.empty())
-            {
-                sqlQueryString << schema;
-                sqlQueryString << "\".\"";
-            }
-            sqlQueryString << tableName;
-            sqlQueryString << "\" (";
+            // SQLite doesn't support schemas - ignore schema parameter
+            (void) schema;
+            sqlQueryString << "\"" << tableName << "\" (";
             std::vector<SqlColumnDeclaration const*> pks;
             size_t currentColumn = 0;
             std::string foreignKeyConstraints;
@@ -385,10 +379,15 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return sqlQueries;
     }
 
-    [[nodiscard]] StringList AlterTable(std::string_view schemaName,
+    [[nodiscard]] StringList AlterTable(std::string_view /*schemaName*/,
                                         std::string_view tableName,
                                         std::vector<SqlAlterTableCommand> const& commands) const override
     {
+        // SQLite doesn't support schemas - use table name only
+        auto const formatTable = [tableName]() {
+            return std::format(R"("{}")", tableName);
+        };
+
         std::stringstream sqlQueryString;
 
         int currentCommand = 0;
@@ -401,35 +400,31 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
             using namespace SqlAlterTableCommands;
             sqlQueryString << std::visit(
                 detail::overloaded {
-                    [schemaName, tableName](RenameTable const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE {} RENAME TO "{}";)",
-                                           FormatTableName(schemaName, tableName),
-                                           actualCommand.newTableName);
+                    [&formatTable](RenameTable const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE {} RENAME TO "{}";)", formatTable(), actualCommand.newTableName);
                     },
-                    [schemaName, tableName, this](AddColumn const& actualCommand) -> std::string {
+                    [&formatTable, this](AddColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE {} ADD COLUMN "{}" {} {};)",
-                                           FormatTableName(schemaName, tableName),
+                                           formatTable(),
                                            actualCommand.columnName,
                                            ColumnType(actualCommand.columnType),
                                            actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                     },
-                    [schemaName, tableName, this](AlterColumn const& actualCommand) -> std::string {
+                    [&formatTable, this](AlterColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE {} ALTER COLUMN "{}" {} {};)",
-                                           FormatTableName(schemaName, tableName),
+                                           formatTable(),
                                            actualCommand.columnName,
                                            ColumnType(actualCommand.columnType),
                                            actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                     },
-                    [schemaName, tableName](RenameColumn const& actualCommand) -> std::string {
+                    [&formatTable](RenameColumn const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE {} RENAME COLUMN "{}" TO "{}";)",
-                                           FormatTableName(schemaName, tableName),
+                                           formatTable(),
                                            actualCommand.oldColumnName,
                                            actualCommand.newColumnName);
                     },
-                    [schemaName, tableName](DropColumn const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE {} DROP COLUMN "{}";)",
-                                           FormatTableName(schemaName, tableName),
-                                           actualCommand.columnName);
+                    [&formatTable](DropColumn const& actualCommand) -> std::string {
+                        return std::format(R"(ALTER TABLE {} DROP COLUMN "{}";)", formatTable(), actualCommand.columnName);
                     },
                     [tableName](AddIndex const& actualCommand) -> std::string {
                         using namespace std::string_view_literals;
@@ -442,15 +437,15 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                     [tableName](DropIndex const& actualCommand) -> std::string {
                         return std::format(R"(DROP INDEX "{0}_{1}_index";)", tableName, actualCommand.columnName);
                     },
-                    [schemaName, tableName](AddForeignKey const& actualCommand) -> std::string {
+                    [&formatTable, tableName](AddForeignKey const& actualCommand) -> std::string {
                         return std::format(
                             R"(ALTER TABLE {} ADD {};)",
-                            FormatTableName(schemaName, tableName),
+                            formatTable(),
                             BuildForeignKeyConstraint(tableName, actualCommand.columnName, actualCommand.referencedColumn));
                     },
-                    [schemaName, tableName](DropForeignKey const& actualCommand) -> std::string {
+                    [&formatTable, tableName](DropForeignKey const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE {} DROP CONSTRAINT "{}";)",
-                                           FormatTableName(schemaName, tableName),
+                                           formatTable(),
                                            std::format("FK_{}_{}", tableName, actualCommand.columnName));
                     },
                     [tableName](AddCompositeForeignKey const& /*actualCommand*/) -> std::string {
@@ -458,23 +453,23 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                         // We return empty string or comment to satisfy visitor.
                         return std::format(R"(-- AddCompositeForeignKey not supported for {};)", tableName);
                     },
-                    [schemaName, tableName, this](AddColumnIfNotExists const& actualCommand) -> std::string {
+                    [&formatTable, this](AddColumnIfNotExists const& actualCommand) -> std::string {
                         // SQLite doesn't support IF NOT EXISTS for ADD COLUMN.
                         // Generate a comment and the statement; caller should handle errors.
                         return std::format(
                             R"(-- AddColumnIfNotExists: SQLite doesn't support IF NOT EXISTS for columns
 ALTER TABLE {} ADD COLUMN "{}" {} {};)",
-                            FormatTableName(schemaName, tableName),
+                            formatTable(),
                             actualCommand.columnName,
                             ColumnType(actualCommand.columnType),
                             actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                     },
-                    [schemaName, tableName](DropColumnIfExists const& actualCommand) -> std::string {
+                    [&formatTable](DropColumnIfExists const& actualCommand) -> std::string {
                         // SQLite doesn't support IF EXISTS for DROP COLUMN.
                         return std::format(
                             R"(-- DropColumnIfExists: SQLite doesn't support IF EXISTS for columns
 ALTER TABLE {} DROP COLUMN "{}";)",
-                            FormatTableName(schemaName, tableName),
+                            formatTable(),
                             actualCommand.columnName);
                     },
                     [tableName](DropIndexIfExists const& actualCommand) -> std::string {
@@ -516,18 +511,19 @@ ALTER TABLE {} DROP COLUMN "{}";)",
                           type);
     }
 
-    [[nodiscard]] StringList DropTable(std::string_view schemaName,
+    [[nodiscard]] StringList DropTable(std::string_view /*schemaName*/,
                                        std::string_view const& tableName,
                                        bool ifExists = false,
                                        bool cascade = false) const override
     {
         // SQLite doesn't support CASCADE syntax, but if FK constraints are disabled
         // (PRAGMA foreign_keys = OFF), dropping works. The cascade flag is ignored.
+        // SQLite doesn't support schemas - ignore schemaName parameter
         (void) cascade;
         if (ifExists)
-            return { std::format(R"(DROP TABLE IF EXISTS {};)", FormatTableName(schemaName, tableName)) };
+            return { std::format(R"(DROP TABLE IF EXISTS "{}";)", tableName) };
         else
-            return { std::format(R"(DROP TABLE {};)", FormatTableName(schemaName, tableName)) };
+            return { std::format(R"(DROP TABLE "{}";)", tableName) };
     }
 
     [[nodiscard]] std::string QueryServerVersion() const override
