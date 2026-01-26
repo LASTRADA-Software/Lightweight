@@ -95,8 +95,12 @@ void StandardProgressManager::Update(SqlBackup::Progress const& p)
 
     if (p.state == SqlBackup::Progress::State::Warning)
     {
-        _warnings.push_back(std::format("[{}] {}", p.tableName, p.message));
+        _issuesByTable[p.tableName].push_back({ p.message, IssueType::Warning });
         _tablesWithWarnings.insert(p.tableName);
+    }
+    if (p.state == SqlBackup::Progress::State::Error)
+    {
+        _issuesByTable[p.tableName].push_back({ p.message, IssueType::Error });
     }
 
     bool const isPinned = IsPinnedTable(p.tableName);
@@ -278,12 +282,29 @@ void StandardProgressManager::AllDone()
         _out << std::format("Total time: {:02}:{:02}:{:02}.{:03}\n", h, m, s, ms);
     }
 
-    if (_warnings.empty())
+    if (_issuesByTable.empty())
         return;
 
-    _out << "\nWarnings:\n";
-    for (auto const& w: _warnings)
-        _out << std::format("  ⚠️  {}\n", w);
+    _out << "\nIssues:\n";
+    for (auto const& [tableName, issues]: _issuesByTable)
+    {
+        _out << std::format("  {}:\n", tableName);
+        for (auto const& issue: issues)
+        {
+            switch (issue.type)
+            {
+                case IssueType::Error:
+                    _out << std::format("    ❌ {}\n", issue.message);
+                    break;
+                case IssueType::Warning:
+                    _out << std::format("    ⚠️  {}\n", issue.message);
+                    break;
+                case IssueType::Info:
+                    _out << std::format("    ℹ️  {}\n", issue.message);
+                    break;
+            }
+        }
+    }
 }
 
 void StandardProgressManager::SetMaxTableNameLength(size_t len)

@@ -858,7 +858,11 @@ class SimpleEventProgressManager: public Lightweight::SqlBackup::ErrorTrackingPr
 
         if (p.state == SqlBackup::Progress::State::Warning)
         {
-            _warnings.emplace_back(std::format("[{}] {}", p.tableName, p.message));
+            _issuesByTable[p.tableName].push_back({ p.message, Tools::IssueType::Warning });
+        }
+        if (p.state == SqlBackup::Progress::State::Error)
+        {
+            _issuesByTable[p.tableName].push_back({ p.message, Tools::IssueType::Error });
         }
     }
 
@@ -873,16 +877,34 @@ class SimpleEventProgressManager: public Lightweight::SqlBackup::ErrorTrackingPr
         auto const ms = total_ms % 1000;
         std::println("Total time: {:02}:{:02}:{:02}.{:03}", h, m, s, ms);
 
-        if (!_warnings.empty())
+        if (!_issuesByTable.empty())
         {
-            std::println("\nWarnings:");
-            for (auto const& warning: _warnings)
-                std::println("  ⚠️  {}", warning);
+            std::println("\nIssues:");
+            for (auto const& [tableName, issues]: _issuesByTable)
+            {
+                std::println("  {}:", tableName);
+                for (auto const& issue: issues)
+                {
+                    switch (issue.type)
+                    {
+                        using enum Tools::IssueType;
+                        case Error:
+                            std::println("    ❌ {}", issue.message);
+                            break;
+                        case Warning:
+                            std::println("    ⚠️  {}", issue.message);
+                            break;
+                        case Info:
+                            std::println("    ℹ️  {}", issue.message);
+                            break;
+                    }
+                }
+            }
         }
     }
 
   private:
-    std::vector<std::string> _warnings;
+    std::map<std::string, std::vector<Tools::TableIssue>> _issuesByTable;
     std::chrono::steady_clock::time_point _startTime = std::chrono::steady_clock::now();
 };
 
