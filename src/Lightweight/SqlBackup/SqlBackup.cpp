@@ -2469,7 +2469,6 @@ void Restore(std::filesystem::path const& inputFile,
     std::map<std::string, std::shared_ptr<std::atomic<size_t>>> tableProgress;
     std::map<std::string, std::shared_ptr<std::atomic<size_t>>> chunksProcessed;
     size_t totalRows = 0;
-    bool hasUnknownRowCounts = false;
     for (auto const& [name, info]: tableMap)
     {
         // Only track progress for successfully created tables
@@ -2478,13 +2477,12 @@ void Restore(std::filesystem::path const& inputFile,
             tableProgress[name] = std::make_shared<std::atomic<size_t>>(0);
             chunksProcessed[name] = std::make_shared<std::atomic<size_t>>(0);
             totalRows += info.rowCount;
-            if (info.rowCount == 0)
-                hasUnknownRowCounts = true;
         }
     }
 
-    // Only set total items for ETA calculation when all row counts are valid
-    if (!hasUnknownRowCounts)
+    // Set total items for ETA calculation. Even if some tables have unknown row counts (0),
+    // the sum of known counts provides a reasonable approximation for progress display.
+    if (totalRows > 0)
         progress.SetTotalItems(totalRows);
 
     // Filter tableMap to only include created tables for RestoreContext
