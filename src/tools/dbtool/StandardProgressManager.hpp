@@ -24,6 +24,7 @@ class StandardProgressManager: public Lightweight::SqlBackup::ErrorTrackingProgr
     void AllDone() override;
     void SetMaxTableNameLength(size_t len) override;
     void SetTotalItems(size_t totalItems) override;
+    void AddTotalItems(size_t additionalItems) override;
     void OnItemsProcessed(size_t count) override;
 
   private:

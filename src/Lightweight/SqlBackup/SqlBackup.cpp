@@ -866,6 +866,78 @@ namespace
         }
     }
 
+    /// Context for the row counter thread that runs in parallel with backup workers.
+    struct RowCounterContext
+    {
+        SqlConnectionString const& connectionString;
+        std::string const& schema;
+        std::vector<SqlSchema::Table>& completedTables;
+        std::mutex& completedTablesMutex;
+        std::atomic<bool>& schemaScanningComplete;
+        ProgressManager& progress;
+    };
+
+    /// Row counter thread function that counts rows for ETA calculation in parallel with backup.
+    ///
+    /// This thread processes tables as they become available in completedTables,
+    /// running COUNT(*) queries and reporting totals to the progress manager.
+    /// Runs in parallel with both schema scanning and backup workers.
+    void RowCounterThread(RowCounterContext ctx)
+    {
+        try
+        {
+            auto counterConn = SqlConnection(ctx.connectionString);
+            auto counterStmt = SqlStatement { counterConn };
+
+            // Process tables as they become available
+            size_t processedCount = 0;
+            while (true)
+            {
+                SqlSchema::Table tableToCount;
+                bool hasTable = false;
+
+                {
+                    std::scoped_lock lock(ctx.completedTablesMutex);
+                    if (processedCount < ctx.completedTables.size())
+                    {
+                        tableToCount = ctx.completedTables[processedCount];
+                        hasTable = true;
+                        processedCount++;
+                    }
+                }
+
+                if (hasTable)
+                {
+                    auto const formattedTableName = FormatTableName(ctx.schema, tableToCount.name);
+                    auto const rowCount = static_cast<size_t>(
+                        counterStmt.ExecuteDirectScalar<int64_t>(std::format("SELECT COUNT(*) FROM {}", formattedTableName))
+                            .value_or(0));
+                    ctx.progress.AddTotalItems(rowCount);
+                }
+                else
+                {
+                    // Check if schema scanning is done
+                    std::scoped_lock lock(ctx.completedTablesMutex);
+                    if (ctx.schemaScanningComplete.load() && processedCount >= ctx.completedTables.size())
+                        break;
+                }
+
+                // Brief sleep to avoid busy-waiting when waiting for new tables
+                if (!hasTable)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+        }
+        catch (std::exception const& e)
+        {
+            // Log error but don't fail backup - ETA is non-critical
+            ctx.progress.Update({ .state = Progress::State::Warning,
+                                  .tableName = "Counter",
+                                  .currentRows = 0,
+                                  .totalRows = std::nullopt,
+                                  .message = std::format("Row counting failed: {}", e.what()) });
+        }
+    }
+
     // BatchManager and BatchColumn moved to BatchManager.hpp/cpp
 
     struct RestoreContext
@@ -1627,6 +1699,7 @@ std::string CreateMetadata(SqlConnectionString const& connectionString,
     return metadata.dump();
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void Backup(std::filesystem::path const& outputFile,
             SqlConnectionString const& connectionString,
             unsigned concurrency,
@@ -1700,6 +1773,20 @@ void Backup(std::filesystem::path const& outputFile,
         std::generate_n(
             std::back_inserter(workers), concurrency, [&] { return std::thread(BackupWorker, std::ref(tableQueue), ctx); });
 
+        // Flag to signal when schema scanning is complete (for counter thread)
+        std::atomic<bool> schemaScanningComplete { false };
+
+        // Counter thread: counts rows for ETA calculation in parallel with backup
+        RowCounterContext counterCtx {
+            .connectionString = connectionString,
+            .schema = schema,
+            .completedTables = completedTables,
+            .completedTablesMutex = completedTablesMutex,
+            .schemaScanningComplete = schemaScanningComplete,
+            .progress = progress,
+        };
+        std::thread counterThread(RowCounterThread, counterCtx);
+
         // Schema progress callback
         SqlSchema::ReadAllTablesCallback schemaCallback =
             [&progress](std::string_view tableName, size_t const current, size_t const total) {
@@ -1711,7 +1798,7 @@ void Backup(std::filesystem::path const& outputFile,
             };
 
         // Table-ready callback: called when each table's schema is complete.
-        // We collect tables here but don't push to workers yet - we need to count rows first.
+        // Push tables to workers immediately to enable pipelining.
         SqlSchema::TableReadyCallback tableReadyCallback = [&](SqlSchema::Table&& table) {
             // Update max table name length for progress display
             size_t currentMax = maxTableNameLength.load();
@@ -1720,11 +1807,14 @@ void Backup(std::filesystem::path const& outputFile,
             {
             }
 
-            // Store for processing and metadata creation
+            // Store for metadata creation AND for counter thread
             {
                 std::scoped_lock lock(completedTablesMutex);
-                completedTables.push_back(std::move(table));
+                completedTables.push_back(table); // Copy for metadata & counting
             }
+
+            // Push to worker queue immediately - enables pipelining
+            tableQueue.Push(std::move(table));
         };
 
         // Create table filter predicate to skip reading schema for non-matching tables
@@ -1736,7 +1826,7 @@ void Backup(std::filesystem::path const& outputFile,
             };
         }
 
-        // Run schema scanning - tables are collected (not pushed to workers yet)
+        // Run schema scanning - tables are pushed to workers immediately via callback
         // The filter predicate ensures only matching tables have their full schema read
         auto stmt = SqlStatement { mainConn };
         SqlSchema::ReadAllTables(
@@ -1750,29 +1840,16 @@ void Backup(std::filesystem::path const& outputFile,
 
         progress.SetMaxTableNameLength(maxTableNameLength.load());
 
-        // Count rows for all tables to enable ETA calculation
-        size_t totalRows = 0;
-        for (auto const& table: completedTables)
-        {
-            auto const formattedTableName = FormatTableName(schema, table.name);
-            auto const rowCount = static_cast<size_t>(
-                stmt.ExecuteDirectScalar<int64_t>(std::format("SELECT COUNT(*) FROM {}", formattedTableName)).value_or(0));
-            totalRows += rowCount;
-        }
-        progress.SetTotalItems(totalRows);
-
-        // Now push all tables to the worker queue
-        for (auto& table: completedTables)
-        {
-            tableQueue.Push(SqlSchema::Table(table)); // Copy since we need completedTables for metadata
-        }
-
-        // Signal that no more tables will be added
+        // Signal schema scanning is complete - tables already pushed by callback
+        schemaScanningComplete = true;
         tableQueue.MarkFinished();
 
         // Wait for all workers to complete
         for (auto& t: workers)
             t.join();
+
+        // Wait for counter thread to finish
+        counterThread.join();
 
         // Create metadata.json from completed tables (moved to end since we need full list)
         auto const metadataJson = CreateMetadata(connectionString, completedTables, schema);

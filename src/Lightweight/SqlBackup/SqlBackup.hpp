@@ -161,6 +161,11 @@ struct ProgressManager
     /// @param totalItems Total number of items (rows) to process across all tables.
     virtual void SetTotalItems(size_t /*totalItems*/) {}
 
+    /// Adds to the total number of items for progressive ETA calculation.
+    /// This is called as row counts become available during parallel counting.
+    /// @param additionalItems Number of additional items (rows) to add to the total.
+    virtual void AddTotalItems(size_t /*additionalItems*/) {}
+
     /// Called when items are processed (for rate and ETA calculation).
     /// @param count Number of items (rows) just processed.
     virtual void OnItemsProcessed(size_t /*count*/) {}

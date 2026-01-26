@@ -7,9 +7,9 @@
 #include <iostream>
 
 #ifdef _WIN32
-#include <io.h> // for _isatty, _fileno
+    #include <io.h> // for _isatty, _fileno
 #else
-#include <unistd.h> // for isatty, fileno
+    #include <unistd.h> // for isatty, fileno
 #endif
 
 namespace Lightweight::Tools
@@ -246,6 +246,8 @@ void StandardProgressManager::AllDone()
 {
     std::scoped_lock lock(_mutex);
 
+    auto const synchronizedOutput = SynchronizedOutputGuard(_out);
+
     // Final repaint of summary line to show 100% complete
     if (_hasSummaryLine && _summaryLineAllocated)
     {
@@ -365,7 +367,8 @@ void StandardProgressManager::PrintLine(int lineIndex, SqlBackup::Progress const
     if (p.totalRows.has_value() && p.totalRows.value() > 0)
         pct = (static_cast<double>(p.currentRows) * 100.0) / static_cast<double>(p.totalRows.value());
 
-    if (p.state == SqlBackup::Progress::State::InProgress || p.state == SqlBackup::Progress::State::Finished || hasWarning)
+    if (p.state == SqlBackup::Progress::State::Started || p.state == SqlBackup::Progress::State::InProgress
+        || p.state == SqlBackup::Progress::State::Finished || hasWarning)
     {
         int const barWidth = 20;
         int const filled = static_cast<int>((pct * barWidth) / 100);
@@ -437,12 +440,27 @@ void StandardProgressManager::SetTotalItems(size_t totalItems)
     }
 }
 
+void StandardProgressManager::AddTotalItems(size_t additionalItems)
+{
+    std::scoped_lock lock(_mutex);
+    _totalItems += additionalItems;
+
+    if (_totalItems > 0 && !_hasSummaryLine)
+    {
+        _hasSummaryLine = true;
+    }
+}
+
 void StandardProgressManager::OnItemsProcessed(size_t count)
 {
     size_t const newProcessed = _processedItems.fetch_add(count) + count;
 
     // Use a scoped_lock to safely update rate calculation and print summary
     std::scoped_lock lock(_mutex);
+
+    // Enable summary line on first processed items (even if total unknown yet)
+    if (!_hasSummaryLine)
+        _hasSummaryLine = true;
 
     auto const now = std::chrono::steady_clock::now();
     auto const elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(now - _lastRateSampleTime).count();
@@ -470,6 +488,7 @@ void StandardProgressManager::OnItemsProcessed(size_t count)
         // Update summary line
         if (_hasSummaryLine)
         {
+            auto const synchronizedOutput = SynchronizedOutputGuard(_out);
             PrintSummaryLine();
         }
     }
@@ -478,7 +497,7 @@ void StandardProgressManager::OnItemsProcessed(size_t count)
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void StandardProgressManager::PrintSummaryLine()
 {
-    if (!_hasSummaryLine || !_summaryLineAllocated || _totalItems == 0)
+    if (!_hasSummaryLine || !_summaryLineAllocated)
         return;
 
     // Summary line is always 1 line above the cursor (at the bottom)
@@ -488,8 +507,21 @@ void StandardProgressManager::PrintSummaryLine()
     _out << "\r\033[K";                // Clear line
 
     size_t const processed = _processedItems.load();
-    bool const isComplete = processed >= _totalItems;
-    double const pct = isComplete ? 100.0 : (static_cast<double>(processed) * 100.0) / static_cast<double>(_totalItems);
+    size_t const total = _totalItems;
+
+    // Calculate percentage: 0% if total unknown, always capped at 99% here
+    // We never show 100% in PrintSummaryLine because we can't know if counting is complete.
+    // The 100% is only shown in AllDone() when everything is truly finished.
+    double pct = 0.0;
+    bool const totalKnown = total > 0;
+
+    if (totalKnown)
+    {
+        // Cap at 99% - workers may be ahead of counter thread, and we can't know
+        // when counting is truly complete from here
+        pct = std::min(99.0, (static_cast<double>(processed) * 100.0) / static_cast<double>(total));
+    }
+    // else pct stays at 0.0 (total not yet known)
 
     // Build progress bar
     std::string bar;
@@ -513,14 +545,15 @@ void StandardProgressManager::PrintSummaryLine()
     }
 
     // Format ETA
+    // Note: We never show "done" here - that's only shown in AllDone()
     std::string etaStr;
-    if (isComplete)
+    if (!totalKnown)
     {
-        etaStr = "done";
+        etaStr = "counting...";
     }
-    else if (_smoothedRate > 0.0)
+    else if (_smoothedRate > 0.0 && total > processed)
     {
-        size_t const remaining = _totalItems - processed;
+        size_t const remaining = total - processed;
         double const etaSec = static_cast<double>(remaining) / _smoothedRate;
 
         if (etaSec < 1.0)
