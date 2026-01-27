@@ -6,6 +6,7 @@
 #include <Lightweight/DataBinder/UnicodeConverter.hpp>
 
 #include <algorithm>
+#include <array>
 #include <fstream>
 #include <regex>
 
