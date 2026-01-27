@@ -95,7 +95,8 @@ var menudata={children:[
 {text:"r",url:"functions_vars.html#index_r"},
 {text:"s",url:"functions_vars.html#index_s"},
 {text:"t",url:"functions_vars.html#index_t"},
-{text:"u",url:"functions_vars.html#index_u"}]},
+{text:"u",url:"functions_vars.html#index_u"},
+{text:"w",url:"functions_vars.html#index_w"}]},
 {text:"Typedefs",url:"functions_type.html"},
 {text:"Enumerations",url:"functions_enum.html"}]}]},
 {text:"Files",url:"files.html",children:[

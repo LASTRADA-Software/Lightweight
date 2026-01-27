@@ -97,6 +97,82 @@ var NAVTREE =
         [ "5.4 Restoration Compatibility", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md54-restoration-compatibility", null ]
       ] ]
     ] ],
+    [ "dbtool - Database Management CLI", "d5/dc4/dbtool.html", [
+      [ "Overview", "d5/dc4/dbtool.html#overview", null ],
+      [ "Installation", "d5/dc4/dbtool.html#installation", null ],
+      [ "Configuration", "d5/dc4/dbtool.html#configuration", [
+        [ "Connection String", "d5/dc4/dbtool.html#connection-string", null ],
+        [ "Configuration File Format", "d5/dc4/dbtool.html#configuration-file-format", null ],
+        [ "Database-Specific Connection Strings", "d5/dc4/dbtool.html#database-specific-connection-strings", null ]
+      ] ],
+      [ "Migration Commands", "d5/dc4/dbtool.html#migration-commands", [
+        [ "migrate", "d5/dc4/dbtool.html#migrate", null ],
+        [ "list-pending", "d5/dc4/dbtool.html#list-pending", null ],
+        [ "list-applied", "d5/dc4/dbtool.html#list-applied", null ],
+        [ "status", "d5/dc4/dbtool.html#status", null ],
+        [ "apply <TIMESTAMP>", "d5/dc4/dbtool.html#apply-timestamp", null ],
+        [ "rollback <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-timestamp", null ],
+        [ "rollback-to <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-to-timestamp", null ],
+        [ "mark-applied <TIMESTAMP>", "d5/dc4/dbtool.html#mark-applied-timestamp", null ]
+      ] ],
+      [ "Backup & Restore", "d5/dc4/dbtool.html#backup--restore", [
+        [ "backup", "d5/dc4/dbtool.html#backup", null ],
+        [ "restore", "d5/dc4/dbtool.html#restore", null ]
+      ] ],
+      [ "Command-Line Options Reference", "d5/dc4/dbtool.html#command-line-options-reference", [
+        [ "Size Suffixes", "d5/dc4/dbtool.html#size-suffixes", null ]
+      ] ],
+      [ "Plugin System", "d5/dc4/dbtool.html#plugin-system", [
+        [ "Creating a Migration Plugin", "d5/dc4/dbtool.html#creating-a-migration-plugin", null ],
+        [ "Loading Plugins", "d5/dc4/dbtool.html#loading-plugins", null ]
+      ] ],
+      [ "Workflow Examples", "d5/dc4/dbtool.html#workflow-examples", [
+        [ "Full Migration Workflow", "d5/dc4/dbtool.html#full-migration-workflow", null ],
+        [ "Backup Before Migration", "d5/dc4/dbtool.html#backup-before-migration", null ],
+        [ "Parallel Backup and Restore", "d5/dc4/dbtool.html#parallel-backup-and-restore", null ]
+      ] ],
+      [ "Troubleshooting", "d5/dc4/dbtool.html#troubleshooting", [
+        [ "Connection Errors", "d5/dc4/dbtool.html#connection-errors", null ],
+        [ "Checksum Mismatches", "d5/dc4/dbtool.html#checksum-mismatches", null ],
+        [ "Lock Acquisition Failed", "d5/dc4/dbtool.html#lock-acquisition-failed", null ]
+      ] ],
+      [ "See Also", "d5/dc4/dbtool.html#see-also", null ]
+    ] ],
+    [ "SQL Migrations", "d2/da6/sql-migrations.html", [
+      [ "Introduction", "d2/da6/sql-migrations.html#introduction-1", null ],
+      [ "Creating Migrations", "d2/da6/sql-migrations.html#creating-migrations", [
+        [ "Using the LIGHTWEIGHT_SQL_MIGRATION Macro", "d2/da6/sql-migrations.html#using-the-lightweight_sql_migration-macro", null ],
+        [ "Using the Migration Class", "d2/da6/sql-migrations.html#using-the-migration-class", null ],
+        [ "Timestamp Format", "d2/da6/sql-migrations.html#timestamp-format", null ],
+        [ "Plugin Macro for Shared Libraries", "d2/da6/sql-migrations.html#plugin-macro-for-shared-libraries", null ]
+      ] ],
+      [ "Table Operations", "d2/da6/sql-migrations.html#table-operations", [
+        [ "CreateTable", "d2/da6/sql-migrations.html#createtable", null ],
+        [ "AlterTable", "d2/da6/sql-migrations.html#altertable", null ],
+        [ "DropTable", "d2/da6/sql-migrations.html#droptable", null ]
+      ] ],
+      [ "Data Manipulation", "d2/da6/sql-migrations.html#data-manipulation", [
+        [ "Insert", "d2/da6/sql-migrations.html#insert", null ],
+        [ "Update", "d2/da6/sql-migrations.html#update", null ],
+        [ "Delete", "d2/da6/sql-migrations.html#delete", null ],
+        [ "CreateIndex", "d2/da6/sql-migrations.html#createindex", null ]
+      ] ],
+      [ "Raw SQL", "d2/da6/sql-migrations.html#raw-sql", null ],
+      [ "SQL Column Types", "d2/da6/sql-migrations.html#sql-column-types", null ],
+      [ "Migration Manager API", "d2/da6/sql-migrations.html#migration-manager-api", [
+        [ "Applying Migrations Programmatically", "d2/da6/sql-migrations.html#applying-migrations-programmatically", null ],
+        [ "Status & Verification", "d2/da6/sql-migrations.html#status--verification", null ],
+        [ "Preview (Dry-Run)", "d2/da6/sql-migrations.html#preview-dry-run", null ],
+        [ "Rollback", "d2/da6/sql-migrations.html#rollback", null ],
+        [ "Mark as Applied", "d2/da6/sql-migrations.html#mark-as-applied", null ]
+      ] ],
+      [ "Migration Tracking", "d2/da6/sql-migrations.html#migration-tracking", [
+        [ "schema_migrations Table", "d2/da6/sql-migrations.html#schema_migrations-table", null ],
+        [ "Concurrency Control", "d2/da6/sql-migrations.html#concurrency-control", null ]
+      ] ],
+      [ "Best Practices", "d2/da6/sql-migrations.html#best-practices-1", null ],
+      [ "See Also", "d2/da6/sql-migrations.html#see-also-1", null ]
+    ] ],
     [ "Topics", "topics.html", "topics" ],
     [ "Concepts", "concepts.html", "concepts" ],
     [ "Classes", "annotated.html", [
@@ -119,9 +195,10 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aaa224b59d60b36d04f75b77e3b0ef803",
-"d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ae2ac5e8f6feb4b31de19ad64fce540f5",
-"de/d73/classLightweight_1_1HasManyThrough.html#a57d4420d41ec66436af386a3d3fd20a8"
+"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a53933c029c1d92dfc61c2301f6d1aa81",
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a24d91208b7dbab7ad8e565b85039760b",
+"db/dfd/classLightweight_1_1SqlLogger.html#a057052d128f3e34f363e33b2aac1d7bd",
+"df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a38e6606ee966480e7a5ab0b1069cf659"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
