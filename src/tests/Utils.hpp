@@ -286,33 +286,62 @@ constexpr void FixedPointIterate(Getter const& getter, Callable const& callable)
     }
 }
 
-// Searches upward from current working directory for .test-env.yml
+// Searches upward from current working directory for .test-env.local.yml then .test-env.yml
 // Stops at directory containing .git (project root boundary) or filesystem root
-// Also checks scripts/tests/.test-env.yml at project root
+// Also checks scripts/tests/ at project root
 inline std::optional<std::filesystem::path> FindTestEnvFile()
 {
     auto currentDir = std::filesystem::current_path();
     std::filesystem::path projectRoot;
 
+    // First pass: search for .test-env.local.yml (local overrides)
+    auto searchDir = currentDir;
     while (true)
     {
-        auto testEnvPath = currentDir / ".test-env.yml";
-        if (std::filesystem::exists(testEnvPath))
-            return testEnvPath;
+        auto localEnvPath = searchDir / ".test-env.local.yml";
+        if (std::filesystem::exists(localEnvPath))
+            return localEnvPath;
 
-        // Check if we reached project root (directory containing .git)
-        auto gitPath = currentDir / ".git";
+        auto gitPath = searchDir / ".git";
         if (std::filesystem::exists(gitPath))
         {
-            projectRoot = currentDir;
+            projectRoot = searchDir;
             break;
         }
 
-        auto parentDir = currentDir.parent_path();
-        if (parentDir == currentDir)
-            return std::nullopt; // Reached filesystem root
+        auto parentDir = searchDir.parent_path();
+        if (parentDir == searchDir)
+            break;
+        searchDir = parentDir;
+    }
 
-        currentDir = parentDir;
+    // Check scripts/tests/.test-env.local.yml at project root
+    if (!projectRoot.empty())
+    {
+        auto scriptsLocalEnvPath = projectRoot / "scripts" / "tests" / ".test-env.local.yml";
+        if (std::filesystem::exists(scriptsLocalEnvPath))
+            return scriptsLocalEnvPath;
+    }
+
+    // Second pass: search for .test-env.yml (default config)
+    searchDir = currentDir;
+    while (true)
+    {
+        auto testEnvPath = searchDir / ".test-env.yml";
+        if (std::filesystem::exists(testEnvPath))
+            return testEnvPath;
+
+        auto gitPath = searchDir / ".git";
+        if (std::filesystem::exists(gitPath))
+        {
+            projectRoot = searchDir;
+            break;
+        }
+
+        auto parentDir = searchDir.parent_path();
+        if (parentDir == searchDir)
+            return std::nullopt;
+        searchDir = parentDir;
     }
 
     // Check scripts/tests/.test-env.yml at project root
