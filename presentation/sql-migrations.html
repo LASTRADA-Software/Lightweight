@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Lightweight - SQL Migrations</title>
+
+    <link rel="stylesheet" href="node_modules/reveal.js/dist/reset.css">
+    <link rel="stylesheet" href="node_modules/reveal.js/dist/reveal.css">
+    <link rel="stylesheet" href="node_modules/reveal.js/dist/theme/simple.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/foundation.min.css">
+
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+
+      .reveal {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 32px;
+        font-weight: 400;
+        line-height: 1.5;
+      }
+      .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+      .reveal h1 { font-size: 2.2em; }
+      .reveal h2 { font-size: 1.6em; }
+      .reveal h3 { font-size: 1.3em; }
+      .reveal h4 { font-size: 1.1em; }
+      .reveal p, .reveal li {
+        font-size: 0.9em;
+        line-height: 1.6;
+      }
+      .reveal ul, .reveal ol {
+        display: block;
+        margin-left: 1em;
+      }
+      .reveal li {
+        margin-bottom: 0.5em;
+      }
+      .reveal pre {
+        width: 100%;
+        font-size: 0.5em;
+        font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+        box-sizing: border-box;
+      }
+      .reveal pre code {
+        max-height: 550px;
+        padding: 15px;
+        font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+        line-height: 1.4;
+        font-size: 1.6em;
+      }
+      .reveal table {
+        font-size: 0.7em;
+        margin: 0 auto;
+      }
+      .reveal table th {
+        background: #f0f0f0;
+        font-weight: 600;
+      }
+      .reveal table td, .reveal table th {
+        padding: 0.4em 0.8em;
+        border: 1px solid #ddd;
+      }
+      .reveal strong {
+        font-weight: 600;
+      }
+      /* All code lines - consistent left border space */
+      .reveal pre code .hljs-ln-line,
+      .reveal pre code tr {
+        border-left: 4px solid transparent;
+      }
+      /* Highlighted code lines */
+      .reveal pre code .hljs-ln-line.highlight-line,
+      .reveal pre code tr.highlight-line {
+        background-color: rgba(184, 255, 181, 0.7);
+        border-left: 4px solid #f5a623;
+      }
+      /* Non-highlighted lines when stepping through */
+      .reveal pre code[data-line-numbers-showing] .hljs-ln-line:not(.highlight-line),
+      .reveal pre code[data-line-numbers-showing] tr:not(.highlight-line) {
+        opacity: 0.4;
+      }
+      .feature-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1em;
+        margin-top: 1em;
+      }
+      .feature-box {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1em;
+        text-align: left;
+      }
+      .feature-box h4 {
+        margin: 0 0 0.5em 0;
+        color: #2c3e50;
+      }
+      .feature-box ul {
+        margin: 0;
+        padding-left: 1.2em;
+      }
+      .workflow-diagram {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5em;
+        margin: 1em 0;
+      }
+      .workflow-step {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 0.6em 1em;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.8em;
+      }
+      .workflow-arrow {
+        color: #667eea;
+        font-size: 1.5em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+
+        <!-- Title Slide -->
+        <section>
+          <h1>SQL Migrations</h1>
+          <h3>Database Schema Versioning for C++</h3>
+          <p>Part of the Lightweight ODBC Library</p>
+        </section>
+
+        <!-- What are Migrations -->
+        <section>
+          <h2>What are SQL Migrations?</h2>
+          <ul>
+            <li><strong>Version control</strong> for your database schema</li>
+            <li>Each migration is a <strong>discrete, timestamped</strong> change</li>
+            <li>Can be <strong>applied</strong> (Up) or <strong>reverted</strong> (Down)</li>
+            <li><strong>Checksum verification</strong> detects unauthorized changes</li>
+            <li>Safe <strong>rollback</strong> capabilities</li>
+          </ul>
+        </section>
+
+        <!-- Why Migrations -->
+        <section>
+          <h2>Why Use Migrations?</h2>
+          <div class="feature-grid">
+            <div class="feature-box">
+              <h4>Reproducibility</h4>
+              <ul>
+                <li>Same schema across environments</li>
+                <li>New developer onboarding</li>
+                <li>CI/CD integration</li>
+              </ul>
+            </div>
+            <div class="feature-box">
+              <h4>Traceability</h4>
+              <ul>
+                <li>Git history for schema changes</li>
+                <li>Audit trail of modifications</li>
+                <li>Blame for schema issues</li>
+              </ul>
+            </div>
+            <div class="feature-box">
+              <h4>Safety</h4>
+              <ul>
+                <li>Rollback on failure</li>
+                <li>Dry-run preview</li>
+                <li>Checksum verification</li>
+              </ul>
+            </div>
+            <div class="feature-box">
+              <h4>Automation</h4>
+              <ul>
+                <li>Deploy with confidence</li>
+                <li>No manual SQL scripts</li>
+                <li>Concurrent migration locking</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Architecture Overview -->
+        <section>
+          <h2>Architecture</h2>
+          <div class="workflow-diagram">
+            <div class="workflow-step">Migration Code</div>
+            <div class="workflow-arrow">→</div>
+            <div class="workflow-step">MigrationManager</div>
+            <div class="workflow-arrow">→</div>
+            <div class="workflow-step">Query Builder</div>
+            <div class="workflow-arrow">→</div>
+            <div class="workflow-step">Database</div>
+          </div>
+          <ul>
+            <li><strong>MigrationManager</strong>: Singleton tracking all migrations</li>
+            <li><strong>SqlMigrationQueryBuilder</strong>: Type-safe schema operations</li>
+            <li><strong>schema_migrations</strong>: Tracking table in database</li>
+            <li><strong>dbtool</strong>: CLI for migration management</li>
+          </ul>
+        </section>
+
+        <!-- Creating Migrations -->
+        <section>
+          <section>
+            <h2>Creating Migrations</h2>
+          </section>
+
+          <section>
+            <h2>The LIGHTWEIGHT_SQL_MIGRATION Macro</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1|3|5-9|">#include &lt;Lightweight/SqlMigration.hpp&gt;
+
+LIGHTWEIGHT_SQL_MIGRATION(20260126120000, "Create users table")
+{
+    plan.CreateTable("users")
+        .PrimaryKeyWithAutoIncrement("id")
+        .RequiredColumn("email", Varchar(255))
+        .RequiredColumn("name", Varchar(100))
+        .Timestamps();
+}</code></pre>
+            <ul>
+              <li><strong>Timestamp</strong>: YYYYMMDDHHMMSS format (unique, increasing)</li>
+              <li><strong>Description</strong>: Human-readable title</li>
+              <li><strong>plan</strong>: SqlMigrationQueryBuilder for schema operations</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Using the Migration Class</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1-3|5-10|12-14|">using namespace Lightweight::SqlMigration;
+
+static Migration createUsersTable(
+    MigrationTimestamp { .value = 20260126120000 },
+    "Create users table",
+    // Up migration
+    [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("users")
+            .PrimaryKeyWithAutoIncrement("id")
+            .RequiredColumn("email", Varchar(255));
+    },
+    // Down migration (optional but recommended)
+    [](SqlMigrationQueryBuilder& plan) {
+        plan.DropTable("users");
+    }
+);</code></pre>
+          </section>
+
+          <section>
+            <h2>Plugin for Shared Libraries</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1|3|5-11|">#include &lt;Lightweight/SqlMigration.hpp&gt;
+
+LIGHTWEIGHT_MIGRATION_PLUGIN()
+
+LIGHTWEIGHT_SQL_MIGRATION(20260126120000, "Create users table")
+{
+    plan.CreateTable("users")
+        .PrimaryKeyWithAutoIncrement("id")
+        .RequiredColumn("email", Varchar(255))
+        .Timestamps();
+}</code></pre>
+            <p><code>LIGHTWEIGHT_MIGRATION_PLUGIN()</code> exports the entry point for dbtool</p>
+          </section>
+        </section>
+
+        <!-- Table Operations -->
+        <section>
+          <section>
+            <h2>Table Operations</h2>
+          </section>
+
+          <section>
+            <h2>CreateTable</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1|2|3-4|5-6|7|">plan.CreateTable("posts")
+    .PrimaryKeyWithAutoIncrement("id", Bigint())
+    .RequiredColumn("title", Varchar(200))
+    .Column("body", Text())                    // Nullable
+    .RequiredForeignKey("user_id", Bigint(),
+        { .tableName = "users", .columnName = "id" })
+    .Timestamps();  // created_at, updated_at</code></pre>
+            <p>Column modifiers: <code>.Unique()</code>, <code>.Index()</code>, <code>.UniqueIndex()</code></p>
+          </section>
+
+          <section>
+            <h2>AlterTable</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1|2|3|4|5|6|">plan.AlterTable("users")
+    .AddColumn("phone", Varchar(20))           // Non-nullable
+    .AddNotRequiredColumn("nickname", Varchar(50))  // Nullable
+    .RenameColumn("email", "email_address")
+    .AddUniqueIndex("phone")
+    .DropColumn("legacy_field");</code></pre>
+          </section>
+
+          <section>
+            <h2>AlterTable Operations</h2>
+            <table>
+              <tr><th>Method</th><th>Description</th></tr>
+              <tr><td><code>AddColumn(name, type)</code></td><td>Add non-nullable column</td></tr>
+              <tr><td><code>AddNotRequiredColumn(name, type)</code></td><td>Add nullable column</td></tr>
+              <tr><td><code>RenameColumn(old, new)</code></td><td>Rename a column</td></tr>
+              <tr><td><code>DropColumn(name)</code></td><td>Remove a column</td></tr>
+              <tr><td><code>AlterColumn(name, type, nullable)</code></td><td>Change type/nullability</td></tr>
+              <tr><td><code>AddIndex(column)</code></td><td>Create index</td></tr>
+              <tr><td><code>AddUniqueIndex(column)</code></td><td>Create unique index</td></tr>
+              <tr><td><code>AddForeignKey(col, ref)</code></td><td>Add FK to existing column</td></tr>
+            </table>
+          </section>
+
+          <section>
+            <h2>DropTable</h2>
+            <pre><code class="language-cpp">// Simple drop
+plan.DropTable("obsolete_table");
+
+// Conditional drop
+plan.DropTableIfExists("maybe_exists");
+
+// Cascade drop (removes FK constraints)
+plan.DropTableCascade("table_with_dependencies");</code></pre>
+          </section>
+
+          <section>
+            <h2>Conditional Operations</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1-2|4-7|">// Create table only if it doesn't exist
+plan.CreateTableIfNotExists("users")...;
+
+// Conditional alter operations
+plan.AlterTable("users")
+    .AddColumnIfNotExists("phone", Varchar(20))
+    .DropColumnIfExists("obsolete_field")
+    .DropIndexIfExists("old_index");</code></pre>
+          </section>
+        </section>
+
+        <!-- Data Manipulation -->
+        <section>
+          <section>
+            <h2>Data Manipulation</h2>
+          </section>
+
+          <section>
+            <h2>Insert, Update, Delete</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1-3|5-7|9-10|">// Insert seed data
+plan.Insert("settings")
+    .Set("key", "app_version")
+    .Set("value", "1.0.0");
+
+// Update existing data
+plan.Update("settings")
+    .Set("value", "2.0.0")
+    .Where("key", "=", "app_version");
+
+// Delete data
+plan.Delete("settings")
+    .Where("key", "=", "deprecated_setting");</code></pre>
+          </section>
+
+          <section>
+            <h2>CreateIndex</h2>
+            <pre><code class="language-cpp">// Simple index
+plan.CreateIndex("idx_users_email", "users", {"email"});
+
+// Unique index
+plan.CreateUniqueIndex("idx_users_phone", "users", {"phone"});
+
+// Composite index
+plan.CreateIndex("idx_posts_user_date", "posts",
+    {"user_id", "created_at"});</code></pre>
+          </section>
+
+          <section>
+            <h2>Raw SQL</h2>
+            <pre><code class="language-cpp">// Database-specific features
+plan.RawSql("CREATE EXTENSION IF NOT EXISTS pgcrypto");
+
+// Complex constraints
+plan.RawSql("ALTER TABLE users "
+            "ADD CONSTRAINT check_age CHECK (age >= 0)");
+
+// Stored procedures, triggers, etc.
+plan.RawSql("CREATE TRIGGER update_timestamp...");</code></pre>
+          </section>
+        </section>
+
+        <!-- Column Types -->
+        <section>
+          <h2>SQL Column Types</h2>
+          <table>
+            <tr><th>C++ Type</th><th>SQL Type</th><th>C++ Type</th><th>SQL Type</th></tr>
+            <tr><td><code>Integer()</code></td><td>INTEGER</td><td><code>DateTime()</code></td><td>DATETIME</td></tr>
+            <tr><td><code>Bigint()</code></td><td>BIGINT</td><td><code>Date()</code></td><td>DATE</td></tr>
+            <tr><td><code>Smallint()</code></td><td>SMALLINT</td><td><code>Time()</code></td><td>TIME</td></tr>
+            <tr><td><code>Real()</code></td><td>FLOAT</td><td><code>Guid()</code></td><td>UUID</td></tr>
+            <tr><td><code>Bool()</code></td><td>BOOLEAN</td><td><code>Text()</code></td><td>TEXT</td></tr>
+            <tr><td><code>Varchar(n)</code></td><td>VARCHAR(n)</td><td><code>Binary(n)</code></td><td>BINARY(n)</td></tr>
+            <tr><td><code>Char(n)</code></td><td>CHAR(n)</td><td><code>VarBinary(n)</code></td><td>VARBINARY(n)</td></tr>
+            <tr><td><code>NVarchar(n)</code></td><td>NVARCHAR(n)</td><td><code>Decimal(p,s)</code></td><td>DECIMAL(p,s)</td></tr>
+          </table>
+        </section>
+
+        <!-- Migration Manager API -->
+        <section>
+          <section>
+            <h2>MigrationManager API</h2>
+          </section>
+
+          <section>
+            <h2>Applying Migrations</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1-2|4-5|7-12|">using namespace Lightweight::SqlMigration;
+
+auto& manager = MigrationManager::GetInstance();
+
+// Create tracking table
+manager.CreateMigrationHistory();
+
+// Apply all pending migrations with progress callback
+size_t applied = manager.ApplyPendingMigrations(
+    [](MigrationBase const& m, size_t current, size_t total) {
+        std::println("[{}/{}] Applying {} - {}",
+            current + 1, total, m.GetTimestamp().value, m.GetTitle());
+    });</code></pre>
+          </section>
+
+          <section>
+            <h2>Status & Verification</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1-3|5-12|">// Get migration status summary
+auto status = manager.GetMigrationStatus();
+std::println("Applied: {}, Pending: {}", status.appliedCount, status.pendingCount);
+
+// Verify checksums of applied migrations
+auto mismatches = manager.VerifyChecksums();
+for (auto const& result : mismatches) {
+    if (!result.matches) {
+        std::println("Checksum mismatch for {}: stored={}, computed={}",
+            result.timestamp.value, result.storedChecksum, result.computedChecksum);
+    }
+}</code></pre>
+          </section>
+
+          <section>
+            <h2>Dry-Run Preview</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1-4|6-8|">auto statements = manager.PreviewPendingMigrations(
+    [](MigrationBase const& m, size_t i, size_t n) {
+        std::println("-- Migration: {} - {}", m.GetTimestamp().value, m.GetTitle());
+    });
+
+// Print all SQL statements that would be executed
+for (auto const& sql : statements) {
+    std::println("{};", sql);
+}</code></pre>
+          </section>
+
+          <section>
+            <h2>Rollback</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1-4|6-14|">// Revert a single migration
+auto const* migration = manager.GetMigration(MigrationTimestamp { .value = 20260126120000 });
+if (migration)
+    manager.RevertSingleMigration(*migration);
+
+// Revert all migrations after a timestamp
+auto result = manager.RevertToMigration(
+    MigrationTimestamp { .value = 20260101000000 },
+    [](MigrationBase const& m, size_t i, size_t n) {
+        std::println("Rolling back {} - {}", m.GetTimestamp().value, m.GetTitle());
+    });
+
+if (result.failedAt)
+    std::println("Failed at {}: {}", result.failedAt->value, result.errorMessage);</code></pre>
+          </section>
+        </section>
+
+        <!-- Concurrency Control -->
+        <section>
+          <h2>Concurrency Control</h2>
+          <pre><code class="language-cpp" data-line-numbers="|1|3-4|6-8|">#include &lt;Lightweight/SqlMigrationLock.hpp&gt;
+
+auto& connection = manager.GetDataMapper().Connection();
+MigrationLock lock(connection, "my_migration_lock", std::chrono::seconds(30));
+
+if (lock.IsLocked()) {
+    manager.ApplyPendingMigrations();
+}  // Lock automatically released</code></pre>
+          <p>Database-specific implementations:</p>
+          <ul>
+            <li><strong>SQL Server</strong>: sp_getapplock / sp_releaseapplock</li>
+            <li><strong>PostgreSQL</strong>: pg_advisory_lock / pg_advisory_unlock</li>
+            <li><strong>SQLite</strong>: BEGIN IMMEDIATE with PRAGMA busy_timeout</li>
+          </ul>
+        </section>
+
+        <!-- dbtool CLI -->
+        <section>
+          <section>
+            <h2>dbtool CLI</h2>
+          </section>
+
+          <section>
+            <h2>Migration Commands</h2>
+            <pre><code class="language-bash"># Apply all pending migrations
+dbtool migrate --connection-string "DRIVER=SQLite3;Database=test.db"
+
+# Preview without executing
+dbtool migrate --dry-run
+
+# List pending/applied migrations
+dbtool list-pending
+dbtool list-applied
+
+# Check status with checksum verification
+dbtool status
+
+# Apply/rollback specific migration
+dbtool apply 20260126120000
+dbtool rollback 20260126120000
+dbtool rollback-to 20260101000000</code></pre>
+          </section>
+
+          <section>
+            <h2>Backup & Restore</h2>
+            <pre><code class="language-bash"># Full database backup with compression
+dbtool backup --output backup.zip --compression zstd --jobs 4
+
+# Backup specific tables
+dbtool backup --output backup.zip --filter-tables="Users,Products"
+
+# Backup with wildcards
+dbtool backup --output backup.zip --filter-tables="*_log,audit*"
+
+# Restore database
+dbtool restore --input backup.zip --jobs 4
+
+# Restore to different schema
+dbtool restore --input backup.zip --schema new_schema</code></pre>
+          </section>
+
+          <section>
+            <h2>Configuration</h2>
+            <pre><code class="language-yaml"># ~/.config/dbtool/dbtool.yml
+ConnectionString: "DRIVER=SQLite3;Database=mydb.db"
+PluginsDir: ./plugins
+Schema: myschema</code></pre>
+            <p>Connection string precedence:</p>
+            <ol>
+              <li><code>--connection-string</code> CLI option</li>
+              <li><code>SQL_CONNECTION_STRING</code> environment variable</li>
+              <li>Configuration file</li>
+            </ol>
+          </section>
+        </section>
+
+        <!-- Best Practices -->
+        <section>
+          <h2>Best Practices</h2>
+          <ul>
+            <li><strong>Always write Down()</strong> - Enables recovery from mistakes</li>
+            <li><strong>Test on a copy</strong> - Apply to test database first</li>
+            <li><strong>Descriptive titles</strong> - "Add email verification fields to users"</li>
+            <li><strong>Small migrations</strong> - One logical change per migration</li>
+            <li><strong>Never modify applied migrations</strong> - Create new ones instead</li>
+            <li><strong>Use conditional operations</strong> - IfNotExists/IfExists for idempotency</li>
+            <li><strong>Backup before migrating</strong> - <code>dbtool backup</code> first</li>
+            <li><strong>Preview first</strong> - Always use <code>--dry-run</code></li>
+          </ul>
+        </section>
+
+        <!-- Complete Example -->
+        <section>
+          <section>
+            <h2>Complete Example</h2>
+          </section>
+
+          <section>
+            <h2>Blog Application Schema</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1-8|10-20|">LIGHTWEIGHT_SQL_MIGRATION(20260126100000, "Create users table")
+{
+    plan.CreateTable("users")
+        .PrimaryKeyWithAutoIncrement("id")
+        .RequiredColumn("email", Varchar(255)).UniqueIndex()
+        .RequiredColumn("password_hash", Varchar(255))
+        .Timestamps();
+}
+
+LIGHTWEIGHT_SQL_MIGRATION(20260126100100, "Create posts table")
+{
+    plan.CreateTable("posts")
+        .PrimaryKeyWithAutoIncrement("id")
+        .RequiredForeignKey("author_id", Bigint(),
+            { .tableName = "users", .columnName = "id" })
+        .RequiredColumn("title", Varchar(200))
+        .Column("body", Text())
+        .RequiredColumn("published", Bool())
+        .Timestamps();
+}</code></pre>
+          </section>
+
+          <section>
+            <h2>Adding Features</h2>
+            <pre><code class="language-cpp" data-line-numbers="|1-6|8-14|">LIGHTWEIGHT_SQL_MIGRATION(20260127100000, "Add profile fields to users")
+{
+    plan.AlterTable("users")
+        .AddNotRequiredColumn("bio", Text())
+        .AddNotRequiredColumn("avatar_url", Varchar(500));
+}
+
+LIGHTWEIGHT_SQL_MIGRATION(20260127100100, "Add tags to posts")
+{
+    plan.CreateTable("tags")
+        .PrimaryKeyWithAutoIncrement("id")
+        .RequiredColumn("name", Varchar(50)).UniqueIndex();
+
+    plan.CreateTable("post_tags")
+        .RequiredForeignKey("post_id", Bigint(),
+            { .tableName = "posts", .columnName = "id" })
+        .RequiredForeignKey("tag_id", Bigint(),
+            { .tableName = "tags", .columnName = "id" });
+}</code></pre>
+          </section>
+        </section>
+
+        <!-- Summary -->
+        <section>
+          <h2>Summary</h2>
+          <ul>
+            <li><strong>Type-safe</strong> schema management in C++</li>
+            <li><strong>LIGHTWEIGHT_SQL_MIGRATION</strong> macro for easy migration definition</li>
+            <li><strong>Full CRUD</strong> support: Create, Alter, Drop tables; Insert, Update, Delete data</li>
+            <li><strong>Checksum verification</strong> ensures migration integrity</li>
+            <li><strong>MigrationLock</strong> for safe concurrent deployments</li>
+            <li><strong>dbtool CLI</strong> for command-line management</li>
+            <li>Works with <strong>SQLite, SQL Server, PostgreSQL</strong></li>
+          </ul>
+        </section>
+
+        <!-- Resources -->
+        <section>
+          <h1>Questions?</h1>
+          <p>
+            Documentation: <a href="https://lastrada-software.github.io/Lightweight/sql-migrations.html">SQL Migrations Guide</a>
+          </p>
+          <p>
+            CLI Reference: <a href="https://lastrada-software.github.io/Lightweight/dbtool.html">dbtool Documentation</a>
+          </p>
+          <p>
+            Repository: <a href="https://github.com/LASTRADA-Software/Lightweight">github.com/LASTRADA-Software/Lightweight</a>
+          </p>
+          <p>
+            Main presentation: <a href="index.html">Lightweight Overview</a>
+          </p>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="node_modules/reveal.js/dist/reveal.js"></script>
+    <script src="node_modules/reveal.js/plugin/notes/notes.js"></script>
+    <script src="node_modules/reveal.js/plugin/markdown/markdown.js"></script>
+    <script src="node_modules/reveal.js/plugin/highlight/highlight.js"></script>
+    <script src="node_modules/reveal.js/plugin/zoom/zoom.js"></script>
+    <script>
+      Reveal.initialize({
+        width: 1400,
+        height: 900,
+        margin: 0.04,
+        minScale: 0.2,
+        maxScale: 2.0,
+        hash: true,
+        slideNumber: true,
+        progress: true,
+        history: true,
+        center: true,
+        transition: 'slide',
+        plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealZoom ]
+      });
+    </script>
+  </body>
+</html>

@@ -365,14 +365,14 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
             {
                 // primary keys are always indexed
                 if (column.unique)
-                    sqlQueries.emplace_back(std::format(R"(CREATE UNIQUE INDEX "{}_{}_index" ON "{}"("{}");)",
+                    sqlQueries.emplace_back(std::format(R"(CREATE UNIQUE INDEX "{}_{}_index" ON "{}" ("{}");)",
                                                         tableName,
                                                         column.name,
                                                         tableName,
                                                         column.name));
                 else
                     sqlQueries.emplace_back(std::format(
-                        R"(CREATE INDEX "{}_{}_index" ON "{}"("{}");)", tableName, column.name, tableName, column.name));
+                        R"(CREATE INDEX "{}_{}_index" ON "{}" ("{}");)", tableName, column.name, tableName, column.name));
             }
         }
 
@@ -429,7 +429,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                     [tableName](AddIndex const& actualCommand) -> std::string {
                         using namespace std::string_view_literals;
                         auto const uniqueStr = actualCommand.unique ? "UNIQUE "sv : ""sv;
-                        return std::format(R"(CREATE {2}INDEX "{0}_{1}_index" ON "{0}"("{1}");)",
+                        return std::format(R"(CREATE {2}INDEX "{0}_{1}_index" ON "{0}" ("{1}");)",
                                            tableName,
                                            actualCommand.columnName,
                                            uniqueStr);

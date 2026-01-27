@@ -4,3 +4,5 @@ install(TARGETS ddl2cpp DESTINATION bin)
 
 add_subdirectory(dbtool)
 add_subdirectory(large-db-generator)
+add_subdirectory(lup2dbtool)
+add_subdirectory(LupMigrationsPlugin)

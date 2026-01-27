@@ -14,6 +14,14 @@
 namespace Lightweight
 {
 
+/// @brief Index type for simplified CreateIndex API.
+/// @ingroup QueryBuilder
+enum class IndexType : std::uint8_t
+{
+    NonUnique, ///< Regular (non-unique) index
+    Unique     ///< Unique index
+};
+
 /// @brief Query builder for building CREATE TABLE queries.
 ///
 /// @see SqlQueryBuilder
@@ -173,7 +181,7 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// @code
     /// SqlQueryBuilder q;
     /// q.Migration().AlterTable("Table").AddIndex("column");
-    /// // Will execute CREATE INDEX "Table_column_index" ON "Table"("column");
+    /// // Will execute CREATE INDEX "Table_column_index" ON "Table" ("column");
     /// @endcode
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddIndex(std::string_view columnName);
 
@@ -183,7 +191,7 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// @code
     /// SqlQueryBuilder q;
     /// q.Migration().AlterTable("Table").AddUniqueIndex("column");
-    /// // Will execute CREATE UNIQUE INDEX "Table_column_index" ON "Table"("column");
+    /// // Will execute CREATE UNIQUE INDEX "Table_column_index" ON "Table" ("column");
     /// @endcode
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddUniqueIndex(std::string_view columnName);
 
@@ -228,8 +236,101 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// Drops a foreign key for the column @p columnName from the table.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& DropForeignKey(std::string columnName);
 
+    /// Adds a composite foreign key constraint.
+    ///
+    /// @param columns The columns in the current table.
+    /// @param referencedTableName The referenced table name.
+    /// @param referencedColumns The referenced columns in the referenced table.
+    LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddCompositeForeignKey(std::vector<std::string> columns,
+                                                                      std::string referencedTableName,
+                                                                      std::vector<std::string> referencedColumns);
+
   private:
     SqlAlterTablePlan& _plan;
+};
+
+/// @brief Query builder for building INSERT queries in migrations.
+///
+/// @see SqlMigrationQueryBuilder
+/// @ingroup QueryBuilder
+class [[nodiscard]] SqlMigrationInsertBuilder final
+{
+  public:
+    explicit SqlMigrationInsertBuilder(SqlInsertDataPlan& plan):
+        _plan { plan }
+    {
+    }
+
+    /// Sets a column value for the INSERT.
+    template <typename T>
+    SqlMigrationInsertBuilder& Set(std::string columnName, T const& value)
+    {
+        _plan.columns.emplace_back(std::move(columnName), SqlVariant(value));
+        return *this;
+    }
+
+  private:
+    SqlInsertDataPlan& _plan;
+};
+
+/// @brief Query builder for building UPDATE queries in migrations.
+///
+/// @see SqlMigrationQueryBuilder
+/// @ingroup QueryBuilder
+class [[nodiscard]] SqlMigrationUpdateBuilder final
+{
+  public:
+    explicit SqlMigrationUpdateBuilder(SqlUpdateDataPlan& plan):
+        _plan { plan }
+    {
+    }
+
+    /// Sets a column value for the UPDATE.
+    template <typename T>
+    SqlMigrationUpdateBuilder& Set(std::string columnName, T const& value)
+    {
+        _plan.setColumns.emplace_back(std::move(columnName), SqlVariant(value));
+        return *this;
+    }
+
+    /// Adds a WHERE condition to the UPDATE.
+    template <typename T>
+    SqlMigrationUpdateBuilder& Where(std::string columnName, std::string op, T const& value)
+    {
+        _plan.whereColumn = std::move(columnName);
+        _plan.whereOp = std::move(op);
+        _plan.whereValue = SqlVariant(value);
+        return *this;
+    }
+
+  private:
+    SqlUpdateDataPlan& _plan;
+};
+
+/// @brief Query builder for building DELETE queries in migrations.
+///
+/// @see SqlMigrationQueryBuilder
+/// @ingroup QueryBuilder
+class [[nodiscard]] SqlMigrationDeleteBuilder final
+{
+  public:
+    explicit SqlMigrationDeleteBuilder(SqlDeleteDataPlan& plan):
+        _plan { plan }
+    {
+    }
+
+    /// Adds a WHERE condition to the DELETE.
+    template <typename T>
+    SqlMigrationDeleteBuilder& Where(std::string columnName, std::string op, T const& value)
+    {
+        _plan.whereColumn = std::move(columnName);
+        _plan.whereOp = std::move(op);
+        _plan.whereValue = SqlVariant(value);
+        return *this;
+    }
+
+  private:
+    SqlDeleteDataPlan& _plan;
 };
 
 /// @brief Query builder for building SQL migration queries.
@@ -374,6 +475,58 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
 
     /// Executes raw SQL.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& RawSql(std::string_view sql);
+
+    /// Creates an index on a table.
+    ///
+    /// @param indexName The name of the index to create.
+    /// @param tableName The name of the table to create the index on.
+    /// @param columns The columns to include in the index.
+    /// @param unique If true, creates a UNIQUE index.
+    ///
+    /// @code
+    /// SqlQueryBuilder q;
+    /// q.Migration().CreateIndex("idx_user_email", "users", {"email"});
+    /// // Will execute CREATE INDEX "idx_user_email" ON "users" ("email");
+    /// @endcode
+    LIGHTWEIGHT_API SqlMigrationQueryBuilder& CreateIndex(std::string indexName,
+                                                          std::string tableName,
+                                                          std::vector<std::string> columns,
+                                                          bool unique = false);
+
+    /// Creates a unique index on a table.
+    ///
+    /// @param indexName The name of the index to create.
+    /// @param tableName The name of the table to create the index on.
+    /// @param columns The columns to include in the index.
+    LIGHTWEIGHT_API SqlMigrationQueryBuilder& CreateUniqueIndex(std::string indexName,
+                                                                std::string tableName,
+                                                                std::vector<std::string> columns);
+
+    /// Creates an index on a table with auto-generated name.
+    ///
+    /// The index name is automatically generated as `idx_{tableName}_{col1}_{col2}_...`
+    ///
+    /// @param tableName The name of the table to create the index on.
+    /// @param columns The columns to include in the index.
+    /// @param type The type of index (NonUnique or Unique).
+    ///
+    /// @code
+    /// SqlQueryBuilder q;
+    /// q.Migration().CreateIndex("users", {"email"}, IndexType::Unique);
+    /// // Will execute CREATE UNIQUE INDEX "idx_users_email" ON "users" ("email");
+    /// @endcode
+    LIGHTWEIGHT_API SqlMigrationQueryBuilder& CreateIndex(std::string tableName,
+                                                          std::vector<std::string> columns,
+                                                          IndexType type = IndexType::NonUnique);
+
+    /// Creates an INSERT statement for the migration.
+    LIGHTWEIGHT_API SqlMigrationInsertBuilder Insert(std::string_view tableName);
+
+    /// Creates an UPDATE statement for the migration.
+    LIGHTWEIGHT_API SqlMigrationUpdateBuilder Update(std::string_view tableName);
+
+    /// Creates a DELETE statement for the migration.
+    LIGHTWEIGHT_API SqlMigrationDeleteBuilder Delete(std::string_view tableName);
 
     /// Executes SQL interactively via a callback.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& Native(std::function<std::string(SqlConnection&)> callback);

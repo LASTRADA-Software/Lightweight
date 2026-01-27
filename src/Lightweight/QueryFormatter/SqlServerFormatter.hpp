@@ -336,13 +336,13 @@ EXEC sp_executesql @sql;)",
                 if (column.unique)
                 {
                     if (schema.empty())
-                        result.emplace_back(std::format(R"(CREATE UNIQUE INDEX "{}_{}_index" ON "{}"("{}");)",
+                        result.emplace_back(std::format(R"(CREATE UNIQUE INDEX "{}_{}_index" ON "{}" ("{}");)",
                                                         tableName,
                                                         column.name,
                                                         tableName,
                                                         column.name));
                     else
-                        result.emplace_back(std::format(R"(CREATE UNIQUE INDEX "{}_{}_index" ON "{}"."{}"("{}");)",
+                        result.emplace_back(std::format(R"(CREATE UNIQUE INDEX "{}_{}_index" ON "{}"."{}" ("{}");)",
                                                         tableName,
                                                         column.name,
                                                         schema,
@@ -353,9 +353,9 @@ EXEC sp_executesql @sql;)",
                 {
                     if (schema.empty())
                         result.emplace_back(std::format(
-                            R"(CREATE INDEX "{}_{}_index" ON "{}"("{}");)", tableName, column.name, tableName, column.name));
+                            R"(CREATE INDEX "{}_{}_index" ON "{}" ("{}");)", tableName, column.name, tableName, column.name));
                     else
-                        result.emplace_back(std::format(R"(CREATE INDEX "{}_{}_index" ON "{}"."{}"("{}");)",
+                        result.emplace_back(std::format(R"(CREATE INDEX "{}_{}_index" ON "{}"."{}" ("{}");)",
                                                         tableName,
                                                         column.name,
                                                         schema,
@@ -419,12 +419,12 @@ EXEC sp_executesql @sql;)",
                         using namespace std::string_view_literals;
                         auto const uniqueStr = actualCommand.unique ? "UNIQUE "sv : ""sv;
                         if (schemaName.empty())
-                            return std::format(R"(CREATE {2}INDEX "{0}_{1}_index" ON "{0}"("{1}");)",
+                            return std::format(R"(CREATE {2}INDEX "{0}_{1}_index" ON "{0}" ("{1}");)",
                                                tableName,
                                                actualCommand.columnName,
                                                uniqueStr);
                         else
-                            return std::format(R"(CREATE {3}INDEX "{0}_{1}_{2}_index" ON "{0}"."{1}"("{2}");)",
+                            return std::format(R"(CREATE {3}INDEX "{0}_{1}_{2}_index" ON "{0}"."{1}" ("{2}");)",
                                                schemaName,
                                                tableName,
                                                actualCommand.columnName,

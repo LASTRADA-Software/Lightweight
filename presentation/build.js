@@ -31,13 +31,22 @@ function copyDir(src, dest) {
 copyDir(path.join(revealDir, 'dist'), path.join(distDir, 'reveal.js', 'dist'));
 copyDir(path.join(revealDir, 'plugin'), path.join(distDir, 'reveal.js', 'plugin'));
 
-// Read and transform index.html
-let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+// List of HTML files to transform
+const htmlFiles = ['index.html', 'sql-migrations.html'];
 
-// Update paths from node_modules/reveal.js to reveal.js
-html = html.replace(/node_modules\/reveal\.js/g, 'reveal.js');
+for (const file of htmlFiles) {
+  const srcPath = path.join(__dirname, file);
+  if (fs.existsSync(srcPath)) {
+    // Read and transform HTML
+    let html = fs.readFileSync(srcPath, 'utf8');
 
-// Write transformed index.html
-fs.writeFileSync(path.join(distDir, 'index.html'), html);
+    // Update paths from node_modules/reveal.js to reveal.js
+    html = html.replace(/node_modules\/reveal\.js/g, 'reveal.js');
+
+    // Write transformed HTML
+    fs.writeFileSync(path.join(distDir, file), html);
+    console.log(`Built: ${file}`);
+  }
+}
 
 console.log('Build complete! Output in dist/');

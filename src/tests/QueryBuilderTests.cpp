@@ -1097,7 +1097,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Index", "[SqlQueryBuilder][Mi
         QueryExpectations::All(R"sql(CREATE TABLE "Table" (
                                         "column" INTEGER NOT NULL
                                      );
-                                     CREATE INDEX "Table_column_index" ON "Table"("column");
+                                     CREATE INDEX "Table_column_index" ON "Table" ("column");
                                )sql"));
 }
 
@@ -1154,8 +1154,8 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable complex demo", "[SqlQueryBuilder][
                         "c" DATETIME,
                         "d" VARCHAR(255)
                     );
-                    CREATE INDEX "Test_c_index" ON "Test"("c");
-                    CREATE UNIQUE INDEX "Test_d_index" ON "Test"("d");
+                    CREATE INDEX "Test_c_index" ON "Test" ("c");
+                    CREATE UNIQUE INDEX "Test_d_index" ON "Test" ("d");
                 )sql",
             .postgres = R"sql(
                     CREATE TABLE "Test" (
@@ -1164,8 +1164,8 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable complex demo", "[SqlQueryBuilder][
                         "c" TIMESTAMP,
                         "d" VARCHAR(255)
                     );
-                    CREATE INDEX "Test_c_index" ON "Test"("c");
-                    CREATE UNIQUE INDEX "Test_d_index" ON "Test"("d");
+                    CREATE INDEX "Test_c_index" ON "Test" ("c");
+                    CREATE UNIQUE INDEX "Test_d_index" ON "Test" ("d");
                 )sql",
             .sqlServer = R"sql(
                     CREATE TABLE "Test" (
@@ -1174,8 +1174,8 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable complex demo", "[SqlQueryBuilder][
                         "c" DATETIME,
                         "d" VARCHAR(255)
                     );
-                    CREATE INDEX "Test_c_index" ON "Test"("c");
-                    CREATE UNIQUE INDEX "Test_d_index" ON "Test"("d");
+                    CREATE INDEX "Test_c_index" ON "Test" ("c");
+                    CREATE UNIQUE INDEX "Test_d_index" ON "Test" ("d");
                 )sql",
         });
 }
@@ -1287,7 +1287,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddIndex", "[SqlQueryBuilder][Migra
             migration.AlterTable("Table").AddIndex("column");
             return migration.GetPlan();
         },
-        QueryExpectations::All(R"sql(CREATE INDEX "Table_column_index" ON "Table"("column");
+        QueryExpectations::All(R"sql(CREATE INDEX "Table_column_index" ON "Table" ("column");
                                )sql"));
 }
 
@@ -1299,7 +1299,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddUniqueIndex", "[SqlQueryBuilder]
             migration.AlterTable("Table").AddUniqueIndex("column");
             return migration.GetPlan();
         },
-        QueryExpectations::All(R"sql(CREATE UNIQUE INDEX "Table_column_index" ON "Table"("column");
+        QueryExpectations::All(R"sql(CREATE UNIQUE INDEX "Table_column_index" ON "Table" ("column");
                                )sql"));
 }
 
@@ -1312,6 +1312,39 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable DropIndex", "[SqlQueryBuilder][Migr
             return migration.GetPlan();
         },
         QueryExpectations::All(R"sql(DROP INDEX "Table_column_index";)sql"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateIndex single column", "[SqlQueryBuilder][Migration]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.CreateIndex("idx_user_email", "Users", { "email" });
+            return migration.GetPlan();
+        },
+        QueryExpectations::All(R"sql(CREATE INDEX "idx_user_email" ON "Users" ("email"))sql"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateIndex multiple columns", "[SqlQueryBuilder][Migration]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.CreateIndex("idx_user_name", "Users", { "first_name", "last_name" });
+            return migration.GetPlan();
+        },
+        QueryExpectations::All(R"sql(CREATE INDEX "idx_user_name" ON "Users" ("first_name", "last_name"))sql"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "CreateUniqueIndex", "[SqlQueryBuilder][Migration]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.CreateUniqueIndex("idx_user_username", "Users", { "username" });
+            return migration.GetPlan();
+        },
+        QueryExpectations::All(R"sql(CREATE UNIQUE INDEX "idx_user_username" ON "Users" ("username"))sql"));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddForeignKeyColumn", "[SqlQueryBuilder][Migration]")
@@ -1342,6 +1375,71 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddForeignKeyColumn", "[SqlQueryBui
                         ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
                     )sql",
         });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddCompositeForeignKey", "[SqlQueryBuilder][Migration]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.AlterTable("OrderItems")
+                .AddCompositeForeignKey({ "order_id", "product_id" }, "Catalog", { "oid", "pid" });
+            return migration.GetPlan();
+        },
+        QueryExpectations {
+            // SQLite doesn't support ALTER TABLE ADD CONSTRAINT for foreign keys
+            .sqlite = R"sql(-- AddCompositeForeignKey not supported for OrderItems;)sql",
+            .postgres = R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
+            .sqlServer = R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
+        });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Migration Insert", "[SqlQueryBuilder][Migration]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.Insert("Users").Set("name", "John").Set("age", 30).Set("active", true);
+            return migration.GetPlan();
+        },
+        QueryExpectations {
+            .sqlite = R"sql(INSERT INTO "Users" ("name", "age", "active") VALUES ('John', 30, TRUE))sql",
+            .postgres = R"sql(INSERT INTO "Users" ("name", "age", "active") VALUES ('John', 30, TRUE))sql",
+            .sqlServer = R"sql(INSERT INTO "Users" ("name", "age", "active") VALUES ('John', 30, 1))sql",
+        });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Migration Update", "[SqlQueryBuilder][Migration]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.Update("Config").Set("value", 100).Where("key", "=", "timeout");
+            return migration.GetPlan();
+        },
+        QueryExpectations::All(R"sql(UPDATE "Config" SET "value" = 100 WHERE "key" = 'timeout')sql"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Migration Update multiple columns", "[SqlQueryBuilder][Migration]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.Update("Users").Set("name", "Jane").Set("age", 25).Where("id", "=", 1);
+            return migration.GetPlan();
+        },
+        QueryExpectations::All(R"sql(UPDATE "Users" SET "name" = 'Jane', "age" = 25 WHERE "id" = 1)sql"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Migration Delete", "[SqlQueryBuilder][Migration]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            auto migration = q.Migration();
+            migration.Delete("TempData").Where("id", "=", 5);
+            return migration.GetPlan();
+        },
+        QueryExpectations::All(R"sql(DELETE FROM "TempData" WHERE "id" = 5)sql"));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: SqlDateTime formatting", "[SqlQueryBuilder]")

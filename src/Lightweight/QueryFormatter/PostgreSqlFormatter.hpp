@@ -180,12 +180,12 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
                         using namespace std::string_view_literals;
                         auto const uniqueStr = actualCommand.unique ? "UNIQUE "sv : ""sv;
                         if (schemaName.empty())
-                            return std::format(R"(CREATE {2}INDEX "{0}_{1}_index" ON "{0}"("{1}");)",
+                            return std::format(R"(CREATE {2}INDEX "{0}_{1}_index" ON "{0}" ("{1}");)",
                                                tableName,
                                                actualCommand.columnName,
                                                uniqueStr);
                         else
-                            return std::format(R"(CREATE {3}INDEX "{0}_{1}_{2}_index" ON "{0}"."{1}"("{2}");)",
+                            return std::format(R"(CREATE {3}INDEX "{0}_{1}_{2}_index" ON "{0}"."{1}" ("{2}");)",
                                                schemaName,
                                                tableName,
                                                actualCommand.columnName,
