@@ -77,6 +77,7 @@ class StandardProgressManager: public Lightweight::SqlBackup::ErrorTrackingProgr
     // Summary line for ETA display (always at the bottom, below all table lines)
     bool _hasSummaryLine = false;
     bool _summaryLineAllocated = false; // True once we've printed "\n" for the summary line
+    bool _isFinished = false;           // True when AllDone() is called, allows showing 100%
 };
 
 } // namespace Lightweight::Tools

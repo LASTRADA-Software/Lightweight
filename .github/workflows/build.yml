@@ -280,45 +280,64 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ubuntu2404-tests
-      - name: "update APT database"
+      - name: "Update APT database"
         run: sudo apt -q update
       - name: "Extract package"
         run: |
           sudo tar -xvf Lightweight-Linux-CI.tar.gz --strip-components=1 -C /usr/local
-      - name: "install dependencies"
-        run: sudo apt install -y unixodbc-dev unixodbc libsqliteodbc odbcinst uuid-dev sqlite3 uuid-dev libyaml-cpp-dev libzip4
-      - name: "Setup ms sql server"
-        id: setup
+      - name: "Install dependencies"
+        run: sudo apt install -y unixodbc-dev unixodbc libsqliteodbc odbcinst uuid-dev sqlite3 libyaml-cpp-dev libzip4 python3-yaml
+      - name: "Install MS SQL ODBC driver"
         run: |
-          bash ./.github/prepare-test-run.sh "MS SQL Server 2022" "./src/examples/test_chinook/Chinook_Sqlite.sql"
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
+          sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/20.04/prod.list)"
+          sudo apt update
+          sudo ACCEPT_EULA=y DEBIAN_FRONTEND=noninteractive apt install -y mssql-tools18
+      - name: "Start MS SQL Server 2022"
+        run: python3 ./scripts/tests/docker-databases.py --start --wait mssql2022
+      - name: "Load Chinook data"
+        run: python3 ./scripts/tests/docker-databases.py --load-sql ./src/examples/test_chinook/Chinook_Sqlite.sql mssql2022
       - name: "Run ddl2cpp on Chinook db"
         run: |
-          DDL2CPP=/usr/local/bin/ddl2cpp  ODBC_CONNECTION_STRING="${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}" ./src/tools/test_chinook.sh
-      - name: "install dependencies"
+          DDL2CPP=/usr/local/bin/ddl2cpp ./src/tools/test_chinook.sh --test-env=mssql2022
+      - name: "Install build dependencies"
         run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev g++-14 libstdc++-14-dev libzip-dev
       - name: "Configure cmake"
         run: cmake --preset linux-gcc-release -B build -D CMAKE_CXX_COMPILER=g++-14
-      - name: "Configure cmake"
+      - name: "Build chinook example"
         run: cmake --build build --target chinook
       - name: "Run chinook example"
         run: ./build/src/examples/test_chinook/chinook
+        env:
+          ODBC_CONNECTION_STRING: "Driver={ODBC Driver 18 for SQL Server};SERVER=localhost;PORT=1433;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest"
 
   dbms_test_matrix:
     strategy:
       fail-fast: false
       matrix:
-        database: [
-            "SQLite3",
-            "MS SQL Server 2019",
-            "MS SQL Server 2022",
-            "PostgreSQL",
-            # TODO: "MySQL" or "MariaDB"
-          ]
+        include:
+          - database: "SQLite3"
+            test_env: "sqlite3"
+            docker_db: ""
+          - database: "MS SQL Server 2017"
+            test_env: "mssql2017"
+            docker_db: "mssql2017"
+          - database: "MS SQL Server 2019"
+            test_env: "mssql2019"
+            docker_db: "mssql2019"
+          - database: "MS SQL Server 2022"
+            test_env: "mssql2022"
+            docker_db: "mssql2022"
+          # Disabled for now, as MS SQL Server 2025 image seems to be broken
+          # - database: "MS SQL Server 2025"
+          #   test_env: "mssql2025"
+          #   docker_db: "mssql2025"
+          - database: "PostgreSQL"
+            test_env: "postgres"
+            docker_db: "postgres"
     name: "Tests (${{ matrix.database }})"
     runs-on: ubuntu-24.04
     needs: [ubuntu_build_cc_matrix]
-    env:
-      DBMS: "${{ matrix.database }}"
     steps:
       - uses: actions/checkout@v6
       - name: "Download unit test binaries"
@@ -330,11 +349,24 @@ jobs:
           sudo tar -xvf Lightweight-Linux-CI.tar.gz --strip-components=1 -C /usr/local
       - name: "Update APT database"
         run: sudo apt -q update
-      - name: "install dependencies"
+      - name: "Install common dependencies"
         run: sudo apt install -y unixodbc odbcinst libuuid1 valgrind libyaml-cpp-dev libzip4
-      - name: "Setup ${{ matrix.database }}"
-        id: setup
-        run: bash ./.github/prepare-test-run.sh "${{ matrix.database }}"
+      - name: "Install SQLite3 ODBC driver"
+        if: matrix.database == 'SQLite3'
+        run: sudo apt install -y libsqlite3-dev libsqliteodbc sqlite3
+      - name: "Install MS SQL ODBC driver"
+        if: startsWith(matrix.database, 'MS SQL')
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
+          sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/20.04/prod.list)"
+          sudo apt update
+          sudo ACCEPT_EULA=y DEBIAN_FRONTEND=noninteractive apt install -y mssql-tools18
+      - name: "Install PostgreSQL ODBC driver"
+        if: matrix.database == 'PostgreSQL'
+        run: sudo apt install -y odbc-postgresql
+      - name: "Start Docker database"
+        if: matrix.docker_db != ''
+        run: python3 ./scripts/tests/docker-databases.py --start --wait ${{ matrix.docker_db }}
       - name: "Inspect dependencies"
         run: ldd /usr/local/bin/LightweightTest
       - name: "Run SQL tests"
@@ -343,15 +375,14 @@ jobs:
           if [[ "${{ matrix.database }}" = "SQLite3" ]]; then
               CMD_PREFIX="valgrind --leak-check=full --leak-resolution=high --num-callers=64 --error-exitcode=1"
           fi
-          $CMD_PREFIX LightweightTest --test-env=${{ steps.setup.outputs.TEST_ENV_NAME }}
-
+          $CMD_PREFIX LightweightTest --test-env=${{ matrix.test_env }}
       - name: "Run dbtool tests"
         run: |
           set -ex
           python3 /usr/local/share/Lightweight/tests/test_dbtool.py \
               --dbtool /usr/local/bin/dbtool \
               --plugins-dir /usr/local/share/Lightweight/tests/plugins \
-              --connection-string "${{ steps.setup.outputs.ODBC_CONNECTION_STRING }}"
+              --test-env ${{ matrix.test_env }}
 
   # }}}
   # {{{ Sanitizers
@@ -387,15 +418,12 @@ jobs:
                 -D CMAKE_C_COMPILER=clang-19
       - name: "build"
         run: cmake --build --preset linux-clang-${{ matrix.sanitizer }} -- -j$(nproc)
-      - name: "Setup SQLite3"
-        id: setup
-        run: bash ./.github/prepare-test-run.sh "SQLite3"
       - name: "Run tests with ${{ matrix.sanitizer }}"
         env:
           ASAN_OPTIONS: "detect_leaks=1:detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1"
           UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1:suppressions=${{ github.workspace }}/.github/ubsan.suppressions"
           TSAN_OPTIONS: "second_deadlock_stack=1"
         run: |
-          ./out/build/linux-clang-${{ matrix.sanitizer }}/src/tests/LightweightTest --test-env=${{ steps.setup.outputs.TEST_ENV_NAME }}
+          ./out/build/linux-clang-${{ matrix.sanitizer }}/src/tests/LightweightTest --test-env=sqlite3
 
   # }}}

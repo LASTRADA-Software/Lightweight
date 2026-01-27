@@ -3,10 +3,61 @@
 # This script is used to run the ddl2cpp tool on the SQLite test database
 # and compare the output with the expected result files.
 
-LS_EXE="$(which ls)"
+set -e
+
 PROJECT_ROOT="$(realpath $(dirname "$0")/../..)"
-BUILD_DIR="${1:-${PROJECT_ROOT}/out/build/linux-clang-debug}"
+BUILD_DIR="${PROJECT_ROOT}/out/build/linux-clang-debug"
 DDL2CPP="${DDL2CPP:-${BUILD_DIR}/src/tools/ddl2cpp}"
+TEST_ENV=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --test-env=*)
+            TEST_ENV="${1#*=}"
+            shift
+            ;;
+        --test-env)
+            TEST_ENV="$2"
+            shift 2
+            ;;
+        *)
+            BUILD_DIR="$1"
+            DDL2CPP="${DDL2CPP:-${BUILD_DIR}/src/tools/ddl2cpp}"
+            shift
+            ;;
+    esac
+done
+
+# Get connection string from --test-env or environment variable
+get_connection_string() {
+    if [[ -n "${TEST_ENV}" ]]; then
+        # Find .test-env.yml file (check project root first, then scripts/tests/)
+        local test_env_file=""
+        if [[ -f "${PROJECT_ROOT}/.test-env.yml" ]]; then
+            test_env_file="${PROJECT_ROOT}/.test-env.yml"
+        elif [[ -f "${PROJECT_ROOT}/scripts/tests/.test-env.yml" ]]; then
+            test_env_file="${PROJECT_ROOT}/scripts/tests/.test-env.yml"
+        else
+            echo "Error: .test-env.yml not found" >&2
+            exit 1
+        fi
+        # Extract connection string using Python (available on CI)
+        python3 -c "
+import yaml
+with open('${test_env_file}') as f:
+    config = yaml.safe_load(f)
+print(config['ODBC_CONNECTION_STRING']['${TEST_ENV}'])
+"
+    elif [[ -n "${ODBC_CONNECTION_STRING}" ]]; then
+        echo "${ODBC_CONNECTION_STRING}"
+    else
+        echo "Error: Either --test-env or ODBC_CONNECTION_STRING must be provided" >&2
+        exit 1
+    fi
+}
+
+ODBC_CONNECTION_STRING="$(get_connection_string)"
 
 run_test_chinook() {
     # run ddl2cpp to create files

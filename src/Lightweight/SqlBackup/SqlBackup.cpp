@@ -33,6 +33,7 @@
     #include <iostream>
 #endif
 #include <mutex>
+#include <ranges>
 #include <set>
 #include <sstream>
 #include <thread>
@@ -436,19 +437,9 @@ namespace
     }
 
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-    void ProcessTableBackup(BackupContext& ctx, SqlSchema::Table const& table)
+    void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Table const& table)
     {
         std::string const& tableName = table.name;
-        SqlConnection conn;
-        if (!ConnectWithRetry(conn, ctx.connectionString, ctx.retrySettings, ctx.progress, tableName))
-        {
-            ctx.progress.Update({ .state = Progress::State::Error,
-                                  .tableName = tableName,
-                                  .currentRows = 0,
-                                  .totalRows = 0,
-                                  .message = "Failed to connect to database for backup: " + conn.LastError().message });
-            return;
-        }
 
         if (table.columns.empty())
         {
@@ -466,6 +457,9 @@ namespace
         auto const formattedTableName = FormatTableName(table.schema, tableName);
         auto const totalRows = static_cast<size_t>(
             stmt.ExecuteDirectScalar<int64_t>(std::format("SELECT COUNT(*) FROM {}", formattedTableName)).value_or(0));
+
+        // Report row count for ETA calculation (replaces RowCounterThread)
+        ctx.progress.AddTotalItems(totalRows);
 
         ctx.progress.Update({ .state = Progress::State::Started,
                               .tableName = tableName,
@@ -886,7 +880,10 @@ namespace
     /// Workers block on the queue until a table is available or the queue is finished.
     /// This allows workers to start immediately and begin processing tables as soon
     /// as the schema producer pushes them.
-    void BackupWorker(ThreadSafeQueue<SqlSchema::Table>& tableQueue, BackupContext ctx)
+    ///
+    /// Each worker receives a pre-created connection to avoid data races in the ODBC driver
+    /// during concurrent connection establishment.
+    void BackupWorker(ThreadSafeQueue<SqlSchema::Table>& tableQueue, BackupContext ctx, SqlConnection& conn)
     {
         try
         {
@@ -896,7 +893,7 @@ namespace
                 try
                 {
                     // ProcessTableBackup takes ctx by reference, so we can pass our local copy.
-                    ProcessTableBackup(ctx, table);
+                    ProcessTableBackup(ctx, conn, table);
                 }
                 catch (std::exception const& e)
                 {
@@ -926,90 +923,6 @@ namespace
         }
     }
 
-    /// Context for the row counter thread that runs in parallel with backup workers.
-    struct RowCounterContext
-    {
-        SqlConnectionString const& connectionString;
-        std::string const& schema;
-        std::vector<SqlSchema::Table>& completedTables;
-        std::mutex& completedTablesMutex;
-        std::atomic<bool>& schemaScanningComplete;
-        std::mutex& schemaScanningDone_mutex;
-        std::condition_variable& schemaScanningDone_cv;
-        ProgressManager& progress;
-    };
-
-    /// Row counter thread function that counts rows for ETA calculation in parallel with backup.
-    ///
-    /// This thread processes tables as they become available in completedTables,
-    /// running COUNT(*) queries and reporting totals to the progress manager.
-    /// Runs in parallel with backup workers, but waits for schema scanning to complete first
-    /// to avoid database contention during schema metadata queries.
-    void RowCounterThread(RowCounterContext ctx)
-    {
-        try
-        {
-            // Wait until schema scanning is complete before starting to count.
-            // This avoids database contention during schema metadata queries.
-            {
-                std::unique_lock lock(ctx.schemaScanningDone_mutex);
-                ctx.schemaScanningDone_cv.wait(lock, [&ctx] { return ctx.schemaScanningComplete.load(); });
-            }
-
-            auto counterConn = SqlConnection(ctx.connectionString);
-            auto counterStmt = SqlStatement { counterConn };
-
-            // Process tables as they become available
-            size_t processedCount = 0;
-            while (true)
-            {
-                SqlSchema::Table tableToCount;
-                bool hasTable = false;
-
-                {
-                    std::scoped_lock lock(ctx.completedTablesMutex);
-                    if (processedCount < ctx.completedTables.size())
-                    {
-                        tableToCount = ctx.completedTables[processedCount];
-                        hasTable = true;
-                        processedCount++;
-                    }
-                }
-
-                if (hasTable)
-                {
-                    auto const formattedTableName = FormatTableName(tableToCount.schema, tableToCount.name);
-                    auto const rowCount = static_cast<size_t>(
-                        counterStmt.ExecuteDirectScalar<int64_t>(std::format("SELECT COUNT(*) FROM {}", formattedTableName))
-                            .value_or(0));
-                    ctx.progress.AddTotalItems(rowCount);
-                }
-                else
-                {
-                    // Check if schema scanning is done
-                    std::scoped_lock lock(ctx.completedTablesMutex);
-                    if (ctx.schemaScanningComplete.load() && processedCount >= ctx.completedTables.size())
-                        break;
-                }
-
-                // Brief sleep to avoid busy-waiting when waiting for new tables
-                if (!hasTable)
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
-        }
-        catch (std::exception const& e)
-        {
-            // Log error but don't fail backup - ETA is non-critical
-            ctx.progress.Update({ .state = Progress::State::Warning,
-                                  .tableName = "Counter",
-                                  .currentRows = 0,
-                                  .totalRows = std::nullopt,
-                                  .message = std::format("Row counting failed: {}", e.what()) });
-        }
-    }
-
-    // BatchManager and BatchColumn moved to BatchManager.hpp/cpp
-
     struct RestoreContext
     {
         SqlConnectionString connectionString;
@@ -1029,24 +942,13 @@ namespace
     };
 
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-    void RestoreWorker(RestoreContext ctx)
+    void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
     {
         // Use batch size from settings, or default to 4000 if not specified
         size_t const batchCapacity = ctx.restoreSettings.batchSize > 0 ? ctx.restoreSettings.batchSize : 4000;
 
         try
         {
-            SqlConnection workerConn;
-            if (!ConnectWithRetry(workerConn, ctx.connectionString, ctx.retrySettings, ctx.progress, "RestoreWorker"))
-            {
-                ctx.progress.Update({ .state = Progress::State::Error,
-                                      .tableName = "",
-                                      .currentRows = 0,
-                                      .totalRows = std::nullopt,
-                                      .message = "Restore worker failed to connect: " + workerConn.LastError().message });
-                return;
-            }
-
             // SQLite optimization: Turn off synchronization for faster restore
             if (workerConn.ServerType() == SqlServerType::SQLITE)
             {
@@ -1863,6 +1765,12 @@ void Backup(std::filesystem::path const& outputFile,
         throw std::runtime_error(std::format("Failed to connect to database: {}", error.message));
     }
 
+    // Force single-threaded operation for MS SQL to avoid ODBC driver data races.
+    // The MS SQL ODBC driver has shared internal buffers that race when multiple
+    // connections execute queries concurrently.
+    if (mainConn.ServerType() == SqlServerType::MICROSOFT_SQL)
+        concurrency = 1U;
+
     // Create ZIP archive early so workers can write to it
     int err = 0;
     zip_t* zip = zip_open(outputFile.string().c_str(), ZIP_CREATE | ZIP_TRUNCATE, &err);
@@ -1912,32 +1820,6 @@ void Backup(std::filesystem::path const& outputFile,
             .backupSettings = backupSettings,
         };
 
-        // Start data worker threads FIRST - they will wait on the queue
-        std::vector<std::thread> workers;
-        workers.reserve(concurrency);
-        std::generate_n(
-            std::back_inserter(workers), concurrency, [&] { return std::thread(BackupWorker, std::ref(tableQueue), ctx); });
-
-        // Flag to signal when schema scanning is complete (for counter thread)
-        std::atomic<bool> schemaScanningComplete { false };
-        std::mutex schemaScanningDone_mutex;
-        std::condition_variable schemaScanningDone_cv;
-
-        // Counter thread: counts rows for ETA calculation in parallel with backup.
-        // Waits for schema scanning to complete before starting COUNT(*) queries
-        // to avoid database contention during schema metadata queries.
-        RowCounterContext counterCtx {
-            .connectionString = connectionString,
-            .schema = schema,
-            .completedTables = completedTables,
-            .completedTablesMutex = completedTablesMutex,
-            .schemaScanningComplete = schemaScanningComplete,
-            .schemaScanningDone_mutex = schemaScanningDone_mutex,
-            .schemaScanningDone_cv = schemaScanningDone_cv,
-            .progress = progress,
-        };
-        std::thread counterThread(RowCounterThread, counterCtx);
-
         // Schema progress callback
         SqlSchema::ReadAllTablesCallback schemaCallback =
             [&progress](std::string_view tableName, size_t const current, size_t const total) {
@@ -1949,7 +1831,7 @@ void Backup(std::filesystem::path const& outputFile,
             };
 
         // Table-ready callback: called when each table's schema is complete.
-        // Push tables to workers immediately to enable pipelining.
+        // Collect tables for later processing (after schema scanning completes).
         SqlSchema::TableReadyCallback tableReadyCallback = [&](SqlSchema::Table&& table) {
             // Update max table name length for progress display
             size_t currentMax = maxTableNameLength.load();
@@ -1958,14 +1840,9 @@ void Backup(std::filesystem::path const& outputFile,
             {
             }
 
-            // Store for metadata creation AND for counter thread
-            {
-                std::scoped_lock lock(completedTablesMutex);
-                completedTables.push_back(table); // Copy for metadata & counting
-            }
-
-            // Push to worker queue immediately - enables pipelining
-            tableQueue.Push(std::move(table));
+            // Store for metadata creation, counter thread, AND worker processing
+            std::scoped_lock lock(completedTablesMutex);
+            completedTables.push_back(std::move(table));
         };
 
         // Create table filter predicate to skip reading schema for non-matching tables
@@ -1977,8 +1854,10 @@ void Backup(std::filesystem::path const& outputFile,
             };
         }
 
-        // Run schema scanning - tables are pushed to workers immediately via callback
-        // The filter predicate ensures only matching tables have their full schema read
+        // Run schema scanning FIRST - collect all tables before starting workers.
+        // This avoids data races in the ODBC driver during concurrent query execution.
+        // The MS SQL ODBC driver and OpenSSL have shared internal state that's not thread-safe
+        // when multiple connections are executing queries concurrently with schema queries.
         auto stmt = SqlStatement { mainConn };
         SqlSchema::ReadAllTables(
             stmt, mainConn.DatabaseName(), schema, schemaCallback, tableReadyCallback, tableFilterPredicate);
@@ -1991,20 +1870,36 @@ void Backup(std::filesystem::path const& outputFile,
 
         progress.SetMaxTableNameLength(maxTableNameLength.load());
 
-        // Signal schema scanning is complete - tables already pushed by callback
-        schemaScanningComplete = true;
+        // Now that schema scanning is complete, pre-create all worker connections.
+        // All connections are established sequentially to avoid ODBC driver races.
+        std::vector<std::unique_ptr<SqlConnection>> workerConnections;
+        workerConnections.reserve(concurrency);
+        for (auto const i: std::views::iota(0U, concurrency))
         {
-            std::scoped_lock lock(schemaScanningDone_mutex);
+            auto conn = std::make_unique<SqlConnection>(std::nullopt);
+            if (!ConnectWithRetry(*conn, connectionString, retrySettings, progress, std::format("Worker {}", i + 1)))
+            {
+                throw std::runtime_error(
+                    std::format("Failed to create worker connection {}: {}", i + 1, conn->LastError().message));
+            }
+            workerConnections.push_back(std::move(conn));
         }
-        schemaScanningDone_cv.notify_one();
+
+        // Push all collected tables to the queue for workers
+        for (auto& table: completedTables)
+            tableQueue.Push(SqlSchema::Table(table)); // Copy since completedTables is still needed
+
         tableQueue.MarkFinished();
+
+        // Start data worker threads - schema scanning is already complete
+        std::vector<std::thread> workers;
+        workers.reserve(concurrency);
+        for (auto const i: std::views::iota(0U, concurrency))
+            workers.emplace_back(BackupWorker, std::ref(tableQueue), ctx, std::ref(*workerConnections[i]));
 
         // Wait for all workers to complete
         for (auto& t: workers)
             t.join();
-
-        // Wait for counter thread to finish
-        counterThread.join();
 
         // Create metadata.json from completed tables (moved to end since we need full list)
         auto const metadataJson = CreateMetadata(connectionString, completedTables, schema);
@@ -2515,8 +2410,35 @@ void Restore(std::filesystem::path const& inputFile,
         .restoreSettings = effectiveSettings,
     };
 
+    // Force single-threaded operation for MS SQL to avoid ODBC driver data races.
+    // The MS SQL ODBC driver has shared internal buffers that race when multiple
+    // connections execute queries concurrently.
+    {
+        SqlConnection checkConn;
+        if (checkConn.Connect(connectionString) && checkConn.ServerType() == SqlServerType::MICROSOFT_SQL)
+            concurrency = 1U;
+    }
+
+    // Pre-create worker connections to avoid data races in the ODBC driver
+    // during concurrent connection establishment.
+    std::vector<std::unique_ptr<SqlConnection>> workerConnections;
+    workerConnections.reserve(concurrency);
+    for (auto const i: std::views::iota(0U, concurrency))
+    {
+        auto conn = std::make_unique<SqlConnection>(std::nullopt);
+        if (!ConnectWithRetry(*conn, connectionString, retrySettings, progress, std::format("RestoreWorker {}", i + 1)))
+        {
+            zip_close(zip);
+            throw std::runtime_error(
+                std::format("Failed to create restore worker connection {}: {}", i + 1, conn->LastError().message));
+        }
+        workerConnections.push_back(std::move(conn));
+    }
+
     std::vector<std::thread> threads;
-    std::generate_n(std::back_inserter(threads), concurrency, [&] { return std::thread(RestoreWorker, ctx); });
+    threads.reserve(concurrency);
+    for (auto const i: std::views::iota(0U, concurrency))
+        threads.emplace_back(RestoreWorker, ctx, std::ref(*workerConnections[i]));
 
     for (auto& t: threads)
         t.join();

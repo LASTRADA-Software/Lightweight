@@ -253,6 +253,7 @@ void StandardProgressManager::AllDone()
     auto const synchronizedOutput = SynchronizedOutputGuard(_out);
 
     // Final repaint of summary line to show 100% complete
+    _isFinished = true;
     if (_hasSummaryLine && _summaryLineAllocated)
     {
         _processedItems = _totalItems; // Ensure we show 100%
@@ -538,9 +539,11 @@ void StandardProgressManager::PrintSummaryLine()
 
     if (totalKnown)
     {
-        // Cap at 99% - workers may be ahead of counter thread, and we can't know
-        // when counting is truly complete from here
-        pct = std::min(99.0, (static_cast<double>(processed) * 100.0) / static_cast<double>(total));
+        // Cap at 99% unless _isFinished is true (set by AllDone()).
+        // Workers may be ahead of counter thread, and we can't know when counting
+        // is truly complete from here, so we cap until AllDone() confirms completion.
+        double const rawPct = (static_cast<double>(processed) * 100.0) / static_cast<double>(total);
+        pct = _isFinished ? rawPct : std::min(99.0, rawPct);
     }
     // else pct stays at 0.0 (total not yet known)
 

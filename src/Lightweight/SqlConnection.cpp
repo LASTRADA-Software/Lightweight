@@ -5,6 +5,8 @@
 #include "SqlQueryFormatter.hpp"
 #include "SqlStatement.hpp"
 
+#include <mutex>
+
 #include <sql.h>
 
 namespace Lightweight
@@ -16,6 +18,7 @@ using namespace std::string_view_literals;
 static SqlConnectionString gDefaultConnectionString {};
 static std::atomic<uint64_t> gNextConnectionId { 1 };
 static std::function<void(SqlConnection&)> gPostConnectedHook {};
+static std::mutex gConnectionMutex {};
 
 // =====================================================================================================================
 
@@ -141,21 +144,28 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
     if (m_hDbc)
         SQLDisconnect(m_hDbc);
 
-    // NOLINTNEXTLINE(performance-no-int-to-ptr)
-    SQLRETURN sqlReturn = SQLSetConnectAttrA(m_hDbc, SQL_LOGIN_TIMEOUT, (SQLPOINTER) info.timeout.count(), 0);
-    if (!SQL_SUCCEEDED(sqlReturn))
+    SQLRETURN sqlReturn {};
     {
-        SqlLogger::GetLogger().OnError(LastError());
-        return false;
-    }
+        // Serialize ODBC connection establishment to prevent data races in the ODBC driver
+        // and OpenSSL during concurrent TLS handshakes (detected by ThreadSanitizer).
+        std::scoped_lock const lock(gConnectionMutex);
 
-    sqlReturn = SQLConnectA(m_hDbc,
-                            (SQLCHAR*) info.datasource.data(),
-                            (SQLSMALLINT) info.datasource.size(),
-                            (SQLCHAR*) info.username.data(),
-                            (SQLSMALLINT) info.username.size(),
-                            (SQLCHAR*) info.password.data(),
-                            (SQLSMALLINT) info.password.size());
+        // NOLINTNEXTLINE(performance-no-int-to-ptr)
+        sqlReturn = SQLSetConnectAttrA(m_hDbc, SQL_LOGIN_TIMEOUT, (SQLPOINTER) info.timeout.count(), 0);
+        if (!SQL_SUCCEEDED(sqlReturn))
+        {
+            SqlLogger::GetLogger().OnError(LastError());
+            return false;
+        }
+
+        sqlReturn = SQLConnectA(m_hDbc,
+                                (SQLCHAR*) info.datasource.data(),
+                                (SQLSMALLINT) info.datasource.size(),
+                                (SQLCHAR*) info.username.data(),
+                                (SQLSMALLINT) info.username.size(),
+                                (SQLCHAR*) info.password.data(),
+                                (SQLSMALLINT) info.password.size());
+    }
     if (!SQL_SUCCEEDED(sqlReturn))
     {
         SqlLogger::GetLogger().OnError(LastError());
@@ -191,14 +201,20 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
 
     auto const& connectionString = m_data->connectionString.value;
 
-    SQLRETURN sqlResult = SQLDriverConnectA(m_hDbc,
-                                            (SQLHWND) nullptr,
-                                            (SQLCHAR*) connectionString.data(),
-                                            (SQLSMALLINT) connectionString.size(),
-                                            nullptr,
-                                            0,
-                                            nullptr,
-                                            SQL_DRIVER_NOPROMPT);
+    SQLRETURN sqlResult {};
+    {
+        // Serialize ODBC connection establishment to prevent data races in the ODBC driver
+        // and OpenSSL during concurrent TLS handshakes (detected by ThreadSanitizer).
+        std::scoped_lock const lock(gConnectionMutex);
+        sqlResult = SQLDriverConnectA(m_hDbc,
+                                      (SQLHWND) nullptr,
+                                      (SQLCHAR*) connectionString.data(),
+                                      (SQLSMALLINT) connectionString.size(),
+                                      nullptr,
+                                      0,
+                                      nullptr,
+                                      SQL_DRIVER_NOPROMPT);
+    }
     if (!SQL_SUCCEEDED(sqlResult))
         return false;
 

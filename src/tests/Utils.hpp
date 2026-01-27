@@ -10,11 +10,10 @@
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include <yaml-cpp/yaml.h>
 
 #include <algorithm>
-#include <filesystem>
 #include <chrono>
+#include <filesystem>
 #include <format>
 #include <mutex>
 #include <ostream>
@@ -24,6 +23,8 @@
 #include <tuple>
 #include <variant>
 #include <vector>
+
+#include <yaml-cpp/yaml.h>
 
 #if __has_include(<stacktrace>)
     #include <stacktrace>
@@ -285,29 +286,70 @@ constexpr void FixedPointIterate(Getter const& getter, Callable const& callable)
     }
 }
 
-// Searches upward from current working directory for .test-env.yml
+// Searches upward from current working directory for .test-env.local.yml then .test-env.yml
 // Stops at directory containing .git (project root boundary) or filesystem root
+// Also checks scripts/tests/ at project root
 inline std::optional<std::filesystem::path> FindTestEnvFile()
 {
     auto currentDir = std::filesystem::current_path();
+    std::filesystem::path projectRoot;
 
+    // First pass: search for .test-env.local.yml (local overrides)
+    auto searchDir = currentDir;
     while (true)
     {
-        auto testEnvPath = currentDir / ".test-env.yml";
+        auto localEnvPath = searchDir / ".test-env.local.yml";
+        if (std::filesystem::exists(localEnvPath))
+            return localEnvPath;
+
+        auto gitPath = searchDir / ".git";
+        if (std::filesystem::exists(gitPath))
+        {
+            projectRoot = searchDir;
+            break;
+        }
+
+        auto parentDir = searchDir.parent_path();
+        if (parentDir == searchDir)
+            break;
+        searchDir = parentDir;
+    }
+
+    // Check scripts/tests/.test-env.local.yml at project root
+    if (!projectRoot.empty())
+    {
+        auto scriptsLocalEnvPath = projectRoot / "scripts" / "tests" / ".test-env.local.yml";
+        if (std::filesystem::exists(scriptsLocalEnvPath))
+            return scriptsLocalEnvPath;
+    }
+
+    // Second pass: search for .test-env.yml (default config)
+    searchDir = currentDir;
+    while (true)
+    {
+        auto testEnvPath = searchDir / ".test-env.yml";
         if (std::filesystem::exists(testEnvPath))
             return testEnvPath;
 
-        // Stop at project root (directory containing .git) or filesystem root
-        auto gitPath = currentDir / ".git";
+        auto gitPath = searchDir / ".git";
         if (std::filesystem::exists(gitPath))
-            return std::nullopt; // Reached project root, file not found
+        {
+            projectRoot = searchDir;
+            break;
+        }
 
-        auto parentDir = currentDir.parent_path();
-        if (parentDir == currentDir)
-            return std::nullopt; // Reached filesystem root
-
-        currentDir = parentDir;
+        auto parentDir = searchDir.parent_path();
+        if (parentDir == searchDir)
+            return std::nullopt;
+        searchDir = parentDir;
     }
+
+    // Check scripts/tests/.test-env.yml at project root
+    auto scriptsTestEnvPath = projectRoot / "scripts" / "tests" / ".test-env.yml";
+    if (std::filesystem::exists(scriptsTestEnvPath))
+        return scriptsTestEnvPath;
+
+    return std::nullopt;
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
