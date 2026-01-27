@@ -957,20 +957,26 @@ namespace
             }
 
             auto counterConn = SqlConnection(ctx.connectionString);
+            if (!counterConn.IsAlive())
+                throw std::runtime_error(
+                    std::format("Counter thread connection failed: {}", counterConn.LastError().message));
             auto counterStmt = SqlStatement { counterConn };
 
             // Process tables as they become available
             size_t processedCount = 0;
             while (true)
             {
-                SqlSchema::Table tableToCount;
+                // Only copy the fields we need (name and schema) instead of entire SqlSchema::Table
+                std::string tableNameToCount;
+                std::string tableSchemaToCount;
                 bool hasTable = false;
 
                 {
                     std::scoped_lock lock(ctx.completedTablesMutex);
                     if (processedCount < ctx.completedTables.size())
                     {
-                        tableToCount = ctx.completedTables[processedCount];
+                        tableNameToCount = ctx.completedTables[processedCount].name;
+                        tableSchemaToCount = ctx.completedTables[processedCount].schema;
                         hasTable = true;
                         processedCount++;
                     }
@@ -978,7 +984,7 @@ namespace
 
                 if (hasTable)
                 {
-                    auto const formattedTableName = FormatTableName(tableToCount.schema, tableToCount.name);
+                    auto const formattedTableName = FormatTableName(tableSchemaToCount, tableNameToCount);
                     auto const rowCount = static_cast<size_t>(
                         counterStmt.ExecuteDirectScalar<int64_t>(std::format("SELECT COUNT(*) FROM {}", formattedTableName))
                             .value_or(0));
