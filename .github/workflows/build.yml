@@ -328,9 +328,10 @@ jobs:
           - database: "MS SQL Server 2022"
             test_env: "mssql2022"
             docker_db: "mssql2022"
-          - database: "MS SQL Server 2025"
-            test_env: "mssql2025"
-            docker_db: "mssql2025"
+          # Disabled for now, as MS SQL Server 2025 image seems to be broken
+          # - database: "MS SQL Server 2025"
+          #   test_env: "mssql2025"
+          #   docker_db: "mssql2025"
           - database: "PostgreSQL"
             test_env: "postgres"
             docker_db: "postgres"
