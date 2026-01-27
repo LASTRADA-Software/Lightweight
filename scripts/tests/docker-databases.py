@@ -450,15 +450,24 @@ def wait_for_database(db: DatabaseConfig, timeout: int = 120) -> bool:
         if verify_external_connection(db):
             consecutive_successes += 1
             if consecutive_successes >= required_successes:
-                elapsed = time.time() - start_time
-                print(f"  {Colors.green('Ready')} after {elapsed:.1f}s (stable)")
-                return True
+                break
         else:
             consecutive_successes = 0  # Reset on failure
         time.sleep(1)
+    else:
+        print(f"  {Colors.red('Timeout')} waiting for database (stability check)")
+        return False
 
-    print(f"  {Colors.red('Timeout')} waiting for database (stability check)")
-    return False
+    # Phase 4: Post-ready stabilization delay
+    # Some databases (especially MS SQL) may need additional time to fully initialize
+    # internal structures before they can handle ODBC connections reliably
+    stabilization_delay = 5
+    print(f"  Stability check passed, waiting {stabilization_delay}s for final stabilization...")
+    time.sleep(stabilization_delay)
+
+    elapsed = time.time() - start_time
+    print(f"  {Colors.green('Ready')} after {elapsed:.1f}s")
+    return True
 
 
 def create_test_database(db: DatabaseConfig) -> bool:
