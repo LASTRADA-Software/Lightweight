@@ -1,5 +1,6 @@
 var NAVTREEINDEX1 =
 {
+"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a3b9961110aefc26051c06c6934e26e69":[11,0,1,2,4,15],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a416865e209264f27605aff0e547e7d66":[11,0,1,2,4,6],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a424f1fa714b26c7b4b0a63a05dccc4b8":[11,0,1,2,4,12],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322":[11,0,1,2,4,11],
@@ -66,7 +67,7 @@ var NAVTREEINDEX1 =
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ad0545a812bb2e859ff24b53516f7b957":[11,0,1,23,0],
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ada0755a5caa6080adf5063c203ee00e2":[11,0,1,23,1],
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aee69f4c93ebeb28785f120395d66ab75":[11,0,1,23,8],
-"d4/ded/MsgPackChunkFormats_8hpp_source.html":[12,0,1,3,1],
+"d4/ded/MsgPackChunkFormats_8hpp_source.html":[12,0,1,3,3],
 "d5/d19/classLightweight_1_1SqlTransactionException.html":[11,0,1,62],
 "d5/d1f/SqlDynamicString_8hpp_source.html":[12,0,1,0,7],
 "d5/d3e/SqlServerFormatter_8hpp_source.html":[12,0,1,2,2],
@@ -144,10 +145,10 @@ var NAVTREEINDEX1 =
 "d6/d1b/structLightweight_1_1SqlNumeric.html#ac25fd62d99efe8fd5998d92a2ef95e8a":[9,0,8,0],
 "d6/d1b/structLightweight_1_1SqlNumeric.html#af319a2f3d7789fbc9c37eae95ff94dfb":[9,0,8,3],
 "d6/d35/SqlMigration_8hpp_source.html":[12,0,1,16],
-"d6/d45/BatchManager_8hpp_source.html":[12,0,1,3,0],
+"d6/d45/BatchManager_8hpp_source.html":[12,0,1,3,1],
 "d6/d4a/SqlScopedTraceLogger_8hpp_source.html":[12,0,1,22],
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html":[11,0,1,19],
-"d6/d8f/Sha256_8hpp_source.html":[12,0,1,3,2],
+"d6/d8f/Sha256_8hpp_source.html":[12,0,1,3,5],
 "d6/dac/Field_8hpp_source.html":[12,0,1,1,4],
 "d6/db4/Insert_8hpp_source.html":[12,0,1,4,2],
 "d6/db6/classLightweight_1_1SqlDynamicBinary.html":[9,0,3],
@@ -248,6 +249,5 @@ var NAVTREEINDEX1 =
 "d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c":[11,0,1,53,1],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586":[11,0,1,53,0],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#af1167aa228464a5efaaae283ac9bf50f":[11,0,1,53,3],
-"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html":[11,0,1,42],
-"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a09624a9cd55e3d64955ca8d5b4344c37":[11,0,1,42,2]
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html":[11,0,1,42]
 };

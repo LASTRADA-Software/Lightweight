@@ -113,11 +113,14 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a066abf8c9d7c35374587d6fe850d8d2d" id="r_a066abf8c9d7c35374587d6fe850d8d2d"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a066abf8c9d7c35374587d6fe850d8d2d">memoryLimitBytes</a> = 0</td></tr>
 <tr class="memdesc:a066abf8c9d7c35374587d6fe850d8d2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Memory limit in bytes (0 = auto-detect from system).  <br /></td></tr>
 <tr class="separator:a066abf8c9d7c35374587d6fe850d8d2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af43bd7f7afe738d0d1b0cd4b0e6601ba" id="r_af43bd7f7afe738d0d1b0cd4b0e6601ba"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#af43bd7f7afe738d0d1b0cd4b0e6601ba">schemaOnly</a> = false</td></tr>
+<tr class="memdesc:af43bd7f7afe738d0d1b0cd4b0e6601ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">If true, only recreate schema without importing data.  <br /></td></tr>
+<tr class="separator:af43bd7f7afe738d0d1b0cd4b0e6601ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Configuration for restore operations including memory management. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00056">56</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00059">59</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a537031b2f22d3a8b8372965543208aee" name="a537031b2f22d3a8b8372965543208aee"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a537031b2f22d3a8b8372965543208aee">&#9670;&#160;</a></span>batchSize</h2>
@@ -132,7 +135,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Batch size for insert operations (rows per batch). Default: 0 (auto-calculated based on available memory). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00060">60</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00063">63</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -149,7 +152,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Maximum rows before an intermediate commit within a chunk. Helps reduce transaction log / WAL memory accumulation. Default: 10000. Set to 0 to disable intermediate commits. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00065">65</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00068">68</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -166,7 +169,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Database page cache size in KB (used for SQLite PRAGMA cache_size, could be extended for other DBMS memory hints). Default: 65536 (64MB). Set to 0 to use database default. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00073">73</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
@@ -184,7 +187,25 @@ Public Attributes</h2></td></tr>
 
 <p>Memory limit in bytes (0 = auto-detect from system). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00073">73</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00076">76</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+</div>
+</div>
+<a id="af43bd7f7afe738d0d1b0cd4b0e6601ba" name="af43bd7f7afe738d0d1b0cd4b0e6601ba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af43bd7f7afe738d0d1b0cd4b0e6601ba">&#9670;&#160;</a></span>schemaOnly</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Lightweight::SqlBackup::RestoreSettings::schemaOnly = false</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>If true, only recreate schema without importing data. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00079">79</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>

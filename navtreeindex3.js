@@ -1,5 +1,9 @@
 var NAVTREEINDEX3 =
 {
+"db/dad/classLightweight_1_1SqlStatement.html#ac4e7bc8a5e62d553623b67c089a4af58":[11,0,1,58,33],
+"db/dad/classLightweight_1_1SqlStatement.html#ade0634f2250c8cd5c1128a30823279e5":[11,0,1,58,4],
+"db/dad/classLightweight_1_1SqlStatement.html#ae3ff62232ea5a9561c0189a0fc204525":[11,0,1,58,1],
+"db/dad/classLightweight_1_1SqlStatement.html#af9bd2cf8659ea4e3fce9dd120f623df9":[11,0,1,58,11],
 "db/dad/classLightweight_1_1SqlStatement.html#afbcf5f28e24ed34a6246110a4b930872":[11,0,1,58,32],
 "db/db6/classLightweight_1_1SqlBinary.html":[9,0,0],
 "db/dd1/SqlBackup_8hpp_source.html":[12,0,1,8],
@@ -60,6 +64,7 @@ var NAVTREEINDEX3 =
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#a70993d937b9b2479d4fc33bfec3ffd81":[11,0,1,29,3],
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#a881594ba67a9c5f1443d92f285b53bbe":[11,0,1,29,1],
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#af7adb5af3a0ff6c6a366fee2ce29beff":[11,0,1,29,2],
+"dd/d60/Restore_8hpp_source.html":[12,0,1,3,4],
 "dd/d71/structLightweight_1_1SqlColumnDeclaration.html":[11,0,1,16],
 "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a08cf8f2f35c6eec60086b7e18667bc61":[11,0,1,16,4],
 "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046":[11,0,1,16,7],
@@ -244,10 +249,5 @@ var NAVTREEINDEX3 =
 "df/d63/classLightweight_1_1HasOneThrough.html#a421d422e4001389bdb7bbf57d04ba721":[9,2,8,9],
 "df/d63/classLightweight_1_1HasOneThrough.html#a47e480103465ea8e383d1eab435cd407":[9,2,8,0],
 "df/d63/classLightweight_1_1HasOneThrough.html#a659d1310f8a9b7ae436fd920c88bdec9":[9,2,8,7],
-"df/d63/classLightweight_1_1HasOneThrough.html#a6725a1e4bcdba50861bcf944de59370a":[9,2,8,3],
-"df/d63/classLightweight_1_1HasOneThrough.html#a85482fc436b647aeb804d59f246afb2f":[9,2,8,8],
-"df/d63/classLightweight_1_1HasOneThrough.html#a88e0758eca25880d871ce71459df1684":[9,2,8,10],
-"df/d63/classLightweight_1_1HasOneThrough.html#ad1c8894f124db4b45117abafe918e51f":[9,2,8,5],
-"df/d63/classLightweight_1_1HasOneThrough.html#addf0d59cd5a9403b6fac56a00c340ad9":[9,2,8,1],
-"df/d63/classLightweight_1_1HasOneThrough.html#ae492b111cd0d54d642a2e507b1217350":[9,2,8,4]
+"df/d63/classLightweight_1_1HasOneThrough.html#a6725a1e4bcdba50861bcf944de59370a":[9,2,8,3]
 };

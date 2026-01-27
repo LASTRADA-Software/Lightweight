@@ -111,6 +111,9 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a433db0c5f6bf8d24dc11eec160e262b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad359ecfef33012f655714230699a4308" id="r_ad359ecfef33012f655714230699a4308"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ad359ecfef33012f655714230699a4308">chunkSizeBytes</a> = 10 * 1024 * 1024</td></tr>
 <tr class="separator:ad359ecfef33012f655714230699a4308"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adec7c645281b65b2f005190ed3a3e5f7" id="r_adec7c645281b65b2f005190ed3a3e5f7"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#adec7c645281b65b2f005190ed3a3e5f7">schemaOnly</a> = false</td></tr>
+<tr class="memdesc:adec7c645281b65b2f005190ed3a3e5f7"><td class="mdescLeft">&#160;</td><td class="mdescRight">If true, only export schema metadata without backing up table data.  <br /></td></tr>
+<tr class="separator:adec7c645281b65b2f005190ed3a3e5f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Configuration for backup operations including compression and chunking. </p>
@@ -171,6 +174,24 @@ Public Attributes</h2></td></tr>
 <p>The target size in bytes for each chunk before flushing. Chunks are flushed when the buffer exceeds this size. Default: 10 MB. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00052">52</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+</div>
+</div>
+<a id="adec7c645281b65b2f005190ed3a3e5f7" name="adec7c645281b65b2f005190ed3a3e5f7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adec7c645281b65b2f005190ed3a3e5f7">&#9670;&#160;</a></span>schemaOnly</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Lightweight::SqlBackup::BackupSettings::schemaOnly = false</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>If true, only export schema metadata without backing up table data. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00055">55</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
