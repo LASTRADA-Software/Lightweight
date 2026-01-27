@@ -28,6 +28,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <mutex>
 
 using namespace Lightweight;
 
@@ -36,6 +37,7 @@ namespace
 
 struct LambdaProgressManager: SqlBackup::ProgressManager
 {
+    mutable std::mutex mutex;
     std::function<void(SqlBackup::Progress const&)> callback;
 
     explicit LambdaProgressManager(std::function<void(SqlBackup::Progress const&)> cb):
@@ -45,6 +47,7 @@ struct LambdaProgressManager: SqlBackup::ProgressManager
 
     void Update(SqlBackup::Progress const& p) override
     {
+        auto const lock = std::scoped_lock(mutex);
         if (callback)
             callback(p);
     }
