@@ -170,6 +170,7 @@ var hierarchy =
     [ "Lup2DbTool::AlterTableDropForeignKeyStmt", "d7/d20/structLup2DbTool_1_1AlterTableDropForeignKeyStmt.html", null ],
     [ "Lup2DbTool::CodeGenerator", "d5/db1/classLup2DbTool_1_1CodeGenerator.html", null ],
     [ "Lup2DbTool::CodeGeneratorConfig", "d7/d04/structLup2DbTool_1_1CodeGeneratorConfig.html", null ],
+    [ "Lup2DbTool::CodeGeneratorDiagnostic", "d3/d27/structLup2DbTool_1_1CodeGeneratorDiagnostic.html", null ],
     [ "Lup2DbTool::ColumnDef", "dc/d18/structLup2DbTool_1_1ColumnDef.html", null ],
     [ "Lup2DbTool::Comment", "d5/d3f/structLup2DbTool_1_1Comment.html", null ],
     [ "Lup2DbTool::CreateIndexStmt", "d1/d29/structLup2DbTool_1_1CreateIndexStmt.html", null ],

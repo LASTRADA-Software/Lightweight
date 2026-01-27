@@ -117,6 +117,7 @@ var annotated_dup =
       [ "AlterTableDropForeignKeyStmt", "d7/d20/structLup2DbTool_1_1AlterTableDropForeignKeyStmt.html", null ],
       [ "CodeGenerator", "d5/db1/classLup2DbTool_1_1CodeGenerator.html", "d5/db1/classLup2DbTool_1_1CodeGenerator" ],
       [ "CodeGeneratorConfig", "d7/d04/structLup2DbTool_1_1CodeGeneratorConfig.html", "d7/d04/structLup2DbTool_1_1CodeGeneratorConfig" ],
+      [ "CodeGeneratorDiagnostic", "d3/d27/structLup2DbTool_1_1CodeGeneratorDiagnostic.html", null ],
       [ "ColumnDef", "dc/d18/structLup2DbTool_1_1ColumnDef.html", null ],
       [ "Comment", "d5/d3f/structLup2DbTool_1_1Comment.html", null ],
       [ "CreateIndexStmt", "d1/d29/structLup2DbTool_1_1CreateIndexStmt.html", null ],

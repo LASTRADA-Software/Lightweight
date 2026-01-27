@@ -171,18 +171,15 @@ $(document).ready(function(){initNavTree('d6/dc3/LupSqlParser_8hpp_source.html',
 <div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span><span class="comment">/// @return Parsed migration structure or nullopt on error</span></div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="comment"></span>[[nodiscard]] std::optional&lt;ParsedMigration&gt; ParseSqlFile(std::filesystem::path <span class="keyword">const</span>&amp; filePath, <a class="code hl_struct" href="../../dc/d85/structLup2DbTool_1_1ParserConfig.html">ParserConfig</a> <span class="keyword">const</span>&amp; config);</div>
 <div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="comment"></span> </div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="comment">/// @brief Converts a string from Windows-1252 encoding to UTF-8.</span></div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="comment"></span>[[nodiscard]] std::string ConvertWindows1252ToUtf8(std::string_view input);</div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="comment"></span> </div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="comment">/// @brief Discovers all LUP migration files in a directory.</span></div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="comment">///</span></div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="comment">/// Files are sorted by version number to ensure correct migration order.</span></div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="comment">///</span></div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="comment">/// @param directory Path to the directory containing SQL files</span></div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><span class="comment">/// @return Vector of paths to discovered migration files, sorted by version</span></div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="comment"></span>[[nodiscard]] std::vector&lt;std::filesystem::path&gt; DiscoverMigrationFiles(std::filesystem::path <span class="keyword">const</span>&amp; directory);</div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span> </div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>} <span class="comment">// namespace Lup2DbTool</span></div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="comment">/// @brief Discovers all LUP migration files in a directory.</span></div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="comment">///</span></div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="comment">/// Files are sorted by version number to ensure correct migration order.</span></div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="comment">///</span></div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="comment">/// @param directory Path to the directory containing SQL files</span></div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="comment">/// @return Vector of paths to discovered migration files, sorted by version</span></div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="comment"></span>[[nodiscard]] std::vector&lt;std::filesystem::path&gt; DiscoverMigrationFiles(std::filesystem::path <span class="keyword">const</span>&amp; directory);</div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span> </div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>} <span class="comment">// namespace Lup2DbTool</span></div>
 <div class="ttc" id="astructLup2DbTool_1_1Comment_html"><div class="ttname"><a href="../../d5/d3f/structLup2DbTool_1_1Comment.html">Lup2DbTool::Comment</a></div><div class="ttdoc">Represents a parsed comment from the SQL file.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dc3/LupSqlParser_8hpp_source.html#l00017">LupSqlParser.hpp:18</a></div></div>
 <div class="ttc" id="astructLup2DbTool_1_1LupVersion_html"><div class="ttname"><a href="../../d2/d87/structLup2DbTool_1_1LupVersion.html">Lup2DbTool::LupVersion</a></div><div class="ttdoc">Represents a LUP version number.</div><div class="ttdef"><b>Definition</b> <a href="../../d0/dfa/LupVersionConverter_8hpp_source.html#l00014">LupVersionConverter.hpp:15</a></div></div>
 <div class="ttc" id="astructLup2DbTool_1_1ParsedMigration_1_1StatementWithComments_html"><div class="ttname"><a href="../../d3/d03/structLup2DbTool_1_1ParsedMigration_1_1StatementWithComments.html">Lup2DbTool::ParsedMigration::StatementWithComments</a></div><div class="ttdoc">All parsed SQL statements with their preceding comments.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dc3/LupSqlParser_8hpp_source.html#l00038">LupSqlParser.hpp:39</a></div></div>

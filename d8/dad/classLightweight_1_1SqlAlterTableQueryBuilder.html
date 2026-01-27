@@ -166,7 +166,7 @@ LIGHTWEIGHT_API <a class="el" href="../../d8/dad/classLightweight_1_1SqlAlterTab
 <div class="textblock"><p>Query builder for building ALTER TABLE queries. </p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html" title="API Entry point for building SQL queries.">SqlQueryBuilder</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00080">80</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00088">88</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a9c3c1b5cb5b8da71933fe5cab6b26d26" name="a9c3c1b5cb5b8da71933fe5cab6b26d26"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a9c3c1b5cb5b8da71933fe5cab6b26d26">&#9670;&#160;</a></span>SqlAlterTableQueryBuilder()</h2>
@@ -192,7 +192,7 @@ LIGHTWEIGHT_API <a class="el" href="../../d8/dad/classLightweight_1_1SqlAlterTab
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00083">83</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00091">91</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>
@@ -230,7 +230,7 @@ template&lt;auto MemberPointer&gt; </div>
 </dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a4347ff4409d155c9ffb5c8681a45362d" title="Adds a new column to the table that is non-nullable.">AddColumn(std::string, SqlColumnTypeDefinition)</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00100">100</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00108">108</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>
@@ -267,7 +267,7 @@ template&lt;auto MemberPointer&gt; </div>
 </dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a7bc00ef9b039cfe2e4dec72d29fbc65f" title="Adds a new column to the table that is nullable.">AddNotRequiredColumn(std::string, SqlColumnTypeDefinition)</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00116">116</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00124">124</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>
@@ -442,7 +442,7 @@ template&lt;auto MemberPointer&gt; </div>
 </dl>
 <div class="fragment"><div class="line"><a class="code hl_class" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html">SqlQueryBuilder</a> q;</div>
 <div class="line">q.<a class="code hl_function" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#aa69bce960ab6b67f3a39750799754c4e">Migration</a>().<a class="code hl_function" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a3731b7ec6676cd87f087c41aa4a89ded">AlterTable</a>(<span class="stringliteral">&quot;Table&quot;</span>).<a class="code hl_function" href="../../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a7089989149b0ca240694e067038113e3">AddIndex</a>(<span class="stringliteral">&quot;column&quot;</span>);</div>
-<div class="line"><span class="comment">// Will execute CREATE INDEX &quot;Table_column_index&quot; ON &quot;Table&quot;(&quot;column&quot;);</span></div>
+<div class="line"><span class="comment">// Will execute CREATE INDEX &quot;Table_column_index&quot; ON &quot;Table&quot; (&quot;column&quot;);</span></div>
 <div class="ttc" id="aclassLightweight_1_1SqlAlterTableQueryBuilder_html_a7089989149b0ca240694e067038113e3"><div class="ttname"><a href="../../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a7089989149b0ca240694e067038113e3">Lightweight::SqlAlterTableQueryBuilder::AddIndex</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlAlterTableQueryBuilder &amp; AddIndex(std::string_view columnName)</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlMigrationQueryBuilder_html_a3731b7ec6676cd87f087c41aa4a89ded"><div class="ttname"><a href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a3731b7ec6676cd87f087c41aa4a89ded">Lightweight::SqlMigrationQueryBuilder::AlterTable</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlAlterTableQueryBuilder AlterTable(std::string_view tableName)</div><div class="ttdoc">Alters an existing table.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlQueryBuilder_html"><div class="ttname"><a href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html">Lightweight::SqlQueryBuilder</a></div><div class="ttdoc">API Entry point for building SQL queries.</div><div class="ttdef"><b>Definition</b> <a href="../../dc/dcc/SqlQuery_8hpp_source.html#l00028">SqlQuery.hpp:29</a></div></div>
@@ -473,7 +473,7 @@ template&lt;auto MemberPointer&gt; </div>
 </dl>
 <div class="fragment"><div class="line"><a class="code hl_class" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html">SqlQueryBuilder</a> q;</div>
 <div class="line">q.<a class="code hl_function" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#aa69bce960ab6b67f3a39750799754c4e">Migration</a>().<a class="code hl_function" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a3731b7ec6676cd87f087c41aa4a89ded">AlterTable</a>(<span class="stringliteral">&quot;Table&quot;</span>).<a class="code hl_function" href="../../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a9308288c96d7ea0ef64c0c01ff5391d1">AddUniqueIndex</a>(<span class="stringliteral">&quot;column&quot;</span>);</div>
-<div class="line"><span class="comment">// Will execute CREATE UNIQUE INDEX &quot;Table_column_index&quot; ON &quot;Table&quot;(&quot;column&quot;);</span></div>
+<div class="line"><span class="comment">// Will execute CREATE UNIQUE INDEX &quot;Table_column_index&quot; ON &quot;Table&quot; (&quot;column&quot;);</span></div>
 <div class="ttc" id="aclassLightweight_1_1SqlAlterTableQueryBuilder_html_a9308288c96d7ea0ef64c0c01ff5391d1"><div class="ttname"><a href="../../d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a9308288c96d7ea0ef64c0c01ff5391d1">Lightweight::SqlAlterTableQueryBuilder::AddUniqueIndex</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlAlterTableQueryBuilder &amp; AddUniqueIndex(std::string_view columnName)</div></div>
 </div><!-- fragment --> 
 </div>

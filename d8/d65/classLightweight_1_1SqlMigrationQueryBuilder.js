@@ -13,6 +13,7 @@ var classLightweight_1_1SqlMigrationQueryBuilder =
     [ "RawSql", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a2363ab60bde2e2467972747a5646a7e5", null ],
     [ "CreateIndex", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a24d91208b7dbab7ad8e565b85039760b", null ],
     [ "CreateUniqueIndex", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a8364a9d3f3c11bad337d461b51a3df6b", null ],
+    [ "CreateIndex", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6b6a91e9a51a6f601b7073269ce28f2e", null ],
     [ "Insert", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a864f9b5e3f759b096b505b66b999c887", null ],
     [ "Update", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6f66ef03096fe468348719335050a313", null ],
     [ "Delete", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a2afef3a2429014aad1ec6d45b09f1a4b", null ],

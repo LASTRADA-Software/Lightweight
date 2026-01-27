@@ -465,14 +465,14 @@ $(document).ready(function(){initNavTree('da/d62/SQLiteFormatter_8hpp_source.htm
 <div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>            {</div>
 <div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>                <span class="comment">// primary keys are always indexed</span></div>
 <div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>                <span class="keywordflow">if</span> (column.unique)</div>
-<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>                    sqlQueries.emplace_back(std::format(R<span class="stringliteral">&quot;(CREATE UNIQUE INDEX &quot;{}_{}_index&quot; ON &quot;{}&quot;(&quot;{}&quot;);)&quot;,</span></div>
+<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>                    sqlQueries.emplace_back(std::format(R<span class="stringliteral">&quot;(CREATE UNIQUE INDEX &quot;{}_{}_index&quot; ON &quot;{}&quot; (&quot;{}&quot;);)&quot;,</span></div>
 <div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span><span class="stringliteral">                                                        tableName,</span></div>
 <div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span><span class="stringliteral">                                                        column.name,</span></div>
 <div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span><span class="stringliteral">                                                        tableName,</span></div>
 <div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span><span class="stringliteral">                                                        column.name));</span></div>
 <div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span><span class="stringliteral">                </span><span class="keywordflow">else</span></div>
 <div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>                    sqlQueries.emplace_back(std::format(</div>
-<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>                        R<span class="stringliteral">&quot;(CREATE INDEX &quot;{}_{}_index&quot; ON &quot;{}&quot;(&quot;{}&quot;);)&quot;, tableName, column.name, tableName, column.name));</span></div>
+<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>                        R<span class="stringliteral">&quot;(CREATE INDEX &quot;{}_{}_index&quot; ON &quot;{}&quot; (&quot;{}&quot;);)&quot;, tableName, column.name, tableName, column.name));</span></div>
 <div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span><span class="stringliteral">            }</span></div>
 <div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span><span class="stringliteral">        }</span></div>
 <div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span><span class="stringliteral"></span> </div>
@@ -529,7 +529,7 @@ $(document).ready(function(){initNavTree('da/d62/SQLiteFormatter_8hpp_source.htm
 <div class="line"><a id="l00429" name="l00429"></a><span class="lineno">  429</span><span class="stringliteral">                    [tableName](AddIndex </span><span class="keyword">const</span>&amp; actualCommand) -&gt; std::string {</div>
 <div class="line"><a id="l00430" name="l00430"></a><span class="lineno">  430</span>                        <span class="keyword">using namespace </span>std::string_view_literals;</div>
 <div class="line"><a id="l00431" name="l00431"></a><span class="lineno">  431</span>                        <span class="keyword">auto</span> <span class="keyword">const</span> uniqueStr = actualCommand.unique ? <span class="stringliteral">&quot;UNIQUE &quot;</span>sv : <span class="stringliteral">&quot;&quot;</span>sv;</div>
-<div class="line"><a id="l00432" name="l00432"></a><span class="lineno">  432</span>                        <span class="keywordflow">return</span> std::format(R<span class="stringliteral">&quot;(CREATE {2}INDEX &quot;{0}_{1}_index&quot; ON &quot;{0}&quot;(&quot;{1}&quot;);)&quot;,</span></div>
+<div class="line"><a id="l00432" name="l00432"></a><span class="lineno">  432</span>                        <span class="keywordflow">return</span> std::format(R<span class="stringliteral">&quot;(CREATE {2}INDEX &quot;{0}_{1}_index&quot; ON &quot;{0}&quot; (&quot;{1}&quot;);)&quot;,</span></div>
 <div class="line"><a id="l00433" name="l00433"></a><span class="lineno">  433</span><span class="stringliteral">                                           tableName,</span></div>
 <div class="line"><a id="l00434" name="l00434"></a><span class="lineno">  434</span><span class="stringliteral">                                           actualCommand.columnName,</span></div>
 <div class="line"><a id="l00435" name="l00435"></a><span class="lineno">  435</span><span class="stringliteral">                                           uniqueStr);</span></div>

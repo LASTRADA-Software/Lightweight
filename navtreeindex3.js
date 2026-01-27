@@ -1,5 +1,9 @@
 var NAVTREEINDEX3 =
 {
+"db/dad/classLightweight_1_1SqlStatement.html#afbcf5f28e24ed34a6246110a4b930872":[11,0,1,58,32],
+"db/db6/classLightweight_1_1SqlBinary.html":[9,0,0],
+"db/dd1/SqlBackup_8hpp_source.html":[12,0,1,8],
+"db/dfd/classLightweight_1_1SqlLogger.html":[11,0,1,38],
 "db/dfd/classLightweight_1_1SqlLogger.html#a057052d128f3e34f363e33b2aac1d7bd":[11,0,1,38,13],
 "db/dfd/classLightweight_1_1SqlLogger.html#a1d04bb81c9f5d37e8b3690a657cd3f9d":[11,0,1,38,17],
 "db/dfd/classLightweight_1_1SqlLogger.html#a2af9309b27fd6bef80768c26080368ea":[11,0,1,38,5],
@@ -28,14 +32,14 @@ var NAVTREEINDEX3 =
 "dc/d12/structLargeDb_1_1GeneratorConfig.html#ad3420692bbfca13a79f3f8965737e725":[11,0,0,0,0],
 "dc/d12/structLargeDb_1_1GeneratorConfig.html#ad3519e5d670d9fd30c26d6d6e35efcf4":[11,0,0,0,1],
 "dc/d12/structLargeDb_1_1GeneratorConfig.html#ae44a638132cf0f3bf24f0def848ac1eb":[11,0,0,0,3],
-"dc/d18/structLup2DbTool_1_1ColumnDef.html":[11,0,3,6],
+"dc/d18/structLup2DbTool_1_1ColumnDef.html":[11,0,3,7],
 "dc/d33/structLargeDb__Product.html":[11,0,9],
 "dc/d47/structLightweight_1_1SqlRawSqlPlan.html":[11,0,1,50],
 "dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d":[11,0,1,50,0],
 "dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html":[11,0,1,55],
 "dc/d74/CollectDifferences_8hpp_source.html":[12,0,1,1,1],
-"dc/d85/structLup2DbTool_1_1ParserConfig.html":[11,0,3,16],
-"dc/d85/structLup2DbTool_1_1ParserConfig.html#a0d53322d59a48c20c9eb2528968f7b86":[11,0,3,16,0],
+"dc/d85/structLup2DbTool_1_1ParserConfig.html":[11,0,3,17],
+"dc/d85/structLup2DbTool_1_1ParserConfig.html#a0d53322d59a48c20c9eb2528968f7b86":[11,0,3,17,0],
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html":[11,0,1,0,0],
 "dc/dcc/SqlQuery_8hpp_source.html":[12,0,1,18],
 "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html":[11,0,1,1,2],
@@ -245,9 +249,5 @@ var NAVTREEINDEX3 =
 "df/d63/classLightweight_1_1HasOneThrough.html#a88e0758eca25880d871ce71459df1684":[9,2,8,10],
 "df/d63/classLightweight_1_1HasOneThrough.html#ad1c8894f124db4b45117abafe918e51f":[9,2,8,5],
 "df/d63/classLightweight_1_1HasOneThrough.html#addf0d59cd5a9403b6fac56a00c340ad9":[9,2,8,1],
-"df/d63/classLightweight_1_1HasOneThrough.html#ae492b111cd0d54d642a2e507b1217350":[9,2,8,4],
-"df/d63/classLightweight_1_1HasOneThrough.html#af4d6a310537dbf2367da7a1aef991843":[9,2,8,11],
-"df/d7c/structLightweight_1_1SqlGuid.html":[9,0,6],
-"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html":[11,0,1,56],
-"df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html":[11,0,1,3,1]
+"df/d63/classLightweight_1_1HasOneThrough.html#ae492b111cd0d54d642a2e507b1217350":[9,2,8,4]
 };

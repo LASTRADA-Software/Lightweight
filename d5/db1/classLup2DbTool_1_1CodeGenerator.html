@@ -107,34 +107,34 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ae6f5e7ea08d089c38af277cb0b8a7f78" id="r_ae6f5e7ea08d089c38af277cb0b8a7f78"><td class="memItemLeft" align="right" valign="top"><a id="ae6f5e7ea08d089c38af277cb0b8a7f78" name="ae6f5e7ea08d089c38af277cb0b8a7f78"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>CodeGenerator</b> (<a class="el" href="../../d7/d04/structLup2DbTool_1_1CodeGeneratorConfig.html">CodeGeneratorConfig</a> config={})</td></tr>
 <tr class="separator:ae6f5e7ea08d089c38af277cb0b8a7f78"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6dd5bf16adc8d83e09d4a03187b6f275" id="r_a6dd5bf16adc8d83e09d4a03187b6f275"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/db1/classLup2DbTool_1_1CodeGenerator.html#a6dd5bf16adc8d83e09d4a03187b6f275">GenerateMigration</a> (<a class="el" href="../../d8/d41/structLup2DbTool_1_1ParsedMigration.html">ParsedMigration</a> const &amp;migration, std::ostream &amp;out) const</td></tr>
-<tr class="memdesc:a6dd5bf16adc8d83e09d4a03187b6f275"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generates C++ code for a single migration.  <br /></td></tr>
-<tr class="separator:a6dd5bf16adc8d83e09d4a03187b6f275"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2a0548c36b17089cef58262d62f6b199" id="r_a2a0548c36b17089cef58262d62f6b199"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/db1/classLup2DbTool_1_1CodeGenerator.html#a2a0548c36b17089cef58262d62f6b199">GenerateAllMigrations</a> (std::vector&lt; <a class="el" href="../../d8/d41/structLup2DbTool_1_1ParsedMigration.html">ParsedMigration</a> &gt; const &amp;migrations, std::ostream &amp;out) const</td></tr>
-<tr class="memdesc:a2a0548c36b17089cef58262d62f6b199"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generates C++ code for multiple migrations (single file mode).  <br /></td></tr>
-<tr class="separator:a2a0548c36b17089cef58262d62f6b199"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9ccddde49771abc9ca7cf0002faad9c4" id="r_a9ccddde49771abc9ca7cf0002faad9c4"><td class="memItemLeft" align="right" valign="top"><a id="a9ccddde49771abc9ca7cf0002faad9c4" name="a9ccddde49771abc9ca7cf0002faad9c4"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>WriteFileHeader</b> (std::ostream &amp;out) const</td></tr>
-<tr class="memdesc:a9ccddde49771abc9ca7cf0002faad9c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generates the file header with includes and namespace opening. <br /></td></tr>
-<tr class="separator:a9ccddde49771abc9ca7cf0002faad9c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac2965c01fef2e248af8dc292ac02153d" id="r_ac2965c01fef2e248af8dc292ac02153d"><td class="memItemLeft" align="right" valign="top"><a id="ac2965c01fef2e248af8dc292ac02153d" name="ac2965c01fef2e248af8dc292ac02153d"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>WriteFileFooter</b> (std::ostream &amp;out) const</td></tr>
-<tr class="memdesc:ac2965c01fef2e248af8dc292ac02153d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generates the file footer with namespace closing. <br /></td></tr>
-<tr class="separator:ac2965c01fef2e248af8dc292ac02153d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a307f776de793c9c3775208206ae28dae" id="r_a307f776de793c9c3775208206ae28dae"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/db1/classLup2DbTool_1_1CodeGenerator.html#a307f776de793c9c3775208206ae28dae">GenerateMigration</a> (<a class="el" href="../../d8/d41/structLup2DbTool_1_1ParsedMigration.html">ParsedMigration</a> const &amp;migration, std::ostream &amp;out, std::vector&lt; <a class="el" href="../../d3/d27/structLup2DbTool_1_1CodeGeneratorDiagnostic.html">CodeGeneratorDiagnostic</a> &gt; &amp;diagnostics) const</td></tr>
+<tr class="memdesc:a307f776de793c9c3775208206ae28dae"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generates C++ code for a single migration.  <br /></td></tr>
+<tr class="separator:a307f776de793c9c3775208206ae28dae"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aea91a51d9808c6c41ac7d45eb6b19892" id="r_aea91a51d9808c6c41ac7d45eb6b19892"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d5/db1/classLup2DbTool_1_1CodeGenerator.html#aea91a51d9808c6c41ac7d45eb6b19892">GenerateAllMigrations</a> (std::vector&lt; <a class="el" href="../../d8/d41/structLup2DbTool_1_1ParsedMigration.html">ParsedMigration</a> &gt; const &amp;migrations, std::ostream &amp;out, std::vector&lt; <a class="el" href="../../d3/d27/structLup2DbTool_1_1CodeGeneratorDiagnostic.html">CodeGeneratorDiagnostic</a> &gt; &amp;diagnostics) const</td></tr>
+<tr class="memdesc:aea91a51d9808c6c41ac7d45eb6b19892"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generates C++ code for multiple migrations (single file mode).  <br /></td></tr>
+<tr class="separator:aea91a51d9808c6c41ac7d45eb6b19892"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a029de53840bad24a3c7eac82a763b1f0" id="r_a029de53840bad24a3c7eac82a763b1f0"><td class="memItemLeft" align="right" valign="top"><a id="a029de53840bad24a3c7eac82a763b1f0" name="a029de53840bad24a3c7eac82a763b1f0"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>GenerateFileHeader</b> (std::ostream &amp;out) const</td></tr>
+<tr class="memdesc:a029de53840bad24a3c7eac82a763b1f0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generates the file header with includes and namespace opening. <br /></td></tr>
+<tr class="separator:a029de53840bad24a3c7eac82a763b1f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a85c860b9c534f9aa9278840ef80f161e" id="r_a85c860b9c534f9aa9278840ef80f161e"><td class="memItemLeft" align="right" valign="top"><a id="a85c860b9c534f9aa9278840ef80f161e" name="a85c860b9c534f9aa9278840ef80f161e"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>GenerateFileFooter</b> (std::ostream &amp;out) const</td></tr>
+<tr class="memdesc:a85c860b9c534f9aa9278840ef80f161e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generates the file footer with namespace closing. <br /></td></tr>
+<tr class="separator:a85c860b9c534f9aa9278840ef80f161e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Generates C++ migration code from parsed migrations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/dc6/CodeGenerator_8hpp_source.html#l00026">26</a> of file <a class="el" href="../../d7/dc6/CodeGenerator_8hpp_source.html">CodeGenerator.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/dc6/CodeGenerator_8hpp_source.html#l00044">44</a> of file <a class="el" href="../../d7/dc6/CodeGenerator_8hpp_source.html">CodeGenerator.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a id="a6dd5bf16adc8d83e09d4a03187b6f275" name="a6dd5bf16adc8d83e09d4a03187b6f275"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6dd5bf16adc8d83e09d4a03187b6f275">&#9670;&#160;</a></span>GenerateMigration()</h2>
+<a id="a307f776de793c9c3775208206ae28dae" name="a307f776de793c9c3775208206ae28dae"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a307f776de793c9c3775208206ae28dae">&#9670;&#160;</a></span>GenerateMigration()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void Lup2DbTool::CodeGenerator::GenerateMigration </td>
+          <td class="memname">bool Lup2DbTool::CodeGenerator::GenerateMigration </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="../../d8/d41/structLup2DbTool_1_1ParsedMigration.html">ParsedMigration</a> const &amp;&#160;</td>
           <td class="paramname"><em>migration</em>, </td>
@@ -143,7 +143,13 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>WriteFileFooter</b> (
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">std::ostream &amp;&#160;</td>
-          <td class="paramname"><em>out</em>&#160;</td>
+          <td class="paramname"><em>out</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; <a class="el" href="../../d3/d27/structLup2DbTool_1_1CodeGeneratorDiagnostic.html">CodeGeneratorDiagnostic</a> &gt; &amp;&#160;</td>
+          <td class="paramname"><em>diagnostics</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -158,20 +164,22 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>WriteFileFooter</b> (
   <table class="params">
     <tr><td class="paramname">migration</td><td>The parsed migration </td></tr>
     <tr><td class="paramname">out</td><td>Output stream to write to </td></tr>
+    <tr><td class="paramname">diagnostics</td><td>Diagnostics collector for warnings/errors </td></tr>
   </table>
   </dd>
 </dl>
+<dl class="section return"><dt>Returns</dt><dd>true if code was generated successfully (may still have warnings), false on fatal error </dd></dl>
 
 </div>
 </div>
-<a id="a2a0548c36b17089cef58262d62f6b199" name="a2a0548c36b17089cef58262d62f6b199"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2a0548c36b17089cef58262d62f6b199">&#9670;&#160;</a></span>GenerateAllMigrations()</h2>
+<a id="aea91a51d9808c6c41ac7d45eb6b19892" name="aea91a51d9808c6c41ac7d45eb6b19892"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aea91a51d9808c6c41ac7d45eb6b19892">&#9670;&#160;</a></span>GenerateAllMigrations()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void Lup2DbTool::CodeGenerator::GenerateAllMigrations </td>
+          <td class="memname">bool Lup2DbTool::CodeGenerator::GenerateAllMigrations </td>
           <td>(</td>
           <td class="paramtype">std::vector&lt; <a class="el" href="../../d8/d41/structLup2DbTool_1_1ParsedMigration.html">ParsedMigration</a> &gt; const &amp;&#160;</td>
           <td class="paramname"><em>migrations</em>, </td>
@@ -180,7 +188,13 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>WriteFileFooter</b> (
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">std::ostream &amp;&#160;</td>
-          <td class="paramname"><em>out</em>&#160;</td>
+          <td class="paramname"><em>out</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::vector&lt; <a class="el" href="../../d3/d27/structLup2DbTool_1_1CodeGeneratorDiagnostic.html">CodeGeneratorDiagnostic</a> &gt; &amp;&#160;</td>
+          <td class="paramname"><em>diagnostics</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -195,9 +209,11 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>WriteFileFooter</b> (
   <table class="params">
     <tr><td class="paramname">migrations</td><td>The parsed migrations </td></tr>
     <tr><td class="paramname">out</td><td>Output stream to write to </td></tr>
+    <tr><td class="paramname">diagnostics</td><td>Diagnostics collector for warnings/errors </td></tr>
   </table>
   </dd>
 </dl>
+<dl class="section return"><dt>Returns</dt><dd>true if code was generated successfully (may still have warnings), false on fatal error </dd></dl>
 
 </div>
 </div>
