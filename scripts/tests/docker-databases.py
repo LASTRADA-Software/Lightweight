@@ -2,7 +2,7 @@
 """
 Docker database setup script for Lightweight tests.
 
-Sets up Docker containers for MS SQL 2022, MS SQL 2019, and PostgreSQL.
+Sets up Docker containers for MS SQL 2025/2022/2019/2017, and PostgreSQL.
 Idempotent: safe to run multiple times.
 
 Usage:
@@ -50,6 +50,26 @@ class DatabaseConfig:
 # Database configurations
 DATABASES: list[DatabaseConfig] = [
     DatabaseConfig(
+        name="mssql2025",
+        container_name="sql2025",
+        image="mcr.microsoft.com/mssql/server:2025-latest",
+        port=1435,
+        internal_port=1433,
+        environment={
+            "ACCEPT_EULA": "Y",
+            "MSSQL_SA_PASSWORD": DB_PASSWORD,
+        },
+        health_check_cmd=[
+            "/opt/mssql-tools18/bin/sqlcmd",
+            "-S", "localhost",
+            "-U", "SA",
+            "-P", DB_PASSWORD,
+            "-C",
+            "-Q", "SELECT 1",
+        ],
+        test_database="LightweightTest",
+    ),
+    DatabaseConfig(
         name="mssql2022",
         container_name="sql2022",
         image="mcr.microsoft.com/mssql/server:2022-latest",
@@ -85,6 +105,25 @@ DATABASES: list[DatabaseConfig] = [
             "-U", "SA",
             "-P", DB_PASSWORD,
             "-C",
+            "-Q", "SELECT 1",
+        ],
+        test_database="LightweightTest",
+    ),
+    DatabaseConfig(
+        name="mssql2017",
+        container_name="sql2017",
+        image="mcr.microsoft.com/mssql/server:2017-latest",
+        port=1432,
+        internal_port=1433,
+        environment={
+            "ACCEPT_EULA": "Y",
+            "MSSQL_SA_PASSWORD": DB_PASSWORD,
+        },
+        health_check_cmd=[
+            "/opt/mssql-tools/bin/sqlcmd",
+            "-S", "localhost",
+            "-U", "SA",
+            "-P", DB_PASSWORD,
             "-Q", "SELECT 1",
         ],
         test_database="LightweightTest",
@@ -330,9 +369,13 @@ def create_test_database(db: DatabaseConfig) -> bool:
             "-S", "localhost",
             "-U", "SA",
             "-P", DB_PASSWORD,
-            "-C",  # TrustServerCertificate (required for mssql-tools18)
-            "-Q", f"IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '{db.test_database}') CREATE DATABASE [{db.test_database}]",
         ]
+        # Add -C flag only if present in health check (required for mssql-tools18, not for older versions)
+        if "-C" in db.health_check_cmd:
+            create_db_cmd.append("-C")
+        create_db_cmd.extend([
+            "-Q", f"IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = '{db.test_database}') CREATE DATABASE [{db.test_database}]",
+        ])
         print(f"  Creating database {Colors.cyan(db.test_database)}...")
         result = subprocess.run(create_db_cmd, capture_output=True, text=True)
         if result.returncode != 0:
@@ -385,9 +428,11 @@ def load_sql_file(db: DatabaseConfig, sql_file: str) -> bool:
             "-S", "localhost",
             "-U", "SA",
             "-P", DB_PASSWORD,
-            "-C",
-            "-d", db.test_database,
         ]
+        # Add -C flag only if present in health check (required for mssql-tools18, not for older versions)
+        if "-C" in db.health_check_cmd:
+            cmd.append("-C")
+        cmd.extend(["-d", db.test_database])
         # Read and pipe the SQL file
         with open(sql_file, 'r') as f:
             sql_content = f.read()
