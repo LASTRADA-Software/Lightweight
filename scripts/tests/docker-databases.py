@@ -336,11 +336,63 @@ def remove_container(db: DatabaseConfig) -> bool:
     return True
 
 
-def wait_for_database(db: DatabaseConfig, timeout: int = 60) -> bool:
-    """Wait for database to be ready. Returns True when ready."""
+def verify_external_connection(db: DatabaseConfig) -> bool:
+    """Verify external connectivity to database through exposed port.
+
+    This is critical because Docker port forwarding may not be ready immediately
+    after the container's internal health check passes.
+
+    Returns True if connection succeeds, False otherwise.
+    If host tools are not available, returns True (falls back to internal-only check).
+    """
+    try:
+        if "mssql" in db.name:
+            # Use sqlcmd on host to connect through exposed port
+            result = subprocess.run(
+                [
+                    "sqlcmd",
+                    "-S", f"localhost,{db.port}",
+                    "-U", "SA",
+                    "-P", DB_PASSWORD,
+                    "-C",  # Trust server certificate
+                    "-Q", "SELECT 1",
+                    "-l", "5",  # Login timeout 5 seconds
+                ],
+                capture_output=True,
+                text=True,
+            )
+            return result.returncode == 0
+        else:
+            # PostgreSQL: use pg_isready on host
+            result = subprocess.run(
+                [
+                    "pg_isready",
+                    "-h", "localhost",
+                    "-p", str(db.port),
+                    "-U", "postgres",
+                    "-t", "5",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            return result.returncode == 0
+    except FileNotFoundError:
+        # Host tools not available, fall back to internal-only check
+        print(f"  Warning: Host tools not available, skipping external connectivity check")
+        return True
+
+
+def wait_for_database(db: DatabaseConfig, timeout: int = 120) -> bool:
+    """Wait for database to be ready. Returns True when ready.
+
+    This performs a two-phase check:
+    1. Internal readiness: verify database is ready inside the container
+    2. External connectivity: verify port forwarding works from host
+    """
     print(f"  Waiting for {Colors.cyan(db.name)} to be ready (timeout: {timeout}s)...")
     start_time = time.time()
 
+    # Phase 1: Wait for internal readiness (inside container)
     while time.time() - start_time < timeout:
         result = subprocess.run(
             ["docker", "exec", db.container_name] + db.health_check_cmd,
@@ -348,12 +400,24 @@ def wait_for_database(db: DatabaseConfig, timeout: int = 60) -> bool:
             text=True,
         )
         if result.returncode == 0:
+            internal_elapsed = time.time() - start_time
+            print(f"  Internal check passed after {internal_elapsed:.1f}s, verifying external connectivity...")
+            break
+        time.sleep(1)
+    else:
+        print(f"  {Colors.red('Timeout')} waiting for database (internal check)")
+        return False
+
+    # Phase 2: Wait for external connectivity (through port forwarding)
+    # This is critical because Docker port forwarding may not be ready immediately
+    while time.time() - start_time < timeout:
+        if verify_external_connection(db):
             elapsed = time.time() - start_time
             print(f"  {Colors.green('Ready')} after {elapsed:.1f}s")
             return True
         time.sleep(1)
 
-    print(f"  {Colors.red('Timeout')} waiting for database")
+    print(f"  {Colors.red('Timeout')} waiting for database (external check)")
     return False
 
 
@@ -540,7 +604,7 @@ Examples:
     action_group.add_argument("--load-sql", metavar="FILE", help="Load SQL file into database (requires DATABASE argument)")
 
     parser.add_argument("--wait", action="store_true", help="Wait for databases to be ready (with --start)")
-    parser.add_argument("--timeout", type=int, default=60, help="Timeout for --wait in seconds (default: 60)")
+    parser.add_argument("--timeout", type=int, default=120, help="Timeout for --wait in seconds (default: 120)")
     parser.add_argument("databases", nargs="*", metavar="DATABASE",
                         help=f"Databases to operate on (default: all). Options: {', '.join(db.name for db in DATABASES)}")
 
