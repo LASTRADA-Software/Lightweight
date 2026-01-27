@@ -923,6 +923,23 @@ namespace
         }
     }
 
+    /// Data required to restore a single chunk to the database.
+    struct RestoreChunkInfo
+    {
+        std::string tableName;
+        std::string chunkPath;
+        std::vector<uint8_t> content;
+        TableInfo const* tableInfo;
+        std::optional<size_t> displayTotal;
+    };
+
+    /// Error information from FetchNextRestoreChunk.
+    struct FetchChunkError
+    {
+        std::string tableName; // Empty if table could not be determined
+        std::string message;
+    };
+
     struct RestoreContext
     {
         SqlConnectionString connectionString;
@@ -941,10 +958,323 @@ namespace
         RestoreSettings restoreSettings;
     };
 
+    /// Increments the chunk counter and reports completion status.
+    ///
+    /// @param ctx The restore context.
+    /// @param tableName The name of the table being restored.
+    /// @param success Whether the chunk was restored successfully.
+    void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName, bool success)
+    {
+        auto& chunkCounter = *ctx.chunksProcessed.at(tableName);
+        size_t const processedChunks = chunkCounter.fetch_add(1) + 1;
+        size_t const totalChunksForTable = ctx.totalChunks.at(tableName);
+
+        if (processedChunks >= totalChunksForTable)
+        {
+            auto& rowCounter = *ctx.tableProgress.at(tableName);
+            size_t const actualRowCount = rowCounter.load();
+            ctx.progress.Update({ .state = success ? Progress::State::Finished : Progress::State::Error,
+                                  .tableName = tableName,
+                                  .currentRows = actualRowCount,
+                                  .totalRows = actualRowCount,
+                                  .message = success ? "Restore complete" : "Restore incomplete: errors occurred" });
+        }
+    }
+
+    /// Fetches the next chunk from the restore queue.
+    ///
+    /// Handles dequeuing from the work queue, reading zip entry content,
+    /// path parsing to extract table name, and checksum verification.
+    ///
+    /// @param ctx The restore context.
+    /// @return The chunk info on success, std::nullopt if queue is empty, or error details on failure.
+    std::expected<std::optional<RestoreChunkInfo>, FetchChunkError> FetchNextRestoreChunk(RestoreContext& ctx)
+    {
+        ZipEntryInfo entryInfo;
+        {
+            auto lock = std::scoped_lock(ctx.queueMutex);
+            if (ctx.dataQueue.empty())
+                return std::nullopt; // Signal worker to exit - queue empty
+            entryInfo = ctx.dataQueue.front();
+            ctx.dataQueue.pop_front();
+        }
+
+        std::vector<uint8_t> content;
+        {
+            auto lock = std::scoped_lock(ctx.fileMutex);
+            if (!entryInfo.valid)
+                return std::unexpected(
+                    FetchChunkError { .tableName = "", .message = std::format("Invalid zip entry: {}", entryInfo.name) });
+            content = ReadZipEntry<std::vector<uint8_t>>(ctx.zip, entryInfo.index, entryInfo.size);
+        }
+
+        // Parse path FIRST to get tableName for chunk-based completion tracking.
+        // Path format: data/TABLE_NAME/chunk_ID.msgpack
+        std::string const path = entryInfo.name;
+        auto const firstSlash = path.find('/');
+        if (firstSlash == std::string::npos)
+            return std::unexpected(
+                FetchChunkError { .tableName = "", .message = std::format("Malformed chunk path (no slash): {}", path) });
+
+        auto const secondSlash = path.find('/', firstSlash + 1);
+        if (secondSlash == std::string::npos)
+            return std::unexpected(FetchChunkError {
+                .tableName = "", .message = std::format("Malformed chunk path (no second slash): {}", path) });
+
+        std::string const tableName = path.substr(firstSlash + 1, secondSlash - firstSlash - 1);
+        if (!ctx.tableMap.contains(tableName))
+            return std::unexpected(FetchChunkError { .tableName = tableName,
+                                                     .message = std::format("Unknown table in backup: {}", tableName) });
+
+        // Verify checksum if available
+        if (ctx.checksums)
+        {
+            auto it = ctx.checksums->find(entryInfo.name);
+            if (it != ctx.checksums->end())
+            {
+                std::string const actualHash = Sha256::Hash(content.data(), content.size());
+                if (actualHash != it->second)
+                {
+                    return std::unexpected(FetchChunkError {
+                        .tableName = tableName,
+                        .message = std::format(
+                            "Checksum mismatch for {}: expected {}, got {}", entryInfo.name, it->second, actualHash) });
+                }
+            }
+        }
+
+        auto const& tableInfo = ctx.tableMap.at(tableName);
+        std::optional<size_t> const displayTotal =
+            tableInfo.rowCount > 0 ? std::optional { tableInfo.rowCount } : std::nullopt;
+
+        return RestoreChunkInfo {
+            .tableName = tableName,
+            .chunkPath = path,
+            .content = std::move(content),
+            .tableInfo = &tableInfo,
+            .displayTotal = displayTotal,
+        };
+    }
+
+    /// Restores chunk data to the database with retry logic.
+    ///
+    /// Handles MSSQL identity insert handling, batch insertion with transaction management,
+    /// SQLite intermediate commits, retry logic for transient errors, and progress tracking.
+    ///
+    /// @param ctx The restore context.
+    /// @param workerConn The database connection.
+    /// @param chunk The chunk data to restore.
+    /// @param batchCapacity The batch size for bulk inserts.
+    /// @return true if chunk was restored successfully, false if errors occurred.
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+    bool RestoreChunkData(RestoreContext& ctx,
+                          SqlConnection& workerConn,
+                          RestoreChunkInfo const& chunk,
+                          size_t batchCapacity)
+    {
+        auto const& tableInfo = *chunk.tableInfo;
+        std::string const& tableName = chunk.tableName;
+        std::string const& path = chunk.chunkPath;
+        std::string const& fields = tableInfo.fields;
+
+        size_t const currentTotal1 = ctx.tableProgress.at(tableName)->load();
+        ctx.progress.Update({ .state = Progress::State::InProgress,
+                              .tableName = tableName,
+                              .currentRows = currentTotal1,
+                              .totalRows = chunk.displayTotal,
+                              .message = "Restoring chunk " + path });
+
+        // Retry loop for chunk processing
+        unsigned retryCount = 0;
+        while (retryCount <= ctx.retrySettings.maxRetries)
+        {
+            try
+            {
+                // Use zero-copy reader directly from buffer (eliminates 2 memory copies)
+                auto reader = CreateMsgPackChunkReaderFromBuffer(chunk.content);
+
+                bool const isMsSql = workerConn.ServerType() == SqlServerType::MICROSOFT_SQL;
+                bool const isSQLite = workerConn.ServerType() == SqlServerType::SQLITE;
+                bool hasIdentity = false;
+                std::string identityTable;
+
+                if (isMsSql)
+                {
+                    for (auto const& col: tableInfo.columns)
+                    {
+                        if (col.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT)
+                        {
+                            hasIdentity = true;
+                            break;
+                        }
+                    }
+
+                    if (hasIdentity)
+                    {
+                        identityTable = FormatTableName(ctx.schema, tableName);
+                        SqlStatement { workerConn }.ExecuteDirect(std::format("SET IDENTITY_INSERT {} ON", identityTable));
+                    }
+                }
+
+                {
+                    auto const& formatter = workerConn.QueryFormatter();
+                    SqlStatement stmt { workerConn };
+                    std::string placeholders;
+                    for (size_t i = 0; i < tableInfo.columns.size(); ++i)
+                    {
+                        if (i > 0)
+                            placeholders += ", ";
+
+                        placeholders += "?";
+                    }
+                    stmt.Prepare(formatter.Insert(ctx.schema, tableName, fields, placeholders));
+
+                    detail::BatchManager batchManager(
+                        [&](std::vector<SqlRawColumn> const& cols, size_t rows) { stmt.ExecuteBatch(cols, rows); },
+                        tableInfo.columns,
+                        batchCapacity,
+                        workerConn.ServerType());
+
+                    // Use a transaction for the entire chunk to improve performance significantly.
+                    // We default to ROLLBACK on destruction to ensure atomic application of the chunk.
+                    SqlTransaction transaction(workerConn, SqlTransactionMode::ROLLBACK);
+
+                    // For SQLite: track rows since last commit for intermediate commits
+                    size_t rowsSinceCommit = 0;
+                    size_t const maxRowsPerCommit = ctx.restoreSettings.maxRowsPerCommit;
+
+                    ColumnBatch batch;
+                    while (reader->ReadBatch(batch))
+                    {
+                        if (batch.rowCount == 0)
+                            continue;
+
+                        if (batch.columns.size() != tableInfo.columns.size())
+                        {
+                            throw std::runtime_error(
+                                std::format("Column count mismatch in backup data: expected {} columns, got {}",
+                                            tableInfo.columns.size(),
+                                            batch.columns.size()));
+                        }
+
+                        batchManager.PushBatch(batch);
+                        rowsSinceCommit += batch.rowCount;
+
+                        // Intermediate commit for SQLite to reduce WAL memory accumulation
+                        if (isSQLite && maxRowsPerCommit > 0 && rowsSinceCommit >= maxRowsPerCommit)
+                        {
+                            batchManager.Flush();
+                            transaction.Commit();
+                            transaction = SqlTransaction(workerConn, SqlTransactionMode::ROLLBACK);
+                            rowsSinceCommit = 0;
+                        }
+
+                        auto& atomicCounter = *ctx.tableProgress.at(tableName);
+                        size_t const previousTotal = atomicCounter.fetch_add(batch.rowCount);
+                        size_t const currentTotal = previousTotal + batch.rowCount;
+
+                        ctx.progress.Update({ .state = Progress::State::InProgress,
+                                              .tableName = tableName,
+                                              .currentRows = currentTotal,
+                                              .totalRows = chunk.displayTotal,
+                                              .message = "Restoring chunk " + path });
+
+                        // Report items processed for ETA calculation
+                        ctx.progress.OnItemsProcessed(batch.rowCount);
+                    }
+
+                    batchManager.Flush();
+                    transaction.Commit();
+                    stmt.CloseCursor();
+                }
+
+                if (hasIdentity)
+                {
+                    try
+                    {
+                        SqlStatement { workerConn }.ExecuteDirect(std::format("SET IDENTITY_INSERT {} OFF", identityTable));
+                    }
+                    catch (...) // NOLINT(bugprone-empty-catch)
+                    {
+                        // Best-effort cleanup - failure doesn't affect restore correctness
+                    }
+                }
+
+                // Success - exit retry loop
+                return true;
+            }
+            catch (SqlException const& e)
+            {
+                if (!IsTransientError(e.info()) || retryCount >= ctx.retrySettings.maxRetries)
+                {
+                    ctx.progress.Update({ .state = Progress::State::Error,
+                                          .tableName = tableName,
+                                          .currentRows = 0,
+                                          .totalRows = 0,
+                                          .message = "Insert failed: "s + e.what() });
+                    return false; // Non-transient or max retries exceeded
+                }
+
+                ++retryCount;
+                ctx.progress.Update(
+                    { .state = Progress::State::Warning,
+                      .tableName = tableName,
+                      .currentRows = 0,
+                      .totalRows = tableInfo.rowCount,
+                      .message = std::format(
+                          "Transient error, retry {}/{}: {}", retryCount, ctx.retrySettings.maxRetries, e.what()) });
+
+                // Reconnect before retry
+                workerConn.Close();
+                std::this_thread::sleep_for(CalculateRetryDelay(retryCount - 1, ctx.retrySettings));
+
+                if (!ConnectWithRetry(workerConn, ctx.connectionString, ctx.retrySettings, ctx.progress, tableName))
+                {
+                    ctx.progress.Update({ .state = Progress::State::Error,
+                                          .tableName = tableName,
+                                          .currentRows = 0,
+                                          .totalRows = 0,
+                                          .message = "Failed to reconnect after transient error" });
+                    return false;
+                }
+
+                // Re-apply SQLite optimizations after reconnect
+                if (workerConn.ServerType() == SqlServerType::SQLITE)
+                {
+                    SqlStatement { workerConn }.ExecuteDirect("PRAGMA synchronous = OFF");
+                    SqlStatement { workerConn }.ExecuteDirect("PRAGMA journal_mode = WAL");
+                    SqlStatement { workerConn }.ExecuteDirect("PRAGMA foreign_keys = OFF");
+                    if (ctx.restoreSettings.cacheSizeKB > 0)
+                    {
+                        SqlStatement { workerConn }.ExecuteDirect(
+                            std::format("PRAGMA cache_size = -{}", ctx.restoreSettings.cacheSizeKB));
+                    }
+                }
+
+                // Loop will re-process the same chunk
+            }
+            catch (std::exception const& e)
+            {
+                ctx.progress.Update({ .state = Progress::State::Error,
+                                      .tableName = tableName,
+                                      .currentRows = 0,
+                                      .totalRows = 0,
+                                      .message = "Insert failed: "s + e.what() });
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /// Worker function that processes chunks from the restore queue.
+    ///
+    /// This function processes restore chunks from the shared queue, using the helper functions
+    /// FetchNextRestoreChunk() for I/O operations and RestoreChunkData() for database operations.
+    ///
+    /// @param ctx The restore context containing queue, progress tracking, and settings.
+    /// @param workerConn The database connection for this worker.
     void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
     {
-        // Use batch size from settings, or default to 4000 if not specified
         size_t const batchCapacity = ctx.restoreSettings.batchSize > 0 ? ctx.restoreSettings.batchSize : 4000;
 
         try
@@ -955,7 +1285,6 @@ namespace
                 SqlStatement { workerConn }.ExecuteDirect("PRAGMA synchronous = OFF");
                 SqlStatement { workerConn }.ExecuteDirect("PRAGMA journal_mode = WAL");
                 SqlStatement { workerConn }.ExecuteDirect("PRAGMA foreign_keys = OFF");
-                // Limit cache size to reduce memory usage (negative value = KB)
                 if (ctx.restoreSettings.cacheSizeKB > 0)
                 {
                     SqlStatement { workerConn }.ExecuteDirect(
@@ -965,286 +1294,32 @@ namespace
 
             while (true)
             {
-                ZipEntryInfo entryInfo;
+                auto const fetchResult = FetchNextRestoreChunk(ctx);
+
+                // Handle fetch errors (invalid entry, malformed path, checksum mismatch, etc.)
+                if (!fetchResult.has_value())
                 {
-                    auto lock = std::scoped_lock(ctx.queueMutex);
-                    if (ctx.dataQueue.empty())
-                        return;
-                    entryInfo = ctx.dataQueue.front();
-                    ctx.dataQueue.pop_front();
+                    auto const& error = fetchResult.error();
+                    ctx.progress.Update({ .state = Progress::State::Error,
+                                          .tableName = error.tableName,
+                                          .currentRows = 0,
+                                          .totalRows = std::nullopt,
+                                          .message = error.message });
+                    if (!error.tableName.empty())
+                        IncrementChunkCounter(ctx, error.tableName, false);
+                    return; // Abort worker on fetch error to ensure consistent restoration
                 }
 
-                std::vector<uint8_t> content;
+                // Check if queue was empty (nullopt inside expected)
+                if (!fetchResult->has_value())
+                    return; // Queue empty, worker done
 
-                {
-                    auto lock = std::scoped_lock(ctx.fileMutex);
-                    if (!entryInfo.valid)
-                        continue;
-                    content = ReadZipEntry<std::vector<uint8_t>>(ctx.zip, entryInfo.index, entryInfo.size);
-                }
+                auto const& chunk = **fetchResult;
+                bool const success = RestoreChunkData(ctx, workerConn, chunk, batchCapacity);
+                IncrementChunkCounter(ctx, chunk.tableName, success);
 
-                // Parse path FIRST to get tableName for chunk-based completion tracking.
-                // Path format: data/TABLE_NAME/chunk_ID.msgpack
-                // All queued entries passed validation during queueing, so these checks are defensive.
-                std::string const path = entryInfo.name;
-                auto const firstSlash = path.find('/');
-                if (firstSlash == std::string::npos)
-                    continue; // Defensive: wasn't counted if path is malformed
-
-                auto const secondSlash = path.find('/', firstSlash + 1);
-                if (secondSlash == std::string::npos)
-                    continue; // Defensive: wasn't counted if path is malformed
-
-                std::string const tableName = path.substr(firstSlash + 1, secondSlash - firstSlash - 1);
-                if (!ctx.tableMap.contains(tableName))
-                    continue; // Defensive: wasn't counted if table not in map
-
-                // Helper lambda to increment chunk counter and report completion/error
-                auto const incrementChunkCounter = [&ctx, &tableName](bool success) {
-                    auto& chunkCounter = *ctx.chunksProcessed.at(tableName);
-                    size_t const processedChunks = chunkCounter.fetch_add(1) + 1;
-                    size_t const totalChunksForTable = ctx.totalChunks.at(tableName);
-
-                    if (processedChunks >= totalChunksForTable)
-                    {
-                        auto& rowCounter = *ctx.tableProgress.at(tableName);
-                        size_t const actualRowCount = rowCounter.load();
-                        ctx.progress.Update(
-                            { .state = success ? Progress::State::Finished : Progress::State::Error,
-                              .tableName = tableName,
-                              .currentRows = actualRowCount,
-                              .totalRows = actualRowCount,
-                              .message = success ? "Restore complete" : "Restore incomplete: errors occurred" });
-                    }
-                };
-
-                // Verify checksum if available
-                if (ctx.checksums)
-                {
-                    auto it = ctx.checksums->find(entryInfo.name);
-                    if (it != ctx.checksums->end())
-                    {
-                        std::string const actualHash = Sha256::Hash(content.data(), content.size());
-                        if (actualHash != it->second)
-                        {
-                            ctx.progress.Update({ .state = Progress::State::Error,
-                                                  .tableName = tableName,
-                                                  .currentRows = 0,
-                                                  .totalRows = std::nullopt,
-                                                  .message = std::format("Checksum mismatch for {}: expected {}, got {}",
-                                                                         entryInfo.name,
-                                                                         it->second,
-                                                                         actualHash) });
-                            // Must increment chunk counter even on failure to prevent hang
-                            incrementChunkCounter(false);
-                            continue;
-                        }
-                    }
-                }
-                auto const& tableInfo = ctx.tableMap.at(tableName);
-                std::string const& fields = tableInfo.fields;
-
-                size_t const currentTotal1 = ctx.tableProgress.at(tableName)->load();
-                std::optional<size_t> const displayTotal =
-                    tableInfo.rowCount > 0 ? std::optional { tableInfo.rowCount } : std::nullopt;
-                ctx.progress.Update({ .state = Progress::State::InProgress,
-                                      .tableName = tableName,
-                                      .currentRows = currentTotal1,
-                                      .totalRows = displayTotal,
-                                      .message = "Restoring chunk " + path });
-
-                // Retry loop for chunk processing
-                unsigned retryCount = 0;
-                bool chunkSuccess = true;
-                while (retryCount <= ctx.retrySettings.maxRetries)
-                {
-                    try
-                    {
-                        // Use zero-copy reader directly from buffer (eliminates 2 memory copies)
-                        auto reader = CreateMsgPackChunkReaderFromBuffer(content);
-
-                        bool const isMsSql = workerConn.ServerType() == SqlServerType::MICROSOFT_SQL;
-                        bool const isSQLite = workerConn.ServerType() == SqlServerType::SQLITE;
-                        bool hasIdentity = false;
-                        std::string identityTable;
-
-                        if (isMsSql)
-                        {
-                            for (auto const& col: tableInfo.columns)
-                            {
-                                if (col.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT)
-                                {
-                                    hasIdentity = true;
-                                    break;
-                                }
-                            }
-
-                            if (hasIdentity)
-                            {
-                                identityTable = FormatTableName(ctx.schema, tableName);
-                                SqlStatement { workerConn }.ExecuteDirect(
-                                    std::format("SET IDENTITY_INSERT {} ON", identityTable));
-                            }
-                        }
-
-                        {
-                            auto const& formatter = workerConn.QueryFormatter();
-                            SqlStatement stmt { workerConn };
-                            std::string placeholders;
-                            for (size_t i = 0; i < tableInfo.columns.size(); ++i)
-                            {
-                                if (i > 0)
-                                    placeholders += ", ";
-
-                                placeholders += "?";
-                            }
-                            stmt.Prepare(formatter.Insert(ctx.schema, tableName, fields, placeholders));
-
-                            detail::BatchManager batchManager(
-                                [&](std::vector<SqlRawColumn> const& cols, size_t rows) { stmt.ExecuteBatch(cols, rows); },
-                                tableInfo.columns,
-                                batchCapacity,
-                                workerConn.ServerType());
-
-                            // Use a transaction for the entire chunk to improve performance significantly.
-                            // We default to ROLLBACK on destruction to ensure atomic application of the chunk.
-                            SqlTransaction transaction(workerConn, SqlTransactionMode::ROLLBACK);
-
-                            // For SQLite: track rows since last commit for intermediate commits
-                            size_t rowsSinceCommit = 0;
-                            size_t const maxRowsPerCommit = ctx.restoreSettings.maxRowsPerCommit;
-
-                            ColumnBatch batch;
-                            while (reader->ReadBatch(batch))
-                            {
-                                if (batch.rowCount == 0)
-                                    continue;
-
-                                if (batch.columns.size() != tableInfo.columns.size())
-                                {
-                                    throw std::runtime_error(
-                                        std::format("Column count mismatch in backup data: expected {} columns, got {}",
-                                                    tableInfo.columns.size(),
-                                                    batch.columns.size()));
-                                }
-
-                                batchManager.PushBatch(batch);
-                                rowsSinceCommit += batch.rowCount;
-
-                                // Intermediate commit for SQLite to reduce WAL memory accumulation
-                                if (isSQLite && maxRowsPerCommit > 0 && rowsSinceCommit >= maxRowsPerCommit)
-                                {
-                                    batchManager.Flush();
-                                    transaction.Commit();
-                                    transaction = SqlTransaction(workerConn, SqlTransactionMode::ROLLBACK);
-                                    rowsSinceCommit = 0;
-                                }
-
-                                auto& atomicCounter = *ctx.tableProgress.at(tableName);
-                                size_t const previousTotal = atomicCounter.fetch_add(batch.rowCount);
-                                size_t const currentTotal = previousTotal + batch.rowCount;
-
-                                ctx.progress.Update({ .state = Progress::State::InProgress,
-                                                      .tableName = tableName,
-                                                      .currentRows = currentTotal,
-                                                      .totalRows = displayTotal,
-                                                      .message = "Restoring chunk " + path });
-
-                                // Report items processed for ETA calculation
-                                ctx.progress.OnItemsProcessed(batch.rowCount);
-                            }
-
-                            batchManager.Flush();
-                            transaction.Commit();
-                            stmt.CloseCursor();
-                        }
-
-                        if (hasIdentity)
-                        {
-                            try
-                            {
-                                SqlStatement { workerConn }.ExecuteDirect(
-                                    std::format("SET IDENTITY_INSERT {} OFF", identityTable));
-                            }
-                            catch (...) // NOLINT(bugprone-empty-catch)
-                            {
-                                // Best-effort cleanup - failure doesn't affect restore correctness
-                            }
-                        }
-
-                        // Success - exit retry loop
-                        break;
-                    }
-                    catch (SqlException const& e)
-                    {
-                        if (!IsTransientError(e.info()) || retryCount >= ctx.retrySettings.maxRetries)
-                        {
-                            ctx.progress.Update({ .state = Progress::State::Error,
-                                                  .tableName = tableName,
-                                                  .currentRows = 0,
-                                                  .totalRows = 0,
-                                                  .message = "Insert failed: "s + e.what() });
-                            chunkSuccess = false;
-                            break; // Non-transient or max retries exceeded
-                        }
-
-                        ++retryCount;
-                        ctx.progress.Update(
-                            { .state = Progress::State::Warning,
-                              .tableName = tableName,
-                              .currentRows = 0,
-                              .totalRows = tableInfo.rowCount,
-                              .message = std::format(
-                                  "Transient error, retry {}/{}: {}", retryCount, ctx.retrySettings.maxRetries, e.what()) });
-
-                        // Reconnect before retry
-                        workerConn.Close();
-                        std::this_thread::sleep_for(CalculateRetryDelay(retryCount - 1, ctx.retrySettings));
-
-                        if (!ConnectWithRetry(workerConn, ctx.connectionString, ctx.retrySettings, ctx.progress, tableName))
-                        {
-                            ctx.progress.Update({ .state = Progress::State::Error,
-                                                  .tableName = tableName,
-                                                  .currentRows = 0,
-                                                  .totalRows = 0,
-                                                  .message = "Failed to reconnect after transient error" });
-                            chunkSuccess = false;
-                            break;
-                        }
-
-                        // Re-apply SQLite optimizations after reconnect
-                        if (workerConn.ServerType() == SqlServerType::SQLITE)
-                        {
-                            SqlStatement { workerConn }.ExecuteDirect("PRAGMA synchronous = OFF");
-                            SqlStatement { workerConn }.ExecuteDirect("PRAGMA journal_mode = WAL");
-                            SqlStatement { workerConn }.ExecuteDirect("PRAGMA foreign_keys = OFF");
-                            if (ctx.restoreSettings.cacheSizeKB > 0)
-                            {
-                                SqlStatement { workerConn }.ExecuteDirect(
-                                    std::format("PRAGMA cache_size = -{}", ctx.restoreSettings.cacheSizeKB));
-                            }
-                        }
-
-                        // Loop will re-process the same chunk
-                    }
-                    catch (std::exception const& e)
-                    {
-                        ctx.progress.Update({ .state = Progress::State::Error,
-                                              .tableName = tableName,
-                                              .currentRows = 0,
-                                              .totalRows = 0,
-                                              .message = "Insert failed: "s + e.what() });
-                        chunkSuccess = false;
-                        break;
-                    }
-                }
-
-                // Release content buffer memory after chunk processing to reduce memory footprint
-                content.clear();
-                content.shrink_to_fit();
-
-                // Use chunk-based completion detection instead of row counts (fixes stall when rowCount=0)
-                incrementChunkCounter(chunkSuccess);
+                if (!success)
+                    return; // Abort worker on restore error to ensure consistent restoration
             }
         }
         catch (std::exception const& e)
