@@ -72,6 +72,9 @@ set(HEADER_FILES
     DataMapper/QueryBuilders.hpp
 
     SqlBackup.hpp
+    SqlBackup/Backup.hpp
+    SqlBackup/Common.hpp
+    SqlBackup/Restore.hpp
     SqlBackup/TableFilter.hpp
     SqlBackupFormats.hpp
     SqlConnectInfo.hpp
@@ -96,8 +99,11 @@ set(SOURCE_FILES
 
     DataMapper/DataMapper.cpp
 
+    SqlBackup/Backup.cpp
     SqlBackup/BatchManager.cpp
+    SqlBackup/Common.cpp
     SqlBackup/MsgPackChunkFormats.cpp
+    SqlBackup/Restore.cpp
     SqlBackup/SqlBackup.cpp
     SqlBackup/TableFilter.cpp
     SqlConnectInfo.cpp
