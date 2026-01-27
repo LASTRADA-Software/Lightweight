@@ -336,6 +336,22 @@ def remove_container(db: DatabaseConfig) -> bool:
     return True
 
 
+def find_sqlcmd() -> str | None:
+    """Find sqlcmd executable on the host system."""
+    import shutil
+    # Check common installation paths
+    paths_to_check = [
+        "/opt/mssql-tools18/bin/sqlcmd",  # Ubuntu with mssql-tools18
+        "/opt/mssql-tools/bin/sqlcmd",    # Ubuntu with older mssql-tools
+    ]
+    for path in paths_to_check:
+        import os
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+    # Fall back to PATH lookup
+    return shutil.which("sqlcmd")
+
+
 def verify_external_connection(db: DatabaseConfig) -> bool:
     """Verify external connectivity to database through exposed port.
 
@@ -345,41 +361,46 @@ def verify_external_connection(db: DatabaseConfig) -> bool:
     Returns True if connection succeeds, False otherwise.
     If host tools are not available, returns True (falls back to internal-only check).
     """
-    try:
-        if "mssql" in db.name:
-            # Use sqlcmd on host to connect through exposed port
-            result = subprocess.run(
-                [
-                    "sqlcmd",
-                    "-S", f"localhost,{db.port}",
-                    "-U", "SA",
-                    "-P", DB_PASSWORD,
-                    "-C",  # Trust server certificate
-                    "-Q", "SELECT 1",
-                    "-l", "5",  # Login timeout 5 seconds
-                ],
-                capture_output=True,
-                text=True,
-            )
-            return result.returncode == 0
-        else:
-            # PostgreSQL: use pg_isready on host
-            result = subprocess.run(
-                [
-                    "pg_isready",
-                    "-h", "localhost",
-                    "-p", str(db.port),
-                    "-U", "postgres",
-                    "-t", "5",
-                ],
-                capture_output=True,
-                text=True,
-            )
-            return result.returncode == 0
-    except FileNotFoundError:
-        # Host tools not available, fall back to internal-only check
-        print(f"  Warning: Host tools not available, skipping external connectivity check")
-        return True
+    import shutil
+
+    if "mssql" in db.name:
+        sqlcmd_path = find_sqlcmd()
+        if not sqlcmd_path:
+            print("  Warning: sqlcmd not found on host, skipping external connectivity check")
+            return True
+        # Use sqlcmd on host to connect through exposed port
+        result = subprocess.run(
+            [
+                sqlcmd_path,
+                "-S", f"localhost,{db.port}",
+                "-U", "SA",
+                "-P", DB_PASSWORD,
+                "-C",  # Trust server certificate
+                "-Q", "SELECT 1",
+                "-l", "5",  # Login timeout 5 seconds
+            ],
+            capture_output=True,
+            text=True,
+        )
+        return result.returncode == 0
+    else:
+        # PostgreSQL: use pg_isready on host
+        pg_isready_path = shutil.which("pg_isready")
+        if not pg_isready_path:
+            print("  Warning: pg_isready not found on host, skipping external connectivity check")
+            return True
+        result = subprocess.run(
+            [
+                pg_isready_path,
+                "-h", "localhost",
+                "-p", str(db.port),
+                "-U", "postgres",
+                "-t", "5",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        return result.returncode == 0
 
 
 def wait_for_database(db: DatabaseConfig, timeout: int = 120) -> bool:
