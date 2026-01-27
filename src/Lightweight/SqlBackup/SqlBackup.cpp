@@ -50,10 +50,65 @@
 
 #include <nlohmann/json.hpp>
 
+#if defined(__linux__)
+    #include <sys/sysinfo.h>
+#elif defined(_WIN32)
+    #include <windows.h>
+#elif defined(__APPLE__)
+    #include <sys/sysctl.h>
+
+    #include <mach/mach.h>
+#endif
+
 using namespace std::string_literals;
 
 namespace Lightweight::SqlBackup
 {
+
+std::size_t GetAvailableSystemMemory() noexcept
+{
+#if defined(__linux__)
+    struct sysinfo info {};
+    if (sysinfo(&info) == 0)
+        return static_cast<std::size_t>(info.freeram) * static_cast<std::size_t>(info.mem_unit);
+#elif defined(_WIN32)
+    MEMORYSTATUSEX status;
+    status.dwLength = sizeof(status);
+    if (GlobalMemoryStatusEx(&status))
+        return static_cast<std::size_t>(status.ullAvailPhys);
+#elif defined(__APPLE__)
+    // On macOS, get total memory and estimate available as half
+    int mib[2] = { CTL_HW, HW_MEMSIZE };
+    uint64_t memsize = 0;
+    size_t len = sizeof(memsize);
+    if (sysctl(mib, 2, &memsize, &len, nullptr, 0) == 0)
+        return static_cast<std::size_t>(memsize / 2); // Use half of total as "available"
+#endif
+    return std::size_t { 4 } * 1024 * 1024 * 1024; // Default: 4GB
+}
+
+RestoreSettings CalculateRestoreSettings(std::size_t availableMemory, unsigned concurrency)
+{
+    RestoreSettings settings;
+
+    // Reserve memory for OS and other processes (use 75% of available)
+    std::size_t const usableMemory = availableMemory * 3 / 4;
+    std::size_t const memoryPerWorker = usableMemory / std::max(1U, concurrency);
+
+    // Calculate batch size: assume ~1KB per row average
+    // Target: each worker uses max 256MB for batch buffers
+    std::size_t const maxBatchMemory = std::min(memoryPerWorker / 4, std::size_t { 256 } * 1024 * 1024);
+    settings.batchSize = std::clamp(maxBatchMemory / 1024, std::size_t { 100 }, std::size_t { 4000 });
+
+    // SQLite cache: 64MB per worker, max 256MB total
+    settings.cacheSizeKB = std::min(std::size_t { 65536 }, memoryPerWorker / 1024 / 4);
+
+    // Commit interval: more frequent commits if low memory
+    settings.maxRowsPerCommit = (memoryPerWorker < 512 * 1024 * 1024) ? 5000 : 10000;
+
+    settings.memoryLimitBytes = availableMemory;
+    return settings;
+}
 
 bool IsCompressionMethodSupported(CompressionMethod method) noexcept
 {
@@ -284,6 +339,7 @@ namespace
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     std::string BuildSelectQueryWithOffset(SqlQueryFormatter const& formatter,
                                            SqlServerType serverType,
+                                           std::string_view schema,
                                            std::string const& tableName,
                                            std::vector<SqlSchema::Column> const& columns,
                                            std::vector<std::string> const& primaryKeys,
@@ -323,7 +379,10 @@ namespace
                 }
             }
 
-            sql << " FROM [" << tableName << "]";
+            if (schema.empty())
+                sql << " FROM [" << tableName << "]";
+            else
+                sql << " FROM [" << schema << "].[" << tableName << "]";
 
             // ORDER BY is required for OFFSET
             sql << " ORDER BY ";
@@ -349,8 +408,9 @@ namespace
             return sql.str();
         }
 
-        // Use Query Builder for non-MSSQL or when no DECIMAL columns
-        auto query = SqlQueryBuilder(formatter).FromTable(tableName).Select();
+        // Use Query Builder with schema support
+        auto query = schema.empty() ? SqlQueryBuilder(formatter).FromTable(tableName).Select()
+                                    : SqlQueryBuilder(formatter).FromSchemaTable(schema, tableName).Select();
 
         for (auto const& col: columns)
             query.Field(col.name);
@@ -403,7 +463,7 @@ namespace
         SqlStatement stmt { conn };
         auto const& formatter = conn.QueryFormatter();
 
-        auto const formattedTableName = FormatTableName(ctx.schema, tableName);
+        auto const formattedTableName = FormatTableName(table.schema, tableName);
         auto const totalRows = static_cast<size_t>(
             stmt.ExecuteDirectScalar<int64_t>(std::format("SELECT COUNT(*) FROM {}", formattedTableName)).value_or(0));
 
@@ -506,7 +566,7 @@ namespace
             {
                 // Build query with current offset for resumption
                 auto const selectQuery = BuildSelectQueryWithOffset(
-                    formatter, conn.ServerType(), tableName, table.columns, table.primaryKeys, processedRows);
+                    formatter, conn.ServerType(), table.schema, tableName, table.columns, table.primaryKeys, processedRows);
                 stmt.ExecuteDirect(selectQuery);
 
                 while (stmt.FetchRow())
@@ -866,6 +926,88 @@ namespace
         }
     }
 
+    /// Context for the row counter thread that runs in parallel with backup workers.
+    struct RowCounterContext
+    {
+        SqlConnectionString const& connectionString;
+        std::string const& schema;
+        std::vector<SqlSchema::Table>& completedTables;
+        std::mutex& completedTablesMutex;
+        std::atomic<bool>& schemaScanningComplete;
+        std::mutex& schemaScanningDone_mutex;
+        std::condition_variable& schemaScanningDone_cv;
+        ProgressManager& progress;
+    };
+
+    /// Row counter thread function that counts rows for ETA calculation in parallel with backup.
+    ///
+    /// This thread processes tables as they become available in completedTables,
+    /// running COUNT(*) queries and reporting totals to the progress manager.
+    /// Runs in parallel with backup workers, but waits for schema scanning to complete first
+    /// to avoid database contention during schema metadata queries.
+    void RowCounterThread(RowCounterContext ctx)
+    {
+        try
+        {
+            // Wait until schema scanning is complete before starting to count.
+            // This avoids database contention during schema metadata queries.
+            {
+                std::unique_lock lock(ctx.schemaScanningDone_mutex);
+                ctx.schemaScanningDone_cv.wait(lock, [&ctx] { return ctx.schemaScanningComplete.load(); });
+            }
+
+            auto counterConn = SqlConnection(ctx.connectionString);
+            auto counterStmt = SqlStatement { counterConn };
+
+            // Process tables as they become available
+            size_t processedCount = 0;
+            while (true)
+            {
+                SqlSchema::Table tableToCount;
+                bool hasTable = false;
+
+                {
+                    std::scoped_lock lock(ctx.completedTablesMutex);
+                    if (processedCount < ctx.completedTables.size())
+                    {
+                        tableToCount = ctx.completedTables[processedCount];
+                        hasTable = true;
+                        processedCount++;
+                    }
+                }
+
+                if (hasTable)
+                {
+                    auto const formattedTableName = FormatTableName(tableToCount.schema, tableToCount.name);
+                    auto const rowCount = static_cast<size_t>(
+                        counterStmt.ExecuteDirectScalar<int64_t>(std::format("SELECT COUNT(*) FROM {}", formattedTableName))
+                            .value_or(0));
+                    ctx.progress.AddTotalItems(rowCount);
+                }
+                else
+                {
+                    // Check if schema scanning is done
+                    std::scoped_lock lock(ctx.completedTablesMutex);
+                    if (ctx.schemaScanningComplete.load() && processedCount >= ctx.completedTables.size())
+                        break;
+                }
+
+                // Brief sleep to avoid busy-waiting when waiting for new tables
+                if (!hasTable)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+        }
+        catch (std::exception const& e)
+        {
+            // Log error but don't fail backup - ETA is non-critical
+            ctx.progress.Update({ .state = Progress::State::Warning,
+                                  .tableName = "Counter",
+                                  .currentRows = 0,
+                                  .totalRows = std::nullopt,
+                                  .message = std::format("Row counting failed: {}", e.what()) });
+        }
+    }
+
     // BatchManager and BatchColumn moved to BatchManager.hpp/cpp
 
     struct RestoreContext
@@ -879,14 +1021,18 @@ namespace
         std::mutex& fileMutex;
         ProgressManager& progress;
         std::map<std::string, std::shared_ptr<std::atomic<size_t>>> tableProgress;
+        std::map<std::string, std::shared_ptr<std::atomic<size_t>>> chunksProcessed; // Per-table processed chunk count
+        std::map<std::string, size_t> totalChunks;                                   // Per-table total chunk count
         std::map<std::string, std::string> const* checksums; // entryName -> expected SHA-256 hash (optional)
         RetrySettings const& retrySettings;
+        RestoreSettings restoreSettings;
     };
 
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     void RestoreWorker(RestoreContext ctx)
     {
-        constexpr size_t batchCapacity = 4000;
+        // Use batch size from settings, or default to 4000 if not specified
+        size_t const batchCapacity = ctx.restoreSettings.batchSize > 0 ? ctx.restoreSettings.batchSize : 4000;
 
         try
         {
@@ -907,6 +1053,12 @@ namespace
                 SqlStatement { workerConn }.ExecuteDirect("PRAGMA synchronous = OFF");
                 SqlStatement { workerConn }.ExecuteDirect("PRAGMA journal_mode = WAL");
                 SqlStatement { workerConn }.ExecuteDirect("PRAGMA foreign_keys = OFF");
+                // Limit cache size to reduce memory usage (negative value = KB)
+                if (ctx.restoreSettings.cacheSizeKB > 0)
+                {
+                    SqlStatement { workerConn }.ExecuteDirect(
+                        std::format("PRAGMA cache_size = -{}", ctx.restoreSettings.cacheSizeKB));
+                }
             }
 
             while (true)
@@ -929,6 +1081,41 @@ namespace
                     content = ReadZipEntry<std::vector<uint8_t>>(ctx.zip, entryInfo.index, entryInfo.size);
                 }
 
+                // Parse path FIRST to get tableName for chunk-based completion tracking.
+                // Path format: data/TABLE_NAME/chunk_ID.msgpack
+                // All queued entries passed validation during queueing, so these checks are defensive.
+                std::string const path = entryInfo.name;
+                auto const firstSlash = path.find('/');
+                if (firstSlash == std::string::npos)
+                    continue; // Defensive: wasn't counted if path is malformed
+
+                auto const secondSlash = path.find('/', firstSlash + 1);
+                if (secondSlash == std::string::npos)
+                    continue; // Defensive: wasn't counted if path is malformed
+
+                std::string const tableName = path.substr(firstSlash + 1, secondSlash - firstSlash - 1);
+                if (!ctx.tableMap.contains(tableName))
+                    continue; // Defensive: wasn't counted if table not in map
+
+                // Helper lambda to increment chunk counter and report completion/error
+                auto const incrementChunkCounter = [&ctx, &tableName](bool success) {
+                    auto& chunkCounter = *ctx.chunksProcessed.at(tableName);
+                    size_t const processedChunks = chunkCounter.fetch_add(1) + 1;
+                    size_t const totalChunksForTable = ctx.totalChunks.at(tableName);
+
+                    if (processedChunks >= totalChunksForTable)
+                    {
+                        auto& rowCounter = *ctx.tableProgress.at(tableName);
+                        size_t const actualRowCount = rowCounter.load();
+                        ctx.progress.Update(
+                            { .state = success ? Progress::State::Finished : Progress::State::Error,
+                              .tableName = tableName,
+                              .currentRows = actualRowCount,
+                              .totalRows = actualRowCount,
+                              .message = success ? "Restore complete" : "Restore incomplete: errors occurred" });
+                    }
+                };
+
                 // Verify checksum if available
                 if (ctx.checksums)
                 {
@@ -939,39 +1126,29 @@ namespace
                         if (actualHash != it->second)
                         {
                             ctx.progress.Update({ .state = Progress::State::Error,
-                                                  .tableName = entryInfo.name,
+                                                  .tableName = tableName,
                                                   .currentRows = 0,
                                                   .totalRows = std::nullopt,
                                                   .message = std::format("Checksum mismatch for {}: expected {}, got {}",
                                                                          entryInfo.name,
                                                                          it->second,
                                                                          actualHash) });
+                            // Must increment chunk counter even on failure to prevent hang
+                            incrementChunkCounter(false);
                             continue;
                         }
                     }
                 }
-
-                // Parse standard chunk filenames: table_name.chunk_index.msgpack
-                // Backup writes: data/table_name/chunk_ID.extension
-                std::string const path = entryInfo.name;
-                auto const firstSlash = path.find('/');
-                if (firstSlash == std::string::npos)
-                    continue;
-
-                auto const secondSlash = path.find('/', firstSlash + 1);
-                if (secondSlash == std::string::npos)
-                    continue;
-                std::string const tableName = path.substr(firstSlash + 1, secondSlash - firstSlash - 1);
-                if (!ctx.tableMap.contains(tableName))
-                    continue;
                 auto const& tableInfo = ctx.tableMap.at(tableName);
                 std::string const& fields = tableInfo.fields;
 
                 size_t const currentTotal1 = ctx.tableProgress.at(tableName)->load();
+                std::optional<size_t> const displayTotal =
+                    tableInfo.rowCount > 0 ? std::optional { tableInfo.rowCount } : std::nullopt;
                 ctx.progress.Update({ .state = Progress::State::InProgress,
                                       .tableName = tableName,
                                       .currentRows = currentTotal1,
-                                      .totalRows = tableInfo.rowCount,
+                                      .totalRows = displayTotal,
                                       .message = "Restoring chunk " + path });
 
                 // Retry loop for chunk processing
@@ -980,9 +1157,11 @@ namespace
                 {
                     try
                     {
-                        std::stringstream ss(std::string(content.begin(), content.end()));
+                        // Use zero-copy reader directly from buffer (eliminates 2 memory copies)
+                        auto reader = CreateMsgPackChunkReaderFromBuffer(content);
 
                         bool const isMsSql = workerConn.ServerType() == SqlServerType::MICROSOFT_SQL;
+                        bool const isSQLite = workerConn.ServerType() == SqlServerType::SQLITE;
                         bool hasIdentity = false;
                         std::string identityTable;
 
@@ -1004,9 +1183,6 @@ namespace
                                     std::format("SET IDENTITY_INSERT {} ON", identityTable));
                             }
                         }
-
-                        // Detect format
-                        auto reader = CreateMsgPackChunkReader(ss);
 
                         {
                             auto const& formatter = workerConn.QueryFormatter();
@@ -1031,6 +1207,10 @@ namespace
                             // We default to ROLLBACK on destruction to ensure atomic application of the chunk.
                             SqlTransaction transaction(workerConn, SqlTransactionMode::ROLLBACK);
 
+                            // For SQLite: track rows since last commit for intermediate commits
+                            size_t rowsSinceCommit = 0;
+                            size_t const maxRowsPerCommit = ctx.restoreSettings.maxRowsPerCommit;
+
                             ColumnBatch batch;
                             while (reader->ReadBatch(batch))
                             {
@@ -1044,6 +1224,16 @@ namespace
                                 }
 
                                 batchManager.PushBatch(batch);
+                                rowsSinceCommit += batch.rowCount;
+
+                                // Intermediate commit for SQLite to reduce WAL memory accumulation
+                                if (isSQLite && maxRowsPerCommit > 0 && rowsSinceCommit >= maxRowsPerCommit)
+                                {
+                                    batchManager.Flush();
+                                    transaction.Commit();
+                                    transaction = SqlTransaction(workerConn, SqlTransactionMode::ROLLBACK);
+                                    rowsSinceCommit = 0;
+                                }
 
                                 auto& atomicCounter = *ctx.tableProgress.at(tableName);
                                 size_t const previousTotal = atomicCounter.fetch_add(batch.rowCount);
@@ -1052,7 +1242,7 @@ namespace
                                 ctx.progress.Update({ .state = Progress::State::InProgress,
                                                       .tableName = tableName,
                                                       .currentRows = currentTotal,
-                                                      .totalRows = tableInfo.rowCount,
+                                                      .totalRows = displayTotal,
                                                       .message = "Restoring chunk " + path });
 
                                 // Report items processed for ETA calculation
@@ -1121,6 +1311,11 @@ namespace
                             SqlStatement { workerConn }.ExecuteDirect("PRAGMA synchronous = OFF");
                             SqlStatement { workerConn }.ExecuteDirect("PRAGMA journal_mode = WAL");
                             SqlStatement { workerConn }.ExecuteDirect("PRAGMA foreign_keys = OFF");
+                            if (ctx.restoreSettings.cacheSizeKB > 0)
+                            {
+                                SqlStatement { workerConn }.ExecuteDirect(
+                                    std::format("PRAGMA cache_size = -{}", ctx.restoreSettings.cacheSizeKB));
+                            }
                         }
 
                         // Loop will re-process the same chunk
@@ -1136,16 +1331,12 @@ namespace
                     }
                 }
 
-                auto& atomicCounter = *ctx.tableProgress.at(tableName);
-                size_t currentTotal = atomicCounter.load();
-                if (currentTotal >= tableInfo.rowCount)
-                {
-                    ctx.progress.Update({ .state = Progress::State::Finished,
-                                          .tableName = tableName,
-                                          .currentRows = currentTotal,
-                                          .totalRows = tableInfo.rowCount,
-                                          .message = "Restore complete" });
-                }
+                // Release content buffer memory after chunk processing to reduce memory footprint
+                content.clear();
+                content.shrink_to_fit();
+
+                // Use chunk-based completion detection instead of row counts (fixes stall when rowCount=0)
+                incrementChunkCounter(true);
             }
         }
         catch (std::exception const& e)
@@ -1192,6 +1383,9 @@ namespace
             return;
         }
 
+        // SQLite doesn't support schemas - skip schema prefix for SQLite
+        bool const isSQLite = conn.ServerType() == SqlServerType::SQLITE;
+
         for (auto const& [tableName, info]: tableMap)
         {
             if (info.indexes.empty())
@@ -1212,7 +1406,8 @@ namespace
 
                     // Build the CREATE INDEX statement
                     std::string const uniqueKeyword = idx.isUnique ? "UNIQUE " : "";
-                    std::string const formattedTableName = FormatTableName(schema, tableName);
+                    std::string const formattedTableName =
+                        isSQLite ? std::format(R"("{}")", tableName) : FormatTableName(schema, tableName);
                     std::string const sql = std::format(
                         R"(CREATE {}INDEX "{}" ON {} ({}))", uniqueKeyword, idx.name, formattedTableName, columnList);
 
@@ -1290,12 +1485,26 @@ namespace
         }
     }
 
+    /// Recreates the database schema by dropping and creating tables from the backup metadata.
+    ///
+    /// This function creates tables in dependency order for SQLite (to satisfy FK constraints on CREATE),
+    /// or alphabetically for other databases (where FKs are added via ALTER TABLE later).
+    ///
+    /// @param connectionString The connection string for the target database.
+    /// @param schema The database schema name to create tables in.
+    /// @param tableMap Map of table names to their metadata from the backup.
+    /// @param progress Progress manager for reporting errors and status updates.
+    /// @return Set of table names that were successfully created. Tables that fail to create
+    ///         (e.g., due to type incompatibilities) are excluded from the returned set,
+    ///         allowing the caller to skip data restoration for those tables.
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-    void RecreateDatabaseSchema(SqlConnectionString const& connectionString,
-                                std::string const& schema,
-                                std::map<std::string, TableInfo> const& tableMap,
-                                ProgressManager& progress)
+    std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connectionString,
+                                                 std::string const& schema,
+                                                 std::map<std::string, TableInfo> const& tableMap,
+                                                 ProgressManager& progress)
     {
+        std::set<std::string> createdTables;
+
         SqlConnection conn;
         if (!conn.Connect(connectionString))
         {
@@ -1304,7 +1513,7 @@ namespace
                               .currentRows = 0,
                               .totalRows = std::nullopt,
                               .message = "Failed to connect for schema recreation: " + conn.LastError().message });
-            return;
+            return createdTables;
         }
         SqlStatement stmt { conn };
         bool const isSQLite = conn.ServerType() == SqlServerType::SQLITE;
@@ -1413,6 +1622,7 @@ namespace
             if (!DropTableIfExists(conn, schema, tableName, progress))
                 continue;
 
+            bool tableCreated = true;
             try
             {
                 std::vector<SqlCompositeForeignKeyConstraint> foreignKeys;
@@ -1438,6 +1648,7 @@ namespace
                     }
                     catch (std::exception const& e)
                     {
+                        tableCreated = false;
                         progress.Update({ .state = Progress::State::Error,
                                           .tableName = tableName,
                                           .currentRows = 0,
@@ -1448,13 +1659,19 @@ namespace
             }
             catch (std::exception const& e)
             {
+                tableCreated = false;
                 progress.Update({ .state = Progress::State::Error,
                                   .tableName = tableName,
                                   .currentRows = 0,
                                   .totalRows = 0,
                                   .message = std::string("CreateTable generation failed: ") + e.what() });
             }
+
+            if (tableCreated)
+                createdTables.insert(tableName);
         }
+
+        return createdTables;
     }
 } // namespace
 
@@ -1627,6 +1844,7 @@ std::string CreateMetadata(SqlConnectionString const& connectionString,
     return metadata.dump();
 }
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void Backup(std::filesystem::path const& outputFile,
             SqlConnectionString const& connectionString,
             unsigned concurrency,
@@ -1700,6 +1918,26 @@ void Backup(std::filesystem::path const& outputFile,
         std::generate_n(
             std::back_inserter(workers), concurrency, [&] { return std::thread(BackupWorker, std::ref(tableQueue), ctx); });
 
+        // Flag to signal when schema scanning is complete (for counter thread)
+        std::atomic<bool> schemaScanningComplete { false };
+        std::mutex schemaScanningDone_mutex;
+        std::condition_variable schemaScanningDone_cv;
+
+        // Counter thread: counts rows for ETA calculation in parallel with backup.
+        // Waits for schema scanning to complete before starting COUNT(*) queries
+        // to avoid database contention during schema metadata queries.
+        RowCounterContext counterCtx {
+            .connectionString = connectionString,
+            .schema = schema,
+            .completedTables = completedTables,
+            .completedTablesMutex = completedTablesMutex,
+            .schemaScanningComplete = schemaScanningComplete,
+            .schemaScanningDone_mutex = schemaScanningDone_mutex,
+            .schemaScanningDone_cv = schemaScanningDone_cv,
+            .progress = progress,
+        };
+        std::thread counterThread(RowCounterThread, counterCtx);
+
         // Schema progress callback
         SqlSchema::ReadAllTablesCallback schemaCallback =
             [&progress](std::string_view tableName, size_t const current, size_t const total) {
@@ -1711,7 +1949,7 @@ void Backup(std::filesystem::path const& outputFile,
             };
 
         // Table-ready callback: called when each table's schema is complete.
-        // We collect tables here but don't push to workers yet - we need to count rows first.
+        // Push tables to workers immediately to enable pipelining.
         SqlSchema::TableReadyCallback tableReadyCallback = [&](SqlSchema::Table&& table) {
             // Update max table name length for progress display
             size_t currentMax = maxTableNameLength.load();
@@ -1720,11 +1958,14 @@ void Backup(std::filesystem::path const& outputFile,
             {
             }
 
-            // Store for processing and metadata creation
+            // Store for metadata creation AND for counter thread
             {
                 std::scoped_lock lock(completedTablesMutex);
-                completedTables.push_back(std::move(table));
+                completedTables.push_back(table); // Copy for metadata & counting
             }
+
+            // Push to worker queue immediately - enables pipelining
+            tableQueue.Push(std::move(table));
         };
 
         // Create table filter predicate to skip reading schema for non-matching tables
@@ -1736,7 +1977,7 @@ void Backup(std::filesystem::path const& outputFile,
             };
         }
 
-        // Run schema scanning - tables are collected (not pushed to workers yet)
+        // Run schema scanning - tables are pushed to workers immediately via callback
         // The filter predicate ensures only matching tables have their full schema read
         auto stmt = SqlStatement { mainConn };
         SqlSchema::ReadAllTables(
@@ -1750,29 +1991,20 @@ void Backup(std::filesystem::path const& outputFile,
 
         progress.SetMaxTableNameLength(maxTableNameLength.load());
 
-        // Count rows for all tables to enable ETA calculation
-        size_t totalRows = 0;
-        for (auto const& table: completedTables)
+        // Signal schema scanning is complete - tables already pushed by callback
+        schemaScanningComplete = true;
         {
-            auto const formattedTableName = FormatTableName(schema, table.name);
-            auto const rowCount = static_cast<size_t>(
-                stmt.ExecuteDirectScalar<int64_t>(std::format("SELECT COUNT(*) FROM {}", formattedTableName)).value_or(0));
-            totalRows += rowCount;
+            std::scoped_lock lock(schemaScanningDone_mutex);
         }
-        progress.SetTotalItems(totalRows);
-
-        // Now push all tables to the worker queue
-        for (auto& table: completedTables)
-        {
-            tableQueue.Push(SqlSchema::Table(table)); // Copy since we need completedTables for metadata
-        }
-
-        // Signal that no more tables will be added
+        schemaScanningDone_cv.notify_one();
         tableQueue.MarkFinished();
 
         // Wait for all workers to complete
         for (auto& t: workers)
             t.join();
+
+        // Wait for counter thread to finish
+        counterThread.join();
 
         // Create metadata.json from completed tables (moved to end since we need full list)
         auto const metadataJson = CreateMetadata(connectionString, completedTables, schema);
@@ -2046,7 +2278,8 @@ void Restore(std::filesystem::path const& inputFile,
              ProgressManager& progress,
              std::string const& schema,
              std::string const& tableFilter,
-             RetrySettings const& retrySettings)
+             RetrySettings const& retrySettings,
+             RestoreSettings const& restoreSettings)
 {
     concurrency = std::max(1U, concurrency);
 
@@ -2164,9 +2397,38 @@ void Restore(std::filesystem::path const& inputFile,
         std::erase_if(tableMap, [&](auto const& pair) { return !filter.Matches(effectiveSchema, pair.first); });
     }
 
-    RecreateDatabaseSchema(connectionString, effectiveSchema, tableMap, progress);
+    std::set<std::string> const createdTables =
+        RecreateDatabaseSchema(connectionString, effectiveSchema, tableMap, progress);
+
+    // Report summary of schema creation
+    size_t const failedTables = tableMap.size() - createdTables.size();
+    if (failedTables > 0)
+    {
+        progress.Update({ .state = Progress::State::Warning,
+                          .tableName = "",
+                          .currentRows = 0,
+                          .totalRows = std::nullopt,
+                          .message = std::format("Schema creation: {} of {} tables created, {} failed",
+                                                 createdTables.size(),
+                                                 tableMap.size(),
+                                                 failedTables) });
+    }
+
+    // Early exit if all tables failed
+    if (createdTables.empty() && !tableMap.empty())
+    {
+        progress.Update({ .state = Progress::State::Error,
+                          .tableName = "",
+                          .currentRows = 0,
+                          .totalRows = std::nullopt,
+                          .message = "Restore aborted: No tables could be created" });
+        zip_close(zip);
+        progress.AllDone();
+        return;
+    }
 
     std::deque<ZipEntryInfo> dataQueue;
+    std::map<std::string, size_t> totalChunksPerTable; // Count chunks per table for completion detection
     zip_int64_t numEntries = zip_get_num_entries(zip, 0);
     for (zip_int64_t i = 0; i < numEntries; ++i)
     {
@@ -2177,12 +2439,27 @@ void Restore(std::filesystem::path const& inputFile,
         std::string name = stat.name;
         if (name.starts_with("data/") && name.ends_with(".msgpack"))
         {
-            dataQueue.push_back(ZipEntryInfo {
-                .index = i,
-                .name = std::move(name),
-                .size = stat.size,
-                .valid = true,
-            });
+            // Extract table name from path: data/TABLE_NAME/chunk.msgpack
+            auto const firstSlash = name.find('/');
+            auto const secondSlash = name.find('/', firstSlash + 1);
+            if (firstSlash != std::string::npos && secondSlash != std::string::npos)
+            {
+                std::string const tableName = name.substr(firstSlash + 1, secondSlash - firstSlash - 1);
+                // Skip chunks for tables that failed to create
+                if (!createdTables.contains(tableName))
+                    continue;
+
+                // Count chunks per table for chunk-based completion detection
+                totalChunksPerTable[tableName]++;
+
+                // Only add entries that pass validation AND are counted
+                dataQueue.push_back(ZipEntryInfo {
+                    .index = i,
+                    .name = std::move(name),
+                    .size = stat.size,
+                    .valid = true,
+                });
+            }
         }
     }
 
@@ -2190,28 +2467,52 @@ void Restore(std::filesystem::path const& inputFile,
     std::mutex fileMutex;
 
     std::map<std::string, std::shared_ptr<std::atomic<size_t>>> tableProgress;
+    std::map<std::string, std::shared_ptr<std::atomic<size_t>>> chunksProcessed;
     size_t totalRows = 0;
     for (auto const& [name, info]: tableMap)
     {
-        tableProgress[name] = std::make_shared<std::atomic<size_t>>(0);
-        totalRows += info.rowCount;
+        // Only track progress for successfully created tables
+        if (createdTables.contains(name))
+        {
+            tableProgress[name] = std::make_shared<std::atomic<size_t>>(0);
+            chunksProcessed[name] = std::make_shared<std::atomic<size_t>>(0);
+            totalRows += info.rowCount;
+        }
     }
 
-    // Set total items for ETA calculation
-    progress.SetTotalItems(totalRows);
+    // Set total items for ETA calculation. Even if some tables have unknown row counts (0),
+    // the sum of known counts provides a reasonable approximation for progress display.
+    if (totalRows > 0)
+        progress.SetTotalItems(totalRows);
+
+    // Filter tableMap to only include created tables for RestoreContext
+    std::map<std::string, TableInfo> filteredTableMap;
+    for (auto const& [name, info]: tableMap)
+    {
+        if (createdTables.contains(name))
+            filteredTableMap[name] = info;
+    }
+
+    // Calculate restore settings based on available memory and concurrency
+    RestoreSettings const effectiveSettings = restoreSettings.memoryLimitBytes > 0
+                                                  ? restoreSettings
+                                                  : CalculateRestoreSettings(GetAvailableSystemMemory(), concurrency);
 
     RestoreContext ctx {
         .connectionString = connectionString,
         .schema = effectiveSchema,
-        .tableMap = tableMap,
+        .tableMap = filteredTableMap,
         .dataQueue = dataQueue,
         .zip = zip,
         .queueMutex = queueMutex,
         .fileMutex = fileMutex,
         .progress = progress,
         .tableProgress = tableProgress,
+        .chunksProcessed = chunksProcessed,
+        .totalChunks = totalChunksPerTable,
         .checksums = checksums.empty() ? nullptr : &checksums,
         .retrySettings = retrySettings,
+        .restoreSettings = effectiveSettings,
     };
 
     std::vector<std::thread> threads;
@@ -2220,8 +2521,8 @@ void Restore(std::filesystem::path const& inputFile,
     for (auto& t: threads)
         t.join();
 
-    ApplyDatabaseConstraints(connectionString, effectiveSchema, tableMap, progress);
-    RestoreIndexes(connectionString, effectiveSchema, tableMap, progress);
+    ApplyDatabaseConstraints(connectionString, effectiveSchema, filteredTableMap, progress);
+    RestoreIndexes(connectionString, effectiveSchema, filteredTableMap, progress);
 
     zip_close(zip);
     progress.Update({ .state = Progress::State::Finished,
@@ -2230,6 +2531,18 @@ void Restore(std::filesystem::path const& inputFile,
                       .totalRows = std::nullopt,
                       .message = "Restore complete" });
     progress.AllDone();
+}
+
+void Restore(std::filesystem::path const& inputFile,
+             SqlConnectionString const& connectionString,
+             unsigned concurrency,
+             ProgressManager& progress,
+             std::string const& schema,
+             std::string const& tableFilter,
+             RetrySettings const& retrySettings)
+{
+    // Forward to the main implementation with default RestoreSettings
+    Restore(inputFile, connectionString, concurrency, progress, schema, tableFilter, retrySettings, RestoreSettings {});
 }
 
 } // namespace Lightweight::SqlBackup

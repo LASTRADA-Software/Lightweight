@@ -14,6 +14,17 @@ namespace Lightweight
 
 class SqlServerQueryFormatter final: public SQLiteQueryFormatter
 {
+  protected:
+    [[nodiscard]] static std::string FormatFromTable(std::string_view table)
+    {
+        // If already quoted (starts with [ or "), return as-is
+        if (!table.empty() && (table.front() == '[' || table.front() == '"'))
+            return std::string(table);
+        // For backward compatibility, use double quotes for simple table names
+        // Square brackets are used for qualified names via QualifiedTableName
+        return std::format(R"("{}")", table);
+    }
+
   public:
     [[nodiscard]] StringList DropTable(std::string_view schemaName,
                                        std::string_view const& tableName,
@@ -56,6 +67,13 @@ EXEC sp_executesql @sql;)",
         return result;
     }
 
+    [[nodiscard]] std::string QualifiedTableName(std::string_view schema, std::string_view table) const override
+    {
+        if (schema.empty())
+            return std::format("[{}]", table);
+        return std::format("[{}].[{}]", schema, table);
+    }
+
     [[nodiscard]] std::string QueryLastInsertId(std::string_view /*tableName*/) const override
     {
         // TODO: Figure out how to get the last insert id in SQL Server for a given table.
@@ -88,13 +106,12 @@ EXEC sp_executesql @sql;)",
             sqlQueryString << " DISTINCT";
         sqlQueryString << " TOP " << count;
         sqlQueryString << ' ' << fields;
-        sqlQueryString << " FROM \"" << fromTable << '"';
+        sqlQueryString << " FROM " << FormatFromTable(fromTable);
         if (!fromTableAlias.empty())
-            sqlQueryString << " AS \"" << fromTableAlias << '"';
+            sqlQueryString << " AS [" << fromTableAlias << ']';
         sqlQueryString << tableJoins;
         sqlQueryString << whereCondition;
         sqlQueryString << orderBy;
-        ;
         return sqlQueryString.str();
     }
 
@@ -115,9 +132,9 @@ EXEC sp_executesql @sql;)",
         sqlQueryString << "SELECT " << fields;
         if (distinct)
             sqlQueryString << " DISTINCT";
-        sqlQueryString << " FROM \"" << fromTable << "\"";
+        sqlQueryString << " FROM " << FormatFromTable(fromTable);
         if (!fromTableAlias.empty())
-            sqlQueryString << " AS \"" << fromTableAlias << "\"";
+            sqlQueryString << " AS [" << fromTableAlias << ']';
         sqlQueryString << tableJoins;
         sqlQueryString << whereCondition;
         sqlQueryString << groupBy;

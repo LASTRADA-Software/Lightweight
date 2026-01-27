@@ -49,6 +49,11 @@ class [[nodiscard]] SqlQueryBuilder final
     /// Constructs a new query builder for the given table with an alias.
     LIGHTWEIGHT_API SqlQueryBuilder& FromTableAs(std::string table, std::string alias);
 
+    /// Constructs a new query builder for the given schema and table.
+    /// @param schema The schema name (e.g., "public", "dbo")
+    /// @param table The table name
+    LIGHTWEIGHT_API SqlQueryBuilder& FromSchemaTable(std::string_view schema, std::string_view table);
+
     ///  Initiates INSERT query building
     ///
     ///  @param boundInputs Optional vector to store bound inputs.
@@ -77,6 +82,7 @@ class [[nodiscard]] SqlQueryBuilder final
 
   private:
     SqlQueryFormatter const& m_formatter;
+    std::string m_schema;
     std::string m_table;
     std::string m_tableAlias;
 };

@@ -41,6 +41,12 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// Converts a binary value to a hex-encoded string literal.
     [[nodiscard]] virtual std::string BinaryLiteral(std::span<uint8_t const> data) const = 0;
 
+    /// Formats a qualified table name with proper quoting for this database.
+    /// @param schema The schema name (can be empty for default schema)
+    /// @param table The table name
+    /// @return The properly quoted qualified table name (e.g., "schema"."table" or [schema].[table])
+    [[nodiscard]] virtual std::string QualifiedTableName(std::string_view schema, std::string_view table) const = 0;
+
     /// Constructs an SQL INSERT query.
     ///
     /// @param intoTable The table to insert into.

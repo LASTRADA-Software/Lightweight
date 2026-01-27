@@ -144,7 +144,9 @@ struct TypedBatchColumn: BatchColumn
     void Clear() override
     {
         data.clear();
+        data.shrink_to_fit();
         indicators.clear();
+        indicators.shrink_to_fit();
     }
 
     SqlRawColumn ToRaw() override
@@ -343,7 +345,9 @@ struct DateTimeBatchColumn: BatchColumn
     void Clear() override
     {
         data.clear();
+        data.shrink_to_fit();
         indicators.clear();
+        indicators.shrink_to_fit();
     }
 
     SqlRawColumn ToRaw() override
@@ -478,7 +482,9 @@ struct DateBatchColumn: BatchColumn
     void Clear() override
     {
         data.clear();
+        data.shrink_to_fit();
         indicators.clear();
+        indicators.shrink_to_fit();
     }
 
     SqlRawColumn ToRaw() override
@@ -617,7 +623,9 @@ struct TimeBatchColumn: BatchColumn
     void Clear() override
     {
         data.clear();
+        data.shrink_to_fit();
         indicators.clear();
+        indicators.shrink_to_fit();
     }
 
     SqlRawColumn ToRaw() override
@@ -741,7 +749,9 @@ struct StringTimeBatchColumn: BatchColumn
     void Clear() override
     {
         data.clear();
+        data.shrink_to_fit();
         indicators.clear();
+        indicators.shrink_to_fit();
     }
 
     SqlRawColumn ToRaw() override
@@ -898,7 +908,9 @@ struct MsTimeBatchColumn: BatchColumn
     void Clear() override
     {
         data.clear();
+        data.shrink_to_fit();
         indicators.clear();
+        indicators.shrink_to_fit();
     }
 
     SqlRawColumn ToRaw() override
@@ -1027,7 +1039,9 @@ struct StringBatchColumn: BatchColumn
     void Clear() override
     {
         buffer.clear();
+        buffer.shrink_to_fit();
         indicators.clear();
+        indicators.shrink_to_fit();
     }
 
     SqlRawColumn ToRaw() override
@@ -1173,7 +1187,9 @@ struct WideStringBatchColumn: BatchColumn
     void Clear() override
     {
         buffer.clear();
+        buffer.shrink_to_fit();
         indicators.clear();
+        indicators.shrink_to_fit();
     }
 
     SqlRawColumn ToRaw() override
@@ -1364,7 +1380,9 @@ struct BinaryBatchColumn: BatchColumn
     void Clear() override
     {
         buffer.clear();
+        buffer.shrink_to_fit();
         indicators.clear();
+        indicators.shrink_to_fit();
     }
 
     SqlRawColumn ToRaw() override
@@ -1481,7 +1499,9 @@ struct GuidBatchColumn: BatchColumn
     void Clear() override
     {
         data.clear();
+        data.shrink_to_fit();
         indicators.clear();
+        indicators.shrink_to_fit();
     }
 
     SqlRawColumn ToRaw() override
@@ -1494,6 +1514,61 @@ struct GuidBatchColumn: BatchColumn
                               .indicators = std::span<SQLLEN const> { indicators.data(), indicators.size() } };
     }
 };
+
+namespace
+{
+    /// Estimates the buffer size needed per row for a given column type.
+    /// This is used to calculate memory-aware batch capacity.
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+    size_t EstimateColumnBufferSize(SqlColumnDeclaration const& col)
+    {
+        return std::visit(
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+            [](auto const& t) -> size_t {
+                using T = std::decay_t<decltype(t)>;
+                if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Varchar>)
+                    return t.size > 0 ? t.size : 4096;
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::NVarchar>)
+                    return (t.size > 0 ? t.size : 4096) * sizeof(char16_t);
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Char>)
+                    return t.size > 0 ? t.size : 4096;
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::NChar>)
+                    return (t.size > 0 ? t.size : 4096) * sizeof(char16_t);
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Text>)
+                    return t.size > 0 ? t.size : 4096;
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Binary>)
+                    return t.size > 0 ? t.size : 65535;
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::VarBinary>)
+                    return t.size > 0 ? t.size : 65535;
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Decimal>)
+                    return t.precision + 3; // digits + sign + decimal point
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Bigint>)
+                    return sizeof(int64_t);
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Integer>)
+                    return sizeof(int32_t);
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Smallint>)
+                    return sizeof(int16_t);
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Tinyint>)
+                    return sizeof(int8_t);
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Real>)
+                    return sizeof(double);
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Bool>)
+                    return sizeof(int8_t);
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Guid>)
+                    return 16;
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::DateTime>
+                                   || std::is_same_v<T, SqlColumnTypeDefinitions::Timestamp>)
+                    return sizeof(SQL_TIMESTAMP_STRUCT);
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Date>)
+                    return sizeof(SQL_DATE_STRUCT);
+                else if constexpr (std::is_same_v<T, SqlColumnTypeDefinitions::Time>)
+                    return 16; // String time format "HH:MM:SS.ffffff"
+                else
+                    return 256; // Default fallback
+            },
+            col.type);
+    }
+} // namespace
 
 BatchManager::BatchManager(BatchExecutor executor,
                            std::vector<SqlColumnDeclaration> const& colDecls,
@@ -1508,10 +1583,31 @@ BatchManager::BatchManager(BatchExecutor executor,
         columns.push_back(CreateColumn(col));
     }
 
-    // Calculate safe capacity
+    // Calculate memory-aware capacity
+    // Estimate bytes per row based on column definitions
+    size_t bytesPerRow = 0;
+    for (auto const& col: colDecls)
+    {
+        bytesPerRow += EstimateColumnBufferSize(col);
+        bytesPerRow += sizeof(SQLLEN); // indicator per column
+    }
+    bytesPerRow = std::max(bytesPerRow, size_t { 1 });
+
+    // Memory budget: 32MB per batch to avoid OOM on large restores
+    // This is a conservative limit that works well with --memory-limit 1G
+    constexpr size_t memoryBudget = 32 * 1024 * 1024;
+    size_t const memoryCapacity = memoryBudget / bytesPerRow;
+
+    // Also limit by parameter count for ODBC compatibility
     size_t const numCols = std::max(size_t { 1 }, columns.size());
     size_t const paramLimit = 25000;
-    this->capacity = std::min(capacity, paramLimit / numCols);
+    size_t const paramCapacity = paramLimit / numCols;
+
+    // Use the minimum of all limits
+    this->capacity = std::min({ capacity, memoryCapacity, paramCapacity });
+
+    // Ensure at least 1 row capacity
+    this->capacity = std::max(this->capacity, size_t { 1 });
 }
 
 BatchManager::~BatchManager() = default;
@@ -1613,16 +1709,22 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
         || std::holds_alternative<SqlColumnTypeDefinitions::Char>(col.type)
         || std::holds_alternative<SqlColumnTypeDefinitions::Decimal>(col.type))
     {
+        // Cap string column sizes to prevent memory exhaustion with VARCHAR(MAX)/TEXT types.
+        // VARCHAR(MAX) has size INT_MAX (2147483647), which would allocate 2GB per row.
+        // Using 64KB as default - large enough for most data, small enough to not exhaust memory.
+        // Data larger than this will be truncated during batch insert.
+        size_t constexpr maxStringSize = 65535;
+        size_t constexpr defaultStringSize = 4096;
         size_t size = 8192;
         if (auto const* vc = std::get_if<SqlColumnTypeDefinitions::Varchar>(&col.type))
-            size = vc->size > 0 ? vc->size : 4096;
+            size = (vc->size > 0 && vc->size <= maxStringSize) ? vc->size : defaultStringSize;
         else if (auto const* txt = std::get_if<SqlColumnTypeDefinitions::Text>(&col.type))
         {
-            size = txt->size > 0 ? txt->size : 4096;
+            size = (txt->size > 0 && txt->size <= maxStringSize) ? txt->size : defaultStringSize;
             meta.sqlType = SQL_LONGVARCHAR;
         }
         else if (auto const* ch = std::get_if<SqlColumnTypeDefinitions::Char>(&col.type))
-            size = ch->size > 0 ? ch->size : 4096;
+            size = (ch->size > 0 && ch->size <= maxStringSize) ? ch->size : defaultStringSize;
         else if (auto const* dec = std::get_if<SqlColumnTypeDefinitions::Decimal>(&col.type))
         {
             // For Decimal columns bound as strings, the size needs to accommodate:
@@ -1646,11 +1748,16 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
     if (std::holds_alternative<SqlColumnTypeDefinitions::NVarchar>(col.type)
         || std::holds_alternative<SqlColumnTypeDefinitions::NChar>(col.type))
     {
+        // Cap wide string column sizes to prevent memory exhaustion with NVARCHAR(MAX) types.
+        // NVARCHAR(MAX) has size INT_MAX, which would allocate 4GB per row (2 bytes per char).
+        // Using 32K characters (64KB) as max - large enough for most data, small enough to not exhaust memory.
+        size_t constexpr maxWideStringSize = 32767;
+        size_t constexpr defaultWideStringSize = 4096;
         size_t size = 8192;
         if (auto const* nvc = std::get_if<SqlColumnTypeDefinitions::NVarchar>(&col.type))
-            size = nvc->size > 0 ? nvc->size : 4096;
+            size = (nvc->size > 0 && nvc->size <= maxWideStringSize) ? nvc->size : defaultWideStringSize;
         else if (auto const* nch = std::get_if<SqlColumnTypeDefinitions::NChar>(&col.type))
-            size = nch->size > 0 ? nch->size : 4096;
+            size = (nch->size > 0 && nch->size <= maxWideStringSize) ? nch->size : defaultWideStringSize;
 
         if (meta.size == 0 || meta.size >= 2000)
         {
@@ -1665,15 +1772,17 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
     if (std::holds_alternative<SqlColumnTypeDefinitions::VarBinary>(col.type)
         || std::holds_alternative<SqlColumnTypeDefinitions::Binary>(col.type))
     {
-        // Use a reasonable default size for binary columns when size is 0 (MAX types).
-        // Using 64KB as default - large enough for most data, small enough to not exhaust memory.
+        // Cap binary column sizes to prevent memory exhaustion with VARBINARY(MAX) types.
+        // VARBINARY(MAX) has size INT_MAX (2147483647), which would allocate 2GB per row.
+        // Using 64KB as max - large enough for most data, small enough to not exhaust memory.
         // Data larger than this will be truncated during batch insert.
+        size_t constexpr maxBinarySize = 65535;
         size_t constexpr defaultBinarySize = 65535;
         size_t size = defaultBinarySize;
         if (auto const* bin = std::get_if<SqlColumnTypeDefinitions::VarBinary>(&col.type))
-            size = bin->size > 0 ? bin->size : defaultBinarySize;
+            size = (bin->size > 0 && bin->size <= maxBinarySize) ? bin->size : defaultBinarySize;
         else if (auto const* bin2 = std::get_if<SqlColumnTypeDefinitions::Binary>(&col.type))
-            size = bin2->size > 0 ? bin2->size : defaultBinarySize;
+            size = (bin2->size > 0 && bin2->size <= maxBinarySize) ? bin2->size : defaultBinarySize;
 
         if (meta.size == 0 || meta.size >= 4000)
         {

@@ -15,6 +15,21 @@
 namespace Lightweight::Tools
 {
 
+/// Type of issue reported during backup/restore operations.
+enum class IssueType : std::uint8_t
+{
+    Error,
+    Warning,
+    Info
+};
+
+/// Represents a single issue (error, warning, or info) associated with a table.
+struct TableIssue
+{
+    std::string message;
+    IssueType type;
+};
+
 class StandardProgressManager: public Lightweight::SqlBackup::ErrorTrackingProgressManager
 {
   public:
@@ -24,6 +39,7 @@ class StandardProgressManager: public Lightweight::SqlBackup::ErrorTrackingProgr
     void AllDone() override;
     void SetMaxTableNameLength(size_t len) override;
     void SetTotalItems(size_t totalItems) override;
+    void AddTotalItems(size_t additionalItems) override;
     void OnItemsProcessed(size_t count) override;
 
   private:
@@ -42,7 +58,7 @@ class StandardProgressManager: public Lightweight::SqlBackup::ErrorTrackingProgr
     int _nextLineIndex = 0;
     int _maxTableNameLength = 20;
     bool _useUnicode = false;
-    std::vector<std::string> _warnings;
+    std::map<std::string, std::vector<TableIssue>> _issuesByTable;
     std::set<std::string> _tablesWithWarnings;
     std::map<std::string, std::chrono::steady_clock::time_point> _tableStartTimes;
     std::chrono::steady_clock::time_point _startTime = std::chrono::steady_clock::now();

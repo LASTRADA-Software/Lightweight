@@ -36,7 +36,7 @@ struct ColumnBatch
     std::vector<ColumnData> columns;
     std::vector<std::vector<bool>> nullIndicators; // Parallel to columns: true if NULL
 
-    /// Clears the internal buffer after a flush.
+    /// Clears the internal buffer after a flush and releases memory.
     void Clear()
     {
         rowCount = 0;
@@ -45,12 +45,18 @@ struct ColumnBatch
             std::visit(
                 [](auto& v) {
                     if constexpr (!std::is_same_v<std::decay_t<decltype(v)>, std::monostate>)
+                    {
                         v.clear();
+                        v.shrink_to_fit();
+                    }
                 },
                 col);
         }
         for (auto& inds: nullIndicators)
+        {
             inds.clear();
+            inds.shrink_to_fit();
+        }
     }
 };
 

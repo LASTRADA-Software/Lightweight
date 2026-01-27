@@ -7,6 +7,7 @@
 #include <format>
 #include <iostream>
 #include <optional>
+#include <span>
 #include <sstream>
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -1063,6 +1064,529 @@ namespace
         }
     };
 
+    /// Zero-copy MsgPack chunk reader that reads from an externally-owned buffer.
+    ///
+    /// This class is similar to MsgPackChunkReader but does not copy the input buffer.
+    /// The caller must ensure the buffer remains valid for the lifetime of this reader.
+    class MsgPackChunkReaderFromBuffer: public ChunkReader
+    {
+      public:
+        explicit MsgPackChunkReaderFromBuffer(std::span<uint8_t const> buffer):
+            cursor_(buffer.data()),
+            end_(buffer.data() + buffer.size())
+        {
+        }
+
+        bool ReadBatch(ColumnBatch& batch) override
+        {
+            if (cursor_ >= end_)
+                return false;
+
+            batch.Clear();
+
+            uint32_t len = 0;
+            if (!ReadArrayHeader(len))
+                return false;
+
+            // Iterate columns
+            batch.columns.resize(len);
+            batch.nullIndicators.resize(len);
+
+            for (uint32_t i = 0; i < len; ++i)
+            {
+                // Read Column Map
+                size_t mapLen = 0;
+                ReadMapHeader(mapLen);
+
+                std::string typeStr;
+
+                for (size_t k = 0; k < mapLen; ++k)
+                {
+                    std::string key = ReadString();
+                    if (key == "t")
+                        typeStr = ReadString();
+                    else if (key == "d")
+                    {
+                        if (typeStr == "i64")
+                            ReadPackedInt64(batch.columns[i]);
+                        else if (typeStr == "f64")
+                            ReadPackedDouble(batch.columns[i]);
+                        else if (typeStr == "str")
+                            ReadStringArray(batch.columns[i]);
+                        else if (typeStr == "bin")
+                        {
+                            ReadBinaryArray(batch.columns[i]);
+                        }
+                        else if (typeStr == "bool")
+                            ReadBoolArray(batch.columns[i]);
+                        else
+                        {
+                            SkipValue(); // unknown type?
+                        }
+                    }
+                    else if (key == "n")
+                    {
+                        ReadBoolArray(batch.nullIndicators[i]); // stored as bool array for now
+                    }
+                    else
+                        SkipValue();
+                }
+            }
+
+            // Populate rowCount
+            if (!batch.columns.empty())
+            {
+                if (!batch.nullIndicators.empty())
+                    batch.rowCount = batch.nullIndicators[0].size();
+                else
+                    batch.rowCount = 0; // LCOV_EXCL_LINE - Defensive: nullIndicators always populated by writer
+            }
+            else
+            {
+                batch.rowCount = 0; // LCOV_EXCL_LINE - Defensive: columns always present in valid data
+            }
+            return true;
+        }
+
+      private:
+        uint8_t const* cursor_ = nullptr;
+        uint8_t const* end_ = nullptr;
+
+        template <typename T>
+        T ReadBe()
+        {
+            if (cursor_ + sizeof(T) > end_)
+                throw std::out_of_range("MsgPackReader: Unexpected EOF reading primitive");
+            T val;
+            std::memcpy(&val, cursor_, sizeof(T));
+            cursor_ += sizeof(T);
+            if constexpr (std::endian::native == std::endian::little)
+                return std::byteswap(val);
+            else
+                return val;
+        }
+
+        bool ReadArrayHeader(uint32_t& len)
+        {
+            if (cursor_ >= end_)
+                return false;
+            uint8_t head = *cursor_;
+            if ((head & 0xF0) == 0x90)
+            {
+                cursor_++;
+                len = head & 0x0F;
+                return true;
+            }
+            if (head == Mp::Array16)
+            {
+                cursor_++;
+                len = ReadBe<uint16_t>();
+                return true;
+            }
+            if (head == Mp::Array32)
+            {
+                cursor_++;
+                len = ReadBe<uint32_t>();
+                return true;
+            }
+            return false;
+        }
+
+        void ReadMapHeader(size_t& len)
+        {
+            if (cursor_ >= end_)
+                throw std::out_of_range("MsgPackReader: Unexpected EOF in ReadMapHeader");
+            uint8_t head = *cursor_;
+            if ((head & 0xF0) == 0x80)
+            {
+                cursor_++;
+                len = head & 0x0F;
+                return;
+            }
+            if (head == Mp::Map16)
+            {
+                cursor_++;
+                len = ReadBe<uint16_t>();
+                return;
+            }
+            if (head == Mp::Map32)
+            {
+                cursor_++;
+                len = ReadBe<uint32_t>();
+                return;
+            }
+            throw std::runtime_error("Expected Map");
+        }
+
+        std::string ReadString()
+        {
+            if (cursor_ >= end_)
+                throw std::out_of_range("MsgPackReader: Unexpected EOF in ReadString");
+            uint8_t head = *cursor_;
+            size_t len = 0;
+            if ((head & 0xE0) == 0xA0)
+            {
+                cursor_++;
+                len = head & 0x1F;
+            }
+            else if (head == Mp::Str8)
+            {
+                cursor_++;
+                len = ReadBe<uint8_t>();
+            }
+            else if (head == Mp::Str16)
+            {
+                cursor_++;
+                len = ReadBe<uint16_t>();
+            }
+            else if (head == Mp::Str32)
+            {
+                cursor_++;
+                len = ReadBe<uint32_t>();
+            }
+            else
+                throw std::runtime_error("Expected String");
+
+            if (cursor_ + len > end_)
+                throw std::out_of_range("EOF");
+            std::string s(reinterpret_cast<char const*>(cursor_), len);
+            cursor_ += len;
+            return s;
+        }
+
+        void ReadPackedInt64(ColumnBatch::ColumnData& col)
+        {
+            if (cursor_ >= end_)
+                throw std::out_of_range("MsgPackReader: Unexpected EOF in ReadPackedInt64");
+
+            uint8_t head = *cursor_++;
+            uint32_t bytes = 0;
+            if (head == Mp::Bin8)
+                bytes = ReadBe<uint8_t>();
+            else if (head == Mp::Bin16)
+                bytes = ReadBe<uint16_t>();
+            else if (head == Mp::Bin32)
+                bytes = ReadBe<uint32_t>();
+
+            size_t const count = bytes / 8;
+            std::vector<int64_t> vec(count);
+
+            if (cursor_ + bytes > end_)
+                throw std::out_of_range("MsgPackReader: Unexpected EOF in ReadPackedInt64 Data");
+
+            if (bytes > 0)
+            {
+                std::memcpy(vec.data(), cursor_, bytes);
+                cursor_ += bytes;
+
+                if constexpr (std::endian::native == std::endian::little)
+                {
+                    for (size_t i = 0; i < count; ++i)
+                        vec[i] = std::byteswap(vec[i]);
+                }
+            }
+
+            col = std::move(vec);
+        }
+
+        void ReadPackedDouble(ColumnBatch::ColumnData& col)
+        {
+            if (cursor_ >= end_)
+                throw std::out_of_range("MsgPackReader: Unexpected EOF in ReadPackedDouble");
+
+            uint8_t head = *cursor_++;
+            uint32_t bytes = 0;
+            if (head == Mp::Bin8)
+                bytes = ReadBe<uint8_t>();
+            else if (head == Mp::Bin16)
+                bytes = ReadBe<uint16_t>();
+            else if (head == Mp::Bin32)
+                bytes = ReadBe<uint32_t>();
+
+            size_t const count = bytes / 8;
+            std::vector<double> vec(count);
+
+            if (cursor_ + bytes > end_)
+                throw std::out_of_range("MsgPackReader: Unexpected EOF in ReadPackedDouble Data");
+
+            static_assert(sizeof(double) == sizeof(uint64_t));
+
+            if (bytes > 0)
+            {
+                std::memcpy(vec.data(), cursor_, bytes);
+                cursor_ += bytes;
+
+                if constexpr (std::endian::native == std::endian::little)
+                {
+                    auto* ptr = reinterpret_cast<uint64_t*>(vec.data());
+                    for (size_t i = 0; i < count; ++i)
+                    {
+                        ptr[i] = std::byteswap(ptr[i]);
+                    }
+                }
+            }
+
+            col = std::move(vec);
+        }
+
+        void ReadStringArray(ColumnBatch::ColumnData& col)
+        {
+            uint32_t len = 0;
+            if (!ReadArrayHeader(len))
+                throw std::out_of_range("MsgPackReader: Unexpected EOF in ReadStringArray");
+
+            std::vector<std::string> vec;
+            vec.reserve(len);
+            for (uint32_t i = 0; i < len; ++i)
+                vec.push_back(ReadString());
+            col = std::move(vec);
+        }
+
+        std::vector<uint8_t> ReadBinary()
+        {
+            if (cursor_ >= end_)
+                throw std::out_of_range("MsgPackReader: Unexpected EOF in ReadBinary");
+
+            uint8_t head = *cursor_;
+            size_t len = 0;
+            if (head == Mp::Bin8)
+            {
+                cursor_++;
+                len = ReadBe<uint8_t>();
+            }
+            else if (head == Mp::Bin16)
+            {
+                cursor_++;
+                len = ReadBe<uint16_t>();
+            }
+            else if (head == Mp::Bin32)
+            {
+                cursor_++;
+                len = ReadBe<uint32_t>();
+            }
+            else
+                throw std::runtime_error("Expected Binary");
+
+            if (cursor_ + len > end_)
+                throw std::out_of_range("EOF reading binary data");
+
+            std::vector<uint8_t> data(cursor_, cursor_ + len);
+            cursor_ += len;
+            return data;
+        }
+
+        void ReadBinaryArray(ColumnBatch::ColumnData& col)
+        {
+            uint32_t len = 0;
+            if (!ReadArrayHeader(len))
+                throw std::out_of_range("MsgPackReader: Unexpected EOF in ReadBinaryArray");
+
+            std::vector<std::vector<uint8_t>> vec;
+            vec.reserve(len);
+            for (uint32_t i = 0; i < len; ++i)
+                vec.push_back(ReadBinary());
+            col = std::move(vec);
+        }
+
+        [[nodiscard]] uint8_t Peek() const
+        {
+            if (cursor_ >= end_)
+                throw std::out_of_range("MsgPackReader: Unexpected EOF in Peek");
+            return *cursor_;
+        }
+
+        uint64_t ReadInt()
+        {
+            if (cursor_ >= end_)
+                throw std::out_of_range("MsgPackReader: EOF in ReadInt");
+            uint8_t head = *cursor_++;
+            if (head <= 0x7F)
+                return head;
+            if (head == Mp::Uint8)
+                return ReadBe<uint8_t>();
+            if (head == Mp::Uint16)
+                return ReadBe<uint16_t>();
+            if (head == Mp::Uint32)
+                return ReadBe<uint32_t>();
+            if (head == Mp::Uint64)
+                return ReadBe<uint64_t>();
+            throw std::runtime_error("Expected Integer");
+        }
+
+        void ReadBoolArray(std::vector<bool>& vec)
+        {
+            uint32_t len = 0;
+            if (!ReadArrayHeader(len))
+                throw std::out_of_range("MsgPackReader: Unexpected EOF in ReadBoolArray");
+
+            bool isPacked = false;
+            if (len == 2)
+            {
+                if (cursor_ < end_)
+                {
+                    uint8_t next = Peek();
+                    if (next != Mp::False && next != Mp::True)
+                        isPacked = true;
+                }
+            }
+
+            if (isPacked)
+            {
+                uint64_t elementCount = ReadInt();
+                std::vector<uint8_t> packed = ReadBinary();
+
+                vec.resize(elementCount);
+                for (size_t i = 0; i < elementCount; ++i)
+                {
+                    uint8_t byte = packed[i / 8];
+                    bool b = (byte >> (7 - (i % 8))) & 1;
+                    vec[i] = b;
+                }
+            }
+            else
+            {
+                vec.resize(len);
+                for (uint32_t i = 0; i < len; ++i)
+                {
+                    if (cursor_ >= end_)
+                        throw std::out_of_range("MsgPackReader: Unexpected EOF in boolean array");
+                    uint8_t h = *cursor_++;
+                    vec[i] = (h == Mp::True);
+                }
+            }
+        }
+
+        void ReadBoolArray(ColumnBatch::ColumnData& col)
+        {
+            std::vector<bool> vec;
+            ReadBoolArray(vec);
+            col = std::move(vec);
+        }
+
+        void SkipValue()
+        {
+            if (cursor_ >= end_)
+                return;
+            uint8_t head = *cursor_++;
+
+            if (head <= 0x7F)
+                return; // positive fixint
+            if ((head & 0xE0) == 0xE0)
+                return; // negative fixint
+            if (head == Mp::Nil || head == Mp::False || head == Mp::True)
+                return;
+
+            if ((head & 0xE0) == 0xA0)
+            { // fixstr
+                uint8_t len = head & 0x1F;
+                cursor_ += len;
+                return;
+            }
+            if ((head & 0xF0) == 0x90)
+            { // fixarray
+                auto const len = static_cast<unsigned>(head & 0x0F);
+                for (unsigned i = 0; i < len; ++i)
+                    SkipValue();
+                return;
+            }
+            if ((head & 0xF0) == 0x80)
+            { // fixmap
+                auto const len = static_cast<unsigned>(head & 0x0F);
+                for (unsigned i = 0; i < len * 2; ++i)
+                    SkipValue();
+                return;
+            }
+
+            switch (head)
+            {
+                case Mp::Bin8:
+                case Mp::Str8:
+                    cursor_ += ReadBe<uint8_t>();
+                    break;
+                case Mp::Bin16:
+                case Mp::Str16:
+                    cursor_ += ReadBe<uint16_t>();
+                    break;
+                case Mp::Bin32:
+                case Mp::Str32:
+                    cursor_ += ReadBe<uint32_t>();
+                    break;
+                case 0xCC: // uint8
+                case 0xD0: // int8
+                    cursor_ += 1;
+                    break;
+                case 0xCD: // uint16
+                case 0xD1: // int16
+                    cursor_ += 2;
+                    break;
+                case 0xCE: // uint32
+                case 0xD2: // int32
+                case 0xCA: // float32
+                    cursor_ += 4;
+                    break;
+                case 0xCF: // uint64
+                case 0xD3: // int64
+                case 0xCB: // float64
+                    cursor_ += 8;
+                    break;
+
+                case Mp::Array16: {
+                    auto len = ReadBe<uint16_t>();
+                    for (uint16_t i = 0; i < len; ++i)
+                        SkipValue();
+                    break;
+                }
+                case Mp::Array32: {
+                    auto len = ReadBe<uint32_t>();
+                    for (uint32_t i = 0; i < len; ++i)
+                        SkipValue();
+                    break;
+                }
+                case Mp::Map16: {
+                    auto len = ReadBe<uint16_t>();
+                    for (unsigned i = 0; i < static_cast<unsigned>(len) * 2; ++i)
+                        SkipValue();
+                    break;
+                }
+                case Mp::Map32: {
+                    auto len = ReadBe<uint32_t>();
+                    for (uint32_t i = 0; i < len * 2; ++i)
+                        SkipValue();
+                    break;
+                }
+                case 0xD4:
+                    cursor_ += 2;
+                    break; // fixext 1
+                case 0xD5:
+                    cursor_ += 3;
+                    break; // fixext 2
+                case 0xD6:
+                    cursor_ += 5;
+                    break; // fixext 4
+                case 0xD7:
+                    cursor_ += 9;
+                    break; // fixext 8
+                case 0xD8:
+                    cursor_ += 17;
+                    break; // fixext 16
+                case 0xC7:
+                    cursor_ += ReadBe<uint8_t>();
+                    cursor_++;
+                    break; // ext8
+                case 0xC8:
+                    cursor_ += ReadBe<uint16_t>();
+                    cursor_++;
+                    break; // ext16
+                case 0xC9:
+                    cursor_ += ReadBe<uint32_t>();
+                    cursor_++;
+                    break; // ext32
+                default:
+                    throw std::runtime_error(std::format("Unknown msgpack header in SkipValue: {:02X}", head));
+            }
+        }
+    };
+
 } // namespace
 
 std::unique_ptr<ChunkWriter> CreateMsgPackChunkWriter(size_t limitBytes)
@@ -1073,6 +1597,11 @@ std::unique_ptr<ChunkWriter> CreateMsgPackChunkWriter(size_t limitBytes)
 std::unique_ptr<ChunkReader> CreateMsgPackChunkReader(std::istream& input)
 {
     return std::make_unique<MsgPackChunkReader>(input);
+}
+
+std::unique_ptr<ChunkReader> CreateMsgPackChunkReaderFromBuffer(std::span<uint8_t const> buffer)
+{
+    return std::make_unique<MsgPackChunkReaderFromBuffer>(buffer);
 }
 
 } // namespace Lightweight::SqlBackup

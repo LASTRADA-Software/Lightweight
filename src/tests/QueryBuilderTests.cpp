@@ -626,6 +626,70 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FromTableAs", "[SqlQueryBuilde
         QueryExpectations::All(R"(SELECT "O"."foo", "O"."bar" FROM "Other" AS "O")"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FromSchemaTable.Select", "[SqlQueryBuilder]")
+{
+    // Test SELECT with schema-qualified table name
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) { return q.FromSchemaTable("myschema", "MyTable").Select().Field("foo").All(); },
+        {
+            .sqlite = R"(SELECT "foo" FROM "myschema"."MyTable")",
+            .postgres = R"(SELECT "foo" FROM "myschema"."MyTable")",
+            .sqlServer = R"(SELECT "foo" FROM [myschema].[MyTable])",
+        });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FromSchemaTable.Select.Empty", "[SqlQueryBuilder]")
+{
+    // Test SELECT with empty schema (should just quote table name)
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) { return q.FromSchemaTable("", "MyTable").Select().Field("bar").All(); },
+        {
+            .sqlite = R"(SELECT "bar" FROM "MyTable")",
+            .postgres = R"(SELECT "bar" FROM "MyTable")",
+            .sqlServer = R"(SELECT "bar" FROM [MyTable])",
+        });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FromSchemaTable.Select.Range", "[SqlQueryBuilder]")
+{
+    // Test SELECT with OFFSET/LIMIT and schema-qualified table
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromSchemaTable("dbo", "Users").Select().Field("id").Field("name").OrderBy("id").Range(10, 20);
+        },
+        {
+            .sqlite = R"(SELECT "id", "name" FROM "dbo"."Users"
+                         ORDER BY "id" ASC LIMIT 20 OFFSET 10)",
+            .postgres = R"(SELECT "id", "name" FROM "dbo"."Users"
+                           ORDER BY "id" ASC LIMIT 20 OFFSET 10)",
+            .sqlServer = R"(SELECT "id", "name" FROM [dbo].[Users]
+                            ORDER BY "id" ASC OFFSET 10 ROWS FETCH NEXT 20 ROWS ONLY)",
+        });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.QualifiedTableName", "[SqlQueryBuilder]")
+{
+    // Test the QualifiedTableName formatter method directly
+    SECTION("SQLite")
+    {
+        auto const& formatter = SqlQueryFormatter::Sqlite();
+        CHECK(formatter.QualifiedTableName("", "Table") == R"("Table")");
+        CHECK(formatter.QualifiedTableName("schema", "Table") == R"("schema"."Table")");
+    }
+    SECTION("PostgreSQL")
+    {
+        auto const& formatter = SqlQueryFormatter::PostgrSQL();
+        CHECK(formatter.QualifiedTableName("", "Table") == R"("Table")");
+        CHECK(formatter.QualifiedTableName("public", "Users") == R"("public"."Users")");
+    }
+    SECTION("SQL Server")
+    {
+        auto const& formatter = SqlQueryFormatter::SqlServer();
+        CHECK(formatter.QualifiedTableName("", "Table") == "[Table]");
+        CHECK(formatter.QualifiedTableName("dbo", "Users") == "[dbo].[Users]");
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Insert", "[SqlQueryBuilder]")
 {
     std::vector<SqlVariant> boundValues;

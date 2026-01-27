@@ -37,7 +37,14 @@ namespace
         return { std::move(first), std::move(second) };
     }
 
-    std::vector<std::string> AllTables(SqlStatement& stmt, std::string_view database, std::string_view schema)
+    /// Represents a table with its schema name.
+    struct TableWithSchema
+    {
+        std::string schema;
+        std::string name;
+    };
+
+    std::vector<TableWithSchema> AllTables(SqlStatement& stmt, std::string_view database, std::string_view schema)
     {
 
         auto sqlResult = SQLTables(stmt.NativeHandle(),
@@ -51,7 +58,7 @@ namespace
                                    0);
         SqlErrorInfo::RequireStatementSuccess(sqlResult, stmt.NativeHandle(), "SQLTables");
 
-        auto result = std::vector<std::string>();
+        auto result = std::vector<TableWithSchema>();
         while (stmt.FetchRow())
         {
             auto schemaOpt = stmt.GetNullableColumn<std::string>(2);
@@ -68,7 +75,7 @@ namespace
                 continue;
 
             if (type == "TABLE" || type == "BASE TABLE")
-                result.emplace_back(name);
+                result.emplace_back(TableWithSchema { .schema = schemaName, .name = name });
         }
 
         return result;
@@ -436,22 +443,32 @@ namespace
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_view schema, EventHandler& eventHandler)
 {
-    auto const tableNames = AllTables(stmt, database, schema);
+    auto const tablesWithSchema = AllTables(stmt, database, schema);
+
+    // Extract just table names for the EventHandler interface
+    std::vector<std::string> tableNames;
+    tableNames.reserve(tablesWithSchema.size());
+    for (auto const& t: tablesWithSchema)
+        tableNames.emplace_back(t.name);
 
     eventHandler.OnTables(tableNames);
 
-    for (auto const& tableName: tableNames)
+    for (auto const& tableEntry: tablesWithSchema)
     {
+        auto const& tableName = tableEntry.name;
+        // Use the discovered schema, or fall back to the requested schema
+        auto const& tableSchema = tableEntry.schema.empty() ? std::string(schema) : tableEntry.schema;
+
         if (tableName == "sqlite_sequence")
             continue;
 
-        if (!eventHandler.OnTable(tableName))
+        if (!eventHandler.OnTable(tableSchema, tableName))
             continue;
 
         auto const fullyQualifiedTableName = FullyQualifiedTableName {
             .catalog = std::string(database),
-            .schema = std::string(schema),
-            .table = std::string(tableName),
+            .schema = tableSchema,
+            .table = tableName,
         };
 
         auto const primaryKeys = AllPrimaryKeys(stmt, fullyQualifiedTableName);
@@ -476,8 +493,8 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
         auto const sqlResult = SQLColumns(columnStmt.NativeHandle(),
                                           (SQLCHAR*) database.data(),
                                           (SQLSMALLINT) database.size(),
-                                          (SQLCHAR*) (!schema.empty() ? schema.data() : nullptr),
-                                          (SQLSMALLINT) schema.size(),
+                                          (SQLCHAR*) (!tableSchema.empty() ? tableSchema.data() : nullptr),
+                                          (SQLSMALLINT) tableSchema.size(),
                                           (SQLCHAR*) tableName.data(),
                                           (SQLSMALLINT) tableName.size(),
                                           nullptr /* column name */,
@@ -673,17 +690,17 @@ TableList ReadAllTables(SqlStatement& stmt,
         }
 
       public:
-        bool OnTable(std::string_view table) override
+        bool OnTable(std::string_view tableSchema, std::string_view table) override
         {
             ++currentlyProcessedTablesCount;
             if (callback)
                 callback(table, currentlyProcessedTablesCount, totalTableCount);
 
             // Apply filter predicate - skip reading detailed schema if table doesn't match
-            if (tableFilter && !tableFilter(schema, table))
+            if (tableFilter && !tableFilter(tableSchema, table))
                 return false;
 
-            tables.emplace_back(Table { .name = std::string(table) });
+            tables.emplace_back(Table { .schema = std::string(tableSchema), .name = std::string(table) });
             return true;
         }
 
