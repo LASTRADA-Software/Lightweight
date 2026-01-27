@@ -1055,6 +1055,7 @@ namespace
 
                 // Retry loop for chunk processing
                 unsigned retryCount = 0;
+                bool chunkSuccess = true;
                 while (retryCount <= ctx.retrySettings.maxRetries)
                 {
                     try
@@ -1121,8 +1122,10 @@ namespace
 
                                 if (batch.columns.size() != tableInfo.columns.size())
                                 {
-                                    // TODO: error out or skip this batch?
-                                    continue;
+                                    throw std::runtime_error(
+                                        std::format("Column count mismatch in backup data: expected {} columns, got {}",
+                                                    tableInfo.columns.size(),
+                                                    batch.columns.size()));
                                 }
 
                                 batchManager.PushBatch(batch);
@@ -1181,6 +1184,7 @@ namespace
                                                   .currentRows = 0,
                                                   .totalRows = 0,
                                                   .message = "Insert failed: "s + e.what() });
+                            chunkSuccess = false;
                             break; // Non-transient or max retries exceeded
                         }
 
@@ -1204,6 +1208,7 @@ namespace
                                                   .currentRows = 0,
                                                   .totalRows = 0,
                                                   .message = "Failed to reconnect after transient error" });
+                            chunkSuccess = false;
                             break;
                         }
 
@@ -1229,6 +1234,7 @@ namespace
                                               .currentRows = 0,
                                               .totalRows = 0,
                                               .message = "Insert failed: "s + e.what() });
+                        chunkSuccess = false;
                         break;
                     }
                 }
@@ -1238,7 +1244,7 @@ namespace
                 content.shrink_to_fit();
 
                 // Use chunk-based completion detection instead of row counts (fixes stall when rowCount=0)
-                incrementChunkCounter(true);
+                incrementChunkCounter(chunkSuccess);
             }
         }
         catch (std::exception const& e)
