@@ -3,6 +3,6 @@ ODBC_CONNECTION_STRING:
   mssql2022: Driver={ODBC Driver 18 for SQL Server};SERVER=localhost;PORT=1433;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest
   mssql2019: Driver={ODBC Driver 18 for SQL Server};SERVER=localhost;PORT=1434;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest
   mssql2017: Driver={ODBC Driver 18 for SQL Server};SERVER=localhost;PORT=1432;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest
-  postgres: Driver={PostgreSQL};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test
+  postgres: Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test
   postgres_unicode: Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test
   sqlite3: Driver=SQLite3;Database=test.db

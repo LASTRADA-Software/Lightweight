@@ -308,6 +308,8 @@ jobs:
         run: cmake --build build --target chinook
       - name: "Run chinook example"
         run: ./build/src/examples/test_chinook/chinook
+        env:
+          ODBC_CONNECTION_STRING: "Driver={ODBC Driver 18 for SQL Server};SERVER=localhost;PORT=1433;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest"
 
   dbms_test_matrix:
     strategy:

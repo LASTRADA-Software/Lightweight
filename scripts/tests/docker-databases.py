@@ -100,11 +100,10 @@ DATABASES: list[DatabaseConfig] = [
             "MSSQL_SA_PASSWORD": DB_PASSWORD,
         },
         health_check_cmd=[
-            "/opt/mssql-tools18/bin/sqlcmd",
+            "/opt/mssql-tools/bin/sqlcmd",
             "-S", "localhost",
             "-U", "SA",
             "-P", DB_PASSWORD,
-            "-C",
             "-Q", "SELECT 1",
         ],
         test_database="LightweightTest",
