@@ -10,11 +10,10 @@
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include <yaml-cpp/yaml.h>
 
 #include <algorithm>
-#include <filesystem>
 #include <chrono>
+#include <filesystem>
 #include <format>
 #include <mutex>
 #include <ostream>
@@ -24,6 +23,8 @@
 #include <tuple>
 #include <variant>
 #include <vector>
+
+#include <yaml-cpp/yaml.h>
 
 #if __has_include(<stacktrace>)
     #include <stacktrace>
@@ -287,9 +288,11 @@ constexpr void FixedPointIterate(Getter const& getter, Callable const& callable)
 
 // Searches upward from current working directory for .test-env.yml
 // Stops at directory containing .git (project root boundary) or filesystem root
+// Also checks scripts/tests/.test-env.yml at project root
 inline std::optional<std::filesystem::path> FindTestEnvFile()
 {
     auto currentDir = std::filesystem::current_path();
+    std::filesystem::path projectRoot;
 
     while (true)
     {
@@ -297,10 +300,13 @@ inline std::optional<std::filesystem::path> FindTestEnvFile()
         if (std::filesystem::exists(testEnvPath))
             return testEnvPath;
 
-        // Stop at project root (directory containing .git) or filesystem root
+        // Check if we reached project root (directory containing .git)
         auto gitPath = currentDir / ".git";
         if (std::filesystem::exists(gitPath))
-            return std::nullopt; // Reached project root, file not found
+        {
+            projectRoot = currentDir;
+            break;
+        }
 
         auto parentDir = currentDir.parent_path();
         if (parentDir == currentDir)
@@ -308,6 +314,13 @@ inline std::optional<std::filesystem::path> FindTestEnvFile()
 
         currentDir = parentDir;
     }
+
+    // Check scripts/tests/.test-env.yml at project root
+    auto scriptsTestEnvPath = projectRoot / "scripts" / "tests" / ".test-env.yml";
+    if (std::filesystem::exists(scriptsTestEnvPath))
+        return scriptsTestEnvPath;
+
+    return std::nullopt;
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)

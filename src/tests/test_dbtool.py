@@ -16,24 +16,34 @@ def find_test_env_file():
     """
     Search upward from current working directory for .test-env.yml.
     Stop at directory containing .git (project root boundary) or filesystem root.
+    Also checks scripts/tests/.test-env.yml at project root.
     """
     current_dir = Path.cwd()
+    project_root = None
 
     while True:
         test_env_path = current_dir / ".test-env.yml"
         if test_env_path.exists():
             return test_env_path
 
-        # Stop at project root (directory containing .git) or filesystem root
+        # Check if we reached project root (directory containing .git)
         git_path = current_dir / ".git"
         if git_path.exists():
-            return None  # Reached project root, file not found
+            project_root = current_dir
+            break
 
         parent_dir = current_dir.parent
         if parent_dir == current_dir:
             return None  # Reached filesystem root
 
         current_dir = parent_dir
+
+    # Check scripts/tests/.test-env.yml at project root
+    scripts_test_env_path = project_root / "scripts" / "tests" / ".test-env.yml"
+    if scripts_test_env_path.exists():
+        return scripts_test_env_path
+
+    return None
 
 
 def load_connection_string_from_test_env(env_name):
