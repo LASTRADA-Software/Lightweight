@@ -403,7 +403,7 @@ def verify_external_connection(db: DatabaseConfig) -> bool:
         return result.returncode == 0
 
 
-def wait_for_database(db: DatabaseConfig, timeout: int = 120) -> bool:
+def wait_for_database(db: DatabaseConfig, timeout: int = 180) -> bool:
     """Wait for database to be ready. Returns True when ready.
 
     This performs a three-phase check:
@@ -653,7 +653,7 @@ Examples:
     action_group.add_argument("--load-sql", metavar="FILE", help="Load SQL file into database (requires DATABASE argument)")
 
     parser.add_argument("--wait", action="store_true", help="Wait for databases to be ready (with --start)")
-    parser.add_argument("--timeout", type=int, default=120, help="Timeout for --wait in seconds (default: 120)")
+    parser.add_argument("--timeout", type=int, default=180, help="Timeout for --wait in seconds (default: 180)")
     parser.add_argument("databases", nargs="*", metavar="DATABASE",
                         help=f"Databases to operate on (default: all). Options: {', '.join(db.name for db in DATABASES)}")
 
