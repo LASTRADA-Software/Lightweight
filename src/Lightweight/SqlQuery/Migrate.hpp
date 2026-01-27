@@ -14,6 +14,14 @@
 namespace Lightweight
 {
 
+/// @brief Index type for simplified CreateIndex API.
+/// @ingroup QueryBuilder
+enum class IndexType : std::uint8_t
+{
+    NonUnique, ///< Regular (non-unique) index
+    Unique     ///< Unique index
+};
+
 /// @brief Query builder for building CREATE TABLE queries.
 ///
 /// @see SqlQueryBuilder
@@ -173,7 +181,7 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// @code
     /// SqlQueryBuilder q;
     /// q.Migration().AlterTable("Table").AddIndex("column");
-    /// // Will execute CREATE INDEX "Table_column_index" ON "Table"("column");
+    /// // Will execute CREATE INDEX "Table_column_index" ON "Table" ("column");
     /// @endcode
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddIndex(std::string_view columnName);
 
@@ -183,7 +191,7 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// @code
     /// SqlQueryBuilder q;
     /// q.Migration().AlterTable("Table").AddUniqueIndex("column");
-    /// // Will execute CREATE UNIQUE INDEX "Table_column_index" ON "Table"("column");
+    /// // Will execute CREATE UNIQUE INDEX "Table_column_index" ON "Table" ("column");
     /// @endcode
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddUniqueIndex(std::string_view columnName);
 
@@ -234,8 +242,8 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     /// @param referencedTableName The referenced table name.
     /// @param referencedColumns The referenced columns in the referenced table.
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AddCompositeForeignKey(std::vector<std::string> columns,
-                                                                       std::string referencedTableName,
-                                                                       std::vector<std::string> referencedColumns);
+                                                                      std::string referencedTableName,
+                                                                      std::vector<std::string> referencedColumns);
 
   private:
     SqlAlterTablePlan& _plan;
@@ -478,12 +486,12 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     /// @code
     /// SqlQueryBuilder q;
     /// q.Migration().CreateIndex("idx_user_email", "users", {"email"});
-    /// // Will execute CREATE INDEX "idx_user_email" ON "users"("email");
+    /// // Will execute CREATE INDEX "idx_user_email" ON "users" ("email");
     /// @endcode
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& CreateIndex(std::string indexName,
-                                                           std::string tableName,
-                                                           std::vector<std::string> columns,
-                                                           bool unique = false);
+                                                          std::string tableName,
+                                                          std::vector<std::string> columns,
+                                                          bool unique = false);
 
     /// Creates a unique index on a table.
     ///
@@ -491,8 +499,25 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
     /// @param tableName The name of the table to create the index on.
     /// @param columns The columns to include in the index.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& CreateUniqueIndex(std::string indexName,
-                                                                 std::string tableName,
-                                                                 std::vector<std::string> columns);
+                                                                std::string tableName,
+                                                                std::vector<std::string> columns);
+
+    /// Creates an index on a table with auto-generated name.
+    ///
+    /// The index name is automatically generated as `idx_{tableName}_{col1}_{col2}_...`
+    ///
+    /// @param tableName The name of the table to create the index on.
+    /// @param columns The columns to include in the index.
+    /// @param type The type of index (NonUnique or Unique).
+    ///
+    /// @code
+    /// SqlQueryBuilder q;
+    /// q.Migration().CreateIndex("users", {"email"}, IndexType::Unique);
+    /// // Will execute CREATE UNIQUE INDEX "idx_users_email" ON "users" ("email");
+    /// @endcode
+    LIGHTWEIGHT_API SqlMigrationQueryBuilder& CreateIndex(std::string tableName,
+                                                          std::vector<std::string> columns,
+                                                          IndexType type = IndexType::NonUnique);
 
     /// Creates an INSERT statement for the migration.
     LIGHTWEIGHT_API SqlMigrationInsertBuilder Insert(std::string_view tableName);

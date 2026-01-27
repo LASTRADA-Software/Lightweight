@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "LupSqlParser.hpp"
+#include "StringUtils.hpp"
+
+#include <Lightweight/DataBinder/UnicodeConverter.hpp>
 
 #include <algorithm>
-#include <array>
 #include <fstream>
 #include <regex>
 
@@ -12,52 +14,6 @@ namespace Lup2DbTool
 
 namespace
 {
-
-    // Windows-1252 to UTF-8 conversion table for characters 0x80-0x9F
-    // These are the special characters in Windows-1252 that differ from Latin-1
-    constexpr std::array<char const*, 32> kWindows1252ToUtf8 = {
-        "\xE2\x82\xAC", // 0x80 Euro sign
-        "\xEF\xBF\xBD", // 0x81 Undefined (replacement char)
-        "\xE2\x80\x9A", // 0x82 Single low-9 quotation mark
-        "\xC6\x92",     // 0x83 Latin small letter f with hook
-        "\xE2\x80\x9E", // 0x84 Double low-9 quotation mark
-        "\xE2\x80\xA6", // 0x85 Horizontal ellipsis
-        "\xE2\x80\xA0", // 0x86 Dagger
-        "\xE2\x80\xA1", // 0x87 Double dagger
-        "\xCB\x86",     // 0x88 Modifier letter circumflex accent
-        "\xE2\x80\xB0", // 0x89 Per mille sign
-        "\xC5\xA0",     // 0x8A Latin capital letter S with caron
-        "\xE2\x80\xB9", // 0x8B Single left-pointing angle quotation mark
-        "\xC5\x92",     // 0x8C Latin capital ligature OE
-        "\xEF\xBF\xBD", // 0x8D Undefined (replacement char)
-        "\xC5\xBD",     // 0x8E Latin capital letter Z with caron
-        "\xEF\xBF\xBD", // 0x8F Undefined (replacement char)
-        "\xEF\xBF\xBD", // 0x90 Undefined (replacement char)
-        "\xE2\x80\x98", // 0x91 Left single quotation mark
-        "\xE2\x80\x99", // 0x92 Right single quotation mark
-        "\xE2\x80\x9C", // 0x93 Left double quotation mark
-        "\xE2\x80\x9D", // 0x94 Right double quotation mark
-        "\xE2\x80\xA2", // 0x95 Bullet
-        "\xE2\x80\x93", // 0x96 En dash
-        "\xE2\x80\x94", // 0x97 Em dash
-        "\xCB\x9C",     // 0x98 Small tilde
-        "\xE2\x84\xA2", // 0x99 Trade mark sign
-        "\xC5\xA1",     // 0x9A Latin small letter s with caron
-        "\xE2\x80\xBA", // 0x9B Single right-pointing angle quotation mark
-        "\xC5\x93",     // 0x9C Latin small ligature oe
-        "\xEF\xBF\xBD", // 0x9D Undefined (replacement char)
-        "\xC5\xBE",     // 0x9E Latin small letter z with caron
-        "\xC5\xB8",     // 0x9F Latin capital letter Y with diaeresis
-    };
-
-    std::string Trim(std::string_view str)
-    {
-        auto start = str.find_first_not_of(" \t\r\n");
-        if (start == std::string_view::npos)
-            return {};
-        auto end = str.find_last_not_of(" \t\r\n");
-        return std::string(str.substr(start, end - start + 1));
-    }
 
     std::optional<LupVersion> ParseBaseVersionDirective(std::string_view comment)
     {
@@ -99,35 +55,6 @@ namespace
     }
 
 } // namespace
-
-std::string ConvertWindows1252ToUtf8(std::string_view input)
-{
-    std::string output;
-    output.reserve(input.size() * 2); // Reserve space for potential UTF-8 expansion
-
-    for (char ch: input)
-    {
-        auto c = static_cast<unsigned char>(ch);
-        if (c < 0x80)
-        {
-            // ASCII range - direct copy
-            output += static_cast<char>(c);
-        }
-        else if (c >= 0x80 && c <= 0x9F)
-        {
-            // Windows-1252 special range
-            output += kWindows1252ToUtf8[c - 0x80];
-        }
-        else
-        {
-            // Latin-1 supplement (0xA0-0xFF) - convert to UTF-8
-            output += static_cast<char>(0xC0 | (c >> 6));
-            output += static_cast<char>(0x80 | (c & 0x3F));
-        }
-    }
-
-    return output;
-}
 
 namespace
 {
@@ -194,8 +121,7 @@ namespace
                 bool matches = true;
                 for (size_t i = 0; i < kw.size() && matches; ++i)
                 {
-                    matches = (std::toupper(static_cast<unsigned char>(trimmed[i]))
-                               == static_cast<unsigned char>(kw[i]));
+                    matches = (std::toupper(static_cast<unsigned char>(trimmed[i])) == static_cast<unsigned char>(kw[i]));
                 }
                 // Ensure it's followed by whitespace or end of string
                 if (matches && (trimmed.size() == kw.size() || std::isspace(static_cast<unsigned char>(trimmed[kw.size()]))))
@@ -361,7 +287,7 @@ std::optional<ParsedMigration> ParseSqlFile(std::filesystem::path const& filePat
 
     // Convert encoding if needed
     if (config.inputEncoding == "windows-1252")
-        content = ConvertWindows1252ToUtf8(content);
+        content = Lightweight::ConvertWindows1252ToUtf8(content);
 
     // Parse filename for version
     auto versionOpt = ParseFilename(filePath.filename().string());

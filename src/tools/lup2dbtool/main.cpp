@@ -4,10 +4,11 @@
 #include "LupSqlParser.hpp"
 #include "SqlStatementParser.hpp"
 
+#include <algorithm>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
+#include <print>
 #include <variant>
 
 namespace
@@ -15,26 +16,26 @@ namespace
 
 void PrintUsage(char const* programName)
 {
-    std::cerr << "Usage: " << programName << " [OPTIONS]\n"
-              << "\n"
-              << "Parse LUP SQL migration files and generate C++ migration code.\n"
-              << "\n"
-              << "Options:\n"
-              << "  --input-dir <DIR>       Directory containing SQL migration files (required)\n"
-              << "  --output <FILE>         Output file path (required)\n"
-              << "                          Supports pattern substitution for multi-file mode:\n"
-              << "                          {major}, {minor}, {patch}, {version}\n"
-              << "  --input-encoding <ENC>  Input file encoding: windows-1252 or utf-8\n"
-              << "                          (default: windows-1252)\n"
-              << "  --help                  Show this help message\n"
-              << "\n"
-              << "Examples:\n"
-              << "  # Single file output (all migrations in one file)\n"
-              << "  " << programName << " --input-dir ./model4_JP --output ./GeneratedMigrations.cpp\n"
-              << "\n"
-              << "  # Multi-file output (one file per migration)\n"
-              << "  " << programName << " --input-dir ./model4_JP --output \"./lup_{version}.cpp\"\n"
-              << "\n";
+    std::println(stderr, "Usage: {} [OPTIONS]", programName);
+    std::println(stderr, "");
+    std::println(stderr, "Parse LUP SQL migration files and generate C++ migration code.");
+    std::println(stderr, "");
+    std::println(stderr, "Options:");
+    std::println(stderr, "  --input-dir <DIR>       Directory containing SQL migration files (required)");
+    std::println(stderr, "  --output <FILE>         Output file path (required)");
+    std::println(stderr, "                          Supports pattern substitution for multi-file mode:");
+    std::println(stderr, "                          {{major}}, {{minor}}, {{patch}}, {{version}}");
+    std::println(stderr, "  --input-encoding <ENC>  Input file encoding: windows-1252 or utf-8");
+    std::println(stderr, "                          (default: windows-1252)");
+    std::println(stderr, "  --help                  Show this help message");
+    std::println(stderr, "");
+    std::println(stderr, "Examples:");
+    std::println(stderr, "  # Single file output (all migrations in one file)");
+    std::println(stderr, "  {} --input-dir ./model4_JP --output ./GeneratedMigrations.cpp", programName);
+    std::println(stderr, "");
+    std::println(stderr, "  # Multi-file output (one file per migration)");
+    std::println(stderr, R"(  {} --input-dir ./model4_JP --output "./lup_{{version}}.cpp")", programName);
+    std::println(stderr, "");
 }
 
 struct Arguments
@@ -49,12 +50,12 @@ bool ValidateRequiredArgs(Arguments const& args)
 {
     if (args.inputDir.empty())
     {
-        std::cerr << "Error: --input-dir is required\n";
+        std::println(stderr, "Error: --input-dir is required");
         return false;
     }
     if (args.outputPattern.empty())
     {
-        std::cerr << "Error: --output is required\n";
+        std::println(stderr, "Error: --output is required");
         return false;
     }
     return true;
@@ -72,7 +73,7 @@ bool ParseSingleArg(int& i, int argc, char* argv[], Arguments& args)
     {
         if (i + 1 >= argc)
         {
-            std::cerr << "Error: --input-dir requires an argument\n";
+            std::println(stderr, "Error: --input-dir requires an argument");
             return false;
         }
         args.inputDir = argv[++i];
@@ -83,7 +84,7 @@ bool ParseSingleArg(int& i, int argc, char* argv[], Arguments& args)
     {
         if (i + 1 >= argc)
         {
-            std::cerr << "Error: --output requires an argument\n";
+            std::println(stderr, "Error: --output requires an argument");
             return false;
         }
         args.outputPattern = argv[++i];
@@ -94,19 +95,19 @@ bool ParseSingleArg(int& i, int argc, char* argv[], Arguments& args)
     {
         if (i + 1 >= argc)
         {
-            std::cerr << "Error: --input-encoding requires an argument\n";
+            std::println(stderr, "Error: --input-encoding requires an argument");
             return false;
         }
         args.inputEncoding = argv[++i];
         if (args.inputEncoding != "windows-1252" && args.inputEncoding != "utf-8")
         {
-            std::cerr << "Error: Invalid encoding. Use 'windows-1252' or 'utf-8'\n";
+            std::println(stderr, "Error: Invalid encoding. Use 'windows-1252' or 'utf-8'");
             return false;
         }
         return true;
     }
 
-    std::cerr << "Error: Unknown option: " << argv[i] << "\n";
+    std::println(stderr, "Error: Unknown option: {}", argv[i]);
     return false;
 }
 
@@ -123,6 +124,23 @@ bool ParseArguments(int argc, char* argv[], Arguments& args)
     return args.showHelp || ValidateRequiredArgs(args);
 }
 
+/// @brief Reports diagnostics from code generation.
+void ReportDiagnostics(std::vector<Lup2DbTool::CodeGeneratorDiagnostic> const& diagnostics)
+{
+    for (auto const& diag: diagnostics)
+    {
+        char const* severityStr = diag.severity == Lup2DbTool::DiagnosticSeverity::Warning ? "Warning" : "Error";
+        if (diag.columnName.empty())
+        {
+            std::println(stderr, "{}: [{}] {}", severityStr, diag.tableName, diag.message);
+        }
+        else
+        {
+            std::println(stderr, "{}: [{}::{}] {}", severityStr, diag.tableName, diag.columnName, diag.message);
+        }
+    }
+}
+
 /// @brief Validates that all statements were parsed successfully (no RawSqlStmt).
 /// @return true if all statements are valid, false if any RawSqlStmt was found.
 bool ValidateParsedMigrations(std::vector<Lup2DbTool::ParsedMigration> const& migrations)
@@ -135,11 +153,11 @@ bool ValidateParsedMigrations(std::vector<Lup2DbTool::ParsedMigration> const& mi
             if (std::holds_alternative<Lup2DbTool::RawSqlStmt>(stmtWithComments.statement))
             {
                 auto const& raw = std::get<Lup2DbTool::RawSqlStmt>(stmtWithComments.statement);
-                std::cerr << "Error: Unparseable SQL in " << migration.sourceFile.filename().string() << ":\n";
-                std::cerr << "  " << raw.sql.substr(0, 200);
+                std::println(stderr, "Error: Unparseable SQL in {}:", migration.sourceFile.filename().string());
+                auto preview = raw.sql.substr(0, 200);
                 if (raw.sql.size() > 200)
-                    std::cerr << "...";
-                std::cerr << "\n";
+                    preview += "...";
+                std::println(stderr, "  {}", preview);
                 allValid = false;
             }
         }
@@ -153,12 +171,12 @@ bool ValidateInputDirectory(std::filesystem::path const& inputDir)
 {
     if (!std::filesystem::exists(inputDir))
     {
-        std::cerr << "Error: Input directory does not exist: " << inputDir << "\n";
+        std::println(stderr, "Error: Input directory does not exist: {}", inputDir.string());
         return false;
     }
     if (!std::filesystem::is_directory(inputDir))
     {
-        std::cerr << "Error: Not a directory: " << inputDir << "\n";
+        std::println(stderr, "Error: Not a directory: {}", inputDir.string());
         return false;
     }
     return true;
@@ -172,11 +190,11 @@ std::optional<std::vector<Lup2DbTool::ParsedMigration>> ParseMigrationFiles(std:
     std::vector<Lup2DbTool::ParsedMigration> migrations;
     for (auto const& file: files)
     {
-        std::cerr << "Parsing: " << file.filename().string() << "\n";
+        std::println(stderr, "Parsing: {}", file.filename().string());
         auto migration = Lup2DbTool::ParseSqlFile(file, config);
         if (!migration)
         {
-            std::cerr << "Error: Failed to parse " << file << "\n";
+            std::println(stderr, "Error: Failed to parse {}", file.string());
             return std::nullopt;
         }
         migrations.push_back(std::move(*migration));
@@ -188,23 +206,24 @@ std::optional<std::vector<Lup2DbTool::ParsedMigration>> ParseMigrationFiles(std:
 /// @return true on success, false on failure.
 bool GenerateMultiFileOutput(std::vector<Lup2DbTool::ParsedMigration> const& migrations,
                              std::string const& outputPattern,
-                             Lup2DbTool::CodeGenerator& generator)
+                             Lup2DbTool::CodeGenerator& generator,
+                             std::vector<Lup2DbTool::CodeGeneratorDiagnostic>& diagnostics)
 {
     for (auto const& migration: migrations)
     {
         auto outputPath = Lup2DbTool::ResolveOutputPattern(outputPattern, migration.targetVersion);
-        std::cerr << "Generating: " << outputPath << "\n";
+        std::println(stderr, "Generating: {}", outputPath);
 
         std::ofstream out(outputPath);
         if (!out.is_open())
         {
-            std::cerr << "Error: Failed to open output file: " << outputPath << "\n";
+            std::println(stderr, "Error: Failed to open output file: {}", outputPath);
             return false;
         }
 
-        generator.WriteFileHeader(out);
-        generator.GenerateMigration(migration, out);
-        generator.WriteFileFooter(out);
+        generator.GenerateFileHeader(out);
+        generator.GenerateMigration(migration, out, diagnostics);
+        generator.GenerateFileFooter(out);
     }
     return true;
 }
@@ -213,18 +232,19 @@ bool GenerateMultiFileOutput(std::vector<Lup2DbTool::ParsedMigration> const& mig
 /// @return true on success, false on failure.
 bool GenerateSingleFileOutput(std::vector<Lup2DbTool::ParsedMigration> const& migrations,
                               std::string const& outputPath,
-                              Lup2DbTool::CodeGenerator& generator)
+                              Lup2DbTool::CodeGenerator& generator,
+                              std::vector<Lup2DbTool::CodeGeneratorDiagnostic>& diagnostics)
 {
-    std::cerr << "Generating: " << outputPath << "\n";
+    std::println(stderr, "Generating: {}", outputPath);
 
     std::ofstream out(outputPath);
     if (!out.is_open())
     {
-        std::cerr << "Error: Failed to open output file: " << outputPath << "\n";
+        std::println(stderr, "Error: Failed to open output file: {}", outputPath);
         return false;
     }
 
-    generator.GenerateAllMigrations(migrations, out);
+    generator.GenerateAllMigrations(migrations, out, diagnostics);
     return true;
 }
 
@@ -235,7 +255,7 @@ int main(int argc, char* argv[])
     Arguments args;
     if (!ParseArguments(argc, argv, args))
     {
-        std::cerr << "\nUse --help for usage information.\n";
+        std::println(stderr, "\nUse --help for usage information.");
         return 1;
     }
 
@@ -251,11 +271,11 @@ int main(int argc, char* argv[])
     auto files = Lup2DbTool::DiscoverMigrationFiles(args.inputDir);
     if (files.empty())
     {
-        std::cerr << "Warning: No migration files found in " << args.inputDir << "\n";
+        std::println(stderr, "Warning: No migration files found in {}", args.inputDir.string());
         return 0;
     }
 
-    std::cerr << "Found " << files.size() << " migration file(s)\n";
+    std::println(stderr, "Found {} migration file(s)", files.size());
 
     Lup2DbTool::ParserConfig parserConfig;
     parserConfig.inputEncoding = args.inputEncoding;
@@ -266,20 +286,36 @@ int main(int argc, char* argv[])
 
     if (!ValidateParsedMigrations(*migrations))
     {
-        std::cerr << "Error: Some SQL statements could not be parsed.\n";
-        std::cerr << "Please extend the SQL parser to handle these statement types.\n";
+        std::println(stderr, "Error: Some SQL statements could not be parsed.");
+        std::println(stderr, "Please extend the SQL parser to handle these statement types.");
         return 1;
     }
 
     Lup2DbTool::CodeGenerator generator;
+    std::vector<Lup2DbTool::CodeGeneratorDiagnostic> diagnostics;
 
     bool success = Lup2DbTool::IsMultiFilePattern(args.outputPattern)
-                       ? GenerateMultiFileOutput(*migrations, args.outputPattern, generator)
-                       : GenerateSingleFileOutput(*migrations, args.outputPattern, generator);
+                       ? GenerateMultiFileOutput(*migrations, args.outputPattern, generator, diagnostics)
+                       : GenerateSingleFileOutput(*migrations, args.outputPattern, generator, diagnostics);
+
+    // Report any diagnostics (warnings/errors from code generation)
+    ReportDiagnostics(diagnostics);
 
     if (!success)
         return 1;
 
-    std::cerr << "Done. Generated " << migrations->size() << " migration(s).\n";
+    // Check if there were any warnings
+    bool hasWarnings = std::ranges::any_of(
+        diagnostics, [](auto const& d) { return d.severity == Lup2DbTool::DiagnosticSeverity::Warning; });
+
+    if (hasWarnings)
+    {
+        std::println(stderr, "Generated {} migration(s) with warnings.", migrations->size());
+    }
+    else
+    {
+        std::println(stderr, "Done. Generated {} migration(s).", migrations->size());
+    }
+
     return 0;
 }

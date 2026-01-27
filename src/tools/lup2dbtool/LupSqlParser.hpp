@@ -63,9 +63,6 @@ struct ParserConfig
 /// @return Parsed migration structure or nullopt on error
 [[nodiscard]] std::optional<ParsedMigration> ParseSqlFile(std::filesystem::path const& filePath, ParserConfig const& config);
 
-/// @brief Converts a string from Windows-1252 encoding to UTF-8.
-[[nodiscard]] std::string ConvertWindows1252ToUtf8(std::string_view input);
-
 /// @brief Discovers all LUP migration files in a directory.
 ///
 /// Files are sorted by version number to ensure correct migration order.

@@ -1097,7 +1097,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with Index", "[SqlQueryBuilder][Mi
         QueryExpectations::All(R"sql(CREATE TABLE "Table" (
                                         "column" INTEGER NOT NULL
                                      );
-                                     CREATE INDEX "Table_column_index" ON "Table"("column");
+                                     CREATE INDEX "Table_column_index" ON "Table" ("column");
                                )sql"));
 }
 
@@ -1154,8 +1154,8 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable complex demo", "[SqlQueryBuilder][
                         "c" DATETIME,
                         "d" VARCHAR(255)
                     );
-                    CREATE INDEX "Test_c_index" ON "Test"("c");
-                    CREATE UNIQUE INDEX "Test_d_index" ON "Test"("d");
+                    CREATE INDEX "Test_c_index" ON "Test" ("c");
+                    CREATE UNIQUE INDEX "Test_d_index" ON "Test" ("d");
                 )sql",
             .postgres = R"sql(
                     CREATE TABLE "Test" (
@@ -1164,8 +1164,8 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable complex demo", "[SqlQueryBuilder][
                         "c" TIMESTAMP,
                         "d" VARCHAR(255)
                     );
-                    CREATE INDEX "Test_c_index" ON "Test"("c");
-                    CREATE UNIQUE INDEX "Test_d_index" ON "Test"("d");
+                    CREATE INDEX "Test_c_index" ON "Test" ("c");
+                    CREATE UNIQUE INDEX "Test_d_index" ON "Test" ("d");
                 )sql",
             .sqlServer = R"sql(
                     CREATE TABLE "Test" (
@@ -1174,8 +1174,8 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable complex demo", "[SqlQueryBuilder][
                         "c" DATETIME,
                         "d" VARCHAR(255)
                     );
-                    CREATE INDEX "Test_c_index" ON "Test"("c");
-                    CREATE UNIQUE INDEX "Test_d_index" ON "Test"("d");
+                    CREATE INDEX "Test_c_index" ON "Test" ("c");
+                    CREATE UNIQUE INDEX "Test_d_index" ON "Test" ("d");
                 )sql",
         });
 }
@@ -1287,7 +1287,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddIndex", "[SqlQueryBuilder][Migra
             migration.AlterTable("Table").AddIndex("column");
             return migration.GetPlan();
         },
-        QueryExpectations::All(R"sql(CREATE INDEX "Table_column_index" ON "Table"("column");
+        QueryExpectations::All(R"sql(CREATE INDEX "Table_column_index" ON "Table" ("column");
                                )sql"));
 }
 
@@ -1299,7 +1299,7 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddUniqueIndex", "[SqlQueryBuilder]
             migration.AlterTable("Table").AddUniqueIndex("column");
             return migration.GetPlan();
         },
-        QueryExpectations::All(R"sql(CREATE UNIQUE INDEX "Table_column_index" ON "Table"("column");
+        QueryExpectations::All(R"sql(CREATE UNIQUE INDEX "Table_column_index" ON "Table" ("column");
                                )sql"));
 }
 
@@ -1322,7 +1322,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateIndex single column", "[SqlQueryBuilder]
             migration.CreateIndex("idx_user_email", "Users", { "email" });
             return migration.GetPlan();
         },
-        QueryExpectations::All(R"sql(CREATE INDEX "idx_user_email" ON "Users"("email"))sql"));
+        QueryExpectations::All(R"sql(CREATE INDEX "idx_user_email" ON "Users" ("email"))sql"));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "CreateIndex multiple columns", "[SqlQueryBuilder][Migration]")
@@ -1333,7 +1333,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateIndex multiple columns", "[SqlQueryBuild
             migration.CreateIndex("idx_user_name", "Users", { "first_name", "last_name" });
             return migration.GetPlan();
         },
-        QueryExpectations::All(R"sql(CREATE INDEX "idx_user_name" ON "Users"("first_name", "last_name"))sql"));
+        QueryExpectations::All(R"sql(CREATE INDEX "idx_user_name" ON "Users" ("first_name", "last_name"))sql"));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "CreateUniqueIndex", "[SqlQueryBuilder][Migration]")
@@ -1344,7 +1344,7 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateUniqueIndex", "[SqlQueryBuilder][Migrati
             migration.CreateUniqueIndex("idx_user_username", "Users", { "username" });
             return migration.GetPlan();
         },
-        QueryExpectations::All(R"sql(CREATE UNIQUE INDEX "idx_user_username" ON "Users"("username"))sql"));
+        QueryExpectations::All(R"sql(CREATE UNIQUE INDEX "idx_user_username" ON "Users" ("username"))sql"));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddForeignKeyColumn", "[SqlQueryBuilder][Migration]")

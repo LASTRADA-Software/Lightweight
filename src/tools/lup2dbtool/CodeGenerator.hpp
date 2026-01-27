@@ -4,13 +4,31 @@
 
 #include "LupSqlParser.hpp"
 
+#include <expected>
 #include <filesystem>
 #include <ostream>
 #include <string>
+#include <variant>
 #include <vector>
 
 namespace Lup2DbTool
 {
+
+/// @brief Severity level for code generation diagnostics.
+enum class DiagnosticSeverity : std::uint8_t
+{
+    Warning, ///< Non-fatal issue, code generated with fallback
+    Error    ///< Fatal issue, code generation may be incomplete
+};
+
+/// @brief Diagnostic message from code generation.
+struct CodeGeneratorDiagnostic
+{
+    DiagnosticSeverity severity;
+    std::string tableName;
+    std::string columnName;
+    std::string message;
+};
 
 /// @brief Configuration for C++ code generation.
 struct CodeGeneratorConfig
@@ -32,24 +50,41 @@ class CodeGenerator
     ///
     /// @param migration The parsed migration
     /// @param out Output stream to write to
-    void GenerateMigration(ParsedMigration const& migration, std::ostream& out) const;
+    /// @param diagnostics Diagnostics collector for warnings/errors
+    /// @return true if code was generated successfully (may still have warnings), false on fatal error
+    bool GenerateMigration(ParsedMigration const& migration,
+                           std::ostream& out,
+                           std::vector<CodeGeneratorDiagnostic>& diagnostics) const;
 
     /// @brief Generates C++ code for multiple migrations (single file mode).
     ///
     /// @param migrations The parsed migrations
     /// @param out Output stream to write to
-    void GenerateAllMigrations(std::vector<ParsedMigration> const& migrations, std::ostream& out) const;
+    /// @param diagnostics Diagnostics collector for warnings/errors
+    /// @return true if code was generated successfully (may still have warnings), false on fatal error
+    bool GenerateAllMigrations(std::vector<ParsedMigration> const& migrations,
+                               std::ostream& out,
+                               std::vector<CodeGeneratorDiagnostic>& diagnostics) const;
 
     /// @brief Generates the file header with includes and namespace opening.
-    void WriteFileHeader(std::ostream& out) const;
+    void GenerateFileHeader(std::ostream& out) const;
 
     /// @brief Generates the file footer with namespace closing.
-    void WriteFileFooter(std::ostream& out) const;
+    void GenerateFileFooter(std::ostream& out) const;
 
   private:
-    static void WriteStatementCode(ParsedStatement const& stmt, std::ostream& out, std::string const& indent);
-    static void WriteCreateTable(CreateTableStmt const& stmt, std::ostream& out, std::string const& indent);
-    static void WriteAlterTableAddColumn(AlterTableAddColumnStmt const& stmt, std::ostream& out, std::string const& indent);
+    static bool WriteStatementCode(ParsedStatement const& stmt,
+                                   std::ostream& out,
+                                   std::string const& indent,
+                                   std::vector<CodeGeneratorDiagnostic>& diagnostics);
+    static bool WriteCreateTable(CreateTableStmt const& stmt,
+                                 std::ostream& out,
+                                 std::string const& indent,
+                                 std::vector<CodeGeneratorDiagnostic>& diagnostics);
+    static bool WriteAlterTableAddColumn(AlterTableAddColumnStmt const& stmt,
+                                         std::ostream& out,
+                                         std::string const& indent,
+                                         std::vector<CodeGeneratorDiagnostic>& diagnostics);
     static void WriteAlterTableAddForeignKey(AlterTableAddForeignKeyStmt const& stmt,
                                              std::ostream& out,
                                              std::string const& indent);
@@ -66,7 +101,7 @@ class CodeGenerator
     static void WriteDelete(DeleteStmt const& stmt, std::ostream& out, std::string const& indent);
     static void WriteRawSql(RawSqlStmt const& stmt, std::ostream& out, std::string const& indent);
 
-    [[nodiscard]] static std::string MapSqlType(std::string_view sqlType);
+    [[nodiscard]] static std::expected<std::string, std::monostate> MapSqlType(std::string_view sqlType);
     [[nodiscard]] static std::string FormatValueLiteral(std::string_view value);
 
     CodeGeneratorConfig _config;

@@ -2,11 +2,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <Lightweight/DataBinder/UnicodeConverter.hpp>
 #include <LupSqlParser.hpp>
 #include <LupVersionConverter.hpp>
 #include <SqlStatementParser.hpp>
 
 using namespace Lup2DbTool;
+using Lightweight::ConvertWindows1252ToUtf8;
 
 // ================================================================================================
 // LupVersion Tests

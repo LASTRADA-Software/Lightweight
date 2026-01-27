@@ -244,8 +244,8 @@ SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::DropForeignKey(std::string
 }
 
 SqlAlterTableQueryBuilder& SqlAlterTableQueryBuilder::AddCompositeForeignKey(std::vector<std::string> columns,
-                                                                              std::string referencedTableName,
-                                                                              std::vector<std::string> referencedColumns)
+                                                                             std::string referencedTableName,
+                                                                             std::vector<std::string> referencedColumns)
 {
     _plan.commands.emplace_back(SqlAlterTableCommands::AddCompositeForeignKey {
         .columns = std::move(columns),
@@ -384,9 +384,9 @@ SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::RawSql(std::string_view sql)
 }
 
 SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::CreateIndex(std::string indexName,
-                                                                 std::string tableName,
-                                                                 std::vector<std::string> columns,
-                                                                 bool unique)
+                                                                std::string tableName,
+                                                                std::vector<std::string> columns,
+                                                                bool unique)
 {
     _migrationPlan.steps.emplace_back(SqlCreateIndexPlan {
         .schemaName = _schemaName,
@@ -400,10 +400,22 @@ SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::CreateIndex(std::string inde
 }
 
 SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::CreateUniqueIndex(std::string indexName,
-                                                                       std::string tableName,
-                                                                       std::vector<std::string> columns)
+                                                                      std::string tableName,
+                                                                      std::vector<std::string> columns)
 {
     return CreateIndex(std::move(indexName), std::move(tableName), std::move(columns), true);
+}
+
+SqlMigrationQueryBuilder& SqlMigrationQueryBuilder::CreateIndex(std::string tableName,
+                                                                std::vector<std::string> columns,
+                                                                IndexType type)
+{
+    // Generate index name as idx_{tableName}_{col1}_{col2}_...
+    auto indexName = std::string("idx_") + tableName;
+    for (auto const& col: columns)
+        indexName += "_" + col;
+
+    return CreateIndex(std::move(indexName), std::move(tableName), std::move(columns), type == IndexType::Unique);
 }
 
 SqlMigrationInsertBuilder SqlMigrationQueryBuilder::Insert(std::string_view tableName)

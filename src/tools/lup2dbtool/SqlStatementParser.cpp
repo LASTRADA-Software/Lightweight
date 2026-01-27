@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "SqlStatementParser.hpp"
+#include "StringUtils.hpp"
 
-#include <algorithm>
 #include <cctype>
 #include <regex>
 #include <sstream>
@@ -12,22 +12,6 @@ namespace Lup2DbTool
 
 namespace
 {
-
-    std::string ToUpper(std::string_view str)
-    {
-        std::string result(str);
-        std::ranges::transform(result, result.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
-        return result;
-    }
-
-    std::string Trim(std::string_view str)
-    {
-        auto start = str.find_first_not_of(" \t\r\n");
-        if (start == std::string_view::npos)
-            return {};
-        auto end = str.find_last_not_of(" \t\r\n");
-        return std::string(str.substr(start, end - start + 1));
-    }
 
     /// @brief Normalizes multiple whitespace characters to single spaces.
     std::string NormalizeWhitespace(std::string_view str)
@@ -52,29 +36,6 @@ namespace
             }
         }
         return Trim(result);
-    }
-
-    std::string RemoveQuotes(std::string_view str)
-    {
-        auto trimmed = Trim(str);
-        if (trimmed.size() >= 2)
-        {
-            if ((trimmed.front() == '"' && trimmed.back() == '"') || (trimmed.front() == '\'' && trimmed.back() == '\'')
-                || (trimmed.front() == '[' && trimmed.back() == ']'))
-            {
-                return trimmed.substr(1, trimmed.size() - 2);
-            }
-        }
-        return trimmed;
-    }
-
-    bool StartsWithIgnoreCase(std::string_view str, std::string_view prefix)
-    {
-        if (str.size() < prefix.size())
-            return false;
-        return std::ranges::equal(str.substr(0, prefix.size()), prefix, [](char a, char b) {
-            return std::toupper(static_cast<unsigned char>(a)) == std::toupper(static_cast<unsigned char>(b));
-        });
     }
 
     // Split a string by a delimiter, respecting parentheses
