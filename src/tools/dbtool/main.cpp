@@ -166,6 +166,8 @@ void PrintUsage()
                  c.option, c.reset, c.option, c.reset);
     std::println("  {}--no-lock{}                 Skip migration locking for write operations",
                  c.option, c.reset);
+    std::println("  {}--schema-only{}             Backup/restore schema only, skip data",
+                 c.option, c.reset);
     std::println("  {}--quiet{}                   Suppress progress output", c.option, c.reset);
     std::println("  {}--help{}                    Show this help message", c.option, c.reset);
     std::println("");
@@ -211,6 +213,14 @@ void PrintUsage()
 
     std::println("  {}# Restore only specific tables:{}", c.example, c.reset);
     std::println("  {}dbtool restore --input backup.zip --filter-tables=Users,Products{}", c.code, c.reset);
+    std::println("");
+
+    std::println("  {}# Backup schema only (no data):{}", c.example, c.reset);
+    std::println("  {}dbtool backup --output schema.zip --schema-only{}", c.code, c.reset);
+    std::println("");
+
+    std::println("  {}# Restore schema only (create empty tables):{}", c.example, c.reset);
+    std::println("  {}dbtool restore --input backup.zip --schema-only{}", c.code, c.reset);
     // clang-format on
 }
 
@@ -243,8 +253,9 @@ struct Options
     std::string batchSize;                     ///< Batch size for restore (rows per batch)
     bool pluginsDirSet = false;
     bool connectionStringSet = false;
-    bool dryRun = false; ///< If true, show what would be done without actually doing it
-    bool noLock = false; ///< If true, skip migration locking for write operations
+    bool dryRun = false;     ///< If true, show what would be done without actually doing it
+    bool noLock = false;     ///< If true, skip migration locking for write operations
+    bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
 };
 
 std::filesystem::path GetDefaultConfigPath()
@@ -487,6 +498,10 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         else if (arg == "--no-lock")
         {
             options.noLock = true;
+        }
+        else if (arg == "--schema-only")
+        {
+            options.schemaOnly = true;
         }
         else if (options.command.empty())
         {
@@ -1054,6 +1069,8 @@ std::expected<Lightweight::SqlBackup::BackupSettings, std::string> ParseBackupSe
     if (settings.chunkSizeBytes < 1024)
         return std::unexpected { "Chunk size must be at least 1 KB" };
 
+    settings.schemaOnly = options.schemaOnly;
+
     return settings;
 }
 
@@ -1157,7 +1174,11 @@ int Backup(Options const& options)
         pm->AllDone();
 
         std::println("");
-        std::println("Dry run: Would backup {} tables to {}", tables.size(), options.outputFile.string());
+        if (options.schemaOnly)
+            std::println(
+                "Dry run: Would backup schema only for {} tables to {}", tables.size(), options.outputFile.string());
+        else
+            std::println("Dry run: Would backup {} tables to {}", tables.size(), options.outputFile.string());
         std::println("");
 
         size_t totalRows = 0;
@@ -1235,6 +1256,8 @@ std::expected<Lightweight::SqlBackup::RestoreSettings, std::string> ParseRestore
         }
     }
 
+    settings.schemaOnly = options.schemaOnly;
+
     return settings;
 }
 
@@ -1295,7 +1318,11 @@ int Restore(Options const& options)
         if (!filter.MatchesAll())
             std::erase_if(tableMap, [&](auto const& pair) { return !filter.Matches(options.schema, pair.first); });
 
-        std::println("Dry run: Would restore {} tables from {}", tableMap.size(), options.inputFile.string());
+        if (options.schemaOnly)
+            std::println(
+                "Dry run: Would restore schema only for {} tables from {}", tableMap.size(), options.inputFile.string());
+        else
+            std::println("Dry run: Would restore {} tables from {}", tableMap.size(), options.inputFile.string());
         std::println("");
 
         size_t totalRows = 0;

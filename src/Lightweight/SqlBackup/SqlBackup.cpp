@@ -1870,36 +1870,48 @@ void Backup(std::filesystem::path const& outputFile,
 
         progress.SetMaxTableNameLength(maxTableNameLength.load());
 
-        // Now that schema scanning is complete, pre-create all worker connections.
-        // All connections are established sequentially to avoid ODBC driver races.
-        std::vector<std::unique_ptr<SqlConnection>> workerConnections;
-        workerConnections.reserve(concurrency);
-        for (auto const i: std::views::iota(0U, concurrency))
+        // Back up data (unless schema-only mode)
+        if (!backupSettings.schemaOnly)
         {
-            auto conn = std::make_unique<SqlConnection>(std::nullopt);
-            if (!ConnectWithRetry(*conn, connectionString, retrySettings, progress, std::format("Worker {}", i + 1)))
+            // Now that schema scanning is complete, pre-create all worker connections.
+            // All connections are established sequentially to avoid ODBC driver races.
+            std::vector<std::unique_ptr<SqlConnection>> workerConnections;
+            workerConnections.reserve(concurrency);
+            for (auto const i: std::views::iota(0U, concurrency))
             {
-                throw std::runtime_error(
-                    std::format("Failed to create worker connection {}: {}", i + 1, conn->LastError().message));
+                auto conn = std::make_unique<SqlConnection>(std::nullopt);
+                if (!ConnectWithRetry(*conn, connectionString, retrySettings, progress, std::format("Worker {}", i + 1)))
+                {
+                    throw std::runtime_error(
+                        std::format("Failed to create worker connection {}: {}", i + 1, conn->LastError().message));
+                }
+                workerConnections.push_back(std::move(conn));
             }
-            workerConnections.push_back(std::move(conn));
+
+            // Push all collected tables to the queue for workers
+            for (auto& table: completedTables)
+                tableQueue.Push(SqlSchema::Table(table)); // Copy since completedTables is still needed
+
+            tableQueue.MarkFinished();
+
+            // Start data worker threads - schema scanning is already complete
+            std::vector<std::thread> workers;
+            workers.reserve(concurrency);
+            for (auto const i: std::views::iota(0U, concurrency))
+                workers.emplace_back(BackupWorker, std::ref(tableQueue), ctx, std::ref(*workerConnections[i]));
+
+            // Wait for all workers to complete
+            for (auto& t: workers)
+                t.join();
         }
-
-        // Push all collected tables to the queue for workers
-        for (auto& table: completedTables)
-            tableQueue.Push(SqlSchema::Table(table)); // Copy since completedTables is still needed
-
-        tableQueue.MarkFinished();
-
-        // Start data worker threads - schema scanning is already complete
-        std::vector<std::thread> workers;
-        workers.reserve(concurrency);
-        for (auto const i: std::views::iota(0U, concurrency))
-            workers.emplace_back(BackupWorker, std::ref(tableQueue), ctx, std::ref(*workerConnections[i]));
-
-        // Wait for all workers to complete
-        for (auto& t: workers)
-            t.join();
+        else
+        {
+            progress.Update({ .state = Progress::State::InProgress,
+                              .tableName = "",
+                              .currentRows = 0,
+                              .totalRows = std::nullopt,
+                              .message = "Schema-only backup: skipping data export" });
+        }
 
         // Create metadata.json from completed tables (moved to end since we need full list)
         auto const metadataJson = CreateMetadata(connectionString, completedTables, schema);
@@ -1936,7 +1948,8 @@ void Backup(std::filesystem::path const& outputFile,
                                  static_cast<zip_int32_t>(backupSettings.method),
                                  backupSettings.level);
 
-        // Write checksums.json
+        // Write checksums.json only if we have data
+        if (!backupSettings.schemaOnly)
         {
             nlohmann::json checksumsJson;
             checksumsJson["algorithm"] = "sha256";
@@ -2318,6 +2331,30 @@ void Restore(std::filesystem::path const& inputFile,
                           .totalRows = std::nullopt,
                           .message = "Restore aborted: No tables could be created" });
         zip_close(zip);
+        progress.AllDone();
+        return;
+    }
+
+    // Schema-only mode: create schema and apply constraints/indexes, then exit early
+    if (restoreSettings.schemaOnly)
+    {
+        // Filter tableMap to only include created tables
+        std::map<std::string, TableInfo> filteredTableMap;
+        for (auto const& [name, info]: tableMap)
+        {
+            if (createdTables.contains(name))
+                filteredTableMap[name] = info;
+        }
+
+        ApplyDatabaseConstraints(connectionString, effectiveSchema, filteredTableMap, progress);
+        RestoreIndexes(connectionString, effectiveSchema, filteredTableMap, progress);
+
+        zip_close(zip);
+        progress.Update({ .state = Progress::State::Finished,
+                          .tableName = "",
+                          .currentRows = 0,
+                          .totalRows = std::nullopt,
+                          .message = "Schema-only restore complete" });
         progress.AllDone();
         return;
     }
