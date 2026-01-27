@@ -406,9 +406,10 @@ def verify_external_connection(db: DatabaseConfig) -> bool:
 def wait_for_database(db: DatabaseConfig, timeout: int = 120) -> bool:
     """Wait for database to be ready. Returns True when ready.
 
-    This performs a two-phase check:
+    This performs a three-phase check:
     1. Internal readiness: verify database is ready inside the container
     2. External connectivity: verify port forwarding works from host
+    3. Stability check: ensure database remains responsive (multiple consecutive checks)
     """
     print(f"  Waiting for {Colors.cyan(db.name)} to be ready (timeout: {timeout}s)...")
     start_time = time.time()
@@ -433,12 +434,30 @@ def wait_for_database(db: DatabaseConfig, timeout: int = 120) -> bool:
     # This is critical because Docker port forwarding may not be ready immediately
     while time.time() - start_time < timeout:
         if verify_external_connection(db):
-            elapsed = time.time() - start_time
-            print(f"  {Colors.green('Ready')} after {elapsed:.1f}s")
-            return True
+            external_elapsed = time.time() - start_time
+            print(f"  External check passed after {external_elapsed:.1f}s, verifying stability...")
+            break
+        time.sleep(1)
+    else:
+        print(f"  {Colors.red('Timeout')} waiting for database (external check)")
+        return False
+
+    # Phase 3: Stability check - require multiple consecutive successful checks
+    # This ensures the database is truly ready and not in a transient state
+    consecutive_successes = 0
+    required_successes = 3
+    while time.time() - start_time < timeout:
+        if verify_external_connection(db):
+            consecutive_successes += 1
+            if consecutive_successes >= required_successes:
+                elapsed = time.time() - start_time
+                print(f"  {Colors.green('Ready')} after {elapsed:.1f}s (stable)")
+                return True
+        else:
+            consecutive_successes = 0  # Reset on failure
         time.sleep(1)
 
-    print(f"  {Colors.red('Timeout')} waiting for database (external check)")
+    print(f"  {Colors.red('Timeout')} waiting for database (stability check)")
     return False
 
 
