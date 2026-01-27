@@ -367,6 +367,49 @@ def create_test_database(db: DatabaseConfig) -> bool:
     return True
 
 
+def load_sql_file(db: DatabaseConfig, sql_file: str) -> bool:
+    """Load a SQL file into the database. Returns True on success."""
+    import os
+    if not os.path.exists(sql_file):
+        print(f"{Colors.red('Error')}: SQL file not found: {sql_file}")
+        return False
+
+    print(f"Loading {Colors.cyan(sql_file)} into {Colors.cyan(db.name)}...")
+
+    if "mssql" in db.name:
+        # MS SQL: Use sqlcmd
+        sqlcmd_path = db.health_check_cmd[0]
+        cmd = [
+            "docker", "exec", "-i", db.container_name,
+            sqlcmd_path,
+            "-S", "localhost",
+            "-U", "SA",
+            "-P", DB_PASSWORD,
+            "-C",
+            "-d", db.test_database,
+        ]
+        # Read and pipe the SQL file
+        with open(sql_file, 'r') as f:
+            sql_content = f.read()
+        result = subprocess.run(cmd, input=sql_content, capture_output=True, text=True)
+    else:
+        # PostgreSQL: Use psql
+        cmd = [
+            "docker", "exec", "-i", db.container_name,
+            "psql", "-U", "postgres", "-d", db.test_database,
+        ]
+        with open(sql_file, 'r') as f:
+            sql_content = f.read()
+        result = subprocess.run(cmd, input=sql_content, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        print(f"{Colors.red('Failed')} to load SQL file: {result.stderr}")
+        return False
+
+    print(f"{Colors.green('Loaded')} SQL file successfully")
+    return True
+
+
 def show_status(dbs: list[DatabaseConfig]) -> None:
     """Show status of all containers in a table format."""
     print()
@@ -450,6 +493,7 @@ Examples:
     action_group.add_argument("--stop", action="store_true", help="Stop database containers")
     action_group.add_argument("--status", action="store_true", help="Show container status")
     action_group.add_argument("--remove", action="store_true", help="Remove containers")
+    action_group.add_argument("--load-sql", metavar="FILE", help="Load SQL file into database (requires DATABASE argument)")
 
     parser.add_argument("--wait", action="store_true", help="Wait for databases to be ready (with --start)")
     parser.add_argument("--timeout", type=int, default=60, help="Timeout for --wait in seconds (default: 60)")
@@ -470,6 +514,17 @@ Examples:
     if args.status:
         show_status(dbs)
         return 0
+
+    if args.load_sql:
+        if len(dbs) != 1:
+            print(f"{Colors.red('Error')}: --load-sql requires exactly one DATABASE argument")
+            return 1
+        db = dbs[0]
+        state = get_container_state(db.container_name)
+        if state != ContainerState.RUNNING:
+            print(f"{Colors.red('Error')}: Container {db.container_name} is not running")
+            return 1
+        return 0 if load_sql_file(db, args.load_sql) else 1
 
     if args.start:
         exit_code = do_action(dbs, start_container, "Starting", "started")
