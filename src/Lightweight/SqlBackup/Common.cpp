@@ -7,6 +7,10 @@
 #include <format>
 #include <thread>
 
+#if defined(_WIN32)
+    #include <Windows.h>
+#endif
+
 namespace Lightweight::SqlBackup::detail
 {
 
@@ -77,8 +81,18 @@ bool ConnectWithRetry(SqlConnection& conn,
 
 std::string CurrentDateTime()
 {
+#if defined(_WIN32)
+    // Windows 10 (pre-1903) and older UCRT versions do not ship with the IANA timezone database,
+    // causing std::chrono formatting with timezone specifiers to throw exceptions.
+    // Use Win32 GetSystemTime() to retrieve UTC time directly, avoiding timezone database dependency.
+    SYSTEMTIME st;
+    GetSystemTime(&st);
+    return std::format(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+#else
     auto const now = std::chrono::system_clock::now();
     return std::format("{:%FT%TZ}", now);
+#endif
 }
 
 std::string FormatTableName(std::string_view schema, std::string_view table)
