@@ -19,20 +19,100 @@
 #include <cstring>
 #include <format>
 #include <limits>
+#include <print>
 #include <ranges>
-#include <sstream>
 #include <variant>
 #include <vector>
 
 // #define DEBUG_BACKUP_WORKER
+
 #ifdef DEBUG_BACKUP_WORKER
     #include <iostream>
+#endif
+
+/// Compile-time constant for debug output. Enable by defining DEBUG_BACKUP_WORKER.
+constexpr bool DebugBackupWorker =
+#ifdef DEBUG_BACKUP_WORKER
+    true;
+#else
+    false;
 #endif
 
 using namespace std::string_literals;
 
 namespace Lightweight::SqlBackup::detail
 {
+
+/// Builds a SELECT query for MSSQL with CONVERT for DECIMAL columns.
+///
+/// MSSQL ODBC driver loses precision when reading DECIMAL as string directly.
+/// Using CONVERT(VARCHAR, ...) forces SQL Server to convert with full precision.
+///
+/// @param schema The schema name (may be empty).
+/// @param tableName The table name.
+/// @param columns The column definitions.
+/// @param primaryKeys The primary key column names for ORDER BY.
+/// @param offset The row offset for pagination.
+/// @return The SQL query string.
+std::string BuildMssqlDecimalSelectQuery(std::string_view schema,
+                                         std::string const& tableName,
+                                         std::vector<SqlSchema::Column> const& columns,
+                                         std::vector<std::string> const& primaryKeys,
+                                         size_t offset)
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    std::string sql;
+    sql.reserve(256);
+    std::format_to(std::back_inserter(sql), "SELECT ");
+
+    for (size_t i = 0; i < columns.size(); ++i)
+    {
+        if (i > 0)
+            std::format_to(std::back_inserter(sql), ", ");
+
+        auto const& col = columns[i];
+        if (std::holds_alternative<Decimal>(col.type))
+        {
+            // MSSQL ODBC driver loses precision when reading DECIMAL as string directly.
+            // Using CONVERT(VARCHAR, ...) forces SQL Server to convert with full precision.
+            auto const& dec = std::get<Decimal>(col.type);
+            // VARCHAR size should accommodate precision + scale + decimal point + sign
+            auto const varcharSize = dec.precision + 3;
+            std::format_to(std::back_inserter(sql), "CONVERT(VARCHAR({}), [{}])", varcharSize, col.name);
+        }
+        else
+        {
+            std::format_to(std::back_inserter(sql), "[{}]", col.name);
+        }
+    }
+
+    if (schema.empty())
+        std::format_to(std::back_inserter(sql), " FROM [{}]", tableName);
+    else
+        std::format_to(std::back_inserter(sql), " FROM [{}].[{}]", schema, tableName);
+
+    // ORDER BY is required for OFFSET
+    std::format_to(std::back_inserter(sql), " ORDER BY ");
+    if (!primaryKeys.empty())
+    {
+        for (size_t i = 0; i < primaryKeys.size(); ++i)
+        {
+            if (i > 0)
+                std::format_to(std::back_inserter(sql), ", ");
+            std::format_to(std::back_inserter(sql), "[{}] ASC", primaryKeys[i]);
+        }
+    }
+    else
+    {
+        std::format_to(std::back_inserter(sql), "[{}] ASC", columns[0].name);
+    }
+
+    if (offset > 0)
+        std::format_to(std::back_inserter(sql), " OFFSET {} ROWS", offset);
+
+    return sql;
+}
 
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 std::string BuildSelectQueryWithOffset(SqlQueryFormatter const& formatter,
@@ -51,60 +131,7 @@ std::string BuildSelectQueryWithOffset(SqlQueryFormatter const& formatter,
         && std::ranges::any_of(columns, [](auto const& c) { return std::holds_alternative<Decimal>(c.type); });
 
     if (needsMssqlDecimalConvert)
-    {
-        // Build raw SQL query for MSSQL with CONVERT for DECIMAL columns
-        std::stringstream sql;
-        sql << "SELECT ";
-
-        for (size_t i = 0; i < columns.size(); ++i)
-        {
-            if (i > 0)
-                sql << ", ";
-
-            auto const& col = columns[i];
-            if (std::holds_alternative<Decimal>(col.type))
-            {
-                // MSSQL ODBC driver loses precision when reading DECIMAL as string directly.
-                // Using CONVERT(VARCHAR, ...) forces SQL Server to convert with full precision.
-                auto const& dec = std::get<Decimal>(col.type);
-                // VARCHAR size should accommodate precision + scale + decimal point + sign
-                auto const varcharSize = dec.precision + 3;
-                sql << "CONVERT(VARCHAR(" << varcharSize << "), [" << col.name << "])";
-            }
-            else
-            {
-                sql << "[" << col.name << "]";
-            }
-        }
-
-        if (schema.empty())
-            sql << " FROM [" << tableName << "]";
-        else
-            sql << " FROM [" << schema << "].[" << tableName << "]";
-
-        // ORDER BY is required for OFFSET
-        sql << " ORDER BY ";
-        if (!primaryKeys.empty())
-        {
-            for (size_t i = 0; i < primaryKeys.size(); ++i)
-            {
-                if (i > 0)
-                    sql << ", ";
-                sql << "[" << primaryKeys[i] << "] ASC";
-            }
-        }
-        else
-        {
-            sql << "[" << columns[0].name << "] ASC";
-        }
-
-        if (offset > 0)
-        {
-            sql << " OFFSET " << offset << " ROWS";
-        }
-
-        return sql.str();
-    }
+        return BuildMssqlDecimalSelectQuery(schema, tableName, columns, primaryKeys, offset);
 
     // Use Query Builder with schema support
     auto query = schema.empty() ? SqlQueryBuilder(formatter).FromTable(tableName).Select()
@@ -164,14 +191,14 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                           .totalRows = totalRows,
                           .message = "Started backup"s });
 
-#ifdef DEBUG_BACKUP_WORKER
-    std::cerr << "DEBUG: ProcessTableBackup: Starting backup for " << tableName << " (" << totalRows << " rows)\n";
-    std::cerr << "DEBUG: Creating writer...\n";
-#endif
+    if constexpr (DebugBackupWorker)
+    {
+        std::println(stderr, "DEBUG: ProcessTableBackup: Starting backup for {} ({} rows)", tableName, totalRows);
+        std::println(stderr, "DEBUG: Creating writer...");
+    }
     auto writer = CreateMsgPackChunkWriter(ctx.backupSettings.chunkSizeBytes);
-#ifdef DEBUG_BACKUP_WORKER
-    std::cerr << "DEBUG: Writer created.\n";
-#endif
+    if constexpr (DebugBackupWorker)
+        std::println(stderr, "DEBUG: Writer created.");
 
     size_t chunkId = 0;
     size_t processedRows = 0;
@@ -190,12 +217,12 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
         // Compute SHA-256 checksum before acquiring the lock
         std::string const checksum = Sha256::Hash(data);
 
-        auto lock = std::scoped_lock(ctx.zipMutex);
+        auto const lock = std::scoped_lock(ctx.zipMutex);
 
         // Store checksum
         if (ctx.checksums && ctx.checksumMutex)
         {
-            auto checksumLock = std::scoped_lock(*ctx.checksumMutex);
+            auto const checksumLock = std::scoped_lock(*ctx.checksumMutex);
             (*ctx.checksums)[entryName] = checksum;
         }
 
@@ -239,14 +266,12 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
         chunkId++;
     };
 
-#ifdef DEBUG_BACKUP_WORKER
-    std::cerr << "DEBUG: Reserving row...\n";
-#endif
+    if constexpr (DebugBackupWorker)
+        std::println(stderr, "DEBUG: Reserving row...");
     std::vector<BackupValue> row;
     row.reserve(table.columns.size());
-#ifdef DEBUG_BACKUP_WORKER
-    std::cerr << "DEBUG: Row reserved. Entering FetchRow loop...\n";
-#endif
+    if constexpr (DebugBackupWorker)
+        std::println(stderr, "DEBUG: Row reserved. Entering FetchRow loop...");
 
     auto const columnCount = table.columns.size();
 
@@ -262,9 +287,8 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
 
             while (stmt.FetchRow())
             {
-#ifdef DEBUG_BACKUP_WORKER
-                std::cerr << "DEBUG: FetchRow returned true for " << tableName << "\n";
-#endif
+                if constexpr (DebugBackupWorker)
+                    std::println(stderr, "DEBUG: FetchRow returned true for {}", tableName);
                 row.clear();
                 auto const cols = static_cast<SQLUSMALLINT>(columnCount);
                 for (SQLUSMALLINT i = 1; i <= cols; ++i)
@@ -274,10 +298,9 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
 
                     try
                     {
-#ifdef DEBUG_BACKUP_WORKER
-                        std::cerr << "DEBUG: Processing col " << i << " (" << colDef.name
-                                  << ") type index: " << colDef.type.index() << "\n";
-#endif
+                        if constexpr (DebugBackupWorker)
+                            std::println(
+                                stderr, "DEBUG: Processing col {} ({}) type index: {}", i, colDef.name, colDef.type.index());
                         if (std::holds_alternative<Binary>(colDef.type) || std::holds_alternative<VarBinary>(colDef.type))
                         {
                             try
@@ -292,12 +315,11 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                                     row.emplace_back(std::monostate {});
                                 }
                             }
-                            catch ([[maybe_unused]] std::exception const& e)
+                            catch (std::exception const& e)
                             {
-#ifdef DEBUG_BACKUP_WORKER
-                                std::cerr << "DEBUG: Exception in Binary col " << i << " (" << colDef.name
-                                          << "): " << e.what() << "\n";
-#endif
+                                if constexpr (DebugBackupWorker)
+                                    std::println(
+                                        stderr, "DEBUG: Exception in Binary col {} ({}): {}", i, colDef.name, e.what());
                                 throw;
                             }
                         }
@@ -425,12 +447,15 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                                 row.emplace_back(std::monostate {});
                         }
                     }
-                    catch ([[maybe_unused]] std::exception const& e)
+                    catch (std::exception const& e)
                     {
-#ifdef DEBUG_BACKUP_WORKER
-                        std::cerr << "DEBUG: Exception processing row for table " << tableName << " col " << i << " ("
-                                  << colDef.name << "): " << e.what() << "\n";
-#endif
+                        if constexpr (DebugBackupWorker)
+                            std::println(stderr,
+                                         "DEBUG: Exception processing row for table {} col {} ({}): {}",
+                                         tableName,
+                                         i,
+                                         colDef.name,
+                                         e.what());
                         throw;
                     }
                 } // End for
@@ -439,11 +464,10 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                 {
                     writer->WriteRow(row);
                 }
-                catch ([[maybe_unused]] std::exception const& e)
+                catch (std::exception const& e)
                 {
-#ifdef DEBUG_BACKUP_WORKER
-                    std::cerr << "DEBUG: Exception in WriteRow for table " << tableName << ": " << e.what() << "\n";
-#endif
+                    if constexpr (DebugBackupWorker)
+                        std::println(stderr, "DEBUG: Exception in WriteRow for table {}: {}", tableName, e.what());
                     throw;
                 }
                 processedRows++;
@@ -469,9 +493,8 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
         {
             if (!IsTransientError(e.info()) || retryCount >= ctx.retrySettings.maxRetries)
             {
-#ifdef DEBUG_BACKUP_WORKER
-                std::cerr << "DEBUG: Exception in FetchRow loop for table " << tableName << ": " << e.what() << "\n";
-#endif
+                if constexpr (DebugBackupWorker)
+                    std::println(stderr, "DEBUG: Exception in FetchRow loop for table {}: {}", tableName, e.what());
                 throw;
             }
 
@@ -504,18 +527,16 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
             stmt = SqlStatement { conn };
             // Loop will rebuild query with new offset
         }
-        catch ([[maybe_unused]] std::exception const& e)
+        catch (std::exception const& e)
         {
-#ifdef DEBUG_BACKUP_WORKER
-            std::cerr << "DEBUG: Exception in FetchRow loop for table " << tableName << ": " << e.what() << "\n";
-#endif
+            if constexpr (DebugBackupWorker)
+                std::println(stderr, "DEBUG: Exception in FetchRow loop for table {}: {}", tableName, e.what());
             throw;
         }
         catch (...)
         {
-#ifdef DEBUG_BACKUP_WORKER
-            std::cerr << "DEBUG: Unknown exception in FetchRow loop for table " << tableName << "\n";
-#endif
+            if constexpr (DebugBackupWorker)
+                std::println(stderr, "DEBUG: Unknown exception in FetchRow loop for table {}", tableName);
             throw;
         }
     }
@@ -529,11 +550,10 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                               .totalRows = totalRows,
                               .message = "Finished table backup"s });
     }
-    catch ([[maybe_unused]] std::exception const& e)
+    catch (std::exception const& e)
     {
-#ifdef DEBUG_BACKUP_WORKER
-        std::cerr << "DEBUG: Exception in Final FlushChunk for table " << tableName << ": " << e.what() << "\n";
-#endif
+        if constexpr (DebugBackupWorker)
+            std::println(stderr, "DEBUG: Exception in Final FlushChunk for table {}: {}", tableName, e.what());
         throw;
     }
 }

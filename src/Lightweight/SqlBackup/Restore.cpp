@@ -37,20 +37,25 @@ void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName, bo
     }
 }
 
-std::expected<std::optional<RestoreChunkInfo>, FetchChunkError> FetchNextRestoreChunk(RestoreContext& ctx)
+std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreContext& ctx)
 {
     ZipEntryInfo entryInfo;
     {
-        auto lock = std::scoped_lock(ctx.queueMutex);
+        auto const lock = std::scoped_lock(ctx.queueMutex);
         if (ctx.dataQueue.empty())
-            return std::nullopt; // Signal worker to exit - queue empty
+            return RestoreChunkInfo { .tableName = {},
+                                      .chunkPath = {},
+                                      .content = {},
+                                      .tableInfo = nullptr,
+                                      .displayTotal = std::nullopt,
+                                      .isEndOfStream = true }; // Signal worker to exit - queue empty
         entryInfo = ctx.dataQueue.front();
         ctx.dataQueue.pop_front();
     }
 
     std::vector<uint8_t> content;
     {
-        auto lock = std::scoped_lock(ctx.fileMutex);
+        auto const lock = std::scoped_lock(ctx.fileMutex);
         if (!entryInfo.valid)
             return std::unexpected(
                 FetchChunkError { .tableName = "", .message = std::format("Invalid zip entry: {}", entryInfo.name) });
@@ -78,7 +83,7 @@ std::expected<std::optional<RestoreChunkInfo>, FetchChunkError> FetchNextRestore
     // Verify checksum if available
     if (ctx.checksums)
     {
-        auto it = ctx.checksums->find(entryInfo.name);
+        auto const it = ctx.checksums->find(entryInfo.name);
         if (it != ctx.checksums->end())
         {
             std::string const actualHash = Sha256::Hash(content.data(), content.size());
@@ -154,14 +159,10 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
             {
                 auto const& formatter = workerConn.QueryFormatter();
                 SqlStatement stmt { workerConn };
-                std::string placeholders;
-                for (size_t i = 0; i < tableInfo.columns.size(); ++i)
-                {
-                    if (i > 0)
-                        placeholders += ", ";
-
-                    placeholders += "?";
-                }
+                auto const placeholders = std::ranges::fold_left(
+                    std::views::iota(0UZ, tableInfo.columns.size()), std::string {}, [](std::string const& acc, size_t) {
+                        return acc.empty() ? std::string("?") : acc + ", ?";
+                    });
                 stmt.Prepare(formatter.Insert(ctx.schema, tableName, fields, placeholders));
 
                 ::Lightweight::detail::BatchManager batchManager(
@@ -338,11 +339,12 @@ void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
                 return; // Abort worker on fetch error to ensure consistent restoration
             }
 
-            // Check if queue was empty (nullopt inside expected)
-            if (!fetchResult->has_value())
+            auto const& chunk = *fetchResult;
+
+            // Check if queue was empty (isEndOfStream signals end of data)
+            if (chunk.isEndOfStream)
                 return; // Queue empty, worker done
 
-            auto const& chunk = **fetchResult;
             bool const success = RestoreChunkData(ctx, workerConn, chunk, batchCapacity);
             IncrementChunkCounter(ctx, chunk.tableName, success);
 
@@ -486,40 +488,20 @@ void ApplyDatabaseConstraints(SqlConnectionString const& connectionString,
     }
 }
 
+/// Computes table creation order using topological sort based on FK dependencies.
+///
+/// For SQLite, tables must be created in dependency order (referenced tables first)
+/// because SQLite validates FK references on CREATE TABLE even with foreign_keys = OFF.
+/// For other databases, returns tables in map iteration order since FKs are added later via ALTER TABLE.
+///
+/// @param tableMap Map of table names to their metadata.
+/// @param isSQLite Whether the target database is SQLite.
+/// @return Vector of table names in creation order.
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connectionString,
-                                             std::string const& schema,
-                                             std::map<std::string, TableInfo> const& tableMap,
-                                             ProgressManager& progress)
+std::vector<std::string> ComputeTableCreationOrder(std::map<std::string, TableInfo> const& tableMap, bool isSQLite)
 {
-    std::set<std::string> createdTables;
-
-    SqlConnection conn;
-    if (!conn.Connect(connectionString))
-    {
-        progress.Update({ .state = Progress::State::Error,
-                          .tableName = "",
-                          .currentRows = 0,
-                          .totalRows = std::nullopt,
-                          .message = "Failed to connect for schema recreation: " + conn.LastError().message });
-        return createdTables;
-    }
-    SqlStatement stmt { conn };
-    bool const isSQLite = conn.ServerType() == SqlServerType::SQLITE;
-
-    // Speed up restore (SQLite only)
-    if (isSQLite)
-    {
-        stmt.ExecuteDirect("PRAGMA synchronous = OFF");
-        stmt.ExecuteDirect("PRAGMA journal_mode = WAL");
-        stmt.ExecuteDirect("PRAGMA foreign_keys = OFF"); // Disable FKs during restore
-    }
-
-    auto const& formatter = conn.QueryFormatter();
-
-    // For SQLite, we need to create tables in FK dependency order (referenced tables first)
-    // since SQLite validates FK references on CREATE TABLE even with foreign_keys = OFF.
     std::vector<std::string> tableOrder;
+
     if (isSQLite)
     {
         // Build dependency graph and topologically sort
@@ -530,7 +512,7 @@ std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connecti
 
         while (!remaining.empty())
         {
-            bool progress_made = false;
+            bool progressMade = false;
             for (auto it = remaining.begin(); it != remaining.end();)
             {
                 auto const& tableName = *it;
@@ -554,7 +536,7 @@ std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connecti
                     tableOrder.push_back(tableName);
                     created.insert(tableName);
                     it = remaining.erase(it);
-                    progress_made = true;
+                    progressMade = true;
                 }
                 else
                 {
@@ -562,7 +544,7 @@ std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connecti
                 }
             }
 
-            if (!progress_made && !remaining.empty())
+            if (!progressMade && !remaining.empty())
             {
                 // Circular dependency - add remaining tables anyway and let the DB handle errors
                 for (auto const& name: remaining)
@@ -577,6 +559,29 @@ std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connecti
         for (auto const& [tableName, _]: tableMap)
             tableOrder.push_back(tableName);
     }
+
+    return tableOrder;
+}
+
+/// Creates tables from the backup metadata in the specified order.
+///
+/// @param conn The database connection.
+/// @param schema The schema name.
+/// @param tableMap Map of table names to their metadata.
+/// @param tableOrder Vector of table names in creation order.
+/// @param isSQLite Whether the target database is SQLite.
+/// @param progress Progress manager for reporting status.
+/// @return Set of successfully created table names.
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+std::set<std::string> CreateTablesInOrder(SqlConnection& conn,
+                                          std::string const& schema,
+                                          std::map<std::string, TableInfo> const& tableMap,
+                                          std::vector<std::string> const& tableOrder,
+                                          bool isSQLite,
+                                          ProgressManager& progress)
+{
+    std::set<std::string> createdTables;
+    auto const& formatter = conn.QueryFormatter();
 
     // Pass 0 (non-SQLite only): Drop all existing FK constraints that might prevent table drops.
     // This handles cases where tables from previous test runs have FKs pointing to tables we need to drop.
@@ -628,7 +633,7 @@ std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connecti
             std::vector<SqlCompositeForeignKeyConstraint> const& fksToCreate =
                 isSQLite ? foreignKeys : std::vector<SqlCompositeForeignKeyConstraint> {};
 
-            auto createSqls = formatter.CreateTable(schema, tableName, info.columns, fksToCreate);
+            auto const createSqls = formatter.CreateTable(schema, tableName, info.columns, fksToCreate);
             for (auto const& sql: createSqls)
             {
                 try
@@ -661,6 +666,37 @@ std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connecti
     }
 
     return createdTables;
+}
+
+std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connectionString,
+                                             std::string const& schema,
+                                             std::map<std::string, TableInfo> const& tableMap,
+                                             ProgressManager& progress)
+{
+    SqlConnection conn;
+    if (!conn.Connect(connectionString))
+    {
+        progress.Update({ .state = Progress::State::Error,
+                          .tableName = "",
+                          .currentRows = 0,
+                          .totalRows = std::nullopt,
+                          .message = "Failed to connect for schema recreation: " + conn.LastError().message });
+        return {};
+    }
+
+    bool const isSQLite = conn.ServerType() == SqlServerType::SQLITE;
+
+    // Speed up restore (SQLite only)
+    if (isSQLite)
+    {
+        SqlStatement stmt { conn };
+        stmt.ExecuteDirect("PRAGMA synchronous = OFF");
+        stmt.ExecuteDirect("PRAGMA journal_mode = WAL");
+        stmt.ExecuteDirect("PRAGMA foreign_keys = OFF"); // Disable FKs during restore
+    }
+
+    auto const tableOrder = ComputeTableCreationOrder(tableMap, isSQLite);
+    return CreateTablesInOrder(conn, schema, tableMap, tableOrder, isSQLite, progress);
 }
 
 } // namespace Lightweight::SqlBackup::detail

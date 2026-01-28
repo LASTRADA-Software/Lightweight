@@ -35,8 +35,9 @@ struct RestoreChunkInfo
     std::string tableName;
     std::string chunkPath;
     std::vector<uint8_t> content;
-    TableInfo const* tableInfo;
+    TableInfo const* tableInfo {};
     std::optional<size_t> displayTotal;
+    bool isEndOfStream {}; ///< True when queue is empty and no more data is available.
 };
 
 /// Error information from FetchNextRestoreChunk.
@@ -78,8 +79,8 @@ void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName, bo
 /// path parsing to extract table name, and checksum verification.
 ///
 /// @param ctx The restore context.
-/// @return The chunk info on success, std::nullopt if queue is empty, or error details on failure.
-std::expected<std::optional<RestoreChunkInfo>, FetchChunkError> FetchNextRestoreChunk(RestoreContext& ctx);
+/// @return The chunk info on success (with isEndOfStream=true when queue is empty), or error details on failure.
+std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreContext& ctx);
 
 /// Restores chunk data to the database with retry logic.
 ///
