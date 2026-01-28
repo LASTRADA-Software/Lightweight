@@ -22,7 +22,7 @@ var searchData=
   ['maxretries_19',['maxRetries',['../d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html#a84a600e977bf22e1e8b462d699d1fb0a',1,'Lightweight::SqlBackup::RetrySettings']]],
   ['maxrowspercommit_20',['maxRowsPerCommit',['../da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5',1,'Lightweight::SqlBackup::RestoreSettings']]],
   ['memorylimitbytes_21',['memoryLimitBytes',['../da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a066abf8c9d7c35374587d6fe850d8d2d',1,'Lightweight::SqlBackup::RestoreSettings']]],
-  ['message_22',['message',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a7fe5b59bee8beac8f5df6665b8b76ac8',1,'Lightweight::SqlBackup::Progress']]],
+  ['message_22',['message',['../da/dd4/structLightweight_1_1Zip_1_1ZipError.html#a36fb2dfc5fee2d41462a563316f12754',1,'Lightweight::Zip::ZipError::message'],['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a7fe5b59bee8beac8f5df6665b8b76ac8',1,'Lightweight::SqlBackup::Progress::message']]],
   ['messagewriter_23',['MessageWriter',['../db/dfd/classLightweight_1_1SqlLogger.html#a9fa72e1dc66122e2b611a6806e77063b',1,'Lightweight::SqlLogger']]],
   ['metadata_24',['metadata',['../da/d7e/structLightweight_1_1SqlRawColumn.html#a46be282ffe105f3df50dd090c0419d68',1,'Lightweight::SqlRawColumn']]],
   ['metadata_20json_20tt_25',['2. Metadata Manifest (&lt;tt&gt;metadata.json&lt;/tt&gt;)',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md2-metadata-manifest-metadatajson',1,'']]],

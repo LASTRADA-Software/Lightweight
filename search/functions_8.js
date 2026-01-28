@@ -13,5 +13,6 @@ var searchData=
   ['isloaded_10',['IsLoaded',['../df/d63/classLightweight_1_1HasOneThrough.html#ad1c8894f124db4b45117abafe918e51f',1,'Lightweight::HasOneThrough']]],
   ['islocked_11',['IsLocked',['../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#a097efefa7b59595476424596436760d8',1,'Lightweight::SqlMigration::MigrationLock']]],
   ['ismodified_12',['ismodified',['../d0/df7/classLightweight_1_1BelongsTo.html#a760ee5ea51fd3c714f26a1d1f3366a37',1,'Lightweight::BelongsTo::IsModified()'],['../de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f',1,'Lightweight::DataMapper::IsModified()'],['../d2/dd0/structLightweight_1_1Field.html#a4296163dab8a3ce341e2b52a18c7c7b7',1,'Lightweight::Field::IsModified()']]],
-  ['isnull_13',['IsNull',['../df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021',1,'Lightweight::SqlVariant']]]
+  ['isnull_13',['IsNull',['../df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021',1,'Lightweight::SqlVariant']]],
+  ['isopen_14',['isopen',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#aca980f73de141baddf5d6ad7189fe932',1,'Lightweight::Zip::ZipArchive::IsOpen()'],['../d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a7628d304d8e4d1d9c0633d621a20e900',1,'Lightweight::Zip::ZipEntry::IsOpen()']]]
 ];

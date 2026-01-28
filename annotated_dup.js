@@ -44,6 +44,12 @@ var annotated_dup =
         [ "PluginLoader", "d3/df0/classLightweight_1_1Tools_1_1PluginLoader.html", null ],
         [ "TableIssue", "d4/dcb/structLightweight_1_1Tools_1_1TableIssue.html", null ]
       ] ],
+      [ "Zip", null, [
+        [ "EntryInfo", "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html", "d7/d09/structLightweight_1_1Zip_1_1EntryInfo" ],
+        [ "ZipArchive", "d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html", "d4/d8a/classLightweight_1_1Zip_1_1ZipArchive" ],
+        [ "ZipEntry", "d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html", "d6/d46/classLightweight_1_1Zip_1_1ZipEntry" ],
+        [ "ZipError", "da/dd4/structLightweight_1_1Zip_1_1ZipError.html", "da/dd4/structLightweight_1_1Zip_1_1ZipError" ]
+      ] ],
       [ "BelongsTo", "d0/df7/classLightweight_1_1BelongsTo.html", "d0/df7/classLightweight_1_1BelongsTo" ],
       [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html", "de/d61/classLightweight_1_1DataMapper" ],
       [ "DataMapperOptions", "d3/db2/structLightweight_1_1DataMapperOptions.html", null ],

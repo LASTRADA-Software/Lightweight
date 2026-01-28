@@ -2,7 +2,7 @@ var searchData=
 [
   ['nanosecond_0',['nanosecond',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a8936bb67e7a6cccf8b462302175ca0c7',1,'Lightweight::SqlDateTime']]],
   ['native_1',['Native',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#adc8632d9a895fa48313ea74e4270494b',1,'Lightweight::SqlMigrationQueryBuilder']]],
-  ['nativehandle_2',['nativehandle',['../da/da8/classLightweight_1_1SqlConnection.html#ad72f0aad1bc6075e7a91bd29d0ac3e2f',1,'Lightweight::SqlConnection::NativeHandle()'],['../db/dad/classLightweight_1_1SqlStatement.html#a0783a366bc0c8fd7d9f2639236b3fc36',1,'Lightweight::SqlStatement::NativeHandle()']]],
+  ['nativehandle_2',['nativehandle',['../da/da8/classLightweight_1_1SqlConnection.html#ad72f0aad1bc6075e7a91bd29d0ac3e2f',1,'Lightweight::SqlConnection::NativeHandle()'],['../db/dad/classLightweight_1_1SqlStatement.html#a0783a366bc0c8fd7d9f2639236b3fc36',1,'Lightweight::SqlStatement::NativeHandle()'],['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#acdea8e5a5a54e2c1068331bc01a0ca57',1,'Lightweight::Zip::ZipArchive::NativeHandle()']]],
   ['nextbool_3',['NextBool',['../d1/d21/classLargeDb_1_1SeededRandom.html#ae32e5a6d923243244ccb412b2231f732',1,'LargeDb::SeededRandom']]],
   ['nextdouble_4',['NextDouble',['../d1/d21/classLargeDb_1_1SeededRandom.html#a26383d14a22a48a124163a82affa08b2',1,'LargeDb::SeededRandom']]],
   ['nextint_5',['NextInt',['../d1/d21/classLargeDb_1_1SeededRandom.html#a5c9edc8747e9eea2e92bef79453d3afd',1,'LargeDb::SeededRandom']]],

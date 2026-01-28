@@ -6,7 +6,7 @@ var searchData=
   ['in_20oracle_20database_3',['64-bit Integer Handling in Oracle Database',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database',1,'']]],
   ['in_20order_4',['Query Result Row Columns in Order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
   ['includeguardprefix_5',['includeGuardPrefix',['../d7/d04/structLup2DbTool_1_1CodeGeneratorConfig.html#a96f00b016d508adb379c86d6e20f71d4',1,'Lup2DbTool::CodeGeneratorConfig']]],
-  ['index_6',['index',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046',1,'Lightweight::SqlColumnDeclaration::index'],['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ab5ca6b248b7df350cc640d419e2737fd',1,'Lightweight::SqlCreateTableQueryBuilder::Index()']]],
+  ['index_6',['index',['../d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#ab5ca6b248b7df350cc640d419e2737fd',1,'Lightweight::SqlCreateTableQueryBuilder::Index()'],['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046',1,'Lightweight::SqlColumnDeclaration::index'],['../d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#a0731a4941cd0e4cbdfa4a3dfc159a750',1,'Lightweight::Zip::EntryInfo::index']]],
   ['indexdefinition_7',['IndexDefinition',['../d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html',1,'Lightweight::SqlSchema']]],
   ['indexes_8',['indexes',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ac5078f37747a5a12b4d3d7e8df8b7595',1,'Lightweight::SqlBackup::TableInfo::indexes'],['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#afb92036f7695851c2246f5574d7f3bde',1,'Lightweight::SqlSchema::Table::indexes']]],
   ['indexname_9',['indexName',['../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a8b1c5ecec1c2dd8326f6011d3256f84c',1,'Lightweight::SqlCreateIndexPlan']]],
@@ -41,8 +41,9 @@ var searchData=
   ['ismandatory_38',['IsMandatory',['../d2/dd0/structLightweight_1_1Field.html#aa408ad47ef3d6a169dad4dbf5ef243ce',1,'Lightweight::Field']]],
   ['ismodified_39',['ismodified',['../d2/dd0/structLightweight_1_1Field.html#a4296163dab8a3ce341e2b52a18c7c7b7',1,'Lightweight::Field::IsModified()'],['../de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f',1,'Lightweight::DataMapper::IsModified()'],['../d0/df7/classLightweight_1_1BelongsTo.html#a760ee5ea51fd3c714f26a1d1f3366a37',1,'Lightweight::BelongsTo::IsModified()']]],
   ['isnull_40',['IsNull',['../df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021',1,'Lightweight::SqlVariant']]],
-  ['isoptional_41',['IsOptional',['../d2/dd0/structLightweight_1_1Field.html#aca64dd154091663b93852e0589c95630',1,'Lightweight::Field']]],
-  ['isprimarykey_42',['IsPrimaryKey',['../d2/dd0/structLightweight_1_1Field.html#a844764f259e40daa34fbacd27ef8e4a9',1,'Lightweight::Field']]],
-  ['isunique_43',['isUnique',['../d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#afc6863e451eb5828a2c241e56743c600',1,'Lightweight::SqlSchema::IndexDefinition']]],
-  ['iterator_44',['iterator',['../da/df4/classLightweight_1_1HasMany.html#a4208c7230c0ba0e12997bf6c2ce0775c',1,'Lightweight::HasMany']]]
+  ['isopen_41',['isopen',['../d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a7628d304d8e4d1d9c0633d621a20e900',1,'Lightweight::Zip::ZipEntry::IsOpen()'],['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#aca980f73de141baddf5d6ad7189fe932',1,'Lightweight::Zip::ZipArchive::IsOpen()']]],
+  ['isoptional_42',['IsOptional',['../d2/dd0/structLightweight_1_1Field.html#aca64dd154091663b93852e0589c95630',1,'Lightweight::Field']]],
+  ['isprimarykey_43',['IsPrimaryKey',['../d2/dd0/structLightweight_1_1Field.html#a844764f259e40daa34fbacd27ef8e4a9',1,'Lightweight::Field']]],
+  ['isunique_44',['isUnique',['../d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#afc6863e451eb5828a2c241e56743c600',1,'Lightweight::SqlSchema::IndexDefinition']]],
+  ['iterator_45',['iterator',['../da/df4/classLightweight_1_1HasMany.html#a4208c7230c0ba0e12997bf6c2ce0775c',1,'Lightweight::HasMany']]]
 ];
