@@ -77,6 +77,10 @@ set(HEADER_FILES
     SqlBackup/Restore.hpp
     SqlBackup/TableFilter.hpp
     SqlBackupFormats.hpp
+
+    Zip/ZipArchive.hpp
+    Zip/ZipEntry.hpp
+    Zip/ZipError.hpp
     SqlConnectInfo.hpp
     SqlConnection.hpp
     SqlError.hpp
@@ -122,6 +126,9 @@ set(SOURCE_FILES
     SqlStatement.cpp
     SqlTransaction.cpp
     Utils.cpp
+
+    Zip/ZipArchive.cpp
+    Zip/ZipEntry.cpp
 )
 
 add_library(Lightweight ${LIGHTWEIGHT_LIBRARY_TYPE})
