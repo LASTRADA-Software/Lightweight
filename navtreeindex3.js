@@ -122,6 +122,7 @@ var NAVTREEINDEX3 =
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec":[11,0,1,37,0],
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#afd21e23e3c24884cba9ef3b76d174e82":[11,0,1,37,1],
 "dd/d94/SqlBinary_8hpp_source.html":[12,0,1,0,3],
+"dd/d96/TestHelpers_8hpp_source.html":[12,0,2,2,0],
 "dd/da7/conceptLightweight_1_1FieldWithStorage.html":[9,2,1],
 "dd/dad/SqlText_8hpp_source.html":[12,0,1,0,13],
 "dd/ded/structLargeDb__Article.html":[11,0,5],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "df/d3f/structLightweight_1_1SqlVariant.html#a001b083ef4020390b319901974533265":[9,0,11,5],
 "df/d3f/structLightweight_1_1SqlVariant.html#a03f3abedb73fca7403adafd87d2e3ad0":[9,0,11,6],
 "df/d3f/structLightweight_1_1SqlVariant.html#a04b24b9c04888b9b4d3f550c96f8bc29":[9,0,11,34],
-"df/d3f/structLightweight_1_1SqlVariant.html#a0554153abf1859d854b5ea865c53bd4e":[9,0,11,28],
-"df/d3f/structLightweight_1_1SqlVariant.html#a06288408eded97794ac5215272b609c9":[9,0,11,12]
+"df/d3f/structLightweight_1_1SqlVariant.html#a0554153abf1859d854b5ea865c53bd4e":[9,0,11,28]
 };
