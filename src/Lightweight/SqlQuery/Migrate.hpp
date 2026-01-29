@@ -249,6 +249,97 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     SqlAlterTablePlan& _plan;
 };
 
+namespace detail
+{
+    template <typename Record>
+    void PopulateCreateTableBuilder(SqlCreateTableQueryBuilder& builder)
+    {
+        static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+        constexpr auto ctx = std::meta::access_context::current();
+        template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
+        {
+            using FieldType = typename[:std::meta::type_of(el):];
+            if constexpr (FieldWithStorage<FieldType>)
+            {
+                if constexpr (IsAutoIncrementPrimaryKey<FieldType>)
+                    builder.PrimaryKeyWithAutoIncrement(
+                        std::string(FieldNameOf<el>),
+                        detail::SqlColumnTypeDefinitionOf<typename FieldType::ValueType>::value);
+                else if constexpr (FieldType::IsPrimaryKey)
+                    builder.PrimaryKey(std::string(FieldNameOf<el>),
+                                       detail::SqlColumnTypeDefinitionOf<typename FieldType::ValueType>::value);
+                else if constexpr (IsBelongsTo<FieldType>)
+                {
+                    constexpr size_t referencedFieldIndex = []() constexpr -> size_t {
+                        auto index = size_t(-1);
+                        Reflection::EnumerateMembers<typename FieldType::ReferencedRecord>(
+                            [&index]<size_t J, typename ReferencedFieldType>() constexpr -> void {
+                                if constexpr (IsField<ReferencedFieldType>)
+                                    if constexpr (ReferencedFieldType::IsPrimaryKey)
+                                        index = J;
+                            });
+                        return index;
+                    }();
+                    builder.ForeignKey(
+                        std::string(FieldNameOf<el>),
+                        detail::SqlColumnTypeDefinitionOf<typename FieldType::ValueType>::value,
+                        SqlForeignKeyReferenceDefinition {
+                            .tableName = std::string { RecordTableName<typename FieldType::ReferencedRecord> },
+                            .columnName = std::string { FieldNameOf<FieldType::ReferencedField> } });
+                }
+                else if constexpr (FieldType::IsMandatory)
+                    builder.RequiredColumn(std::string(FieldNameOf<el>),
+                                           detail::SqlColumnTypeDefinitionOf<typename FieldType::ValueType>::value);
+                else
+                    builder.Column(std::string(FieldNameOf<el>),
+                                   detail::SqlColumnTypeDefinitionOf<typename FieldType::ValueType>::value);
+            }
+        }
+#else
+        Reflection::EnumerateMembers<Record>([&builder]<size_t I, typename FieldType>() {
+            if constexpr (FieldWithStorage<FieldType>)
+            {
+                if constexpr (IsAutoIncrementPrimaryKey<FieldType>)
+                    builder.PrimaryKeyWithAutoIncrement(
+                        std::string(FieldNameAt<I, Record>()),
+                        detail::SqlColumnTypeDefinitionOf<typename FieldType::ValueType>::value);
+                else if constexpr (FieldType::IsPrimaryKey)
+                    builder.PrimaryKey(std::string(FieldNameAt<I, Record>()),
+                                       detail::SqlColumnTypeDefinitionOf<typename FieldType::ValueType>::value);
+                else if constexpr (IsBelongsTo<FieldType>)
+                {
+                    constexpr size_t referencedFieldIndex = []() constexpr -> size_t {
+                        auto index = size_t(-1);
+                        Reflection::EnumerateMembers<typename FieldType::ReferencedRecord>(
+                            [&index]<size_t J, typename ReferencedFieldType>() constexpr -> void {
+                                if constexpr (IsField<ReferencedFieldType>)
+                                    if constexpr (ReferencedFieldType::IsPrimaryKey)
+                                        index = J;
+                            });
+                        return index;
+                    }();
+                    builder.ForeignKey(
+                        std::string(FieldNameAt<I, Record>()),
+                        detail::SqlColumnTypeDefinitionOf<typename FieldType::ValueType>::value,
+                        SqlForeignKeyReferenceDefinition {
+                            .tableName = std::string { RecordTableName<typename FieldType::ReferencedRecord> },
+                            .columnName =
+                                std::string { FieldNameAt<referencedFieldIndex, typename FieldType::ReferencedRecord>() } });
+                }
+                else if constexpr (FieldType::IsMandatory)
+                    builder.RequiredColumn(std::string(FieldNameAt<I, Record>()),
+                                           detail::SqlColumnTypeDefinitionOf<typename FieldType::ValueType>::value);
+                else
+                    builder.Column(std::string(FieldNameAt<I, Record>()),
+                                   detail::SqlColumnTypeDefinitionOf<typename FieldType::ValueType>::value);
+            }
+        });
+#endif
+    }
+} // namespace detail
+
 /// @brief Query builder for building INSERT queries in migrations.
 ///
 /// @see SqlMigrationQueryBuilder
@@ -383,85 +474,7 @@ class [[nodiscard]] SqlMigrationQueryBuilder final
         static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
         auto builder = CreateTable(RecordTableName<Record>);
-
-#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
-        constexpr auto ctx = std::meta::access_context::current();
-        template for (constexpr auto el: define_static_array(nonstatic_data_members_of(^^Record, ctx)))
-        {
-            using FieldType = typename[:std::meta::type_of(el):];
-            if constexpr (FieldWithStorage<FieldType>)
-            {
-                if constexpr (IsAutoIncrementPrimaryKey<FieldType>)
-                    builder.PrimaryKeyWithAutoIncrement(std::string(FieldNameOf<el>),
-                                                        SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
-                else if constexpr (FieldType::IsPrimaryKey)
-                    builder.PrimaryKey(std::string(FieldNameOf<el>),
-                                       SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
-                else if constexpr (IsBelongsTo<FieldType>)
-                {
-                    constexpr size_t referencedFieldIndex = []() constexpr -> size_t {
-                        auto index = size_t(-1);
-                        Reflection::EnumerateMembers<typename FieldType::ReferencedRecord>(
-                            [&index]<size_t J, typename ReferencedFieldType>() constexpr -> void {
-                                if constexpr (IsField<ReferencedFieldType>)
-                                    if constexpr (ReferencedFieldType::IsPrimaryKey)
-                                        index = J;
-                            });
-                        return index;
-                    }();
-                    builder.ForeignKey(
-                        std::string(FieldNameOf<el>),
-                        SqlColumnTypeDefinitionOf<typename FieldType::ValueType>,
-                        SqlForeignKeyReferenceDefinition {
-                            .tableName = std::string { RecordTableName<typename FieldType::ReferencedRecord> },
-                            .columnName = std::string { FieldNameOf<FieldType::ReferencedField> } });
-                }
-                else if constexpr (FieldType::IsMandatory)
-                    builder.RequiredColumn(std::string(FieldNameOf<el>),
-                                           SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
-                else
-                    builder.Column(std::string(FieldNameOf<el>), SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
-            }
-        }
-#else
-        Reflection::EnumerateMembers<Record>([&builder]<size_t I, typename FieldType>() {
-            if constexpr (FieldWithStorage<FieldType>)
-            {
-                if constexpr (IsAutoIncrementPrimaryKey<FieldType>)
-                    builder.PrimaryKeyWithAutoIncrement(std::string(FieldNameAt<I, Record>),
-                                                        SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
-                else if constexpr (FieldType::IsPrimaryKey)
-                    builder.PrimaryKey(std::string(FieldNameAt<I, Record>),
-                                       SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
-                else if constexpr (IsBelongsTo<FieldType>)
-                {
-                    constexpr size_t referencedFieldIndex = []() constexpr -> size_t {
-                        auto index = size_t(-1);
-                        Reflection::EnumerateMembers<typename FieldType::ReferencedRecord>(
-                            [&index]<size_t J, typename ReferencedFieldType>() constexpr -> void {
-                                if constexpr (IsField<ReferencedFieldType>)
-                                    if constexpr (ReferencedFieldType::IsPrimaryKey)
-                                        index = J;
-                            });
-                        return index;
-                    }();
-                    builder.ForeignKey(
-                        std::string(FieldNameAt<I, Record>),
-                        SqlColumnTypeDefinitionOf<typename FieldType::ValueType>,
-                        SqlForeignKeyReferenceDefinition {
-                            .tableName = std::string { RecordTableName<typename FieldType::ReferencedRecord> },
-                            .columnName =
-                                std::string { FieldNameAt<referencedFieldIndex, typename FieldType::ReferencedRecord> } });
-                }
-                else if constexpr (FieldType::IsMandatory)
-                    builder.RequiredColumn(std::string(FieldNameAt<I, Record>),
-                                           SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
-                else
-                    builder.Column(std::string(FieldNameAt<I, Record>),
-                                   SqlColumnTypeDefinitionOf<typename FieldType::ValueType>);
-            }
-        });
-#endif
+        detail::PopulateCreateTableBuilder<Record>(builder);
         return builder;
     }
 
