@@ -25,3 +25,4 @@ _codeql_detected_source_root
 .test-env.local.yml
 scripts/tests/.test-env.local.yml
 sandbox
+__pycache__

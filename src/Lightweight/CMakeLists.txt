@@ -72,8 +72,15 @@ set(HEADER_FILES
     DataMapper/QueryBuilders.hpp
 
     SqlBackup.hpp
+    SqlBackup/Backup.hpp
+    SqlBackup/Common.hpp
+    SqlBackup/Restore.hpp
     SqlBackup/TableFilter.hpp
     SqlBackupFormats.hpp
+
+    Zip/ZipArchive.hpp
+    Zip/ZipEntry.hpp
+    Zip/ZipError.hpp
     SqlConnectInfo.hpp
     SqlConnection.hpp
     SqlError.hpp
@@ -96,8 +103,11 @@ set(SOURCE_FILES
 
     DataMapper/DataMapper.cpp
 
+    SqlBackup/Backup.cpp
     SqlBackup/BatchManager.cpp
+    SqlBackup/Common.cpp
     SqlBackup/MsgPackChunkFormats.cpp
+    SqlBackup/Restore.cpp
     SqlBackup/SqlBackup.cpp
     SqlBackup/TableFilter.cpp
     SqlConnectInfo.cpp
@@ -116,6 +126,9 @@ set(SOURCE_FILES
     SqlStatement.cpp
     SqlTransaction.cpp
     Utils.cpp
+
+    Zip/ZipArchive.cpp
+    Zip/ZipEntry.cpp
 )
 
 add_library(Lightweight ${LIGHTWEIGHT_LIBRARY_TYPE})

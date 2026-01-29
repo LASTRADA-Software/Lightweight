@@ -50,6 +50,9 @@ struct BackupSettings
     /// Chunks are flushed when the buffer exceeds this size.
     /// Default: 10 MB.
     std::size_t chunkSizeBytes = 10 * 1024 * 1024;
+
+    /// If true, only export schema metadata without backing up table data.
+    bool schemaOnly = false;
 };
 
 /// Configuration for restore operations including memory management.
@@ -71,6 +74,9 @@ struct RestoreSettings
 
     /// Memory limit in bytes (0 = auto-detect from system).
     std::size_t memoryLimitBytes = 0;
+
+    /// If true, only recreate schema without importing data.
+    bool schemaOnly = false;
 };
 
 /// Returns available system memory in bytes.

@@ -94,6 +94,7 @@ set(SOURCE_FILES
     UnicodeConverterTests.cpp
     Utils.cpp
     UtilsTests.cpp
+    Zip/ZipTests.cpp
 )
 
 if(LIGHTWEIGHT_HAS_STDEXEC)
