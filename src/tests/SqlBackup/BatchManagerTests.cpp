@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "TestHelpers.hpp"
+
 #include <Lightweight/SqlBackup/BatchManager.hpp>
 
 #include <catch2/catch_approx.hpp>
@@ -13,6 +15,7 @@
 using namespace Lightweight;
 using namespace Lightweight::detail;
 using namespace Lightweight::SqlBackup; // For BackupValue
+using namespace Lightweight::SqlBackup::Tests;
 
 TEST_CASE("BatchManager: Basic Flow", "[SqlBackup]")
 {
@@ -175,11 +178,7 @@ TEST_CASE("BatchManager: Smallint column", "[SqlBackup]")
         }
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ int64_t { 100 } });
-    bm.PushRow({ int64_t { -200 } });
-    bm.PushRow({ std::monostate {} }); // NULL
-    bm.Flush();
+    RunBatchManagerTest(executor, cols, { { int64_t { 100 } }, { int64_t { -200 } }, { std::monostate {} } }, 10);
 
     REQUIRE(capturedValues.size() == 3);
     REQUIRE(capturedValues[0] == 100);
@@ -208,11 +207,7 @@ TEST_CASE("BatchManager: Tinyint column", "[SqlBackup]")
         }
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ int64_t { 50 } });
-    bm.PushRow({ int64_t { 127 } });
-    bm.PushRow({ std::monostate {} });
-    bm.Flush();
+    RunBatchManagerTest(executor, cols, { { int64_t { 50 } }, { int64_t { 127 } }, { std::monostate {} } }, 10);
 
     REQUIRE(capturedValues.size() == 3);
     REQUIRE(capturedValues[0] == 50);
@@ -237,10 +232,7 @@ TEST_CASE("BatchManager: Real/Double column", "[SqlBackup]")
             capturedValues.push_back(data[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ 1.23456 });
-    bm.PushRow({ -9.87654 });
-    bm.Flush();
+    RunBatchManagerTest(executor, cols, { { 1.23456 }, { -9.87654 } }, 10);
 
     REQUIRE(capturedValues.size() == 2);
     REQUIRE(capturedValues[0] == Catch::Approx(1.23456));
@@ -263,10 +255,7 @@ TEST_CASE("BatchManager: Bool column", "[SqlBackup]")
             capturedValues.push_back(data[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ true });
-    bm.PushRow({ false });
-    bm.Flush();
+    RunBatchManagerTest(executor, cols, { { true }, { false } }, 10);
 
     REQUIRE(capturedValues.size() == 2);
     REQUIRE(capturedValues[0] == 1);
@@ -293,23 +282,15 @@ TEST_CASE("BatchManager: DateTime column with fractional seconds", "[SqlBackup]"
             capturedValues.push_back(data[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-
-    // Full datetime with milliseconds
-    bm.PushRow({ std::string("2024-01-15T14:30:45.123") });
-
-    // Datetime without milliseconds
-    bm.PushRow({ std::string("2024-12-31T23:59:59") });
-
-    // Short milliseconds (needs padding)
-    bm.PushRow({ std::string("2024-06-15T12:00:00.5") });
-
-    // NULL and empty
-    bm.PushRow({ std::monostate {} });
-    bm.PushRow({ std::string("") });
-    bm.PushRow({ std::string("NULL") });
-
-    bm.Flush();
+    RunBatchManagerTest(executor,
+                        cols,
+                        { { std::string("2024-01-15T14:30:45.123") },
+                          { std::string("2024-12-31T23:59:59") },
+                          { std::string("2024-06-15T12:00:00.5") },
+                          { std::monostate {} },
+                          { std::string("") },
+                          { std::string("NULL") } },
+                        10);
 
     REQUIRE(capturedValues.size() == 6);
 
@@ -344,8 +325,6 @@ TEST_CASE("BatchManager: DateTime PushFromBatch", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-
     ColumnBatch batch;
     batch.rowCount = 4;
     batch.columns.resize(1);
@@ -353,8 +332,7 @@ TEST_CASE("BatchManager: DateTime PushFromBatch", "[SqlBackup]")
     batch.nullIndicators[0] = { false, true, false, false };
     batch.columns[0] = std::vector<std::string> { "2024-01-01T00:00:00", "", "NULL", "2024-12-31T23:59:59" };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10);
 
     REQUIRE(capturedIndicators.size() == 4);
     REQUIRE(capturedIndicators[0] == sizeof(SQL_TIMESTAMP_STRUCT)); // Valid
@@ -387,13 +365,14 @@ TEST_CASE("BatchManager: Date column", "[SqlBackup]")
         }
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ std::string("2024-01-15") });
-    bm.PushRow({ std::string("1999-12-31") });
-    bm.PushRow({ std::monostate {} });
-    bm.PushRow({ std::string("") });
-    bm.PushRow({ std::string("NULL") });
-    bm.Flush();
+    RunBatchManagerTest(executor,
+                        cols,
+                        { { std::string("2024-01-15") },
+                          { std::string("1999-12-31") },
+                          { std::monostate {} },
+                          { std::string("") },
+                          { std::string("NULL") } },
+                        10);
 
     REQUIRE(capturedValues.size() == 5);
     REQUIRE(capturedValues[0].year == 2024);
@@ -417,8 +396,6 @@ TEST_CASE("BatchManager: Date PushFromBatch", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-
     ColumnBatch batch;
     batch.rowCount = 3;
     batch.columns.resize(1);
@@ -426,8 +403,7 @@ TEST_CASE("BatchManager: Date PushFromBatch", "[SqlBackup]")
     batch.nullIndicators[0] = { false, true, false };
     batch.columns[0] = std::vector<std::string> { "2024-06-15", "", "NULL" };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10);
 
     REQUIRE(capturedIndicators.size() == 3);
     REQUIRE(capturedIndicators[0] == sizeof(SQL_DATE_STRUCT));
@@ -465,13 +441,15 @@ TEST_CASE("BatchManager: StringTime column (for MSSQL/PostgreSQL/SQLite)", "[Sql
     };
 
     // Default serverType is SQLite which uses StringTimeBatchColumn
-    BatchManager bm(executor, cols, 10, SqlServerType::SQLITE);
-    bm.PushRow({ std::string("14:30:45.123456") });
-    bm.PushRow({ std::string("23:59:59") });
-    bm.PushRow({ std::monostate {} });
-    bm.PushRow({ std::string("") });
-    bm.PushRow({ std::string("NULL") });
-    bm.Flush();
+    RunBatchManagerTest(executor,
+                        cols,
+                        { { std::string("14:30:45.123456") },
+                          { std::string("23:59:59") },
+                          { std::monostate {} },
+                          { std::string("") },
+                          { std::string("NULL") } },
+                        10,
+                        SqlServerType::SQLITE);
 
     REQUIRE(capturedValues.size() == 5);
     REQUIRE(capturedValues[0] == "14:30:45.123456");
@@ -493,8 +471,6 @@ TEST_CASE("BatchManager: StringTime PushFromBatch", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10, SqlServerType::SQLITE);
-
     ColumnBatch batch;
     batch.rowCount = 3;
     batch.columns.resize(1);
@@ -502,8 +478,7 @@ TEST_CASE("BatchManager: StringTime PushFromBatch", "[SqlBackup]")
     batch.nullIndicators[0] = { false, true, false };
     batch.columns[0] = std::vector<std::string> { "12:00:00", "", "NULL" };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10, SqlServerType::SQLITE);
 
     REQUIRE(capturedIndicators.size() == 3);
     REQUIRE(capturedIndicators[0] != SQL_NULL_DATA);
@@ -533,14 +508,16 @@ TEST_CASE("BatchManager: TimeBatchColumn (for MySQL/UNKNOWN)", "[SqlBackup]")
     };
 
     // Use MySQL server type to trigger TimeBatchColumn
-    BatchManager bm(executor, cols, 10, SqlServerType::MYSQL);
-    bm.PushRow({ std::string("14:30:45") });
-    bm.PushRow({ std::string("23:59:59.123456") }); // Fractional seconds should be ignored
-    bm.PushRow({ std::monostate {} });              // NULL
-    bm.PushRow({ std::string("") });                // Empty -> NULL
-    bm.PushRow({ std::string("NULL") });            // "NULL" -> NULL
-    bm.PushRow({ int64_t { 12345 } });              // Non-string -> NULL
-    bm.Flush();
+    RunBatchManagerTest(executor,
+                        cols,
+                        { { std::string("14:30:45") },
+                          { std::string("23:59:59.123456") }, // Fractional seconds should be ignored
+                          { std::monostate {} },              // NULL
+                          { std::string("") },                // Empty -> NULL
+                          { std::string("NULL") },            // "NULL" -> NULL
+                          { int64_t { 12345 } } },            // Non-string -> NULL
+                        10,
+                        SqlServerType::MYSQL);
 
     REQUIRE(capturedTimes.size() == 6);
     REQUIRE(capturedIndicators.size() == 6);
@@ -582,8 +559,6 @@ TEST_CASE("BatchManager: TimeBatchColumn PushFromBatch", "[SqlBackup]")
     };
 
     // Use UNKNOWN server type to also trigger TimeBatchColumn
-    BatchManager bm(executor, cols, 10, SqlServerType::UNKNOWN);
-
     ColumnBatch batch;
     batch.rowCount = 4;
     batch.columns.resize(1);
@@ -591,8 +566,7 @@ TEST_CASE("BatchManager: TimeBatchColumn PushFromBatch", "[SqlBackup]")
     batch.nullIndicators[0] = { false, true, false, false };
     batch.columns[0] = std::vector<std::string> { "12:00:00", "", "08:15:30.999", "NULL" };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10, SqlServerType::UNKNOWN);
 
     REQUIRE(capturedIndicators.size() == 4);
     REQUIRE(capturedTimes.size() == 4);
@@ -633,13 +607,14 @@ TEST_CASE("BatchManager: TimeBatchColumn ParseTime edge cases", "[SqlBackup]")
         }
     };
 
-    BatchManager bm(executor, cols, 10, SqlServerType::MYSQL);
-
     // Edge cases for ParseTime
-    bm.PushRow({ std::string("00:00:00") }); // Midnight
-    bm.PushRow({ std::string("01:02:03") }); // Single digit components
-    bm.PushRow({ std::string("short") });    // Too short string (< 8 chars) -> zeros
-    bm.Flush();
+    RunBatchManagerTest(executor,
+                        cols,
+                        { { std::string("00:00:00") }, // Midnight
+                          { std::string("01:02:03") }, // Single digit components
+                          { std::string("short") } },  // Too short string (< 8 chars) -> zeros
+                        10,
+                        SqlServerType::MYSQL);
 
     REQUIRE(capturedTimes.size() == 3);
 
@@ -674,8 +649,6 @@ TEST_CASE("BatchManager: TimeBatchColumn with monostate batch data", "[SqlBackup
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10, SqlServerType::MYSQL);
-
     ColumnBatch batch;
     batch.rowCount = 2;
     batch.columns.resize(1);
@@ -683,8 +656,7 @@ TEST_CASE("BatchManager: TimeBatchColumn with monostate batch data", "[SqlBackup
     batch.nullIndicators[0] = { false, false };
     batch.columns[0] = std::monostate {}; // No data -> all NULLs
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10, SqlServerType::MYSQL);
 
     REQUIRE(capturedIndicators.size() == 2);
     REQUIRE(capturedIndicators[0] == SQL_NULL_DATA);
@@ -710,13 +682,14 @@ TEST_CASE("BatchManager: GUID column", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ std::string("12345678-1234-1234-1234-123456789ABC") });
-    bm.PushRow({ std::string("INVALID-GUID") }); // Invalid -> NULL
-    bm.PushRow({ std::monostate {} });
-    bm.PushRow({ std::string("") });
-    bm.PushRow({ std::string("NULL") });
-    bm.Flush();
+    RunBatchManagerTest(executor,
+                        cols,
+                        { { std::string("12345678-1234-1234-1234-123456789ABC") },
+                          { std::string("INVALID-GUID") }, // Invalid -> NULL
+                          { std::monostate {} },
+                          { std::string("") },
+                          { std::string("NULL") } },
+                        10);
 
     REQUIRE(capturedIndicators.size() == 5);
     REQUIRE(capturedIndicators[0] == sizeof(SqlGuid));
@@ -738,8 +711,6 @@ TEST_CASE("BatchManager: GUID PushFromBatch", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-
     ColumnBatch batch;
     batch.rowCount = 4;
     batch.columns.resize(1);
@@ -750,8 +721,7 @@ TEST_CASE("BatchManager: GUID PushFromBatch", "[SqlBackup]")
                                                   "NULL",
                                                   "INVALID" };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10);
 
     REQUIRE(capturedIndicators.size() == 4);
     REQUIRE(capturedIndicators[0] == sizeof(SqlGuid));
@@ -780,11 +750,8 @@ TEST_CASE("BatchManager: NVarchar column", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ std::string("Hello World") });
-    bm.PushRow({ std::string("Unicode: äöü") });
-    bm.PushRow({ std::monostate {} });
-    bm.Flush();
+    RunBatchManagerTest(
+        executor, cols, { { std::string("Hello World") }, { std::string("Unicode: äöü") }, { std::monostate {} } }, 10);
 
     REQUIRE(capturedIndicators.size() == 3);
     REQUIRE(capturedIndicators[0] != SQL_NULL_DATA);
@@ -807,10 +774,7 @@ TEST_CASE("BatchManager: NChar column", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ std::string("Fixed width") });
-    bm.PushRow({ std::monostate {} });
-    bm.Flush();
+    RunBatchManagerTest(executor, cols, { { std::string("Fixed width") }, { std::monostate {} } }, 10);
 
     REQUIRE(capturedIndicators.size() == 2);
     REQUIRE(capturedIndicators[0] != SQL_NULL_DATA);
@@ -830,8 +794,6 @@ TEST_CASE("BatchManager: NVarchar PushFromBatch with various types", "[SqlBackup
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-
     // Test with int64 batch data (should convert to string)
     ColumnBatch batch;
     batch.rowCount = 3;
@@ -840,8 +802,7 @@ TEST_CASE("BatchManager: NVarchar PushFromBatch with various types", "[SqlBackup
     batch.nullIndicators[0] = { false, false, true };
     batch.columns[0] = std::vector<int64_t> { 100, 200, 0 };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10);
 
     REQUIRE(capturedIndicators.size() == 3);
     REQUIRE(capturedIndicators[0] != SQL_NULL_DATA);
@@ -862,8 +823,6 @@ TEST_CASE("BatchManager: NVarchar PushFromBatch with bools", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-
     ColumnBatch batch;
     batch.rowCount = 2;
     batch.columns.resize(1);
@@ -871,8 +830,7 @@ TEST_CASE("BatchManager: NVarchar PushFromBatch with bools", "[SqlBackup]")
     batch.nullIndicators[0] = { false, false };
     batch.columns[0] = std::vector<bool> { true, false };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10);
 
     REQUIRE(capturedIndicators.size() == 2);
     REQUIRE(capturedIndicators[0] != SQL_NULL_DATA);
@@ -909,21 +867,13 @@ TEST_CASE("BatchManager: Binary column Push", "[SqlBackup]")
         }
     };
 
-    BatchManager bm(executor, cols, 10);
-
-    // Binary data
-    bm.PushRow({ std::vector<uint8_t> { 0x01, 0x02, 0x03 } });
-
-    // String as binary (copied as-is)
-    bm.PushRow({ std::string("Hello") });
-
-    // Empty string -> 0 length binary
-    bm.PushRow({ std::string("") });
-
-    // NULL
-    bm.PushRow({ std::monostate {} });
-
-    bm.Flush();
+    RunBatchManagerTest(executor,
+                        cols,
+                        { { std::vector<uint8_t> { 0x01, 0x02, 0x03 } },
+                          { std::string("Hello") },
+                          { std::string("") },
+                          { std::monostate {} } },
+                        10);
 
     REQUIRE(capturedIndicators.size() == 4);
     REQUIRE(capturedIndicators[0] == 3);
@@ -946,8 +896,6 @@ TEST_CASE("BatchManager: Binary PushFromBatch with binary data", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-
     ColumnBatch batch;
     batch.rowCount = 3;
     batch.columns.resize(1);
@@ -955,8 +903,7 @@ TEST_CASE("BatchManager: Binary PushFromBatch with binary data", "[SqlBackup]")
     batch.nullIndicators[0] = { false, false, true };
     batch.columns[0] = std::vector<std::vector<uint8_t>> { { 0xAA, 0xBB, 0xCC }, { 0x01 }, {} };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10);
 
     REQUIRE(capturedIndicators.size() == 3);
     REQUIRE(capturedIndicators[0] == 3);
@@ -987,8 +934,6 @@ TEST_CASE("BatchManager: Binary PushFromBatch with hex strings", "[SqlBackup]")
         }
     };
 
-    BatchManager bm(executor, cols, 10);
-
     // Hex string input (uppercase)
     ColumnBatch batch;
     batch.rowCount = 4;
@@ -1002,8 +947,7 @@ TEST_CASE("BatchManager: Binary PushFromBatch with hex strings", "[SqlBackup]")
         ""            // empty
     };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10);
 
     REQUIRE(capturedIndicators.size() == 4);
     REQUIRE(capturedIndicators[0] == 3);
@@ -1033,13 +977,14 @@ TEST_CASE("BatchManager: Varchar column", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ std::string("Hello") });
-    bm.PushRow({ int64_t { 12345 } }); // Number converted to string
-    bm.PushRow({ 1.23456 });           // Double converted to string
-    bm.PushRow({ true });              // Bool converted to string
-    bm.PushRow({ std::monostate {} });
-    bm.Flush();
+    RunBatchManagerTest(executor,
+                        cols,
+                        { { std::string("Hello") },
+                          { int64_t { 12345 } }, // Number converted to string
+                          { 1.23456 },           // Double converted to string
+                          { true },              // Bool converted to string
+                          { std::monostate {} } },
+                        10);
 
     REQUIRE(capturedIndicators.size() == 5);
     REQUIRE(capturedIndicators[0] == 5);
@@ -1063,10 +1008,7 @@ TEST_CASE("BatchManager: Char column", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ std::string("ABC") });
-    bm.PushRow({ std::monostate {} });
-    bm.Flush();
+    RunBatchManagerTest(executor, cols, { { std::string("ABC") }, { std::monostate {} } }, 10);
 
     REQUIRE(capturedIndicators.size() == 2);
     REQUIRE(capturedIndicators[0] == 3);
@@ -1089,11 +1031,7 @@ TEST_CASE("BatchManager: Decimal column as string", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ std::string("12345.67") });
-    bm.PushRow({ 99.99 });
-    bm.PushRow({ std::monostate {} });
-    bm.Flush();
+    RunBatchManagerTest(executor, cols, { { std::string("12345.67") }, { 99.99 }, { std::monostate {} } }, 10);
 
     REQUIRE(capturedIndicators.size() == 3);
     REQUIRE(capturedIndicators[0] != SQL_NULL_DATA);
@@ -1117,8 +1055,6 @@ TEST_CASE("BatchManager: String PushFromBatch with int64", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-
     ColumnBatch batch;
     batch.rowCount = 3;
     batch.columns.resize(1);
@@ -1126,8 +1062,7 @@ TEST_CASE("BatchManager: String PushFromBatch with int64", "[SqlBackup]")
     batch.nullIndicators[0] = { false, false, true };
     batch.columns[0] = std::vector<int64_t> { 100, 200, 0 };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10);
 
     REQUIRE(capturedIndicators.size() == 3);
     REQUIRE(capturedIndicators[0] != SQL_NULL_DATA);
@@ -1153,8 +1088,6 @@ TEST_CASE("BatchManager: String PushFromBatch with bools", "[SqlBackup]")
         }
     };
 
-    BatchManager bm(executor, cols, 10);
-
     ColumnBatch batch;
     batch.rowCount = 2;
     batch.columns.resize(1);
@@ -1162,8 +1095,7 @@ TEST_CASE("BatchManager: String PushFromBatch with bools", "[SqlBackup]")
     batch.nullIndicators[0] = { false, false };
     batch.columns[0] = std::vector<bool> { true, false };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10);
 
     REQUIRE(capturedValues.size() == 2);
     REQUIRE(capturedValues[0] == "1");
@@ -1191,8 +1123,6 @@ TEST_CASE("BatchManager: Integer PushFromBatch with string conversion", "[SqlBac
         }
     };
 
-    BatchManager bm(executor, cols, 10);
-
     ColumnBatch batch;
     batch.rowCount = 4;
     batch.columns.resize(1);
@@ -1200,8 +1130,7 @@ TEST_CASE("BatchManager: Integer PushFromBatch with string conversion", "[SqlBac
     batch.nullIndicators[0] = { false, false, false, false };
     batch.columns[0] = std::vector<std::string> { "123", "NULL", "", "456" };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10);
 
     REQUIRE(capturedIndicators.size() == 4);
     REQUIRE(capturedValues[0] == 123);
@@ -1223,8 +1152,6 @@ TEST_CASE("BatchManager: Integer PushFromBatch with bools", "[SqlBackup]")
             capturedValues.push_back(data[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-
     ColumnBatch batch;
     batch.rowCount = 2;
     batch.columns.resize(1);
@@ -1232,8 +1159,7 @@ TEST_CASE("BatchManager: Integer PushFromBatch with bools", "[SqlBackup]")
     batch.nullIndicators[0] = { false, false };
     batch.columns[0] = std::vector<bool> { true, false };
 
-    bm.PushBatch(batch);
-    bm.Flush();
+    RunBatchManagerBatchTest(executor, cols, { batch }, 10);
 
     REQUIRE(capturedValues.size() == 2);
     REQUIRE(capturedValues[0] == 1);
@@ -1339,10 +1265,7 @@ TEST_CASE("BatchManager: Numeric Push with string 'NULL'", "[SqlBackup]")
             capturedIndicators.push_back(col.indicators[i]);
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ std::string("NULL") });
-    bm.PushRow({ std::string("123") });
-    bm.Flush();
+    RunBatchManagerTest(executor, cols, { { std::string("NULL") }, { std::string("123") } }, 10);
 
     REQUIRE(capturedIndicators.size() == 2);
     REQUIRE(capturedIndicators[0] == SQL_NULL_DATA);
@@ -1364,9 +1287,7 @@ TEST_CASE("BatchManager: Large NVarchar triggers LONGVARCHAR", "[SqlBackup]")
         REQUIRE((col.metadata.sqlType == SQL_WLONGVARCHAR || col.metadata.sqlType == SQL_WVARCHAR));
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ std::string("test") });
-    bm.Flush();
+    RunBatchManagerTest(executor, cols, { { std::string("test") } }, 10);
 }
 
 TEST_CASE("BatchManager: MAX Binary column", "[SqlBackup]")
@@ -1380,7 +1301,5 @@ TEST_CASE("BatchManager: MAX Binary column", "[SqlBackup]")
         REQUIRE(col.metadata.sqlType == SQL_LONGVARBINARY);
     };
 
-    BatchManager bm(executor, cols, 10);
-    bm.PushRow({ std::vector<uint8_t> { 0x01 } });
-    bm.Flush();
+    RunBatchManagerTest(executor, cols, { { std::vector<uint8_t> { 0x01 } } }, 10);
 }

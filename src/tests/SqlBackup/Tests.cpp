@@ -32,33 +32,11 @@
 
 using namespace Lightweight;
 
-namespace
-{
+// Local LambdaProgressManager removed, using TestHelpers.hpp
 
-struct LambdaProgressManager: SqlBackup::ProgressManager
-{
-    mutable std::mutex mutex;
-    std::function<void(SqlBackup::Progress const&)> callback;
+#include "TestHelpers.hpp"
 
-    explicit LambdaProgressManager(std::function<void(SqlBackup::Progress const&)> cb):
-        callback(std::move(cb))
-    {
-    }
-
-    void Update(SqlBackup::Progress const& p) override
-    {
-        auto const lock = std::scoped_lock(mutex);
-        if (callback)
-            callback(p);
-    }
-
-    void AllDone() override
-    {
-        // do nothing
-    }
-};
-
-} // namespace
+using namespace Lightweight::SqlBackup::Tests;
 
 namespace
 {
@@ -107,33 +85,6 @@ void VerifyDatabase()
     auto const content = stmt.ExecuteDirectScalar<std::string>("SELECT content FROM test_table WHERE id=3");
     REQUIRE(content == "quoted \"content\"");
 }
-
-struct ScopedFileRemoved
-{
-    std::filesystem::path path;
-
-    void RemoveIfExists() const
-    {
-        if (std::filesystem::exists(path))
-            std::filesystem::remove(path);
-    }
-
-    ScopedFileRemoved(std::filesystem::path path):
-        path(std::move(path))
-    {
-        RemoveIfExists();
-    }
-
-    ~ScopedFileRemoved()
-    {
-        RemoveIfExists();
-    }
-
-    ScopedFileRemoved(ScopedFileRemoved const&) = delete;
-    ScopedFileRemoved& operator=(ScopedFileRemoved const&) = delete;
-    ScopedFileRemoved(ScopedFileRemoved&&) = delete;
-    ScopedFileRemoved& operator=(ScopedFileRemoved&&) = delete;
-};
 
 } // namespace
 
