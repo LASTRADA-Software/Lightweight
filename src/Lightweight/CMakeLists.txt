@@ -28,11 +28,14 @@ if(WIN32)
 endif()
 # Note: libzip for non-Windows is handled in root CMakeLists.txt (system pkg-config or CPM fallback)
 
-CPMAddPackage(
+if(NOT nlohmann_json_FOUND)
+  message(STATUS "nlohmann_json not found, downloading via CPM")
+  CPMAddPackage(
     NAME nlohmann_json
     GITHUB_REPOSITORY nlohmann/json
     VERSION 3.11.3
-)
+  )
+endif()
 
 set(HEADER_FILES
     DataBinder/BasicStringBinder.hpp
