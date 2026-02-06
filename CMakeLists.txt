@@ -22,6 +22,7 @@ include(GNUInstallDirs)
 find_package(reflection-cpp 0.4.0 QUIET)
 find_package(Catch2 CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG QUIET)
 
 option(LIGHTWEIGHT_CXX26_REFLECTION "Enable experimental reflection support from C++26" OFF)
 
