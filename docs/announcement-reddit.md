@@ -115,7 +115,7 @@ struct Email
 {
     Field<SqlGuid, PrimaryKey::AutoAssign> id;
     Field<SqlAnsiString<100>> address;
-    BelongsTo<&User::id, SqlRealName{"user_id"}> user;
+    BelongsTo<&User::id, SqlRealName{"user_id"}> user; // <--- Foreign key relation
 };
 
 // Navigate relationships naturally
