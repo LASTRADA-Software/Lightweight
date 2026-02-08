@@ -98,11 +98,11 @@ $(document).ready(function(){initNavTree('d4/db0/md__2home_2runner_2work_2Lightw
 </blockquote>
 <h1><a class="anchor" id="blockquote"></a>
 &lt;/blockquote&gt;</h1>
-<p><b>Title:</b> Lightweight: Zero-overhead C++23 ODBC wrapper with DataMapper ORM, migrations, and backup/restore</p>
+<p><b>Title:</b> Lightweight: Almost-zero-overhead C++23 SQL library with DataMapper ORM, migrations, and backup/restore</p>
 <hr  />
 <p>Hi r/cpp,</p>
 <p>We're excited to share <b>Lightweight</b>, a modern C++23 ODBC wrapper we've been building to solve our need for high-level SQL access without runtime overhead.</p>
-<p><b>Philosophy:</b> We sacrifice compile time for runtime performance. Heavy use of <code>constexpr</code>, templates, and compile-time reflection techniques means the high-level API compiles down to near-raw ODBC calls.</p>
+<p><b>Philosophy:</b> Down-to-zero runtime cost is mandatory requirement. We reduce high-level API into near-raw ODBC calls during compilation by using compile-time reflection techniques.</p>
 <p><b>GitHub:</b> <a href="https://github.com/LASTRADA-Software/Lightweight/">https://github.com/LASTRADA-Software/Lightweight/</a> <br  />
  <b>Docs:</b> <a href="https://lastrada-software.github.io/Lightweight/">https://lastrada-software.github.io/Lightweight/</a></p>
 <hr  />
@@ -250,11 +250,13 @@ Supported Databases</h1>
 </li>
 <li>SQLite3</li>
 </ul>
-<p>Works anywhere ODBC works (Windows, Linux).</p>
+<p>Works anywhere ODBC works (Windows, Linux, macOS).</p>
 <hr  />
 <h1><a class="anchor" id="whats-next"></a>
 What's Next</h1>
 <p>We're actively developing and would love feedback. The library is production-ready for our use cases, but we're always looking to improve the API and add features.</p>
+<p>We also consider abstracting away ODBC such that it could support non-ODBC databases like SQLite3 directly without the ODBC layer. That's a longer-term goal, but definitely a goal.</p>
+<p>We currently focus on SQL tooling (migrations and backup/restore) as both are quite young additions that are still evolving.</p>
 <p>Questions and PRs welcome! </p>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
