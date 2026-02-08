@@ -4,7 +4,7 @@
 
 ---
 
-**Title:** Lightweight: Zero-overhead C++23 ODBC wrapper with DataMapper ORM, migrations, and backup/restore
+**Title:** Lightweight: Almost-zero-overhead C++23 SQL library with DataMapper ORM, migrations, and backup/restore
 
 ---
 
@@ -12,7 +12,7 @@ Hi r/cpp,
 
 We're excited to share **Lightweight**, a modern C++23 ODBC wrapper we've been building to solve our need for high-level SQL access without runtime overhead.
 
-**Philosophy:** We sacrifice compile time for runtime performance. Heavy use of `constexpr`, templates, and compile-time reflection techniques means the high-level API compiles down to near-raw ODBC calls.
+**Philosophy:** Down-to-zero runtime cost is mandatory requirement. We reduce high-level API into near-raw ODBC calls during compilation by using compile-time reflection techniques.
 
 **GitHub:** https://github.com/LASTRADA-Software/Lightweight/  
 **Docs:** https://lastrada-software.github.io/Lightweight/
@@ -192,12 +192,16 @@ Preserves indexes, foreign keys (including composite), and supports table filter
 - PostgreSQL  
 - SQLite3
 
-Works anywhere ODBC works (Windows, Linux).
+Works anywhere ODBC works (Windows, Linux, macOS).
 
 ---
 
 ## What's Next
 
 We're actively developing and would love feedback. The library is production-ready for our use cases, but we're always looking to improve the API and add features.
+
+We also consider abstracting away ODBC such that it could support non-ODBC databases like SQLite3 directly without the ODBC layer. That's a longer-term goal, but definitely a goal.
+
+We currently focus on SQL tooling (migrations and backup/restore) as both are quite young additions that are still evolving.
 
 Questions and PRs welcome!
