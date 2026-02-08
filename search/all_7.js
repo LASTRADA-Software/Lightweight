@@ -5,7 +5,7 @@ var searchData=
   ['backup_20and_20restore_2',['Parallel Backup and Restore',['../d5/dc4/dbtool.html#parallel-backup-and-restore',1,'']]],
   ['backup_20before_20migration_3',['Backup Before Migration',['../d5/dc4/dbtool.html#backup-before-migration',1,'']]],
   ['backup_20file_20format_4',['Lightweight SQL Backup File Format',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html',1,'']]],
-  ['backup_20restore_5',['Backup &amp; Restore',['../d5/dc4/dbtool.html#backup--restore',1,'']]],
+  ['backup_20restore_5',['backup restore',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#backup--restore-1',1,'Backup &amp; Restore'],['../d5/dc4/dbtool.html#backup--restore',1,'Backup &amp; Restore']]],
   ['backupsettings_6',['BackupSettings',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html',1,'Lightweight::SqlBackup']]],
   ['basetype_7',['BaseType',['../d0/df7/classLightweight_1_1BelongsTo.html#a1ea1e35fcc93942ed865c095b0546be9',1,'Lightweight::BelongsTo']]],
   ['baseversion_8',['baseVersion',['../d8/d41/structLup2DbTool_1_1ParsedMigration.html#a10f53c14b3357ace690788aac2b7e8f2',1,'Lup2DbTool::ParsedMigration']]],
@@ -33,7 +33,7 @@ var searchData=
   ['belongsto_3c_26invoice_3a_3ainvoiceid_2c_20lightweight_3a_3asqlrealname_20_7b_20_22invoiceid_22_20_7d_3e_30',['BelongsTo&lt;&amp;Invoice::InvoiceId, Lightweight::SqlRealName { &quot;InvoiceId&quot; }&gt;',['../d0/df7/classLightweight_1_1BelongsTo.html',1,'Lightweight']]],
   ['belongsto_3c_26mediatype_3a_3amediatypeid_2c_20lightweight_3a_3asqlrealname_20_7b_20_22mediatypeid_22_20_7d_3e_31',['BelongsTo&lt;&amp;Mediatype::MediaTypeId, Lightweight::SqlRealName { &quot;MediaTypeId&quot; }&gt;',['../d0/df7/classLightweight_1_1BelongsTo.html',1,'Lightweight']]],
   ['belongsto_3c_26track_3a_3atrackid_2c_20lightweight_3a_3asqlrealname_20_7b_20_22trackid_22_20_7d_3e_32',['BelongsTo&lt;&amp;Track::TrackId, Lightweight::SqlRealName { &quot;TrackId&quot; }&gt;',['../d0/df7/classLightweight_1_1BelongsTo.html',1,'Lightweight']]],
-  ['best_20practices_33',['best practices',['../d2/da6/sql-migrations.html#best-practices-1',1,'Best Practices'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html',1,'Best Practices'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#common-best-practices',1,'Common Best Practices'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-driver-related-best-practices',1,'SQL Driver-Related Best Practices']]],
+  ['best_20practices_33',['best practices',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html',1,'Best Practices'],['../d2/da6/sql-migrations.html#best-practices-1',1,'Best Practices'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#common-best-practices',1,'Common Best Practices'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-driver-related-best-practices',1,'SQL Driver-Related Best Practices']]],
   ['binary_20format_34',['3.5 Packed Binary Format',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md35-packed-binary-format',1,'']]],
   ['binaryliteral_35',['BinaryLiteral',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ae999d42f3595eb42865e6e1929ec14f2',1,'Lightweight::SqlQueryFormatter']]],
   ['binder_20api_36',['Data Binder API',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html',1,'']]],
@@ -42,8 +42,10 @@ var searchData=
   ['bindoutputcolumns_39',['bindoutputcolumns',['../d8/d63/classLightweight_1_1SqlResultCursor.html#a8de60e0c6c3bcd3346c3a6df06cfaa3b',1,'Lightweight::SqlResultCursor::BindOutputColumns()'],['../db/dad/classLightweight_1_1SqlStatement.html#af9bd2cf8659ea4e3fce9dd120f623df9',1,'Lightweight::SqlStatement::BindOutputColumns(Args *... args)']]],
   ['bindoutputcolumnstorecord_40',['BindOutputColumnsToRecord',['../db/dad/classLightweight_1_1SqlStatement.html#a92c0aebc9222368af9c3d6fd1897a02f',1,'Lightweight::SqlStatement']]],
   ['bit_20integer_20handling_20in_20oracle_20database_41',['64-bit Integer Handling in Oracle Database',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database',1,'']]],
-  ['booleanliteral_42',['BooleanLiteral',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad14092f4293a641b18b103a233b37a8f',1,'Lightweight::SqlQueryFormatter']]],
-  ['bufferlength_43',['bufferLength',['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e',1,'Lightweight::SqlRawColumnMetadata']]],
-  ['builder_44',['SQL Query Builder',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder',1,'']]],
-  ['business_20logic_20separate_45',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]]
+  ['blockquote_42',['&lt;/blockquote&gt;',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#blockquote',1,'']]],
+  ['booleanliteral_43',['BooleanLiteral',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad14092f4293a641b18b103a233b37a8f',1,'Lightweight::SqlQueryFormatter']]],
+  ['bufferlength_44',['bufferLength',['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e',1,'Lightweight::SqlRawColumnMetadata']]],
+  ['builder_45',['SQL Query Builder',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder',1,'']]],
+  ['bulk_20insertions_46',['Bulk Insertions',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#bulk-insertions',1,'']]],
+  ['business_20logic_20separate_47',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]]
 ];

@@ -173,6 +173,18 @@ var NAVTREE =
       [ "Best Practices", "d2/da6/sql-migrations.html#best-practices-1", null ],
       [ "See Also", "d2/da6/sql-migrations.html#see-also-1", null ]
     ] ],
+    [ "Announcing Lightweight: Zero-overhead C++23 ODBC wrapper", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html", [
+      [ "</blockquote>", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#blockquote", null ],
+      [ "Low-Level API: SqlStatement & SqlConnection", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#low-level-api-sqlstatement--sqlconnection", [
+        [ "Bulk Insertions", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#bulk-insertions", null ]
+      ] ],
+      [ "DataMapper: High-Level ORM", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#datamapper-high-level-orm", null ],
+      [ "Relationships with Lazy Loading", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#relationships-with-lazy-loading", null ],
+      [ "Database Migrations in Pure C++", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#database-migrations-in-pure-c", null ],
+      [ "Backup & Restore", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#backup--restore-1", null ],
+      [ "Supported Databases", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#supported-databases-1", null ],
+      [ "What's Next", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#whats-next", null ]
+    ] ],
     [ "Topics", "topics.html", "topics" ],
     [ "Concepts", "concepts.html", "concepts" ],
     [ "Classes", "annotated.html", [
@@ -196,9 +208,9 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a301e0219e6dcd600640c63e5b53839eb",
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a87fdc25534786c9abec9cf7b4ccd3e1f",
-"db/d6f/structLargeDb__Tag.html",
-"df/d3f/structLightweight_1_1SqlVariant.html#a06288408eded97794ac5215272b609c9"
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a1fc1b3ec6aaa8d6a43f91185ad2370ab",
+"da/df4/classLightweight_1_1HasMany.html#a888c5731befb0482adb368e8f3794cd1",
+"df/d18/classLup_1_1TransitionGlue.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
