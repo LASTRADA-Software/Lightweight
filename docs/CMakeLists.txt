@@ -57,6 +57,7 @@ if(LIGHTWEIGHT_BUILD_DOCUMENTATION)
     "${PROJECT_SOURCE_DIR}/docs/sql-backup-format.md"
     "${PROJECT_SOURCE_DIR}/docs/dbtool.md"
     "${PROJECT_SOURCE_DIR}/docs/sql-migrations.md"
+    "${PROJECT_SOURCE_DIR}/docs/announcement-reddit.md"
   )
   doxygen_add_docs(doc
     ${DOCS_SOURCES}
