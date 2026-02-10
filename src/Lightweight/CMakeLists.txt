@@ -140,6 +140,14 @@ add_library(Lightweight::Lightweight ALIAS Lightweight)
 target_compile_features(Lightweight PUBLIC cxx_std_23)
 target_sources(Lightweight PRIVATE ${SOURCE_FILES})
 
+if(LIGHTWEIGHT_BUILD_MODULES)
+    target_sources(Lightweight
+        PUBLIC
+            FILE_SET CXX_MODULES FILES
+                Lightweight.cppm
+    )
+endif()
+
 if(LIGHTWEIGHT_BUILD_SHARED)
     target_compile_definitions(Lightweight PRIVATE BUILD_LIGHTWEIGHT=1)
     target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_SHARED=1)
@@ -234,6 +242,7 @@ install(TARGETS Lightweight
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} # For shared libs (.so, .dll) and Windows import libs (.lib)
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} # For static libs (.a, .lib)
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} # IMPORTANT: Needed for interface libraries / header locations
+    FILE_SET CXX_MODULES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Lightweight # Install module files if present
 )
 
 # Only install the PDB file for Debug and RelWithDebInfo configurations on Windows platform

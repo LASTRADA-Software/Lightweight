@@ -274,3 +274,24 @@ cmake --build build && ./build/src/examples/example
 ``` sh
 docker buildx build --progress=plain -f .github/Reflection.Dockerfile --load .
 ```
+
+## Building with C++20 Modules
+
+Lightweight supports building as C++20 modules. To enable this feature, you need CMake 3.28 or higher.
+
+Enable module support with the `LIGHTWEIGHT_BUILD_MODULES` CMake option:
+
+```sh
+cmake -B build -S . -G Ninja -DLIGHTWEIGHT_BUILD_MODULES=ON
+cmake --build build
+```
+
+When modules are enabled, consumers can import the library using:
+
+```cpp
+import Lightweight;
+```
+
+**Note:** C++20 module support requires:
+- CMake 3.28 or higher, with a system like Ninja
+- A compiler with full C++20 module support (e.g., GCC 14+, Clang 19+, MSVC 19.36+)

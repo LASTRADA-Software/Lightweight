@@ -17,7 +17,7 @@ namespace Lightweight
 ///
 /// Columns may be larger than this value, but this is the optimal maximum size for performance,
 /// and usually also means that values are stored in the same row as the rest of the data, or not.
-constexpr std::size_t SqlOptimalMaxColumnSize = 4000;
+inline constexpr std::size_t SqlOptimalMaxColumnSize = 4000;
 
 namespace detail
 {
@@ -35,7 +35,7 @@ namespace detail
             { arr.size() } -> std::convertible_to<std::size_t>;
             { arr.resize(std::declval<std::size_t>()) };
         }
-    static SQLRETURN GetRawColumnArrayData(SQLHSTMT stmt, SQLUSMALLINT column, ArrayType* result, SQLLEN* indicator) noexcept
+    SQLRETURN GetRawColumnArrayData(SQLHSTMT stmt, SQLUSMALLINT column, ArrayType* result, SQLLEN* indicator) noexcept
     {
         using CharType = ArrayType::value_type;
 
