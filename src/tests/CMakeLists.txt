@@ -20,6 +20,16 @@ if(TBB_FOUND)
       GITHUB_REPOSITORY NVIDIA/stdexec
       GIT_TAG nvhpc-25.09
     )
+
+    # Suppress warnings-as-errors for stdexec's own targets built with our pedantic flags
+    if(TARGET system_context)
+        target_compile_options(system_context PRIVATE
+            -Wno-error=empty-body
+            -Wno-error=missing-declarations
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-error=newline-eof>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-error=macro-redefined>
+        )
+    endif()
 else()
     message(STATUS "TBB not found - building without stdexec support (AsynchronousTests will be skipped)")
     set(LIGHTWEIGHT_HAS_STDEXEC OFF)
@@ -58,7 +68,9 @@ endif()
 
 # some flags required to compile stdexec with pedantic settings
 if(LIGHTWEIGHT_HAS_STDEXEC)
-    target_compile_options(LightweightTest PRIVATE -Wno-error=empty-body -Wno-error=missing-declarations)
+    set_source_files_properties(DataMapper/AsynchronousTests.cpp PROPERTIES
+        COMPILE_OPTIONS "-Wno-error=empty-body;-Wno-error=missing-declarations;$<$<CXX_COMPILER_ID:Clang>:-Wno-error=newline-eof>"
+    )
 endif()
 
 set(SOURCE_FILES
