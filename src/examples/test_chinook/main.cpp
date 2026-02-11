@@ -68,7 +68,7 @@ int main()
             "Server};SERVER=localhost;UID=SA;PWD=BlahThat.;TrustServerCertificate=yes;DATABASE=LightweightTest" });
     }
 
-    auto dm = DataMapper();
+    DataMapper dm;
 
     // helper function to create std::string from string_view<char16_t>
     auto const toString = [](std::basic_string_view<char16_t> str) {

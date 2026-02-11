@@ -18,7 +18,7 @@ struct SqlNullType
 /// Used to indicate a NULL value in a SQL query.
 ///
 /// @ingroup DataTypes
-inline constexpr auto SqlNullValue = SqlNullType {};
+constexpr inline auto SqlNullValue = SqlNullType {};
 
 template <>
 struct SqlDataBinder<SqlNullType>
