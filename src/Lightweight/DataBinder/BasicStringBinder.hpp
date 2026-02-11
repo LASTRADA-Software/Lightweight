@@ -17,7 +17,7 @@ namespace Lightweight
 ///
 /// Columns may be larger than this value, but this is the optimal maximum size for performance,
 /// and usually also means that values are stored in the same row as the rest of the data, or not.
-inline constexpr std::size_t SqlOptimalMaxColumnSize = 4000;
+constexpr inline std::size_t SqlOptimalMaxColumnSize = 4000;
 
 namespace detail
 {

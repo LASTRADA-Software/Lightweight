@@ -2,6 +2,8 @@
 
 module;
 
+#include <reflection-cpp/reflection.hpp>
+
 #include "Lightweight.hpp"
 #include "SqlErrorDetection.hpp"
 #include "SqlMigrationLock.hpp"
