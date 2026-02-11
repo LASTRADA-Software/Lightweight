@@ -556,7 +556,7 @@ TEST_CASE_METHOD(SqlTestFixture, "MapForJointStatement", "[DataMapper]")
 struct OptionalFields
 {
     Field<SqlGuid, PrimaryKey::AutoAssign> id;
-    std::optional<int> a;
+    Field<std::optional<int>> a;
 };
 
 template <>
@@ -578,8 +578,40 @@ TEST_CASE_METHOD(SqlTestFixture, "Retrieve optional value without output-binding
 
     auto const result = dm.Query<OptionalFields>().OrderBy(FieldNameOf<Member(OptionalFields::a)>).First();
     REQUIRE(result.has_value());
-    REQUIRE(result.value().a.has_value());
-    REQUIRE(result.value().a.value() == 42);
+    REQUIRE(result.value().a.Value().has_value());
+    REQUIRE(result.value().a.Value().value() == 42);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Get optional values from the statement", "[DataMapper]")
+{
+    auto dm = DataMapper();
+    dm.CreateTable<OptionalFields>();
+    OptionalFields record {};
+    dm.Create(record);
+    REQUIRE(record.id.Value());
+    REQUIRE(!record.a.Value().has_value());
+
+    auto stmt = SqlStatement {};
+
+    auto query = dm.FromTable(RecordTableName<OptionalFields>)
+                     .Select()
+                     .Fields(FieldNameOf<Member(OptionalFields::id)>, FieldNameOf<Member(OptionalFields::a)>)
+                     .Where(FieldNameOf<Member(OptionalFields::id)>, "=", SqlWildcard)
+                     .All();
+    stmt.Prepare(query);
+    {
+        stmt.Execute(record.id.Value());
+        auto res = stmt.GetResultCursor();
+        REQUIRE(res.FetchRow());
+        REQUIRE(res.GetColumn<SqlGuid>(1));
+        REQUIRE(!res.GetNullableColumn<int>(2).has_value()); // similar to res.GetColumn<std::optional<int>>(2)
+    }
+
+    {
+        stmt.Execute(SqlGuid::Create());
+        auto res = stmt.GetResultCursor();
+        REQUIRE(!res.FetchRow());
+    }
 }
 
 struct CustomBindingA
