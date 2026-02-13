@@ -3,23 +3,20 @@
 
 #include "Employee.hpp"
 
-#include <Lightweight/DataMapper/DataMapper.hpp>
-
 struct Customer final
 {
-    static constexpr std::string_view TableName = "Customer";
-
-    Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "CustomerId" }> CustomerId;
-    Light::Field<Light::SqlDynamicUtf16String<40>, Light::SqlRealName { "FirstName" }> FirstName;
-    Light::Field<Light::SqlDynamicUtf16String<20>, Light::SqlRealName { "LastName" }> LastName;
-    Light::Field<std::optional<Light::SqlDynamicUtf16String<80>>, Light::SqlRealName { "Company" }> Company;
-    Light::Field<std::optional<Light::SqlDynamicUtf16String<70>>, Light::SqlRealName { "Address" }> Address;
-    Light::Field<std::optional<Light::SqlDynamicUtf16String<40>>, Light::SqlRealName { "City" }> City;
-    Light::Field<std::optional<Light::SqlDynamicUtf16String<40>>, Light::SqlRealName { "State" }> State;
-    Light::Field<std::optional<Light::SqlDynamicUtf16String<40>>, Light::SqlRealName { "Country" }> Country;
-    Light::Field<std::optional<Light::SqlDynamicUtf16String<10>>, Light::SqlRealName { "PostalCode" }> PostalCode;
-    Light::Field<std::optional<Light::SqlDynamicUtf16String<24>>, Light::SqlRealName { "Phone" }> Phone;
-    Light::Field<std::optional<Light::SqlDynamicUtf16String<24>>, Light::SqlRealName { "Fax" }> Fax;
-    Light::Field<Light::SqlDynamicUtf16String<60>, Light::SqlRealName { "Email" }> Email;
-    Light::BelongsTo<&Employee::EmployeeId, Light::SqlRealName { "SupportRepId" }, Light::SqlNullable::Null> SupportRepId;
+    static constexpr string_view TableName = "Customer";
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "CustomerId" }> CustomerId;
+    Field<SqlDynamicUtf16String<40>, SqlRealName { "FirstName" }> FirstName;
+    Field<SqlDynamicUtf16String<20>, SqlRealName { "LastName" }> LastName;
+    Field<optional<SqlDynamicUtf16String<80>>, SqlRealName { "Company" }> Company;
+    Field<optional<SqlDynamicUtf16String<70>>, SqlRealName { "Address" }> Address;
+    Field<optional<SqlDynamicUtf16String<40>>, SqlRealName { "City" }> City;
+    Field<optional<SqlDynamicUtf16String<40>>, SqlRealName { "State" }> State;
+    Field<optional<SqlDynamicUtf16String<40>>, SqlRealName { "Country" }> Country;
+    Field<optional<SqlDynamicUtf16String<10>>, SqlRealName { "PostalCode" }> PostalCode;
+    Field<optional<SqlDynamicUtf16String<24>>, SqlRealName { "Phone" }> Phone;
+    Field<optional<SqlDynamicUtf16String<24>>, SqlRealName { "Fax" }> Fax;
+    Field<SqlDynamicUtf16String<60>, SqlRealName { "Email" }> Email;
+    BelongsTo<&Employee::EmployeeId, SqlRealName { "SupportRepId" }> SupportRepId;
 };
