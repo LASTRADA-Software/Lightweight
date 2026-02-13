@@ -1,5 +1,43 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include <iterator>
+#include <format>
+#include <optional>
+#include <print>
+#include <ranges>
+#include <string>
+#include <string_view>
+
+#ifdef LIGHTWEIGHT_BUILD_MODULES
+import Lightweight;
+#else
+#include <Lightweight/Lightweight.hpp>
+#include <Lightweight/SqlLogger.hpp>
+#endif
+
+using std::basic_string_view;
+using std::format_string;
+using std::optional;
+using std::string;
+using std::string_view;
+using std::views::transform;
+
+using Lightweight::BelongsTo;
+using Lightweight::DataMapper;
+using Lightweight::DataMapperOptions;
+using Lightweight::Field;
+using Lightweight::FieldNameOf;
+using Lightweight::PrimaryKey;
+using Lightweight::SqlConnection;
+using Lightweight::SqlConnectionString;
+using Lightweight::SqlDateTime;
+using Lightweight::SqlDynamicUtf16String;
+using Lightweight::SqlNullable;
+using Lightweight::SqlNumeric;
+using Lightweight::SqlRealName;
+using Lightweight::SqlRowIterator;
+using Lightweight::Unwrap;
+
 #include "entities/Album.hpp"
 #include "entities/Artist.hpp"
 #include "entities/Customer.hpp"
@@ -12,15 +50,7 @@
 #include "entities/Playlisttrack.hpp"
 #include "entities/Track.hpp"
 
-#include <Lightweight/Lightweight.hpp>
-#include <Lightweight/SqlLogger.hpp>
-
-#include <iterator>
-#include <print>
-
-using namespace Lightweight;
-
-static std::string GetEnvironmentVariable(std::string const& name)
+static string GetEnvironmentVariable(const string& name)
 {
 #if defined(_MSC_VER)
     char* envBuffer = nullptr;
@@ -28,19 +58,19 @@ static std::string GetEnvironmentVariable(std::string const& name)
     _dupenv_s(&envBuffer, &envBufferLen, name.data());
     if (envBuffer && *envBuffer)
     {
-        std::string result { envBuffer };
+        string result { envBuffer };
         free(envBuffer); // free the allocated memory
         return result;
     }
 #else
-    if (auto const* s = std::getenv(name.data()); s && *s)
-        return std::string { s };
+    if (const auto* s = std::getenv(name.data()); s && *s)
+        return string { s };
 #endif
     return {};
 }
 
 template <typename... Args>
-void Log(std::format_string<Args...> fmt, Args&&... args)
+void Log(format_string<Args...> fmt, Args&&... args)
 {
     std::println(fmt, std::forward<Args>(args)...);
 }
@@ -48,8 +78,8 @@ void Log(std::format_string<Args...> fmt, Args&&... args)
 template <typename Entity>
 void DumpTable(DataMapper& dm, size_t limit = 1)
 {
-    auto entries = dm.Query<Entity>().First(limit);
-    for (auto const& entry: entries)
+    const auto entries = dm.Query<Entity>().First(limit);
+    for (const auto& entry: entries)
     {
         Log("{}", DataMapper::Inspect(entry));
     }
@@ -57,7 +87,7 @@ void DumpTable(DataMapper& dm, size_t limit = 1)
 
 int main()
 {
-    if (auto const odbcConnectionString = GetEnvironmentVariable("ODBC_CONNECTION_STRING"); !odbcConnectionString.empty())
+    if (const auto odbcConnectionString = GetEnvironmentVariable("ODBC_CONNECTION_STRING"); !odbcConnectionString.empty())
     {
         SqlConnection::SetDefaultConnectionString(SqlConnectionString { odbcConnectionString });
     }
@@ -71,14 +101,14 @@ int main()
     DataMapper dm;
 
     // helper function to create std::string from string_view<char16_t>
-    auto const toString = [](std::basic_string_view<char16_t> str) {
-        auto const u8Str = ToUtf8(str);
-        return std::string(reinterpret_cast<char const*>(u8Str.data()), u8Str.size());
+    const auto toString = [](basic_string_view<char16_t> str) {
+        const auto u8Str = Lightweight::ToUtf8(str);
+        return string(reinterpret_cast<const char*>(u8Str.data()), u8Str.size());
     };
 
     // get all employees
-    auto const empoyees = dm.Query<Employee>().All();
-    for (auto const& employee: empoyees)
+    const auto employees = dm.Query<Employee>().All();
+    for (const auto& employee: employees)
     {
         Log("EmployeeId: {}, FirstName: {}, LastName: {}",
             employee.EmployeeId.Value(),
@@ -86,9 +116,9 @@ int main()
             toString(employee.LastName.Value().c_str()));
     }
 
-    // directly iterate over elements
+        // directly iterate over elements
     int numberOfAlbums = 0;
-    for (auto const& album: SqlRowIterator<Album>(dm.Connection()))
+    for (const auto& album: SqlRowIterator<Album>(dm.Connection()))
     {
         Log("{}", toString(album.Title.Value().c_str()));
         ++numberOfAlbums;
@@ -125,14 +155,14 @@ int main()
 
         Log("got {} albums", albums.size());
 
-        auto albumIds = albums | std::views::transform([](auto const& album) { return album.AlbumId.Value(); });
+        auto albumIds = albums | transform([](const auto& album) { return album.AlbumId.Value(); });
         // get all tracks from all albums
         auto tracks = dm.Query<Track>().WhereIn(FieldNameOf<&Track::AlbumId>, albumIds).All();
 
         Log("got {} tracks", tracks.size());
 
         // iterate over all tracks and print song names
-        for (auto const& track: tracks)
+        for (const auto& track: tracks)
         {
             Log("TrackId: {}, Name: {}, Bytes: {} , UnitPrice: {}",
                 track.TrackId.Value(),
@@ -149,10 +179,10 @@ int main()
             Log("Track Name: {}. Media type: {}. Genre: {}. Album id: {}. Artist name: {}",
                 toString(track.Name.Value().ToStringView()),
                 toString(track.MediaTypeId->Name.ValueOr(u"").ToStringView()),
-                toString(track.GenreId.Record().transform(Light::Unwrap).value().Name.ValueOr(u"").ToStringView()),
-                toString(track.AlbumId.Record().transform(Light::Unwrap).value().Title.Value().ToStringView()),
+                toString(track.GenreId.Record().transform(Unwrap).value().Name.ValueOr(u"").ToStringView()),
+                toString(track.AlbumId.Record().transform(Unwrap).value().Title.Value().ToStringView()),
                 toString(
-                    track.AlbumId.Record().transform(Light::Unwrap).value().ArtistId->Name.ValueOr(u"").ToStringView()));
+                    track.AlbumId.Record().transform(Unwrap).value().ArtistId->Name.ValueOr(u"").ToStringView()));
             // NOLINTEND(bugprone-unchecked-optional-access)
         }
     }
@@ -161,7 +191,7 @@ int main()
         // get pair of customer and employee
         auto records = dm.Query<Customer, Employee>().InnerJoin<&Employee::EmployeeId, &Customer::SupportRepId>().All();
 
-        for (auto const& [customer, employee]: records)
+        for (const auto& [customer, employee]: records)
         {
             Log("CustomerId: {}, FirstName: {}, LastName: {}",
                 customer.CustomerId.Value(),
@@ -197,4 +227,7 @@ int main()
     DumpTable<Playlist>(dm);
     DumpTable<Playlisttrack>(dm);
     DumpTable<Track>(dm);
+
+    Log("Found {} employees.", employees.size());
 }
+

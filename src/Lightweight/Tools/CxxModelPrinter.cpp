@@ -221,8 +221,11 @@ std::string CxxModelPrinter::HeaderFileForTheTable(std::string_view modelNamespa
     if (!std::empty(requiredTables))
         output << '\n';
 
-    output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
-    output << "\n";
+    if (!_config.makeAliases)
+    {
+        output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
+        output << "\n";
+    }
 
     if (!modelNamespace.empty())
         output << std::format("namespace {}\n{{\n", modelNamespace);
@@ -256,13 +259,18 @@ std::string CxxModelPrinter::MakeType(
     std::string const& tableName,
     bool forceUnicodeTextColumn,
     std::unordered_map<std::string /*table*/, std::unordered_set<std::string /*column*/>> const& unicodeTextColumnOverrides,
-    size_t sqlFixedStringMaxSize)
+    size_t sqlFixedStringMaxSize,
+    bool makeAliases)
 {
-    auto const optional = [&]<typename T>(T&& type) {
+    auto const optional = [makeAliases, &column]<typename T>(T&& type) {
+        auto const optionalType = makeAliases ? "optional" : "std::optional";
         if (column.isNullable)
-            return std::format("std::optional<{}>", type);
+            return std::format("{}<{}>", optionalType, type);
         return std::string { std::forward<T>(type) };
     };
+
+    // Helper to get namespace prefix
+    auto const nsPrefix = makeAliases ? "" : "Light::";
 
     auto const shouldForceUnicodeTextColumn = [=] {
         return forceUnicodeTextColumn
@@ -274,7 +282,7 @@ std::string CxxModelPrinter::MakeType(
     return optional(std::visit(
         detail::overloaded {
             [](Bigint const&) -> std::string { return "int64_t"; },
-            [](Binary const& type) -> std::string { return std::format("Light::SqlBinary", type.size); },
+            [&](Binary const& type) -> std::string { return std::format("{}SqlBinary", nsPrefix, type.size); },
             [](Bool const&) -> std::string { return "bool"; },
             [&](Char const& type) -> std::string {
                 if (type.size == 1)
@@ -289,32 +297,32 @@ std::string CxxModelPrinter::MakeType(
                     // CHAR(n) seems to be always right-side whitespace trimmed,
                     // so we use SqlTrimmedFixedString for it.
                     if (shouldForceUnicodeTextColumn())
-                        return std::format("Light::SqlTrimmedFixedString<{}, wchar_t>", type.size);
+                        return std::format("{}SqlTrimmedFixedString<{}, wchar_t>", nsPrefix, type.size);
                     else
-                        return std::format("Light::SqlTrimmedFixedString<{}>", type.size);
+                        return std::format("{}SqlTrimmedFixedString<{}>", nsPrefix, type.size);
                 }
                 else if (type.size == detail::SqlMaxNumberOfChars<char>() && !shouldForceUnicodeTextColumn())
                 {
-                    return "Light::SqlMaxDynamicAnsiString";
+                    return std::format("{}SqlMaxDynamicAnsiString", nsPrefix);
                 }
                 else if (type.size == detail::SqlMaxNumberOfChars<wchar_t>() && shouldForceUnicodeTextColumn())
                 {
-                    return "Light::SqlMaxDynamicWideString";
+                    return std::format("{}SqlMaxDynamicWideString", nsPrefix);
                 }
                 else
                 {
                     if (shouldForceUnicodeTextColumn())
-                        return std::format("Light::SqlDynamicWideString<{}>", type.size);
+                        return std::format("{}SqlDynamicWideString<{}>", nsPrefix, type.size);
                     else
-                        return std::format("Light::SqlDynamicAnsiString<{}>", type.size);
+                        return std::format("{}SqlDynamicAnsiString<{}>", nsPrefix, type.size);
                 }
             },
-            [](Date const&) -> std::string { return "Light::SqlDate"; },
-            [](DateTime const&) -> std::string { return "Light::SqlDateTime"; },
-            [](Decimal const& type) -> std::string {
-                return std::format("Light::SqlNumeric<{}, {}>", type.precision, type.scale);
+            [&](Date const&) -> std::string { return std::format("{}SqlDate", nsPrefix); },
+            [&](DateTime const&) -> std::string { return std::format("{}SqlDateTime", nsPrefix); },
+            [&](Decimal const& type) -> std::string {
+                return std::format("{}SqlNumeric<{}, {}>", nsPrefix, type.precision, type.scale);
             },
-            [](Guid const&) -> std::string { return "Light::SqlGuid"; },
+            [&](Guid const&) -> std::string { return std::format("{}SqlGuid", nsPrefix); },
             [](Integer const&) -> std::string { return "int32_t"; },
             [=](NChar const& type) -> std::string {
                 // NCHAR(n) seems to be always right-side whitespace trimmed,
@@ -322,11 +330,11 @@ std::string CxxModelPrinter::MakeType(
                 if (type.size == 1)
                     return "char16_t";
                 else if (type.size <= sqlFixedStringMaxSize)
-                    return std::format("Light::SqlTrimmedFixedString<{}, wchar_t>", type.size);
+                    return std::format("{}SqlTrimmedFixedString<{}, wchar_t>", nsPrefix, type.size);
                 else
-                    return std::format("Light::SqlDynamicWideString<{}>", type.size);
+                    return std::format("{}SqlDynamicWideString<{}>", nsPrefix, type.size);
             },
-            [](NVarchar const& type) -> std::string { return std::format("Light::SqlDynamicUtf16String<{}>", type.size); },
+            [&](NVarchar const& type) -> std::string { return std::format("{}SqlDynamicUtf16String<{}>", nsPrefix, type.size); },
             [](Real const& v) -> std::string {
                 if (v.precision <= 24)
                     return "float";
@@ -339,27 +347,27 @@ std::string CxxModelPrinter::MakeType(
                 {
 
                     if (type.size == detail::SqlMaxNumberOfChars<wchar_t>())
-                        return "Light::SqlMaxDynamicWideString";
-                    return std::format("Light::SqlDynamicWideString<{}>", type.size);
+                        return std::format("{}SqlMaxDynamicWideString", nsPrefix);
+                    return std::format("{}SqlDynamicWideString<{}>", nsPrefix, type.size);
                 }
                 else
                 {
                     if (type.size == detail::SqlMaxNumberOfChars<char>())
-                        return "Light::SqlMaxDynamicAnsiString";
-                    return std::format("Light::SqlDynamicAnsiString<{}>", type.size);
+                        return std::format("{}SqlMaxDynamicAnsiString", nsPrefix);
+                    return std::format("{}SqlDynamicAnsiString<{}>", nsPrefix, type.size);
                 }
             },
-            [](Time const&) -> std::string { return "Light::SqlTime"; },
-            [](Timestamp const&) -> std::string { return "Light::SqlDateTime"; },
+            [&](Time const&) -> std::string { return std::format("{}SqlTime", nsPrefix); },
+            [&](Timestamp const&) -> std::string { return std::format("{}SqlDateTime", nsPrefix); },
             [](Tinyint const&) -> std::string { return "uint8_t"; },
-            [](VarBinary const& type) -> std::string { return std::format("Light::SqlDynamicBinary<{}>", type.size); },
+            [&](VarBinary const& type) -> std::string { return std::format("{}SqlDynamicBinary<{}>", nsPrefix, type.size); },
             [&](Varchar const& type) -> std::string {
                 if (type.size > 0 && type.size <= sqlFixedStringMaxSize)
                 {
                     if (shouldForceUnicodeTextColumn())
-                        return std::format("Light::SqlWideString<{}>", type.size);
+                        return std::format("{}SqlWideString<{}>", nsPrefix, type.size);
                     else
-                        return std::format("Light::SqlAnsiString<{}>", type.size);
+                        return std::format("{}SqlAnsiString<{}>", nsPrefix, type.size);
                 }
                 else
                 {
@@ -367,14 +375,14 @@ std::string CxxModelPrinter::MakeType(
                     {
 
                         if (type.size == detail::SqlMaxNumberOfChars<wchar_t>())
-                            return "Light::SqlMaxDynamicWideString";
-                        return std::format("Light::SqlDynamicWideString<{}>", type.size);
+                            return std::format("{}SqlMaxDynamicWideString", nsPrefix);
+                        return std::format("{}SqlDynamicWideString<{}>", nsPrefix, type.size);
                     }
                     else
                     {
                         if (type.size == detail::SqlMaxNumberOfChars<char>())
-                            return "Light::SqlMaxDynamicAnsiString";
-                        return std::format("Light::SqlDynamicAnsiString<{}>", type.size);
+                            return std::format("{}SqlMaxDynamicAnsiString", nsPrefix);
+                        return std::format("{}SqlDynamicAnsiString<{}>", nsPrefix, type.size);
                     }
                 }
             },
@@ -502,26 +510,31 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
         cxxPrimaryKeys += '"' + key + '"';
     }
 
+    // Helper to get namespace prefix based on makeAliases setting
+    auto nsPrefix = [&]() -> std::string_view {
+        return _config.makeAliases ? "" : "Light::";
+    };
+
     // corresponds to the column name in the sql table
     auto aliasName = [&](std::string_view name) {
         if (_config.makeAliases)
-            return std::format(", Light::SqlRealName {{ \"{}\" }}", name);
+            return std::format(", {}SqlRealName {{ \"{}\" }}", nsPrefix(), name);
         return std::string {};
     };
 
     auto aliasNameOrNullopt = [&](std::string_view name) {
         if (_config.makeAliases)
-            return std::format(", Light::SqlRealName {{ \"{}\" }}", name);
+            return std::format(", {}SqlRealName {{ \"{}\" }}", nsPrefix(), name);
         return std::string { ", std::nullopt" };
     };
 
-    auto const primaryKeyPart = [this]() {
+    auto const primaryKeyPart = [this, &nsPrefix]() -> std::string {
         if (_config.primaryKeyAssignment == PrimaryKey::ServerSideAutoIncrement)
-            return ", Light::PrimaryKey::ServerSideAutoIncrement"sv;
+            return std::format(", {}PrimaryKey::ServerSideAutoIncrement", nsPrefix());
         else if (_config.primaryKeyAssignment == PrimaryKey::AutoAssign)
-            return ", Light::PrimaryKey::AutoAssign"sv;
+            return std::format(", {}PrimaryKey::AutoAssign", nsPrefix());
         else
-            return ""sv;
+            return "";
     };
 
     auto aliasTableName = [&](std::string_view name) {
@@ -535,7 +548,8 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
     auto aliasRealTableName = [&](std::string_view name) {
         if (_config.makeAliases)
         {
-            return std::format("    static constexpr std::string_view TableName = \"{}\";\n\n", name);
+            auto const stringViewType = _config.makeAliases ? "string_view" : "std::string_view";
+            return std::format("    static constexpr {} TableName = \"{}\";\n\n", stringViewType, name);
         }
         return std::string {};
     };
@@ -563,7 +577,8 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
                                     table.name,
                                     _config.forceUnicodeTextColumns,
                                     _config.unicodeTextColumnOverrides,
-                                    _config.sqlFixedStringMaxSize);
+                                    _config.sqlFixedStringMaxSize,
+                                    _config.makeAliases);
         auto const memberName =
             MapColumnNameOverride(tableName, column.name) // NOLINT(bugprone-unchecked-optional-access)
                 .or_else([&] { return std::optional { SanitizeName(FormatName(column.name, _config.formatType)) }; })
@@ -586,7 +601,8 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
                         })
                         .value();
                 definition.text << std::format(
-                    "    Light::BelongsTo<&{}{}{}> {};\n",
+                    "    {}BelongsTo<&{}{}{}> {};\n",
+                    nsPrefix(),
                     [&] {
                         return std::format(
                             "{}::{}", foreignTableName, FormatName(foreignKey.primaryKey.columns.at(0), _config.formatType));
@@ -594,9 +610,9 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
                     aliasNameOrNullopt(foreignKey.foreignKey.columns.at(0)),
                     [&] {
                         if (column.isNullable)
-                            return ", Light::SqlNullable::Null"sv;
+                            return std::format(", {}SqlNullable::Null", nsPrefix());
                         else
-                            return ""sv;
+                            return std::string {};
                     }(),
                     uniqueMemberNameBuilder.DeclareName(relationName));
                 definition.requiredTables.emplace_back(std::move(foreignTableName));
@@ -608,7 +624,8 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
 
         if (column.isPrimaryKey)
         {
-            definition.text << std::format("    Light::Field<{}{}{}> {};",
+            definition.text << std::format("    {}Field<{}{}{}> {};",
+                                           nsPrefix(),
                                            type,
                                            primaryKeyPart(),
                                            aliasName(column.name),
@@ -621,7 +638,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
 
         // Fallback: Handle the column as a regular field.
         definition.text << std::format(
-            "    Light::Field<{}{}> {};", type, aliasName(column.name), uniqueMemberNameBuilder.DeclareName(memberName));
+            "    {}Field<{}{}> {};", nsPrefix(), type, aliasName(column.name), uniqueMemberNameBuilder.DeclareName(memberName));
         if (column.isForeignKey)
             definition.text << std::format(" // NB: This is also a foreign key");
         definition.text << '\n';

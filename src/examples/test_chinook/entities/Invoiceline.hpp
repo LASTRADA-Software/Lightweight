@@ -4,15 +4,13 @@
 #include "Invoice.hpp"
 #include "Track.hpp"
 
-#include <Lightweight/DataMapper/DataMapper.hpp>
-
 struct Invoiceline final
 {
-    static constexpr std::string_view TableName = "InvoiceLine";
+    static constexpr string_view TableName = "InvoiceLine";
 
-    Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "InvoiceLineId" }> InvoiceLineId;
-    Light::BelongsTo<&Invoice::InvoiceId, Light::SqlRealName { "InvoiceId" }> InvoiceId;
-    Light::BelongsTo<&Track::TrackId, Light::SqlRealName { "TrackId" }> TrackId;
-    Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "UnitPrice" }> UnitPrice;
-    Light::Field<int32_t, Light::SqlRealName { "Quantity" }> Quantity;
+    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "InvoiceLineId" }> InvoiceLineId;
+    BelongsTo<&Invoice::InvoiceId, SqlRealName { "InvoiceId" }> InvoiceId;
+    BelongsTo<&Track::TrackId, SqlRealName { "TrackId" }> TrackId;
+    Field<SqlNumeric<10, 2>, SqlRealName { "UnitPrice" }> UnitPrice;
+    Field<int32_t, SqlRealName { "Quantity" }> Quantity;
 };
