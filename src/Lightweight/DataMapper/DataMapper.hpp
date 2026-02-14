@@ -113,9 +113,27 @@ class DataMapper
     }
 
     DataMapper(DataMapper const&) = delete;
-    DataMapper(DataMapper&&) noexcept = default;
     DataMapper& operator=(DataMapper const&) = delete;
-    DataMapper& operator=(DataMapper&&) noexcept = default;
+
+    DataMapper(DataMapper&& other) noexcept:
+        _connection(std::move(other._connection)),
+        _stmt(_connection)
+    {
+        other._stmt = SqlStatement(std::nullopt);
+    }
+
+    DataMapper& operator=(DataMapper&& other) noexcept
+    {
+        if (this != &other)
+        {
+            _connection = std::move(other._connection);
+            _stmt = SqlStatement(_connection);
+            other._stmt = SqlStatement(std::nullopt);
+        }
+
+        return *this;
+    }
+
     ~DataMapper() = default;
 
     /// Returns the connection reference used by this data mapper.
@@ -132,7 +150,7 @@ class DataMapper
 
 #if defined(BUILD_TESTS)
 
-    [[nodiscard]] LIGHTWEIGHT_API SqlStatement& Statement(this auto&& self) noexcept
+    [[nodiscard]] SqlStatement& Statement(this auto&& self) noexcept
     {
         return self._stmt;
     }
