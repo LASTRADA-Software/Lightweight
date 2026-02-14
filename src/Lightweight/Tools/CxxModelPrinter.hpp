@@ -65,7 +65,8 @@ class CxxModelPrinter
                                 std::string const& tableName,
                                 bool forceUnicodeTextColumn,
                                 UnicodeTextColumnOverrides const& unicodeTextColumnOverrides,
-                                size_t sqlFixedStringMaxSize);
+                                size_t sqlFixedStringMaxSize,
+                                bool makeAliases = false);
 
     std::optional<std::string> MapColumnNameOverride(SqlSchema::FullyQualifiedTableName const& tableName,
                                                      std::string const& columnName) const;

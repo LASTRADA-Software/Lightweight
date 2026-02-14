@@ -25,6 +25,14 @@ find_package(yaml-cpp CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG QUIET)
 
 option(LIGHTWEIGHT_CXX26_REFLECTION "Enable experimental reflection support from C++26" OFF)
+option(LIGHTWEIGHT_BUILD_MODULES "Build Lightweight as C++20 modules (requires CMake 3.28+)" OFF)
+
+if(LIGHTWEIGHT_BUILD_MODULES)
+    if(CMAKE_VERSION VERSION_LESS "3.28")
+        message(FATAL_ERROR "C++20 module support requires CMake 3.28 or higher. Current version: ${CMAKE_VERSION}")
+    endif()
+    message(STATUS "C++20 module build enabled.")
+endif()
 
 if(LIGHTWEIGHT_CXX26_REFLECTION)
     add_definitions(-DLIGHTWEIGHT_CXX26_REFLECTION)

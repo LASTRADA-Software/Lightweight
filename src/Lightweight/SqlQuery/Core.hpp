@@ -26,7 +26,7 @@ struct SqlWildcardType
 };
 
 /// @brief SqlWildcard is a placeholder for an explicit wildcard input parameter in a SQL query.
-static constexpr inline auto SqlWildcard = SqlWildcardType {};
+constexpr inline auto SqlWildcard = SqlWildcardType {};
 
 /// @brief Name of table in a SQL query, where the table's name is aliased.
 struct AliasedTableName
