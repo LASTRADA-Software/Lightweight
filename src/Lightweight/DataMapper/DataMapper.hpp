@@ -130,6 +130,15 @@ class DataMapper
         return _connection;
     }
 
+#if defined(BUILD_TESTS)
+
+    [[nodiscard]] LIGHTWEIGHT_API SqlStatement& Statement(this auto&& self) noexcept
+    {
+        return self._stmt;
+    }
+
+#endif
+
     /// Constructs a human readable string representation of the given record.
     template <typename Record>
     static std::string Inspect(Record const& record);

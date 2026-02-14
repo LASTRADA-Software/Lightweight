@@ -587,4 +587,21 @@ TEST_CASE_METHOD(SqlTestFixture, "Query builder", "[DataMapper]")
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Move constructor", "[DataMapper]")
+{
+    auto dm = DataMapper();
+
+    std::string connectionInDataMapper = std::format("{}", (void*) &dm.Connection());
+    std::string connectionInStatement = std::format("{}", (void*) &dm.Statement().Connection());
+    std::println("DM: {}, STMT: {}", connectionInDataMapper, connectionInStatement);
+
+    DataMapper dm2(std::move(dm)); // move constructor
+    std::string connectionInDataMapper2 = std::format("{}", (void*) &dm2.Connection());
+    std::string connectionInStatement2 = std::format("{}", (void*) &dm2.Statement().Connection());
+    std::println("After move: DM: {}, STMT: {}", connectionInDataMapper2, connectionInStatement2);
+
+    REQUIRE(connectionInDataMapper == connectionInStatement);
+    REQUIRE(connectionInDataMapper2 == connectionInStatement2);
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
