@@ -39,6 +39,7 @@ find_package(Catch2 REQUIRED)
 
 add_executable(LightweightTest)
 target_compile_features(LightweightTest PUBLIC cxx_std_23)
+target_compile_definitions(LightweightTest PRIVATE BUILD_TESTS)
 
 if(WIN32)
     find_package(libzip CONFIG REQUIRED)

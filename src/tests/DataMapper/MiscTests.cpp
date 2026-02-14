@@ -587,4 +587,27 @@ TEST_CASE_METHOD(SqlTestFixture, "Query builder", "[DataMapper]")
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "Move constructor", "[DataMapper]")
+{
+    std::optional<DataMapper> dm2;
+
+    {
+        auto dm = DataMapper();
+
+        std::string connectionInDataMapper = std::format("{}", (void*) &dm.Connection());
+        std::string connectionInStatement = std::format("{}", (void*) &dm.Statement().Connection());
+        std::println("DM: {}, STMT: {}", connectionInDataMapper, connectionInStatement);
+        REQUIRE(connectionInDataMapper == connectionInStatement);
+
+        dm2.emplace(std::move(dm));
+        // dm (moved-from) is destroyed here at end of scope
+    }
+
+    // Verify dm2 is still valid after the moved-from object has been destroyed
+    std::string connectionInDataMapper2 = std::format("{}", (void*) &dm2->Connection());
+    std::string connectionInStatement2 = std::format("{}", (void*) &dm2->Statement().Connection());
+    std::println("After move and destruction of source: DM: {}, STMT: {}", connectionInDataMapper2, connectionInStatement2);
+    REQUIRE(connectionInDataMapper2 == connectionInStatement2);
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
