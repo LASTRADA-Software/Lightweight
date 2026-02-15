@@ -183,6 +183,8 @@ class SqlConnection final
     void PostConnect();
 
     // Private data members
+    // Note: move/move assignment operators implemented manually
+    // if adding new data members, make sure to update them accordingly.
     SQLHENV m_hEnv {};
     SQLHDBC m_hDbc {};
     uint64_t m_connectionId;

@@ -124,12 +124,12 @@ class DataMapper
 
     DataMapper& operator=(DataMapper&& other) noexcept
     {
-        if (this != &other)
-        {
-            _connection = std::move(other._connection);
-            _stmt = SqlStatement(_connection);
-            other._stmt = SqlStatement(std::nullopt);
-        }
+        if (this == &other)
+            return *this;
+
+        _connection = std::move(other._connection);
+        _stmt = SqlStatement(_connection);
+        other._stmt = SqlStatement(std::nullopt);
 
         return *this;
     }

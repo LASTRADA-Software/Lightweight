@@ -596,7 +596,6 @@ TEST_CASE_METHOD(SqlTestFixture, "Move constructor", "[DataMapper]")
 
         std::string connectionInDataMapper = std::format("{}", (void*) &dm.Connection());
         std::string connectionInStatement = std::format("{}", (void*) &dm.Statement().Connection());
-        std::println("DM: {}, STMT: {}", connectionInDataMapper, connectionInStatement);
         REQUIRE(connectionInDataMapper == connectionInStatement);
 
         dm2.emplace(std::move(dm));
@@ -606,8 +605,33 @@ TEST_CASE_METHOD(SqlTestFixture, "Move constructor", "[DataMapper]")
     // Verify dm2 is still valid after the moved-from object has been destroyed
     std::string connectionInDataMapper2 = std::format("{}", (void*) &dm2->Connection());
     std::string connectionInStatement2 = std::format("{}", (void*) &dm2->Statement().Connection());
-    std::println("After move and destruction of source: DM: {}, STMT: {}", connectionInDataMapper2, connectionInStatement2);
     REQUIRE(connectionInDataMapper2 == connectionInStatement2);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Move assignment", "[DataMapper]")
+{
+    auto dm1 = DataMapper();
+    auto dm2 = DataMapper();
+
+    // Capture the original connections of dm1 and dm2
+    void* dm1ConnectionPtrBefore = (void*) &dm1.Connection();
+    void* dm2ConnectionPtrBefore = (void*) &dm2.Connection();
+
+    // Perform move assignment: dm2 takes over dm1's resources
+    dm2 = std::move(dm1);
+
+    // After move assignment, dm2 should now use dm1's former connection
+    void* dm2ConnectionPtrAfter = (void*) &dm2.Connection();
+    void* dm2StatementConnectionPtrAfter = (void*) &dm2.Statement().Connection();
+
+    // dm1 and dm2 are distinct objects
+    REQUIRE(dm1ConnectionPtrBefore != dm2ConnectionPtrBefore);
+
+    // After move assignment, dm2's connection member address stays the same (only contents moved)
+    REQUIRE(dm2ConnectionPtrAfter == dm2ConnectionPtrBefore);
+
+    // The DataMapper's connection and its Statement's connection must match
+    REQUIRE(dm2ConnectionPtrAfter == dm2StatementConnectionPtrAfter);
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
