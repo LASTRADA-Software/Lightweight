@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"d7/d47/structLup2DbTool_1_1DeleteStmt.html":[12,0,3,11],
 "d7/d4f/SqlStatementParser_8hpp_source.html":[13,0,3,1,3],
 "d7/d53/structLightweight_1_1SqlTime.html":[10,0,10],
 "d7/d89/PluginLoader_8hpp_source.html":[13,0,3,0,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX2 =
 "da/df4/classLightweight_1_1HasMany.html#a1b7c609252ab35ebd0201fcc45c7607c":[10,2,6,14],
 "da/df4/classLightweight_1_1HasMany.html#a4208c7230c0ba0e12997bf6c2ce0775c":[10,2,6,3],
 "da/df4/classLightweight_1_1HasMany.html#a48da79f7712889cd21441431df7f7efc":[10,2,6,6],
-"da/df4/classLightweight_1_1HasMany.html#a543f2454721d934c47a6cf3b63459c6d":[10,2,6,7],
-"da/df4/classLightweight_1_1HasMany.html#a58ce8f9453b1f4b666fb325f30085641":[10,2,6,9]
+"da/df4/classLightweight_1_1HasMany.html#a543f2454721d934c47a6cf3b63459c6d":[10,2,6,7]
 };

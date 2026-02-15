@@ -1,5 +1,6 @@
 var NAVTREEINDEX1 =
 {
+"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a0ddf3ef0e6d833b829509ac769d04530":[12,0,1,2,4,17],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094":[12,0,1,2,4,10],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1dece4a4dc2811ac8cd8dce1c1130b11":[12,0,1,2,4,18],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1e2638d4b642e5692df3d2ab24e199a4":[12,0,1,2,4,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX1 =
 "d7/d2f/group__DataMapper.html#gae0874e29a73741a5badb14bacafae06e":[10,2,15],
 "d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03":[10,2,19],
 "d7/d2f/group__DataMapper.html#gaeebbb701afbe9efa3118910e348b4e61":[10,2,11],
-"d7/d36/structLup2DbTool_1_1CreateTableStmt.html":[12,0,3,10],
-"d7/d47/structLup2DbTool_1_1DeleteStmt.html":[12,0,3,11]
+"d7/d36/structLup2DbTool_1_1CreateTableStmt.html":[12,0,3,10]
 };

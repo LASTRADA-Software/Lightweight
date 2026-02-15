@@ -146,7 +146,7 @@ $(document).ready(function(){initNavTree('df/d0f/Pool_8hpp_source.html','../../'
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>};</div>
 </div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span><span class="comment"></span> </div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="comment">/// A thread-save pool of DataMapper instances with the polisy configured by the PoolConfig template parameter.</span></div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="comment">/// A thread-safe pool of DataMapper instances with the policy configured by the PoolConfig template parameter.</span></div>
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span><span class="comment">/// The pool allows acquiring and returning DataMapper instances, and manages the lifecycle of these instances according to</span></div>
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span><span class="comment">/// the specified growth strategy.</span></div>
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span><span class="comment"></span><span class="keyword">template</span> &lt;PoolConfig Config&gt;</div>
@@ -260,116 +260,119 @@ $(document).ready(function(){initNavTree('df/d0f/Pool_8hpp_source.html','../../'
 <div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>            _idleDataMappers.push_back(std::make_unique&lt;DataMapper&gt;());</div>
 <div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>    }</div>
 </div>
-<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span> </div>
-<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>    <a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">~Pool</a>() noexcept = default;</div>
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span> </div>
-<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>    <a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>(<a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a> const&amp;) = delete;</div>
-<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>    <a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>&amp; operator=(<a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a> const&amp;) = delete;</div>
-<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span>    <a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>(<a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>&amp;&amp;) = delete;</div>
-<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span>    <a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>&amp; operator=(<a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>&amp;&amp;) = delete;</div>
-<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span><span class="comment"></span> </div>
-<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span><span class="comment">    /// Function to acquire a data mapper from the pool, the behavior of this function depends on the growth strategy</span></div>
-<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span><span class="comment">    /// this is a specific implementation for the BoundedWait strategy, which blocks until a data mapper is available if the</span></div>
-<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span><span class="comment">    /// pool is at maximum capacity</span></div>
-<div class="foldopen" id="foldopen00161" data-start="{" data-end="}">
-<div class="line"><a id="l00161" name="l00161"></a><span class="lineno"><a class="line" href="../../d3/d30/classLightweight_1_1Pool.html#ab88d9cb504f2ccbe155f0b8b2b7a0197">  161</a></span><span class="comment"></span>    <a class="code hl_class" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a> <a class="code hl_function" href="../../d3/d30/classLightweight_1_1Pool.html#ab88d9cb504f2ccbe155f0b8b2b7a0197">Acquire</a>()</div>
-<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>        requires(Config.growthStrategy == GrowthStrategy::BoundedWait)</div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>    {</div>
-<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>        std::unique_lock lock(_mutex);</div>
-<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>        <span class="keywordflow">if</span> (_idleDataMappers.empty())</div>
-<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>        {</div>
-<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>            <span class="keywordflow">if</span> (_checkedOut &gt;= Config.maxSize)</div>
-<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>            {</div>
-<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>                <span class="comment">// wait until a data mapper is returned to the pool</span></div>
-<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>                _cv.wait(lock, [<span class="keyword">this</span>] { <span class="keywordflow">return</span> !_idleDataMappers.empty(); });</div>
-<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>            }</div>
-<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>            <span class="keywordflow">else</span></div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>            {</div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>                <span class="comment">// create a new data mapper and return it</span></div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>                ++_checkedOut;</div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>                <span class="keywordflow">return</span> <a class="code hl_class" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a>(*<span class="keyword">this</span>, std::make_unique&lt;DataMapper&gt;());</div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>            }</div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>        }</div>
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span> </div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>        <span class="comment">// get a data mapper from the pool</span></div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>        <span class="keyword">auto</span> dm = std::move(_idleDataMappers.back());</div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>        _idleDataMappers.pop_back();</div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>        ++_checkedOut;</div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>        <span class="keywordflow">return</span> <a class="code hl_class" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a>(*<span class="keyword">this</span>, std::move(dm));</div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>    }</div>
+<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span><span class="comment"></span> </div>
+<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span><span class="comment">    /// Default destructor, the pool manages the lifecycle of the data mappers, so no special cleanup is needed</span></div>
+<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span><span class="comment">    /// bug be aware that any acquired data mappers that are not returned to the pool will be destroyed when the pool is</span></div>
+<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span><span class="comment">    /// destroyed, which may lead to resource leaks if not handled properly</span></div>
+<div class="line"><a id="l00154" name="l00154"></a><span class="lineno"><a class="line" href="../../d3/d30/classLightweight_1_1Pool.html#afea07a60853e40fdf6ad5db4e857fc86">  154</a></span><span class="comment"></span>    <a class="code hl_function" href="../../d3/d30/classLightweight_1_1Pool.html#afea07a60853e40fdf6ad5db4e857fc86">~Pool</a>() noexcept = default;</div>
+<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span> </div>
+<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span>    <a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>(<a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a> const&amp;) = delete;</div>
+<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span>    <a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>&amp; operator=(<a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a> const&amp;) = delete;</div>
+<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span>    <a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>(<a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>&amp;&amp;) = delete;</div>
+<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span>    <a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>&amp; operator=(<a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>&amp;&amp;) = delete;</div>
+<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span><span class="comment"></span> </div>
+<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span><span class="comment">    /// Function to acquire a data mapper from the pool, the behavior of this function depends on the growth strategy</span></div>
+<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span><span class="comment">    /// this is a specific implementation for the BoundedWait strategy, which blocks until a data mapper is available if the</span></div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span><span class="comment">    /// pool is at maximum capacity</span></div>
+<div class="foldopen" id="foldopen00164" data-start="{" data-end="}">
+<div class="line"><a id="l00164" name="l00164"></a><span class="lineno"><a class="line" href="../../d3/d30/classLightweight_1_1Pool.html#ab88d9cb504f2ccbe155f0b8b2b7a0197">  164</a></span><span class="comment"></span>    <a class="code hl_class" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a> <a class="code hl_function" href="../../d3/d30/classLightweight_1_1Pool.html#ab88d9cb504f2ccbe155f0b8b2b7a0197">Acquire</a>()</div>
+<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>        requires(Config.growthStrategy == GrowthStrategy::BoundedWait)</div>
+<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    {</div>
+<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>        std::unique_lock lock(_mutex);</div>
+<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>        <span class="keywordflow">if</span> (_idleDataMappers.empty())</div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>        {</div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>            <span class="keywordflow">if</span> (_checkedOut &gt;= Config.maxSize)</div>
+<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>            {</div>
+<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>                <span class="comment">// wait until a data mapper is returned to the pool</span></div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>                _cv.wait(lock, [<span class="keyword">this</span>] { <span class="keywordflow">return</span> !_idleDataMappers.empty(); });</div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>            }</div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>            <span class="keywordflow">else</span></div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>            {</div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>                <span class="comment">// create a new data mapper and return it</span></div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>                ++_checkedOut;</div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>                <span class="keywordflow">return</span> <a class="code hl_class" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a>(*<span class="keyword">this</span>, std::make_unique&lt;DataMapper&gt;());</div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>            }</div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>        }</div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span> </div>
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>        <span class="comment">// get a data mapper from the pool</span></div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>        <span class="keyword">auto</span> dm = std::move(_idleDataMappers.back());</div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>        _idleDataMappers.pop_back();</div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>        ++_checkedOut;</div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>        <span class="keywordflow">return</span> <a class="code hl_class" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a>(*<span class="keyword">this</span>, std::move(dm));</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>    }</div>
 </div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span><span class="comment"></span> </div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span><span class="comment">    /// Function to acquire a data mapper from the pool, the behavior of this function depends on the growth strategy</span></div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span><span class="comment">    /// this is a specific implementation for the strategeies that do not block, which always creates a new data mapper if</span></div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span><span class="comment">    /// the pool is empty, regardless of the maximum capacity</span></div>
-<div class="foldopen" id="foldopen00190" data-start="{" data-end="}">
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno"><a class="line" href="../../d3/d30/classLightweight_1_1Pool.html#a56fdfc02e3f33e88840e66dbe3491f0a">  190</a></span><span class="comment"></span>    <a class="code hl_class" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a> <a class="code hl_function" href="../../d3/d30/classLightweight_1_1Pool.html#a56fdfc02e3f33e88840e66dbe3491f0a">Acquire</a>()</div>
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>        <span class="keyword">requires</span>(Config.growthStrategy != GrowthStrategy::BoundedWait)</div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>    {</div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>        std::scoped_lock lock(_mutex);</div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>        <span class="keywordflow">if</span> (_idleDataMappers.empty())</div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>        {</div>
-<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>            <span class="comment">// create a new data mapper and return it</span></div>
-<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>            <span class="keywordflow">return</span> <a class="code hl_class" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a>(*<span class="keyword">this</span>, std::make_unique&lt;DataMapper&gt;());</div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>        }</div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span> </div>
-<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>        <span class="comment">// get a data mapper from the pool</span></div>
-<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>        <span class="keyword">auto</span> dm = std::move(_idleDataMappers.back());</div>
-<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>        _idleDataMappers.pop_back();</div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>        <span class="keywordflow">return</span> <a class="code hl_class" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a>(*<span class="keyword">this</span>, std::move(dm));</div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>    }</div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span><span class="comment"></span> </div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span><span class="comment">    /// Function to acquire a data mapper from the pool, the behavior of this function depends on the growth strategy</span></div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span><span class="comment">    /// this is a specific implementation for the strategies that do not block, which always creates a new data mapper if</span></div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span><span class="comment">    /// the pool is empty, regardless of the maximum capacity</span></div>
+<div class="foldopen" id="foldopen00193" data-start="{" data-end="}">
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno"><a class="line" href="../../d3/d30/classLightweight_1_1Pool.html#a56fdfc02e3f33e88840e66dbe3491f0a">  193</a></span><span class="comment"></span>    <a class="code hl_class" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a> <a class="code hl_function" href="../../d3/d30/classLightweight_1_1Pool.html#a56fdfc02e3f33e88840e66dbe3491f0a">Acquire</a>()</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>        <span class="keyword">requires</span>(Config.growthStrategy != GrowthStrategy::BoundedWait)</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>    {</div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>        std::scoped_lock lock(_mutex);</div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>        <span class="keywordflow">if</span> (_idleDataMappers.empty())</div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>        {</div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>            <span class="comment">// create a new data mapper and return it</span></div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>            <span class="keywordflow">return</span> <a class="code hl_class" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a>(*<span class="keyword">this</span>, std::make_unique&lt;DataMapper&gt;());</div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>        }</div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span> </div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>        <span class="comment">// get a data mapper from the pool</span></div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>        <span class="keyword">auto</span> dm = std::move(_idleDataMappers.back());</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>        _idleDataMappers.pop_back();</div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>        <span class="keywordflow">return</span> <a class="code hl_class" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a>(*<span class="keyword">this</span>, std::move(dm));</div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>    }</div>
 </div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span> </div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span><span class="preprocessor">#if defined(BUILD_TESTS)</span></div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>    [[nodiscard]] <span class="keywordtype">size_t</span> IdleCount() noexcept</div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>    {</div>
-<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>        std::scoped_lock lock(_mutex);</div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>        <span class="keywordflow">return</span> _idleDataMappers.size();</div>
-<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>    }</div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span> </div>
-<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>    std::mutex _mutex;</div>
-<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>    std::condition_variable _cv;</div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>    std::vector&lt;std::unique_ptr&lt;DataMapper&gt;&gt; _idleDataMappers;</div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>    <span class="keywordtype">size_t</span> _checkedOut {};</div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>};</div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span> </div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span><span class="preprocessor">#if defined(BUILD_TESTS)</span></div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>    [[nodiscard]] <span class="keywordtype">size_t</span> IdleCount() noexcept</div>
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>    {</div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>        std::scoped_lock lock(_mutex);</div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>        <span class="keywordflow">return</span> _idleDataMappers.size();</div>
+<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>    }</div>
+<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span> </div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>    std::mutex _mutex;</div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>    std::condition_variable _cv;</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    std::vector&lt;std::unique_ptr&lt;DataMapper&gt;&gt; _idleDataMappers;</div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>    <span class="keywordtype">size_t</span> _checkedOut {};</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>};</div>
 </div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span> </div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span><span class="comment">// Default pool configuration, configurable via CMake options:</span></div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span><span class="comment">//   LIGHTWEIGHT_POOL_INITIAL_SIZE     (default: 4)</span></div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span><span class="comment">//   LIGHTWEIGHT_POOL_MAX_SIZE         (default: 16)</span></div>
-<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span><span class="comment">//   LIGHTWEIGHT_POOL_GROWTH_STRATEGY  (default: BoundedOverflow)</span></div>
-<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span><span class="comment">//     Accepted values: BoundedWait, BoundedOverflow, UnboundedGrow</span></div>
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span> </div>
-<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span><span class="preprocessor">#if !defined(LIGHTWEIGHT_POOL_INITIAL_SIZE)</span></div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span><span class="preprocessor">    #define LIGHTWEIGHT_POOL_INITIAL_SIZE 4</span></div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span> </div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="preprocessor">#if !defined(LIGHTWEIGHT_POOL_MAX_SIZE)</span></div>
-<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span><span class="preprocessor">    #define LIGHTWEIGHT_POOL_MAX_SIZE 16</span></div>
-<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span> </div>
-<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span><span class="preprocessor">#if !defined(LIGHTWEIGHT_POOL_GROWTH_STRATEGY)</span></div>
-<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span><span class="preprocessor">    #define LIGHTWEIGHT_POOL_GROWTH_STRATEGY BoundedOverflow</span></div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span> </div>
-<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> PoolConfig DefaultPoolConfig {</div>
-<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>    .initialSize = LIGHTWEIGHT_POOL_INITIAL_SIZE,</div>
-<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>    .maxSize = LIGHTWEIGHT_POOL_MAX_SIZE,</div>
-<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>    .growthStrategy = GrowthStrategy::LIGHTWEIGHT_POOL_GROWTH_STRATEGY,</div>
-<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>};</div>
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span> </div>
-<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span><span class="keyword">using </span>DataMapperPool = Pool&lt;DefaultPoolConfig&gt;;</div>
-<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span><span class="comment"></span> </div>
-<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span><span class="comment">/// Returns the process-wide global DataMapper pool.</span></div>
-<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span><span class="comment">///</span></div>
-<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span><span class="comment">/// The pool is configured at compile time via the LIGHTWEIGHT_POOL_* defines.</span></div>
-<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span><span class="comment">/// Because the singleton lives inside the Lightweight library, it is shared</span></div>
-<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span><span class="comment">/// correctly across shared-library boundaries.</span></div>
-<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span><span class="comment"></span>LIGHTWEIGHT_API DataMapperPool&amp; GlobalDataMapperPool();</div>
-<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span> </div>
-<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span> </div>
+<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span><span class="comment">// Default pool configuration, configurable via CMake options:</span></div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span><span class="comment">//   LIGHTWEIGHT_POOL_INITIAL_SIZE     (default: 4)</span></div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span><span class="comment">//   LIGHTWEIGHT_POOL_MAX_SIZE         (default: 16)</span></div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span><span class="comment">//   LIGHTWEIGHT_POOL_GROWTH_STRATEGY  (default: BoundedOverflow)</span></div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span><span class="comment">//     Accepted values: BoundedWait, BoundedOverflow, UnboundedGrow</span></div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span> </div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span><span class="preprocessor">#if !defined(LIGHTWEIGHT_POOL_INITIAL_SIZE)</span></div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="preprocessor">    #define LIGHTWEIGHT_POOL_INITIAL_SIZE 4</span></div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span> </div>
+<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span><span class="preprocessor">#if !defined(LIGHTWEIGHT_POOL_MAX_SIZE)</span></div>
+<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span><span class="preprocessor">    #define LIGHTWEIGHT_POOL_MAX_SIZE 16</span></div>
+<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span> </div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span><span class="preprocessor">#if !defined(LIGHTWEIGHT_POOL_GROWTH_STRATEGY)</span></div>
+<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span><span class="preprocessor">    #define LIGHTWEIGHT_POOL_GROWTH_STRATEGY BoundedOverflow</span></div>
+<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span> </div>
+<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> PoolConfig DefaultPoolConfig {</div>
+<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>    .initialSize = LIGHTWEIGHT_POOL_INITIAL_SIZE,</div>
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>    .maxSize = LIGHTWEIGHT_POOL_MAX_SIZE,</div>
+<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>    .growthStrategy = GrowthStrategy::LIGHTWEIGHT_POOL_GROWTH_STRATEGY,</div>
+<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>};</div>
+<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span> </div>
+<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span><span class="keyword">using </span>DataMapperPool = Pool&lt;DefaultPoolConfig&gt;;</div>
+<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span><span class="comment"></span> </div>
+<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span><span class="comment">/// Returns the process-wide global DataMapper pool.</span></div>
+<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span><span class="comment">///</span></div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span><span class="comment">/// The pool is configured at compile time via the LIGHTWEIGHT_POOL_* defines.</span></div>
+<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span><span class="comment">/// Because the singleton lives inside the Lightweight library, it is shared</span></div>
+<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span><span class="comment">/// correctly across shared-library boundaries.</span></div>
+<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span><span class="comment"></span>LIGHTWEIGHT_API DataMapperPool&amp; GlobalDataMapperPool();</div>
+<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span> </div>
+<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00088">DataMapper.hpp:89</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1Pool_1_1PooledDataMapper_html"><div class="ttname"><a href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">Lightweight::Pool::PooledDataMapper</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00057">Pool.hpp:58</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1Pool_1_1PooledDataMapper_html_a122267596e346b15d075ca4c347ac97d"><div class="ttname"><a href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#a122267596e346b15d075ca4c347ac97d">Lightweight::Pool::PooledDataMapper::operator-&gt;</a></div><div class="ttdeci">DataMapper * operator-&gt;() const noexcept</div><div class="ttdoc">Access the underlying data mapper via pointer semantics.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00087">Pool.hpp:87</a></div></div>
@@ -377,8 +380,9 @@ $(document).ready(function(){initNavTree('df/d0f/Pool_8hpp_source.html','../../'
 <div class="ttc" id="aclassLightweight_1_1Pool_1_1PooledDataMapper_html_ab3f4130283fddc423a1911a3962e739c"><div class="ttname"><a href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c">Lightweight::Pool::PooledDataMapper::PooledDataMapper</a></div><div class="ttdeci">PooledDataMapper(PooledDataMapper &amp;&amp;other) noexcept</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00073">Pool.hpp:73</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1Pool_html"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html">Lightweight::Pool</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00051">Pool.hpp:52</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1Pool_html_a1cff9d7548fefc8b80a32c15b75dfaeb"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html#a1cff9d7548fefc8b80a32c15b75dfaeb">Lightweight::Pool::Pool</a></div><div class="ttdeci">Pool()</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00144">Pool.hpp:144</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1Pool_html_a56fdfc02e3f33e88840e66dbe3491f0a"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html#a56fdfc02e3f33e88840e66dbe3491f0a">Lightweight::Pool::Acquire</a></div><div class="ttdeci">PooledDataMapper Acquire()</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00190">Pool.hpp:190</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1Pool_html_ab88d9cb504f2ccbe155f0b8b2b7a0197"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html#ab88d9cb504f2ccbe155f0b8b2b7a0197">Lightweight::Pool::Acquire</a></div><div class="ttdeci">PooledDataMapper Acquire()</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00161">Pool.hpp:161</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1Pool_html_a56fdfc02e3f33e88840e66dbe3491f0a"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html#a56fdfc02e3f33e88840e66dbe3491f0a">Lightweight::Pool::Acquire</a></div><div class="ttdeci">PooledDataMapper Acquire()</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00193">Pool.hpp:193</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1Pool_html_ab88d9cb504f2ccbe155f0b8b2b7a0197"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html#ab88d9cb504f2ccbe155f0b8b2b7a0197">Lightweight::Pool::Acquire</a></div><div class="ttdeci">PooledDataMapper Acquire()</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00164">Pool.hpp:164</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1Pool_html_afea07a60853e40fdf6ad5db4e857fc86"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html#afea07a60853e40fdf6ad5db4e857fc86">Lightweight::Pool::~Pool</a></div><div class="ttdeci">~Pool() noexcept=default</div></div>
 <div class="ttc" id="astructLightweight_1_1PoolConfig_html"><div class="ttname"><a href="../../df/d1a/structLightweight_1_1PoolConfig.html">Lightweight::PoolConfig</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00040">Pool.hpp:41</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->

@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"da/df4/classLightweight_1_1HasMany.html#a58ce8f9453b1f4b666fb325f30085641":[10,2,6,9],
 "da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb":[10,2,6,1],
 "da/df4/classLightweight_1_1HasMany.html#a6940bf064197ff19dc320fcdfa927707":[10,2,6,10],
 "da/df4/classLightweight_1_1HasMany.html#a6c010832e211e504a027747b239b4817":[10,2,6,8],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#a6d7b41a1ddbc49899a68230a5d012c82":[12,0,1,13,0,2],
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c":[12,0,1,13,0,0],
 "de/dbb/StdString_8hpp_source.html":[13,0,1,0,17],
-"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html":[12,0,1,40],
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html":[12,0,1,2,2]
+"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html":[12,0,1,40]
 };
