@@ -59,6 +59,7 @@ SqlConnection::SqlConnection(SqlConnection&& other) noexcept:
     m_connectionId { other.m_connectionId },
     m_serverType { other.m_serverType },
     m_queryFormatter { other.m_queryFormatter },
+    m_driverName { std::move(other.m_driverName) },
     m_data { other.m_data }
 {
     other.m_hEnv = {};
@@ -72,12 +73,14 @@ SqlConnection& SqlConnection::operator=(SqlConnection&& other) noexcept
         return *this;
 
     Close();
+    delete m_data;
 
     m_hEnv = other.m_hEnv;
     m_hDbc = other.m_hDbc;
     m_connectionId = other.m_connectionId;
     m_serverType = other.m_serverType;
     m_queryFormatter = other.m_queryFormatter;
+    m_driverName = std::move(other.m_driverName);
     m_data = other.m_data;
 
     other.m_hEnv = {};

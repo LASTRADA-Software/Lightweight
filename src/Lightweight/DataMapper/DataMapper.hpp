@@ -113,9 +113,27 @@ class DataMapper
     }
 
     DataMapper(DataMapper const&) = delete;
-    DataMapper(DataMapper&&) noexcept = default;
     DataMapper& operator=(DataMapper const&) = delete;
-    DataMapper& operator=(DataMapper&&) noexcept = default;
+
+    DataMapper(DataMapper&& other) noexcept:
+        _connection(std::move(other._connection)),
+        _stmt(_connection)
+    {
+        other._stmt = SqlStatement(std::nullopt);
+    }
+
+    DataMapper& operator=(DataMapper&& other) noexcept
+    {
+        if (this == &other)
+            return *this;
+
+        _connection = std::move(other._connection);
+        _stmt = SqlStatement(_connection);
+        other._stmt = SqlStatement(std::nullopt);
+
+        return *this;
+    }
+
     ~DataMapper() = default;
 
     /// Returns the connection reference used by this data mapper.
@@ -129,6 +147,15 @@ class DataMapper
     {
         return _connection;
     }
+
+#if defined(BUILD_TESTS)
+
+    [[nodiscard]] SqlStatement& Statement(this auto&& self) noexcept
+    {
+        return self._stmt;
+    }
+
+#endif
 
     /// Constructs a human readable string representation of the given record.
     template <typename Record>
