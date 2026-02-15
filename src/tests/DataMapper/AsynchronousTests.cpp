@@ -79,8 +79,7 @@ TEST_CASE("Fetch from Local data mapper", "[DataMapper],[Executors]")
 
 TEST_CASE_METHOD(SqlTestFixture, "Pool: UnboundedGrow acquire and return", "[DataMapper],[Pool]")
 {
-    constexpr auto config = PoolConfig { .initialSize = 2, .maxSize = 0, .growthStrategy = GrowthStrategy::UnboundedGrow };
-    auto pool = Pool<config>(config);
+    auto pool = Pool<PoolConfig { .initialSize = 2, .maxSize = 0, .growthStrategy = GrowthStrategy::UnboundedGrow }>();
 
     // Pool should pre-create initialSize mappers
     CHECK(pool.IdleCount() == 2);
@@ -91,7 +90,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Pool: UnboundedGrow acquire and return", "[Dat
 
         // Acquired mapper is usable
         dm->CreateTables<Person>();
-        auto person = Person { .id = SqlGuid::Create(), .name = "Alice" };
+        auto person = Person { .id = SqlGuid::Create(), .name = "Alice", .age = 30 };
         dm->Create(person);
         auto fetched = dm->QuerySingle<Person>(person.id.Value());
         REQUIRE(fetched.has_value());
@@ -104,8 +103,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Pool: UnboundedGrow acquire and return", "[Dat
 
 TEST_CASE_METHOD(SqlTestFixture, "Pool: UnboundedGrow grows beyond initialSize", "[DataMapper],[Pool]")
 {
-    constexpr auto config = PoolConfig { .initialSize = 1, .maxSize = 0, .growthStrategy = GrowthStrategy::UnboundedGrow };
-    auto pool = Pool<config>(config);
+    auto pool = Pool<PoolConfig { .initialSize = 1, .maxSize = 0, .growthStrategy = GrowthStrategy::UnboundedGrow }>();
 
     CHECK(pool.IdleCount() == 1);
 
@@ -119,8 +117,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Pool: UnboundedGrow grows beyond initialSize",
 
 TEST_CASE_METHOD(SqlTestFixture, "Pool: BoundedOverflow drops excess on return", "[DataMapper],[Pool]")
 {
-    constexpr auto config = PoolConfig { .initialSize = 1, .maxSize = 2, .growthStrategy = GrowthStrategy::BoundedOverflow };
-    auto pool = Pool<config>(config);
+    auto pool = Pool<PoolConfig { .initialSize = 1, .maxSize = 2, .growthStrategy = GrowthStrategy::BoundedOverflow }>();
 
     CHECK(pool.IdleCount() == 1);
 
@@ -151,8 +148,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Pool: BoundedOverflow drops excess on return",
 
 TEST_CASE_METHOD(SqlTestFixture, "Pool: BoundedWait blocks until mapper available", "[DataMapper],[Pool]")
 {
-    constexpr auto config = PoolConfig { .initialSize = 1, .maxSize = 1, .growthStrategy = GrowthStrategy::BoundedWait };
-    auto pool = Pool<config>(config);
+    auto pool = Pool<PoolConfig { .initialSize = 1, .maxSize = 1, .growthStrategy = GrowthStrategy::BoundedWait }>();
 
     CHECK(pool.IdleCount() == 1);
 
@@ -182,8 +178,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Pool: BoundedWait blocks until mapper availabl
 
 TEST_CASE_METHOD(SqlTestFixture, "Pool: Concurrent acquire with thread pool", "[DataMapper],[Pool],[Executors]")
 {
-    constexpr auto config = PoolConfig { .initialSize = 3, .maxSize = 0, .growthStrategy = GrowthStrategy::UnboundedGrow };
-    auto pool = Pool<config>(config);
+    auto pool = Pool<PoolConfig { .initialSize = 3, .maxSize = 0, .growthStrategy = GrowthStrategy::UnboundedGrow }>();
 
     DataMapper& dm = DataMapper::AcquireThreadLocal();
     dm.CreateTables<Person>();
@@ -192,7 +187,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Pool: Concurrent acquire with thread pool", "[
     std::vector<Person> persons;
     for (int i = 0; i < 3; ++i)
     {
-        persons.emplace_back(Person { .id = SqlGuid::Create(), .name = SqlAnsiString<25>(std::format("Person{}", i)) });
+        persons.emplace_back(
+            Person { .id = SqlGuid::Create(), .name = SqlAnsiString<25>(std::format("Person{}", i)), .age = 20 + i });
         dm.Create(persons.back());
     }
 
