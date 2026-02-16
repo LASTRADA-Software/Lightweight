@@ -105,7 +105,6 @@ $(document).ready(function(){initNavTree('d8/d63/classLightweight_1_1SqlResultCu
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a33db70d71e35b772223c734f900af966" id="r_a33db70d71e35b772223c734f900af966"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#a33db70d71e35b772223c734f900af966">SqlResultCursor</a> (<a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html">SqlStatement</a> &amp;stmt) noexcept</td></tr>
-<tr class="memdesc:a33db70d71e35b772223c734f900af966"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a result cursor for the given SQL statement.  <br /></td></tr>
 <tr class="separator:a33db70d71e35b772223c734f900af966"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a35693633b4c1b0a82539adfb79bf21d5" id="r_a35693633b4c1b0a82539adfb79bf21d5"><td class="memItemLeft" align="right" valign="top"><a id="a35693633b4c1b0a82539adfb79bf21d5" name="a35693633b4c1b0a82539adfb79bf21d5"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>SqlResultCursor</b> (<a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> const &amp;)=delete</td></tr>
@@ -114,10 +113,8 @@ Public Member Functions</h2></td></tr>
 <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> const &amp;)=delete</td></tr>
 <tr class="separator:af4997a27199a8bb99618d4f7009afe43"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2d160238db489271e7d4244109242b7c" id="r_a2d160238db489271e7d4244109242b7c"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#a2d160238db489271e7d4244109242b7c">SqlResultCursor</a> (<a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> &amp;&amp;other) noexcept</td></tr>
-<tr class="memdesc:a2d160238db489271e7d4244109242b7c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Move constructor.  <br /></td></tr>
 <tr class="separator:a2d160238db489271e7d4244109242b7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5ea1e9b924db4690cd53663373b6a61b" id="r_a5ea1e9b924db4690cd53663373b6a61b"><td class="memItemLeft" align="right" valign="top">constexpr <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#a5ea1e9b924db4690cd53663373b6a61b">operator=</a> (<a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> &amp;&amp;other) noexcept</td></tr>
-<tr class="memdesc:a5ea1e9b924db4690cd53663373b6a61b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Move assignment operator.  <br /></td></tr>
 <tr class="separator:a5ea1e9b924db4690cd53663373b6a61b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac429ba6642b47cb29ff6cdab7d5a3586" id="r_ac429ba6642b47cb29ff6cdab7d5a3586"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586">NumRowsAffected</a> () const</td></tr>
 <tr class="memdesc:ac429ba6642b47cb29ff6cdab7d5a3586"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the number of rows affected by the last query.  <br /></td></tr>
@@ -130,7 +127,6 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a8de60e0c6c3bcd3346c3a6df06cfaa3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae83cff0d43f8d06bd5adfe34070f838d" id="r_ae83cff0d43f8d06bd5adfe34070f838d"><td class="memTemplParams" colspan="2">template&lt;SqlOutputColumnBinder T&gt; </td></tr>
 <tr class="memitem:ae83cff0d43f8d06bd5adfe34070f838d"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#ae83cff0d43f8d06bd5adfe34070f838d">BindOutputColumn</a> (SQLUSMALLINT columnIndex, T *arg)</td></tr>
-<tr class="memdesc:ae83cff0d43f8d06bd5adfe34070f838d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds a single output column at the given index to store fetched data.  <br /></td></tr>
 <tr class="separator:ae83cff0d43f8d06bd5adfe34070f838d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af1167aa228464a5efaaae283ac9bf50f" id="r_af1167aa228464a5efaaae283ac9bf50f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#af1167aa228464a5efaaae283ac9bf50f">FetchRow</a> ()</td></tr>
 <tr class="memdesc:af1167aa228464a5efaaae283ac9bf50f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fetches the next row of the result set.  <br /></td></tr>
@@ -152,7 +148,7 @@ Public Member Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>API for reading an SQL query result set. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00309">309</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00296">296</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a33db70d71e35b772223c734f900af966" name="a33db70d71e35b772223c734f900af966"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a33db70d71e35b772223c734f900af966">&#9670;&#160;</a></span>SqlResultCursor() <span class="overload">[1/2]</span></h2>
@@ -178,9 +174,7 @@ Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Constructs a result cursor for the given SQL statement. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00313">313</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00299">299</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -208,9 +202,7 @@ Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Move constructor. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00323">323</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00308">308</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -237,7 +229,7 @@ Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00340">340</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00324">324</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -266,9 +258,7 @@ Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Move assignment operator. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00330">330</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00314">314</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -297,7 +287,7 @@ Public Member Functions</h2></td></tr>
 
 <p>Retrieves the number of rows affected by the last query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00350">350</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00334">334</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -326,7 +316,7 @@ Public Member Functions</h2></td></tr>
 
 <p>Retrieves the number of columns affected by the last query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00356">356</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00340">340</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -358,9 +348,7 @@ template&lt;SqlOutputColumnBinder... Args&gt; </div>
 <p>Binds the given arguments to the prepared statement to store the fetched data to.</p>
 <p>The statement must be prepared before calling this function. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00365">365</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01048">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::First()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00994">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::Range()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00349">349</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -400,11 +388,7 @@ template&lt;SqlOutputColumnBinder T&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Binds a single output column at the given index to store fetched data. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00372">372</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00769">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::All()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00355">355</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -433,9 +417,9 @@ template&lt;SqlOutputColumnBinder T&gt; </div>
 
 <p>Fetches the next row of the result set. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00378">378</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00361">361</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00769">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::All()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01048">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::First()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00994">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::Range()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00766">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::All()</a>.</p>
 
 </div>
 </div>
@@ -477,9 +461,9 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 <p>Retrieves the value of the column at the given index for the currently selected row.</p>
 <p>Returns true if the value is not NULL, false otherwise. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00387">387</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00370">370</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00769">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::All()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00766">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::All()</a>.</p>
 
 </div>
 </div>
@@ -511,7 +495,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 
 <p>Retrieves the value of the column at the given index for the currently selected row. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00394">394</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00377">377</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -543,7 +527,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 <p>Retrieves the value of the column at the given index for the currently selected row.</p>
 <p>If the value is NULL, std::nullopt is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00403">403</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00386">386</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -585,7 +569,7 @@ template&lt;SqlGetColumnNativeType T&gt; </div>
 <p>Retrieves the value of the column at the given index for the currently selected row.</p>
 <p>If the value is NULL, the given <code>defaultValue</code> is returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00412">412</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00395">395</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>

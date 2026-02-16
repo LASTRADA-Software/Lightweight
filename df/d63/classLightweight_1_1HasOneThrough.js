@@ -11,6 +11,5 @@ var classLightweight_1_1HasOneThrough =
     [ "operator*", "df/d63/classLightweight_1_1HasOneThrough.html#a85482fc436b647aeb804d59f246afb2f", null ],
     [ "operator->", "df/d63/classLightweight_1_1HasOneThrough.html#a421d422e4001389bdb7bbf57d04ba721", null ],
     [ "operator->", "df/d63/classLightweight_1_1HasOneThrough.html#a88e0758eca25880d871ce71459df1684", null ],
-    [ "operator<=>", "df/d63/classLightweight_1_1HasOneThrough.html#a52ac9b1979bffb475fdc3844b6ef60a2", null ],
     [ "SetAutoLoader", "df/d63/classLightweight_1_1HasOneThrough.html#af4d6a310537dbf2367da7a1aef991843", null ]
 ];

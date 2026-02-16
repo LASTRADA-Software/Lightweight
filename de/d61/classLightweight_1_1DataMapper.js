@@ -7,8 +7,6 @@ var classLightweight_1_1DataMapper =
     [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html#a2169593bd11e17f7d602a5246b0ce5ea", null ],
     [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html#a7a2b0a0ae77abf48a640bed4ae2ec5e4", null ],
     [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html#a5c200e70a1b329afb4e21f3d3cbe95fc", null ],
-    [ "DataMapper", "de/d61/classLightweight_1_1DataMapper.html#a004c9eaa70d2a33b3533ffa9381995c4", null ],
-    [ "operator=", "de/d61/classLightweight_1_1DataMapper.html#a2eb801d4d427d114bbc0c3b01068f307", null ],
     [ "Connection", "de/d61/classLightweight_1_1DataMapper.html#a121ee55502ae3461f8773593a5342f5f", null ],
     [ "Connection", "de/d61/classLightweight_1_1DataMapper.html#a91d6ba541ec66c8c25d9f277b3655efa", null ],
     [ "CreateTableString", "de/d61/classLightweight_1_1DataMapper.html#a275a2f5e36efeb2bd98f6c73b8f73c4b", null ],
@@ -23,8 +21,6 @@ var classLightweight_1_1DataMapper =
     [ "Query", "de/d61/classLightweight_1_1DataMapper.html#aa6b188d4c0b7e8b267f2722d0e3f1401", null ],
     [ "Query", "de/d61/classLightweight_1_1DataMapper.html#abc16383a3cfcc043de94a70742545903", null ],
     [ "Query", "de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747", null ],
-    [ "Query", "de/d61/classLightweight_1_1DataMapper.html#a9c5b656d89645356f1883956ed5fbb8e", null ],
-    [ "Query", "de/d61/classLightweight_1_1DataMapper.html#a5b09321e9caa2016225b472a41526352", null ],
     [ "Query", "de/d61/classLightweight_1_1DataMapper.html#a861abe24982b3d6a0ae7a786a9907b3a", null ],
     [ "Query", "de/d61/classLightweight_1_1DataMapper.html#a2b2b5b2f4bc610b6a8f518ce88a6e485", null ],
     [ "Update", "de/d61/classLightweight_1_1DataMapper.html#a0d838468c9635a154a22206928511d27", null ],
@@ -34,9 +30,5 @@ var classLightweight_1_1DataMapper =
     [ "SetModifiedState", "de/d61/classLightweight_1_1DataMapper.html#a488bd29dff332905ebd7975e16b095dc", null ],
     [ "LoadRelations", "de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702", null ],
     [ "ConfigureRelationAutoLoading", "de/d61/classLightweight_1_1DataMapper.html#ab1c4e06b5be5553d6c0d2f045e92ea60", null ],
-    [ "Execute", "de/d61/classLightweight_1_1DataMapper.html#a572f96a940e6a856d3d2a2b16ded4591", null ],
-    [ "Query", "de/d61/classLightweight_1_1DataMapper.html#a7e8e0db6f33c47df9c04c16fd9b4ec4d", null ],
-    [ "SetId", "de/d61/classLightweight_1_1DataMapper.html#a26cf5a8f4f6f3cf5840bb6fe6974e168", null ],
-    [ "BindOutputColumns", "de/d61/classLightweight_1_1DataMapper.html#a81be84735fffc4c9fd30c552c68d0a12", null ],
-    [ "BindOutputColumns", "de/d61/classLightweight_1_1DataMapper.html#a2f09cdee6f38a266d2308db4ac33a150", null ]
+    [ "Execute", "de/d61/classLightweight_1_1DataMapper.html#a572f96a940e6a856d3d2a2b16ded4591", null ]
 ];

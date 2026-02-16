@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['mapper_0',['Data Mapper',['../d7/d2f/group__DataMapper.html',1,'']]],
-  ['migration_1',['SQL Migration',['../db/df6/group__SqlMigration.html',1,'']]]
+  ['types_0',['Data Types',['../d4/d7c/group__DataTypes.html',1,'']]]
 ];

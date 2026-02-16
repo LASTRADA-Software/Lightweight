@@ -1,5 +1,19 @@
 var searchData=
 [
-  ['hasautoincrementprimarykey_0',['HasAutoIncrementPrimaryKey',['../d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0',1,'Lightweight']]],
-  ['hasprimarykey_1',['HasPrimaryKey',['../d7/d2f/group__DataMapper.html#gae0874e29a73741a5badb14bacafae06e',1,'Lightweight']]]
+  ['ifexists_0',['ifExists',['../dd/d47/structLightweight_1_1SqlDropTablePlan.html#af7adb5af3a0ff6c6a366fee2ce29beff',1,'Lightweight::SqlDropTablePlan']]],
+  ['ifnotexists_1',['ifNotExists',['../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a64587008f80036f6eae8301e96b6656b',1,'Lightweight::SqlCreateIndexPlan']]],
+  ['includeguardprefix_2',['includeGuardPrefix',['../d7/d04/structLup2DbTool_1_1CodeGeneratorConfig.html#a96f00b016d508adb379c86d6e20f71d4',1,'Lup2DbTool::CodeGeneratorConfig']]],
+  ['index_3',['index',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046',1,'Lightweight::SqlColumnDeclaration::index'],['../d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#a0731a4941cd0e4cbdfa4a3dfc159a750',1,'Lightweight::Zip::EntryInfo::index']]],
+  ['indexes_4',['indexes',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ac5078f37747a5a12b4d3d7e8df8b7595',1,'Lightweight::SqlBackup::TableInfo::indexes'],['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#afb92036f7695851c2246f5574d7f3bde',1,'Lightweight::SqlSchema::Table::indexes']]],
+  ['indexname_5',['indexName',['../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a8b1c5ecec1c2dd8326f6011d3256f84c',1,'Lightweight::SqlCreateIndexPlan']]],
+  ['indicators_6',['indicators',['../da/d7e/structLightweight_1_1SqlRawColumn.html#a9125efddb4978d91a258ef9525c0ea3d',1,'Lightweight::SqlRawColumn']]],
+  ['initialdelay_7',['initialDelay',['../d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html#a009fb3f655ca7d46fe8d4e322cd45752',1,'Lightweight::SqlBackup::RetrySettings']]],
+  ['inputencoding_8',['inputEncoding',['../dc/d85/structLup2DbTool_1_1ParserConfig.html#a0d53322d59a48c20c9eb2528968f7b86',1,'Lup2DbTool::ParserConfig']]],
+  ['isautoassignprimarykey_9',['IsAutoAssignPrimaryKey',['../d2/dd0/structLightweight_1_1Field.html#ad1ae892c7681d1d9de767871ca93e484',1,'Lightweight::Field']]],
+  ['isautoincrementprimarykey_10',['IsAutoIncrementPrimaryKey',['../d2/dd0/structLightweight_1_1Field.html#aff726016ae5bc77803f91ebdfc1b4921',1,'Lightweight::Field']]],
+  ['isbinarycolumn_11',['isBinaryColumn',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad0650ea29db5c33bcebf5af75b9be9d8',1,'Lightweight::SqlBackup::TableInfo']]],
+  ['ismandatory_12',['IsMandatory',['../d2/dd0/structLightweight_1_1Field.html#aa408ad47ef3d6a169dad4dbf5ef243ce',1,'Lightweight::Field']]],
+  ['isoptional_13',['IsOptional',['../d2/dd0/structLightweight_1_1Field.html#aca64dd154091663b93852e0589c95630',1,'Lightweight::Field']]],
+  ['isprimarykey_14',['IsPrimaryKey',['../d2/dd0/structLightweight_1_1Field.html#a844764f259e40daa34fbacd27ef8e4a9',1,'Lightweight::Field']]],
+  ['isunique_15',['isUnique',['../d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#afc6863e451eb5828a2c241e56743c600',1,'Lightweight::SqlSchema::IndexDefinition']]]
 ];

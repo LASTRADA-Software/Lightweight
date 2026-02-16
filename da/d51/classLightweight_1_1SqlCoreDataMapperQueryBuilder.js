@@ -1,6 +1,5 @@
 var classLightweight_1_1SqlCoreDataMapperQueryBuilder =
 [
-    [ "SqlCoreDataMapperQueryBuilder", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#aaebf198c4d7c903a2828d1bd74178f03", null ],
     [ "Exist", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ae924750087e80757fb0b4b210edbddae", null ],
     [ "Count", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#af3f8be66ec88e462629f484bd6363344", null ],
     [ "All", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a5a68b798844875ce98c0310fdf2b224a", null ],
@@ -11,7 +10,5 @@ var classLightweight_1_1SqlCoreDataMapperQueryBuilder =
     [ "First", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#add668a5f882bd97c64680eb58366d88e", null ],
     [ "First", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a2b38a32ae1df3aed4de8de54509add7a", null ],
     [ "First", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a88f6282c8164c5d2fd8b214d395e44d1", null ],
-    [ "First", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#aec5108b75a478b7b872cbce7451ed859", null ],
-    [ "Range", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ad4234fec2da873f7a938a6c436451cf9", null ],
-    [ "Range", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ab24c10bac0898e55bad7bbed81e990a5", null ]
+    [ "Range", "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ad4234fec2da873f7a938a6c436451cf9", null ]
 ];

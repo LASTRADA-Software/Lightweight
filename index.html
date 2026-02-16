@@ -305,7 +305,19 @@ Generate example for the existing database</h1>
 Compile using C++26 reflection support</h1>
 <div class="fragment"><div class="line"> sh</div>
 <div class="line">docker buildx build --progress=plain -f .github/Reflection.Dockerfile --load .</div>
-</div><!-- fragment --> </div></div><!-- PageDoc -->
+</div><!-- fragment --><h1><a class="anchor" id="building-with-c20-modules"></a>
+Building with C++20 Modules</h1>
+<p>Lightweight supports building as C++20 modules. To enable this feature, you need CMake 3.28 or higher.</p>
+<p>Enable module support with the <code>LIGHTWEIGHT_BUILD_MODULES</code> CMake option:</p>
+<div class="fragment"><div class="line">cmake -B build -S . -G Ninja -DLIGHTWEIGHT_BUILD_MODULES=ON</div>
+<div class="line">cmake --build build</div>
+</div><!-- fragment --><p>When modules are enabled, consumers can import the library using:</p>
+<div class="fragment"><div class="line"><span class="keyword">import</span> Lightweight;</div>
+</div><!-- fragment --><p><b>Note:</b> C++20 module support requires:</p><ul>
+<li>CMake 3.28 or higher, with a system like Ninja</li>
+<li>A compiler with full C++20 module support (e.g., GCC 14+, Clang 19+, MSVC 19.36+) </li>
+</ul>
+</div></div><!-- PageDoc -->
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

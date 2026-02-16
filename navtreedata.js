@@ -207,11 +207,10 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html",
-"d6/dfa/structLightweight_1_1SqlDateTime.html#a8936bb67e7a6cccf8b462302175ca0c7",
-"d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#examples-of-sql-to-datamapper-mappings",
-"dc/d74/CollectDifferences_8hpp_source.html",
-"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8"
+"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a301e0219e6dcd600640c63e5b53839eb",
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a1fc1b3ec6aaa8d6a43f91185ad2370ab",
+"da/df4/classLightweight_1_1HasMany.html#a888c5731befb0482adb368e8f3794cd1",
+"df/d18/classLup_1_1TransitionGlue.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

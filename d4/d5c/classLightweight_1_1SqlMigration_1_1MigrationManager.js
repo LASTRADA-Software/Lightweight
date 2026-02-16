@@ -1,7 +1,5 @@
 var classLightweight_1_1SqlMigration_1_1MigrationManager =
 [
-    [ "MigrationList", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1", null ],
-    [ "ExecuteCallback", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364", null ],
     [ "AddMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1e2638d4b642e5692df3d2ab24e199a4", null ],
     [ "GetAllMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a265744d717ca33feffc27bb6c024bb07", null ],
     [ "GetMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a56194b41fc9b404256d379bd51f5002d", null ],

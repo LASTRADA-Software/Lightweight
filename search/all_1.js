@@ -7,7 +7,8 @@ var searchData=
   ['2_20column_20object_4',['3.2 Column Object',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md32-column-object',1,'']]],
   ['2_20compression_20levels_5',['5.2 Compression Levels',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md52-compression-levels',1,'']]],
   ['2_20metadata_20manifest_20tt_20metadata_20json_20tt_6',['2. Metadata Manifest (&lt;tt&gt;metadata.json&lt;/tt&gt;)',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md2-metadata-manifest-metadatajson',1,'']]],
-  ['23_7',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
-  ['23_20odbc_20wrapper_8',['Announcing Lightweight: Zero-overhead C++23 ODBC wrapper',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html',1,'']]],
-  ['26_20reflection_20support_9',['Compile using C++26 reflection support',['../index.html#compile-using-c26-reflection-support',1,'']]]
+  ['20_20modules_7',['Building with C++20 Modules',['../index.html#building-with-c20-modules',1,'']]],
+  ['23_8',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
+  ['23_20odbc_20wrapper_9',['Announcing Lightweight: Zero-overhead C++23 ODBC wrapper',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html',1,'']]],
+  ['26_20reflection_20support_10',['Compile using C++26 reflection support',['../index.html#compile-using-c26-reflection-support',1,'']]]
 ];

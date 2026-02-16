@@ -109,11 +109,9 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a30650c62240ef5ef23343264e7f66209"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0501946d1f67680a66891ab39675a195" id="r_a0501946d1f67680a66891ab39675a195"><td class="memItemLeft" align="right" valign="top"><a id="a0501946d1f67680a66891ab39675a195" name="a0501946d1f67680a66891ab39675a195"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>SqlTransaction</b> (<a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> &amp;&amp;)=default</td></tr>
-<tr class="memdesc:a0501946d1f67680a66891ab39675a195"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default move constructor. <br /></td></tr>
 <tr class="separator:a0501946d1f67680a66891ab39675a195"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af5c3bc13ef4fe7ba0823b0d51080ce9e" id="r_af5c3bc13ef4fe7ba0823b0d51080ce9e"><td class="memItemLeft" align="right" valign="top"><a id="af5c3bc13ef4fe7ba0823b0d51080ce9e" name="af5c3bc13ef4fe7ba0823b0d51080ce9e"></a>
 <a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">SqlTransaction</a> &amp;&amp;)=default</td></tr>
-<tr class="memdesc:af5c3bc13ef4fe7ba0823b0d51080ce9e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default move assignment operator. <br /></td></tr>
 <tr class="separator:af5c3bc13ef4fe7ba0823b0d51080ce9e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0c3e9dfaf889f3d5efc73683daf4328a" id="r_a0c3e9dfaf889f3d5efc73683daf4328a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a0c3e9dfaf889f3d5efc73683daf4328a">SqlTransaction</a> (<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> &amp;connection, SqlTransactionMode defaultMode=SqlTransactionMode::COMMIT, SqlIsolationMode isolationMode=SqlIsolationMode::DriverDefault, std::source_location location=std::source_location::current())</td></tr>
 <tr class="separator:a0c3e9dfaf889f3d5efc73683daf4328a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -161,11 +159,11 @@ LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><b>TryCo
 <div class="line">    transaction.<a class="code hl_function" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#abf53df501043f0a82fb306232e339e0a">Commit</a>();</div>
 <div class="line">}</div>
 <div class="ttc" id="aclassLightweight_1_1SqlStatement_html"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html">Lightweight::SqlStatement</a></div><div class="ttdoc">High level API for (prepared) raw SQL statements.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00052">SqlStatement.hpp:53</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlTransaction_html"><div class="ttname"><a href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">Lightweight::SqlTransaction</a></div><div class="ttdef"><b>Definition</b> <a href="../../d9/da6/SqlTransaction_8hpp_source.html#l00104">SqlTransaction.hpp:105</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlTransaction_html_a52d573eb151960d042cab0bd2eda54b2"><div class="ttname"><a href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a52d573eb151960d042cab0bd2eda54b2">Lightweight::SqlTransaction::Connection</a></div><div class="ttdeci">SqlConnection &amp; Connection() noexcept</div><div class="ttdoc">Get the connection object associated with this transaction.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/da6/SqlTransaction_8hpp_source.html#l00154">SqlTransaction.hpp:154</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlTransaction_html"><div class="ttname"><a href="../../d0/ddc/classLightweight_1_1SqlTransaction.html">Lightweight::SqlTransaction</a></div><div class="ttdef"><b>Definition</b> <a href="../../d9/da6/SqlTransaction_8hpp_source.html#l00103">SqlTransaction.hpp:104</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlTransaction_html_a52d573eb151960d042cab0bd2eda54b2"><div class="ttname"><a href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a52d573eb151960d042cab0bd2eda54b2">Lightweight::SqlTransaction::Connection</a></div><div class="ttdeci">SqlConnection &amp; Connection() noexcept</div><div class="ttdoc">Get the connection object associated with this transaction.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/da6/SqlTransaction_8hpp_source.html#l00151">SqlTransaction.hpp:151</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlTransaction_html_abf53df501043f0a82fb306232e339e0a"><div class="ttname"><a href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#abf53df501043f0a82fb306232e339e0a">Lightweight::SqlTransaction::Commit</a></div><div class="ttdeci">LIGHTWEIGHT_API void Commit()</div><div class="ttdoc">Commit the transaction. Throws an exception if the transaction cannot be committed.</div></div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html#l00104">104</a> of file <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html">SqlTransaction.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html#l00103">103</a> of file <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html">SqlTransaction.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a0c3e9dfaf889f3d5efc73683daf4328a" name="a0c3e9dfaf889f3d5efc73683daf4328a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0c3e9dfaf889f3d5efc73683daf4328a">&#9670;&#160;</a></span>SqlTransaction()</h2>
@@ -242,7 +240,7 @@ LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><b>TryCo
 
 <p>Get the connection object associated with this transaction. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html#l00154">154</a> of file <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html">SqlTransaction.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html#l00151">151</a> of file <a class="el" href="../../d9/da6/SqlTransaction_8hpp_source.html">SqlTransaction.hpp</a>.</p>
 
 </div>
 </div>

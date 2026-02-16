@@ -1,9 +1,7 @@
 var classLightweight_1_1SqlTransaction =
 [
-    [ "SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0501946d1f67680a66891ab39675a195", null ],
     [ "SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html#a0c3e9dfaf889f3d5efc73683daf4328a", null ],
     [ "~SqlTransaction", "d0/ddc/classLightweight_1_1SqlTransaction.html#a08cd992cb104b7a6f40e71c6956d2c93", null ],
-    [ "operator=", "d0/ddc/classLightweight_1_1SqlTransaction.html#af5c3bc13ef4fe7ba0823b0d51080ce9e", null ],
     [ "Connection", "d0/ddc/classLightweight_1_1SqlTransaction.html#a52d573eb151960d042cab0bd2eda54b2", null ],
     [ "Rollback", "d0/ddc/classLightweight_1_1SqlTransaction.html#a6ed3f7b26252e7d105675187cd37d71b", null ],
     [ "TryRollback", "d0/ddc/classLightweight_1_1SqlTransaction.html#ad2c493184413ef5bb279704c66febaad", null ],

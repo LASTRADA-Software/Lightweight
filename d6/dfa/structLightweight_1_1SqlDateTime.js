@@ -1,18 +1,8 @@
 var structLightweight_1_1SqlDateTime =
 [
-    [ "native_type", "d6/dfa/structLightweight_1_1SqlDateTime.html#a5cfbb0f2fc1b68b0fd3983316b203ebc", null ],
-    [ "duration_type", "d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4", null ],
-    [ "SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html#aa50a9ead6c38136f88b43b1741f03215", null ],
-    [ "SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html#a4218566fdf5af724b97ff5a9e4dc338f", null ],
-    [ "SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html#a7fbd687b6c3324075471f0e25239a6c2", null ],
     [ "SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html#ab38664ffae1a75be115aa5d8824326ad", null ],
     [ "SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html#a580b08490f5eff7dec0a3e4534d191d5", null ],
     [ "SqlDateTime", "d6/dfa/structLightweight_1_1SqlDateTime.html#a337174b1308732c72008e8397ad2299f", null ],
-    [ "operator=", "d6/dfa/structLightweight_1_1SqlDateTime.html#abb76b9bf15e55aee41bc90cadf0de639", null ],
-    [ "operator=", "d6/dfa/structLightweight_1_1SqlDateTime.html#a811af944dcb1894e543003d5ddf5d2c5", null ],
-    [ "operator<=>", "d6/dfa/structLightweight_1_1SqlDateTime.html#a4073ddbeadc581f1528fc44fa7e9fb70", null ],
-    [ "operator==", "d6/dfa/structLightweight_1_1SqlDateTime.html#a2fe4b8eee3bc27c8097d057b490b1319", null ],
-    [ "operator!=", "d6/dfa/structLightweight_1_1SqlDateTime.html#af92f3533cae7302542353e4fa358d581", null ],
     [ "year", "d6/dfa/structLightweight_1_1SqlDateTime.html#a149ce3222ef3ab86a5bbcfe65ae08c13", null ],
     [ "month", "d6/dfa/structLightweight_1_1SqlDateTime.html#a5dcb89336b1f32506a60b63e62c788d2", null ],
     [ "day", "d6/dfa/structLightweight_1_1SqlDateTime.html#a1cc6eb89a127b62c44a7cce37131c657", null ],
@@ -20,11 +10,7 @@ var structLightweight_1_1SqlDateTime =
     [ "minute", "d6/dfa/structLightweight_1_1SqlDateTime.html#a87a2b5b93a1dd9151dc3f3f4245062d8", null ],
     [ "second", "d6/dfa/structLightweight_1_1SqlDateTime.html#a63f32910bfa3c1dee896bddf23e69e96", null ],
     [ "nanosecond", "d6/dfa/structLightweight_1_1SqlDateTime.html#a8936bb67e7a6cccf8b462302175ca0c7", null ],
-    [ "operator native_type", "d6/dfa/structLightweight_1_1SqlDateTime.html#a7caa34aea54756006662814867fdcb72", null ],
     [ "Date", "d6/dfa/structLightweight_1_1SqlDateTime.html#a50c214ccbdedd65463ff121de8489e60", null ],
     [ "Time", "d6/dfa/structLightweight_1_1SqlDateTime.html#ab670fd561755bd58aaa31099a291af23", null ],
-    [ "value", "d6/dfa/structLightweight_1_1SqlDateTime.html#ad9d7388657a62e1037680c4d4dab9eea", null ],
-    [ "operator+=", "d6/dfa/structLightweight_1_1SqlDateTime.html#ac9909a40a0ef444af5bf3e28dee1bd6a", null ],
-    [ "operator-=", "d6/dfa/structLightweight_1_1SqlDateTime.html#a888891e5250a2c3221777bcaf3e6d47b", null ],
-    [ "sqlValue", "d6/dfa/structLightweight_1_1SqlDateTime.html#a5f1844faef73c5040f1eeb5463a722d4", null ]
+    [ "value", "d6/dfa/structLightweight_1_1SqlDateTime.html#ad9d7388657a62e1037680c4d4dab9eea", null ]
 ];

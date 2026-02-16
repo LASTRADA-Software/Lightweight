@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['native_5ftype_0',['native_type',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a5cfbb0f2fc1b68b0fd3983316b203ebc',1,'Lightweight::SqlDateTime']]]
+  ['throughrecord_0',['throughrecord',['../de/d73/classLightweight_1_1HasManyThrough.html#a99b76d65f3af60cf70826b5936c28848',1,'Lightweight::HasManyThrough::ThroughRecord'],['../df/d63/classLightweight_1_1HasOneThrough.html#a47e480103465ea8e383d1eab435cd407',1,'Lightweight::HasOneThrough::ThroughRecord']]]
 ];

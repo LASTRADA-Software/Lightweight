@@ -491,7 +491,7 @@ $(document).ready(function(){initNavTree('da/d62/SQLiteFormatter_8hpp_source.htm
 <div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span><span class="stringliteral">        std::stringstream sqlQueryString;</span></div>
 <div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span><span class="stringliteral"></span> </div>
 <div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span><span class="stringliteral">        </span><span class="keywordtype">int</span> currentCommand = 0;</div>
-<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>        <span class="keywordflow">for</span> (<a class="code hl_typedef" href="../../d6/daa/group__QueryBuilder.html#ga35da70532d7195d108a26ea3ab737ec3">SqlAlterTableCommand</a> <span class="keyword">const</span>&amp; command: commands)</div>
+<div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>        <span class="keywordflow">for</span> (SqlAlterTableCommand <span class="keyword">const</span>&amp; command: commands)</div>
 <div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span>        {</div>
 <div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span>            <span class="keywordflow">if</span> (currentCommand &gt; 0)</div>
 <div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span>                sqlQueryString &lt;&lt; <span class="charliteral">&#39;\n&#39;</span>;</div>
@@ -633,7 +633,6 @@ $(document).ready(function(){initNavTree('da/d62/SQLiteFormatter_8hpp_source.htm
 <div class="line"><a id="l00533" name="l00533"></a><span class="lineno">  533</span>};</div>
 <div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span> </div>
 <div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span>} <span class="comment">// namespace Lightweight</span></div>
-<div class="ttc" id="agroup__QueryBuilder_html_ga35da70532d7195d108a26ea3ab737ec3"><div class="ttname"><a href="../../d6/daa/group__QueryBuilder.html#ga35da70532d7195d108a26ea3ab737ec3">Lightweight::SqlAlterTableCommand</a></div><div class="ttdeci">std::variant&lt; SqlAlterTableCommands::RenameTable, SqlAlterTableCommands::AddColumn, SqlAlterTableCommands::AddColumnIfNotExists, SqlAlterTableCommands::AlterColumn, SqlAlterTableCommands::AddIndex, SqlAlterTableCommands::RenameColumn, SqlAlterTableCommands::DropColumn, SqlAlterTableCommands::DropColumnIfExists, SqlAlterTableCommands::DropIndex, SqlAlterTableCommands::DropIndexIfExists, SqlAlterTableCommands::AddForeignKey, SqlAlterTableCommands::AddCompositeForeignKey, SqlAlterTableCommands::DropForeignKey &gt; SqlAlterTableCommand</div><div class="ttdoc">Represents a single SQL ALTER TABLE command.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d47/MigrationPlan_8hpp_source.html#l00357">MigrationPlan.hpp:369</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

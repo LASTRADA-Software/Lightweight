@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['indextype_0',['IndexType',['../d6/daa/group__QueryBuilder.html#ga17470447b60d4554d19d30e877645d07',1,'Lightweight']]]
+  ['modifiedstate_0',['ModifiedState',['../de/d61/classLightweight_1_1DataMapper.html#ac8cfda8ec587a1c2007646116c426441',1,'Lightweight::DataMapper']]]
 ];
