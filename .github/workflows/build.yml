@@ -303,7 +303,7 @@ jobs:
       - name: "Install build dependencies"
         run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev g++-14 libstdc++-14-dev libzip-dev
       - name: "Configure cmake"
-        run: cmake --preset linux-gcc-release -B build -D CMAKE_CXX_COMPILER=g++-14
+        run: cmake --preset linux-gcc-release -B build -D CMAKE_CXX_COMPILER=g++-14 -D LIGHTWEIGHT_BUILD_MODULES=ON
       - name: "Build chinook example"
         run: cmake --build build --target chinook
       - name: "Run chinook example"

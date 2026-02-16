@@ -1,10 +1,16 @@
 // File is automatically generated using ddl2cpp.
 #pragma once
 
+#if !defined(LIGHTWEIGHT_BUILD_MODULES)
+#include <Lightweight/DataMapper/DataMapper.hpp>
+#endif
+
+
 struct Mediatype final
 {
-    static constexpr string_view TableName = "MediaType";
+    static constexpr std::string_view TableName = "MediaType";
 
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "MediaTypeId" }> MediaTypeId;
-    Field<optional<SqlDynamicUtf16String<120>>, SqlRealName { "Name" }> Name;
+    Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "MediaTypeId" }> MediaTypeId;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<120>>, Light::SqlRealName { "Name" }> Name;
 };
+

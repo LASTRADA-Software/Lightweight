@@ -3,18 +3,22 @@
 
 #include "Customer.hpp"
 
+#if !defined(LIGHTWEIGHT_BUILD_MODULES)
+    #include <Lightweight/DataMapper/DataMapper.hpp>
+#endif
+
 struct Invoice final
 {
-    static constexpr string_view TableName = "Invoice";
+    static constexpr std::string_view TableName = "Invoice";
 
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "InvoiceId" }> InvoiceId;
-    BelongsTo<&Customer::CustomerId, SqlRealName { "CustomerId" }> CustomerId;
-    Field<SqlDateTime, SqlRealName { "InvoiceDate" }> InvoiceDate;
-    Field<optional<SqlDynamicUtf16String<70>>, SqlRealName { "BillingAddress" }> BillingAddress;
-    Field<optional<SqlDynamicUtf16String<40>>, SqlRealName { "BillingCity" }> BillingCity;
-    Field<optional<SqlDynamicUtf16String<40>>, SqlRealName { "BillingState" }> BillingState;
-    Field<optional<SqlDynamicUtf16String<40>>, SqlRealName { "BillingCountry" }> BillingCountry;
-    Field<optional<SqlDynamicUtf16String<10>>, SqlRealName { "BillingPostalCode" }>
+    Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "InvoiceId" }> InvoiceId;
+    Light::BelongsTo<&Customer::CustomerId, Light::SqlRealName { "CustomerId" }> CustomerId;
+    Light::Field<Light::SqlDateTime, Light::SqlRealName { "InvoiceDate" }> InvoiceDate;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<70>>, Light::SqlRealName { "BillingAddress" }> BillingAddress;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<40>>, Light::SqlRealName { "BillingCity" }> BillingCity;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<40>>, Light::SqlRealName { "BillingState" }> BillingState;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<40>>, Light::SqlRealName { "BillingCountry" }> BillingCountry;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<10>>, Light::SqlRealName { "BillingPostalCode" }>
         BillingPostalCode;
-    Field<SqlNumeric<10, 2>, SqlRealName { "Total" }> Total;
+    Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "Total" }> Total;
 };

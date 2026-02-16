@@ -5,17 +5,23 @@
 #include "Genre.hpp"
 #include "Mediatype.hpp"
 
+#if !defined(LIGHTWEIGHT_BUILD_MODULES)
+#include <Lightweight/DataMapper/DataMapper.hpp>
+#endif
+
+
 struct Track final
 {
-    static constexpr string_view TableName = "Track";
+    static constexpr std::string_view TableName = "Track";
 
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "TrackId" }> TrackId;
-    Field<SqlDynamicUtf16String<200>, SqlRealName { "Name" }> Name;
-    BelongsTo<&Album::AlbumId, SqlRealName { "AlbumId" }, SqlNullable::Null> AlbumId;
-    BelongsTo<&Mediatype::MediaTypeId, SqlRealName { "MediaTypeId" }> MediaTypeId;
-    BelongsTo<&Genre::GenreId, SqlRealName { "GenreId" }, SqlNullable::Null> GenreId;
-    Field<optional<SqlDynamicUtf16String<220>>, SqlRealName { "Composer" }> Composer;
-    Field<int32_t, SqlRealName { "Milliseconds" }> Milliseconds;
-    Field<optional<int32_t>, SqlRealName { "Bytes" }> Bytes;
-    Field<SqlNumeric<10, 2>, SqlRealName { "UnitPrice" }> UnitPrice;
+    Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "TrackId" }> TrackId;
+    Light::Field<Light::SqlDynamicUtf16String<200>, Light::SqlRealName { "Name" }> Name;
+    Light::BelongsTo<&Album::AlbumId, Light::SqlRealName { "AlbumId" }, Light::SqlNullable::Null> AlbumId;
+    Light::BelongsTo<&Mediatype::MediaTypeId, Light::SqlRealName { "MediaTypeId" }> MediaTypeId;
+    Light::BelongsTo<&Genre::GenreId, Light::SqlRealName { "GenreId" }, Light::SqlNullable::Null> GenreId;
+    Light::Field<std::optional<Light::SqlDynamicUtf16String<220>>, Light::SqlRealName { "Composer" }> Composer;
+    Light::Field<int32_t, Light::SqlRealName { "Milliseconds" }> Milliseconds;
+    Light::Field<std::optional<int32_t>, Light::SqlRealName { "Bytes" }> Bytes;
+    Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "UnitPrice" }> UnitPrice;
 };
+

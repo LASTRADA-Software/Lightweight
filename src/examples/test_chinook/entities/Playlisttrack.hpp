@@ -1,12 +1,16 @@
 // File is automatically generated using ddl2cpp.
 #pragma once
 
+#if !defined(LIGHTWEIGHT_BUILD_MODULES)
+    #include <Lightweight/DataMapper/DataMapper.hpp>
+#endif
+
 struct Playlisttrack final
 {
-    static constexpr string_view TableName = "PlaylistTrack";
+    static constexpr std::string_view TableName = "PlaylistTrack";
 
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "PlaylistId" }>
+    Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "PlaylistId" }>
         PlaylistId; // NB: This is also a foreign key
-    Field<int32_t, PrimaryKey::ServerSideAutoIncrement, SqlRealName { "TrackId" }>
+    Light::Field<int32_t, Light::PrimaryKey::ServerSideAutoIncrement, Light::SqlRealName { "TrackId" }>
         TrackId; // NB: This is also a foreign key
 };
