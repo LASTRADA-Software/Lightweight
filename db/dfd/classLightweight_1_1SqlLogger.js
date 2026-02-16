@@ -5,7 +5,11 @@ var classLightweight_1_1SqlLogger =
       [ "No", "db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750abafd7322c6e97d25b6299b5d6fe8920b", null ],
       [ "Yes", "db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750a93cba07454f06a4a960172bbd6e2a435", null ]
     ] ],
+    [ "SqlLogger", "db/dfd/classLightweight_1_1SqlLogger.html#a3e441039e16eb59497da5163beb97fa0", null ],
+    [ "SqlLogger", "db/dfd/classLightweight_1_1SqlLogger.html#a9942ff8ad180974cbc0a0b161dbf662d", null ],
     [ "SqlLogger", "db/dfd/classLightweight_1_1SqlLogger.html#af9ba5d916ab908a9a5a5d0ea7966751b", null ],
+    [ "operator=", "db/dfd/classLightweight_1_1SqlLogger.html#ae1c85dd1cbc748a950f23637fb202555", null ],
+    [ "operator=", "db/dfd/classLightweight_1_1SqlLogger.html#a5ecff57c48215be1497e9cf25b79cee8", null ],
     [ "SetLoggingSink", "db/dfd/classLightweight_1_1SqlLogger.html#a77db8e52d519c4f915b0bc66644560db", null ],
     [ "OnWarning", "db/dfd/classLightweight_1_1SqlLogger.html#adbb17b889781323b66f79f99e1108776", null ],
     [ "OnError", "db/dfd/classLightweight_1_1SqlLogger.html#a2af9309b27fd6bef80768c26080368ea", null ],
@@ -23,5 +27,6 @@ var classLightweight_1_1SqlLogger =
     [ "OnExecute", "db/dfd/classLightweight_1_1SqlLogger.html#a1d04bb81c9f5d37e8b3690a657cd3f9d", null ],
     [ "OnExecuteBatch", "db/dfd/classLightweight_1_1SqlLogger.html#a89a7b4c6fd89c71bfdab6e81b7f15f35", null ],
     [ "OnFetchRow", "db/dfd/classLightweight_1_1SqlLogger.html#af7c5638382912daeb780c763c5711ee2", null ],
-    [ "OnFetchEnd", "db/dfd/classLightweight_1_1SqlLogger.html#a531204f908c6870f7e7e589ac0e20c2f", null ]
+    [ "OnFetchEnd", "db/dfd/classLightweight_1_1SqlLogger.html#a531204f908c6870f7e7e589ac0e20c2f", null ],
+    [ "_messageWriter", "db/dfd/classLightweight_1_1SqlLogger.html#a02804ba49a0fb98fe967aae9ae089fac", null ]
 ];

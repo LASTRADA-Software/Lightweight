@@ -2,7 +2,9 @@ var classLightweight_1_1SqlConnection =
 [
     [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#ab5a9e94571f9e9296b2ce65036f75184", null ],
     [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#a4e097e87864820524a545cee7aedc437", null ],
+    [ "SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#ab9e2b5679f7ca67ead13107a020e7c65", null ],
     [ "~SqlConnection", "da/da8/classLightweight_1_1SqlConnection.html#a62a9dd35027a98c52b3fcb66fcf2e731", null ],
+    [ "operator=", "da/da8/classLightweight_1_1SqlConnection.html#a6632efa15e669b5892bcb1fe0e0dc683", null ],
     [ "ConnectionId", "da/da8/classLightweight_1_1SqlConnection.html#a63ba202ba517a1dbe5d36afe4654a85b", null ],
     [ "Close", "da/da8/classLightweight_1_1SqlConnection.html#a85b56ddb608b6c84fe33b7bff71a7f24", null ],
     [ "Connect", "da/da8/classLightweight_1_1SqlConnection.html#aff53cd88345bf8822f5fd34e676c48d0", null ],

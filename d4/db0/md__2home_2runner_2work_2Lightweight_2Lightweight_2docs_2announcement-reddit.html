@@ -203,7 +203,7 @@ Relationships with Lazy Loading</h1>
 <h1><a class="anchor" id="database-migrations-in-pure-c"></a>
 Database Migrations in Pure C++</h1>
 <p>No external tools or SQL files - define migrations as C++ code:</p>
-<div class="fragment"><div class="line">LIGHTWEIGHT_SQL_MIGRATION(20240115120000, <span class="stringliteral">&quot;create users table&quot;</span>)</div>
+<div class="fragment"><div class="line"><a class="code hl_define" href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a>(20240115120000, <span class="stringliteral">&quot;create users table&quot;</span>)</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">using namespace </span>SqlColumnTypeDefinitions;</div>
 <div class="line">    </div>
@@ -219,6 +219,7 @@ Database Migrations in Pure C++</h1>
 <div class="line"><span class="keyword">auto</span>&amp; manager = MigrationManager::GetInstance();</div>
 <div class="line">manager.CreateMigrationHistory();</div>
 <div class="line"><span class="keywordtype">size_t</span> applied = manager.ApplyPendingMigrations();</div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00406">SqlMigration.hpp:406</a></div></div>
 </div><!-- fragment --><p>Supports rollbacks, dry-run preview, checksum verification, and distributed locking for safe concurrent deployments.</p>
 <hr  />
 <h1><a class="anchor" id="backup--restore-1"></a>

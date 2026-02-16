@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['mapper_0',['Data Mapper',['../d7/d2f/group__DataMapper.html',1,'']]]
+  ['functions_0',['Unicode conversion functions',['../d1/d7d/group__Unicode.html',1,'']]]
 ];

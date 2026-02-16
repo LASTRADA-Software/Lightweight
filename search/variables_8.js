@@ -1,5 +1,18 @@
 var searchData=
 [
-  ['level_0',['level',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a433db0c5f6bf8d24dc11eec160e262b5',1,'Lightweight::SqlBackup::BackupSettings']]],
-  ['libziperror_1',['libzipError',['../da/dd4/structLightweight_1_1Zip_1_1ZipError.html#aae4162b3c01ffe80286bdf62a5561472',1,'Lightweight::Zip::ZipError']]]
+  ['ifexists_0',['ifExists',['../dd/d47/structLightweight_1_1SqlDropTablePlan.html#af7adb5af3a0ff6c6a366fee2ce29beff',1,'Lightweight::SqlDropTablePlan']]],
+  ['ifnotexists_1',['ifNotExists',['../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a64587008f80036f6eae8301e96b6656b',1,'Lightweight::SqlCreateIndexPlan']]],
+  ['index_2',['index',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046',1,'Lightweight::SqlColumnDeclaration::index'],['../d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#a0731a4941cd0e4cbdfa4a3dfc159a750',1,'Lightweight::Zip::EntryInfo::index']]],
+  ['indexes_3',['indexes',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ac5078f37747a5a12b4d3d7e8df8b7595',1,'Lightweight::SqlBackup::TableInfo::indexes'],['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#afb92036f7695851c2246f5574d7f3bde',1,'Lightweight::SqlSchema::Table::indexes']]],
+  ['indexname_4',['indexName',['../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a8b1c5ecec1c2dd8326f6011d3256f84c',1,'Lightweight::SqlCreateIndexPlan']]],
+  ['indicators_5',['indicators',['../da/d7e/structLightweight_1_1SqlRawColumn.html#a9125efddb4978d91a258ef9525c0ea3d',1,'Lightweight::SqlRawColumn']]],
+  ['initialdelay_6',['initialDelay',['../d4/d9f/structLightweight_1_1SqlBackup_1_1RetrySettings.html#a009fb3f655ca7d46fe8d4e322cd45752',1,'Lightweight::SqlBackup::RetrySettings']]],
+  ['isautoassignprimarykey_7',['IsAutoAssignPrimaryKey',['../d2/dd0/structLightweight_1_1Field.html#ad1ae892c7681d1d9de767871ca93e484',1,'Lightweight::Field']]],
+  ['isautoincrementprimarykey_8',['isautoincrementprimarykey',['../d0/df7/classLightweight_1_1BelongsTo.html#a0acf3c5ded9575b9ff14df67d61f36b6',1,'Lightweight::BelongsTo::IsAutoIncrementPrimaryKey'],['../d2/dd0/structLightweight_1_1Field.html#aff726016ae5bc77803f91ebdfc1b4921',1,'Lightweight::Field::IsAutoIncrementPrimaryKey']]],
+  ['isbinarycolumn_9',['isBinaryColumn',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad0650ea29db5c33bcebf5af75b9be9d8',1,'Lightweight::SqlBackup::TableInfo']]],
+  ['ismandatory_10',['ismandatory',['../d0/df7/classLightweight_1_1BelongsTo.html#a494d69eaab98e062f64657adfe51938d',1,'Lightweight::BelongsTo::IsMandatory'],['../d2/dd0/structLightweight_1_1Field.html#aa408ad47ef3d6a169dad4dbf5ef243ce',1,'Lightweight::Field::IsMandatory']]],
+  ['isoptional_11',['isoptional',['../d0/df7/classLightweight_1_1BelongsTo.html#ae99255eb66dea97a5c79c27d97691650',1,'Lightweight::BelongsTo::IsOptional'],['../d2/dd0/structLightweight_1_1Field.html#aca64dd154091663b93852e0589c95630',1,'Lightweight::Field::IsOptional']]],
+  ['isprimarykey_12',['isprimarykey',['../d0/df7/classLightweight_1_1BelongsTo.html#a521719bc0bb4200c39ecf0559bf1b967',1,'Lightweight::BelongsTo::IsPrimaryKey'],['../d2/dd0/structLightweight_1_1Field.html#a844764f259e40daa34fbacd27ef8e4a9',1,'Lightweight::Field::IsPrimaryKey']]],
+  ['isprimarykeyvalue_13',['IsPrimaryKeyValue',['../d2/dd0/structLightweight_1_1Field.html#aa8dfdb054c58984a4815599643d8e0dd',1,'Lightweight::Field']]],
+  ['isunique_14',['isUnique',['../d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#afc6863e451eb5828a2c241e56743c600',1,'Lightweight::SqlSchema::IndexDefinition']]]
 ];

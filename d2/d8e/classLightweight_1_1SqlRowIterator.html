@@ -105,10 +105,13 @@ $(document).ready(function(){initNavTree('d2/d8e/classLightweight_1_1SqlRowItera
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a0f656344c8efecf39f2404b224cf4bcc" id="r_a0f656344c8efecf39f2404b224cf4bcc"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d8e/classLightweight_1_1SqlRowIterator.html#a0f656344c8efecf39f2404b224cf4bcc">SqlRowIterator</a> (<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> &amp;conn)</td></tr>
+<tr class="memdesc:a0f656344c8efecf39f2404b224cf4bcc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a row iterator using the given SQL connection.  <br /></td></tr>
 <tr class="separator:a0f656344c8efecf39f2404b224cf4bcc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a81420ad6b5c409ae87da9c4afc99c8ca" id="r_a81420ad6b5c409ae87da9c4afc99c8ca"><td class="memItemLeft" align="right" valign="top">iterator&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d8e/classLightweight_1_1SqlRowIterator.html#a81420ad6b5c409ae87da9c4afc99c8ca">begin</a> ()</td></tr>
+<tr class="memdesc:a81420ad6b5c409ae87da9c4afc99c8ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns an iterator to the first row of the result set.  <br /></td></tr>
 <tr class="separator:a81420ad6b5c409ae87da9c4afc99c8ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a491e76f19a47de90dc6d19e518b6f887" id="r_a491e76f19a47de90dc6d19e518b6f887"><td class="memItemLeft" align="right" valign="top">iterator&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d8e/classLightweight_1_1SqlRowIterator.html#a491e76f19a47de90dc6d19e518b6f887">end</a> () noexcept</td></tr>
+<tr class="memdesc:a491e76f19a47de90dc6d19e518b6f887"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a sentinel iterator representing the end of the result set.  <br /></td></tr>
 <tr class="separator:a491e76f19a47de90dc6d19e518b6f887"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -128,14 +131,14 @@ class Lightweight::SqlRowIterator&lt; T &gt;</div><p>SQL query result row iterat
 <div class="line">   <span class="comment">// row is of type MyRecord</span></div>
 <div class="line">   <span class="comment">// row.field1, row.field2, row.field3 are accessible</span></div>
 <div class="line">}</div>
-<div class="ttc" id="aclassLightweight_1_1SqlRowIterator_html"><div class="ttname"><a href="../../d2/d8e/classLightweight_1_1SqlRowIterator.html">Lightweight::SqlRowIterator</a></div><div class="ttdoc">SQL query result row iterator.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00505">SqlStatement.hpp:506</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlRowIterator_html"><div class="ttname"><a href="../../d2/d8e/classLightweight_1_1SqlRowIterator.html">Lightweight::SqlRowIterator</a></div><div class="ttdoc">SQL query result row iterator.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00522">SqlStatement.hpp:523</a></div></div>
 <div class="ttc" id="astructLightweight_1_1Field_html"><div class="ttname"><a href="../../d2/dd0/structLightweight_1_1Field.html">Lightweight::Field</a></div><div class="ttdoc">Represents a single column in a table.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/dac/Field_8hpp_source.html#l00083">Field.hpp:84</a></div></div>
 </div><!-- fragment --> </td></tr>
   </table>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00505">505</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00522">522</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a0f656344c8efecf39f2404b224cf4bcc" name="a0f656344c8efecf39f2404b224cf4bcc"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0f656344c8efecf39f2404b224cf4bcc">&#9670;&#160;</a></span>SqlRowIterator()</h2>
@@ -163,7 +166,9 @@ template&lt;typename T &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00508">508</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p>Constructs a row iterator using the given SQL connection. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00526">526</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -193,7 +198,9 @@ template&lt;typename T &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00569">569</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p>Returns an iterator to the first row of the result set. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00588">588</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -222,7 +229,9 @@ template&lt;typename T &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00579">579</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p>Returns a sentinel iterator representing the end of the result set. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00599">599</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>

@@ -137,12 +137,12 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
 <tr class="memitem:a4e2b371cc4658c3e205254cb2623ae3b" id="r_a4e2b371cc4658c3e205254cb2623ae3b"><td class="memItemLeft" align="right" valign="top">virtual size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a4e2b371cc4658c3e205254cb2623ae3b">ErrorCount</a> () const noexcept</td></tr>
 <tr class="memdesc:a4e2b371cc4658c3e205254cb2623ae3b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the number of errors encountered during the operation.  <br /></td></tr>
 <tr class="separator:a4e2b371cc4658c3e205254cb2623ae3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae7bc2d20f37470fa2b4bb9ae7f93e191" id="r_ae7bc2d20f37470fa2b4bb9ae7f93e191"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#ae7bc2d20f37470fa2b4bb9ae7f93e191">SetTotalItems</a> (size_t)</td></tr>
-<tr class="separator:ae7bc2d20f37470fa2b4bb9ae7f93e191"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1dd498335f2fce84dea14e8eaf2c4e79" id="r_a1dd498335f2fce84dea14e8eaf2c4e79"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a1dd498335f2fce84dea14e8eaf2c4e79">AddTotalItems</a> (size_t)</td></tr>
-<tr class="separator:a1dd498335f2fce84dea14e8eaf2c4e79"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a45fcd6ba81e485568f4452533250ffe5" id="r_a45fcd6ba81e485568f4452533250ffe5"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a45fcd6ba81e485568f4452533250ffe5">OnItemsProcessed</a> (size_t)</td></tr>
-<tr class="separator:a45fcd6ba81e485568f4452533250ffe5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a08cc3c2379421f95a3215486a10f48f8" id="r_a08cc3c2379421f95a3215486a10f48f8"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a08cc3c2379421f95a3215486a10f48f8">SetTotalItems</a> (size_t totalItems)</td></tr>
+<tr class="separator:a08cc3c2379421f95a3215486a10f48f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad960d5dc5e9cb104a5cfa7dbc07971be" id="r_ad960d5dc5e9cb104a5cfa7dbc07971be"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#ad960d5dc5e9cb104a5cfa7dbc07971be">AddTotalItems</a> (size_t additionalItems)</td></tr>
+<tr class="separator:ad960d5dc5e9cb104a5cfa7dbc07971be"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a91bfca7ee0426ab2e20aa926dc627293" id="r_a91bfca7ee0426ab2e20aa926dc627293"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d4a/structLightweight_1_1SqlBackup_1_1ProgressManager.html#a91bfca7ee0426ab2e20aa926dc627293">OnItemsProcessed</a> (size_t count)</td></tr>
+<tr class="separator:a91bfca7ee0426ab2e20aa926dc627293"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>The interface for progress updates. </p>
@@ -239,8 +239,8 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
 
 </div>
 </div>
-<a id="ae7bc2d20f37470fa2b4bb9ae7f93e191" name="ae7bc2d20f37470fa2b4bb9ae7f93e191"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae7bc2d20f37470fa2b4bb9ae7f93e191">&#9670;&#160;</a></span>SetTotalItems()</h2>
+<a id="a08cc3c2379421f95a3215486a10f48f8" name="a08cc3c2379421f95a3215486a10f48f8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a08cc3c2379421f95a3215486a10f48f8">&#9670;&#160;</a></span>SetTotalItems()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -252,7 +252,7 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
           <td class="memname">virtual void Lightweight::SqlBackup::ProgressManager::SetTotalItems </td>
           <td>(</td>
           <td class="paramtype">size_t&#160;</td>
-          <td class="paramname"></td><td>)</td>
+          <td class="paramname"><em>totalItems</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -273,8 +273,8 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
 
 </div>
 </div>
-<a id="a1dd498335f2fce84dea14e8eaf2c4e79" name="a1dd498335f2fce84dea14e8eaf2c4e79"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1dd498335f2fce84dea14e8eaf2c4e79">&#9670;&#160;</a></span>AddTotalItems()</h2>
+<a id="ad960d5dc5e9cb104a5cfa7dbc07971be" name="ad960d5dc5e9cb104a5cfa7dbc07971be"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad960d5dc5e9cb104a5cfa7dbc07971be">&#9670;&#160;</a></span>AddTotalItems()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -286,7 +286,7 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
           <td class="memname">virtual void Lightweight::SqlBackup::ProgressManager::AddTotalItems </td>
           <td>(</td>
           <td class="paramtype">size_t&#160;</td>
-          <td class="paramname"></td><td>)</td>
+          <td class="paramname"><em>additionalItems</em></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -307,8 +307,8 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
 
 </div>
 </div>
-<a id="a45fcd6ba81e485568f4452533250ffe5" name="a45fcd6ba81e485568f4452533250ffe5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a45fcd6ba81e485568f4452533250ffe5">&#9670;&#160;</a></span>OnItemsProcessed()</h2>
+<a id="a91bfca7ee0426ab2e20aa926dc627293" name="a91bfca7ee0426ab2e20aa926dc627293"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a91bfca7ee0426ab2e20aa926dc627293">&#9670;&#160;</a></span>OnItemsProcessed()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -320,7 +320,7 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>AllDone</b> (
           <td class="memname">virtual void Lightweight::SqlBackup::ProgressManager::OnItemsProcessed </td>
           <td>(</td>
           <td class="paramtype">size_t&#160;</td>
-          <td class="paramname"></td><td>)</td>
+          <td class="paramname"><em>count</em></td><td>)</td>
           <td></td>
         </tr>
       </table>

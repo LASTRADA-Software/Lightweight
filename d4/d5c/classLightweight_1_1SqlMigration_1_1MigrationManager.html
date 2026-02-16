@@ -95,7 +95,7 @@ $(document).ready(function(){initNavTree('d4/d5c/classLightweight_1_1SqlMigratio
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-static-methods">Static Public Member Functions</a> &#124;
 <a href="../../d1/d80/classLightweight_1_1SqlMigration_1_1MigrationManager-members.html">List of all members</a>  </div>
-  <div class="headertitle"><div class="title">Lightweight::SqlMigration::MigrationManager Class Reference</div></div>
+  <div class="headertitle"><div class="title">Lightweight::SqlMigration::MigrationManager Class Reference<div class="ingroups"><a class="el" href="../../db/df6/group__SqlMigration.html">SQL Migration</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -104,15 +104,17 @@ $(document).ready(function(){initNavTree('d4/d5c/classLightweight_1_1SqlMigratio
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:a259626f016bf24f265c81c1bc4446ae1" id="r_a259626f016bf24f265c81c1bc4446ae1"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1">MigrationList</a> = std::list&lt; <a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const  * &gt;</td></tr>
+<tr class="memdesc:a259626f016bf24f265c81c1bc4446ae1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type alias for a list of migration pointers.  <br /></td></tr>
 <tr class="separator:a259626f016bf24f265c81c1bc4446ae1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a14e9ebfa20b805d80c18d7c6a378e364" id="r_a14e9ebfa20b805d80c18d7c6a378e364"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364">ExecuteCallback</a> = std::function&lt; void(<a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const  &amp;, size_t, size_t)&gt;</td></tr>
+<tr class="memdesc:a14e9ebfa20b805d80c18d7c6a378e364"><td class="mdescLeft">&#160;</td><td class="mdescRight">Callback type invoked during migration execution to report progress.  <br /></td></tr>
 <tr class="separator:a14e9ebfa20b805d80c18d7c6a378e364"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a1e2638d4b642e5692df3d2ab24e199a4" id="r_a1e2638d4b642e5692df3d2ab24e199a4"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1e2638d4b642e5692df3d2ab24e199a4">AddMigration</a> (<a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const *migration)</td></tr>
 <tr class="separator:a1e2638d4b642e5692df3d2ab24e199a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a265744d717ca33feffc27bb6c024bb07" id="r_a265744d717ca33feffc27bb6c024bb07"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API MigrationList const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a265744d717ca33feffc27bb6c024bb07">GetAllMigrations</a> () const noexcept</td></tr>
+<tr class="memitem:a265744d717ca33feffc27bb6c024bb07" id="r_a265744d717ca33feffc27bb6c024bb07"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1">MigrationList</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a265744d717ca33feffc27bb6c024bb07">GetAllMigrations</a> () const noexcept</td></tr>
 <tr class="separator:a265744d717ca33feffc27bb6c024bb07"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a56194b41fc9b404256d379bd51f5002d" id="r_a56194b41fc9b404256d379bd51f5002d"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a56194b41fc9b404256d379bd51f5002d">GetMigration</a> (<a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> timestamp) const noexcept</td></tr>
 <tr class="separator:a56194b41fc9b404256d379bd51f5002d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -124,7 +126,7 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:add42626ceb43ee64238c5a1dd0d0d27f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a416865e209264f27605aff0e547e7d66" id="r_a416865e209264f27605aff0e547e7d66"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a416865e209264f27605aff0e547e7d66">RevertSingleMigration</a> (<a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const &amp;migration)</td></tr>
 <tr class="separator:a416865e209264f27605aff0e547e7d66"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9f6136aee1902543bdb428d6890574ee" id="r_a9f6136aee1902543bdb428d6890574ee"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a9f6136aee1902543bdb428d6890574ee">ApplyPendingMigrations</a> (ExecuteCallback const &amp;feedbackCallback={})</td></tr>
+<tr class="memitem:a9f6136aee1902543bdb428d6890574ee" id="r_a9f6136aee1902543bdb428d6890574ee"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a9f6136aee1902543bdb428d6890574ee">ApplyPendingMigrations</a> (<a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364">ExecuteCallback</a> const &amp;feedbackCallback={})</td></tr>
 <tr class="separator:a9f6136aee1902543bdb428d6890574ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa670c82bec993bd89189cb4a37007572" id="r_aa670c82bec993bd89189cb4a37007572"><td class="memItemLeft" align="right" valign="top"><a id="aa670c82bec993bd89189cb4a37007572" name="aa670c82bec993bd89189cb4a37007572"></a>
 LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>CreateMigrationHistory</b> ()</td></tr>
@@ -145,13 +147,13 @@ LIGHTWEIGHT_API <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.
 <tr class="separator:a53933c029c1d92dfc61c2301f6d1aa81"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9b64d3bec74b85d054215a4321cbcad8" id="r_a9b64d3bec74b85d054215a4321cbcad8"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a9b64d3bec74b85d054215a4321cbcad8">PreviewMigration</a> (<a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const &amp;migration) const</td></tr>
 <tr class="separator:a9b64d3bec74b85d054215a4321cbcad8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3b9961110aefc26051c06c6934e26e69" id="r_a3b9961110aefc26051c06c6934e26e69"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a3b9961110aefc26051c06c6934e26e69">PreviewPendingMigrations</a> (ExecuteCallback const &amp;feedbackCallback={}) const</td></tr>
+<tr class="memitem:a3b9961110aefc26051c06c6934e26e69" id="r_a3b9961110aefc26051c06c6934e26e69"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a3b9961110aefc26051c06c6934e26e69">PreviewPendingMigrations</a> (<a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364">ExecuteCallback</a> const &amp;feedbackCallback={}) const</td></tr>
 <tr class="separator:a3b9961110aefc26051c06c6934e26e69"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a63ce9461c4cd37394364f25f4e9f0cc8" id="r_a63ce9461c4cd37394364f25f4e9f0cc8"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::vector&lt; <a class="el" href="../../da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html">ChecksumVerificationResult</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a63ce9461c4cd37394364f25f4e9f0cc8">VerifyChecksums</a> () const</td></tr>
 <tr class="separator:a63ce9461c4cd37394364f25f4e9f0cc8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0ddf3ef0e6d833b829509ac769d04530" id="r_a0ddf3ef0e6d833b829509ac769d04530"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a0ddf3ef0e6d833b829509ac769d04530">MarkMigrationAsApplied</a> (<a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const &amp;migration)</td></tr>
 <tr class="separator:a0ddf3ef0e6d833b829509ac769d04530"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1dece4a4dc2811ac8cd8dce1c1130b11" id="r_a1dece4a4dc2811ac8cd8dce1c1130b11"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html">RevertResult</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1dece4a4dc2811ac8cd8dce1c1130b11">RevertToMigration</a> (<a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> target, ExecuteCallback const &amp;feedbackCallback={})</td></tr>
+<tr class="memitem:a1dece4a4dc2811ac8cd8dce1c1130b11" id="r_a1dece4a4dc2811ac8cd8dce1c1130b11"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html">RevertResult</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1dece4a4dc2811ac8cd8dce1c1130b11">RevertToMigration</a> (<a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> target, <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364">ExecuteCallback</a> const &amp;feedbackCallback={})</td></tr>
 <tr class="separator:a1dece4a4dc2811ac8cd8dce1c1130b11"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaaca2ec37763d11612d487ecad5daebf" id="r_aaaca2ec37763d11612d487ecad5daebf"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html">MigrationStatus</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aaaca2ec37763d11612d487ecad5daebf">GetMigrationStatus</a> () const</td></tr>
 <tr class="separator:aaaca2ec37763d11612d487ecad5daebf"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -165,7 +167,7 @@ Static Public Member Functions</h2></td></tr>
 <div class="textblock"><p>Main API to use for managing SQL migrations</p>
 <p>This class is a singleton and can be accessed using the <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8">GetInstance()</a> method. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00081">81</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00086">86</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="a259626f016bf24f265c81c1bc4446ae1" name="a259626f016bf24f265c81c1bc4446ae1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a259626f016bf24f265c81c1bc4446ae1">&#9670;&#160;</a></span>MigrationList</h2>
@@ -174,12 +176,14 @@ Static Public Member Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">using Lightweight::SqlMigration::MigrationManager::MigrationList =  std::list&lt;<a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const*&gt;</td>
+          <td class="memname">using <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1">Lightweight::SqlMigration::MigrationManager::MigrationList</a> =  std::list&lt;<a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const*&gt;</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00084">84</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p>Type alias for a list of migration pointers. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00090">90</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -190,12 +194,14 @@ Static Public Member Functions</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">using Lightweight::SqlMigration::MigrationManager::ExecuteCallback =  std::function&lt;void(<a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const&amp; , size_t , size_t )&gt;</td>
+          <td class="memname">using <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364">Lightweight::SqlMigration::MigrationManager::ExecuteCallback</a> =  std::function&lt;void(<a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const&amp; , size_t , size_t )&gt;</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00120">120</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p>Callback type invoked during migration execution to report progress. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00127">127</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -227,6 +233,8 @@ Static Public Member Functions</h2></td></tr>
 <dd>
 Reference to the migration manager. </dd></dl>
 
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00260">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+
 </div>
 </div>
 <a id="a1e2638d4b642e5692df3d2ab24e199a4" name="a1e2638d4b642e5692df3d2ab24e199a4"></a>
@@ -252,6 +260,8 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00260">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+
 </div>
 </div>
 <a id="a265744d717ca33feffc27bb6c024bb07" name="a265744d717ca33feffc27bb6c024bb07"></a>
@@ -264,7 +274,7 @@ Reference to the migration manager. </dd></dl>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_API MigrationList const  &amp; Lightweight::SqlMigration::MigrationManager::GetAllMigrations </td>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1">MigrationList</a> const  &amp; Lightweight::SqlMigration::MigrationManager::GetAllMigrations </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -420,7 +430,7 @@ Reference to the migration manager. </dd></dl>
         <tr>
           <td class="memname">LIGHTWEIGHT_API size_t Lightweight::SqlMigration::MigrationManager::ApplyPendingMigrations </td>
           <td>(</td>
-          <td class="paramtype">ExecuteCallback const &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364">ExecuteCallback</a> const &amp;&#160;</td>
           <td class="paramname"><em>feedbackCallback</em> = <code>{}</code></td><td>)</td>
           <td></td>
         </tr>
@@ -481,7 +491,7 @@ Reference to the migration manager. </dd></dl>
 
 <p>Get the data mapper used for migrations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00151">151</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00158">158</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094">GetDataMapper()</a>.</p>
 
@@ -561,7 +571,7 @@ Reference to the migration manager. </dd></dl>
         <tr>
           <td class="memname">LIGHTWEIGHT_API std::vector&lt; std::string &gt; Lightweight::SqlMigration::MigrationManager::PreviewPendingMigrations </td>
           <td>(</td>
-          <td class="paramtype">ExecuteCallback const &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364">ExecuteCallback</a> const &amp;&#160;</td>
           <td class="paramname"><em>feedbackCallback</em> = <code>{}</code></td><td>)</td>
           <td> const</td>
         </tr>
@@ -650,7 +660,7 @@ Reference to the migration manager. </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">ExecuteCallback const &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364">ExecuteCallback</a> const &amp;&#160;</td>
           <td class="paramname"><em>feedbackCallback</em> = <code>{}</code>&#160;</td>
         </tr>
         <tr>

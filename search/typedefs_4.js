@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['referencedfieldtypeof_0',['ReferencedFieldTypeOf',['../d7/d2f/group__DataMapper.html#gaeebbb701afbe9efa3118910e348b4e61',1,'Lightweight']]],
-  ['referencedrecord_1',['referencedrecord',['../d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b',1,'Lightweight::BelongsTo::ReferencedRecord'],['../da/df4/classLightweight_1_1HasMany.html#aa55567dd568d83b2bf1a17980f856553',1,'Lightweight::HasMany::ReferencedRecord'],['../de/d73/classLightweight_1_1HasManyThrough.html#af76d1ffc037c720dbec3a13d6aa2bb3b',1,'Lightweight::HasManyThrough::ReferencedRecord'],['../df/d63/classLightweight_1_1HasOneThrough.html#addf0d59cd5a9403b6fac56a00c340ad9',1,'Lightweight::HasOneThrough::ReferencedRecord']]],
-  ['referencedrecordlist_2',['referencedrecordlist',['../da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb',1,'Lightweight::HasMany::ReferencedRecordList'],['../de/d73/classLightweight_1_1HasManyThrough.html#a449b45f68f5a2303de48e650280ec808',1,'Lightweight::HasManyThrough::ReferencedRecordList']]]
+  ['innertype_0',['InnerType',['../df/d3f/structLightweight_1_1SqlVariant.html#a2159a23a1405bd28c3faf04c19cf6f0c',1,'Lightweight::SqlVariant']]],
+  ['iterator_1',['iterator',['../d7/d9a/classLightweight_1_1SqlDynamicString.html#a2f0ec7781bb7e98ff167ecbfb7068044',1,'Lightweight::SqlDynamicString::iterator'],['../de/dae/classLightweight_1_1SqlFixedString.html#a65508d0b31080ee719e717e4142b0137',1,'Lightweight::SqlFixedString::iterator'],['../da/df4/classLightweight_1_1HasMany.html#a4208c7230c0ba0e12997bf6c2ce0775c',1,'Lightweight::HasMany::iterator'],['../de/d73/classLightweight_1_1HasManyThrough.html#a239b0f86930942264fff7e33200ee61d',1,'Lightweight::HasManyThrough::iterator']]]
 ];

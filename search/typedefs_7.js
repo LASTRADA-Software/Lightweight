@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['value_5ftype_0',['value_type',['../da/df4/classLightweight_1_1HasMany.html#a09781261bf364bf63b828563ef5d7f7c',1,'Lightweight::HasMany']]],
-  ['valuetype_1',['ValueType',['../d0/df7/classLightweight_1_1BelongsTo.html#ac108395e0094203583b03b195284d6b2',1,'Lightweight::BelongsTo']]]
+  ['pointer_5ftype_0',['pointer_type',['../d7/d9a/classLightweight_1_1SqlDynamicString.html#a619e3ff26981f9e067c79b5a50166816',1,'Lightweight::SqlDynamicString::pointer_type'],['../de/dae/classLightweight_1_1SqlFixedString.html#a375eb7bde391d404bc26c416154046d0',1,'Lightweight::SqlFixedString::pointer_type']]]
 ];
