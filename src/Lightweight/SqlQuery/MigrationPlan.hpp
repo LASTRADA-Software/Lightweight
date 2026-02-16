@@ -332,20 +332,25 @@ namespace SqlAlterTableCommands
     /// Adds a column only if it does not already exist.
     struct AddColumnIfNotExists
     {
+        /// The name of the column to add.
         std::string columnName;
+        /// The type of the column to add.
         SqlColumnTypeDefinition columnType;
+        /// Whether the column is nullable.
         SqlNullable nullable = SqlNullable::Null;
     };
 
     /// Drops a column only if it exists.
     struct DropColumnIfExists
     {
+        /// The name of the column to drop.
         std::string columnName;
     };
 
     /// Drops an index only if it exists.
     struct DropIndexIfExists
     {
+        /// The name of the column whose index to drop.
         std::string columnName;
     };
 
@@ -541,9 +546,12 @@ using SqlMigrationPlanElement = std::variant<
 /// @ingroup QueryBuilder
 struct [[nodiscard]] SqlMigrationPlan
 {
+    /// The SQL query formatter to use.
     SqlQueryFormatter const& formatter;
+    /// The migration plan steps.
     std::vector<SqlMigrationPlanElement> steps {};
 
+    /// Converts the migration plan to a list of SQL statements.
     [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> ToSql() const;
 };
 

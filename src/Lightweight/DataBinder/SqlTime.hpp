@@ -41,43 +41,57 @@ namespace Lightweight
 /// @ingroup DataTypes
 struct SqlTime
 {
+    /// The native C++ type for time representation.
     using native_type = std::chrono::hh_mm_ss<std::chrono::microseconds>;
 
 #if defined(SQL_SS_TIME2)
+    /// The SQL type used for ODBC binding.
     using sql_type = SQL_SS_TIME2_STRUCT;
 #else
+    /// The SQL type used for ODBC binding.
     using sql_type = SQL_TIME_STRUCT;
 #endif
 
+    /// The underlying SQL value for ODBC binding.
     sql_type sqlValue {};
 
+    /// Default constructor.
     constexpr SqlTime() noexcept = default;
+    /// Move constructor.
     constexpr SqlTime(SqlTime&&) noexcept = default;
+    /// Move assignment operator.
     constexpr SqlTime& operator=(SqlTime&&) noexcept = default;
+    /// Copy constructor.
     constexpr SqlTime(SqlTime const&) noexcept = default;
+    /// Copy assignment operator.
     constexpr SqlTime& operator=(SqlTime const&) noexcept = default;
     constexpr ~SqlTime() noexcept = default;
 
+    /// Returns the native time value.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr native_type value() const noexcept
     {
         return ConvertToNative(sqlValue);
     }
 
+    /// Equality comparison operator.
     LIGHTWEIGHT_FORCE_INLINE constexpr bool operator==(SqlTime const& other) const noexcept
     {
         return value().to_duration().count() == other.value().to_duration().count();
     }
 
+    /// Inequality comparison operator.
     LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!=(SqlTime const& other) const noexcept
     {
         return !(*this == other);
     }
 
+    /// Constructs a SqlTime from a native time value.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlTime(native_type value) noexcept:
         sqlValue { SqlTime::ConvertToSqlValue(value) }
     {
     }
 
+    /// Constructs a SqlTime from hours, minutes, seconds, and optional microseconds.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlTime(std::chrono::hours hour,
                                                std::chrono::minutes minute,
                                                std::chrono::seconds second,
@@ -86,6 +100,7 @@ struct SqlTime
     {
     }
 
+    /// Converts a native time value to the SQL representation.
     static LIGHTWEIGHT_FORCE_INLINE constexpr sql_type ConvertToSqlValue(native_type value) noexcept
     {
         return sql_type {
@@ -98,6 +113,7 @@ struct SqlTime
         };
     }
 
+    /// Converts a SQL time value to the native representation.
     static LIGHTWEIGHT_FORCE_INLINE constexpr native_type ConvertToNative(sql_type const& value) noexcept
     {
         // clang-format off

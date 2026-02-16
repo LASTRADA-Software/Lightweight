@@ -83,8 +83,10 @@ namespace Aggregate
 class [[nodiscard]] SqlSelectQueryBuilder final: public SqlBasicSelectQueryBuilder<SqlSelectQueryBuilder>
 {
   public:
+    /// The select query type alias.
     using SelectType = detail::SelectType;
 
+    /// Constructs a SELECT query builder.
     explicit SqlSelectQueryBuilder(SqlQueryFormatter const& formatter, std::string table, std::string tableAlias) noexcept:
         SqlBasicSelectQueryBuilder<SqlSelectQueryBuilder> {},
         _formatter { formatter }
@@ -125,6 +127,7 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlBasicSelectQueryBuild
     LIGHTWEIGHT_API SqlSelectQueryBuilder& Fields(std::vector<std::string_view> const& fieldNames,
                                                   std::string_view tableName);
 
+    /// Adds a sequence of columns from the given table to the SELECT clause.
     LIGHTWEIGHT_API SqlSelectQueryBuilder& Fields(std::initializer_list<std::string_view> const& fieldNames,
                                                   std::string_view tableName);
 
@@ -141,6 +144,7 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlBasicSelectQueryBuild
     LIGHTWEIGHT_API SqlSelectQueryBuilder& FieldAs(SqlQualifiedTableColumnName const& fieldName,
                                                    std::string_view const& alias);
 
+    /// Builds the query using a callable.
     template <typename Callable>
     SqlSelectQueryBuilder& Build(Callable const& callable);
 
@@ -157,6 +161,7 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlBasicSelectQueryBuild
     LIGHTWEIGHT_API ComposedQuery Range(std::size_t offset, std::size_t limit);
 
     // clang-format off
+    /// Returns the search condition for the query.
     LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition& SearchCondition() noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
     {
         // clang-format on
@@ -164,6 +169,7 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlBasicSelectQueryBuild
     }
 
     // clang-format off
+    /// Returns the SQL query formatter.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter const& Formatter() const noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
     {
         // clang-format on
@@ -195,6 +201,7 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::string_view const& fir
     return *this;
 }
 
+/// Builds the query using a callable.
 template <typename Callable>
 inline LIGHTWEIGHT_FORCE_INLINE SqlSelectQueryBuilder& SqlSelectQueryBuilder::Build(Callable const& callable)
 {
@@ -202,6 +209,7 @@ inline LIGHTWEIGHT_FORCE_INLINE SqlSelectQueryBuilder& SqlSelectQueryBuilder::Bu
     return *this;
 }
 
+/// Adds fields from one or more record types to the SELECT clause.
 template <typename FirstRecord, typename... MoreRecords>
 inline LIGHTWEIGHT_FORCE_INLINE SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields()
 {

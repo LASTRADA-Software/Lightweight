@@ -63,6 +63,7 @@ class HasOneThrough
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* operator->() const noexcept { RequireLoaded(); return &_record.get(); }
     // clang-format on
 
+    /// Default three-way comparison operator.
     std::weak_ordering operator<=>(HasOneThrough const& other) const noexcept = default;
 
     struct Loader

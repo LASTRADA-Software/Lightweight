@@ -91,11 +91,16 @@ class BelongsTo
     /// which can be either an optional or a non-optional type of the referenced field,
     using ValueType = std::conditional_t<Nullable == SqlNullable::Null, std::optional<BaseType>, BaseType>;
 
+    /// Indicates whether this relationship is optional (nullable).
     static constexpr auto IsOptional = Nullable == SqlNullable::Null;
+    /// Indicates whether this relationship is mandatory (non-nullable).
     static constexpr auto IsMandatory = !IsOptional;
+    /// Indicates that a BelongsTo field is never a primary key.
     static constexpr auto IsPrimaryKey = false;
+    /// Indicates that a BelongsTo field is never an auto-increment primary key.
     static constexpr auto IsAutoIncrementPrimaryKey = false;
 
+    /// Constructs a new BelongsTo with the given value(s) forwarded to the underlying value type.
     template <typename... S>
         requires std::constructible_from<ValueType, S...>
     constexpr BelongsTo(S&&... value) noexcept:
@@ -103,6 +108,7 @@ class BelongsTo
     {
     }
 
+    /// Constructs a new BelongsTo from the given referenced record, copying its primary key.
     constexpr BelongsTo(ReferencedRecord const& other) noexcept:
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
         _referencedFieldValue { (other.[:ReferencedField:]).Value() },
@@ -114,6 +120,7 @@ class BelongsTo
     {
     }
 
+    /// Copy constructor.
     constexpr BelongsTo(BelongsTo const& other) noexcept:
         _referencedFieldValue(other._referencedFieldValue),
         _loader(std::move(other._loader)),
@@ -123,6 +130,7 @@ class BelongsTo
     {
     }
 
+    /// Move constructor.
     constexpr BelongsTo(BelongsTo&& other) noexcept:
         _referencedFieldValue(std::move(other._referencedFieldValue)),
         _loader(std::move(other._loader)),
@@ -132,6 +140,7 @@ class BelongsTo
     {
     }
 
+    /// Assigns NULL to the relationship, clearing the loaded record.
     BelongsTo& operator=(SqlNullType /*nullValue*/) noexcept
     {
         if (!_referencedFieldValue)
@@ -143,6 +152,7 @@ class BelongsTo
         return *this;
     }
 
+    /// Assigns a referenced record, updating the foreign key and loaded state.
     BelongsTo& operator=(ReferencedRecord& other)
     {
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
@@ -162,6 +172,7 @@ class BelongsTo
         return *this;
     }
 
+    /// Copy assignment operator.
     BelongsTo& operator=(BelongsTo const& other)
     {
         if (this == &other)
@@ -176,6 +187,7 @@ class BelongsTo
         return *this;
     }
 
+    /// Move assignment operator.
     BelongsTo& operator=(BelongsTo&& other) noexcept
     {
         if (this == &other)
@@ -284,39 +296,46 @@ class BelongsTo
         return *_record;
     }
 
+    /// Binds the foreign key value to the given output column index on the statement.
     template <typename Stmt>
     LIGHTWEIGHT_FORCE_INLINE void BindOutputColumn(SQLSMALLINT outputIndex, Stmt& stmt)
     {
         stmt.BindOutputColumn(outputIndex, &_referencedFieldValue);
     }
 
+    /// Three-way comparison operator.
     std::weak_ordering operator<=>(BelongsTo const& other) const noexcept
     {
         return _referencedFieldValue <=> other.Value();
     }
 
+    /// Three-way comparison operator with a Field.
     template <detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No>
     std::weak_ordering operator<=>(Field<T, IsPrimaryKeyValue> const& other) const noexcept
     {
         return _referencedFieldValue <=> other.Value();
     }
 
+    /// Equality comparison operator.
     bool operator==(BelongsTo const& other) const noexcept
     {
         return (_referencedFieldValue <=> other.Value()) == std::weak_ordering::equivalent;
     }
 
+    /// Inequality comparison operator.
     bool operator!=(BelongsTo const& other) const noexcept
     {
         return (_referencedFieldValue <=> other.Value()) != std::weak_ordering::equivalent;
     }
 
+    /// Equality comparison operator with a Field.
     template <detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No>
     bool operator==(Field<T, IsPrimaryKeyValue> const& other) const noexcept
     {
         return (_referencedFieldValue <=> other.Value()) == std::weak_ordering::equivalent;
     }
 
+    /// Inequality comparison operator with a Field.
     template <detail::FieldElementType T, PrimaryKey IsPrimaryKeyValue = PrimaryKey::No>
     bool operator!=(Field<T, IsPrimaryKeyValue> const& other) const noexcept
     {

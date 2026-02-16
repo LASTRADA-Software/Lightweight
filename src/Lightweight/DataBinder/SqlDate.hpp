@@ -16,12 +16,18 @@ namespace Lightweight
 /// @ingroup DataTypes
 struct SqlDate
 {
+    /// Holds the underlying SQL date structure.
     SQL_DATE_STRUCT sqlValue {};
 
+    /// Default constructor.
     constexpr SqlDate() noexcept = default;
+    /// Default move constructor.
     constexpr SqlDate(SqlDate&&) noexcept = default;
+    /// Default move assignment operator.
     constexpr SqlDate& operator=(SqlDate&&) noexcept = default;
+    /// Default copy constructor.
     constexpr SqlDate(SqlDate const&) noexcept = default;
+    /// Default copy assignment operator.
     constexpr SqlDate& operator=(SqlDate const&) noexcept = default;
     constexpr ~SqlDate() noexcept = default;
 
@@ -31,12 +37,14 @@ struct SqlDate
         return ConvertToNative(sqlValue);
     }
 
+    /// Equality comparison operator.
     LIGHTWEIGHT_FORCE_INLINE constexpr bool operator==(SqlDate const& other) const noexcept
     {
         return sqlValue.year == other.sqlValue.year && sqlValue.month == other.sqlValue.month
                && sqlValue.day == other.sqlValue.day;
     }
 
+    /// Inequality comparison operator.
     LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!=(SqlDate const& other) const noexcept
     {
         return !(*this == other);
@@ -62,6 +70,7 @@ struct SqlDate
         } };
     }
 
+    /// Converts a std::chrono::year_month_day to the underlying SQL date structure.
     static LIGHTWEIGHT_FORCE_INLINE constexpr SQL_DATE_STRUCT ConvertToSqlValue(std::chrono::year_month_day value) noexcept
     {
         return SQL_DATE_STRUCT {
@@ -71,6 +80,7 @@ struct SqlDate
         };
     }
 
+    /// Converts a SQL date structure to std::chrono::year_month_day.
     static LIGHTWEIGHT_FORCE_INLINE constexpr std::chrono::year_month_day ConvertToNative(
         SQL_DATE_STRUCT const& value) noexcept
     {

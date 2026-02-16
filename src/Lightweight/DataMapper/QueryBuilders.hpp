@@ -20,6 +20,7 @@ class DataMapper;
 /// when using query builder directly from the DataMapper
 struct DataMapperOptions
 {
+    /// Whether to automatically load relations when querying records.
     bool loadRelations { true };
 };
 
@@ -49,6 +50,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     }
 
   protected:
+    /// Constructs a query builder with the given data mapper and field list.
     LIGHTWEIGHT_FORCE_INLINE explicit SqlCoreDataMapperQueryBuilder(DataMapper& dm, std::string fields) noexcept;
 
   public:
@@ -130,12 +132,14 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
     /// Executes a SELECT query for the first n records found and returns them.
     [[nodiscard]] std::vector<Record> First(size_t n);
 
+    /// Executes a SELECT query for the first n records with only the specified fields populated.
     template <auto... ReferencedFields>
     [[nodiscard]] std::vector<Record> First(size_t n);
 
     /// Executes a SELECT query for a range of records and returns them.
     [[nodiscard]] std::vector<Record> Range(size_t offset, size_t limit);
 
+    /// Executes a SELECT query for a range of records with only the specified fields populated.
     template <auto... ReferencedFields>
     [[nodiscard]] std::vector<Record> Range(size_t offset, size_t limit);
 };

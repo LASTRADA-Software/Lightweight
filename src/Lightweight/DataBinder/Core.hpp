@@ -31,10 +31,15 @@ namespace Lightweight
 class LIGHTWEIGHT_API SqlDataBinderCallback
 {
   public:
+    /// Default constructor.
     SqlDataBinderCallback() = default;
+    /// Default move constructor.
     SqlDataBinderCallback(SqlDataBinderCallback&&) = default;
+    /// Default copy constructor.
     SqlDataBinderCallback(SqlDataBinderCallback const&) = default;
+    /// Default move assignment operator.
     SqlDataBinderCallback& operator=(SqlDataBinderCallback&&) = default;
+    /// Default copy assignment operator.
     SqlDataBinderCallback& operator=(SqlDataBinderCallback const&) = default;
 
     virtual ~SqlDataBinderCallback() = default;

@@ -21,6 +21,7 @@ class LIGHTWEIGHT_API SqlScopedTraceLogger
     SQLHDBC m_nativeConnection;
 
   public:
+    /// Constructs a scoped trace logger for the given SQL connection, logging to standard output.
     explicit SqlScopedTraceLogger(SqlConnection& connection):
         SqlScopedTraceLogger(connection.NativeHandle(),
 #if defined(_WIN32) || defined(_WIN64)
@@ -32,6 +33,7 @@ class LIGHTWEIGHT_API SqlScopedTraceLogger
     {
     }
 
+    /// Constructs a scoped trace logger for the given SQL statement, logging to standard output.
     explicit SqlScopedTraceLogger(SqlStatement& stmt):
         SqlScopedTraceLogger(stmt.Connection().NativeHandle(),
 #if defined(_WIN32) || defined(_WIN64)
@@ -43,6 +45,7 @@ class LIGHTWEIGHT_API SqlScopedTraceLogger
     {
     }
 
+    /// Constructs a scoped trace logger for the given native ODBC handle, logging to the specified file.
     explicit SqlScopedTraceLogger(SQLHDBC hDbc, std::filesystem::path const& logFile):
         m_nativeConnection { hDbc }
     {

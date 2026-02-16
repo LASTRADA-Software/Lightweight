@@ -432,5 +432,5 @@ The lock implementation uses database-specific mechanisms:
 ## See Also
 
 - @ref dbtool - Command-line tool for managing migrations
-- @ref SqlMigrationQueryBuilder - Query builder API reference
-- @ref SqlMigration::MigrationManager - Migration manager API reference
+- @ref Lightweight::SqlMigrationQueryBuilder - Query builder API reference
+- @ref Lightweight::SqlMigration::MigrationManager - Migration manager API reference

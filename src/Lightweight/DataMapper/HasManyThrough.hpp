@@ -32,8 +32,11 @@ class HasManyThrough
     /// The list of records on the "many" side of the relationship.
     using ReferencedRecordList = std::vector<std::shared_ptr<ReferencedRecord>>;
 
+    /// Value type for range-based iteration.
     using value_type = ReferencedRecord;
+    /// Iterator type for the list of records.
     using iterator = ReferencedRecordList::iterator;
+    /// Const iterator type for the list of records.
     using const_iterator = ReferencedRecordList::const_iterator;
 
     /// Retrieves the list of loaded records.
@@ -79,11 +82,16 @@ class HasManyThrough
     /// @note This method will NOT throw if the index is out of bounds. The behaviour is undefined.
     [[nodiscard]] ReferencedRecord& operator[](std::size_t index);
 
+    /// Returns an iterator to the beginning of the record list.
     [[nodiscard]] iterator begin() noexcept;
+    /// Returns an iterator to the end of the record list.
     [[nodiscard]] iterator end() noexcept;
+    /// Returns a const iterator to the beginning of the record list.
     [[nodiscard]] const_iterator begin() const noexcept;
+    /// Returns a const iterator to the end of the record list.
     [[nodiscard]] const_iterator end() const noexcept;
 
+    /// Default three-way comparison operator.
     std::weak_ordering operator<=>(HasManyThrough const& other) const noexcept = default;
 
     struct Loader

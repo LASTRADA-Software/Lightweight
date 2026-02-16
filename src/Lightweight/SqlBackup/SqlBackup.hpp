@@ -172,10 +172,15 @@ struct Progress
 struct ProgressManager
 {
     virtual ~ProgressManager() = default;
+    /// Default constructor.
     ProgressManager() = default;
+    /// Default copy constructor.
     ProgressManager(ProgressManager const&) = default;
+    /// Default copy assignment operator.
     ProgressManager& operator=(ProgressManager const&) = default;
+    /// Default move constructor.
     ProgressManager(ProgressManager&&) = default;
+    /// Default move assignment operator.
     ProgressManager& operator=(ProgressManager&&) = default;
 
     /// Gets called when the progress of an individual backup/restore operation changes.
@@ -196,16 +201,16 @@ struct ProgressManager
 
     /// Sets the total number of items to be processed (for ETA calculation).
     /// @param totalItems Total number of items (rows) to process across all tables.
-    virtual void SetTotalItems(size_t /*totalItems*/) {}
+    virtual void SetTotalItems(size_t totalItems) { (void) totalItems; }
 
     /// Adds to the total number of items for progressive ETA calculation.
     /// This is called as row counts become available during parallel counting.
     /// @param additionalItems Number of additional items (rows) to add to the total.
-    virtual void AddTotalItems(size_t /*additionalItems*/) {}
+    virtual void AddTotalItems(size_t additionalItems) { (void) additionalItems; }
 
     /// Called when items are processed (for rate and ETA calculation).
     /// @param count Number of items (rows) just processed.
-    virtual void OnItemsProcessed(size_t /*count*/) {}
+    virtual void OnItemsProcessed(size_t count) { (void) count; }
 };
 
 /// Base class for progress managers that tracks errors automatically.

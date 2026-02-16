@@ -35,6 +35,7 @@ class [[nodiscard]] SqlUpdateQueryBuilder final: public SqlWhereClauseBuilder<Sq
         m_searchCondition.inputBindings = inputBindings;
     }
 
+    /// Returns the search condition for the query.
     SqlSearchCondition& SearchCondition() noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
     {
         return m_searchCondition;

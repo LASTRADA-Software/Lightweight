@@ -15,6 +15,7 @@ namespace Lightweight
 class SqlRequireLoadedError: public std::runtime_error
 {
   public:
+    /// Constructs the error with the name of the column type that failed to load.
     explicit SqlRequireLoadedError(std::string_view columnType):
         std::runtime_error(std::format("Could not load the data record: {}", columnType))
     {

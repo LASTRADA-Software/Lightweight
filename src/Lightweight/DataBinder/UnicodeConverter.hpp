@@ -291,12 +291,12 @@ T ToUtf32(std::u16string_view u16InputString)
     return result;
 }
 
-// Converts a UTF-8 string to wchar_t-based wide string.
+/// Converts a UTF-8 string to wchar_t-based wide string.
 ///
 /// @ingroup Unicode
 LIGHTWEIGHT_API std::wstring ToStdWideString(std::u8string_view u8InputString);
 
-// Converts a local 8-bit string to wchar_t-based wide string.
+/// Converts a local 8-bit string to wchar_t-based wide string.
 ///
 /// @ingroup Unicode
 LIGHTWEIGHT_API std::wstring ToStdWideString(std::string const& localeInputString);

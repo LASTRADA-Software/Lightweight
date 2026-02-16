@@ -115,6 +115,7 @@ class DataMapper
     DataMapper(DataMapper const&) = delete;
     DataMapper& operator=(DataMapper const&) = delete;
 
+    /// Move constructor.
     DataMapper(DataMapper&& other) noexcept:
         _connection(std::move(other._connection)),
         _stmt(_connection)
@@ -122,6 +123,7 @@ class DataMapper
         other._stmt = SqlStatement(std::nullopt);
     }
 
+    /// Move assignment operator.
     DataMapper& operator=(DataMapper&& other) noexcept
     {
         if (this == &other)
@@ -308,6 +310,7 @@ class DataMapper
     /// {
     ///   // do something with elementA and elementC
     /// }
+    /// @endcode
     template <typename First, typename Second, typename... Rest, DataMapperOptions QueryOptions = {}>
         requires DataMapperRecord<First> && DataMapperRecord<Second> && DataMapperRecords<Rest...>
     std::vector<std::tuple<First, Second, Rest...>> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery);
@@ -1588,6 +1591,7 @@ std::optional<Record> DataMapper::QuerySingle(SqlSelectQueryBuilder selectQuery,
 
 // TODO: Provide Query(QueryBuilder, ...) method variant
 
+/// Queries multiple records from the database using a composed query and optional input parameters.
 template <typename Record, typename... InputParameters>
 inline LIGHTWEIGHT_FORCE_INLINE std::vector<Record> DataMapper::Query(
     SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters)
@@ -2075,6 +2079,7 @@ void DataMapper::LoadRelations(Record& record)
 #endif
 }
 
+/// Sets the primary key field(s) of the given record to the specified id value.
 template <typename Record, typename ValueType>
 inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::SetId(Record& record, ValueType&& id)
 {
@@ -2108,6 +2113,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::SetId(Record& record, ValueType
 #endif
 }
 
+/// Binds all output columns of the record to the internal statement.
 template <typename Record, size_t InitialOffset>
 inline LIGHTWEIGHT_FORCE_INLINE Record& DataMapper::BindOutputColumns(Record& record)
 {
@@ -2123,6 +2129,7 @@ Record& DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
         record, stmt);
 }
 
+/// Binds output columns selected by ElementMask of the record to the internal statement.
 template <typename ElementMask, typename Record, size_t InitialOffset>
 inline LIGHTWEIGHT_FORCE_INLINE Record& DataMapper::BindOutputColumns(Record& record)
 {

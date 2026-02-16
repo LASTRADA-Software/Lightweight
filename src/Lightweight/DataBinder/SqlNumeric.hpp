@@ -43,20 +43,27 @@ struct SqlNumeric
     /// Number of digits after the decimal point
     static constexpr auto Scale = TheScale;
 
+    /// The SQL column type definition for this numeric type.
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::Decimal { .precision = Precision, .scale = TheScale };
 
     static_assert(Precision <= SQL_MAX_NUMERIC_LEN);
     static_assert(Scale < Precision);
 
+    /// The SQL numeric struct for ODBC binding.
     SQL_NUMERIC_STRUCT sqlValue {};
 
-    // Cached native value for drivers that do not support SQL_NUMERIC_STRUCT directly (e.g., SQLite).
+    /// Cached native value for drivers without SQL_NUMERIC_STRUCT support.
     double nativeValue {};
 
+    /// Default constructor.
     constexpr SqlNumeric() noexcept = default;
+    /// Move constructor.
     constexpr SqlNumeric(SqlNumeric&&) noexcept = default;
+    /// Move assignment operator.
     constexpr SqlNumeric& operator=(SqlNumeric&&) noexcept = default;
+    /// Copy constructor.
     constexpr SqlNumeric(SqlNumeric const&) noexcept = default;
+    /// Copy assignment operator.
     constexpr SqlNumeric& operator=(SqlNumeric const&) noexcept = default;
     constexpr ~SqlNumeric() noexcept = default;
 
@@ -165,11 +172,13 @@ struct SqlNumeric
         return std::format("{:.{}f}", ToLongDouble(), Scale);
     }
 
+    /// Three-way comparison operator.
     [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE std::weak_ordering operator<=>(SqlNumeric const& other) const noexcept
     {
         return ToDouble() <=> other.ToDouble();
     }
 
+    /// Equality comparison operator.
     template <std::size_t OtherPrecision, std::size_t OtherScale>
     [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE bool operator==(
         SqlNumeric<OtherPrecision, OtherScale> const& other) const noexcept

@@ -82,16 +82,23 @@ concept FieldElementType = SqlInputParameterBinder<T> && SqlOutputColumnBinder<T
 template <detail::FieldElementType T, auto P1 = std::nullopt, auto P2 = std::nullopt>
 struct Field
 {
+    /// The underlying value type of this field.
     using ValueType = T;
 
+    /// The primary key mode for this field.
     static constexpr auto IsPrimaryKeyValue = detail::Choose<PrimaryKey>(PrimaryKey::No, P1, P2);
+    /// If not empty, overrides the default column name in the database.
     static constexpr auto ColumnNameOverride = detail::Choose<std::string_view>({}, P1, P2);
 
     // clang-format off
     constexpr Field() noexcept = default;
+    /// Default copy constructor.
     constexpr Field(Field const&) noexcept = default;
+    /// Default copy assignment operator.
     constexpr Field& operator=(Field const&) noexcept = default;
+    /// Default move constructor.
     constexpr Field(Field&&) noexcept = default;
+    /// Default move assignment operator.
     constexpr Field& operator=(Field&&) noexcept = default;
     constexpr ~Field() noexcept = default;
     // clang-format on
@@ -213,6 +220,7 @@ constexpr bool IsAutoIncrementPrimaryKey = detail::IsAutoIncrementPrimaryKeyFiel
 template <typename T>
 constexpr bool IsField = detail::IsFieldType<std::remove_cvref_t<T>>::value;
 
+/// Constructs a new field with the given value.
 template <detail::FieldElementType T, auto P1, auto P2>
 template <typename... S>
     requires std::constructible_from<T, S...>
@@ -221,6 +229,7 @@ constexpr LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::Field(S&&... value) noexcep
 {
 }
 
+/// @copydoc Field::operator=(S&&)
 template <detail::FieldElementType T, auto P1, auto P2>
 template <typename S>
     requires std::constructible_from<T, S> && (!std::same_as<std::remove_cvref_t<S>, Field<T, P1, P2>>)
@@ -249,6 +258,7 @@ constexpr bool LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::operator!=(Field const
     return _value != other._value;
 }
 
+/// Equality comparison operator with a convertible value.
 template <detail::FieldElementType T, auto P1, auto P2>
 template <typename S>
     requires std::convertible_to<S, T>
@@ -257,6 +267,7 @@ constexpr bool LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::operator==(S const& va
     return _value == value;
 }
 
+/// Inequality comparison operator with a convertible value.
 template <detail::FieldElementType T, auto P1, auto P2>
 template <typename S>
     requires std::convertible_to<S, T>

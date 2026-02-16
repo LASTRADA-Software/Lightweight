@@ -24,6 +24,7 @@ class SqlBinary final: public std::vector<uint8_t>
   public:
     using std::vector<uint8_t>::vector;
 
+    /// Three-way comparison operator.
     constexpr auto operator<=>(SqlBinary const&) const noexcept = default;
 
   private:

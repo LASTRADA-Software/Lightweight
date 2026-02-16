@@ -29,6 +29,7 @@ enum class IndexType : std::uint8_t
 class [[nodiscard]] SqlCreateTableQueryBuilder final
 {
   public:
+    /// Constructs a CREATE TABLE query builder.
     explicit SqlCreateTableQueryBuilder(SqlCreateTablePlan& plan):
         _plan { plan }
     {
@@ -50,6 +51,7 @@ class [[nodiscard]] SqlCreateTableQueryBuilder final
     /// Primary keys are always required, unique, have an index, and are non-nullable.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& PrimaryKey(std::string columnName, SqlColumnTypeDefinition columnType);
 
+    /// Creates a new primary key column with auto-increment.
     LIGHTWEIGHT_API SqlCreateTableQueryBuilder& PrimaryKeyWithAutoIncrement(
         std::string columnName, SqlColumnTypeDefinition columnType = SqlColumnTypeDefinitions::Bigint {});
 
@@ -88,6 +90,7 @@ class [[nodiscard]] SqlCreateTableQueryBuilder final
 class [[nodiscard]] SqlAlterTableQueryBuilder final
 {
   public:
+    /// Constructs an ALTER TABLE query builder.
     explicit SqlAlterTableQueryBuilder(SqlAlterTablePlan& plan):
         _plan { plan }
     {
@@ -347,6 +350,7 @@ namespace detail
 class [[nodiscard]] SqlMigrationInsertBuilder final
 {
   public:
+    /// Constructs a migration INSERT builder.
     explicit SqlMigrationInsertBuilder(SqlInsertDataPlan& plan):
         _plan { plan }
     {
@@ -371,6 +375,7 @@ class [[nodiscard]] SqlMigrationInsertBuilder final
 class [[nodiscard]] SqlMigrationUpdateBuilder final
 {
   public:
+    /// Constructs a migration UPDATE builder.
     explicit SqlMigrationUpdateBuilder(SqlUpdateDataPlan& plan):
         _plan { plan }
     {
@@ -405,6 +410,7 @@ class [[nodiscard]] SqlMigrationUpdateBuilder final
 class [[nodiscard]] SqlMigrationDeleteBuilder final
 {
   public:
+    /// Constructs a migration DELETE builder.
     explicit SqlMigrationDeleteBuilder(SqlDeleteDataPlan& plan):
         _plan { plan }
     {
@@ -429,12 +435,14 @@ class [[nodiscard]] SqlMigrationDeleteBuilder final
 class [[nodiscard]] SqlMigrationQueryBuilder final
 {
   public:
+    /// Constructs a migration query builder.
     explicit SqlMigrationQueryBuilder(SqlQueryFormatter const& formatter):
         _formatter { formatter },
         _migrationPlan { .formatter = formatter }
     {
     }
 
+    /// Sets the schema name for the migration.
     LIGHTWEIGHT_API SqlMigrationQueryBuilder& WithSchema(std::string schemaName);
 
     /// Creates a new database.

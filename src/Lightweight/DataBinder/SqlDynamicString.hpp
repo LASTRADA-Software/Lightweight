@@ -19,19 +19,29 @@ constexpr size_t SqlMaxColumnSize = (std::numeric_limits<uint32_t>::max)();
 
 /// SQL dynamic-capacity string that mimmicks standard library string.
 ///
-/// The underlying memory is allocated dynamically and the string can grow up to the maximum size of a SQL column.
+/// The underlying memory is allocated dynamically and the string can grow up to the maximum size of a specified size.
 ///
 /// @ingroup DataTypes
 template <std::size_t N, typename T = char>
 class SqlDynamicString
 {
   public:
+    /// constexpr variable with the capacity of the string.
     static constexpr std::size_t DynamicCapacity = N;
+
+    /// The element type of the string.
     using value_type = T;
+
+    /// String type used for the internal storage of the string.
     using string_type = std::basic_string<T>;
+
+    /// Iterator type for the string.
     using iterator = string_type::iterator;
+    /// Const iterator type for the string.
     using const_iterator = string_type::const_iterator;
+    /// Pointer type for the string.
     using pointer_type = T*;
+    /// Const pointer type for the string.
     using const_pointer_type = T const*;
 
     /// Constructs a fixed-size string from a string literal.
@@ -48,11 +58,22 @@ class SqlDynamicString
     {
     }
 
+    /// Defaulted default constructor.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicString() noexcept = default;
+
+    /// Defaulted copy constructor.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicString(SqlDynamicString const&) noexcept = default;
+
+    /// Defaulted copy assignment operator.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicString& operator=(SqlDynamicString const&) noexcept = default;
+
+    /// Defaulted move constructor.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicString(SqlDynamicString&&) noexcept = default;
+
+    /// Defaulted move assignment operator.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicString& operator=(SqlDynamicString&&) noexcept = default;
+
+    /// Defaulted destructor.
     LIGHTWEIGHT_FORCE_INLINE constexpr ~SqlDynamicString() noexcept = default;
 
     /// Constructs a fixed-size string from a string view.
@@ -127,21 +148,27 @@ class SqlDynamicString
         _value.clear();
     }
 
+    /// Reserves capacity for at least the given number of characters.
     LIGHTWEIGHT_FORCE_INLINE void reserve(std::size_t capacity)
     {
         _value.reserve(capacity);
     }
 
+    /// Appends a character to the end of the string.
     LIGHTWEIGHT_FORCE_INLINE constexpr void push_back(T c) noexcept
     {
         _value += c;
     }
 
+    /// Removes the last character from the string.
     LIGHTWEIGHT_FORCE_INLINE constexpr void pop_back() noexcept
     {
         _value.pop_back();
     }
 
+    /// Resizes the string to contain at most n characters. If n is less than the current size of the string,
+    /// the string is reduced to its first n characters. If n is greater than the current size of the string,
+    /// the string is resized to contain N characters, with the new characters being default-inserted (value-initialized).
     // NOLINTNEXTLINE(readability-identifier-naming)
     LIGHTWEIGHT_FORCE_INLINE void setsize(std::size_t n) noexcept
     {
@@ -166,11 +193,13 @@ class SqlDynamicString
         return _value.substr(offset);
     }
 
+    /// Retrieves the string as a string_type.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr string_type ToString() const noexcept
     {
         return _value;
     }
 
+    /// Convertion operator to std::basic_string<T>.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr explicit operator std::basic_string<T>() const noexcept
     {
         return ToString();
@@ -182,64 +211,76 @@ class SqlDynamicString
         return { _value.data(), _value.size() };
     }
 
+    /// Element access operator.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr T& operator[](std::size_t index) noexcept
     {
         return _value[index];
     }
 
+    /// Const qulified element access operator.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr T const& operator[](std::size_t index) const noexcept
     {
         return _value[index];
     }
 
+    /// Conversion operator into std::basic_string_view<T>.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr explicit operator std::basic_string_view<T>() const noexcept
     {
         return ToStringView();
     }
 
+    /// Three-way comparison operator for comparing with another SqlDynamicString of possibly different capacity.
     template <std::size_t OtherSize>
     LIGHTWEIGHT_FORCE_INLINE std::weak_ordering operator<=>(SqlDynamicString<OtherSize, T> const& other) const noexcept
     {
         return _value <=> other._value;
     }
 
+    /// Equality comparison operator for comparing with another SqlDynamicString of possibly different capacity.
     template <std::size_t OtherSize>
     LIGHTWEIGHT_FORCE_INLINE constexpr bool operator==(SqlDynamicString<OtherSize, T> const& other) const noexcept
     {
         return (*this <=> other) == std::weak_ordering::equivalent;
     }
 
+    /// Inequality comparison operator for comparing with another SqlDynamicString of possibly different capacity.
     template <std::size_t OtherSize>
     LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!=(SqlDynamicString<OtherSize, T> const& other) const noexcept
     {
         return !(*this == other);
     }
 
+    /// Equality comparison operator for comparing with a string view.
     LIGHTWEIGHT_FORCE_INLINE constexpr bool operator==(std::basic_string_view<T> other) const noexcept
     {
         return (ToStringView() <=> other) == std::weak_ordering::equivalent;
     }
 
+    /// Inequality comparison operator for comparing with a string view.
     LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!=(std::basic_string_view<T> other) const noexcept
     {
         return !(*this == other);
     }
 
+    /// Retrieves an iterator to the beginning of the string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr iterator begin() noexcept
     {
         return _value.begin();
     }
 
+    /// Retrieves an iterator to the end of the string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr iterator end() noexcept
     {
         return _value.end();
     }
 
+    /// Retrieves a const iterator to the beginning of the string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr const_iterator begin() const noexcept
     {
         return _value.begin();
     }
 
+    /// Retrieves a const iterator to the end of the string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr const_iterator end() const noexcept
     {
         return _value.end();

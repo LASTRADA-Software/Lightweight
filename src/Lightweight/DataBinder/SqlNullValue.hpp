@@ -12,6 +12,7 @@ namespace Lightweight
 /// @ingroup DataTypes
 struct SqlNullType
 {
+    /// The underlying SQL NULL indicator value.
     SQLLEN sqlValue = SQL_NULL_DATA;
 };
 
