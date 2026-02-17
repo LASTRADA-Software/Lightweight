@@ -1,4 +1,5 @@
 option(LIGHTWEIGHT_BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen) [Default: OFF]" OFF)
+option(LIGHTWEIGHT_DOCS_WARN_AS_ERROR "Treat Doxygen warnings as errors [Default: OFF]" OFF)
 
 if(LIGHTWEIGHT_BUILD_DOCUMENTATION)
   find_package(Doxygen REQUIRED)
@@ -17,7 +18,7 @@ if(LIGHTWEIGHT_BUILD_DOCUMENTATION)
   set(DOXYGEN_BUILTIN_STL_SUPPORT YES)
   set(DOXYGEN_CASE_SENSE_NAMES NO)
   set(DOXYGEN_CLASS_DIAGRAMS NO)
-  set(DOXYGEN_EXCLUDE bin)
+  set(DOXYGEN_EXCLUDE bin "${PROJECT_SOURCE_DIR}/src/tests" "${PROJECT_SOURCE_DIR}/src/tools")
   set(DOXYGEN_EXTRACT_ALL NO)
   set(DOXYGEN_EXTRACT_LOCAL_CLASSES NO)
   set(DOXYGEN_FILE_PATTERNS *.hpp)
@@ -41,6 +42,10 @@ if(LIGHTWEIGHT_BUILD_DOCUMENTATION)
   set(DOXYGEN_EXCLUDE_SYMBOLS "detail,detail::*,std,std::*,benchmark,test")
   set(DOXYGEN_CASE_SENSE_NAMES YES)
   set(DOXYGEN_CREATE_SUBDIRS YES)
+
+  if(LIGHTWEIGHT_DOCS_WARN_AS_ERROR)
+    set(DOXYGEN_WARN_AS_ERROR "FAIL_ON_WARNINGS")
+  endif()
 
   # TODO: get include paths correct, e.g. <Lightweight/SqlConnection.hpp> rather than <SqlConnection.hpp>
   set(DOXYGEN_FULL_PATH_NAMES YES)

@@ -15,10 +15,17 @@
 namespace Lightweight
 {
 
+/// Enum to define the behavior of SqlFixedString after retrieval from the database, in case the retrieved string is shorter
+/// than the fixed capacity.
 enum class SqlFixedStringMode : uint8_t
 {
+    /// The string is treated as fixed-size, and the size is always set to the fixed capacity.
     FIXED_SIZE,
+    /// The string is treated as fixed-size, but the size is set to the actual size of the retrieved string. If the
+    /// retrieved string is shorter than the fixed capacity, the remaining characters are right-trimmed and the size is set
+    /// to the actual size of the retrieved string.
     FIXED_SIZE_RIGHT_TRIMMED,
+    /// The string is treated as variable-size, and the size is set to the actual size of the retrieved string.
     VARIABLE_SIZE,
 };
 
@@ -37,13 +44,26 @@ class SqlFixedString
     std::size_t _size = 0;
 
   public:
+    /// The element type of the string.
     using value_type = T;
+
+    /// Iterator type for the string.
     using iterator = T*;
+
+    /// Const iterator type for the string.
     using const_iterator = T const*;
+
+    /// Pointer type for the string.
     using pointer_type = T*;
+
+    /// Const pointer type for the string.
     using const_pointer_type = T const*;
 
+    /// The specified width of the string, which is also the maximum size of the string.
     static constexpr std::size_t Capacity = N;
+
+    /// Handling mode for the post-retrieval operation that defines how the string
+    /// should be treated when it is retrieved from the database.
     static constexpr SqlFixedStringMode PostRetrieveOperation = Mode;
 
     /// Constructs a fixed-size string from a string literal.
@@ -55,11 +75,22 @@ class SqlFixedString
         std::copy_n(text, SourceSize, _data);
     }
 
+    /// Defaulted default constructor.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlFixedString() noexcept = default;
+
+    /// Defaulted copy constructor.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlFixedString(SqlFixedString const&) noexcept = default;
+
+    /// Defaulted copy assignment operator.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlFixedString& operator=(SqlFixedString const&) noexcept = default;
+
+    /// Defaulted move constructor.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlFixedString(SqlFixedString&&) noexcept = default;
+
+    /// Defaulted move assignment operator.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlFixedString& operator=(SqlFixedString&&) noexcept = default;
+
+    /// Defaulted destructor.
     LIGHTWEIGHT_FORCE_INLINE constexpr ~SqlFixedString() noexcept = default;
 
     /// Constructs a fixed-size string from a string view.
@@ -90,6 +121,7 @@ class SqlFixedString
         std::copy(s, e, _data);
     }
 
+    /// Reserves capacity for the string. Throws if capacity exceeds the maximum.
     LIGHTWEIGHT_FORCE_INLINE void reserve(std::size_t capacity)
     {
         if (capacity > N)
@@ -108,6 +140,7 @@ class SqlFixedString
         return _size;
     }
 
+    /// Sets the size of the string, capped at the maximum capacity.
     // NOLINTNEXTLINE(readability-identifier-naming)
     LIGHTWEIGHT_FORCE_INLINE /*TODO constexpr*/ void setsize(std::size_t n) noexcept
     {
@@ -192,15 +225,24 @@ class SqlFixedString
     }
 
     // clang-format off
+    /// Returns a pointer to the underlying mutable data.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr pointer_type data() noexcept { return _data; }
+    /// Returns a mutable iterator to the beginning.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr iterator begin() noexcept { return _data; }
+    /// Returns a mutable iterator to the end.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr iterator end() noexcept { return _data + size(); }
+    /// Returns a mutable reference to the element at the given index.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr T& operator[](std::size_t i) noexcept { return _data[i]; }
 
+    /// Returns a pointer to the null-terminated C string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr const_pointer_type c_str() const noexcept { return _data; }
+    /// Returns a const pointer to the underlying data.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr const_pointer_type data() const noexcept { return _data; }
+    /// Returns a const iterator to the beginning.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr const_iterator begin() const noexcept { return _data; }
+    /// Returns a const iterator to the end.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr const_iterator end() const noexcept { return _data + size(); }
+    /// Returns a const reference to the element at the given index.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr T const& operator[](std::size_t i) const noexcept { return _data[i]; }
     // clang-format on
 
@@ -228,6 +270,7 @@ class SqlFixedString
         return ToStringView();
     }
 
+    /// Three-way comparison operator.
     template <std::size_t OtherSize, SqlFixedStringMode OtherMode>
     LIGHTWEIGHT_FORCE_INLINE std::weak_ordering operator<=>(
         SqlFixedString<OtherSize, T, OtherMode> const& other) const noexcept
@@ -241,23 +284,27 @@ class SqlFixedString
         return size() <=> other.size();
     }
 
+    /// Equality comparison operator.
     template <std::size_t OtherSize, SqlFixedStringMode OtherMode>
     LIGHTWEIGHT_FORCE_INLINE constexpr bool operator==(SqlFixedString<OtherSize, T, OtherMode> const& other) const noexcept
     {
         return (*this <=> other) == std::weak_ordering::equivalent;
     }
 
+    /// Inequality comparison operator.
     template <std::size_t OtherSize, SqlFixedStringMode OtherMode>
     LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!=(SqlFixedString<OtherSize, T, OtherMode> const& other) const noexcept
     {
         return !(*this == other);
     }
 
+    /// Equality comparison with a string view.
     LIGHTWEIGHT_FORCE_INLINE constexpr bool operator==(std::basic_string_view<T> other) const noexcept
     {
         return (substr() <=> other) == std::weak_ordering::equivalent;
     }
 
+    /// Inequality comparison with a string view.
     LIGHTWEIGHT_FORCE_INLINE constexpr bool operator!=(std::basic_string_view<T> other) const noexcept
     {
         return !(*this == other);

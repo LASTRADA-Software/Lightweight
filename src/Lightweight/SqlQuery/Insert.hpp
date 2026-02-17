@@ -19,19 +19,20 @@ namespace Lightweight
 class [[nodiscard]] SqlInsertQueryBuilder final
 {
   public:
+    /// Constructs an INSERT query builder.
     explicit SqlInsertQueryBuilder(SqlQueryFormatter const& formatter,
                                    std::string tableName,
                                    std::vector<SqlVariant>* inputBindings) noexcept;
 
-    // Adds a single column to the INSERT query.
+    /// Adds a single column to the INSERT query.
     template <typename ColumnValue>
     SqlInsertQueryBuilder& Set(std::string_view columnName, ColumnValue const& value);
 
-    // Adds a single column to the INSERT query with the value being a string literal.
+    /// Adds a single column to the INSERT query with the value being a string literal.
     template <std::size_t N>
     inline SqlInsertQueryBuilder& Set(std::string_view columnName, char const (&value)[N]);
 
-    // Finalizes building the query as INSERT INTO ... query.
+    /// Finalizes building the query as INSERT INTO ... query.
     [[nodiscard]] inline std::string ToSql() const;
 
   private:

@@ -15,6 +15,7 @@ namespace Lightweight
 class LIGHTWEIGHT_API SqlDeleteQueryBuilder final: public SqlWhereClauseBuilder<SqlDeleteQueryBuilder>
 {
   public:
+    /// Constructs a DELETE query builder.
     explicit SqlDeleteQueryBuilder(SqlQueryFormatter const& formatter, std::string table, std::string tableAlias) noexcept:
         SqlWhereClauseBuilder<SqlDeleteQueryBuilder> {},
         m_formatter { formatter }
@@ -23,19 +24,21 @@ class LIGHTWEIGHT_API SqlDeleteQueryBuilder final: public SqlWhereClauseBuilder<
         m_searchCondition.tableAlias = std::move(tableAlias);
     }
 
+    /// Returns the search condition for the query.
     SqlSearchCondition& SearchCondition() noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
     {
         return m_searchCondition;
     }
 
     // clang-format off
+    /// Returns the SQL query formatter.
     [[nodiscard]] SqlQueryFormatter const& Formatter() const noexcept // NOLINT(bugprone-derived-method-shadowing-base-method)
     {
         // clang-format on
         return m_formatter;
     }
 
-    // Finalizes building the query as DELETE FROM ... query.
+    /// Finalizes building the query as DELETE FROM ... query.
     [[nodiscard]] std::string ToSql() const;
 
   private:

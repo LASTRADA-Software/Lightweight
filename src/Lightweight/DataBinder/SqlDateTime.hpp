@@ -23,7 +23,9 @@ namespace Lightweight
 /// @ingroup DataTypes
 struct SqlDateTime
 {
+    /// The native C++ type representing a date-time value.
     using native_type = std::chrono::system_clock::time_point;
+    /// The duration type used for arithmetic operations.
     using duration_type = std::chrono::system_clock::duration;
 
     /// Returns the current date and time.
@@ -40,22 +42,30 @@ struct SqlDateTime
     }
 #endif
 
+    /// Default constructor.
     constexpr SqlDateTime() noexcept = default;
+    /// Default move constructor.
     constexpr SqlDateTime(SqlDateTime&&) noexcept = default;
+    /// Default move assignment operator.
     constexpr SqlDateTime& operator=(SqlDateTime&&) noexcept = default;
+    /// Default copy constructor.
     constexpr SqlDateTime(SqlDateTime const&) noexcept = default;
+    /// Default copy assignment operator.
     constexpr SqlDateTime& operator=(SqlDateTime const& other) noexcept = default;
     constexpr ~SqlDateTime() noexcept = default;
 
+    /// Three-way comparison operator.
     constexpr std::weak_ordering operator<=>(SqlDateTime const& other) const noexcept
     {
         return value() <=> other.value();
     }
+    /// Equality comparison operator.
     constexpr bool operator==(SqlDateTime const& other) const noexcept
     {
         return (*this <=> other) == std::weak_ordering::equivalent;
     }
 
+    /// Inequality comparison operator.
     constexpr bool operator!=(SqlDateTime const& other) const noexcept
     {
         return !(*this == other);
@@ -150,6 +160,7 @@ struct SqlDateTime
 
     // NOLINTEND(readability-identifier-naming)
 
+    /// Converts this SqlDateTime to its native time_point representation.
     LIGHTWEIGHT_FORCE_INLINE constexpr operator native_type() const noexcept
     {
         return value();
@@ -170,6 +181,7 @@ struct SqlDateTime
                          std::chrono::microseconds { std::chrono::duration_cast<std::chrono::microseconds>(nanosecond()) } };
     }
 
+    /// Converts a native time_point to the underlying SQL timestamp structure.
     static LIGHTWEIGHT_FORCE_INLINE SQL_TIMESTAMP_STRUCT constexpr ConvertToSqlValue(native_type value) noexcept
     {
         using namespace std::chrono;
@@ -180,6 +192,7 @@ struct SqlDateTime
         return ConvertToSqlValue(ymd, hms);
     }
 
+    /// Converts year_month_day and hh_mm_ss components to the underlying SQL timestamp structure.
     static LIGHTWEIGHT_FORCE_INLINE SQL_TIMESTAMP_STRUCT constexpr ConvertToSqlValue(
         std::chrono::year_month_day ymd, std::chrono::hh_mm_ss<duration_type> hms) noexcept
     {
@@ -197,6 +210,7 @@ struct SqlDateTime
         // clang-format on
     }
 
+    /// Converts a SQL timestamp structure to the native time_point representation.
     static LIGHTWEIGHT_FORCE_INLINE native_type constexpr ConvertToNative(SQL_TIMESTAMP_STRUCT const& time) noexcept
     {
         // clang-format off
@@ -220,12 +234,14 @@ struct SqlDateTime
         return ConvertToNative(sqlValue);
     }
 
+    /// Adds a duration to this date-time.
     LIGHTWEIGHT_FORCE_INLINE SqlDateTime& operator+=(duration_type duration) noexcept
     {
         *this = SqlDateTime { value() + duration };
         return *this;
     }
 
+    /// Subtracts a duration from this date-time.
     LIGHTWEIGHT_FORCE_INLINE SqlDateTime& operator-=(duration_type duration) noexcept
     {
         *this = SqlDateTime { value() - duration };
@@ -242,6 +258,7 @@ struct SqlDateTime
         return SqlDateTime { dateTime.value() - duration };
     }
 
+    /// Holds the underlying SQL timestamp structure.
     SQL_TIMESTAMP_STRUCT sqlValue {};
 };
 

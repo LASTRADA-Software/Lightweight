@@ -16,12 +16,16 @@ namespace Lightweight
 /// Represents an ODBC connection string.
 struct SqlConnectionString
 {
+    /// The raw ODBC connection string value.
     std::string value;
 
+    /// Three-way comparison operator.
     auto operator<=>(SqlConnectionString const&) const noexcept = default;
 
+    /// Returns a sanitized copy of the connection string with the password masked.
     [[nodiscard]] LIGHTWEIGHT_API std::string Sanitized() const;
 
+    /// Sanitizes the password in the given connection string input.
     [[nodiscard]] LIGHTWEIGHT_API static std::string SanitizePwd(std::string_view input);
 };
 
@@ -36,13 +40,19 @@ LIGHTWEIGHT_API SqlConnectionString BuildConnectionString(SqlConnectionStringMap
 /// Represents a connection data source as a DSN, username, password, and timeout.
 struct [[nodiscard]] SqlConnectionDataSource
 {
+    /// The ODBC data source name (DSN).
     std::string datasource;
+    /// The username for authentication.
     std::string username;
+    /// The password for authentication.
     std::string password;
+    /// The connection timeout duration.
     std::chrono::seconds timeout { 5 };
 
+    /// Constructs a SqlConnectionDataSource from the given connection string.
     LIGHTWEIGHT_API static SqlConnectionDataSource FromConnectionString(SqlConnectionString const& value);
 
+    /// Converts this data source to an ODBC connection string.
     [[nodiscard]] LIGHTWEIGHT_API SqlConnectionString ToConnectionString() const
     {
         return SqlConnectionString {
@@ -50,6 +60,7 @@ struct [[nodiscard]] SqlConnectionDataSource
         };
     }
 
+    /// Three-way comparison operator.
     auto operator<=>(SqlConnectionDataSource const&) const noexcept = default;
 };
 

@@ -18,6 +18,7 @@ namespace Lightweight
 /// @ingroup DataTypes
 struct LIGHTWEIGHT_API SqlGuid
 {
+    /// The raw GUID data bytes.
     uint8_t data[16] {};
 
     /// Creates a new non-empty GUID.
@@ -29,25 +30,28 @@ struct LIGHTWEIGHT_API SqlGuid
     /// Parses a GUID from a string. Use with caution and always prefer TryParse at all cost.
     static SqlGuid constexpr UnsafeParse(std::string_view const& text) noexcept;
 
+    /// Three-way comparison operator.
     constexpr std::weak_ordering operator<=>(SqlGuid const& other) const noexcept = default;
 
+    /// Equality comparison operator.
     constexpr bool operator==(SqlGuid const& other) const noexcept
     {
         return (*this <=> other) == std::weak_ordering::equivalent;
     }
 
+    /// Inequality comparison operator.
     constexpr bool operator!=(SqlGuid const& other) const noexcept
     {
         return !(*this == other);
     }
 
-    // Test if the GUID is non-empty.
+    /// Tests if the GUID is non-empty.
     constexpr explicit operator bool() const noexcept
     {
         return *this != SqlGuid {};
     }
 
-    // Test if the GUID is empty.
+    /// Tests if the GUID is empty.
     constexpr bool operator!() const noexcept
     {
         return !static_cast<bool>(*this);

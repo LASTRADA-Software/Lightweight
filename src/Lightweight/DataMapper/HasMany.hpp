@@ -98,13 +98,20 @@ class HasMany
     /// @note This method will NOT throw if the index is out of bounds. The behaviour is undefined.
     [[nodiscard]] OtherRecord& operator[](std::size_t index);
 
+    /// Returns an iterator to the beginning of the record list.
     [[nodiscard]] iterator begin() noexcept;
+    /// Returns an iterator to the end of the record list.
     [[nodiscard]] iterator end() noexcept;
+    /// Returns a const iterator to the beginning of the record list.
     [[nodiscard]] const_iterator begin() const noexcept;
+    /// Returns a const iterator to the end of the record list.
     [[nodiscard]] const_iterator end() const noexcept;
 
+    /// Three-way comparison operator.
     constexpr std::weak_ordering operator<=>(HasMany const& other) const noexcept = default;
+    /// Equality comparison operator.
     constexpr bool operator==(HasMany const& other) const noexcept = default;
+    /// Inequality comparison operator.
     constexpr bool operator!=(HasMany const& other) const noexcept = default;
 
     struct Loader

@@ -68,6 +68,7 @@ enum class SqlTransactionMode : std::uint8_t
 class SqlTransactionException: public std::runtime_error
 {
   public:
+    /// Constructs a transaction exception with the given error message.
     explicit SqlTransactionException(std::string const& message) noexcept:
         std::runtime_error(message)
     {
@@ -107,7 +108,9 @@ class SqlTransaction
     SqlTransaction(SqlTransaction const&) = delete;
     SqlTransaction& operator=(SqlTransaction const&) = delete;
 
+    /// Default move constructor.
     SqlTransaction(SqlTransaction&&) = default;
+    /// Default move assignment operator.
     SqlTransaction& operator=(SqlTransaction&&) = default;
 
     /// Construct a new SqlTransaction object, and disable the auto-commit mode, so that the transaction can be

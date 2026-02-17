@@ -67,6 +67,7 @@ struct SqlVariant
                                    SqlTime,
                                    SqlDateTime>;
 
+    /// The variant value.
     InnerType value;
 
     /// @brief Default construct a new SqlVariant.
@@ -244,6 +245,7 @@ struct SqlVariant
         // clang-format on
     }
 
+    /// @brief Retrieves a UTF-16 string view from the variant, or std::nullopt if not available.
     [[nodiscard]] std::optional<std::u16string_view> TryGetUtf16StringView() const noexcept
     {
         if (IsNull())
@@ -277,11 +279,13 @@ struct SqlVariant
         throw std::bad_variant_access();
     }
 
+    /// @brief Equality comparison operator.
     [[nodiscard]] bool operator==(SqlVariant const& other) const noexcept
     {
         return ToString() == other.ToString();
     }
 
+    /// @brief Inequality comparison operator.
     [[nodiscard]] bool operator!=(SqlVariant const& other) const noexcept
     {
         return !(*this == other);

@@ -55,7 +55,9 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// Construct a new SqlStatement object, using a new connection, and connect to the default database.
     LIGHTWEIGHT_API SqlStatement();
 
+    /// Move constructor.
     LIGHTWEIGHT_API SqlStatement(SqlStatement&& other) noexcept;
+    /// Move assignment operator.
     LIGHTWEIGHT_API SqlStatement& operator=(SqlStatement&& other) noexcept;
 
     SqlStatement(SqlStatement const&) noexcept = delete;
@@ -69,8 +71,10 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 
     LIGHTWEIGHT_API ~SqlStatement() noexcept final;
 
+    /// Checks whether the statement's connection is alive and the statement handle is valid.
     [[nodiscard]] LIGHTWEIGHT_API bool IsAlive() const noexcept;
 
+    /// Checks whether the statement has been prepared.
     [[nodiscard]] LIGHTWEIGHT_API bool IsPrepared() const noexcept;
 
     /// Retrieves the connection associated with this statement.
@@ -98,6 +102,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     ///       must have been closed.
     LIGHTWEIGHT_API void Prepare(std::string_view query) &;
 
+    /// Prepares the statement for execution on an rvalue reference and returns the statement.
     LIGHTWEIGHT_API SqlStatement Prepare(std::string_view query) &&;
 
     /// Prepares the statement for execution.
@@ -106,13 +111,17 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     ///       must have been closed.
     void Prepare(SqlQueryObject auto const& queryObject) &;
 
+    /// Prepares the statement from a query object on an rvalue reference and returns the statement.
     SqlStatement Prepare(SqlQueryObject auto const& queryObject) &&;
 
+    /// Retrieves the last prepared query string.
     [[nodiscard]] std::string const& PreparedQuery() const noexcept;
 
+    /// Binds an input parameter to the prepared statement at the given column index.
     template <SqlInputParameterBinder Arg>
     void BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg);
 
+    /// Binds an input parameter to the prepared statement at the given column index with a column name hint.
     template <SqlInputParameterBinder Arg, typename ColumnName>
     void BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg, ColumnName&& columnNameHint);
 
@@ -132,6 +141,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
         requires(((std::is_class_v<Records> && std::is_aggregate_v<Records>) && ...))
     void BindOutputColumnsToRecord(Records*... records);
 
+    /// Binds a single output column at the given index to store fetched data.
     template <SqlOutputColumnBinder T>
     void BindOutputColumn(SQLUSMALLINT columnIndex, T* arg);
 
@@ -197,6 +207,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     [[nodiscard]] std::optional<T> ExecuteDirectScalar(std::string_view const& query,
                                                        std::source_location location = std::source_location::current());
 
+    /// Executes the given query and returns the single result as an SqlVariant.
     template <typename T>
         requires(std::same_as<T, SqlVariant>)
     [[nodiscard]] T ExecuteDirectScalar(std::string_view const& query,
@@ -209,6 +220,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     [[nodiscard]] std::optional<T> ExecuteDirectScalar(SqlQueryObject auto const& query,
                                                        std::source_location location = std::source_location::current());
 
+    /// Executes the given query object and returns the single result as an SqlVariant.
     template <typename T>
         requires(std::same_as<T, SqlVariant>)
     [[nodiscard]] T ExecuteDirectScalar(SqlQueryObject auto const& query,
@@ -231,6 +243,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @retval false No result row was fetched, because the end of the result set was reached.
     [[nodiscard]] LIGHTWEIGHT_API bool FetchRow();
 
+    /// Attempts to fetch the next row, returning an error info on failure instead of throwing.
     [[nodiscard]] LIGHTWEIGHT_API std::expected<bool, SqlErrorInfo> TryFetchRow(
         std::source_location location = std::source_location::current()) noexcept;
 
@@ -296,6 +309,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 class [[nodiscard]] SqlResultCursor
 {
   public:
+    /// Constructs a result cursor for the given SQL statement.
     explicit LIGHTWEIGHT_FORCE_INLINE SqlResultCursor(SqlStatement& stmt) noexcept:
         m_stmt { &stmt }
     {
@@ -305,12 +319,14 @@ class [[nodiscard]] SqlResultCursor
     SqlResultCursor(SqlResultCursor const&) = delete;
     SqlResultCursor& operator=(SqlResultCursor const&) = delete;
 
+    /// Move constructor.
     constexpr SqlResultCursor(SqlResultCursor&& other) noexcept:
         m_stmt { other.m_stmt }
     {
         other.m_stmt = nullptr;
     }
 
+    /// Move assignment operator.
     constexpr SqlResultCursor& operator=(SqlResultCursor&& other) noexcept
     {
         if (this != &other)
@@ -351,6 +367,7 @@ class [[nodiscard]] SqlResultCursor
         m_stmt->BindOutputColumns(args...);
     }
 
+    /// Binds a single output column at the given index to store fetched data.
     template <SqlOutputColumnBinder T>
     LIGHTWEIGHT_FORCE_INLINE void BindOutputColumn(SQLUSMALLINT columnIndex, T* arg)
     {
@@ -505,6 +522,7 @@ template <typename T>
 class SqlRowIterator
 {
   public:
+    /// Constructs a row iterator using the given SQL connection.
     explicit SqlRowIterator(SqlConnection& conn):
         _connection { &conn }
     {
@@ -566,6 +584,7 @@ class SqlRowIterator
         std::unique_ptr<SqlStatement> _stmt;
     };
 
+    /// Returns an iterator to the first row of the result set.
     iterator begin()
     {
         auto it = iterator { *_connection };
@@ -576,6 +595,7 @@ class SqlRowIterator
         return it;
     }
 
+    /// Returns a sentinel iterator representing the end of the result set.
     iterator end() noexcept
     {
         return iterator { std::default_sentinel };
@@ -631,6 +651,7 @@ inline LIGHTWEIGHT_FORCE_INLINE std::string const& SqlStatement::PreparedQuery()
     return m_preparedQuery;
 }
 
+/// @copydoc SqlStatement::BindOutputColumns
 template <SqlOutputColumnBinder... Args>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumns(Args*... args)
 {
@@ -656,6 +677,7 @@ void SqlStatement::BindOutputColumnsToRecord(Records*... records)
      ...);
 }
 
+/// @copydoc SqlStatement::BindOutputColumn
 template <SqlOutputColumnBinder T>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumn(SQLUSMALLINT columnIndex, T* arg)
 {
@@ -664,6 +686,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumn(SQLUSMALLINT
     RequireSuccess(SqlDataBinder<T>::OutputColumn(m_hStmt, columnIndex, arg, GetIndicatorForColumn(columnIndex), *this));
 }
 
+/// @copydoc SqlStatement::BindInputParameter(SQLSMALLINT, Arg const&)
 template <SqlInputParameterBinder Arg>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg)
 {
@@ -672,6 +695,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindInputParameter(SQLSMALLIN
     RequireSuccess(SqlDataBinder<Arg>::InputParameter(m_hStmt, static_cast<SQLUSMALLINT>(columnIndex), arg, *this));
 }
 
+/// @copydoc SqlStatement::BindInputParameter(SQLSMALLINT, Arg const&, ColumnName&&)
 template <SqlInputParameterBinder Arg, typename ColumnName>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindInputParameter(SQLSMALLINT columnIndex,
                                                                       Arg const& arg,
@@ -772,6 +796,7 @@ void SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstColumnBatch,
     // clang-format on
 }
 
+/// @copydoc SqlStatement::ExecuteBatch
 template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::ExecuteBatch(FirstColumnBatch const& firstColumnBatch,
                                                                 MoreColumnBatches const&... moreColumnBatches)

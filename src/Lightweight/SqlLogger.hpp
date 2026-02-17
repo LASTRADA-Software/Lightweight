@@ -29,9 +29,13 @@ class SqlLogger
     };
 
     LIGHTWEIGHT_API SqlLogger();
+    /// Default copy constructor.
     LIGHTWEIGHT_API SqlLogger(SqlLogger const& /*other*/) = default;
+    /// Default move constructor.
     LIGHTWEIGHT_API SqlLogger(SqlLogger&& /*other*/) = default;
+    /// Default copy assignment operator.
     LIGHTWEIGHT_API SqlLogger& operator=(SqlLogger const& /*other*/) = default;
+    /// Default move assignment operator.
     LIGHTWEIGHT_API SqlLogger& operator=(SqlLogger&& /*other*/) = default;
     LIGHTWEIGHT_API virtual ~SqlLogger() = default;
 
@@ -41,6 +45,7 @@ class SqlLogger
     /// Constructs a new logger.
     ///
     /// @param supportBindLogging Indicates if the logger should support bind logging.
+    /// @param writer Optional message writer function for log output.
     LIGHTWEIGHT_API explicit SqlLogger(SupportBindLogging supportBindLogging, MessageWriter writer = {});
 
     /// Sets the logging sink for the logger.
@@ -131,6 +136,7 @@ class SqlLogger
     LIGHTWEIGHT_API static void SetLogger(SqlLogger& logger);
 
   protected:
+    /// The function used to write log messages.
     MessageWriter _messageWriter; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
 
   private:
@@ -167,10 +173,13 @@ class SqlLogger::Null: public SqlLogger
 class SqlScopedTimeLogger
 {
   public:
+    /// Default copy constructor.
     SqlScopedTimeLogger(SqlScopedTimeLogger const&) = default;
     SqlScopedTimeLogger(SqlScopedTimeLogger&&) = delete;
+    /// Default copy assignment operator.
     SqlScopedTimeLogger& operator=(SqlScopedTimeLogger const&) = default;
     SqlScopedTimeLogger& operator=(SqlScopedTimeLogger&&) = delete;
+    /// Constructs a scoped time logger with the given tag.
     explicit SqlScopedTimeLogger(std::string tag):
         _tag { std::move(tag) }
     {

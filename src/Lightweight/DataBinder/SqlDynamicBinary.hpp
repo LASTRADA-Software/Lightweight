@@ -24,17 +24,30 @@ class SqlDynamicBinary final
     using BaseType = std::vector<uint8_t>;
 
   public:
+    /// The element type of the binary data.
     using value_type = uint8_t;
+    /// The SQL column type definition for this binary type.
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::VarBinary { N };
 
     /// The maximum size of the underlying data storage.
     static constexpr std::size_t DynamicCapacity = N;
 
+    /// Default constructor, creates an empty object.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicBinary() noexcept = default;
+
+    /// Defaulted copy constructor.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicBinary(SqlDynamicBinary const&) noexcept = default;
+
+    /// Defaulted copy assignment operator.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicBinary& operator=(SqlDynamicBinary const&) noexcept = default;
+
+    /// Defaulted move constructor.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicBinary(SqlDynamicBinary&&) noexcept = default;
+
+    /// Defaulted move assignment operator.
     LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicBinary& operator=(SqlDynamicBinary&&) noexcept = default;
+
+    /// Defaulted destructor.
     LIGHTWEIGHT_FORCE_INLINE constexpr ~SqlDynamicBinary() noexcept = default;
 
     /// Constructs a fixed-size string from a string literal.
@@ -72,6 +85,7 @@ class SqlDynamicBinary final
     }
 #endif
 
+    /// Defaulted Three-way comparison operator.
     constexpr auto operator<=>(SqlDynamicBinary<N> const&) const noexcept = default;
 
     /// Retrieves the size of the string.

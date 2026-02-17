@@ -31,9 +31,12 @@ constexpr inline auto SqlWildcard = SqlWildcardType {};
 /// @brief Name of table in a SQL query, where the table's name is aliased.
 struct AliasedTableName
 {
+    /// The table name.
     std::string_view tableName;
+    /// The alias for the table.
     std::string_view alias;
 
+    /// Three-way comparison operator.
     std::weak_ordering operator<=>(AliasedTableName const&) const = default;
 };
 
@@ -55,7 +58,9 @@ namespace detail
 /// @ingroup QueryBuilder
 struct SqlQualifiedTableColumnName
 {
+    /// The table name.
     std::string_view tableName;
+    /// The column name.
     std::string_view columnName;
 };
 
@@ -149,22 +154,26 @@ struct [[nodiscard]] SqlSearchCondition
 class SqlJoinConditionBuilder
 {
   public:
+    /// Constructs a new SqlJoinConditionBuilder.
     explicit SqlJoinConditionBuilder(std::string_view referenceTable, std::string* condition) noexcept:
         _referenceTable { referenceTable },
         _condition { *condition }
     {
     }
 
+    /// Adds an AND join condition.
     SqlJoinConditionBuilder& On(std::string_view joinColumnName, SqlQualifiedTableColumnName onOtherColumn)
     {
         return Operator(joinColumnName, onOtherColumn, "AND");
     }
 
+    /// Adds an OR join condition.
     SqlJoinConditionBuilder& OrOn(std::string_view joinColumnName, SqlQualifiedTableColumnName onOtherColumn)
     {
         return Operator(joinColumnName, onOtherColumn, "OR");
     }
 
+    /// Adds a join condition with a custom operator.
     SqlJoinConditionBuilder& Operator(std::string_view joinColumnName,
                                       SqlQualifiedTableColumnName onOtherColumn,
                                       std::string_view op)
@@ -316,6 +325,7 @@ class [[nodiscard]] SqlWhereClauseBuilder
     /// @code
     /// InnerJoin<&JoinTestB::a_id, &JoinTestA::id>()
     /// // This will generate a INNER JOIN "JoinTestB" ON "InnerTestB"."a_id" = "JoinTestA"."id"
+    /// @endcode
     template <auto LeftField, auto RightField>
     [[nodiscard]] Derived& InnerJoin();
 
@@ -381,14 +391,17 @@ class [[nodiscard]] SqlWhereClauseBuilder
 
     void AppendWhereJunctor();
 
+    /// Appends a column name to the WHERE condition.
     template <typename ColumnName>
         requires(std::same_as<ColumnName, SqlQualifiedTableColumnName> || std::convertible_to<ColumnName, std::string_view>
                  || std::same_as<ColumnName, SqlRawColumnNameView> || std::convertible_to<ColumnName, std::string>)
     void AppendColumnName(ColumnName const& columnName);
 
+    /// Appends a literal value to the WHERE condition.
     template <typename LiteralType>
     void AppendLiteralValue(LiteralType const& value);
 
+    /// Populates a literal value into the target string.
     template <typename LiteralType, typename TargetType>
     void PopulateLiteralValueInto(LiteralType const& value, TargetType& target);
 
@@ -567,6 +580,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Not() n
     return static_cast<Derived&>(*this);
 }
 
+/// Constructs or extends a WHERE clause to test for equality.
 template <typename Derived>
 template <typename ColumnName, typename T>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(ColumnName const& columnName, T const& value)
@@ -585,6 +599,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(C
         return Where(columnName, "=", value);
 }
 
+/// Constructs or extends a WHERE/OR clause to test for equality.
 template <typename Derived>
 template <typename ColumnName, typename T>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::OrWhere(ColumnName const& columnName,
@@ -593,6 +608,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::OrWhere
     return Or().Where(columnName, value);
 }
 
+/// Constructs or extends a WHERE/OR clause to test for a group of values.
 template <typename Derived>
 template <typename Callable>
     requires std::invocable<Callable, SqlWhereClauseBuilder<Derived>&>
@@ -601,6 +617,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::OrWhere
     return Or().Where(callable);
 }
 
+/// Constructs or extends a WHERE/AND clause to test for a group of values.
 template <typename Derived>
 template <typename Callable>
     requires std::invocable<Callable, SqlWhereClauseBuilder<Derived>&>
@@ -626,6 +643,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(C
     return static_cast<Derived&>(*this);
 }
 
+/// Constructs or extends a WHERE IN clause with an input range.
 template <typename Derived>
 template <typename ColumnName, std::ranges::input_range InputRange>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn(ColumnName const& columnName,
@@ -636,6 +654,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn
     return Where(columnName, "IN", PopulateSqlSetExpression(values));
 }
 
+/// Constructs or extends a WHERE IN clause with an initializer list.
 template <typename Derived>
 template <typename ColumnName, typename T>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn(ColumnName const& columnName,
@@ -646,6 +665,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn
     return Where(columnName, "IN", PopulateSqlSetExpression(values));
 }
 
+/// Constructs or extends a WHERE IN clause with a sub-select query.
 template <typename Derived>
 template <typename ColumnName, typename SubSelectQuery>
     requires(std::is_invocable_r_v<std::string, decltype(&SubSelectQuery::ToSql), SubSelectQuery const&>)
@@ -655,6 +675,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereIn
     return Where(columnName, "IN", detail::RawSqlCondition { "(" + subSelectQuery.ToSql() + ")" });
 }
 
+/// Constructs or extends a WHERE clause to test for a value being not null.
 template <typename Derived>
 template <typename ColumnName>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereNotNull(ColumnName const& columnName)
@@ -662,6 +683,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereNo
     return Where(columnName, "IS NOT", detail::RawSqlCondition { "NULL" });
 }
 
+/// Constructs or extends a WHERE clause to test for a value being null.
 template <typename Derived>
 template <typename ColumnName>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereNull(ColumnName const& columnName)
@@ -669,6 +691,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereNu
     return Where(columnName, "IS", detail::RawSqlCondition { "NULL" });
 }
 
+/// Constructs or extends a WHERE clause to test for inequality.
 template <typename Derived>
 template <typename ColumnName, typename T>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereNotEqual(ColumnName const& columnName,
@@ -680,6 +703,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereNo
         return Where(columnName, "!=", value);
 }
 
+/// Constructs or extends a WHERE clause to test for a value being true.
 template <typename Derived>
 template <typename ColumnName>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereTrue(ColumnName const& columnName)
@@ -687,6 +711,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereTr
     return Where(columnName, "=", true);
 }
 
+/// Constructs or extends a WHERE clause to test for a value being false.
 template <typename Derived>
 template <typename ColumnName>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereFalse(ColumnName const& columnName)
@@ -694,6 +719,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereFa
     return Where(columnName, "=", false);
 }
 
+/// Constructs or extends a WHERE clause to compare two columns.
 template <typename Derived>
 template <typename LeftColumn, typename RightColumn>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereColumn(LeftColumn const& left,
@@ -718,6 +744,7 @@ struct WhereConditionLiteralType
                                         && !std::same_as<T, SqlWildcardType>;
 };
 
+/// Constructs or extends a WHERE clause with a string literal value.
 template <typename Derived>
 template <typename ColumnName, std::size_t N>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(ColumnName const& columnName,
@@ -727,6 +754,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(C
     return Where(columnName, binaryOp, std::string_view { value, N - 1 });
 }
 
+/// Constructs or extends a WHERE clause to test for a binary operation.
 template <typename Derived>
 template <typename ColumnName, typename T>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(ColumnName const& columnName,
@@ -745,6 +773,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(C
     return static_cast<Derived&>(*this);
 }
 
+/// Constructs or extends a WHERE clause with a sub-select query.
 template <typename Derived>
 template <typename ColumnName, typename SubSelectQuery>
     requires(std::is_invocable_r_v<std::string, decltype(&SubSelectQuery::ToSql), SubSelectQuery const&>)
@@ -755,6 +784,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Where(C
     return Where(columnName, binaryOp, detail::RawSqlCondition { "(" + value.ToSql() + ")" });
 }
 
+/// Constructs or extends a WHERE/OR clause with a binary operation.
 template <typename Derived>
 template <typename ColumnName, typename T>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::OrWhere(ColumnName const& columnName,
@@ -929,6 +959,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendWhere
     m_nextWhereJunctor = WhereJunctor::And;
 }
 
+/// Appends a column name to the WHERE condition.
 template <typename Derived>
 template <typename ColumnName>
     requires(std::same_as<ColumnName, SqlQualifiedTableColumnName> || std::convertible_to<ColumnName, std::string_view>
@@ -938,6 +969,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendColum
     SearchCondition().condition += detail::MakeSqlColumnName(columnName);
 }
 
+/// Appends a literal value to the WHERE condition.
 template <typename Derived>
 template <typename LiteralType>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendLiteralValue(LiteralType const& value)
@@ -969,6 +1001,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendLiter
     }
 }
 
+/// Populates a literal value into the target string.
 template <typename Derived>
 template <typename LiteralType, typename TargetType>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::PopulateLiteralValueInto(LiteralType const& value,
@@ -1084,6 +1117,7 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(Jo
                 SqlQualifiedTableColumnName { .tableName = SearchCondition().tableName, .columnName = onMainTableColumn });
 }
 
+/// Constructs a JOIN clause with a custom ON clause builder.
 template <typename Derived>
 template <typename Callable>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::Join(JoinType joinType,

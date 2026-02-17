@@ -52,7 +52,9 @@ class SqlConnection final
     ///                    no connection will be established.
     LIGHTWEIGHT_API explicit SqlConnection(std::optional<SqlConnectionString> connectInfo);
 
+    /// Move constructor.
     LIGHTWEIGHT_API SqlConnection(SqlConnection&& /*other*/) noexcept;
+    /// Move assignment operator.
     LIGHTWEIGHT_API SqlConnection& operator=(SqlConnection&& /*other*/) noexcept;
     SqlConnection(SqlConnection const& /*other*/) = delete;
     SqlConnection& operator=(SqlConnection const& /*other*/) = delete;

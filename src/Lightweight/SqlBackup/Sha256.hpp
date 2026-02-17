@@ -17,7 +17,9 @@ namespace Lightweight::SqlBackup
 class Sha256
 {
   public:
+    /// The size of the SHA-256 digest in bytes.
     static constexpr size_t DigestSize = 32;
+    /// The block size used by the SHA-256 algorithm in bytes.
     static constexpr size_t BlockSize = 64;
 
     Sha256()
@@ -25,6 +27,7 @@ class Sha256
         Reset();
     }
 
+    /// Resets the hash state to initial values.
     void Reset()
     {
         _state[0] = 0x6a09e667;
@@ -39,6 +42,7 @@ class Sha256
         _bufferLen = 0;
     }
 
+    /// Updates the hash with the given data.
     void Update(void const* data, size_t len)
     {
         auto const* bytes = static_cast<uint8_t const*>(data);
@@ -73,16 +77,19 @@ class Sha256
         }
     }
 
+    /// Updates the hash with the given data span.
     void Update(std::span<uint8_t const> data)
     {
         Update(data.data(), data.size());
     }
 
+    /// Updates the hash with the given string data.
     void Update(std::string_view data)
     {
         Update(data.data(), data.size());
     }
 
+    /// Finalizes the hash computation and returns the digest.
     std::array<uint8_t, DigestSize> Finalize()
     {
         uint64_t const bitCount = _count * 8;
@@ -115,6 +122,7 @@ class Sha256
         return digest;
     }
 
+    /// Converts a digest to its hexadecimal string representation.
     static std::string ToHex(std::array<uint8_t, DigestSize> const& digest)
     {
         std::ostringstream oss;
@@ -123,6 +131,7 @@ class Sha256
         return oss.str();
     }
 
+    /// Computes the SHA-256 hash of the given data and returns it as a hex string.
     static std::string Hash(void const* data, size_t len)
     {
         Sha256 hasher;
@@ -130,6 +139,7 @@ class Sha256
         return ToHex(hasher.Finalize());
     }
 
+    /// Computes the SHA-256 hash of the given string and returns it as a hex string.
     static std::string Hash(std::string_view data)
     {
         return Hash(data.data(), data.size());

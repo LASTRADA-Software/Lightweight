@@ -31,8 +31,11 @@ namespace Lightweight
 /// The code below is DRAFT and may be subject to change.
 struct SqlErrorInfo
 {
+    /// The native ODBC error code.
     SQLINTEGER nativeErrorCode {};
+    /// The SQLSTATE diagnostic code (5 characters).
     std::string sqlState = "     "; // 5 characters + null terminator
+    /// The human-readable error message.
     std::string message;
 
     /// Constructs an ODBC error info object from the given ODBC connection handle.

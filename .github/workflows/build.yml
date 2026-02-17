@@ -63,6 +63,23 @@ jobs:
     #     message: 'Committing clang-format changes'
     #     default_author: github_actions
 
+  check_docs:
+    name: "Check documentation coverage"
+    runs-on: ubuntu-24.04
+    if: github.ref != 'refs/heads/master'
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fetch tags
+        run: git fetch --prune --unshallow --tags
+      - name: "update APT database"
+        run: sudo apt -q update
+      - name: "install dependencies"
+        run: sudo apt install -y cmake ninja-build doxygen g++-14 catch2 unixodbc-dev sqlite3 libsqlite3-dev uuid-dev libyaml-cpp-dev libzip-dev
+      - name: "cmake"
+        run: cmake --preset linux-gcc-release -D LIGHTWEIGHT_BUILD_DOCUMENTATION=ON -D LIGHTWEIGHT_DOCS_WARN_AS_ERROR=ON
+      - name: "check documentation"
+        run: cmake --build --preset linux-gcc-release --target doc
+
   check_clang_tidy:
     name: "Check clang-tidy"
     runs-on: ubuntu-24.04

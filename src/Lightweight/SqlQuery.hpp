@@ -11,6 +11,9 @@
 namespace Lightweight
 {
 
+/// @defgroup QueryBuilder Query Builder
+/// @brief Classes and functions for building SQL queries.
+
 struct [[nodiscard]] SqlLastInsertIdQuery
 {
     std::string tableName;

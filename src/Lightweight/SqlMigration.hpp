@@ -17,6 +17,9 @@ namespace Lightweight
 
 class SqlConnection;
 
+/// @defgroup SqlMigration SQL Migration
+/// @brief Classes and functions for SQL schema migrations.
+
 namespace SqlMigration
 {
     class MigrationBase;
@@ -34,8 +37,10 @@ namespace SqlMigration
     /// @ingroup SqlMigration
     struct MigrationTimestamp
     {
+        /// The numeric timestamp value identifying the migration.
         uint64_t value {};
 
+        /// Three-way comparison operator.
         constexpr std::weak_ordering operator<=>(MigrationTimestamp const& other) const noexcept = default;
     };
 
@@ -44,11 +49,11 @@ namespace SqlMigration
     /// @ingroup SqlMigration
     struct ChecksumVerificationResult
     {
-        MigrationTimestamp timestamp;
-        std::string_view title;
-        std::string storedChecksum;
-        std::string computedChecksum;
-        bool matches;
+        MigrationTimestamp timestamp;   ///< The timestamp of the verified migration.
+        std::string_view title;        ///< The title of the verified migration.
+        std::string storedChecksum;    ///< The checksum stored in the database.
+        std::string computedChecksum;  ///< The checksum computed from the current migration definition.
+        bool matches;                  ///< Whether the stored and computed checksums match.
     };
 
     /// Result of reverting multiple migrations.
@@ -81,6 +86,7 @@ namespace SqlMigration
     class MigrationManager
     {
       public:
+        /// Type alias for a list of migration pointers.
         using MigrationList = std::list<MigrationBase const*>;
 
         /// Get the singleton instance of the migration manager.
@@ -117,6 +123,7 @@ namespace SqlMigration
         /// @return List of pending migrations.
         [[nodiscard]] LIGHTWEIGHT_API std::list<MigrationBase const*> GetPending() const noexcept;
 
+        /// Callback type invoked during migration execution to report progress.
         using ExecuteCallback =
             std::function<void(MigrationBase const& /*migration*/, size_t /*current*/, size_t /*total*/)>;
 
@@ -243,10 +250,13 @@ namespace SqlMigration
     class MigrationBase
     {
       public:
+        /// Default copy constructor.
         MigrationBase(MigrationBase const&) = default;
         MigrationBase(MigrationBase&&) = delete;
+        /// Default copy assignment operator.
         MigrationBase& operator=(MigrationBase const&) = default;
         MigrationBase& operator=(MigrationBase&&) = delete;
+        /// Constructs a migration with the given timestamp and title.
         MigrationBase(MigrationTimestamp timestamp, std::string_view title):
             _timestamp { timestamp },
             _title { title }
@@ -264,7 +274,7 @@ namespace SqlMigration
         /// Revert the migration.
         ///
         /// @param plan Query builder to use for building the migration plan.
-        virtual void Down(SqlMigrationQueryBuilder& /*plan*/) const {}
+        virtual void Down(SqlMigrationQueryBuilder& plan) const { (void) plan; }
 
         /// Check if this migration has a Down() implementation for rollback.
         ///

@@ -118,17 +118,29 @@ namespace SqlSchema
     /// Holds the definition of a column in a SQL table as read from the database schema.
     struct Column
     {
+        /// The name of the column.
         std::string name = {};
+        /// The SQL column type definition.
         SqlColumnTypeDefinition type = {};
+        /// The dialect-dependent type string.
         std::string dialectDependantTypeString = {};
+        /// Whether the column allows NULL values.
         bool isNullable = true;
+        /// Whether the column has a UNIQUE constraint.
         bool isUnique = false;
+        /// The size of the column (for character/binary types).
         size_t size = 0;
+        /// The number of decimal digits (for numeric types).
         unsigned short decimalDigits = 0;
+        /// Whether the column auto-increments.
         bool isAutoIncrement = false;
+        /// Whether the column is a primary key.
         bool isPrimaryKey = false;
+        /// Whether the column is a foreign key.
         bool isForeignKey = false;
+        /// The foreign key constraint, if any.
         std::optional<ForeignKeyConstraint> foreignKeyConstraint {};
+        /// The default value of the column.
         std::string defaultValue = {};
     };
 
@@ -136,10 +148,15 @@ namespace SqlSchema
     class EventHandler
     {
       public:
+        /// Default constructor.
         EventHandler() = default;
+        /// Default move constructor.
         EventHandler(EventHandler&&) = default;
+        /// Default copy constructor.
         EventHandler(EventHandler const&) = default;
+        /// Default move assignment operator.
         EventHandler& operator=(EventHandler&&) = default;
+        /// Default copy assignment operator.
         EventHandler& operator=(EventHandler const&) = default;
         virtual ~EventHandler() = default;
 
@@ -150,11 +167,17 @@ namespace SqlSchema
         /// @param schema The schema the table belongs to.
         /// @param table The name of the table.
         virtual bool OnTable(std::string_view schema, std::string_view table) = 0;
+        /// Called when the primary keys of a table are read.
         virtual void OnPrimaryKeys(std::string_view table, std::vector<std::string> const& columns) = 0;
+        /// Called when a foreign key constraint is read.
         virtual void OnForeignKey(ForeignKeyConstraint const& foreignKeyConstraint) = 0;
+        /// Called for each column in a table.
         virtual void OnColumn(Column const& column) = 0;
+        /// Called when an external foreign key referencing this table is read.
         virtual void OnExternalForeignKey(ForeignKeyConstraint const& foreignKeyConstraint) = 0;
+        /// Called when the indexes of a table are read.
         virtual void OnIndexes(std::vector<IndexDefinition> const& indexes) = 0;
+        /// Called when a table's schema reading is complete.
         virtual void OnTableEnd() = 0;
     };
 

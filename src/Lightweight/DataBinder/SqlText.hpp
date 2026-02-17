@@ -18,10 +18,13 @@ namespace Lightweight
 /// @ingroup DataTypes
 struct SqlText
 {
+    /// The underlying value type.
     using value_type = std::string;
 
+    /// The text value.
     value_type value;
 
+    /// Three-way comparison operator.
     std::weak_ordering operator<=>(SqlText const&) const noexcept = default;
 };
 

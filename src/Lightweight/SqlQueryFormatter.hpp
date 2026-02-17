@@ -19,17 +19,22 @@ struct SqlQualifiedTableColumnName;
 class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
 {
   public:
+    /// Default constructor.
     SqlQueryFormatter() = default;
+    /// Default move constructor.
     SqlQueryFormatter(SqlQueryFormatter&&) = default;
+    /// Default copy constructor.
     SqlQueryFormatter(SqlQueryFormatter const&) = default;
+    /// Default move assignment operator.
     SqlQueryFormatter& operator=(SqlQueryFormatter&&) = default;
+    /// Default copy assignment operator.
     SqlQueryFormatter& operator=(SqlQueryFormatter const&) = default;
     virtual ~SqlQueryFormatter() = default;
 
     /// Converts a boolean value to a string literal.
     [[nodiscard]] virtual std::string_view BooleanLiteral(bool value) const noexcept = 0;
 
-    // Returns a function to get a date from the database
+    /// Returns the SQL function name used to retrieve the current date.
     [[nodiscard]] virtual std::string_view DateFunction() const noexcept = 0;
 
     /// Converts a string value to a string literal.
@@ -58,6 +63,7 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
                                              std::string_view fields,
                                              std::string_view values) const = 0;
 
+    /// Constructs an SQL INSERT query with a schema prefix.
     [[nodiscard]] virtual std::string Insert(std::string_view schema,
                                              std::string_view intoTable,
                                              std::string_view fields,
@@ -117,6 +123,7 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
                                              std::string_view tableJoins,
                                              std::string_view whereCondition) const = 0;
 
+    /// Alias for a list of SQL statement strings.
     using StringList = std::vector<std::string>;
 
     /// Convert the given column type definition to the SQL type.
@@ -172,6 +179,7 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     static SqlQueryFormatter const* Get(SqlServerType serverType) noexcept;
 
   protected:
+    /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);
 };
 

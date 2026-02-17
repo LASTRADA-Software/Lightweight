@@ -315,4 +315,4 @@ If migration locking fails:
 ## See Also
 
 - @ref sql-migrations - Guide to writing SQL migrations in C++
-- @ref SqlMigration::MigrationManager - C++ API for managing migrations
+- @ref Lightweight::SqlMigration::MigrationManager - C++ API for managing migrations

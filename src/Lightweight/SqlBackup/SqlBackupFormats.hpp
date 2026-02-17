@@ -24,6 +24,7 @@ using BackupValue = std::variant<std::monostate, // NULL
 /// Represents a batch of backup data in column-oriented format.
 struct ColumnBatch
 {
+    /// Type representing columnar data storage for a batch.
     using ColumnData =
         std::variant<std::monostate, // Placeholder (e.g. for pure NULL columns if we optimize that later, or initialization)
                      std::vector<int64_t>,
@@ -32,8 +33,11 @@ struct ColumnBatch
                      std::vector<std::vector<uint8_t>>, // Binary
                      std::vector<bool>>;
 
+    /// The number of rows in the batch.
     size_t rowCount = 0;
+    /// The column data arrays.
     std::vector<ColumnData> columns;
+    /// Null indicators for each column, parallel to columns.
     std::vector<std::vector<bool>> nullIndicators; // Parallel to columns: true if NULL
 
     /// Clears the internal buffer after a flush and releases memory.
