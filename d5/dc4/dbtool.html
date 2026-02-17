@@ -254,21 +254,23 @@ Plugin System</h1>
 Creating a Migration Plugin</h2>
 <ol type="1">
 <li>Write migrations using the <code>LIGHTWEIGHT_SQL_MIGRATION</code> macro</li>
-<li>Add <code>LIGHTWEIGHT_MIGRATION_PLUGIN()</code> in exactly one source file</li>
+<li>Add <code><a class="el" href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN()</a></code> in exactly one source file</li>
 <li>Build as a shared library</li>
 </ol>
 <div class="fragment"><div class="line"><span class="comment">// migrations.cpp</span></div>
 <div class="line"><span class="preprocessor">#include &lt;Lightweight/SqlMigration.hpp&gt;</span></div>
 <div class="line"> </div>
-<div class="line">LIGHTWEIGHT_MIGRATION_PLUGIN()</div>
+<div class="line"><a class="code hl_define" href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a>()</div>
 <div class="line"> </div>
-<div class="line">LIGHTWEIGHT_SQL_MIGRATION(20260126120000, &quot;Create users table&quot;)</div>
+<div class="line"><a class="code hl_define" href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a>(20260126120000, &quot;Create users table&quot;)</div>
 <div class="line">{</div>
 <div class="line">    plan.CreateTable(<span class="stringliteral">&quot;users&quot;</span>)</div>
 <div class="line">        .PrimaryKeyWithAutoIncrement(<span class="stringliteral">&quot;id&quot;</span>)</div>
 <div class="line">        .RequiredColumn(<span class="stringliteral">&quot;email&quot;</span>, Varchar(255))</div>
 <div class="line">        .Timestamps();</div>
 <div class="line">}</div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00406">SqlMigration.hpp:406</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00240">SqlMigration.hpp:240</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="loading-plugins"></a>
 Loading Plugins</h2>
 <div class="fragment"><div class="line">dbtool migrate --plugins-dir ./build/plugins</div>
@@ -332,7 +334,7 @@ Lock Acquisition Failed</h2>
 See Also</h1>
 <ul>
 <li><a class="el" href="../../d2/da6/sql-migrations.html">SQL Migrations</a> - Guide to writing SQL migrations in C++</li>
-<li>SqlMigration::MigrationManager - C++ API for managing migrations </li>
+<li><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html">Lightweight::SqlMigration::MigrationManager</a> - C++ API for managing migrations </li>
 </ul>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->

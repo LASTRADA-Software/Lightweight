@@ -398,16 +398,16 @@ $(document).ready(function(){initNavTree('df/dcd/UnicodeConverter_8hpp_source.ht
 <div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>    <span class="keywordflow">return</span> result;</div>
 <div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>}</div>
 </div>
-<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span> </div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span><span class="comment">// Converts a UTF-8 string to wchar_t-based wide string.</span><span class="comment"></span></div>
+<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span><span class="comment"></span> </div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span><span class="comment">/// Converts a UTF-8 string to wchar_t-based wide string.</span></div>
 <div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span><span class="comment">///</span></div>
 <div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span><span class="comment">/// @ingroup Unicode</span></div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span><span class="comment"></span>LIGHTWEIGHT_API std::wstring ToStdWideString(std::u8string_view u8InputString);</div>
-<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span> </div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span><span class="comment">// Converts a local 8-bit string to wchar_t-based wide string.</span><span class="comment"></span></div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno"><a class="line" href="../../d1/d7d/group__Unicode.html#gae624ec6c44dd0598fba20b67ff1fd6c5">  297</a></span><span class="comment"></span>LIGHTWEIGHT_API std::wstring <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gae624ec6c44dd0598fba20b67ff1fd6c5">ToStdWideString</a>(std::u8string_view u8InputString);</div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span><span class="comment"></span> </div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span><span class="comment">/// Converts a local 8-bit string to wchar_t-based wide string.</span></div>
 <div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span><span class="comment">///</span></div>
 <div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span><span class="comment">/// @ingroup Unicode</span></div>
-<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span><span class="comment"></span>LIGHTWEIGHT_API std::wstring ToStdWideString(std::string <span class="keyword">const</span>&amp; localeInputString);</div>
+<div class="line"><a id="l00302" name="l00302"></a><span class="lineno"><a class="line" href="../../d1/d7d/group__Unicode.html#ga2e8d680b779d3c6c66521ca29632f44a">  302</a></span><span class="comment"></span>LIGHTWEIGHT_API std::wstring <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gae624ec6c44dd0598fba20b67ff1fd6c5">ToStdWideString</a>(std::string <span class="keyword">const</span>&amp; localeInputString);</div>
 <div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span><span class="comment"></span> </div>
 <div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span><span class="comment">/// Converts from Windows-1252 encoding to UTF-8.</span></div>
 <div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span><span class="comment">///</span></div>
@@ -421,6 +421,7 @@ $(document).ready(function(){initNavTree('df/dcd/UnicodeConverter_8hpp_source.ht
 <div class="ttc" id="agroup__Unicode_html_ga61d085d38ec6689b3a3c7a153a85af09"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#ga61d085d38ec6689b3a3c7a153a85af09">Lightweight::ToUtf32</a></div><div class="ttdeci">T ToUtf32(std::u8string_view u8InputString)</div><div class="ttdef"><b>Definition</b> <a href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00267">UnicodeConverter.hpp:267</a></div></div>
 <div class="ttc" id="agroup__Unicode_html_ga89bd79809fec27653916a0f51baf77be"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#ga89bd79809fec27653916a0f51baf77be">Lightweight::ToUtf8</a></div><div class="ttdeci">LIGHTWEIGHT_API std::u8string ToUtf8(std::u32string_view u32InputString)</div></div>
 <div class="ttc" id="agroup__Unicode_html_gaaf5dbfcee3e69467bc1359226a9f6b2a"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#gaaf5dbfcee3e69467bc1359226a9f6b2a">Lightweight::ToUtf16</a></div><div class="ttdeci">std::u16string ToUtf16(std::basic_string_view&lt; T &gt; const u32InputString)</div><div class="ttdef"><b>Definition</b> <a href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00244">UnicodeConverter.hpp:244</a></div></div>
+<div class="ttc" id="agroup__Unicode_html_gae624ec6c44dd0598fba20b67ff1fd6c5"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#gae624ec6c44dd0598fba20b67ff1fd6c5">Lightweight::ToStdWideString</a></div><div class="ttdeci">LIGHTWEIGHT_API std::wstring ToStdWideString(std::u8string_view u8InputString)</div></div>
 <div class="ttc" id="agroup__Unicode_html_gae6ae48e9907829b2807887536ab3b45a"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#gae6ae48e9907829b2807887536ab3b45a">Lightweight::ConvertWindows1252ToUtf8</a></div><div class="ttdeci">LIGHTWEIGHT_API std::string ConvertWindows1252ToUtf8(std::string_view input)</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->

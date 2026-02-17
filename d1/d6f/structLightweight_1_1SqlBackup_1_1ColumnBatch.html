@@ -107,6 +107,7 @@ $(document).ready(function(){initNavTree('d1/d6f/structLightweight_1_1SqlBackup_
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:aaf77345b065430d3d3e314ba22e2e2d0" id="r_aaf77345b065430d3d3e314ba22e2e2d0"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aaf77345b065430d3d3e314ba22e2e2d0">ColumnData</a> = std::variant&lt; std::monostate, std::vector&lt; int64_t &gt;, std::vector&lt; double &gt;, std::vector&lt; std::string &gt;, std::vector&lt; std::vector&lt; uint8_t &gt; &gt;, std::vector&lt; bool &gt; &gt;</td></tr>
+<tr class="memdesc:aaf77345b065430d3d3e314ba22e2e2d0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type representing columnar data storage for a batch.  <br /></td></tr>
 <tr class="separator:aaf77345b065430d3d3e314ba22e2e2d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
@@ -118,10 +119,13 @@ Public Member Functions</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:aa96489eada966b8294d4cc0e950cdbc3" id="r_aa96489eada966b8294d4cc0e950cdbc3"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aa96489eada966b8294d4cc0e950cdbc3">rowCount</a> = 0</td></tr>
+<tr class="memdesc:aa96489eada966b8294d4cc0e950cdbc3"><td class="mdescLeft">&#160;</td><td class="mdescRight">The number of rows in the batch.  <br /></td></tr>
 <tr class="separator:aa96489eada966b8294d4cc0e950cdbc3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1a559075b50164931be938bfc03615d7" id="r_a1a559075b50164931be938bfc03615d7"><td class="memItemLeft" align="right" valign="top">std::vector&lt; ColumnData &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#a1a559075b50164931be938bfc03615d7">columns</a></td></tr>
+<tr class="memitem:a1a559075b50164931be938bfc03615d7" id="r_a1a559075b50164931be938bfc03615d7"><td class="memItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="../../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aaf77345b065430d3d3e314ba22e2e2d0">ColumnData</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#a1a559075b50164931be938bfc03615d7">columns</a></td></tr>
+<tr class="memdesc:a1a559075b50164931be938bfc03615d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">The column data arrays.  <br /></td></tr>
 <tr class="separator:a1a559075b50164931be938bfc03615d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a074a838190de09219aa9b08ae5a931db" id="r_a074a838190de09219aa9b08ae5a931db"><td class="memItemLeft" align="right" valign="top">std::vector&lt; std::vector&lt; bool &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#a074a838190de09219aa9b08ae5a931db">nullIndicators</a></td></tr>
+<tr class="memdesc:a074a838190de09219aa9b08ae5a931db"><td class="mdescLeft">&#160;</td><td class="mdescRight">Null indicators for each column, parallel to columns.  <br /></td></tr>
 <tr class="separator:a074a838190de09219aa9b08ae5a931db"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -136,12 +140,14 @@ Public Attributes</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">using Lightweight::SqlBackup::ColumnBatch::ColumnData =  std::variant&lt;std::monostate, std::vector&lt;int64_t&gt;, std::vector&lt;double&gt;, std::vector&lt;std::string&gt;, std::vector&lt;std::vector&lt;uint8_t&gt; &gt;, std::vector&lt;bool&gt; &gt;</td>
+          <td class="memname">using <a class="el" href="../../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aaf77345b065430d3d3e314ba22e2e2d0">Lightweight::SqlBackup::ColumnBatch::ColumnData</a> =  std::variant&lt;std::monostate, std::vector&lt;int64_t&gt;, std::vector&lt;double&gt;, std::vector&lt;std::string&gt;, std::vector&lt;std::vector&lt;uint8_t&gt; &gt;, std::vector&lt;bool&gt; &gt;</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00027">27</a> of file <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html">SqlBackupFormats.hpp</a>.</p>
+<p>Type representing columnar data storage for a batch. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00028">28</a> of file <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html">SqlBackupFormats.hpp</a>.</p>
 
 </div>
 </div>
@@ -171,7 +177,9 @@ Public Attributes</h2></td></tr>
 
 <p>Clears the internal buffer after a flush and releases memory. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html">SqlBackupFormats.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00044">44</a> of file <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html">SqlBackupFormats.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00039">columns</a>, <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00041">nullIndicators</a>, and <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00037">rowCount</a>.</p>
 
 </div>
 </div>
@@ -188,7 +196,11 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00035">35</a> of file <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html">SqlBackupFormats.hpp</a>.</p>
+<p>The number of rows in the batch. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html">SqlBackupFormats.hpp</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00044">Clear()</a>.</p>
 
 </div>
 </div>
@@ -199,12 +211,16 @@ Public Attributes</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">std::vector&lt;ColumnData&gt; Lightweight::SqlBackup::ColumnBatch::columns</td>
+          <td class="memname">std::vector&lt;<a class="el" href="../../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aaf77345b065430d3d3e314ba22e2e2d0">ColumnData</a>&gt; Lightweight::SqlBackup::ColumnBatch::columns</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00036">36</a> of file <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html">SqlBackupFormats.hpp</a>.</p>
+<p>The column data arrays. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00039">39</a> of file <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html">SqlBackupFormats.hpp</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00044">Clear()</a>.</p>
 
 </div>
 </div>
@@ -220,7 +236,11 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html">SqlBackupFormats.hpp</a>.</p>
+<p>Null indicators for each column, parallel to columns. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00041">41</a> of file <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html">SqlBackupFormats.hpp</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../d0/d18/SqlBackupFormats_8hpp_source.html#l00044">Clear()</a>.</p>
 
 </div>
 </div>

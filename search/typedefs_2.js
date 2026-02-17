@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['innertype_0',['InnerType',['../df/d3f/structLightweight_1_1SqlVariant.html#a2159a23a1405bd28c3faf04c19cf6f0c',1,'Lightweight::SqlVariant']]],
-  ['iterator_1',['iterator',['../da/df4/classLightweight_1_1HasMany.html#a4208c7230c0ba0e12997bf6c2ce0775c',1,'Lightweight::HasMany']]]
+  ['duration_5ftype_0',['duration_type',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a864ea837f4bd552b8b2b640a32dc4cd4',1,'Lightweight::SqlDateTime']]]
 ];

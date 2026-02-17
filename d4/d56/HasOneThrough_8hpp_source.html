@@ -163,64 +163,66 @@ $(document).ready(function(){initNavTree('d4/d56/HasOneThrough_8hpp_source.html'
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="comment">    /// @note On-demand loads the record if it is not already loaded.</span></div>
 <div class="line"><a id="l00063" name="l00063"></a><span class="lineno"><a class="line" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a88e0758eca25880d871ce71459df1684">   63</a></span><span class="comment"></span>    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE <span class="keyword">constexpr</span> <a class="code hl_typedef" href="../../df/d63/classLightweight_1_1HasOneThrough.html#addf0d59cd5a9403b6fac56a00c340ad9">ReferencedRecord</a> <span class="keyword">const</span>* <a class="code hl_function" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a88e0758eca25880d871ce71459df1684">operator-&gt;</a>() const noexcept { RequireLoaded(); <span class="keywordflow">return</span> &amp;_record.get(); }</div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>    <span class="comment">// clang-format on</span></div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span> </div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>    std::weak_ordering operator&lt;=&gt;(<a class="code hl_class" href="../../df/d63/classLightweight_1_1HasOneThrough.html">HasOneThrough</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span> = <span class="keywordflow">default</span>;</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span> </div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    <span class="keyword">struct </span>Loader</div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    {</div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>        std::function&lt;void()&gt; loadReference {};</div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>    };</div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="comment"></span> </div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="comment">    /// Used internally to configure on-demand loading of the record.</span></div>
-<div class="foldopen" id="foldopen00074" data-start="{" data-end="}">
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno"><a class="line" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af4d6a310537dbf2367da7a1aef991843">   74</a></span><span class="comment"></span>    <span class="keywordtype">void</span> <a class="code hl_function" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af4d6a310537dbf2367da7a1aef991843">SetAutoLoader</a>(Loader loader)</div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>    {</div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>        _loader = std::move(loader);</div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>    }</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="comment"></span> </div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="comment">    /// Default three-way comparison operator.</span></div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno"><a class="line" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a52ac9b1979bffb475fdc3844b6ef60a2">   67</a></span><span class="comment"></span>    std::weak_ordering <a class="code hl_function" href="../../df/d63/classLightweight_1_1HasOneThrough.html#a52ac9b1979bffb475fdc3844b6ef60a2">operator&lt;=&gt;</a>(<a class="code hl_class" href="../../df/d63/classLightweight_1_1HasOneThrough.html">HasOneThrough</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span> = <span class="keywordflow">default</span>;</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span> </div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    <span class="keyword">struct </span>Loader</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>    {</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>        std::function&lt;void()&gt; loadReference {};</div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>    };</div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="comment"></span> </div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><span class="comment">    /// Used internally to configure on-demand loading of the record.</span></div>
+<div class="foldopen" id="foldopen00075" data-start="{" data-end="}">
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno"><a class="line" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af4d6a310537dbf2367da7a1aef991843">   75</a></span><span class="comment"></span>    <span class="keywordtype">void</span> <a class="code hl_function" href="../../df/d63/classLightweight_1_1HasOneThrough.html#af4d6a310537dbf2367da7a1aef991843">SetAutoLoader</a>(Loader loader)</div>
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>    {</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>        _loader = std::move(loader);</div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>    }</div>
 </div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span> </div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>    <span class="keywordtype">void</span> RequireLoaded()<span class="keyword"> const</span></div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>        <span class="keywordflow">if</span> (<a class="code hl_function" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ad1c8894f124db4b45117abafe918e51f">IsLoaded</a>())</div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>            <span class="keywordflow">return</span>;</div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>        <span class="keywordflow">if</span> (_loader.loadReference)</div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>            _loader.loadReference();</div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span> </div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>        <span class="keywordflow">if</span> (!<a class="code hl_function" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ad1c8894f124db4b45117abafe918e51f">IsLoaded</a>())</div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>            <span class="keywordflow">throw</span> <a class="code hl_class" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html">SqlRequireLoadedError</a> { Reflection::TypeNameOf&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(*this)&gt;&gt; };</div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>    }</div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span> </div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>    Loader _loader {};</div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span> </div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>    <span class="comment">// We use shared_ptr to not require ReferencedRecord to be declared before HasOneThrough.</span></div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>    std::shared_ptr&lt;ReferencedRecord&gt; _record {};</div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>};</div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span> </div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>    <span class="keywordtype">void</span> RequireLoaded()<span class="keyword"> const</span></div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="keyword">    </span>{</div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>        <span class="keywordflow">if</span> (<a class="code hl_function" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ad1c8894f124db4b45117abafe918e51f">IsLoaded</a>())</div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>            <span class="keywordflow">return</span>;</div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span> </div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>        <span class="keywordflow">if</span> (_loader.loadReference)</div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>            _loader.loadReference();</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>        <span class="keywordflow">if</span> (!<a class="code hl_function" href="../../df/d63/classLightweight_1_1HasOneThrough.html#ad1c8894f124db4b45117abafe918e51f">IsLoaded</a>())</div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>            <span class="keywordflow">throw</span> <a class="code hl_class" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html">SqlRequireLoadedError</a> { Reflection::TypeNameOf&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(*this)&gt;&gt; };</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>    }</div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span> </div>
+<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>    Loader _loader {};</div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span> </div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>    <span class="comment">// We use shared_ptr to not require ReferencedRecord to be declared before HasOneThrough.</span></div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>    std::shared_ptr&lt;ReferencedRecord&gt; _record {};</div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>};</div>
 </div>
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span> </div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span><span class="keyword">namespace </span>detail</div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>{</div>
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>    <span class="keyword">struct </span>IsHasOneThrough: std::false_type</div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>    {</div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>    };</div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span> </div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherTable, <span class="keyword">typename</span> ThroughTable&gt;</div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>    <span class="keyword">struct </span>IsHasOneThrough&lt;HasOneThrough&lt;OtherTable, ThroughTable&gt;&gt;: std::true_type</div>
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>    {</div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>    };</div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>} <span class="comment">// namespace detail</span></div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span> </div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsHasOneThrough = detail::IsHasOneThrough&lt;std::remove_cvref_t&lt;T&gt;&gt;::value;</div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span> </div>
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span> </div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span><span class="keyword">namespace </span>detail</div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>{</div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>    <span class="keyword">struct </span>IsHasOneThrough: std::false_type</div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>    {</div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>    };</div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span> </div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> OtherTable, <span class="keyword">typename</span> ThroughTable&gt;</div>
+<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>    <span class="keyword">struct </span>IsHasOneThrough&lt;HasOneThrough&lt;OtherTable, ThroughTable&gt;&gt;: std::true_type</div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>    {</div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>    };</div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>} <span class="comment">// namespace detail</span></div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span> </div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span><span class="keyword">constexpr</span> <span class="keywordtype">bool</span> IsHasOneThrough = detail::IsHasOneThrough&lt;std::remove_cvref_t&lt;T&gt;&gt;::value;</div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span> </div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1HasOneThrough_html"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html">Lightweight::HasOneThrough</a></div><div class="ttdoc">Represents a one-to-one relationship through a join table.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00023">HasOneThrough.hpp:24</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_a16c477f0cc163b1d87c0dabf694baab6"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#a16c477f0cc163b1d87c0dabf694baab6">Lightweight::HasOneThrough::EmplaceRecord</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr void EmplaceRecord(std::shared_ptr&lt; ReferencedRecord &gt; record)</div><div class="ttdoc">Emplaces the given record into this relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00035">HasOneThrough.hpp:35</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_a30da30b50381dcdcb372de5f94e118e1"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#a30da30b50381dcdcb372de5f94e118e1">Lightweight::HasOneThrough::Unload</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE void Unload() noexcept</div><div class="ttdoc">Unloads the record from memory.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00047">HasOneThrough.hpp:47</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_a421d422e4001389bdb7bbf57d04ba721"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#a421d422e4001389bdb7bbf57d04ba721">Lightweight::HasOneThrough::operator-&gt;</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord * operator-&gt;() noexcept</div><div class="ttdoc">Retrieves the record in this relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00059">HasOneThrough.hpp:59</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_a47e480103465ea8e383d1eab435cd407"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#a47e480103465ea8e383d1eab435cd407">Lightweight::HasOneThrough::ThroughRecord</a></div><div class="ttdeci">ThroughTable ThroughRecord</div><div class="ttdoc">The record type of the &quot;through&quot; side of the relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00027">HasOneThrough.hpp:27</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_a52ac9b1979bffb475fdc3844b6ef60a2"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#a52ac9b1979bffb475fdc3844b6ef60a2">Lightweight::HasOneThrough::operator&lt;=&gt;</a></div><div class="ttdeci">std::weak_ordering operator&lt;=&gt;(HasOneThrough const &amp;other) const noexcept=default</div><div class="ttdoc">Default three-way comparison operator.</div></div>
 <div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_a659d1310f8a9b7ae436fd920c88bdec9"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#a659d1310f8a9b7ae436fd920c88bdec9">Lightweight::HasOneThrough::operator*</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord &amp; operator*() noexcept</div><div class="ttdoc">Retrieves the record in this relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00051">HasOneThrough.hpp:51</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_a6725a1e4bcdba50861bcf944de59370a"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#a6725a1e4bcdba50861bcf944de59370a">Lightweight::HasOneThrough::Record</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord &amp; Record() noexcept</div><div class="ttdoc">Retrieves the record in this relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00038">HasOneThrough.hpp:38</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_a85482fc436b647aeb804d59f246afb2f"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#a85482fc436b647aeb804d59f246afb2f">Lightweight::HasOneThrough::operator*</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const &amp; operator*() const noexcept</div><div class="ttdoc">Retrieves the record in this relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00055">HasOneThrough.hpp:55</a></div></div>
@@ -228,7 +230,7 @@ $(document).ready(function(){initNavTree('d4/d56/HasOneThrough_8hpp_source.html'
 <div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_ad1c8894f124db4b45117abafe918e51f"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#ad1c8894f124db4b45117abafe918e51f">Lightweight::HasOneThrough::IsLoaded</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr bool IsLoaded() const noexcept</div><div class="ttdoc">Checks if the record is loaded.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00044">HasOneThrough.hpp:44</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_addf0d59cd5a9403b6fac56a00c340ad9"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#addf0d59cd5a9403b6fac56a00c340ad9">Lightweight::HasOneThrough::ReferencedRecord</a></div><div class="ttdeci">OtherTable ReferencedRecord</div><div class="ttdoc">The record type of the &quot;Other&quot; side of the relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00030">HasOneThrough.hpp:30</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_ae492b111cd0d54d642a2e507b1217350"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#ae492b111cd0d54d642a2e507b1217350">Lightweight::HasOneThrough::Record</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const &amp; Record() const noexcept</div><div class="ttdoc">Retrieves the record in this relationship.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00041">HasOneThrough.hpp:41</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_af4d6a310537dbf2367da7a1aef991843"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#af4d6a310537dbf2367da7a1aef991843">Lightweight::HasOneThrough::SetAutoLoader</a></div><div class="ttdeci">void SetAutoLoader(Loader loader)</div><div class="ttdoc">Used internally to configure on-demand loading of the record.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00074">HasOneThrough.hpp:74</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1HasOneThrough_html_af4d6a310537dbf2367da7a1aef991843"><div class="ttname"><a href="../../df/d63/classLightweight_1_1HasOneThrough.html#af4d6a310537dbf2367da7a1aef991843">Lightweight::HasOneThrough::SetAutoLoader</a></div><div class="ttdeci">void SetAutoLoader(Loader loader)</div><div class="ttdoc">Used internally to configure on-demand loading of the record.</div><div class="ttdef"><b>Definition</b> <a href="../../d4/d56/HasOneThrough_8hpp_source.html#l00075">HasOneThrough.hpp:75</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlRequireLoadedError_html"><div class="ttname"><a href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html">Lightweight::SqlRequireLoadedError</a></div><div class="ttdoc">Represents an error when a record is required to be loaded but is not.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d93/Error_8hpp_source.html#l00015">Error.hpp:16</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->

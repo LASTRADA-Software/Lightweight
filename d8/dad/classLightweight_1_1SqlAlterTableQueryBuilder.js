@@ -1,5 +1,6 @@
 var classLightweight_1_1SqlAlterTableQueryBuilder =
 [
+    [ "SqlAlterTableQueryBuilder", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a9c3c1b5cb5b8da71933fe5cab6b26d26", null ],
     [ "RenameTo", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a6e0eeeeba9bd5ca1435b8578f42b12b8", null ],
     [ "AddColumn", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a4347ff4409d155c9ffb5c8681a45362d", null ],
     [ "AddColumn", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html#a6437160bc09efd8f9cc2be6780ce9d72", null ],

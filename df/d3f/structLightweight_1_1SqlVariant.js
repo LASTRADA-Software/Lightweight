@@ -30,9 +30,13 @@ var structLightweight_1_1SqlVariant =
     [ "TryGetLongLong", "df/d3f/structLightweight_1_1SqlVariant.html#aedbb7d758d17b73225e57ae5e958acdc", null ],
     [ "TryGetULongLong", "df/d3f/structLightweight_1_1SqlVariant.html#a0554153abf1859d854b5ea865c53bd4e", null ],
     [ "TryGetStringView", "df/d3f/structLightweight_1_1SqlVariant.html#a35fad0a0c13e0e56c3411d9ec848d621", null ],
+    [ "TryGetUtf16StringView", "df/d3f/structLightweight_1_1SqlVariant.html#a47da546ef106f041ebca07e78c05dee0", null ],
     [ "TryGetDate", "df/d3f/structLightweight_1_1SqlVariant.html#ac5c1e9628e855853ed821e1d864830fc", null ],
+    [ "operator==", "df/d3f/structLightweight_1_1SqlVariant.html#ac56a0ae596c54d4a501ae1e849835654", null ],
+    [ "operator!=", "df/d3f/structLightweight_1_1SqlVariant.html#a4389e8e3e21e3dd3aa5ed4d3df855e52", null ],
     [ "TryGetTime", "df/d3f/structLightweight_1_1SqlVariant.html#a9d315a730b44cf9db2840803e2bbb8ca", null ],
     [ "TryGetDateTime", "df/d3f/structLightweight_1_1SqlVariant.html#a118c7ea1064e337ea3a7af5296f3dd4d", null ],
     [ "TryGetGuid", "df/d3f/structLightweight_1_1SqlVariant.html#a2be73331793cddcd6795abfeda4ec4dd", null ],
-    [ "ToString", "df/d3f/structLightweight_1_1SqlVariant.html#a04b24b9c04888b9b4d3f550c96f8bc29", null ]
+    [ "ToString", "df/d3f/structLightweight_1_1SqlVariant.html#a04b24b9c04888b9b4d3f550c96f8bc29", null ],
+    [ "value", "df/d3f/structLightweight_1_1SqlVariant.html#a4f64e61f01ab290315362b696a6d7f90", null ]
 ];

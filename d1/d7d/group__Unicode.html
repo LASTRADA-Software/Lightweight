@@ -123,11 +123,9 @@ requires std::same_as&lt;T, char32_t&gt; || (std::same_as&lt;T, wchar_t&gt; &amp
 <tr class="memitem:ga7185a14aa1e28912448d3c7dc27afd5b" id="r_ga7185a14aa1e28912448d3c7dc27afd5b"><td class="memTemplParams" colspan="2">template&lt;typename T  = std::u32string&gt; </td></tr>
 <tr class="memitem:ga7185a14aa1e28912448d3c7dc27afd5b"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#ga7185a14aa1e28912448d3c7dc27afd5b">Lightweight::ToUtf32</a> (std::u16string_view u16InputString)</td></tr>
 <tr class="separator:ga7185a14aa1e28912448d3c7dc27afd5b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae624ec6c44dd0598fba20b67ff1fd6c5" id="r_gae624ec6c44dd0598fba20b67ff1fd6c5"><td class="memItemLeft" align="right" valign="top"><a id="gae624ec6c44dd0598fba20b67ff1fd6c5" name="gae624ec6c44dd0598fba20b67ff1fd6c5"></a>
-LIGHTWEIGHT_API std::wstring&#160;</td><td class="memItemRight" valign="bottom"><b>Lightweight::ToStdWideString</b> (std::u8string_view u8InputString)</td></tr>
+<tr class="memitem:gae624ec6c44dd0598fba20b67ff1fd6c5" id="r_gae624ec6c44dd0598fba20b67ff1fd6c5"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::wstring&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#gae624ec6c44dd0598fba20b67ff1fd6c5">Lightweight::ToStdWideString</a> (std::u8string_view u8InputString)</td></tr>
 <tr class="separator:gae624ec6c44dd0598fba20b67ff1fd6c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga2e8d680b779d3c6c66521ca29632f44a" id="r_ga2e8d680b779d3c6c66521ca29632f44a"><td class="memItemLeft" align="right" valign="top"><a id="ga2e8d680b779d3c6c66521ca29632f44a" name="ga2e8d680b779d3c6c66521ca29632f44a"></a>
-LIGHTWEIGHT_API std::wstring&#160;</td><td class="memItemRight" valign="bottom"><b>Lightweight::ToStdWideString</b> (std::string const &amp;localeInputString)</td></tr>
+<tr class="memitem:ga2e8d680b779d3c6c66521ca29632f44a" id="r_ga2e8d680b779d3c6c66521ca29632f44a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::wstring&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#ga2e8d680b779d3c6c66521ca29632f44a">Lightweight::ToStdWideString</a> (std::string const &amp;localeInputString)</td></tr>
 <tr class="separator:ga2e8d680b779d3c6c66521ca29632f44a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gae6ae48e9907829b2807887536ab3b45a" id="r_gae6ae48e9907829b2807887536ab3b45a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#gae6ae48e9907829b2807887536ab3b45a">Lightweight::ConvertWindows1252ToUtf8</a> (std::string_view input)</td></tr>
 <tr class="separator:gae6ae48e9907829b2807887536ab3b45a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -314,6 +312,44 @@ template&lt;typename T  = std::u32string&gt; </div>
 <p>Converts from UTF-16 to UTF-32. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00279">279</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="gae624ec6c44dd0598fba20b67ff1fd6c5" name="gae624ec6c44dd0598fba20b67ff1fd6c5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gae624ec6c44dd0598fba20b67ff1fd6c5">&#9670;&#160;</a></span>ToStdWideString() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API std::wstring Lightweight::ToStdWideString </td>
+          <td>(</td>
+          <td class="paramtype">std::u8string_view&#160;</td>
+          <td class="paramname"><em>u8InputString</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Converts a UTF-8 string to wchar_t-based wide string. </p>
+
+</div>
+</div>
+<a id="ga2e8d680b779d3c6c66521ca29632f44a" name="ga2e8d680b779d3c6c66521ca29632f44a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga2e8d680b779d3c6c66521ca29632f44a">&#9670;&#160;</a></span>ToStdWideString() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API std::wstring Lightweight::ToStdWideString </td>
+          <td>(</td>
+          <td class="paramtype">std::string const &amp;&#160;</td>
+          <td class="paramname"><em>localeInputString</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Converts a local 8-bit string to wchar_t-based wide string. </p>
 
 </div>
 </div>

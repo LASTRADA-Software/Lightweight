@@ -94,7 +94,7 @@ $(document).ready(function(){initNavTree('d3/ded/structLightweight_1_1SqlMigrati
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="../../d9/df1/structLightweight_1_1SqlMigrationPlan-members.html">List of all members</a>  </div>
-  <div class="headertitle"><div class="title">Lightweight::SqlMigrationPlan Struct Reference</div></div>
+  <div class="headertitle"><div class="title">Lightweight::SqlMigrationPlan Struct Reference<div class="ingroups"><a class="el" href="../../d6/daa/group__QueryBuilder.html">Query Builder</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -107,20 +107,23 @@ $(document).ready(function(){initNavTree('d3/ded/structLightweight_1_1SqlMigrati
 Public Member Functions</h2></td></tr>
 <tr class="memitem:af68f6e6d4328db95b59ada75a24f17f3" id="r_af68f6e6d4328db95b59ada75a24f17f3"><td class="memItemLeft" align="right" valign="top"><a id="af68f6e6d4328db95b59ada75a24f17f3" name="af68f6e6d4328db95b59ada75a24f17f3"></a>
 LIGHTWEIGHT_API std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ToSql</b> () const</td></tr>
+<tr class="memdesc:af68f6e6d4328db95b59ada75a24f17f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the migration plan to a list of SQL statements. <br /></td></tr>
 <tr class="separator:af68f6e6d4328db95b59ada75a24f17f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a1125d9bd0e213d69685b1a6deb03398e" id="r_a1125d9bd0e213d69685b1a6deb03398e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const  &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/ded/structLightweight_1_1SqlMigrationPlan.html#a1125d9bd0e213d69685b1a6deb03398e">formatter</a></td></tr>
+<tr class="memdesc:a1125d9bd0e213d69685b1a6deb03398e"><td class="mdescLeft">&#160;</td><td class="mdescRight">The SQL query formatter to use.  <br /></td></tr>
 <tr class="separator:a1125d9bd0e213d69685b1a6deb03398e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa0f9b688696f6d9a0c8b46695ca501f1" id="r_aa0f9b688696f6d9a0c8b46695ca501f1"><td class="memItemLeft" align="right" valign="top">std::vector&lt; SqlMigrationPlanElement &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/ded/structLightweight_1_1SqlMigrationPlan.html#aa0f9b688696f6d9a0c8b46695ca501f1">steps</a> {}</td></tr>
+<tr class="memitem:aa0f9b688696f6d9a0c8b46695ca501f1" id="r_aa0f9b688696f6d9a0c8b46695ca501f1"><td class="memItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="../../d6/daa/group__QueryBuilder.html#gace7448ea30e7d08a6417adef1c6edc6e">SqlMigrationPlanElement</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/ded/structLightweight_1_1SqlMigrationPlan.html#aa0f9b688696f6d9a0c8b46695ca501f1">steps</a> {}</td></tr>
+<tr class="memdesc:aa0f9b688696f6d9a0c8b46695ca501f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">The migration plan steps.  <br /></td></tr>
 <tr class="separator:aa0f9b688696f6d9a0c8b46695ca501f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a SQL migration plan. </p>
 <p>This structure represents a SQL migration plan that can be executed on a database. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00542">542</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00547">547</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a1125d9bd0e213d69685b1a6deb03398e" name="a1125d9bd0e213d69685b1a6deb03398e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1125d9bd0e213d69685b1a6deb03398e">&#9670;&#160;</a></span>formatter</h2>
@@ -134,7 +137,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00544">544</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p>The SQL query formatter to use. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00550">550</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -145,12 +150,14 @@ Public Attributes</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">std::vector&lt;SqlMigrationPlanElement&gt; Lightweight::SqlMigrationPlan::steps {}</td>
+          <td class="memname">std::vector&lt;<a class="el" href="../../d6/daa/group__QueryBuilder.html#gace7448ea30e7d08a6417adef1c6edc6e">SqlMigrationPlanElement</a>&gt; Lightweight::SqlMigrationPlan::steps {}</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00545">545</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p>The migration plan steps. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00552">552</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>

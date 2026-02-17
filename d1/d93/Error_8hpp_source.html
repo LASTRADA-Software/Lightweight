@@ -115,16 +115,20 @@ $(document).ready(function(){initNavTree('d1/d93/Error_8hpp_source.html','../../
 <div class="foldopen" id="foldopen00015" data-start="{" data-end="};">
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno"><a class="line" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html">   15</a></span><span class="comment"></span><span class="keyword">class </span><a class="code hl_class" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html">SqlRequireLoadedError</a>: <span class="keyword">public</span> std::runtime_error</div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span>{</div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>  <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>    <span class="keyword">explicit</span> <a class="code hl_class" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html">SqlRequireLoadedError</a>(std::string_view columnType):</div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>        std::runtime_error(std::format(<span class="stringliteral">&quot;Could not load the data record: {}&quot;</span>, columnType))</div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>    {</div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>    }</div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>};</div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>  <span class="keyword">public</span>:<span class="comment"></span></div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment">    /// Constructs the error with the name of the column type that failed to load.</span></div>
+<div class="foldopen" id="foldopen00019" data-start="{" data-end="}">
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno"><a class="line" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html#a96304f8f159d5cdd3ef3a0065a464ca2">   19</a></span><span class="comment"></span>    <span class="keyword">explicit</span> <a class="code hl_function" href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html#a96304f8f159d5cdd3ef3a0065a464ca2">SqlRequireLoadedError</a>(std::string_view columnType):</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>        std::runtime_error(std::format(<span class="stringliteral">&quot;Could not load the data record: {}&quot;</span>, columnType))</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>    {</div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>    }</div>
 </div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span> </div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>};</div>
+</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span> </div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1SqlRequireLoadedError_html"><div class="ttname"><a href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html">Lightweight::SqlRequireLoadedError</a></div><div class="ttdoc">Represents an error when a record is required to be loaded but is not.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d93/Error_8hpp_source.html#l00015">Error.hpp:16</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlRequireLoadedError_html_a96304f8f159d5cdd3ef3a0065a464ca2"><div class="ttname"><a href="../../da/df2/classLightweight_1_1SqlRequireLoadedError.html#a96304f8f159d5cdd3ef3a0065a464ca2">Lightweight::SqlRequireLoadedError::SqlRequireLoadedError</a></div><div class="ttdeci">SqlRequireLoadedError(std::string_view columnType)</div><div class="ttdoc">Constructs the error with the name of the column type that failed to load.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d93/Error_8hpp_source.html#l00019">Error.hpp:19</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

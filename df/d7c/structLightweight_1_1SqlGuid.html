@@ -105,14 +105,19 @@ $(document).ready(function(){initNavTree('df/d7c/structLightweight_1_1SqlGuid.ht
 Public Member Functions</h2></td></tr>
 <tr class="memitem:ae7573accb00b48a05d2b8085f14483c5" id="r_ae7573accb00b48a05d2b8085f14483c5"><td class="memItemLeft" align="right" valign="top"><a id="ae7573accb00b48a05d2b8085f14483c5" name="ae7573accb00b48a05d2b8085f14483c5"></a>
 constexpr std::weak_ordering&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;=&gt;</b> (<a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a> const &amp;other) const noexcept=default</td></tr>
+<tr class="memdesc:ae7573accb00b48a05d2b8085f14483c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Three-way comparison operator. <br /></td></tr>
 <tr class="separator:ae7573accb00b48a05d2b8085f14483c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3cf0cf7460e1bf1ac7e36b6153941544" id="r_a3cf0cf7460e1bf1ac7e36b6153941544"><td class="memItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html#a3cf0cf7460e1bf1ac7e36b6153941544">operator==</a> (<a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a> const &amp;other) const noexcept</td></tr>
+<tr class="memdesc:a3cf0cf7460e1bf1ac7e36b6153941544"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equality comparison operator.  <br /></td></tr>
 <tr class="separator:a3cf0cf7460e1bf1ac7e36b6153941544"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1927d5c3a5abada31a6f812f0c96d103" id="r_a1927d5c3a5abada31a6f812f0c96d103"><td class="memItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html#a1927d5c3a5abada31a6f812f0c96d103">operator!=</a> (<a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a> const &amp;other) const noexcept</td></tr>
+<tr class="memdesc:a1927d5c3a5abada31a6f812f0c96d103"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inequality comparison operator.  <br /></td></tr>
 <tr class="separator:a1927d5c3a5abada31a6f812f0c96d103"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a938d38326b32d8949207090b1fca26d0" id="r_a938d38326b32d8949207090b1fca26d0"><td class="memItemLeft" align="right" valign="top">constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html#a938d38326b32d8949207090b1fca26d0">operator bool</a> () const noexcept</td></tr>
+<tr class="memdesc:a938d38326b32d8949207090b1fca26d0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Tests if the GUID is non-empty.  <br /></td></tr>
 <tr class="separator:a938d38326b32d8949207090b1fca26d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a725a19be99e81a3c3a478777cc048422" id="r_a725a19be99e81a3c3a478777cc048422"><td class="memItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html#a725a19be99e81a3c3a478777cc048422">operator!</a> () const noexcept</td></tr>
+<tr class="memdesc:a725a19be99e81a3c3a478777cc048422"><td class="mdescLeft">&#160;</td><td class="mdescRight">Tests if the GUID is empty.  <br /></td></tr>
 <tr class="separator:a725a19be99e81a3c3a478777cc048422"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
@@ -132,6 +137,7 @@ static std::optional&lt; <a class="el" href="../../df/d7c/structLightweight_1_1S
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:abc3fab606715de2437552cc0f585359e" id="r_abc3fab606715de2437552cc0f585359e"><td class="memItemLeft" align="right" valign="top">uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html#abc3fab606715de2437552cc0f585359e">data</a> [16] {}</td></tr>
+<tr class="memdesc:abc3fab606715de2437552cc0f585359e"><td class="mdescLeft">&#160;</td><td class="mdescRight">The raw GUID data bytes.  <br /></td></tr>
 <tr class="separator:abc3fab606715de2437552cc0f585359e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -165,7 +171,7 @@ Public Attributes</h2></td></tr>
 
 <p>Parses a GUID from a string. Use with caution and always prefer TryParse at all cost. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00057">57</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00061">61</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
 
 </div>
 </div>
@@ -193,7 +199,9 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00034">34</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p>Equality comparison operator. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
 
 </div>
 </div>
@@ -207,7 +215,7 @@ Public Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr bool Lightweight::SqlGuid::operator!= </td>
+          <td class="memname">constexpr bool <a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html#a725a19be99e81a3c3a478777cc048422">Lightweight::SqlGuid::operator!</a>= </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a> const &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
@@ -221,7 +229,9 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00039">39</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p>Inequality comparison operator. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00043">43</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
 
 </div>
 </div>
@@ -248,7 +258,9 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00045">45</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p>Tests if the GUID is non-empty. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00049">49</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
 
 </div>
 </div>
@@ -275,7 +287,9 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00051">51</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p>Tests if the GUID is empty. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00055">55</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
 
 </div>
 </div>
@@ -292,7 +306,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00021">21</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
+<p>The raw GUID data bytes. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html#l00022">22</a> of file <a class="el" href="../../d9/dc2/SqlGuid_8hpp_source.html">SqlGuid.hpp</a>.</p>
 
 </div>
 </div>

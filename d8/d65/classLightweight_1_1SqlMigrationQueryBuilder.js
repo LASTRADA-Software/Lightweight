@@ -1,5 +1,7 @@
 var classLightweight_1_1SqlMigrationQueryBuilder =
 [
+    [ "SqlMigrationQueryBuilder", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#acf94f2759fca0c7925114b0608acfba2", null ],
+    [ "WithSchema", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a711667d1ef5b5b5a168aa21b2150a394", null ],
     [ "CreateDatabase", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#affdfdca7abe4cc98091837f185c55f4c", null ],
     [ "DropDatabase", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#ad329c2ef7e306dee1f21351e264ad412", null ],
     [ "CreateTable", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a09624a9cd55e3d64955ca8d5b4344c37", null ],

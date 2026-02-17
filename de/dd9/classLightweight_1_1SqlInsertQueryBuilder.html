@@ -93,7 +93,7 @@ $(document).ready(function(){initNavTree('de/dd9/classLightweight_1_1SqlInsertQu
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="../../d2/de3/classLightweight_1_1SqlInsertQueryBuilder-members.html">List of all members</a>  </div>
-  <div class="headertitle"><div class="title">Lightweight::SqlInsertQueryBuilder Class Reference<span class="mlabels"><span class="mlabel">final</span></span></div></div>
+  <div class="headertitle"><div class="title">Lightweight::SqlInsertQueryBuilder Class Reference<span class="mlabels"><span class="mlabel">final</span></span><div class="ingroups"><a class="el" href="../../d6/daa/group__QueryBuilder.html">Query Builder</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -105,14 +105,18 @@ $(document).ready(function(){initNavTree('de/dd9/classLightweight_1_1SqlInsertQu
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a56e97e4531a1f7f1fb125397397139df" id="r_a56e97e4531a1f7f1fb125397397139df"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a56e97e4531a1f7f1fb125397397139df">SqlInsertQueryBuilder</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter, std::string tableName, std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; *inputBindings) noexcept</td></tr>
+<tr class="memdesc:a56e97e4531a1f7f1fb125397397139df"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an INSERT query builder.  <br /></td></tr>
 <tr class="separator:a56e97e4531a1f7f1fb125397397139df"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae9dcfc1dd432fa11965fa0315f252bee" id="r_ae9dcfc1dd432fa11965fa0315f252bee"><td class="memTemplParams" colspan="2">template&lt;typename ColumnValue &gt; </td></tr>
 <tr class="memitem:ae9dcfc1dd432fa11965fa0315f252bee"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html">SqlInsertQueryBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#ae9dcfc1dd432fa11965fa0315f252bee">Set</a> (std::string_view columnName, ColumnValue const &amp;value)</td></tr>
+<tr class="memdesc:ae9dcfc1dd432fa11965fa0315f252bee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a single column to the INSERT query.  <br /></td></tr>
 <tr class="separator:ae9dcfc1dd432fa11965fa0315f252bee"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9216791e7f16456f43eb1ad2a74942a8" id="r_a9216791e7f16456f43eb1ad2a74942a8"><td class="memTemplParams" colspan="2">template&lt;std::size_t N&gt; </td></tr>
 <tr class="memitem:a9216791e7f16456f43eb1ad2a74942a8"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html">SqlInsertQueryBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a9216791e7f16456f43eb1ad2a74942a8">Set</a> (std::string_view columnName, char const (&amp;value)[N])</td></tr>
+<tr class="memdesc:a9216791e7f16456f43eb1ad2a74942a8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a single column to the INSERT query with the value being a string literal.  <br /></td></tr>
 <tr class="separator:a9216791e7f16456f43eb1ad2a74942a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a860d9eb4bef46431e061c9a72d4fe8f2" id="r_a860d9eb4bef46431e061c9a72d4fe8f2"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#a860d9eb4bef46431e061c9a72d4fe8f2">ToSql</a> () const</td></tr>
+<tr class="memdesc:a860d9eb4bef46431e061c9a72d4fe8f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finalizes building the query as INSERT INTO ... query.  <br /></td></tr>
 <tr class="separator:a860d9eb4bef46431e061c9a72d4fe8f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -161,7 +165,9 @@ Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/db4/Insert_8hpp_source.html#l00045">45</a> of file <a class="el" href="../../d6/db4/Insert_8hpp_source.html">Insert.hpp</a>.</p>
+<p>Constructs an INSERT query builder. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/db4/Insert_8hpp_source.html#l00046">46</a> of file <a class="el" href="../../d6/db4/Insert_8hpp_source.html">Insert.hpp</a>.</p>
 
 </div>
 </div>
@@ -194,7 +200,13 @@ template&lt;typename ColumnValue &gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/db4/Insert_8hpp_source.html#l00056">56</a> of file <a class="el" href="../../d6/db4/Insert_8hpp_source.html">Insert.hpp</a>.</p>
+<p>Adds a single column to the INSERT query. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/db4/Insert_8hpp_source.html#l00057">57</a> of file <a class="el" href="../../d6/db4/Insert_8hpp_source.html">Insert.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a150a177da7cc5510ebd3f5461b555b4e">Lightweight::SqlQueryFormatter::StringLiteral()</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../d6/db4/Insert_8hpp_source.html#l00099">Set()</a>.</p>
 
 </div>
 </div>
@@ -234,7 +246,11 @@ template&lt;std::size_t N&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/db4/Insert_8hpp_source.html#l00098">98</a> of file <a class="el" href="../../d6/db4/Insert_8hpp_source.html">Insert.hpp</a>.</p>
+<p>Adds a single column to the INSERT query with the value being a string literal. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/db4/Insert_8hpp_source.html#l00099">99</a> of file <a class="el" href="../../d6/db4/Insert_8hpp_source.html">Insert.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d6/db4/Insert_8hpp_source.html#l00057">Set()</a>.</p>
 
 </div>
 </div>
@@ -261,7 +277,11 @@ template&lt;std::size_t N&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/db4/Insert_8hpp_source.html#l00103">103</a> of file <a class="el" href="../../d6/db4/Insert_8hpp_source.html">Insert.hpp</a>.</p>
+<p>Finalizes building the query as INSERT INTO ... query. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/db4/Insert_8hpp_source.html#l00104">104</a> of file <a class="el" href="../../d6/db4/Insert_8hpp_source.html">Insert.hpp</a>.</p>
+
+<p class="reference">References <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#aa82cdee7e05bc78bca8345a4bebea3fd">Lightweight::SqlQueryFormatter::Insert()</a>.</p>
 
 </div>
 </div>
