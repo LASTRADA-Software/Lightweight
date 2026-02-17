@@ -120,7 +120,9 @@ TEST_CASE("CxxModelPrinter: simple table with default settings", "[CxxModelPrint
         // File is automatically generated using ddl2cpp.
         #pragma once
 
+        #if !defined(LIGHTWEIGHT_BUILD_MODULES)
         #include <Lightweight/DataMapper/DataMapper.hpp>
+        #endif
 
         namespace Test
         {
