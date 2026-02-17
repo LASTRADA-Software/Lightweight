@@ -51,7 +51,7 @@ var annotated_dup =
       [ "HasManyThrough", "de/d73/classLightweight_1_1HasManyThrough.html", "de/d73/classLightweight_1_1HasManyThrough" ],
       [ "HasOneThrough", "df/d63/classLightweight_1_1HasOneThrough.html", "df/d63/classLightweight_1_1HasOneThrough" ],
       [ "Pool", "d3/d30/classLightweight_1_1Pool.html", "d3/d30/classLightweight_1_1Pool" ],
-      [ "PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", null ],
+      [ "PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", "df/d1a/structLightweight_1_1PoolConfig" ],
       [ "SqlAllFieldsQueryBuilder", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ],
       [ "SqlAlterTablePlan", "dd/d75/structLightweight_1_1SqlAlterTablePlan.html", "dd/d75/structLightweight_1_1SqlAlterTablePlan" ],
       [ "SqlAlterTableQueryBuilder", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder.html", "d8/dad/classLightweight_1_1SqlAlterTableQueryBuilder" ],

@@ -20,5 +20,6 @@ var searchData=
   ['getresultcursor_17',['GetResultCursor',['../db/dad/classLightweight_1_1SqlStatement.html#a6a00a9d4de7a50e8e8108b5bce77663f',1,'Lightweight::SqlStatement']]],
   ['gettimestamp_18',['GetTimestamp',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e',1,'Lightweight::SqlMigration::MigrationBase']]],
   ['gettitle_19',['GetTitle',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0',1,'Lightweight::SqlMigration::MigrationBase']]],
-  ['getvariantrowcursor_20',['GetVariantRowCursor',['../db/dad/classLightweight_1_1SqlStatement.html#a696b3c702137a05dcad3178bc27113b7',1,'Lightweight::SqlStatement']]]
+  ['getvariantrowcursor_20',['GetVariantRowCursor',['../db/dad/classLightweight_1_1SqlStatement.html#a696b3c702137a05dcad3178bc27113b7',1,'Lightweight::SqlStatement']]],
+  ['growthstrategy_21',['growthStrategy',['../df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f',1,'Lightweight::PoolConfig']]]
 ];

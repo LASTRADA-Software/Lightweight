@@ -82,6 +82,9 @@ var NAVTREEINDEX5 =
 "df/d0f/Pool_8hpp_source.html":[13,0,1,1,8],
 "df/d13/SqlQueryFormatter_8hpp_source.html":[13,0,1,20],
 "df/d1a/structLightweight_1_1PoolConfig.html":[12,0,0,14],
+"df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c":[12,0,0,14,1],
+"df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f":[12,0,0,14,2],
+"df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4":[12,0,0,14,0],
 "df/d25/Customer_8hpp_source.html":[13,0,0,0,0,2],
 "df/d36/Playlist_8hpp_source.html":[13,0,0,0,0,8],
 "df/d3f/structLightweight_1_1SqlVariant.html":[10,0,11],
@@ -181,8 +184,8 @@ var NAVTREEINDEX5 =
 "dir_d70736013bfb52c2769b9815ff9be7e3.html":[13,0,0,0],
 "dir_e931c1a3f0014e624d0645a271726ad2.html":[13,0,0],
 "files.html":[13,0],
-"functions.html":[12,2,0],
 "functions.html":[12,2,0,0],
+"functions.html":[12,2,0],
 "functions_a.html":[12,2,0,1],
 "functions_b.html":[12,2,0,2],
 "functions_c.html":[12,2,0,3],
@@ -246,8 +249,5 @@ var NAVTREEINDEX5 =
 "index.html#generate-example-for-the-existing-database":[0,5],
 "index.html#high-level-api":[0,3],
 "index.html#mapping-query-results-to-a-simple-struct":[0,3,2],
-"index.html#mapping-query-to-multiple-struct":[0,3,3],
-"index.html#namespace":[0,2],
-"index.html#simple-one-record-example":[0,3,0],
-"index.html#sqlite-odbc-driver-installation-on-other-operating-systems":[0,4,0]
+"index.html#mapping-query-to-multiple-struct":[0,3,3]
 };

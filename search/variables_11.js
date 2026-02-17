@@ -1,4 +1,6 @@
 var searchData=
 [
-  ['value_0',['value',['../de/dfe/structLightweight_1_1SqlText.html#a2626f10893b8f4a96e2a6d895a7dd0df',1,'Lightweight::SqlText::value'],['../df/d3f/structLightweight_1_1SqlVariant.html#a4f64e61f01ab290315362b696a6d7f90',1,'Lightweight::SqlVariant::value'],['../de/d6a/structLightweight_1_1SqlConnectionString.html#a82081947777b4ff0ddb767ca5a2c366f',1,'Lightweight::SqlConnectionString::value'],['../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html#a7ff59005141458f049508004b33e77ee',1,'Lightweight::SqlMigration::MigrationTimestamp::value'],['../d7/d13/structLightweight_1_1SqlRealName.html#af23090d1ec3bacb89b9aa4510eb9d42d',1,'Lightweight::SqlRealName::value']]]
+  ['unique_0',['unique',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#ac7edfc2036f6d77ebce95c4a17d39fd8',1,'Lightweight::SqlColumnDeclaration::unique'],['../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#ae9a36b06c089d48e25e896e2e25d0676',1,'Lightweight::SqlCreateIndexPlan::unique']]],
+  ['unknownappliedcount_1',['unknownAppliedCount',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#add9ed9d433afd954d99e936d1d3e0367',1,'Lightweight::SqlMigration::MigrationStatus']]],
+  ['username_2',['username',['../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37',1,'Lightweight::SqlConnectionDataSource']]]
 ];

@@ -102,6 +102,7 @@ $(document).ready(function(){initNavTree('df/d1a/structLightweight_1_1PoolConfig
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a8ff366daa9e0eb6c99e5a1e3fc5ec8d4" id="r_a8ff366daa9e0eb6c99e5a1e3fc5ec8d4"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4">initialSize</a> {}</td></tr>
+<tr class="memdesc:a8ff366daa9e0eb6c99e5a1e3fc5ec8d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initial number of data mappers to pre-create and store in the pool, must be less than or equal to maxSize.  <br /></td></tr>
 <tr class="separator:a8ff366daa9e0eb6c99e5a1e3fc5ec8d4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6a3e753156f65b2aa0ad1fdd0090a72c" id="r_a6a3e753156f65b2aa0ad1fdd0090a72c"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c">maxSize</a> {}</td></tr>
 <tr class="separator:a6a3e753156f65b2aa0ad1fdd0090a72c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -125,7 +126,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00039">39</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p>Initial number of data mappers to pre-create and store in the pool, must be less than or equal to maxSize. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -140,8 +143,9 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Maximum number of data mappers that can exist in the pool, must be greater than or equal to initialSize this is used for the Bounded* strategies to determine when to block or when to stop accepting returned data mappers, for the UnboundedGrow strategy this is ignored </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00044">44</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -156,8 +160,9 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Strategy to determine how the pool should grow when there are no idle data mappers available, default is BoundedWait which blocks until a data mapper is returned to the pool </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00041">41</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00047">47</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>

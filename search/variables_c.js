@@ -1,10 +1,8 @@
 var searchData=
 [
-  ['password_0',['password',['../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709',1,'Lightweight::SqlConnectionDataSource']]],
-  ['pendingcount_1',['pendingCount',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#aad711e9003b262ff1dc9e576dd8e4ef7',1,'Lightweight::SqlMigration::MigrationStatus']]],
-  ['postretrieveoperation_2',['PostRetrieveOperation',['../de/dae/classLightweight_1_1SqlFixedString.html#a1506e367d2dc8f943423c01241a42e66',1,'Lightweight::SqlFixedString']]],
-  ['precision_3',['Precision',['../d6/d1b/structLightweight_1_1SqlNumeric.html#a4d0e788a6bd81554e8afb79cae14c5fa',1,'Lightweight::SqlNumeric']]],
-  ['primarykey_4',['primaryKey',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a64c002c93535164bed683e2a3de11ae7',1,'Lightweight::SqlColumnDeclaration']]],
-  ['primarykeyindex_5',['primaryKeyIndex',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6',1,'Lightweight::SqlColumnDeclaration']]],
-  ['primarykeys_6',['primaryKeys',['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#a887fd3f6aeda2b77532b4ad88c9c9ed3',1,'Lightweight::SqlSchema::Table']]]
+  ['name_0',['name',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a4f44edc807219a6714f522cf31bc4953',1,'Lightweight::SqlColumnDeclaration::name'],['../d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html#a8d75bccd08fdf35b48d793ca62eb0e82',1,'Lightweight::SqlSchema::IndexDefinition::name'],['../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html#a095d9eb7ed4abef29c07a9a563c0da72',1,'Lightweight::SqlSchema::Column::name'],['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#ae37d4398d5efb5c7829fcc3c4117d70e',1,'Lightweight::SqlSchema::Table::name'],['../d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#afb5c349a95c807faa4907c7bb4b08cd0',1,'Lightweight::Zip::EntryInfo::name']]],
+  ['nativeerrorcode_1',['nativeErrorCode',['../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a073c9e1ed64ec6ad89d35571a6c41b21',1,'Lightweight::SqlErrorInfo']]],
+  ['nativevalue_2',['nativeValue',['../d6/d1b/structLightweight_1_1SqlNumeric.html#a1489e18d40ebc20db512bf285719d864',1,'Lightweight::SqlNumeric']]],
+  ['nullable_3',['nullable',['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10',1,'Lightweight::SqlRawColumnMetadata::nullable'],['../dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#a782c413681d6e9b9918c5d4643ccba09',1,'Lightweight::SqlAlterTableCommands::AddColumnIfNotExists::nullable']]],
+  ['nullindicators_4',['nullIndicators',['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#a074a838190de09219aa9b08ae5a931db',1,'Lightweight::SqlBackup::ColumnBatch']]]
 ];

@@ -212,7 +212,7 @@ var NAVTREEINDEX =
 "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a711667d1ef5b5b5a168aa21b2150a394",
 "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html",
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#aa69bce960ab6b67f3a39750799754c4e",
-"index.html#supported-databases"
+"index.html#namespace"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
