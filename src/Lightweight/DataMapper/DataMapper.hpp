@@ -461,8 +461,17 @@ class DataMapper
     template <size_t FieldIndex, typename Record, typename OtherRecord, typename Callable>
     void CallOnHasMany(Record& record, Callable const& callback);
 
+    template <size_t FieldIndex, typename OtherRecord>
+    SqlSelectQueryBuilder BuildHasManySelectQuery();
+
     template <typename ReferencedRecord, typename ThroughRecord, typename Record, typename Callable>
     void CallOnHasManyThrough(Record& record, Callable const& callback);
+
+    template <typename ReferencedRecord, typename ThroughRecord, typename Record, typename PKValue, typename Callable>
+    void CallOnHasManyThroughByPK(PKValue const& pkValue, Callable const& callback);
+
+    template <typename ReferencedRecord, typename ThroughRecord, typename Record, typename PKValue>
+    std::shared_ptr<ReferencedRecord> LoadHasOneThroughByPK(PKValue const& pkValue);
 
     enum class PrimaryKeySource : std::uint8_t
     {
@@ -1329,6 +1338,8 @@ RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
         else
             return RecordPrimaryKeyOf(record).Value();
     }
+
+    return {};
 }
 
 template <typename Record>
@@ -1896,9 +1907,25 @@ void DataMapper::CallOnHasMany(Record& record, Callable const& callback)
                                      }
                                  });
                          })
-                         .Where(FieldNameAt<FieldIndex, ReferencedRecord>, SqlWildcard);
+                         .Where(FieldNameAt<FieldIndex, ReferencedRecord>, SqlWildcard)
+                         .OrderBy(FieldNameAt<RecordPrimaryKeyIndex<ReferencedRecord>, ReferencedRecord>);
         callback(query, primaryKeyField);
     });
+}
+
+template <size_t FieldIndex, typename OtherRecord>
+SqlSelectQueryBuilder DataMapper::BuildHasManySelectQuery()
+{
+    return _connection.Query(RecordTableName<OtherRecord>)
+        .Select()
+        .Build([](auto& q) {
+            Reflection::EnumerateMembers<OtherRecord>([&]<size_t I, typename F>() {
+                if constexpr (FieldWithStorage<F>)
+                    q.Field(FieldNameAt<I, OtherRecord>);
+            });
+        })
+        .Where(FieldNameAt<FieldIndex, OtherRecord>, SqlWildcard)
+        .OrderBy(FieldNameAt<RecordPrimaryKeyIndex<OtherRecord>, OtherRecord>);
 }
 
 template <size_t FieldIndex, typename Record, typename OtherRecord>
@@ -1966,6 +1993,56 @@ void DataMapper::LoadHasOneThrough(Record& record, HasOneThrough<ReferencedRecor
     });
 }
 
+template <typename ReferencedRecord, typename ThroughRecord, typename Record, typename PKValue>
+std::shared_ptr<ReferencedRecord> DataMapper::LoadHasOneThroughByPK(PKValue const& pkValue)
+{
+    static_assert(DataMapperRecord<ThroughRecord>, "ThroughRecord must satisfy DataMapperRecord");
+
+    constexpr size_t PrimaryKeyIndex = RecordPrimaryKeyIndex<Record>;
+    std::shared_ptr<ReferencedRecord> result;
+
+    // Find the BelongsTo of ThroughRecord pointing to the PK of Record
+    CallOnBelongsTo<ThroughRecord>([&]<size_t ThroughBelongsToIndex, typename ThroughBelongsToType>() {
+        // Find the PK of ThroughRecord
+        CallOnPrimaryKey<ThroughRecord>([&]<size_t ThroughPrimaryKeyIndex, typename ThroughPrimaryKeyType>() {
+            // Find the BelongsTo of ReferencedRecord pointing to the PK of ThroughRecord
+            CallOnBelongsTo<ReferencedRecord>([&]<size_t ReferencedKeyIndex, typename ReferencedKeyType>() {
+                auto query =
+                    _connection.Query(RecordTableName<ReferencedRecord>)
+                        .Select()
+                        .Build([&](auto& query) {
+                            Reflection::EnumerateMembers<ReferencedRecord>(
+                                [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
+                                    if constexpr (FieldWithStorage<ReferencedFieldType>)
+                                    {
+                                        query.Field(SqlQualifiedTableColumnName {
+                                            RecordTableName<ReferencedRecord>,
+                                            FieldNameAt<ReferencedFieldIndex, ReferencedRecord> });
+                                    }
+                                });
+                        })
+                        .InnerJoin(RecordTableName<ThroughRecord>,
+                                   FieldNameAt<ThroughPrimaryKeyIndex, ThroughRecord>,
+                                   FieldNameAt<ReferencedKeyIndex, ReferencedRecord>)
+                        .InnerJoin(RecordTableName<Record>,
+                                   FieldNameAt<PrimaryKeyIndex, Record>,
+                                   SqlQualifiedTableColumnName { RecordTableName<ThroughRecord>,
+                                                                 FieldNameAt<ThroughBelongsToIndex, ThroughRecord> })
+                        .Where(
+                            SqlQualifiedTableColumnName {
+                                RecordTableName<Record>,
+                                FieldNameAt<PrimaryKeyIndex, ThroughRecord>,
+                            },
+                            SqlWildcard);
+                if (auto link = QuerySingle<ReferencedRecord>(std::move(query), pkValue); link)
+                    result = std::make_shared<ReferencedRecord>(std::move(*link));
+            });
+        });
+    });
+
+    return result;
+}
+
 template <typename ReferencedRecord, typename ThroughRecord, typename Record, typename Callable>
 void DataMapper::CallOnHasManyThrough(Record& record, Callable const& callback)
 {
@@ -2014,6 +2091,56 @@ void DataMapper::CallOnHasManyThrough(Record& record, Callable const& callback)
                     });
             }
         });
+    });
+}
+
+template <typename ReferencedRecord, typename ThroughRecord, typename Record, typename PKValue, typename Callable>
+void DataMapper::CallOnHasManyThroughByPK(PKValue const& pkValue, Callable const& callback)
+{
+    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+
+    constexpr size_t PrimaryKeyIndex = RecordPrimaryKeyIndex<Record>;
+
+    // Find the BelongsTo of ThroughRecord pointing to the PK of Record
+    CallOnBelongsTo<ThroughRecord>([&]<size_t ThroughBelongsToRecordIndex, typename ThroughBelongsToRecordType>() {
+        using ThroughBelongsToRecordFieldType = Reflection::MemberTypeOf<ThroughBelongsToRecordIndex, ThroughRecord>;
+        if constexpr (std::is_same_v<typename ThroughBelongsToRecordFieldType::ReferencedRecord, Record>)
+        {
+            // Find the BelongsTo of ThroughRecord pointing to the PK of ReferencedRecord
+            CallOnBelongsTo<ThroughRecord>(
+                [&]<size_t ThroughBelongsToReferenceRecordIndex, typename ThroughBelongsToReferenceRecordType>() {
+                    using ThroughBelongsToReferenceRecordFieldType =
+                        Reflection::MemberTypeOf<ThroughBelongsToReferenceRecordIndex, ThroughRecord>;
+                    if constexpr (std::is_same_v<typename ThroughBelongsToReferenceRecordFieldType::ReferencedRecord,
+                                                 ReferencedRecord>)
+                    {
+                        auto query = _connection.Query(RecordTableName<ReferencedRecord>)
+                                         .Select()
+                                         .Build([&](auto& query) {
+                                             Reflection::EnumerateMembers<ReferencedRecord>(
+                                                 [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
+                                                     if constexpr (FieldWithStorage<ReferencedFieldType>)
+                                                     {
+                                                         query.Field(SqlQualifiedTableColumnName {
+                                                             RecordTableName<ReferencedRecord>,
+                                                             FieldNameAt<ReferencedFieldIndex, ReferencedRecord> });
+                                                     }
+                                                 });
+                                         })
+                                         .InnerJoin(RecordTableName<ThroughRecord>,
+                                                    FieldNameAt<ThroughBelongsToReferenceRecordIndex, ThroughRecord>,
+                                                    SqlQualifiedTableColumnName { RecordTableName<ReferencedRecord>,
+                                                                                  FieldNameAt<PrimaryKeyIndex, Record> })
+                                         .Where(
+                                             SqlQualifiedTableColumnName {
+                                                 RecordTableName<ThroughRecord>,
+                                                 FieldNameAt<ThroughBelongsToRecordIndex, ThroughRecord>,
+                                             },
+                                             SqlWildcard);
+                        callback(query, pkValue);
+                    }
+                });
+        }
     });
 }
 
@@ -2176,8 +2303,8 @@ Record& DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
 
     return record;
 }
-
 template <typename Record>
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void DataMapper::ConfigureRelationAutoLoading(Record& record)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
@@ -2192,99 +2319,107 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                 },
             });
         }
-        else if constexpr (IsHasMany<FieldType>)
+        if constexpr (IsHasMany<FieldType>)
         {
-            using ReferencedRecord = FieldType::ReferencedRecord;
-            HasMany<ReferencedRecord>& hasMany = field;
-            hasMany.SetAutoLoader(typename FieldType::Loader {
-                .count = [&record]() -> size_t {
-                    DataMapper& dm = DataMapper::AcquireThreadLocal();
-                    size_t count = 0;
-                    dm.CallOnHasMany<FieldIndex, Record, ReferencedRecord>(
-                        record, [&](SqlSelectQueryBuilder selectQuery, auto const& primaryKeyField) {
-                            dm._stmt.Prepare(selectQuery.Count());
-                            dm._stmt.Execute(primaryKeyField.Value());
-                            if (dm._stmt.FetchRow())
-                                count = dm._stmt.GetColumn<size_t>(1);
-                            dm._stmt.CloseCursor();
-                        });
-                    return count;
-                },
-                .all =
-                    [&record, &hasMany]() {
+            if constexpr (HasPrimaryKey<Record>)
+            {
+                using ReferencedRecord = FieldType::ReferencedRecord;
+                HasMany<ReferencedRecord>& hasMany = field;
+                // Capture the PK value by value to avoid dangling references if the record is moved.
+                auto pkValue = GetPrimaryKeyField(record);
+                hasMany.SetAutoLoader(typename FieldType::Loader {
+                    .count = [pkValue]() -> size_t {
                         DataMapper& dm = DataMapper::AcquireThreadLocal();
-                        dm.LoadHasMany<FieldIndex>(record, hasMany);
+                        auto selectQuery = dm.BuildHasManySelectQuery<FieldIndex, ReferencedRecord>();
+                        dm._stmt.Prepare(selectQuery.Count());
+                        dm._stmt.Execute(pkValue);
+                        size_t count = 0;
+                        if (dm._stmt.FetchRow())
+                            count = dm._stmt.GetColumn<size_t>(1);
+                        dm._stmt.CloseCursor();
+                        return count;
                     },
-                .each =
-                    [&record](auto const& each) {
+                    .all = [pkValue]() -> typename FieldType::ReferencedRecordList {
                         DataMapper& dm = DataMapper::AcquireThreadLocal();
-                        dm.CallOnHasMany<FieldIndex, Record, ReferencedRecord>(
-                            record, [&](SqlSelectQueryBuilder selectQuery, auto const& primaryKeyField) {
-                                auto stmt = SqlStatement { dm._connection };
-                                stmt.Prepare(selectQuery.All());
-                                stmt.Execute(primaryKeyField.Value());
+                        auto selectQuery = dm.BuildHasManySelectQuery<FieldIndex, ReferencedRecord>();
+                        return detail::ToSharedPtrList(dm.Query<ReferencedRecord>(selectQuery.All(), pkValue));
+                    },
+                    .each =
+                        [pkValue](auto const& each) {
+                            DataMapper& dm = DataMapper::AcquireThreadLocal();
+                            auto selectQuery = dm.BuildHasManySelectQuery<FieldIndex, ReferencedRecord>();
+                            auto stmt = SqlStatement { dm._connection };
+                            stmt.Prepare(selectQuery.All());
+                            stmt.Execute(pkValue);
 
-                                auto referencedRecord = ReferencedRecord {};
+                            auto referencedRecord = ReferencedRecord {};
+                            dm.BindOutputColumns(referencedRecord, &stmt);
+                            dm.ConfigureRelationAutoLoading(referencedRecord);
+
+                            while (stmt.FetchRow())
+                            {
+                                each(referencedRecord);
                                 dm.BindOutputColumns(referencedRecord, &stmt);
-                                dm.ConfigureRelationAutoLoading(referencedRecord);
-
-                                while (stmt.FetchRow())
-                                {
-                                    each(referencedRecord);
-                                    dm.BindOutputColumns(referencedRecord, &stmt);
-                                }
-                            });
-                    },
-            });
+                            }
+                        },
+                });
+            }
         }
-        else if constexpr (IsHasOneThrough<FieldType>)
+        if constexpr (IsHasOneThrough<FieldType> && HasPrimaryKey<Record>)
         {
             using ReferencedRecord = FieldType::ReferencedRecord;
             using ThroughRecord = FieldType::ThroughRecord;
             HasOneThrough<ReferencedRecord, ThroughRecord>& hasOneThrough = field;
+            // Capture the PK value by value to avoid dangling references if the record is moved.
+            auto pkValue = GetPrimaryKeyField(record);
             hasOneThrough.SetAutoLoader(typename FieldType::Loader {
-                .loadReference =
-                    [&record, &hasOneThrough]() {
-                        DataMapper& dm = DataMapper::AcquireThreadLocal();
-                        dm.LoadHasOneThrough<ReferencedRecord, ThroughRecord>(record, hasOneThrough);
-                    },
+                .loadReference = [pkValue]() -> std::shared_ptr<ReferencedRecord> {
+                    DataMapper& dm = DataMapper::AcquireThreadLocal();
+                    return dm.LoadHasOneThroughByPK<ReferencedRecord, ThroughRecord, Record>(pkValue);
+                },
             });
         }
-        else if constexpr (IsHasManyThrough<FieldType>)
+        if constexpr (IsHasManyThrough<FieldType> && HasPrimaryKey<Record>)
         {
             using ReferencedRecord = FieldType::ReferencedRecord;
             using ThroughRecord = FieldType::ThroughRecord;
             HasManyThrough<ReferencedRecord, ThroughRecord>& hasManyThrough = field;
+            // Capture the PK value by value to avoid dangling references if the record is moved.
+            auto pkValue = GetPrimaryKeyField(record);
             hasManyThrough.SetAutoLoader(typename FieldType::Loader {
-                .count = [&record]() -> size_t {
+                .count = [pkValue]() -> size_t {
                     // Load result for Count()
                     size_t count = 0;
                     DataMapper& dm = DataMapper::AcquireThreadLocal();
-                    dm.CallOnHasManyThrough<ReferencedRecord, ThroughRecord>(
-                        record, [&](SqlSelectQueryBuilder& selectQuery, auto& primaryKeyField) {
+                    dm.CallOnHasManyThroughByPK<ReferencedRecord, ThroughRecord, Record>(
+                        pkValue, [&](SqlSelectQueryBuilder& selectQuery, auto const& pk) {
                             dm._stmt.Prepare(selectQuery.Count());
-                            dm._stmt.Execute(primaryKeyField.Value());
+                            dm._stmt.Execute(pk);
                             if (dm._stmt.FetchRow())
                                 count = dm._stmt.GetColumn<size_t>(1);
                             dm._stmt.CloseCursor();
                         });
                     return count;
                 },
-                .all =
-                    [&record, &hasManyThrough]() {
-                        // Load result for All()
-                        DataMapper& dm = DataMapper::AcquireThreadLocal();
-                        dm.LoadHasManyThrough(record, hasManyThrough);
-                    },
+                .all = [pkValue]() -> typename FieldType::ReferencedRecordList {
+                    // Load result for All()
+                    DataMapper& dm = DataMapper::AcquireThreadLocal();
+                    typename FieldType::ReferencedRecordList result;
+                    dm.CallOnHasManyThroughByPK<ReferencedRecord, ThroughRecord, Record>(
+                        pkValue, [&](SqlSelectQueryBuilder& selectQuery, auto const& pk) {
+                            result = detail::ToSharedPtrList(dm.Query<ReferencedRecord>(selectQuery.All(), pk));
+                        });
+                    return result;
+                },
                 .each =
-                    [&record](auto const& each) {
+                    [pkValue](auto const& each) {
                         // Load result for Each()
                         DataMapper& dm = DataMapper::AcquireThreadLocal();
-                        dm.CallOnHasManyThrough<ReferencedRecord, ThroughRecord>(
-                            record, [&](SqlSelectQueryBuilder& selectQuery, auto& primaryKeyField) {
+                        dm.CallOnHasManyThroughByPK<ReferencedRecord, ThroughRecord, Record>(
+                            pkValue, [&](SqlSelectQueryBuilder& selectQuery, auto const& pk) {
                                 auto stmt = SqlStatement { dm._connection };
                                 stmt.Prepare(selectQuery.All());
-                                stmt.Execute(primaryKeyField.Value());
+                                stmt.Execute(pk);
 
                                 auto referencedRecord = ReferencedRecord {};
                                 dm.BindOutputColumns(referencedRecord, &stmt);

@@ -461,7 +461,7 @@ struct SimpleStruct2
 };
 
 static_assert(std::cmp_equal(RecordPrimaryKeyIndex<SimpleStruct2>, static_cast<size_t>(-1)));
-static_assert(std::same_as<RecordPrimaryKeyType<SimpleStruct2>, void>);
+static_assert(std::same_as<RecordPrimaryKeyType<SimpleStruct2>, std::monostate>);
 
 std::ostream& operator<<(std::ostream& os, SimpleStruct2 const& record)
 {
