@@ -12,6 +12,11 @@ else()
     set(LIGHTWEIGHT_LIBRARY_TYPE STATIC)
 endif()
 
+# DataMapper pool configuration
+set(LIGHTWEIGHT_POOL_INITIAL_SIZE "4" CACHE STRING "Initial number of pre-created DataMappers in the global pool")
+set(LIGHTWEIGHT_POOL_MAX_SIZE "16" CACHE STRING "Maximum pool size (used by BoundedWait and BoundedOverflow)")
+set(LIGHTWEIGHT_POOL_GROWTH_STRATEGY "BoundedOverflow" CACHE STRING "Pool growth strategy: BoundedWait, BoundedOverflow, or UnboundedGrow")
+
 if(NOT WIN32)
     find_package(SQLite3 REQUIRED)
     include_directories(${SQLITE3_INCLUDE_DIR})
@@ -68,6 +73,7 @@ set(HEADER_FILES
     DataMapper/BelongsTo.hpp
     DataMapper/DataMapper.hpp
     DataMapper/Error.hpp
+    DataMapper/Pool.hpp
     DataMapper/Field.hpp
     DataMapper/HasMany.hpp
     DataMapper/HasManyThrough.hpp
@@ -105,6 +111,7 @@ set(SOURCE_FILES
     DataBinder/UnicodeConverter.cpp
 
     DataMapper/DataMapper.cpp
+    DataMapper/Pool.cpp
 
     SqlBackup/Backup.cpp
     SqlBackup/BatchManager.cpp
@@ -153,6 +160,12 @@ if(LIGHTWEIGHT_BUILD_SHARED)
     target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_SHARED=1)
     set_target_properties(Lightweight PROPERTIES CXX_VISIBILITY_PRESET hidden)
 endif()
+
+target_compile_definitions(Lightweight PUBLIC
+    LIGHTWEIGHT_POOL_INITIAL_SIZE=${LIGHTWEIGHT_POOL_INITIAL_SIZE}
+    LIGHTWEIGHT_POOL_MAX_SIZE=${LIGHTWEIGHT_POOL_MAX_SIZE}
+    LIGHTWEIGHT_POOL_GROWTH_STRATEGY=${LIGHTWEIGHT_POOL_GROWTH_STRATEGY}
+)
 
 add_library(LightweightTools STATIC)
 add_library(Lightweight::Tools ALIAS LightweightTools)

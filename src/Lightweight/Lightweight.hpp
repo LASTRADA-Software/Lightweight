@@ -3,6 +3,7 @@
 #pragma once
 
 #include "DataMapper/DataMapper.hpp"
+#include "DataMapper/Pool.hpp"
 #include "SqlConnection.hpp"
 #include "SqlDataBinder.hpp"
 #include "SqlError.hpp"
