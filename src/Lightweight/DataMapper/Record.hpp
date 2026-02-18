@@ -88,7 +88,8 @@ namespace details
     template <typename Record>
     struct RecordPrimaryKeyTypeHelper
     {
-        using type = void;
+        // using type = void;
+        using type = std::monostate;
     };
 
     template <typename Record>
@@ -182,10 +183,12 @@ inline LIGHTWEIGHT_FORCE_INLINE RecordPrimaryKeyType<Record> GetPrimaryKeyField(
 
     auto result = RecordPrimaryKeyType<Record> {};
     Reflection::EnumerateMembers(record, [&]<size_t I, typename FieldType>(FieldType const& field) {
-        if constexpr (IsPrimaryKey<FieldType> && std::same_as<FieldType, RecordPrimaryKeyType<Record>>)
-        {
-            result = field;
-        }
+        // std::same_as<typename FieldType::ValueType, RecordPrimaryKeyType<Record>>condition is for the case where there are
+        // multiple primary keys, we want to return the first one
+        if constexpr (IsField<FieldType>)
+            if constexpr (IsPrimaryKey<FieldType>)
+                if constexpr (std::same_as<typename FieldType::ValueType, RecordPrimaryKeyType<Record>>)
+                    result = field.Value();
     });
     return result;
 }

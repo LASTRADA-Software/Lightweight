@@ -117,7 +117,7 @@ class HasMany
     struct Loader
     {
         std::function<size_t()> count {};
-        std::function<void()> all {};
+        std::function<ReferencedRecordList()> all {};
         std::function<void(std::function<void(ReferencedRecord const&)>)> each {};
 
         std::weak_ordering operator<=>(Loader const& /*other*/) const noexcept
@@ -150,7 +150,7 @@ template <typename OtherRecord>
 inline LIGHTWEIGHT_FORCE_INLINE void HasMany<OtherRecord>::RequireLoaded()
 {
     if (!_records)
-        _loader.all();
+        _records = _loader.all();
 }
 
 template <typename OtherRecord>
@@ -239,28 +239,40 @@ template <typename OtherRecord>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::iterator HasMany<OtherRecord>::begin() noexcept
 {
     RequireLoaded();
-    return _records->begin();
+    if (_records)
+        return _records->begin();
+    else
+        return iterator {};
 }
 
 template <typename OtherRecord>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::iterator HasMany<OtherRecord>::end() noexcept
 {
     RequireLoaded();
-    return _records->end();
+    if (_records)
+        return _records->end();
+    else
+        return iterator {};
 }
 
 template <typename OtherRecord>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::const_iterator HasMany<OtherRecord>::begin() const noexcept
 {
     RequireLoaded();
-    return _records->begin();
+    if (_records)
+        return _records->begin();
+    else
+        return const_iterator {};
 }
 
 template <typename OtherRecord>
 inline LIGHTWEIGHT_FORCE_INLINE HasMany<OtherRecord>::const_iterator HasMany<OtherRecord>::end() const noexcept
 {
     RequireLoaded();
-    return _records->end();
+    if (_records)
+        return _records->end();
+    else
+        return const_iterator {};
 }
 
 } // namespace Lightweight

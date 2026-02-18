@@ -97,7 +97,7 @@ class HasManyThrough
     struct Loader
     {
         std::function<size_t()> count;
-        std::function<void()> all;
+        std::function<ReferencedRecordList()> all;
         std::function<void(std::function<void(ReferencedRecord const&)>)> each;
     };
 
@@ -140,7 +140,7 @@ class HasManyThrough
             return;
 
         if (_loader.all)
-            _loader.all();
+            _records = _loader.all();
 
         if (!_records)
             throw SqlRequireLoadedError(Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>>);
