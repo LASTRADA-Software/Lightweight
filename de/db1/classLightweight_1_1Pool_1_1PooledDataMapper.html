@@ -115,14 +115,14 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a122267596e346b15d075ca4c347ac97d" id="r_a122267596e346b15d075ca4c347ac97d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#a122267596e346b15d075ca4c347ac97d">operator-&gt;</a> () const noexcept</td></tr>
 <tr class="memdesc:a122267596e346b15d075ca4c347ac97d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Access the underlying data mapper via pointer semantics.  <br /></td></tr>
 <tr class="separator:a122267596e346b15d075ca4c347ac97d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6d7b41a1ddbc49899a68230a5d012c82" id="r_a6d7b41a1ddbc49899a68230a5d012c82"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#a6d7b41a1ddbc49899a68230a5d012c82">get</a> () const noexcept</td></tr>
-<tr class="separator:a6d7b41a1ddbc49899a68230a5d012c82"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af18e106d18590f5e6b4f29a04389ecf5" id="r_af18e106d18590f5e6b4f29a04389ecf5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#af18e106d18590f5e6b4f29a04389ecf5">Get</a> () const noexcept</td></tr>
+<tr class="separator:af18e106d18590f5e6b4f29a04389ecf5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html">PoolConfig</a> Config&gt;<br />
 class Lightweight::Pool&lt; Config &gt;::PooledDataMapper</div><p>A wrapper around a <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a> that returns it to the pool when destroyed can be created only from the <a class="el" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a> and is move-only to ensure it is always returned to the pool when it goes out of scope </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00060">60</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00059">59</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="ab3f4130283fddc423a1911a3962e739c" name="ab3f4130283fddc423a1911a3962e739c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab3f4130283fddc423a1911a3962e739c">&#9670;&#160;</a></span>PooledDataMapper()</h2>
@@ -151,7 +151,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 </div><div class="memdoc">
 <p>Move constructor for the pooled data mapper, the only public constructor, allows moving the pooled data mapper but not copying it </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00077">77</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00076">76</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -180,7 +180,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00084">84</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00083">83</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -212,12 +212,12 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 
 <p>Access the underlying data mapper via pointer semantics. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00091">91</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00090">90</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a6d7b41a1ddbc49899a68230a5d012c82" name="a6d7b41a1ddbc49899a68230a5d012c82"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6d7b41a1ddbc49899a68230a5d012c82">&#9670;&#160;</a></span>get()</h2>
+<a id="af18e106d18590f5e6b4f29a04389ecf5" name="af18e106d18590f5e6b4f29a04389ecf5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af18e106d18590f5e6b4f29a04389ecf5">&#9670;&#160;</a></span>Get()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -228,7 +228,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> &amp; <a class="el" href="../../d3/d30/classLightweight_1_1Pool.html">Lightweight::Pool</a>&lt; Config &gt;::PooledDataMapper::get </td>
+          <td class="memname"><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a> &amp; <a class="el" href="../../d3/d30/classLightweight_1_1Pool.html">Lightweight::Pool</a>&lt; Config &gt;::PooledDataMapper::Get </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -242,7 +242,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 </div><div class="memdoc">
 <p>Access the underlying data mapper via reference semantics This is useful for passing the pooled data mapper to functions that expect a <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a> reference </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00099">99</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00098">98</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
