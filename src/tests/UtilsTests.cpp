@@ -193,7 +193,7 @@ TEST_CASE("RecordPrimaryKeyType compile-time type extraction", "[Utils][CompileT
 
     SECTION("Records without primary key have monostate as key type")
     {
-        static_assert(std::is_same_v<RecordPrimaryKeyType<SimpleRecord>, void>);
+        static_assert(std::is_same_v<RecordPrimaryKeyType<SimpleRecord>, std::monostate>);
     }
 }
 
