@@ -20,7 +20,7 @@
 #include <ranges>
 #include <type_traits>
 
-// NOLINTBEGIN(readability-container-size-empty, bugprone-throwing-static-initialization)
+// NOLINTBEGIN(readability-container-size-empty, bugprone-throwing-static-initialization, bugprone-unchecked-optional-access)
 
 #if defined(_MSC_VER)
     // Disable the warning C4834: discarding return value of function with 'nodiscard' attribute.
@@ -1078,4 +1078,189 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
     }
 }
 
-// NOLINTEND(readability-container-size-empty, bugprone-throwing-static-initialization)
+struct WideStringFromVarcharEntity
+{
+    Field<SqlWideString<100>> value;
+    static constexpr std::string_view TableName = "WideStringFromVarcharTest";
+};
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[SqlDataBinder],[Unicode]")
+{
+    auto stmt = SqlStatement {};
+
+    // Create a table with a VARCHAR(100) column (narrow/ANSI, not wide/Unicode NVarchar).
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("WideStringFromVarcharTest")
+            .Column("value", SqlColumnTypeDefinitions::Varchar { 100 });
+    });
+
+    stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Insert().Set("value", SqlWildcard));
+
+    SECTION("short value")
+    {
+        stmt.Execute("Hello, World!"sv);
+        auto constexpr expectedWide = SqlWideString<100> { L"Hello, World!" };
+
+        SECTION("BindOutputColumns")
+        {
+            stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
+            stmt.Execute();
+            auto reader = stmt.GetResultCursor();
+            SqlWideString<100> actual;
+            reader.BindOutputColumns(&actual);
+            (void) stmt.FetchRow();
+            CHECK(actual == expectedWide);
+        }
+
+        SECTION("entity via DataMapper")
+        {
+            auto dm = DataMapper();
+            auto const result = dm.Query<WideStringFromVarcharEntity>().First();
+            REQUIRE(result.has_value());
+            CHECK(result->value.Value() == expectedWide);
+        }
+    }
+
+    SECTION("max-width value")
+    {
+        auto const narrowStr = std::string(100, 'A');
+        auto const expectedWide = SqlWideString<100> { std::wstring(100, L'A') };
+        stmt.Execute(narrowStr);
+
+        SECTION("BindOutputColumns")
+        {
+            stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
+            stmt.Execute();
+            auto reader = stmt.GetResultCursor();
+            SqlWideString<100> actual;
+            reader.BindOutputColumns(&actual);
+            (void) stmt.FetchRow();
+            CHECK(actual == expectedWide);
+        }
+
+        SECTION("entity via DataMapper")
+        {
+            auto dm = DataMapper();
+            auto const result = dm.Query<WideStringFromVarcharEntity>().First();
+            REQUIRE(result.has_value());
+            CHECK(result->value.Value() == expectedWide);
+        }
+    }
+
+    SECTION("umlaut value")
+    {
+        // Insert UTF-8 encoded umlauts into VARCHAR; the ODBC driver converts to wide on read-back.
+        stmt.Execute(u8"Stra\u00dfe mit H\u00e4usern"sv);
+        auto constexpr expectedWide = SqlWideString<100> { L"Stra\u00dfe mit H\u00e4usern" };
+
+        SECTION("BindOutputColumns")
+        {
+            stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
+            stmt.Execute();
+            auto reader = stmt.GetResultCursor();
+            SqlWideString<100> actual;
+            reader.BindOutputColumns(&actual);
+            (void) stmt.FetchRow();
+            CHECK(actual == expectedWide);
+        }
+
+        SECTION("entity via DataMapper")
+        {
+            auto dm = DataMapper();
+            auto const result = dm.Query<WideStringFromVarcharEntity>().First();
+            REQUIRE(result.has_value());
+            CHECK(result->value.Value() == expectedWide);
+        }
+    }
+
+    SECTION("max-width umlaut value")
+    {
+        // Build a narrow UTF-8 string of exactly 100 umlaut characters (ä, U+00E4).
+        // Each ä occupies 2 UTF-8 bytes (0xC3 0xA4), so the narrow payload is 200 bytes.
+        // VARCHAR(100) with character semantics (SQLite, PostgreSQL UTF-8) holds 100 chars.
+        auto narrowStr = std::string {};
+        narrowStr.reserve(200);
+        for (int i = 0; i < 100; ++i)
+            narrowStr.append("\xc3\xa4", 2); // UTF-8 encoding of ä (U+00E4)
+
+        auto const expectedWide = SqlWideString<100> { std::wstring(100, L'\u00e4') };
+        stmt.Execute(narrowStr);
+
+        SECTION("BindOutputColumns")
+        {
+            stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
+            stmt.Execute();
+            auto reader = stmt.GetResultCursor();
+            SqlWideString<100> actual;
+            reader.BindOutputColumns(&actual);
+            (void) stmt.FetchRow();
+            CHECK(actual == expectedWide);
+        }
+
+        SECTION("entity via DataMapper")
+        {
+            auto dm = DataMapper();
+            auto const result = dm.Query<WideStringFromVarcharEntity>().First();
+            REQUIRE(result.has_value());
+            CHECK(result->value.Value() == expectedWide);
+        }
+    }
+
+    SECTION("codepage umlaut value")
+    {
+        // Latin-1 / Windows-1252 single-byte umlauts: ß = 0xDF, ä = 0xE4.
+        // The literal is split at "\xdf" "e" to prevent the compiler from parsing
+        // "\xdfe" as a single 3-digit hex escape (which would overflow char).
+        stmt.Execute("Stra\xdf" "e mit H\xe4usern"sv);
+        auto constexpr expectedWide = SqlWideString<100> { L"Stra\u00dfe mit H\u00e4usern" };
+
+        SECTION("BindOutputColumns")
+        {
+            stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
+            stmt.Execute();
+            auto reader = stmt.GetResultCursor();
+            SqlWideString<100> actual;
+            reader.BindOutputColumns(&actual);
+            (void) stmt.FetchRow();
+            CHECK(actual == expectedWide);
+        }
+
+        SECTION("entity via DataMapper")
+        {
+            auto dm = DataMapper();
+            auto const result = dm.Query<WideStringFromVarcharEntity>().First();
+            REQUIRE(result.has_value());
+            CHECK(result->value.Value() == expectedWide);
+        }
+    }
+
+    SECTION("max-width codepage umlaut value")
+    {
+        // Latin-1 / Windows-1252: ä = 0xE4 (single byte), so 100 umlauts = 100 bytes,
+        // exactly filling VARCHAR(100).
+        auto const narrowStr = std::string(100, '\xe4');
+        auto const expectedWide = SqlWideString<100> { std::wstring(100, L'\u00e4') };
+        stmt.Execute(narrowStr);
+
+        SECTION("BindOutputColumns")
+        {
+            stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
+            stmt.Execute();
+            auto reader = stmt.GetResultCursor();
+            SqlWideString<100> actual;
+            reader.BindOutputColumns(&actual);
+            (void) stmt.FetchRow();
+            CHECK(actual == expectedWide);
+        }
+
+        SECTION("entity via DataMapper")
+        {
+            auto dm = DataMapper();
+            auto const result = dm.Query<WideStringFromVarcharEntity>().First();
+            REQUIRE(result.has_value());
+            CHECK(result->value.Value() == expectedWide);
+        }
+    }
+}
+
+// NOLINTEND(readability-container-size-empty, bugprone-throwing-static-initialization, bugprone-unchecked-optional-access)
