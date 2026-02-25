@@ -1090,8 +1090,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
 
     // Create a table with a VARCHAR(100) column (narrow/ANSI, not wide/Unicode NVarchar).
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-        migration.CreateTable("WideStringFromVarcharTest")
-            .Column("value", SqlColumnTypeDefinitions::Varchar { 100 });
+        migration.CreateTable("WideStringFromVarcharTest").Column("value", SqlColumnTypeDefinitions::Varchar { 100 });
     });
 
     stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Insert().Set("value", SqlWildcard));
@@ -1206,13 +1205,82 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
         }
     }
 
+    SECTION("codepage umlaut value (SQLite)")
+    {
+        // On SQLite the ODBC driver stores narrow bytes without any encoding validation
+        // and naively widens each byte to wchar_t on read-back (Latin-1 widening).
+        // For bytes in 0xA0-0xFF the Latin-1 code point equals the Unicode code point,
+        // so the raw Windows-1252 bytes round-trip correctly without any conversion.
+        if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+            SKIP();
+
+        stmt.Execute("Stra\xdf"
+                     "e mit H\xe4usern"sv);
+        auto constexpr expectedWide = SqlWideString<100> { L"Stra\u00dfe mit H\u00e4usern" };
+
+        SECTION("BindOutputColumns")
+        {
+            stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
+            stmt.Execute();
+            auto reader = stmt.GetResultCursor();
+            SqlWideString<100> actual;
+            reader.BindOutputColumns(&actual);
+            (void) stmt.FetchRow();
+            CHECK(actual == expectedWide);
+        }
+
+        SECTION("entity via DataMapper")
+        {
+            auto dm = DataMapper();
+            auto const result = dm.Query<WideStringFromVarcharEntity>().First();
+            REQUIRE(result.has_value());
+            CHECK(result->value.Value() == expectedWide);
+        }
+    }
+
     SECTION("codepage umlaut value")
     {
-        // Latin-1 / Windows-1252 single-byte umlauts: ß = 0xDF, ä = 0xE4.
-        // The literal is split at "\xdf" "e" to prevent the compiler from parsing
-        // "\xdfe" as a single 3-digit hex escape (which would overflow char).
-        stmt.Execute("Stra\xdf" "e mit H\xe4usern"sv);
+        // Raw Windows-1252 bytes cannot be inserted via ODBC on Linux: the driver treats
+        // narrow strings as UTF-8 and replaces invalid sequences with '?'.
+        // Use SQL Server's CHAR(n) function to store the raw CP1252 bytes directly,
+        // bypassing any ODBC encoding layer. Only CP1252-collation databases are meaningful.
+        if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+            SKIP();
+
+        stmt.ExecuteDirect(
+            "INSERT INTO WideStringFromVarcharTest (value) "
+            "VALUES ('Stra' + CHAR(223) + 'e mit H' + CHAR(228) + 'usern')");
         auto constexpr expectedWide = SqlWideString<100> { L"Stra\u00dfe mit H\u00e4usern" };
+
+        SECTION("BindOutputColumns")
+        {
+            stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
+            stmt.Execute();
+            auto reader = stmt.GetResultCursor();
+            SqlWideString<100> actual;
+            reader.BindOutputColumns(&actual);
+            (void) stmt.FetchRow();
+            CHECK(actual == expectedWide);
+        }
+
+        SECTION("entity via DataMapper")
+        {
+            auto dm = DataMapper();
+            auto const result = dm.Query<WideStringFromVarcharEntity>().First();
+            REQUIRE(result.has_value());
+            CHECK(result->value.Value() == expectedWide);
+        }
+    }
+
+    SECTION("max-width codepage umlaut value (SQLite)")
+    {
+        // Same rationale as "codepage umlaut value (SQLite)": raw bytes flow through
+        // unmodified on SQLite, so 100 'ä' bytes (0xE4) widen to 100 L'\u00e4' on read-back.
+        if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+            SKIP();
+
+        stmt.Execute(std::string(100, '\xe4'));
+        auto const expectedWide = SqlWideString<100> { std::wstring(100, L'\u00e4') };
 
         SECTION("BindOutputColumns")
         {
@@ -1236,11 +1304,15 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
 
     SECTION("max-width codepage umlaut value")
     {
-        // Latin-1 / Windows-1252: ä = 0xE4 (single byte), so 100 umlauts = 100 bytes,
-        // exactly filling VARCHAR(100).
-        auto const narrowStr = std::string(100, '\xe4');
+        // Same rationale as "codepage umlaut value": use SQL Server's REPLICATE(CHAR(n), 100)
+        // to store 100 raw CP1252 'ä' bytes (0xE4) directly in the column.
+        if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
+            SKIP();
+
+        stmt.ExecuteDirect(
+            "INSERT INTO WideStringFromVarcharTest (value) "
+            "VALUES (REPLICATE(CHAR(228), 100))");
         auto const expectedWide = SqlWideString<100> { std::wstring(100, L'\u00e4') };
-        stmt.Execute(narrowStr);
 
         SECTION("BindOutputColumns")
         {
