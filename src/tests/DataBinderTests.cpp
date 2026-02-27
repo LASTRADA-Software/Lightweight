@@ -1149,8 +1149,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
     SECTION("umlaut value")
     {
         // Insert UTF-8 encoded umlauts into VARCHAR; the ODBC driver converts to wide on read-back.
-        stmt.Execute(u8"Stra\u00dfe mit H\u00e4usern"sv);
-        auto constexpr expectedWide = SqlWideString<100> { L"Stra\u00dfe mit H\u00e4usern" };
+        stmt.Execute(u8"Straße mit Häusern"sv);
+        auto constexpr expectedWide = SqlWideString<100> { L"Straße mit Häusern" };
 
         SECTION("BindOutputColumns")
         {
@@ -1177,12 +1177,17 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
         // Build a narrow UTF-8 string of exactly 100 umlaut characters (ä, U+00E4).
         // Each ä occupies 2 UTF-8 bytes (0xC3 0xA4), so the narrow payload is 200 bytes.
         // VARCHAR(100) with character semantics (SQLite, PostgreSQL UTF-8) holds 100 chars.
+        // MSSQL VARCHAR(100) uses byte semantics (CP1252), so 200 bytes don't fit;
+        // the MSSQL equivalent is covered by the "max-width codepage umlaut value" section.
+        if (stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL)
+            SKIP();
+
         auto narrowStr = std::string {};
         narrowStr.reserve(200);
-        for (int i = 0; i < 100; ++i)
+        for ([[maybe_unused]] auto const _: std::views::iota(0, 100))
             narrowStr.append("\xc3\xa4", 2); // UTF-8 encoding of ä (U+00E4)
 
-        auto const expectedWide = SqlWideString<100> { std::wstring(100, L'\u00e4') };
+        auto const expectedWide = SqlWideString<100> { std::wstring(100, L'ä') };
         stmt.Execute(narrowStr);
 
         SECTION("BindOutputColumns")
@@ -1216,7 +1221,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
 
         stmt.Execute("Stra\xdf"
                      "e mit H\xe4usern"sv);
-        auto constexpr expectedWide = SqlWideString<100> { L"Stra\u00dfe mit H\u00e4usern" };
+        auto constexpr expectedWide = SqlWideString<100> { L"Straße mit Häusern" };
 
         SECTION("BindOutputColumns")
         {
@@ -1247,10 +1252,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
         if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
             SKIP();
 
-        stmt.ExecuteDirect(
-            "INSERT INTO WideStringFromVarcharTest (value) "
-            "VALUES ('Stra' + CHAR(223) + 'e mit H' + CHAR(228) + 'usern')");
-        auto constexpr expectedWide = SqlWideString<100> { L"Stra\u00dfe mit H\u00e4usern" };
+        stmt.ExecuteDirect("INSERT INTO WideStringFromVarcharTest (value) "
+                           "VALUES ('Stra' + CHAR(223) + 'e mit H' + CHAR(228) + 'usern')");
+        auto constexpr expectedWide = SqlWideString<100> { L"Straße mit Häusern" };
 
         SECTION("BindOutputColumns")
         {
@@ -1309,9 +1313,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
         if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
             SKIP();
 
-        stmt.ExecuteDirect(
-            "INSERT INTO WideStringFromVarcharTest (value) "
-            "VALUES (REPLICATE(CHAR(228), 100))");
+        stmt.ExecuteDirect("INSERT INTO WideStringFromVarcharTest (value) "
+                           "VALUES (REPLICATE(CHAR(228), 100))");
         auto const expectedWide = SqlWideString<100> { std::wstring(100, L'\u00e4') };
 
         SECTION("BindOutputColumns")

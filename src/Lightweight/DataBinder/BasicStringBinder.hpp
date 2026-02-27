@@ -466,8 +466,12 @@ struct SqlDataBinder<Utf16StringType>
                 }
             });
         }
-        return SQLBindCol(
-            stmt, column, CType, (SQLPOINTER) StringTraits::Data(result), (SQLLEN) StringTraits::Size(result), indicator);
+        return SQLBindCol(stmt,
+                          column,
+                          CType,
+                          (SQLPOINTER) StringTraits::Data(result),
+                          (SQLLEN) ((StringTraits::Size(result) + 1) * sizeof(CharType)),
+                          indicator);
     }
 
     static SQLRETURN GetColumn(SQLHSTMT stmt,
