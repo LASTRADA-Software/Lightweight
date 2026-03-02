@@ -288,7 +288,10 @@ std::optional<ParsedMigration> ParseSqlFile(std::filesystem::path const& filePat
 
     // Convert encoding if needed
     if (config.inputEncoding == "windows-1252")
-        content = Lightweight::ConvertWindows1252ToUtf8(content);
+    {
+        auto const u8content = Lightweight::ConvertWindows1252ToUtf8(content);
+        content.assign(u8content.begin(), u8content.end());
+    }
 
     // Parse filename for version
     auto versionOpt = ParseFilename(filePath.filename().string());

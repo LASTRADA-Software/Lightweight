@@ -307,6 +307,6 @@ LIGHTWEIGHT_API std::wstring ToStdWideString(std::string const& localeInputStrin
 /// @return UTF-8 encoded string
 ///
 /// @ingroup Unicode
-LIGHTWEIGHT_API std::string ConvertWindows1252ToUtf8(std::string_view input);
+LIGHTWEIGHT_API std::u8string ConvertWindows1252ToUtf8(std::string_view input);
 
 } // namespace Lightweight

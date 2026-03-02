@@ -51,65 +51,73 @@ TEST_CASE("LupVersion.Comparison", "[lup2dbtool]")
 TEST_CASE("ConvertWindows1252ToUtf8.AsciiPassthrough", "[lup2dbtool]")
 {
     // ASCII characters (0x00-0x7F) should pass through unchanged
-    CHECK(ConvertWindows1252ToUtf8("Hello World") == "Hello World");
-    CHECK(ConvertWindows1252ToUtf8("SELECT * FROM table") == "SELECT * FROM table");
+    CHECK(ConvertWindows1252ToUtf8("Hello World") == u8"Hello World");
+    CHECK(ConvertWindows1252ToUtf8("SELECT * FROM table") == u8"SELECT * FROM table");
     CHECK(ConvertWindows1252ToUtf8("").empty());
 }
 
 TEST_CASE("ConvertWindows1252ToUtf8.SpecialCharacters", "[lup2dbtool]")
 {
-    // Euro sign (0x80) -> UTF-8: E2 82 AC
-    CHECK(ConvertWindows1252ToUtf8("\x80") == "\xE2\x82\xAC");
+    // Euro sign (0x80) -> U+20AC
+    CHECK(ConvertWindows1252ToUtf8("\x80") == u8"\u20AC");
 
-    // Left double quotation mark (0x93) -> UTF-8: E2 80 9C
-    CHECK(ConvertWindows1252ToUtf8("\x93") == "\xE2\x80\x9C");
+    // Left double quotation mark (0x93) -> U+201C
+    CHECK(ConvertWindows1252ToUtf8("\x93") == u8"\u201C");
 
-    // Right double quotation mark (0x94) -> UTF-8: E2 80 9D
-    CHECK(ConvertWindows1252ToUtf8("\x94") == "\xE2\x80\x9D");
+    // Right double quotation mark (0x94) -> U+201D
+    CHECK(ConvertWindows1252ToUtf8("\x94") == u8"\u201D");
 
-    // En dash (0x96) -> UTF-8: E2 80 93
-    CHECK(ConvertWindows1252ToUtf8("\x96") == "\xE2\x80\x93");
+    // En dash (0x96) -> U+2013
+    CHECK(ConvertWindows1252ToUtf8("\x96") == u8"\u2013");
 
-    // Trade mark sign (0x99) -> UTF-8: E2 84 A2
-    CHECK(ConvertWindows1252ToUtf8("\x99") == "\xE2\x84\xA2");
+    // Trade mark sign (0x99) -> U+2122
+    CHECK(ConvertWindows1252ToUtf8("\x99") == u8"\u2122");
 }
 
 TEST_CASE("ConvertWindows1252ToUtf8.Latin1Supplement", "[lup2dbtool]")
 {
     // German umlauts (Latin-1 supplement range 0xA0-0xFF)
-    // ä (0xE4) -> UTF-8: C3 A4
-    CHECK(ConvertWindows1252ToUtf8("\xE4") == "\xC3\xA4");
+    // ä (0xE4) -> U+00E4
+    CHECK(ConvertWindows1252ToUtf8("\xE4") == u8"\u00E4");
 
-    // ö (0xF6) -> UTF-8: C3 B6
-    CHECK(ConvertWindows1252ToUtf8("\xF6") == "\xC3\xB6");
+    // ö (0xF6) -> U+00F6
+    CHECK(ConvertWindows1252ToUtf8("\xF6") == u8"\u00F6");
 
-    // ü (0xFC) -> UTF-8: C3 BC
-    CHECK(ConvertWindows1252ToUtf8("\xFC") == "\xC3\xBC");
+    // ü (0xFC) -> U+00FC
+    CHECK(ConvertWindows1252ToUtf8("\xFC") == u8"\u00FC");
 
-    // ß (0xDF) -> UTF-8: C3 9F
-    CHECK(ConvertWindows1252ToUtf8("\xDF") == "\xC3\x9F");
+    // ß (0xDF) -> U+00DF
+    CHECK(ConvertWindows1252ToUtf8("\xDF") == u8"\u00DF");
 
-    // Ä (0xC4) -> UTF-8: C3 84
-    CHECK(ConvertWindows1252ToUtf8("\xC4") == "\xC3\x84");
+    // Ä (0xC4) -> U+00C4
+    CHECK(ConvertWindows1252ToUtf8("\xC4") == u8"\u00C4");
 
-    // Ö (0xD6) -> UTF-8: C3 96
-    CHECK(ConvertWindows1252ToUtf8("\xD6") == "\xC3\x96");
+    // Ö (0xD6) -> U+00D6
+    CHECK(ConvertWindows1252ToUtf8("\xD6") == u8"\u00D6");
 
-    // Ü (0xDC) -> UTF-8: C3 9C
-    CHECK(ConvertWindows1252ToUtf8("\xDC") == "\xC3\x9C");
+    // Ü (0xDC) -> U+00DC
+    CHECK(ConvertWindows1252ToUtf8("\xDC") == u8"\u00DC");
 }
 
 TEST_CASE("ConvertWindows1252ToUtf8.MixedContent", "[lup2dbtool]")
 {
     // Mixed ASCII and German text
     // "Prüfung" with ü as 0xFC - use string concatenation to avoid hex escape ambiguity
-    CHECK(ConvertWindows1252ToUtf8("Pr\xFC" "fung") == "Prüfung");
+    CHECK(ConvertWindows1252ToUtf8("Pr\xFC" "fung") == u8"Prüfung");
 
     // "Größe" with ö as 0xF6 and ß as 0xDF - use string concatenation
-    CHECK(ConvertWindows1252ToUtf8("Gr\xF6\xDF" "e") == "Größe");
+    CHECK(ConvertWindows1252ToUtf8("Gr\xF6\xDF" "e") == u8"Größe");
 
     // "Äpfel" with Ä as 0xC4
-    CHECK(ConvertWindows1252ToUtf8("\xC4pfel") == "Äpfel");
+    CHECK(ConvertWindows1252ToUtf8("\xC4pfel") == u8"Äpfel");
+}
+
+TEST_CASE("ConvertWindows1252ToUtf8.ToStdWideStringChain", "[lup2dbtool]")
+{
+    // Verify that ToStdWideString(ConvertWindows1252ToUtf8(...)) uses the UTF-8 overload
+    // ü (0xFC in Windows-1252) should be correctly converted to wide string
+    auto const wideString = Lightweight::ToStdWideString(ConvertWindows1252ToUtf8("\xFC"));
+    CHECK(wideString == L"\u00FC");
 }
 
 // ================================================================================================
