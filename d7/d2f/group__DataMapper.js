@@ -72,8 +72,7 @@ var group__DataMapper =
       [ "Execute", "de/d61/classLightweight_1_1DataMapper.html#a572f96a940e6a856d3d2a2b16ded4591", null ],
       [ "Query", "de/d61/classLightweight_1_1DataMapper.html#a7e8e0db6f33c47df9c04c16fd9b4ec4d", null ],
       [ "SetId", "de/d61/classLightweight_1_1DataMapper.html#a26cf5a8f4f6f3cf5840bb6fe6974e168", null ],
-      [ "BindOutputColumns", "de/d61/classLightweight_1_1DataMapper.html#a81be84735fffc4c9fd30c552c68d0a12", null ],
-      [ "BindOutputColumns", "de/d61/classLightweight_1_1DataMapper.html#a2f09cdee6f38a266d2308db4ac33a150", null ]
+      [ "BindOutputColumns", "de/d61/classLightweight_1_1DataMapper.html#a31796375b71cdc19158ee3a18ab60bcb", null ]
     ] ],
     [ "Lightweight::SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html", [
       [ "SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html#a96304f8f159d5cdd3ef3a0065a464ca2", null ]

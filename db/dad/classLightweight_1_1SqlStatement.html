@@ -189,44 +189,32 @@ template&lt;SqlInputParameterBinder Arg, typename ColumnName &gt; </td></tr>
 <tr class="memitem:a789b8fc2cdfe67697cd6720a167e5b78"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>BindInputParameter</b> (SQLSMALLINT columnIndex, Arg const &amp;arg, ColumnName &amp;&amp;columnNameHint)</td></tr>
 <tr class="memdesc:a789b8fc2cdfe67697cd6720a167e5b78"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds an input parameter to the prepared statement at the given column index with a column name hint. <br /></td></tr>
 <tr class="separator:a789b8fc2cdfe67697cd6720a167e5b78"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af9bd2cf8659ea4e3fce9dd120f623df9" id="r_af9bd2cf8659ea4e3fce9dd120f623df9"><td class="memTemplParams" colspan="2">template&lt;SqlOutputColumnBinder... Args&gt; </td></tr>
-<tr class="memitem:af9bd2cf8659ea4e3fce9dd120f623df9"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#af9bd2cf8659ea4e3fce9dd120f623df9">BindOutputColumns</a> (Args *... args)</td></tr>
-<tr class="separator:af9bd2cf8659ea4e3fce9dd120f623df9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a92c0aebc9222368af9c3d6fd1897a02f" id="r_a92c0aebc9222368af9c3d6fd1897a02f"><td class="memTemplParams" colspan="2">template&lt;typename... Records&gt; <br />
-requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Records&gt;) &amp;&amp; ...))</td></tr>
-<tr class="memitem:a92c0aebc9222368af9c3d6fd1897a02f"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a92c0aebc9222368af9c3d6fd1897a02f">BindOutputColumnsToRecord</a> (Records *... records)</td></tr>
-<tr class="separator:a92c0aebc9222368af9c3d6fd1897a02f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad92d5fa626f56cf2601d6481984b19b1" id="r_ad92d5fa626f56cf2601d6481984b19b1"><td class="memTemplParams" colspan="2"><a id="ad92d5fa626f56cf2601d6481984b19b1" name="ad92d5fa626f56cf2601d6481984b19b1"></a>
-template&lt;SqlOutputColumnBinder T&gt; </td></tr>
-<tr class="memitem:ad92d5fa626f56cf2601d6481984b19b1"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><b>BindOutputColumn</b> (SQLUSMALLINT columnIndex, T *arg)</td></tr>
-<tr class="memdesc:ad92d5fa626f56cf2601d6481984b19b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds a single output column at the given index to store fetched data. <br /></td></tr>
-<tr class="separator:ad92d5fa626f56cf2601d6481984b19b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a540bcb492f2600c3165a96349599f47b" id="r_a540bcb492f2600c3165a96349599f47b"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBinder... Args&gt; </td></tr>
-<tr class="memitem:a540bcb492f2600c3165a96349599f47b"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a540bcb492f2600c3165a96349599f47b">Execute</a> (Args const &amp;... args)</td></tr>
-<tr class="memdesc:a540bcb492f2600c3165a96349599f47b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds the given arguments to the prepared statement and executes it.  <br /></td></tr>
-<tr class="separator:a540bcb492f2600c3165a96349599f47b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa7c5ea04c11cf48957470303c1a23e25" id="r_aa7c5ea04c11cf48957470303c1a23e25"><td class="memItemLeft" align="right" valign="top"><a id="aa7c5ea04c11cf48957470303c1a23e25" name="aa7c5ea04c11cf48957470303c1a23e25"></a>
-LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>ExecuteWithVariants</b> (std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; const &amp;args)</td></tr>
-<tr class="memdesc:aa7c5ea04c11cf48957470303c1a23e25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds the given arguments to the prepared statement and executes it. <br /></td></tr>
-<tr class="separator:aa7c5ea04c11cf48957470303c1a23e25"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5de8934a879ddef9062eef0d06342ff4" id="r_a5de8934a879ddef9062eef0d06342ff4"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguous_range... MoreColumnBatches&gt; </td></tr>
-<tr class="memitem:a5de8934a879ddef9062eef0d06342ff4"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5de8934a879ddef9062eef0d06342ff4">ExecuteBatchNative</a> (FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</td></tr>
-<tr class="separator:a5de8934a879ddef9062eef0d06342ff4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a435c8e2a6927c31c28cd9b6c082a5fad" id="r_a435c8e2a6927c31c28cd9b6c082a5fad"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt; </td></tr>
-<tr class="memitem:a435c8e2a6927c31c28cd9b6c082a5fad"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a435c8e2a6927c31c28cd9b6c082a5fad">ExecuteBatchSoft</a> (FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</td></tr>
-<tr class="separator:a435c8e2a6927c31c28cd9b6c082a5fad"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a39e7689e3101f48e5fcafe5d39b5d935" id="r_a39e7689e3101f48e5fcafe5d39b5d935"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt; </td></tr>
-<tr class="memitem:a39e7689e3101f48e5fcafe5d39b5d935"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a39e7689e3101f48e5fcafe5d39b5d935">ExecuteBatch</a> (FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</td></tr>
-<tr class="separator:a39e7689e3101f48e5fcafe5d39b5d935"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1053cb70b16c7a53e98f234d7cf92af3" id="r_a1053cb70b16c7a53e98f234d7cf92af3"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a1053cb70b16c7a53e98f234d7cf92af3">ExecuteBatch</a> (std::span&lt; <a class="el" href="../../da/d7e/structLightweight_1_1SqlRawColumn.html">SqlRawColumn</a> const &gt; columns, size_t rowCount)</td></tr>
-<tr class="separator:a1053cb70b16c7a53e98f234d7cf92af3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab1abb98db974f10f12a0aae5e058647f" id="r_ab1abb98db974f10f12a0aae5e058647f"><td class="memItemLeft" align="right" valign="top"><a id="ab1abb98db974f10f12a0aae5e058647f" name="ab1abb98db974f10f12a0aae5e058647f"></a>
-LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>ExecuteDirect</b> (std::string_view const &amp;query, std::source_location location=std::source_location::current())</td></tr>
-<tr class="memdesc:ab1abb98db974f10f12a0aae5e058647f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes the given query directly. <br /></td></tr>
-<tr class="separator:ab1abb98db974f10f12a0aae5e058647f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7bc8ffdd249fff1e8d68e0662b33f2c9" id="r_a7bc8ffdd249fff1e8d68e0662b33f2c9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a7bc8ffdd249fff1e8d68e0662b33f2c9">ExecuteDirect</a> (SqlQueryObject auto const &amp;query, std::source_location location=std::source_location::current())</td></tr>
-<tr class="memdesc:a7bc8ffdd249fff1e8d68e0662b33f2c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes the given query directly.  <br /></td></tr>
-<tr class="separator:a7bc8ffdd249fff1e8d68e0662b33f2c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5428626df850d1cd2a6390e1758d4698" id="r_a5428626df850d1cd2a6390e1758d4698"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBinder... Args&gt; </td></tr>
+<tr class="memitem:a5428626df850d1cd2a6390e1758d4698"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5428626df850d1cd2a6390e1758d4698">Execute</a> (Args const &amp;... args)</td></tr>
+<tr class="memdesc:a5428626df850d1cd2a6390e1758d4698"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds the given arguments to the prepared statement and executes it.  <br /></td></tr>
+<tr class="separator:a5428626df850d1cd2a6390e1758d4698"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3c5b640b862f0b9d30fc55e76f8f362f" id="r_a3c5b640b862f0b9d30fc55e76f8f362f"><td class="memItemLeft" align="right" valign="top"><a id="a3c5b640b862f0b9d30fc55e76f8f362f" name="a3c5b640b862f0b9d30fc55e76f8f362f"></a>
+LIGHTWEIGHT_API <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memItemRight" valign="bottom"><b>ExecuteWithVariants</b> (std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; const &amp;args)</td></tr>
+<tr class="memdesc:a3c5b640b862f0b9d30fc55e76f8f362f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds the given arguments to the prepared statement and executes it. <br /></td></tr>
+<tr class="separator:a3c5b640b862f0b9d30fc55e76f8f362f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abf5a451e1dbe5fca332cb2cd30e95631" id="r_abf5a451e1dbe5fca332cb2cd30e95631"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguous_range... MoreColumnBatches&gt; </td></tr>
+<tr class="memitem:abf5a451e1dbe5fca332cb2cd30e95631"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#abf5a451e1dbe5fca332cb2cd30e95631">ExecuteBatchNative</a> (FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</td></tr>
+<tr class="separator:abf5a451e1dbe5fca332cb2cd30e95631"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af3606d3a07e9a9be93e49569946c176d" id="r_af3606d3a07e9a9be93e49569946c176d"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt; </td></tr>
+<tr class="memitem:af3606d3a07e9a9be93e49569946c176d"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#af3606d3a07e9a9be93e49569946c176d">ExecuteBatchSoft</a> (FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</td></tr>
+<tr class="separator:af3606d3a07e9a9be93e49569946c176d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5976ca6716ffd13c9eb4977da4d171c8" id="r_a5976ca6716ffd13c9eb4977da4d171c8"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt; </td></tr>
+<tr class="memitem:a5976ca6716ffd13c9eb4977da4d171c8"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5976ca6716ffd13c9eb4977da4d171c8">ExecuteBatch</a> (FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</td></tr>
+<tr class="separator:a5976ca6716ffd13c9eb4977da4d171c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abe60fdd5ccc0a2c07cf183eac8d83cd2" id="r_abe60fdd5ccc0a2c07cf183eac8d83cd2"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#abe60fdd5ccc0a2c07cf183eac8d83cd2">ExecuteBatch</a> (std::span&lt; <a class="el" href="../../da/d7e/structLightweight_1_1SqlRawColumn.html">SqlRawColumn</a> const &gt; columns, size_t rowCount)</td></tr>
+<tr class="separator:abe60fdd5ccc0a2c07cf183eac8d83cd2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9cc4145826d8674fe8500b8cd8d46927" id="r_a9cc4145826d8674fe8500b8cd8d46927"><td class="memItemLeft" align="right" valign="top"><a id="a9cc4145826d8674fe8500b8cd8d46927" name="a9cc4145826d8674fe8500b8cd8d46927"></a>
+LIGHTWEIGHT_API <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memItemRight" valign="bottom"><b>ExecuteDirect</b> (std::string_view const &amp;query, std::source_location location=std::source_location::current())</td></tr>
+<tr class="memdesc:a9cc4145826d8674fe8500b8cd8d46927"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes the given query directly. <br /></td></tr>
+<tr class="separator:a9cc4145826d8674fe8500b8cd8d46927"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1e5572123ab0d006d3ae3defee9c4f89" id="r_a1e5572123ab0d006d3ae3defee9c4f89"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a1e5572123ab0d006d3ae3defee9c4f89">ExecuteDirect</a> (SqlQueryObject auto const &amp;query, std::source_location location=std::source_location::current())</td></tr>
+<tr class="memdesc:a1e5572123ab0d006d3ae3defee9c4f89"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes the given query directly.  <br /></td></tr>
+<tr class="separator:a1e5572123ab0d006d3ae3defee9c4f89"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3409545779372b6a14b213c8eab814b1" id="r_a3409545779372b6a14b213c8eab814b1"><td class="memTemplParams" colspan="2">template&lt;typename Callable &gt; <br />
 requires std::invocable&lt;Callable, <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a>&amp;&gt;</td></tr>
 <tr class="memitem:a3409545779372b6a14b213c8eab814b1"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1">MigrateDirect</a> (Callable const &amp;callable, std::source_location location=std::source_location::current())</td></tr>
@@ -250,51 +238,15 @@ requires (std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight_
 <tr class="memitem:a1dbd5345afd309378028c7ea6f455666"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a1dbd5345afd309378028c7ea6f455666">ExecuteDirectScalar</a> (SqlQueryObject auto const &amp;query, std::source_location location=std::source_location::current())</td></tr>
 <tr class="memdesc:a1dbd5345afd309378028c7ea6f455666"><td class="mdescLeft">&#160;</td><td class="mdescRight">Executes the given query object and returns the single result as an <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a>.  <br /></td></tr>
 <tr class="separator:a1dbd5345afd309378028c7ea6f455666"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abd020b58bdd8c2ba1ed07f00eb838046" id="r_abd020b58bdd8c2ba1ed07f00eb838046"><td class="memItemLeft" align="right" valign="top"><a id="abd020b58bdd8c2ba1ed07f00eb838046" name="abd020b58bdd8c2ba1ed07f00eb838046"></a>
-LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>NumRowsAffected</b> () const</td></tr>
-<tr class="memdesc:abd020b58bdd8c2ba1ed07f00eb838046"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the number of rows affected by the last query. <br /></td></tr>
-<tr class="separator:abd020b58bdd8c2ba1ed07f00eb838046"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5072cda5b6433463ec8850296c906d9b" id="r_a5072cda5b6433463ec8850296c906d9b"><td class="memItemLeft" align="right" valign="top"><a id="a5072cda5b6433463ec8850296c906d9b" name="a5072cda5b6433463ec8850296c906d9b"></a>
-LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>NumColumnsAffected</b> () const</td></tr>
-<tr class="memdesc:a5072cda5b6433463ec8850296c906d9b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the number of columns affected by the last query. <br /></td></tr>
-<tr class="separator:a5072cda5b6433463ec8850296c906d9b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a34c08cddca600ab42f61f92c3bef7d1a" id="r_a34c08cddca600ab42f61f92c3bef7d1a"><td class="memItemLeft" align="right" valign="top"><a id="a34c08cddca600ab42f61f92c3bef7d1a" name="a34c08cddca600ab42f61f92c3bef7d1a"></a>
 LIGHTWEIGHT_API size_t&#160;</td><td class="memItemRight" valign="bottom"><b>LastInsertId</b> (std::string_view tableName)</td></tr>
 <tr class="memdesc:a34c08cddca600ab42f61f92c3bef7d1a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the last insert ID of the given table. <br /></td></tr>
 <tr class="separator:a34c08cddca600ab42f61f92c3bef7d1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac2f0af5c0ea6747b33ceb5bb08f45351" id="r_ac2f0af5c0ea6747b33ceb5bb08f45351"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ac2f0af5c0ea6747b33ceb5bb08f45351">FetchRow</a> ()</td></tr>
-<tr class="separator:ac2f0af5c0ea6747b33ceb5bb08f45351"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7863b8678d7e081cf16bc6274bf3da68" id="r_a7863b8678d7e081cf16bc6274bf3da68"><td class="memItemLeft" align="right" valign="top"><a id="a7863b8678d7e081cf16bc6274bf3da68" name="a7863b8678d7e081cf16bc6274bf3da68"></a>
-LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html">SqlErrorInfo</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>TryFetchRow</b> (std::source_location location=std::source_location::current()) noexcept</td></tr>
-<tr class="memdesc:a7863b8678d7e081cf16bc6274bf3da68"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attempts to fetch the next row, returning an error info on failure instead of throwing. <br /></td></tr>
-<tr class="separator:a7863b8678d7e081cf16bc6274bf3da68"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4f267c964dcea21646008280e5531aa8" id="r_a4f267c964dcea21646008280e5531aa8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a4f267c964dcea21646008280e5531aa8">CloseCursor</a> () noexcept</td></tr>
-<tr class="separator:a4f267c964dcea21646008280e5531aa8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6a00a9d4de7a50e8e8108b5bce77663f" id="r_a6a00a9d4de7a50e8e8108b5bce77663f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a6a00a9d4de7a50e8e8108b5bce77663f">GetResultCursor</a> () noexcept</td></tr>
-<tr class="memdesc:a6a00a9d4de7a50e8e8108b5bce77663f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the result cursor for reading an SQL query result.  <br /></td></tr>
-<tr class="separator:a6a00a9d4de7a50e8e8108b5bce77663f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a696b3c702137a05dcad3178bc27113b7" id="r_a696b3c702137a05dcad3178bc27113b7"><td class="memItemLeft" align="right" valign="top">SqlVariantRowCursor&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a696b3c702137a05dcad3178bc27113b7">GetVariantRowCursor</a> () noexcept</td></tr>
-<tr class="memdesc:a696b3c702137a05dcad3178bc27113b7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the variant row cursor for reading an SQL query result of unknown column types and column count.  <br /></td></tr>
-<tr class="separator:a696b3c702137a05dcad3178bc27113b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6cbc1d88b9c88371c4db1806bab6a700" id="r_a6cbc1d88b9c88371c4db1806bab6a700"><td class="memTemplParams" colspan="2">template&lt;SqlGetColumnNativeType T&gt; </td></tr>
-<tr class="memitem:a6cbc1d88b9c88371c4db1806bab6a700"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a6cbc1d88b9c88371c4db1806bab6a700">GetColumn</a> (SQLUSMALLINT column, T *result) const</td></tr>
-<tr class="separator:a6cbc1d88b9c88371c4db1806bab6a700"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afbcf5f28e24ed34a6246110a4b930872" id="r_afbcf5f28e24ed34a6246110a4b930872"><td class="memTemplParams" colspan="2">template&lt;SqlGetColumnNativeType T&gt; </td></tr>
-<tr class="memitem:afbcf5f28e24ed34a6246110a4b930872"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#afbcf5f28e24ed34a6246110a4b930872">GetColumn</a> (SQLUSMALLINT column) const</td></tr>
-<tr class="memdesc:afbcf5f28e24ed34a6246110a4b930872"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the value of the column at the given index for the currently selected row.  <br /></td></tr>
-<tr class="separator:afbcf5f28e24ed34a6246110a4b930872"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac4e7bc8a5e62d553623b67c089a4af58" id="r_ac4e7bc8a5e62d553623b67c089a4af58"><td class="memTemplParams" colspan="2">template&lt;SqlGetColumnNativeType T&gt; </td></tr>
-<tr class="memitem:ac4e7bc8a5e62d553623b67c089a4af58"><td class="memTemplItemLeft" align="right" valign="top">std::optional&lt; T &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ac4e7bc8a5e62d553623b67c089a4af58">GetNullableColumn</a> (SQLUSMALLINT column) const</td></tr>
-<tr class="separator:ac4e7bc8a5e62d553623b67c089a4af58"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a989ea8b599aaf01c40fc493233366f7c" id="r_a989ea8b599aaf01c40fc493233366f7c"><td class="memTemplParams" colspan="2">template&lt;SqlGetColumnNativeType T&gt; </td></tr>
-<tr class="memitem:a989ea8b599aaf01c40fc493233366f7c"><td class="memTemplItemLeft" align="right" valign="top">T&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a989ea8b599aaf01c40fc493233366f7c">GetColumnOr</a> (SQLUSMALLINT column, T &amp;&amp;defaultValue) const</td></tr>
-<tr class="separator:a989ea8b599aaf01c40fc493233366f7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac19f8c92550b34319f2f7b48ec32c149" id="r_ac19f8c92550b34319f2f7b48ec32c149"><td class="memTemplParams" colspan="2">template&lt;SqlOutputColumnBinder... Args&gt; </td></tr>
 <tr class="memitem:ac19f8c92550b34319f2f7b48ec32c149"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ac19f8c92550b34319f2f7b48ec32c149">BindOutputColumns</a> (Args *... args)</td></tr>
 <tr class="separator:ac19f8c92550b34319f2f7b48ec32c149"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a29cec4857dff71c1d19a1c023fce84ed" id="r_a29cec4857dff71c1d19a1c023fce84ed"><td class="memTemplParams" colspan="2">template&lt;SqlOutputColumnBinder T&gt; </td></tr>
 <tr class="memitem:a29cec4857dff71c1d19a1c023fce84ed"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a29cec4857dff71c1d19a1c023fce84ed">BindOutputColumn</a> (SQLUSMALLINT columnIndex, T *arg)</td></tr>
-<tr class="memdesc:a29cec4857dff71c1d19a1c023fce84ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds a single output column at the given index to store fetched data.    <br /></td></tr>
 <tr class="separator:a29cec4857dff71c1d19a1c023fce84ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1c1302b59a4e88fae7cb709df44699ea" id="r_a1c1302b59a4e88fae7cb709df44699ea"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBinder Arg&gt; </td></tr>
 <tr class="memitem:a1c1302b59a4e88fae7cb709df44699ea"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a1c1302b59a4e88fae7cb709df44699ea">BindInputParameter</a> (SQLSMALLINT columnIndex, Arg const &amp;arg)</td></tr>
@@ -304,9 +256,9 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 <tr class="memitem:aca574aabad03fc30adc6f52bb935cf2c"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#aca574aabad03fc30adc6f52bb935cf2c">BindInputParameter</a> (SQLSMALLINT columnIndex, Arg const &amp;arg, ColumnName &amp;&amp;columnNameHint)</td></tr>
 <tr class="memdesc:aca574aabad03fc30adc6f52bb935cf2c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Binds an input parameter to the prepared statement at the given column index with a column name hint.    <br /></td></tr>
 <tr class="separator:aca574aabad03fc30adc6f52bb935cf2c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a240f75b0c9ebcdcc359580ff98e3c81e" id="r_a240f75b0c9ebcdcc359580ff98e3c81e"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt; </td></tr>
-<tr class="memitem:a240f75b0c9ebcdcc359580ff98e3c81e"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a240f75b0c9ebcdcc359580ff98e3c81e">ExecuteBatch</a> (FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</td></tr>
-<tr class="separator:a240f75b0c9ebcdcc359580ff98e3c81e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9cf433624157f588443d42e5071ee288" id="r_a9cf433624157f588443d42e5071ee288"><td class="memTemplParams" colspan="2">template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt; </td></tr>
+<tr class="memitem:a9cf433624157f588443d42e5071ee288"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cf433624157f588443d42e5071ee288">ExecuteBatch</a> (FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</td></tr>
+<tr class="separator:a9cf433624157f588443d42e5071ee288"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classLightweight_1_1SqlDataBinderCallback"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classLightweight_1_1SqlDataBinderCallback')"><img src="../../closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">Lightweight::SqlDataBinderCallback</a></td></tr>
 <tr class="memitem:ac89cf719251905b8e0af7f5ed4e42036 inherit pub_methods_classLightweight_1_1SqlDataBinderCallback" id="r_ac89cf719251905b8e0af7f5ed4e42036"><td class="memItemLeft" align="right" valign="top">
 &#160;</td><td class="memItemRight" valign="bottom"><b>SqlDataBinderCallback</b> ()=default</td></tr>
@@ -366,7 +318,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 
 <p>Checks whether the statement's connection is alive and the statement handle is valid. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00609">609</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00594">594</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a3c238ed531289bd1efff63f44ec1bb70">Lightweight::SqlConnection::IsAlive()</a>.</p>
 
@@ -397,7 +349,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 
 <p>Checks whether the statement has been prepared. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00614">614</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00599">599</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -426,9 +378,9 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 
 <p>Retrieves the connection associated with this statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00619">619</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00604">604</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00740">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::All()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00778">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::All()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00687">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::Count()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00724">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::Delete()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00703">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::Exist()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00859">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::First()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00888">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::First()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00948">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::First()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00891">MigrateDirect()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01672">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01752">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01616">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01539">Lightweight::DataMapper::QuerySingleWithoutRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00973">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::Range()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00731">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::All()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00768">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::All()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00681">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::Count()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00716">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::Delete()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00696">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::Exist()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00847">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::First()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00875">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::First()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00933">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::First()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00880">MigrateDirect()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01649">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01728">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01595">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01520">Lightweight::DataMapper::QuerySingleWithoutRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00957">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::Range()</a>.</p>
 
 </div>
 </div>
@@ -457,7 +409,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 
 <p>Retrieves the connection associated with this statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00624">624</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00609">609</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -486,7 +438,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 
 <p>Retrieves the last error information with respect to this SQL statement handle. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00629">629</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00614">614</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00048">Lightweight::SqlErrorInfo::FromStatementHandle()</a>.</p>
 
@@ -517,7 +469,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 
 <p>Retrieves the native handle of the statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00634">634</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00619">619</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -539,7 +491,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 <p>Prepares the statement for execution.</p>
 <dl class="section note"><dt>Note</dt><dd>When preparing a new SQL statement the previously executed statement, yielding a result set, must have been closed. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02308">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01491">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01672">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01752">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01616">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01539">Lightweight::DataMapper::QuerySingleWithoutRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01421">Lightweight::DataMapper::Update()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02267">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01472">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01649">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01728">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01595">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01520">Lightweight::DataMapper::QuerySingleWithoutRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01402">Lightweight::DataMapper::Update()</a>.</p>
 
 </div>
 </div>
@@ -569,7 +521,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 <p>Prepares the statement for execution.</p>
 <dl class="section note"><dt>Note</dt><dd>When preparing a new SQL statement the previously executed statement, yielding a result set, must have been closed. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00639">639</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00624">624</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -599,7 +551,7 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 
 <p>Prepares the statement from a query object on an rvalue reference and returns the statement. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00644">644</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00629">629</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -628,67 +580,12 @@ LIGHTWEIGHT_API std::expected&lt; bool, <a class="el" href="../../d8/d5b/structL
 
 <p>Retrieves the last prepared query string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00649">649</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00634">634</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
-<a id="af9bd2cf8659ea4e3fce9dd120f623df9" name="af9bd2cf8659ea4e3fce9dd120f623df9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af9bd2cf8659ea4e3fce9dd120f623df9">&#9670;&#160;</a></span>BindOutputColumns() <span class="overload">[1/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;SqlOutputColumnBinder... Args&gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">void Lightweight::SqlStatement::BindOutputColumns </td>
-          <td>(</td>
-          <td class="paramtype">Args *...&#160;</td>
-          <td class="paramname"><em>args</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Binds the given arguments to the prepared statement to store the fetched data to.</p>
-<dl class="section note"><dt>Note</dt><dd>The statement must be prepared before calling this function. </dd></dl>
-
-</div>
-</div>
-<a id="a92c0aebc9222368af9c3d6fd1897a02f" name="a92c0aebc9222368af9c3d6fd1897a02f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a92c0aebc9222368af9c3d6fd1897a02f">&#9670;&#160;</a></span>BindOutputColumnsToRecord()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename... Records&gt; <br />
-requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Records&gt;) &amp;&amp; ...))</div>
-      <table class="memname">
-        <tr>
-          <td class="memname">void Lightweight::SqlStatement::BindOutputColumnsToRecord </td>
-          <td>(</td>
-          <td class="paramtype">Records *...&#160;</td>
-          <td class="paramname"><em>records</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Binds the given arguments to the prepared statement to store the fetched data to.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">records</td><td>The records to bind each member to.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section note"><dt>Note</dt><dd>The statement must be prepared before calling this function. </dd>
-<dd>
-The records must be aggregate types, i.e. classes with public members and no user-defined constructors. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00666">666</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a540bcb492f2600c3165a96349599f47b" name="a540bcb492f2600c3165a96349599f47b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a540bcb492f2600c3165a96349599f47b">&#9670;&#160;</a></span>Execute()</h2>
+<a id="a5428626df850d1cd2a6390e1758d4698" name="a5428626df850d1cd2a6390e1758d4698"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5428626df850d1cd2a6390e1758d4698">&#9670;&#160;</a></span>Execute()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -696,7 +593,7 @@ The records must be aggregate types, i.e. classes with public members and no use
 template&lt;SqlInputParameterBinder... Args&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">void Lightweight::SqlStatement::Execute </td>
+          <td class="memname"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> Lightweight::SqlStatement::Execute </td>
           <td>(</td>
           <td class="paramtype">Args const &amp;...&#160;</td>
           <td class="paramname"><em>args</em></td><td>)</td>
@@ -707,16 +604,16 @@ template&lt;SqlInputParameterBinder... Args&gt; </div>
 
 <p>Binds the given arguments to the prepared statement and executes it. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00709">709</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00694">694</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d9/d02/SqlError_8hpp_source.html#l00048">Lightweight::SqlErrorInfo::FromStatementHandle()</a>, <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">Lightweight::SqlLogger::GetLogger()</a>, <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00092">Lightweight::SqlLogger::OnBindInputParameter()</a>, and <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a1d04bb81c9f5d37e8b3690a657cd3f9d">Lightweight::SqlLogger::OnExecute()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02308">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01491">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01672">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01752">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01616">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01539">Lightweight::DataMapper::QuerySingleWithoutRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01421">Lightweight::DataMapper::Update()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02267">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01472">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01649">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01728">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01595">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01520">Lightweight::DataMapper::QuerySingleWithoutRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01402">Lightweight::DataMapper::Update()</a>.</p>
 
 </div>
 </div>
-<a id="a5de8934a879ddef9062eef0d06342ff4" name="a5de8934a879ddef9062eef0d06342ff4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5de8934a879ddef9062eef0d06342ff4">&#9670;&#160;</a></span>ExecuteBatchNative()</h2>
+<a id="abf5a451e1dbe5fca332cb2cd30e95631" name="abf5a451e1dbe5fca332cb2cd30e95631"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abf5a451e1dbe5fca332cb2cd30e95631">&#9670;&#160;</a></span>ExecuteBatchNative()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -724,7 +621,7 @@ template&lt;SqlInputParameterBinder... Args&gt; </div>
 template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguous_range... MoreColumnBatches&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">void Lightweight::SqlStatement::ExecuteBatchNative </td>
+          <td class="memname"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> Lightweight::SqlStatement::ExecuteBatchNative </td>
           <td>(</td>
           <td class="paramtype">FirstColumnBatch const &amp;&#160;</td>
           <td class="paramname"><em>firstColumnBatch</em>, </td>
@@ -744,16 +641,16 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguo
 </div><div class="memdoc">
 <p>Executes the prepared statement on a batch of data.</p>
 <p>Each parameter represents a column, to be bound as input parameter. The element types of each column container must be explicitly supported.</p>
-<p>In order to support column value types, their underlying storage must be contiguous. Also the input range itself must be contiguous. If any of these conditions are not met, the function will not compile - use <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a39e7689e3101f48e5fcafe5d39b5d935">ExecuteBatch()</a> instead. </p>
+<p>In order to support column value types, their underlying storage must be contiguous. Also the input range itself must be contiguous. If any of these conditions are not met, the function will not compile - use <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5976ca6716ffd13c9eb4977da4d171c8">ExecuteBatch()</a> instead. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00766">766</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00752">752</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00801">ExecuteBatch()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00788">ExecuteBatch()</a>.</p>
 
 </div>
 </div>
-<a id="a435c8e2a6927c31c28cd9b6c082a5fad" name="a435c8e2a6927c31c28cd9b6c082a5fad"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a435c8e2a6927c31c28cd9b6c082a5fad">&#9670;&#160;</a></span>ExecuteBatchSoft()</h2>
+<a id="af3606d3a07e9a9be93e49569946c176d" name="af3606d3a07e9a9be93e49569946c176d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af3606d3a07e9a9be93e49569946c176d">&#9670;&#160;</a></span>ExecuteBatchSoft()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -761,7 +658,7 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguo
 template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">void Lightweight::SqlStatement::ExecuteBatchSoft </td>
+          <td class="memname"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> Lightweight::SqlStatement::ExecuteBatchSoft </td>
           <td>(</td>
           <td class="paramtype">FirstColumnBatch const &amp;&#160;</td>
           <td class="paramname"><em>firstColumnBatch</em>, </td>
@@ -781,16 +678,16 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 </div><div class="memdoc">
 <p>Executes the prepared statement on a batch of data.</p>
 <p>Each parameter represents a column, to be bound as input parameter, and the number of elements in these bound column containers will mandate how many executions will happen.</p>
-<p>This function will bind and execute each row separately, which is less efficient than <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5de8934a879ddef9062eef0d06342ff4">ExecuteBatchNative()</a>, but works non-contiguous input ranges. </p>
+<p>This function will bind and execute each row separately, which is less efficient than <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#abf5a451e1dbe5fca332cb2cd30e95631">ExecuteBatchNative()</a>, but works non-contiguous input ranges. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00813">813</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00800">800</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00801">ExecuteBatch()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00788">ExecuteBatch()</a>.</p>
 
 </div>
 </div>
-<a id="a39e7689e3101f48e5fcafe5d39b5d935" name="a39e7689e3101f48e5fcafe5d39b5d935"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a39e7689e3101f48e5fcafe5d39b5d935">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[1/3]</span></h2>
+<a id="a5976ca6716ffd13c9eb4977da4d171c8" name="a5976ca6716ffd13c9eb4977da4d171c8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5976ca6716ffd13c9eb4977da4d171c8">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[1/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -798,7 +695,7 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">void Lightweight::SqlStatement::ExecuteBatch </td>
+          <td class="memname"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> Lightweight::SqlStatement::ExecuteBatch </td>
           <td>(</td>
           <td class="paramtype">FirstColumnBatch const &amp;&#160;</td>
           <td class="paramname"><em>firstColumnBatch</em>, </td>
@@ -821,14 +718,14 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 
 </div>
 </div>
-<a id="a1053cb70b16c7a53e98f234d7cf92af3" name="a1053cb70b16c7a53e98f234d7cf92af3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1053cb70b16c7a53e98f234d7cf92af3">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[2/3]</span></h2>
+<a id="abe60fdd5ccc0a2c07cf183eac8d83cd2" name="abe60fdd5ccc0a2c07cf183eac8d83cd2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abe60fdd5ccc0a2c07cf183eac8d83cd2">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[2/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_API void Lightweight::SqlStatement::ExecuteBatch </td>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> Lightweight::SqlStatement::ExecuteBatch </td>
           <td>(</td>
           <td class="paramtype">std::span&lt; <a class="el" href="../../da/d7e/structLightweight_1_1SqlRawColumn.html">SqlRawColumn</a> const &gt;&#160;</td>
           <td class="paramname"><em>columns</em>, </td>
@@ -857,8 +754,8 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 
 </div>
 </div>
-<a id="a7bc8ffdd249fff1e8d68e0662b33f2c9" name="a7bc8ffdd249fff1e8d68e0662b33f2c9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7bc8ffdd249fff1e8d68e0662b33f2c9">&#9670;&#160;</a></span>ExecuteDirect()</h2>
+<a id="a1e5572123ab0d006d3ae3defee9c4f89" name="a1e5572123ab0d006d3ae3defee9c4f89"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1e5572123ab0d006d3ae3defee9c4f89">&#9670;&#160;</a></span>ExecuteDirect()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -867,7 +764,7 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE void Lightweight::SqlStatement::ExecuteDirect </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> Lightweight::SqlStatement::ExecuteDirect </td>
           <td>(</td>
           <td class="paramtype">SqlQueryObject auto const &amp;&#160;</td>
           <td class="paramname"><em>query</em>, </td>
@@ -893,9 +790,9 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 
 <p>Executes the given query directly. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00883">883</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00872">872</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">ExecuteDirect()</a>.</p>
+<p class="reference">References <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cc4145826d8674fe8500b8cd8d46927">ExecuteDirect()</a>.</p>
 
 </div>
 </div>
@@ -930,9 +827,9 @@ requires std::invocable&lt;Callable, <a class="el" href="../../d8/d65/classLight
 
 <p>Executes an SQL migration query, as created b the callback. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00891">891</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00880">880</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00939">CloseCursor()</a>, <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00619">Connection()</a>, <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#ab1abb98db974f10f12a0aae5e058647f">ExecuteDirect()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00211">Lightweight::SqlConnection::QueryFormatter()</a>.</p>
+<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00604">Connection()</a>, <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cc4145826d8674fe8500b8cd8d46927">ExecuteDirect()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00211">Lightweight::SqlConnection::QueryFormatter()</a>.</p>
 
 </div>
 </div>
@@ -974,9 +871,9 @@ requires (!std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight
 </div><div class="memdoc">
 <p>Executes the given query, assuming that only one result row and column is affected, that one will be returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00905">905</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00893">893</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02454">Lightweight::DataMapper::Execute()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02410">Lightweight::DataMapper::Execute()</a>.</p>
 
 </div>
 </div>
@@ -1019,7 +916,7 @@ requires (std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight_
 
 <p>Executes the given query and returns the single result as an <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00915">915</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00902">902</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d3/de6/SqlNullValue_8hpp_source.html#l00022">Lightweight::SqlNullValue</a>.</p>
 
@@ -1063,7 +960,7 @@ requires (!std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight
 </div><div class="memdoc">
 <p>Executes the given query, assuming that only one result row and column is affected, that one will be returned. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00927">927</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00913">913</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1106,275 +1003,12 @@ requires (std::same_as&lt;T, <a class="el" href="../../df/d3f/structLightweight_
 
 <p>Executes the given query object and returns the single result as an <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00934">934</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ac2f0af5c0ea6747b33ceb5bb08f45351" name="ac2f0af5c0ea6747b33ceb5bb08f45351"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac2f0af5c0ea6747b33ceb5bb08f45351">&#9670;&#160;</a></span>FetchRow()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_API bool Lightweight::SqlStatement::FetchRow </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Fetches the next row of the result set.</p>
-<dl class="section note"><dt>Note</dt><dd>Automatically closes the cursor at the end of the result set.</dd></dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">true</td><td>The next result row was successfully fetched </td></tr>
-    <tr><td class="paramname">false</td><td>No result row was fetched, because the end of the result set was reached. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02308">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01616">Lightweight::DataMapper::Query()</a>.</p>
-
-</div>
-</div>
-<a id="a4f267c964dcea21646008280e5531aa8" name="a4f267c964dcea21646008280e5531aa8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4f267c964dcea21646008280e5531aa8">&#9670;&#160;</a></span>CloseCursor()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE void Lightweight::SqlStatement::CloseCursor </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Closes the result cursor on queries that yield a result set, e.g. SELECT statements.</p>
-<p>Call this function when done with fetching the results before the end of the result set is reached. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00939">939</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">Lightweight::SqlLogger::GetLogger()</a>, and <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a531204f908c6870f7e7e589ac0e20c2f">Lightweight::SqlLogger::OnFetchEnd()</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02308">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00891">MigrateDirect()</a>.</p>
-
-</div>
-</div>
-<a id="a6a00a9d4de7a50e8e8108b5bce77663f" name="a6a00a9d4de7a50e8e8108b5bce77663f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6a00a9d4de7a50e8e8108b5bce77663f">&#9670;&#160;</a></span>GetResultCursor()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> Lightweight::SqlStatement::GetResultCursor </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Retrieves the result cursor for reading an SQL query result. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00946">946</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01672">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01752">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01616">Lightweight::DataMapper::Query()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01539">Lightweight::DataMapper::QuerySingleWithoutRelationAutoLoading()</a>.</p>
-
-</div>
-</div>
-<a id="a696b3c702137a05dcad3178bc27113b7" name="a696b3c702137a05dcad3178bc27113b7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a696b3c702137a05dcad3178bc27113b7">&#9670;&#160;</a></span>GetVariantRowCursor()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE SqlVariantRowCursor Lightweight::SqlStatement::GetVariantRowCursor </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Retrieves the variant row cursor for reading an SQL query result of unknown column types and column count. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00951">951</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a6cbc1d88b9c88371c4db1806bab6a700" name="a6cbc1d88b9c88371c4db1806bab6a700"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6cbc1d88b9c88371c4db1806bab6a700">&#9670;&#160;</a></span>GetColumn() <span class="overload">[1/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;SqlGetColumnNativeType T&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool Lightweight::SqlStatement::GetColumn </td>
-          <td>(</td>
-          <td class="paramtype">SQLUSMALLINT&#160;</td>
-          <td class="paramname"><em>column</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">T *&#160;</td>
-          <td class="paramname"><em>result</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Retrieves the value of the column at the given index for the currently selected row.</p>
-<p>Returns true if the value is not NULL, false otherwise. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00839">839</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02308">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01616">Lightweight::DataMapper::Query()</a>.</p>
-
-</div>
-</div>
-<a id="afbcf5f28e24ed34a6246110a4b930872" name="afbcf5f28e24ed34a6246110a4b930872"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afbcf5f28e24ed34a6246110a4b930872">&#9670;&#160;</a></span>GetColumn() <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;SqlGetColumnNativeType T&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">T Lightweight::SqlStatement::GetColumn </td>
-          <td>(</td>
-          <td class="paramtype">SQLUSMALLINT&#160;</td>
-          <td class="paramname"><em>column</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Retrieves the value of the column at the given index for the currently selected row. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00855">855</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ac4e7bc8a5e62d553623b67c089a4af58" name="ac4e7bc8a5e62d553623b67c089a4af58"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac4e7bc8a5e62d553623b67c089a4af58">&#9670;&#160;</a></span>GetNullableColumn()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;SqlGetColumnNativeType T&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::optional&lt; T &gt; Lightweight::SqlStatement::GetNullableColumn </td>
-          <td>(</td>
-          <td class="paramtype">SQLUSMALLINT&#160;</td>
-          <td class="paramname"><em>column</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Retrieves the value of the column at the given index for the currently selected row.</p>
-<p>If the value is NULL, std::nullopt is returned. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00867">867</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a989ea8b599aaf01c40fc493233366f7c" name="a989ea8b599aaf01c40fc493233366f7c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a989ea8b599aaf01c40fc493233366f7c">&#9670;&#160;</a></span>GetColumnOr()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;SqlGetColumnNativeType T&gt; </div>
-      <table class="memname">
-        <tr>
-          <td class="memname">T Lightweight::SqlStatement::GetColumnOr </td>
-          <td>(</td>
-          <td class="paramtype">SQLUSMALLINT&#160;</td>
-          <td class="paramname"><em>column</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">T &amp;&amp;&#160;</td>
-          <td class="paramname"><em>defaultValue</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td> const</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-<p>Retrieves the value of the column at the given index for the currently selected row.</p>
-<p>If the value is NULL, the given <code>defaultValue</code> is returned. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00878">878</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00920">920</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
 <a id="ac19f8c92550b34319f2f7b48ec32c149" name="ac19f8c92550b34319f2f7b48ec32c149"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac19f8c92550b34319f2f7b48ec32c149">&#9670;&#160;</a></span>BindOutputColumns() <span class="overload">[2/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ac19f8c92550b34319f2f7b48ec32c149">&#9670;&#160;</a></span>BindOutputColumns()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1400,10 +1034,8 @@ template&lt;SqlOutputColumnBinder... Args&gt; </div>
 </div><div class="memdoc">
 
 <p></p>
-<p>Binds the given arguments to the prepared statement to store the fetched data to.</p>
-<dl class="section note"><dt>Note</dt><dd>The statement must be prepared before calling this function.   </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00656">656</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00641">641</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1443,9 +1075,9 @@ template&lt;SqlOutputColumnBinder T&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Binds a single output column at the given index to store fetched data.   </p>
+<p></p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00682">682</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00667">667</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1487,7 +1119,7 @@ template&lt;SqlInputParameterBinder Arg&gt; </div>
 
 <p>Binds an input parameter to the prepared statement at the given column index.   </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00691">691</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00676">676</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -1535,14 +1167,14 @@ template&lt;SqlInputParameterBinder Arg, typename ColumnName &gt; </div>
 
 <p>Binds an input parameter to the prepared statement at the given column index with a column name hint.   </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00700">700</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00685">685</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9267f1c1591f6d3a6d20a0a541ff9b0d">BindInputParameter()</a>, <a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">Lightweight::SqlLogger::GetLogger()</a>, and <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00092">Lightweight::SqlLogger::OnBindInputParameter()</a>.</p>
 
 </div>
 </div>
-<a id="a240f75b0c9ebcdcc359580ff98e3c81e" name="a240f75b0c9ebcdcc359580ff98e3c81e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a240f75b0c9ebcdcc359580ff98e3c81e">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[3/3]</span></h2>
+<a id="a9cf433624157f588443d42e5071ee288" name="a9cf433624157f588443d42e5071ee288"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9cf433624157f588443d42e5071ee288">&#9670;&#160;</a></span>ExecuteBatch() <span class="overload">[3/3]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -1553,7 +1185,7 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE void Lightweight::SqlStatement::ExecuteBatch </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> Lightweight::SqlStatement::ExecuteBatch </td>
           <td>(</td>
           <td class="paramtype">FirstColumnBatch const &amp;&#160;</td>
           <td class="paramname"><em>firstColumnBatch</em>, </td>
@@ -1581,9 +1213,9 @@ template&lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range...
 <p>Executes the prepared statement on a batch of data.</p>
 <p>Each parameter represents a column, to be bound as input parameter, and the number of elements in these bound column containers will mandate how many executions will happen.   </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00801">801</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00788">788</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00766">ExecuteBatchNative()</a>, and <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00813">ExecuteBatchSoft()</a>.</p>
+<p class="reference">References <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00752">ExecuteBatchNative()</a>, and <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00800">ExecuteBatchSoft()</a>.</p>
 
 </div>
 </div>
