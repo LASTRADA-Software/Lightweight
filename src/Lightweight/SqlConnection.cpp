@@ -270,7 +270,7 @@ void SqlConnection::PostConnect()
         // Set a busy timeout to prevent "database is locked" errors during concurrent access.
         // 60 seconds should be sufficient for most operations.
         SqlStatement stmt(*this);
-        stmt.ExecuteDirect("PRAGMA busy_timeout = 60000");
+        [[maybe_unused]] auto cursor = stmt.ExecuteDirect("PRAGMA busy_timeout = 60000");
 
         // We could also enable WAL mode here, but that changes the database file structure.
         // However, for high-concurrency restoration, it is highly recommended.

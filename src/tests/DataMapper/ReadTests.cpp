@@ -324,8 +324,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: SELECT into simple struct", "[DataMappe
             .Column("c2", Varchar { 30 });
     });
 
-    SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableA").Insert().Set("c1", "a").Set("c2", "b"));
-    SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableB").Insert().Set("c1", "a").Set("c2", "c"));
+    (void) SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableA").Insert().Set("c1", "a").Set("c2", "b"));
+    (void) SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableB").Insert().Set("c1", "a").Set("c2", "c"));
 
     auto records =
         dm.Query<SimpleStruct>(dm.FromTable("TableA")
@@ -364,8 +364,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Query: SELECT into SqlVariantRow", "[DataMappe
             .Column("c2", Varchar { 30 });
     });
 
-    SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableA").Insert().Set("c1", "a").Set("c2", "b"));
-    SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableB").Insert().Set("c1", "a").Set("c2", "c"));
+    (void) SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableA").Insert().Set("c1", "a").Set("c2", "b"));
+    (void) SqlStatement(dm.Connection()).ExecuteDirect(dm.FromTable("TableB").Insert().Set("c1", "a").Set("c2", "c"));
 
     auto records =
         dm.Query<SqlVariantRow>(dm.FromTable("TableA").Select().Field("*").LeftOuterJoin("TableB", "c1", "c1").All());
@@ -600,16 +600,14 @@ TEST_CASE_METHOD(SqlTestFixture, "Get optional values from the statement", "[Dat
                      .All();
     stmt.Prepare(query);
     {
-        stmt.Execute(record.id.Value());
-        auto res = stmt.GetResultCursor();
+        auto res = stmt.Execute(record.id.Value());
         REQUIRE(res.FetchRow());
         REQUIRE(res.GetColumn<SqlGuid>(1));
         REQUIRE(!res.GetNullableColumn<int>(2).has_value()); // similar to res.GetColumn<std::optional<int>>(2)
     }
 
     {
-        stmt.Execute(SqlGuid::Create());
-        auto res = stmt.GetResultCursor();
+        auto res = stmt.Execute(SqlGuid::Create());
         REQUIRE(!res.FetchRow());
     }
 }

@@ -283,9 +283,9 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
             // Build query with current offset for resumption
             auto const selectQuery = BuildSelectQueryWithOffset(
                 formatter, conn.ServerType(), table.schema, tableName, table.columns, table.primaryKeys, processedRows);
-            stmt.ExecuteDirect(selectQuery);
+            auto cursor = stmt.ExecuteDirect(selectQuery);
 
-            while (stmt.FetchRow())
+            while (cursor.FetchRow())
             {
                 if constexpr (DebugBackupWorker)
                     std::println(stderr, "DEBUG: FetchRow returned true for {}", tableName);
@@ -305,7 +305,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                         {
                             try
                             {
-                                auto valOpt = stmt.GetNullableColumn<SqlDynamicBinary<MaxBinaryLobBufferSize>>(i);
+                                auto valOpt = cursor.GetNullableColumn<SqlDynamicBinary<MaxBinaryLobBufferSize>>(i);
                                 if (valOpt)
                                 {
                                     row.emplace_back(std::vector<uint8_t>(valOpt->data(), valOpt->data() + valOpt->size()));
@@ -325,7 +325,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                         }
                         else if (std::holds_alternative<Bool>(colDef.type))
                         {
-                            auto valOpt = stmt.GetNullableColumn<bool>(i);
+                            auto valOpt = cursor.GetNullableColumn<bool>(i);
                             if (valOpt)
                                 row.emplace_back(*valOpt);
                             else
@@ -335,7 +335,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                                  || std::holds_alternative<Smallint>(colDef.type)
                                  || std::holds_alternative<Tinyint>(colDef.type))
                         {
-                            auto valOpt = stmt.GetNullableColumn<int64_t>(i);
+                            auto valOpt = cursor.GetNullableColumn<int64_t>(i);
                             if (valOpt)
                                 row.emplace_back(*valOpt);
                             else
@@ -343,7 +343,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                         }
                         else if (std::holds_alternative<Real>(colDef.type))
                         {
-                            auto valOpt = stmt.GetNullableColumn<double>(i);
+                            auto valOpt = cursor.GetNullableColumn<double>(i);
                             if (valOpt)
                                 row.emplace_back(*valOpt);
                             else
@@ -351,7 +351,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                         }
                         else if (std::holds_alternative<NVarchar>(colDef.type) || std::holds_alternative<NChar>(colDef.type))
                         {
-                            auto valOpt = stmt.GetNullableColumn<std::u16string>(i);
+                            auto valOpt = cursor.GetNullableColumn<std::u16string>(i);
                             if (valOpt)
                             {
                                 auto u8 = ToUtf8(*valOpt);
@@ -363,7 +363,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                         else if (std::holds_alternative<Guid>(colDef.type))
                         {
                             // Read GUID columns using SqlGuid for proper ODBC binding, then convert to string
-                            auto valOpt = stmt.GetNullableColumn<SqlGuid>(i);
+                            auto valOpt = cursor.GetNullableColumn<SqlGuid>(i);
                             if (valOpt)
                                 row.emplace_back(to_string(*valOpt));
                             else
@@ -374,7 +374,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                             // Read Decimal as string directly to preserve full precision.
                             // Using double would lose precision for values exceeding ~15-17 significant digits,
                             // which is problematic for DECIMAL(38,10) and similar high-precision types.
-                            auto valOpt = stmt.GetNullableColumn<std::string>(i);
+                            auto valOpt = cursor.GetNullableColumn<std::string>(i);
                             if (valOpt)
                                 row.emplace_back(*valOpt);
                             else
@@ -383,7 +383,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                         else if (std::holds_alternative<Date>(colDef.type))
                         {
                             // Read Date using native type to avoid ODBC driver conversion issues.
-                            auto valOpt = stmt.GetNullableColumn<SqlDate>(i);
+                            auto valOpt = cursor.GetNullableColumn<SqlDate>(i);
                             if (valOpt)
                                 row.emplace_back(std::format("{}", *valOpt));
                             else
@@ -398,7 +398,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                             if (conn.ServerType() == SqlServerType::POSTGRESQL
                                 || conn.ServerType() == SqlServerType::MICROSOFT_SQL)
                             {
-                                auto valOpt = stmt.GetNullableColumn<std::string>(i);
+                                auto valOpt = cursor.GetNullableColumn<std::string>(i);
                                 if (valOpt)
                                     row.emplace_back(*valOpt);
                                 else
@@ -407,7 +407,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                             else
                             {
                                 // Read Time using native type for other databases (e.g., SQLite).
-                                auto valOpt = stmt.GetNullableColumn<SqlTime>(i);
+                                auto valOpt = cursor.GetNullableColumn<SqlTime>(i);
                                 if (valOpt)
                                     row.emplace_back(std::format("{}", *valOpt));
                                 else
@@ -419,7 +419,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                         {
                             // Read DateTime/Timestamp using native type to avoid MS SQL Server ODBC driver
                             // issues with SQL_TYPE_TIMESTAMP to SQL_C_CHAR conversion (error 22003).
-                            auto valOpt = stmt.GetNullableColumn<SqlDateTime>(i);
+                            auto valOpt = cursor.GetNullableColumn<SqlDateTime>(i);
                             if (valOpt)
                                 row.emplace_back(std::format("{}", *valOpt));
                             else
@@ -431,7 +431,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                             // Read text/string types as strings directly.
                             // Note: We must not use SqlDynamicBinary for text types on PostgreSQL as its ODBC driver
                             // does not support reading TEXT as SQL_C_BINARY.
-                            auto valOpt = stmt.GetNullableColumn<std::string>(i);
+                            auto valOpt = cursor.GetNullableColumn<std::string>(i);
                             if (valOpt)
                                 row.emplace_back(*valOpt);
                             else
@@ -440,7 +440,7 @@ void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Tabl
                         else
                         {
                             // Fallback for any unhandled types - try reading as string
-                            auto valOpt = stmt.GetNullableColumn<std::string>(i);
+                            auto valOpt = cursor.GetNullableColumn<std::string>(i);
                             if (valOpt)
                                 row.emplace_back(*valOpt);
                             else

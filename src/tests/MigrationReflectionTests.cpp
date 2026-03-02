@@ -109,7 +109,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     auto parentMigration = conn.Migration();
     parentMigration.CreateTable("FkTestParent").PrimaryKey("id", Integer {});
     for (auto const& sql: parentMigration.GetPlan().ToSql())
-        stmt.ExecuteDirect(sql);
+        (void) stmt.ExecuteDirect(sql);
 
     // Create child table with single-column foreign key
     auto childMigration = conn.Migration();
@@ -118,7 +118,7 @@ TEST_CASE_METHOD(SqlTestFixture,
         .ForeignKey(
             "parent_id", Integer {}, SqlForeignKeyReferenceDefinition { .tableName = "FkTestParent", .columnName = "id" });
     for (auto const& sql: childMigration.GetPlan().ToSql())
-        stmt.ExecuteDirect(sql);
+        (void) stmt.ExecuteDirect(sql);
 
     // Read schema back from database
     auto tables = SqlSchema::ReadAllTables(stmt, conn.DatabaseName(), "");
@@ -149,8 +149,8 @@ TEST_CASE_METHOD(SqlTestFixture,
     CHECK(plan.foreignKeys[0].referencedTableName == "FkTestParent");
 
     // Cleanup
-    stmt.ExecuteDirect("DROP TABLE \"FkTestChild\"");
-    stmt.ExecuteDirect("DROP TABLE \"FkTestParent\"");
+    (void) stmt.ExecuteDirect("DROP TABLE \"FkTestChild\"");
+    (void) stmt.ExecuteDirect("DROP TABLE \"FkTestParent\"");
 }
 
 TEST_CASE_METHOD(SqlTestFixture,
@@ -170,7 +170,7 @@ TEST_CASE_METHOD(SqlTestFixture,
         .Column(SqlColumnDeclaration {
             .name = "key2", .type = Integer {}, .primaryKey = SqlPrimaryKeyType::MANUAL, .required = true });
     for (auto const& sql: parentMigration.GetPlan().ToSql())
-        stmt.ExecuteDirect(sql);
+        (void) stmt.ExecuteDirect(sql);
 
     // Create child table with composite foreign key
     auto childMigration = conn.Migration();
@@ -180,7 +180,7 @@ TEST_CASE_METHOD(SqlTestFixture,
         .RequiredColumn("parent_key2", Integer {})
         .ForeignKey({ "parent_key1", "parent_key2" }, "FkTestParentComposite", { "key1", "key2" });
     for (auto const& sql: childMigration.GetPlan().ToSql())
-        stmt.ExecuteDirect(sql);
+        (void) stmt.ExecuteDirect(sql);
 
     // Read schema back from database
     auto tables = SqlSchema::ReadAllTables(stmt, conn.DatabaseName(), "");
@@ -213,6 +213,6 @@ TEST_CASE_METHOD(SqlTestFixture,
     REQUIRE(plan.foreignKeys[0].referencedColumns.size() == 2);
 
     // Cleanup
-    stmt.ExecuteDirect("DROP TABLE \"FkTestChildComposite\"");
-    stmt.ExecuteDirect("DROP TABLE \"FkTestParentComposite\"");
+    (void) stmt.ExecuteDirect("DROP TABLE \"FkTestChildComposite\"");
+    (void) stmt.ExecuteDirect("DROP TABLE \"FkTestParentComposite\"");
 }

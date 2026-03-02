@@ -187,35 +187,34 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn in-place store variant",
     CreateEmployeesTable(stmt);
 
     stmt.Prepare(R"(INSERT INTO "Employees" ("FirstName", "LastName", "Salary") VALUES (?, ?, ?))");
-    stmt.Execute("Alice", SqlNullValue, 50'000);
+    (void) stmt.Execute("Alice", SqlNullValue, 50'000);
 
-    stmt.ExecuteDirect(R"(SELECT "FirstName", "LastName", "Salary" FROM "Employees")");
-    (void) stmt.FetchRow();
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "FirstName", "LastName", "Salary" FROM "Employees")");
+    (void) cursor.FetchRow();
 
-    CHECK(stmt.GetColumn<std::string>(1) == "Alice");
+    CHECK(cursor.GetColumn<std::string>(1) == "Alice");
 
     SqlVariant lastName;
-    CHECK(!stmt.GetColumn(2, &lastName));
+    CHECK(!cursor.GetColumn(2, &lastName));
     CHECK(lastName.IsNull());
 
     SqlVariant salary;
-    CHECK(stmt.GetColumn(3, &salary));
+    CHECK(cursor.GetColumn(3, &salary));
     CHECK(salary.TryGetInt().value_or(0) == 50'000);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: NULL values", "[SqlDataBinder],[SqlVariant]")
 {
     auto stmt = SqlStatement();
-    stmt.ExecuteDirect("CREATE TABLE Test (Remarks VARCHAR(50) NULL)");
+    (void) stmt.ExecuteDirect("CREATE TABLE Test (Remarks VARCHAR(50) NULL)");
 
     SECTION("Test for inserting/getting NULL values")
     {
         stmt.Prepare("INSERT INTO Test (Remarks) VALUES (?)");
-        stmt.Execute(SqlNullValue);
-        stmt.ExecuteDirect("SELECT Remarks FROM Test");
+        (void) stmt.Execute(SqlNullValue);
 
-        auto reader = stmt.GetResultCursor();
-        (void) stmt.FetchRow();
+        auto reader = stmt.ExecuteDirect("SELECT Remarks FROM Test");
+        (void) reader.FetchRow();
 
         auto const actual = reader.GetColumn<SqlVariant>(1);
         CHECK(std::holds_alternative<SqlNullType>(actual.value));
@@ -224,7 +223,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: NULL values", "[SqlDataBinder],[Sq
     SECTION("Using ExecuteDirectScalar")
     {
         stmt.Prepare("INSERT INTO Test (Remarks) VALUES (?)");
-        stmt.Execute(SqlNullValue);
+        (void) stmt.Execute(SqlNullValue);
         auto const result = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Remarks FROM Test");
         CHECK(result.IsNull());
     }
@@ -241,23 +240,21 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlGuid", "[SqlDataBinder],[SqlVar
     auto const& expectedValue = std::get<SqlGuid>(expectedVariant.value);
 
     stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
-    stmt.Execute(expectedVariant);
+    (void) stmt.Execute(expectedVariant);
 
-    stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
     {
-        auto reader = stmt.GetResultCursor();
+        auto reader = stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
         (void) reader.FetchRow();
         auto const actualVariant = reader.GetColumn<SqlVariant>(1);
         CHECK(actualVariant.TryGetGuid().value_or(SqlGuid {}) == expectedValue);
     }
 
     // Test for inserting/getting NULL values
-    stmt.ExecuteDirect(stmt.Query("Test").Delete());
+    (void) stmt.ExecuteDirect(stmt.Query("Test").Delete());
     stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
-    stmt.Execute(SqlNullValue);
-    stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
+    (void) stmt.Execute(SqlNullValue);
     {
-        auto reader = stmt.GetResultCursor();
+        auto reader = stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
         (void) reader.FetchRow();
         auto const actualVariant = reader.GetColumn<SqlVariant>(1);
         CHECK(actualVariant.IsNull());
@@ -280,20 +277,19 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlDate", "[SqlDataBinder],[SqlVar
     auto const& expectedDateTime = std::get<SqlDate>(expected.value);
 
     stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
-    stmt.Execute(expected);
+    (void) stmt.Execute(expected);
 
-    stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
     {
-        auto reader = stmt.GetResultCursor();
-        (void) stmt.FetchRow();
+        auto reader = stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
+        (void) reader.FetchRow();
         auto const actual = reader.GetColumn<SqlVariant>(1);
         CHECK(actual.TryGetDate().value_or(SqlDate {}) == expectedDateTime);
     }
 
     // Test for inserting/getting NULL values
-    stmt.ExecuteDirect(stmt.Query("Test").Delete());
+    (void) stmt.ExecuteDirect(stmt.Query("Test").Delete());
     stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
-    stmt.Execute(SqlNullValue);
+    (void) stmt.Execute(SqlNullValue);
     auto const result = stmt.ExecuteDirectScalar<SqlVariant>(stmt.Query("Test").Select().Field("Value").All());
     CHECK(result.IsNull());
 }
@@ -308,7 +304,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlTime", "[SqlDataBinder],[SqlVar
     auto const expected = SqlVariant { SqlTime { 12h, 34min, 56s } };
 
     stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
-    stmt.Execute(expected);
+    (void) stmt.Execute(expected);
 
     auto const actual = stmt.ExecuteDirectScalar<SqlVariant>(stmt.Query("Test").Select().Field("Value").All());
 
@@ -324,9 +320,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlTime", "[SqlDataBinder],[SqlVar
         CHECK(actual.TryGetTime().value() == std::get<SqlTime>(expected.value));
 
     // Test for inserting/getting NULL values
-    stmt.ExecuteDirect(stmt.Query("Test").Delete());
+    (void) stmt.ExecuteDirect(stmt.Query("Test").Delete());
     stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
-    stmt.Execute(SqlNullValue);
+    (void) stmt.Execute(SqlNullValue);
     auto const result = stmt.ExecuteDirectScalar<SqlVariant>(stmt.Query("Test").Select().Field("Value").All());
     CHECK(result.IsNull());
 }
@@ -339,29 +335,28 @@ TEST_CASE_METHOD(SqlTestFixture, "InputParameter and GetColumn for very large va
         migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Text { size });
     });
     stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
-    stmt.Execute(expectedText);
+    (void) stmt.Execute(expectedText);
 
     SECTION("check handling for explicitly fetched output columns")
     {
-        stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
-        (void) stmt.FetchRow();
-        CHECK(stmt.GetColumn<std::string>(1) == expectedText);
+        auto cursor = stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
+        (void) cursor.FetchRow();
+        CHECK(cursor.GetColumn<std::string>(1) == expectedText);
     }
 
     SECTION("check handling for explicitly fetched output columns (in-place store)")
     {
-        stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
-        (void) stmt.FetchRow();
+        auto cursor = stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
+        (void) cursor.FetchRow();
         std::string actualText;
-        CHECK(stmt.GetColumn(1, &actualText));
+        CHECK(cursor.GetColumn(1, &actualText));
         CHECK(actualText == expectedText);
     }
 
     SECTION("check handling for bound output columns")
     {
         stmt.Prepare(stmt.Query("Test").Select().Field("Value").All());
-        stmt.Execute();
-        auto reader = stmt.GetResultCursor();
+        auto cursor = stmt.Execute();
 
         // Intentionally an empty string, auto-growing behind the scenes
         std::string actualText;
@@ -374,8 +369,8 @@ TEST_CASE_METHOD(SqlTestFixture, "InputParameter and GetColumn for very large va
             actualText = std::string(expectedText.size() + 1, '\0');
         }
 
-        reader.BindOutputColumns(&actualText);
-        (void) stmt.FetchRow();
+        cursor.BindOutputColumns(&actualText);
+        (void) cursor.FetchRow();
         REQUIRE(actualText.size() == expectedText.size());
         CHECK(actualText == expectedText);
     }
@@ -387,7 +382,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode", "[SqlDataBinder],[Uni
 
     if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
         // SQLite does UTF-8 by default, so we need to switch to UTF-16
-        stmt.ExecuteDirect("PRAGMA encoding = 'UTF-16'");
+        (void) stmt.ExecuteDirect("PRAGMA encoding = 'UTF-16'");
 
     // Create table with Unicode column.
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
@@ -397,36 +392,35 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode", "[SqlDataBinder],[Uni
     stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
 
     // Insert via wide string literal
-    stmt.Execute(WTEXT("Wide string literal \U0001F600"));
+    (void) stmt.Execute(WTEXT("Wide string literal \U0001F600"));
 
     // Insert via wide string view
-    stmt.Execute(WideStringView(WTEXT("Wide string literal \U0001F600")));
+    (void) stmt.Execute(WideStringView(WTEXT("Wide string literal \U0001F600")));
 
     // Insert via wide string object
     WideString const inputValue = WTEXT("Wide string literal \U0001F600");
-    stmt.Execute(inputValue);
+    (void) stmt.Execute(inputValue);
 
-    stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
     {
-        auto reader = stmt.GetResultCursor();
+        auto reader = stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
 
         // Fetch and check GetColumn for wide string
-        (void) stmt.FetchRow();
+        (void) reader.FetchRow();
         auto const actualValue = reader.GetColumn<WideString>(1);
         CHECK(actualValue == inputValue);
 
         // Bind output column, fetch, and check result in output column for wide string
         WideString actualValue2;
         reader.BindOutputColumns(&actualValue2);
-        (void) stmt.FetchRow();
+        (void) reader.FetchRow();
         CHECK(actualValue2 == inputValue);
     }
 
     SECTION("Test for inserting/getting NULL VALUES")
     {
-        stmt.ExecuteDirect(stmt.Query("Test").Delete());
+        (void) stmt.ExecuteDirect(stmt.Query("Test").Delete());
         stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
-        stmt.Execute(SqlNullValue);
+        (void) stmt.Execute(SqlNullValue);
         auto const result = stmt.ExecuteDirectScalar<WideString>(stmt.Query("Test").Select().Field("Value").First());
         CHECK(!result.has_value());
     }
@@ -438,7 +432,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode mixed", "[SqlDataBinder
 
     if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
         // SQLite does UTF-8 by default, so we need to switch to UTF-16
-        stmt.ExecuteDirect("PRAGMA encoding = 'UTF-16'");
+        (void) stmt.ExecuteDirect("PRAGMA encoding = 'UTF-16'");
 
     stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
         migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::NVarchar(10));
@@ -450,7 +444,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder: Unicode mixed", "[SqlDataBinder
 
         // Write value: UTF-8 encoded
         stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
-        stmt.Execute(inputValue);
+        (void) stmt.Execute(inputValue);
 
         // Read value: UTF-16 encoded
         auto actualValue = stmt.ExecuteDirectScalar<WideString>(stmt.Query("Test").Select().Field("Value").First());
@@ -492,7 +486,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric.StoreAndLoad", "[SqlDataBinder],[Sq
     auto const inputValue = SqlNumeric<10, 2> { 99999999.99 };
 
     stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
-    stmt.Execute(inputValue);
+    (void) stmt.Execute(inputValue);
 
     // Check retrieval via type: string
     auto const receivedStr = stmt.ExecuteDirectScalar<std::string>(stmt.Query("Test").Select().Field("Value").All());
@@ -988,32 +982,32 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
                 return conn.QueryFormatter().ColumnType(SqlDataBinder<TestType>::ColumnType);
         }();
 
-        stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
+        (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
 
         WHEN("Inserting a value")
         {
             stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
             CAPTURE(TestTypeTraits<TestType>::inputValue);
-            stmt.Execute(TestTypeTraits<TestType>::inputValue);
+            (void) stmt.Execute(TestTypeTraits<TestType>::inputValue);
 
             THEN("Retrieve value via GetColumn()")
             {
-                stmt.ExecuteDirect("SELECT Value FROM Test");
-                CAPTURE(stmt.FetchRow());
+                auto cursor = stmt.ExecuteDirect("SELECT Value FROM Test");
+                CAPTURE(cursor.FetchRow());
                 if constexpr (std::is_convertible_v<TestType, double> && !std::integral<TestType>)
                 {
-                    auto const actualValue = stmt.GetColumn<TestType>(1);
+                    auto const actualValue = cursor.GetColumn<TestType>(1);
                     CHECK_THAT(actualValue,
                                (Catch::Matchers::WithinAbs(double(TestTypeTraits<TestType>::expectedOutputValue), 0.001)));
                 }
                 else if constexpr (requires { typename TestTypeTraits<TestType>::GetColumnTypeOverride; })
                 {
-                    auto const actualValue = stmt.GetColumn<typename TestTypeTraits<TestType>::GetColumnTypeOverride>(1);
+                    auto const actualValue = cursor.GetColumn<typename TestTypeTraits<TestType>::GetColumnTypeOverride>(1);
                     CHECK(actualValue == TestTypeTraits<TestType>::expectedOutputValue);
                 }
                 else
                 {
-                    auto const actualValue = stmt.GetColumn<TestType>(1);
+                    auto const actualValue = cursor.GetColumn<TestType>(1);
                     CHECK(actualValue == TestTypeTraits<TestType>::expectedOutputValue);
                 }
             }
@@ -1022,7 +1016,7 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
             {
                 THEN("Retrieve value via BindOutputColumns()")
                 {
-                    stmt.ExecuteDirect("SELECT Value FROM Test");
+                    auto cursor = stmt.ExecuteDirect("SELECT Value FROM Test");
                     auto actualValue = [&]() -> TestType {
                         if constexpr (requires(SqlServerType st) { TestTypeTraits<TestType>::outputInitializer(st); })
                             return TestTypeTraits<TestType>::outputInitializer(conn.ServerType());
@@ -1031,8 +1025,8 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
                         else
                             return TestType {};
                     }();
-                    stmt.BindOutputColumns(&actualValue);
-                    (void) stmt.FetchRow();
+                    cursor.BindOutputColumns(&actualValue);
+                    (void) cursor.FetchRow();
                     if constexpr (std::is_convertible_v<TestType, double> && !std::integral<TestType>)
                         CHECK_THAT(
                             double(actualValue),
@@ -1048,29 +1042,29 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
             WHEN("Inserting a NULL value")
             {
                 stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
-                stmt.Execute(SqlNullValue);
+                (void) stmt.Execute(SqlNullValue);
 
                 THEN("Retrieve value via GetNullableColumn()")
                 {
-                    stmt.ExecuteDirect("SELECT Value FROM Test");
-                    (void) stmt.FetchRow();
-                    CHECK(!stmt.GetNullableColumn<TestType>(1).has_value());
+                    auto cursor = stmt.ExecuteDirect("SELECT Value FROM Test");
+                    (void) cursor.FetchRow();
+                    CHECK(!cursor.GetNullableColumn<TestType>(1).has_value());
                 }
 
                 THEN("Retrieve value via GetColumn()")
                 {
-                    stmt.ExecuteDirect("SELECT Value FROM Test");
-                    (void) stmt.FetchRow();
-                    CHECK_THROWS_AS(stmt.GetColumn<TestType>(1), std::runtime_error);
+                    auto cursor = stmt.ExecuteDirect("SELECT Value FROM Test");
+                    (void) cursor.FetchRow();
+                    CHECK_THROWS_AS(cursor.GetColumn<TestType>(1), std::runtime_error);
                 }
 
                 THEN("Retrieve value via BindOutputColumns()")
                 {
                     stmt.Prepare("SELECT Value FROM Test");
-                    stmt.Execute();
+                    auto cursor = stmt.Execute();
                     auto actualValue = std::optional<TestType> {};
-                    stmt.BindOutputColumns(&actualValue);
-                    (void) stmt.FetchRow();
+                    cursor.BindOutputColumns(&actualValue);
+                    (void) cursor.FetchRow();
                     CHECK(!actualValue.has_value());
                 }
             }
@@ -1097,17 +1091,16 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
 
     SECTION("short value")
     {
-        stmt.Execute("Hello, World!"sv);
+        std::ignore = stmt.Execute("Hello, World!"sv);
         auto constexpr expectedWide = SqlWideString<100> { L"Hello, World!" };
 
         SECTION("BindOutputColumns")
         {
             stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
-            stmt.Execute();
-            auto reader = stmt.GetResultCursor();
+            auto reader = stmt.Execute();
             SqlWideString<100> actual;
             reader.BindOutputColumns(&actual);
-            (void) stmt.FetchRow();
+            (void) reader.FetchRow();
             CHECK(actual == expectedWide);
         }
 
@@ -1124,16 +1117,15 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
     {
         auto const narrowStr = std::string(100, 'A');
         auto const expectedWide = SqlWideString<100> { std::wstring(100, L'A') };
-        stmt.Execute(narrowStr);
+        std::ignore = stmt.Execute(narrowStr);
 
         SECTION("BindOutputColumns")
         {
             stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
-            stmt.Execute();
-            auto reader = stmt.GetResultCursor();
+            auto reader = stmt.Execute();
             SqlWideString<100> actual;
             reader.BindOutputColumns(&actual);
-            (void) stmt.FetchRow();
+            (void) reader.FetchRow();
             CHECK(actual == expectedWide);
         }
 
@@ -1149,17 +1141,16 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
     SECTION("umlaut value")
     {
         // Insert UTF-8 encoded umlauts into VARCHAR; the ODBC driver converts to wide on read-back.
-        stmt.Execute(u8"Straße mit Häusern"sv);
+        std::ignore = stmt.Execute(u8"Straße mit Häusern"sv);
         auto constexpr expectedWide = SqlWideString<100> { L"Straße mit Häusern" };
 
         SECTION("BindOutputColumns")
         {
             stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
-            stmt.Execute();
-            auto reader = stmt.GetResultCursor();
+            auto reader = stmt.Execute();
             SqlWideString<100> actual;
             reader.BindOutputColumns(&actual);
-            (void) stmt.FetchRow();
+            (void) reader.FetchRow();
             CHECK(actual == expectedWide);
         }
 
@@ -1188,16 +1179,15 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
             narrowStr.append("\xc3\xa4", 2); // UTF-8 encoding of ä (U+00E4)
 
         auto const expectedWide = SqlWideString<100> { std::wstring(100, L'ä') };
-        stmt.Execute(narrowStr);
+        [[maybe_unused]] auto cursor = stmt.Execute(narrowStr);
 
         SECTION("BindOutputColumns")
         {
             stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
-            stmt.Execute();
-            auto reader = stmt.GetResultCursor();
+            auto reader = stmt.Execute();
             SqlWideString<100> actual;
             reader.BindOutputColumns(&actual);
-            (void) stmt.FetchRow();
+            (void) reader.FetchRow();
             CHECK(actual == expectedWide);
         }
 
@@ -1219,18 +1209,17 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
         if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
             SKIP();
 
-        stmt.Execute("Stra\xdf"
-                     "e mit H\xe4usern"sv);
+        std::ignore = stmt.Execute("Stra\xdf"
+                                   "e mit H\xe4usern"sv);
         auto constexpr expectedWide = SqlWideString<100> { L"Straße mit Häusern" };
 
         SECTION("BindOutputColumns")
         {
             stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
-            stmt.Execute();
-            auto reader = stmt.GetResultCursor();
+            auto reader = stmt.Execute();
             SqlWideString<100> actual;
             reader.BindOutputColumns(&actual);
-            (void) stmt.FetchRow();
+            (void) reader.FetchRow();
             CHECK(actual == expectedWide);
         }
 
@@ -1252,18 +1241,17 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
         if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
             SKIP();
 
-        stmt.ExecuteDirect("INSERT INTO WideStringFromVarcharTest (value) "
-                           "VALUES ('Stra' + CHAR(223) + 'e mit H' + CHAR(228) + 'usern')");
+        std::ignore = stmt.ExecuteDirect("INSERT INTO WideStringFromVarcharTest (value) "
+                                         "VALUES ('Stra' + CHAR(223) + 'e mit H' + CHAR(228) + 'usern')");
         auto constexpr expectedWide = SqlWideString<100> { L"Straße mit Häusern" };
 
         SECTION("BindOutputColumns")
         {
             stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
-            stmt.Execute();
-            auto reader = stmt.GetResultCursor();
+            auto reader = stmt.Execute();
             SqlWideString<100> actual;
             reader.BindOutputColumns(&actual);
-            (void) stmt.FetchRow();
+            (void) reader.FetchRow();
             CHECK(actual == expectedWide);
         }
 
@@ -1283,17 +1271,16 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
         if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
             SKIP();
 
-        stmt.Execute(std::string(100, '\xe4'));
+        std::ignore = stmt.Execute(std::string(100, '\xe4'));
         auto const expectedWide = SqlWideString<100> { std::wstring(100, L'\u00e4') };
 
         SECTION("BindOutputColumns")
         {
             stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
-            stmt.Execute();
-            auto reader = stmt.GetResultCursor();
+            auto reader = stmt.Execute();
             SqlWideString<100> actual;
             reader.BindOutputColumns(&actual);
-            (void) stmt.FetchRow();
+            (void) reader.FetchRow();
             CHECK(actual == expectedWide);
         }
 
@@ -1313,18 +1300,17 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
         if (stmt.Connection().ServerType() != SqlServerType::MICROSOFT_SQL)
             SKIP();
 
-        stmt.ExecuteDirect("INSERT INTO WideStringFromVarcharTest (value) "
-                           "VALUES (REPLICATE(CHAR(228), 100))");
+        std::ignore = stmt.ExecuteDirect("INSERT INTO WideStringFromVarcharTest (value) "
+                                         "VALUES (REPLICATE(CHAR(228), 100))");
         auto const expectedWide = SqlWideString<100> { std::wstring(100, L'\u00e4') };
 
         SECTION("BindOutputColumns")
         {
             stmt.Prepare(stmt.Query("WideStringFromVarcharTest").Select().Field("value").All());
-            stmt.Execute();
-            auto reader = stmt.GetResultCursor();
+            auto reader = stmt.Execute();
             SqlWideString<100> actual;
             reader.BindOutputColumns(&actual);
-            (void) stmt.FetchRow();
+            (void) reader.FetchRow();
             CHECK(actual == expectedWide);
         }
 

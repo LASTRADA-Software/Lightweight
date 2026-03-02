@@ -145,7 +145,7 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
         {
             try
             {
-                stmt.ExecuteDirect(sqlScript);
+                (void) stmt.ExecuteDirect(sqlScript);
             }
             catch (SqlException const& ex)
             {
@@ -197,7 +197,7 @@ void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
         {
             try
             {
-                stmt.ExecuteDirect(sqlScript);
+                (void) stmt.ExecuteDirect(sqlScript);
             }
             catch (SqlException const& ex)
             {

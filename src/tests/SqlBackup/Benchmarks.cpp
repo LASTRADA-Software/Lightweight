@@ -59,12 +59,12 @@ void SetupBenchmarkDatabase(size_t rows)
     conn.Connect(SqlConnection::DefaultConnectionString());
     SqlStatement stmt { conn };
 
-    stmt.ExecuteDirect("DROP TABLE IF EXISTS bench_table");
+    (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS bench_table");
 
     // Create a table with mix of types to stress packed formats
     std::string const idType =
         conn.ServerType() == SqlServerType::MICROSOFT_SQL ? "INT IDENTITY(1,1) PRIMARY KEY" : "INTEGER PRIMARY KEY";
-    stmt.ExecuteDirect(std::format(R"(
+    (void) stmt.ExecuteDirect(std::format(R"(
         CREATE TABLE bench_table (
             id {},
             val_int INTEGER,
@@ -72,9 +72,9 @@ void SetupBenchmarkDatabase(size_t rows)
             val_text VARCHAR(100)
         )
     )",
-                                   idType));
+                                          idType));
 
-    stmt.ExecuteDirect("BEGIN TRANSACTION");
+    (void) stmt.ExecuteDirect("BEGIN TRANSACTION");
     stmt.Prepare("INSERT INTO bench_table (val_int, val_real, val_text) VALUES (?, ?, ?)");
 
     std::mt19937 gen(42); // fixed seed
@@ -83,9 +83,9 @@ void SetupBenchmarkDatabase(size_t rows)
 
     for (size_t i = 0; i < rows; ++i)
     {
-        stmt.Execute(distInt(gen), distReal(gen), std::format("Row {}", i));
+        (void) stmt.Execute(distInt(gen), distReal(gen), std::format("Row {}", i));
     }
-    stmt.ExecuteDirect("COMMIT");
+    (void) stmt.ExecuteDirect("COMMIT");
 }
 
 } // namespace
@@ -119,7 +119,7 @@ TEST_CASE("SqlBackup Performance", "[.][Benchmark]")
         {
             SqlConnection conn;
             conn.Connect(SqlConnection::DefaultConnectionString());
-            SqlStatement { conn }.ExecuteDirect("DROP TABLE bench_table");
+            (void) SqlStatement { conn }.ExecuteDirect("DROP TABLE bench_table");
         }
         SqlBackup::Restore(BackupFile, SqlConnection::DefaultConnectionString(), 1, pm);
     };

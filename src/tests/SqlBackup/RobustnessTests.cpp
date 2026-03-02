@@ -102,10 +102,10 @@ TEST_CASE("SqlBackup: Foreign Key Restoration", "[SqlBackup]")
 
         // Insert data with explicit IDs
         stmt.Prepare("INSERT INTO parent (id, name) VALUES (?, ?)");
-        stmt.Execute(1, "Parent1");
+        (void) stmt.Execute(1, "Parent1");
 
         stmt.Prepare("INSERT INTO child (id, parent_id) VALUES (?, ?)");
-        stmt.Execute(10, 1);
+        (void) stmt.Execute(10, 1);
     }
 
     // 2. Backup
@@ -154,7 +154,7 @@ TEST_CASE("SqlBackup: Foreign Key Restoration", "[SqlBackup]")
         bool constraintFailed = false;
         try
         {
-            stmt.ExecuteDirect("INSERT INTO child (id, parent_id) VALUES (11, 999)");
+            (void) stmt.ExecuteDirect("INSERT INTO child (id, parent_id) VALUES (11, 999)");
         }
         catch (...)
         {
@@ -202,7 +202,7 @@ TEST_CASE("SqlBackup: Robustness Types and Nulls", "[SqlBackup]")
             bin.resize(1);
             bin.data()[0] = 0x01;
             stmt.Prepare("INSERT INTO types (id, b, i, d, t, bin) VALUES (?, ?, ?, ?, ?, ?)");
-            stmt.Execute(1, true, 123, 12.34, "Hello", bin);
+            (void) stmt.Execute(1, true, 123, 12.34, "Hello", bin);
         }
 
         // Row 2: Zeros / Empty / False
@@ -210,12 +210,12 @@ TEST_CASE("SqlBackup: Robustness Types and Nulls", "[SqlBackup]")
         {
             SqlDynamicBinary<100> bin; // empty
             stmt.Prepare("INSERT INTO types (id, b, i, d, t, bin) VALUES (?, ?, ?, ?, ?, ?)");
-            stmt.Execute(2, false, 0, 0.0, "", bin);
+            (void) stmt.Execute(2, false, 0, 0.0, "", bin);
         }
 
         // Row 3 & 4: Nulls and special string "NULL"
-        stmt.ExecuteDirect("INSERT INTO types (id) VALUES (3)");
-        stmt.ExecuteDirect("INSERT INTO types (id, t) VALUES (4, 'NULL')");
+        (void) stmt.ExecuteDirect("INSERT INTO types (id) VALUES (3)");
+        (void) stmt.ExecuteDirect("INSERT INTO types (id, t) VALUES (4, 'NULL')");
     }
 
     // 2. Backup
@@ -319,7 +319,7 @@ TEST_CASE("SqlBackup: Constraints and Defaults", "[SqlBackup]")
                 });
         });
 
-        stmt.ExecuteDirect("INSERT INTO constraints (id, u) VALUES (1, 'A')"); // d should be 42
+        (void) stmt.ExecuteDirect("INSERT INTO constraints (id, u) VALUES (1, 'A')"); // d should be 42
     }
 
     // 2. Backup
@@ -353,13 +353,13 @@ TEST_CASE("SqlBackup: Constraints and Defaults", "[SqlBackup]")
         REQUIRE(stmt.ExecuteDirectScalar<int>("SELECT d FROM constraints WHERE u='A'") == 42);
 
         // Verify Default Value behavior on NEW insert
-        stmt.ExecuteDirect("INSERT INTO constraints (id, u) VALUES (2, 'B')");
+        (void) stmt.ExecuteDirect("INSERT INTO constraints (id, u) VALUES (2, 'B')");
         // If Default Constraint was lost, d would be NULL (or 0)
         REQUIRE(stmt.ExecuteDirectScalar<int>("SELECT d FROM constraints WHERE u='B'") == 42);
 
         // Verify Unique Constraint
         // If Unique Constraint was lost, duplicate insert would succeed
         auto const _ = ScopedSqlNullLogger {};
-        REQUIRE_THROWS_AS(stmt.ExecuteDirect("INSERT INTO constraints (u) VALUES ('A')"), SqlException);
+        REQUIRE_THROWS_AS((void) stmt.ExecuteDirect("INSERT INTO constraints (u) VALUES ('A')"), SqlException);
     }
 }

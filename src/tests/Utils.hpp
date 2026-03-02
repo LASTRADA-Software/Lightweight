@@ -511,7 +511,7 @@ class SqlTestFixture
             case SqlServerType::SQLITE: {
                 auto stmt = Lightweight::SqlStatement { connection };
                 // Enable foreign key constraints for SQLite
-                stmt.ExecuteDirect("PRAGMA foreign_keys = ON");
+                (void) stmt.ExecuteDirect("PRAGMA foreign_keys = ON");
                 break;
             }
             case SqlServerType::MICROSOFT_SQL:
@@ -561,7 +561,7 @@ class SqlTestFixture
         auto const dependantTables = Lightweight::SqlSchema::AllForeignKeysTo(stmt, table);
         for (auto const& dependantTable: dependantTables)
             DropTableRecursively(stmt, dependantTable.foreignKey.table);
-        stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS \"{}\"", table.table));
+        (void) stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS \"{}\"", table.table));
     }
 
     static void DropTableIfExists(Lightweight::SqlConnection& conn, std::string const& tableName)
@@ -569,7 +569,7 @@ class SqlTestFixture
         Lightweight::SqlStatement stmt { conn };
         try
         {
-            stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS {}", tableName));
+            (void) stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS {}", tableName));
         }
         catch (...)
         {
@@ -584,7 +584,7 @@ class SqlTestFixture
         {
             case SqlServerType::MICROSOFT_SQL:
             case SqlServerType::MYSQL:
-                stmt.ExecuteDirect(std::format("USE \"{}\"", testDatabaseName));
+                (void) stmt.ExecuteDirect(std::format("USE \"{}\"", testDatabaseName));
                 [[fallthrough]];
             case SqlServerType::SQLITE:
             case SqlServerType::UNKNOWN: {
@@ -607,7 +607,7 @@ class SqlTestFixture
                 if (m_createdTables.empty())
                     m_createdTables = GetAllTableNames(stmt);
                 for (auto& createdTable: std::views::reverse(m_createdTables))
-                    stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS \"{}\" CASCADE", createdTable));
+                    (void) stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS \"{}\" CASCADE", createdTable));
                 break;
         }
         m_createdTables.clear();
@@ -642,9 +642,10 @@ class SqlTestFixture
                                          SQL_NTS);
         if (SQL_SUCCEEDED(sqlResult))
         {
-            while (stmt.FetchRow())
+            auto cursor = Lightweight::SqlResultCursor(stmt);
+            while (cursor.FetchRow())
             {
-                result.emplace_back(stmt.GetColumn<std::string>(3)); // table name
+                result.emplace_back(cursor.GetColumn<std::string>(3)); // table name
             }
         }
         return result;
@@ -773,7 +774,7 @@ inline void EnableForeignKeysIfNeeded(Lightweight::SqlConnection& conn)
     if (conn.ServerType() == Lightweight::SqlServerType::SQLITE)
     {
         Lightweight::SqlStatement stmt { conn };
-        stmt.ExecuteDirect("PRAGMA foreign_keys = ON");
+        (void) stmt.ExecuteDirect("PRAGMA foreign_keys = ON");
     }
 }
 
@@ -783,7 +784,7 @@ inline void DisableForeignKeysIfNeeded(Lightweight::SqlConnection& conn)
     if (conn.ServerType() == Lightweight::SqlServerType::SQLITE)
     {
         Lightweight::SqlStatement stmt { conn };
-        stmt.ExecuteDirect("PRAGMA foreign_keys = OFF");
+        (void) stmt.ExecuteDirect("PRAGMA foreign_keys = OFF");
     }
 }
 
@@ -794,15 +795,15 @@ inline void WithIdentityInsert(Lightweight::SqlStatement& stmt, std::string_view
 {
     if (stmt.Connection().ServerType() == Lightweight::SqlServerType::MICROSOFT_SQL)
     {
-        stmt.ExecuteDirect(std::format("SET IDENTITY_INSERT \"{}\" ON", tableName));
+        (void) stmt.ExecuteDirect(std::format("SET IDENTITY_INSERT \"{}\" ON", tableName));
         try
         {
             std::forward<Func>(func)();
-            stmt.ExecuteDirect(std::format("SET IDENTITY_INSERT \"{}\" OFF", tableName));
+            (void) stmt.ExecuteDirect(std::format("SET IDENTITY_INSERT \"{}\" OFF", tableName));
         }
         catch (...)
         {
-            stmt.ExecuteDirect(std::format("SET IDENTITY_INSERT \"{}\" OFF", tableName));
+            (void) stmt.ExecuteDirect(std::format("SET IDENTITY_INSERT \"{}\" OFF", tableName));
             throw;
         }
     }
@@ -844,9 +845,9 @@ inline void FillEmployeesTable(Lightweight::SqlStatement& stmt)
                      .Set("FirstName", Lightweight::SqlWildcard)
                      .Set("LastName", Lightweight::SqlWildcard)
                      .Set("Salary", Lightweight::SqlWildcard));
-    stmt.Execute("Alice", "Smith", 50'000);
-    stmt.Execute("Bob", "Johnson", 60'000);
-    stmt.Execute("Charlie", "Brown", 70'000);
+    (void) stmt.Execute("Alice", "Smith", 50'000);
+    (void) stmt.Execute("Bob", "Johnson", 60'000);
+    (void) stmt.Execute("Charlie", "Brown", 70'000);
 }
 
 template <typename T = char>

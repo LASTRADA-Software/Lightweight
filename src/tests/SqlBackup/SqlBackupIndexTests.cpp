@@ -73,25 +73,25 @@ std::vector<IndexInfo> GetSqliteIndexes(SqlStatement& stmt, std::string const& t
 {
     std::vector<IndexInfo> indexes;
 
-    stmt.ExecuteDirect(std::format("SELECT name, \"unique\" FROM pragma_index_list('{}')", tableName));
-    std::vector<std::pair<std::string, bool>> indexList;
-    while (stmt.FetchRow())
     {
-        auto name = stmt.GetColumn<std::string>(1);
-        auto isUnique = stmt.GetColumn<int>(2) != 0;
-        if (!name.starts_with("sqlite_autoindex_"))
-            indexList.emplace_back(name, isUnique);
-    }
-    stmt.CloseCursor();
+        auto cursor = stmt.ExecuteDirect(std::format("SELECT name, \"unique\" FROM pragma_index_list('{}')", tableName));
+        std::vector<std::pair<std::string, bool>> indexList;
+        while (cursor.FetchRow())
+        {
+            auto name = cursor.GetColumn<std::string>(1);
+            auto isUnique = cursor.GetColumn<int>(2) != 0;
+            if (!name.starts_with("sqlite_autoindex_"))
+                indexList.emplace_back(name, isUnique);
+        }
 
-    for (auto const& [indexName, isUnique]: indexList)
-    {
-        IndexInfo info { .name = indexName, .columns = {}, .isUnique = isUnique };
-        stmt.ExecuteDirect(std::format("SELECT name FROM pragma_index_info('{}')", indexName));
-        while (stmt.FetchRow())
-            info.columns.push_back(stmt.GetColumn<std::string>(1));
-        stmt.CloseCursor();
-        indexes.push_back(std::move(info));
+        for (auto const& [indexName, isUnique]: indexList)
+        {
+            IndexInfo info { .name = indexName, .columns = {}, .isUnique = isUnique };
+            auto cursor2 = stmt.ExecuteDirect(std::format("SELECT name FROM pragma_index_info('{}')", indexName));
+            while (cursor2.FetchRow())
+                info.columns.push_back(cursor2.GetColumn<std::string>(1));
+            indexes.push_back(std::move(info));
+        }
     }
 
     return indexes;
@@ -104,7 +104,7 @@ std::vector<IndexInfo> GetMssqlIndexes(SqlStatement& stmt, std::string const& ta
     // Use schema-qualified name for OBJECT_ID if schema is provided
     std::string qualifiedName = schema.empty() ? tableName : std::format("{}.{}", schema, tableName);
 
-    stmt.ExecuteDirect(std::format(
+    auto cursor = stmt.ExecuteDirect(std::format(
         R"(SELECT i.name, i.is_unique, c.name as column_name
            FROM sys.indexes i
            INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
@@ -117,11 +117,11 @@ std::vector<IndexInfo> GetMssqlIndexes(SqlStatement& stmt, std::string const& ta
 
     std::string currentIndex;
     IndexInfo currentInfo;
-    while (stmt.FetchRow())
+    while (cursor.FetchRow())
     {
-        auto indexName = stmt.GetColumn<std::string>(1);
-        auto isUnique = stmt.GetColumn<int>(2) != 0;
-        auto columnName = stmt.GetColumn<std::string>(3);
+        auto indexName = cursor.GetColumn<std::string>(1);
+        auto isUnique = cursor.GetColumn<int>(2) != 0;
+        auto columnName = cursor.GetColumn<std::string>(3);
 
         if (indexName != currentIndex)
         {
@@ -134,7 +134,6 @@ std::vector<IndexInfo> GetMssqlIndexes(SqlStatement& stmt, std::string const& ta
     }
     if (!currentIndex.empty())
         indexes.push_back(std::move(currentInfo));
-    stmt.CloseCursor();
 
     return indexes;
 }
@@ -147,15 +146,15 @@ std::vector<IndexInfo> GetPostgresIndexes(SqlStatement& stmt, std::string const&
     std::string lowerTableName = tableName;
     std::ranges::transform(lowerTableName, lowerTableName.begin(), [](unsigned char c) { return std::tolower(c); });
 
-    stmt.ExecuteDirect(
+    auto cursor = stmt.ExecuteDirect(
         std::format(R"(SELECT indexname, indexdef FROM pg_indexes WHERE tablename = '{}' AND indexname NOT LIKE '%_pkey')",
                     lowerTableName));
 
-    while (stmt.FetchRow())
+    while (cursor.FetchRow())
     {
         IndexInfo info;
-        info.name = stmt.GetColumn<std::string>(1);
-        auto indexDef = stmt.GetColumn<std::string>(2);
+        info.name = cursor.GetColumn<std::string>(1);
+        auto indexDef = cursor.GetColumn<std::string>(2);
         info.isUnique = indexDef.find("UNIQUE") != std::string::npos;
 
         // Parse columns from CREATE INDEX ... ON table (col1, col2)
@@ -180,7 +179,6 @@ std::vector<IndexInfo> GetPostgresIndexes(SqlStatement& stmt, std::string const&
         }
         indexes.push_back(std::move(info));
     }
-    stmt.CloseCursor();
 
     return indexes;
 }
@@ -236,7 +234,7 @@ TEST_CASE("SqlBackup: Index Restoration", "[SqlBackup][Indexes]")
         SqlStatement stmt { conn };
         try
         {
-            stmt.ExecuteDirect(R"(CREATE TABLE TestIndexes (
+            (void) stmt.ExecuteDirect(R"(CREATE TABLE TestIndexes (
                 id INT PRIMARY KEY,
                 name VARCHAR(100),
                 email VARCHAR(200),
@@ -244,13 +242,13 @@ TEST_CASE("SqlBackup: Index Restoration", "[SqlBackup][Indexes]")
                 score INT
             ))");
 
-            stmt.ExecuteDirect(R"(CREATE INDEX idx_name ON TestIndexes (name))");
-            stmt.ExecuteDirect(R"(CREATE UNIQUE INDEX idx_email ON TestIndexes (email))");
-            stmt.ExecuteDirect(R"(CREATE INDEX idx_category_score ON TestIndexes (category, score))");
+            (void) stmt.ExecuteDirect(R"(CREATE INDEX idx_name ON TestIndexes (name))");
+            (void) stmt.ExecuteDirect(R"(CREATE UNIQUE INDEX idx_email ON TestIndexes (email))");
+            (void) stmt.ExecuteDirect(R"(CREATE INDEX idx_category_score ON TestIndexes (category, score))");
 
-            stmt.ExecuteDirect("INSERT INTO TestIndexes VALUES (1, 'Alice', 'alice@test.com', 1, 100)");
-            stmt.ExecuteDirect("INSERT INTO TestIndexes VALUES (2, 'Bob', 'bob@test.com', 1, 95)");
-            stmt.ExecuteDirect("INSERT INTO TestIndexes VALUES (3, 'Charlie', 'charlie@test.com', 2, 88)");
+            (void) stmt.ExecuteDirect("INSERT INTO TestIndexes VALUES (1, 'Alice', 'alice@test.com', 1, 100)");
+            (void) stmt.ExecuteDirect("INSERT INTO TestIndexes VALUES (2, 'Bob', 'bob@test.com', 1, 95)");
+            (void) stmt.ExecuteDirect("INSERT INTO TestIndexes VALUES (3, 'Charlie', 'charlie@test.com', 2, 88)");
         }
         catch (std::exception const& e)
         {
@@ -352,7 +350,7 @@ TEST_CASE("SqlBackup: Index Restoration", "[SqlBackup][Indexes]")
         bool uniqueConstraintWorks = false;
         try
         {
-            stmt.ExecuteDirect("INSERT INTO TestIndexes VALUES (4, 'Duplicate', 'alice@test.com', 3, 50)");
+            (void) stmt.ExecuteDirect("INSERT INTO TestIndexes VALUES (4, 'Duplicate', 'alice@test.com', 3, 50)");
         }
         catch (SqlException const&)
         {

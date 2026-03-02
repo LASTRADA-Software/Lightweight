@@ -152,7 +152,7 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                 if (hasIdentity)
                 {
                     identityTable = FormatTableName(ctx.schema, tableName);
-                    SqlStatement { workerConn }.ExecuteDirect(std::format("SET IDENTITY_INSERT {} ON", identityTable));
+                    (void) SqlStatement { workerConn }.ExecuteDirect(std::format("SET IDENTITY_INSERT {} ON", identityTable));
                 }
             }
 
@@ -166,7 +166,7 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                 stmt.Prepare(formatter.Insert(ctx.schema, tableName, fields, placeholders));
 
                 ::Lightweight::detail::BatchManager batchManager(
-                    [&](std::vector<SqlRawColumn> const& cols, size_t rows) { stmt.ExecuteBatch(cols, rows); },
+                    [&](std::vector<SqlRawColumn> const& cols, size_t rows) { (void) stmt.ExecuteBatch(cols, rows); },
                     tableInfo.columns,
                     batchCapacity,
                     workerConn.ServerType());
@@ -221,14 +221,14 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
 
                 batchManager.Flush();
                 transaction.Commit();
-                stmt.CloseCursor();
+                // Cursor cleanup is handled by RAII
             }
 
             if (hasIdentity)
             {
                 try
                 {
-                    SqlStatement { workerConn }.ExecuteDirect(std::format("SET IDENTITY_INSERT {} OFF", identityTable));
+                    (void) SqlStatement { workerConn }.ExecuteDirect(std::format("SET IDENTITY_INSERT {} OFF", identityTable));
                 }
                 catch (...) // NOLINT(bugprone-empty-catch)
                 {
@@ -277,12 +277,12 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
             // Re-apply SQLite optimizations after reconnect
             if (workerConn.ServerType() == SqlServerType::SQLITE)
             {
-                SqlStatement { workerConn }.ExecuteDirect("PRAGMA synchronous = OFF");
-                SqlStatement { workerConn }.ExecuteDirect("PRAGMA journal_mode = WAL");
-                SqlStatement { workerConn }.ExecuteDirect("PRAGMA foreign_keys = OFF");
+                (void) SqlStatement { workerConn }.ExecuteDirect("PRAGMA synchronous = OFF");
+                (void) SqlStatement { workerConn }.ExecuteDirect("PRAGMA journal_mode = WAL");
+                (void) SqlStatement { workerConn }.ExecuteDirect("PRAGMA foreign_keys = OFF");
                 if (ctx.restoreSettings.cacheSizeKB > 0)
                 {
-                    SqlStatement { workerConn }.ExecuteDirect(
+                    (void) SqlStatement { workerConn }.ExecuteDirect(
                         std::format("PRAGMA cache_size = -{}", ctx.restoreSettings.cacheSizeKB));
                 }
             }
@@ -311,12 +311,12 @@ void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
         // SQLite optimization: Turn off synchronization for faster restore
         if (workerConn.ServerType() == SqlServerType::SQLITE)
         {
-            SqlStatement { workerConn }.ExecuteDirect("PRAGMA synchronous = OFF");
-            SqlStatement { workerConn }.ExecuteDirect("PRAGMA journal_mode = WAL");
-            SqlStatement { workerConn }.ExecuteDirect("PRAGMA foreign_keys = OFF");
+            (void) SqlStatement { workerConn }.ExecuteDirect("PRAGMA synchronous = OFF");
+            (void) SqlStatement { workerConn }.ExecuteDirect("PRAGMA journal_mode = WAL");
+            (void) SqlStatement { workerConn }.ExecuteDirect("PRAGMA foreign_keys = OFF");
             if (ctx.restoreSettings.cacheSizeKB > 0)
             {
-                SqlStatement { workerConn }.ExecuteDirect(
+                (void) SqlStatement { workerConn }.ExecuteDirect(
                     std::format("PRAGMA cache_size = -{}", ctx.restoreSettings.cacheSizeKB));
             }
         }
@@ -414,7 +414,7 @@ void RestoreIndexes(SqlConnectionString const& connectionString,
                 std::string const sql = std::format(
                     R"(CREATE {}INDEX "{}" ON {} ({}))", uniqueKeyword, idx.name, formattedTableName, columnList);
 
-                SqlStatement { conn }.ExecuteDirect(sql);
+                (void) SqlStatement { conn }.ExecuteDirect(sql);
 
                 progress.Update({ .state = Progress::State::InProgress,
                                   .tableName = tableName,
@@ -475,7 +475,7 @@ void ApplyDatabaseConstraints(SqlConnectionString const& connectionString,
         {
             auto sqls = formatter.AlterTable(schema, tableName, commands);
             for (auto const& sql: sqls)
-                SqlStatement { conn }.ExecuteDirect(sql);
+                (void) SqlStatement { conn }.ExecuteDirect(sql);
         }
         catch (std::exception const& e)
         {
@@ -597,7 +597,7 @@ std::set<std::string> CreateTablesInOrder(SqlConnection& conn,
                 std::string const formattedTableName = FormatTableName(schema, tableName);
                 try
                 {
-                    SqlStatement { conn }.ExecuteDirect(
+                    (void) SqlStatement { conn }.ExecuteDirect(
                         std::format("ALTER TABLE {} DROP CONSTRAINT IF EXISTS \"{}\"", formattedTableName, fkName));
                 }
                 catch (...) // NOLINT(bugprone-empty-catch)
@@ -638,7 +638,7 @@ std::set<std::string> CreateTablesInOrder(SqlConnection& conn,
             {
                 try
                 {
-                    SqlStatement { conn }.ExecuteDirect(sql);
+                    (void) SqlStatement { conn }.ExecuteDirect(sql);
                 }
                 catch (std::exception const& e)
                 {
@@ -690,9 +690,9 @@ std::set<std::string> RecreateDatabaseSchema(SqlConnectionString const& connecti
     if (isSQLite)
     {
         SqlStatement stmt { conn };
-        stmt.ExecuteDirect("PRAGMA synchronous = OFF");
-        stmt.ExecuteDirect("PRAGMA journal_mode = WAL");
-        stmt.ExecuteDirect("PRAGMA foreign_keys = OFF"); // Disable FKs during restore
+        (void) stmt.ExecuteDirect("PRAGMA synchronous = OFF");
+        (void) stmt.ExecuteDirect("PRAGMA journal_mode = WAL");
+        (void) stmt.ExecuteDirect("PRAGMA foreign_keys = OFF"); // Disable FKs during restore
     }
 
     auto const tableOrder = ComputeTableCreationOrder(tableMap, isSQLite);

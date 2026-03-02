@@ -20,8 +20,8 @@ TEST_CASE("BatchManager: Integration with SQLite", "[SqlBackup][Integration]")
         return; // Skip if no connection
 
     SqlStatement stmt { conn };
-    stmt.ExecuteDirect("DROP TABLE IF EXISTS test_batch");
-    stmt.ExecuteDirect("CREATE TABLE test_batch (id INTEGER PRIMARY KEY, txt VARCHAR(255))");
+    (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS test_batch");
+    (void) stmt.ExecuteDirect("CREATE TABLE test_batch (id INTEGER PRIMARY KEY, txt VARCHAR(255))");
 
     std::vector<SqlColumnDeclaration> cols = {
         { .name = "id", .type = SqlColumnTypeDefinitions::Integer {} },
@@ -31,7 +31,7 @@ TEST_CASE("BatchManager: Integration with SQLite", "[SqlBackup][Integration]")
     BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t rowCount) {
         std::string sql = "INSERT INTO test_batch (id, txt) VALUES (?, ?)";
         stmt.Prepare(sql);
-        stmt.ExecuteBatch(rawCols, rowCount);
+        (void) stmt.ExecuteBatch(rawCols, rowCount);
     };
 
     BatchManager bm(executor, cols, 10);
