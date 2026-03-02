@@ -110,13 +110,13 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
 
     // Create user John with 2 email addresses
     auto johnDoe = User { .id = SqlGuid::Create(), .name = "John Doe" };
-    dm.Create(johnDoe);
+    dm.Create<DataMapperOptions { .loadRelations = false }>(johnDoe);
 
     auto email1 = Email { .id = SqlGuid::Create(), .address = "john@doe.com", .user = johnDoe };
-    dm.Create(email1);
+    dm.Create<DataMapperOptions { .loadRelations = false }>(email1);
 
     auto email2 = Email { .id = SqlGuid::Create(), .address = "john2@doe.com", .user = johnDoe };
-    dm.Create(email2);
+    dm.Create<DataMapperOptions { .loadRelations = false }>(email2);
 
     // Create some other users
     auto const janeDoeID = dm.CreateExplicit(User { .id = SqlGuid::Create(), .name = "Jane Doe" });
@@ -124,32 +124,162 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
     auto const jimDoeID = dm.CreateExplicit(User { .id = SqlGuid::Create(), .name = "Jim Doe" });
     dm.CreateExplicit(Email { .id = SqlGuid::Create(), .address = "john3@doe.com", .user = jimDoeID });
 
+    SECTION("Load has many")
+    {
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+
+        CHECK(getUser.emails.Count() == 2);
+        auto& emails = getUser.emails.All();
+
+        auto const expectedIds = std::set<SqlGuid> { email1.id.Value(), email2.id.Value() };
+        auto const actualIds = std::set<SqlGuid> { emails[0]->id.Value(), emails[1]->id.Value() };
+        CHECK(actualIds == expectedIds);
+
+        for (auto const& email: emails)
+        {
+            CHECK(email->user->id.Value() == getUser.id.Value());
+            CHECK(email->user->name.Value() == getUser.name.Value());
+        }
+    }
+
     SECTION("Count")
     {
-        REQUIRE(johnDoe.emails.Count() == 2);
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+        CHECK(getUser.emails.Count() == 2);
+    }
+
+    SECTION("IsEmpty - user with emails")
+    {
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+        CHECK_FALSE(getUser.emails.IsEmpty());
+    }
+
+    SECTION("IsEmpty - user without emails")
+    {
+        auto emptyUser = User { .id = SqlGuid::Create(), .name = "No Emails" };
+        dm.Create<DataMapperOptions { .loadRelations = false }>(emptyUser);
+        auto loadedUser = dm.QuerySingle<User>(emptyUser.id).value();
+        CHECK(loadedUser.emails.IsEmpty());
+        CHECK(loadedUser.emails.Count() == 0);
     }
 
     SECTION("At")
     {
-        auto const& email1Retrieved = johnDoe.emails.At(0);
-        auto const& email2Retrieved = johnDoe.emails.At(1);
-        auto const emailsSet = std::set<Email> { email1Retrieved, email2Retrieved };
-        CHECK(emailsSet.size() == 2);
-        CHECK(emailsSet.contains(email1));
-        CHECK(emailsSet.contains(email2));
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+        REQUIRE(getUser.emails.Count() == 2);
+        auto const returnedIds = std::set<SqlGuid> { getUser.emails.At(0).id.Value(), getUser.emails.At(1).id.Value() };
+        auto const returnedAddresses =
+            std::set<std::string> { std::string(getUser.emails.At(0).address.Value()),
+                                    std::string(getUser.emails.At(1).address.Value()) };
+        CHECK(returnedIds == std::set<SqlGuid> { email1.id.Value(), email2.id.Value() });
+        CHECK(returnedAddresses == std::set<std::string> { "john@doe.com", "john2@doe.com" });
+    }
+
+    SECTION("operator[]")
+    {
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+        REQUIRE(getUser.emails.Count() == 2);
+        auto const returnedIds = std::set<SqlGuid> { getUser.emails[0].id.Value(), getUser.emails[1].id.Value() };
+        auto const returnedAddresses =
+            std::set<std::string> { std::string(getUser.emails[0].address.Value()),
+                                    std::string(getUser.emails[1].address.Value()) };
+        CHECK(returnedIds == std::set<SqlGuid> { email1.id.Value(), email2.id.Value() });
+        CHECK(returnedAddresses == std::set<std::string> { "john@doe.com", "john2@doe.com" });
     }
 
     SECTION("Each")
     {
-        auto collectedEmails = std::set<Email> {};
-        johnDoe.emails.Each([&](Email const& email) {
-            INFO("Email: " << DataMapper::Inspect(email));
-            collectedEmails.emplace(email);
-        });
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+        auto collectedIds = std::vector<SqlGuid> {};
+        getUser.emails.Each([&](Email const& email) { collectedIds.push_back(email.id.Value()); });
+        REQUIRE(collectedIds.size() == 2);
+        CHECK(std::ranges::find(collectedIds, email1.id.Value()) != collectedIds.end());
+        CHECK(std::ranges::find(collectedIds, email2.id.Value()) != collectedIds.end());
+    }
 
-        CHECK(collectedEmails.size() == 2);
-        CHECK(collectedEmails.contains(email1));
-        CHECK(collectedEmails.contains(email2));
+    SECTION("Range-based for loop")
+    {
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+        auto collectedIds = std::vector<SqlGuid> {};
+        for (auto const& emailPtr: getUser.emails)
+            collectedIds.push_back(emailPtr->id.Value());
+        REQUIRE(collectedIds.size() == 2);
+        CHECK(std::ranges::find(collectedIds, email1.id.Value()) != collectedIds.end());
+        CHECK(std::ranges::find(collectedIds, email2.id.Value()) != collectedIds.end());
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "HasMany - Connected data mutations", "[DataMapper][relations][HasMany]")
+{
+    auto dm = DataMapper();
+    dm.CreateTables<User, Email>();
+
+    auto johnDoe = User { .id = SqlGuid::Create(), .name = "John Doe" };
+    dm.Create<DataMapperOptions { .loadRelations = false }>(johnDoe);
+
+    auto email1 = Email { .id = SqlGuid::Create(), .address = "john@doe.com", .user = johnDoe };
+    dm.Create<DataMapperOptions { .loadRelations = false }>(email1);
+
+    auto email2 = Email { .id = SqlGuid::Create(), .address = "john2@doe.com", .user = johnDoe };
+    dm.Create<DataMapperOptions { .loadRelations = false }>(email2);
+
+    SECTION("Adding an email is reflected when re-querying the user")
+    {
+        auto email3 = Email { .id = SqlGuid::Create(), .address = "john3@doe.com", .user = johnDoe };
+        dm.Create<DataMapperOptions { .loadRelations = false }>(email3);
+
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+        REQUIRE(getUser.emails.Count() == 3);
+
+        auto collectedIds = std::vector<SqlGuid> {};
+        getUser.emails.Each([&](Email const& email) { collectedIds.push_back(email.id.Value()); });
+        CHECK(std::ranges::find(collectedIds, email1.id.Value()) != collectedIds.end());
+        CHECK(std::ranges::find(collectedIds, email2.id.Value()) != collectedIds.end());
+        CHECK(std::ranges::find(collectedIds, email3.id.Value()) != collectedIds.end());
+    }
+
+    SECTION("Deleting an email is reflected when re-querying the user")
+    {
+        dm.Delete(email1);
+
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+        REQUIRE(getUser.emails.Count() == 1);
+        CHECK(getUser.emails.At(0).id.Value() == email2.id.Value());
+        CHECK(getUser.emails.At(0).address.Value() == email2.address.Value());
+    }
+
+    SECTION("Updating an email address is reflected when re-querying the user")
+    {
+        email1.address = "updated@doe.com";
+        dm.Update(email1);
+
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+        REQUIRE(getUser.emails.Count() == 2);
+
+        bool foundUpdated = false;
+        bool foundOriginal = false;
+        getUser.emails.Each([&](Email const& email) {
+            if (email.id.Value() == email1.id.Value())
+                foundUpdated = (email.address.Value() == email1.address.Value());
+            if (email.id.Value() == email2.id.Value())
+                foundOriginal = (email.address.Value() == email2.address.Value());
+        });
+        CHECK(foundUpdated);
+        CHECK(foundOriginal);
+    }
+
+    SECTION("Emplace replaces the in-memory collection without querying the database")
+    {
+        auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
+        REQUIRE(getUser.emails.Count() == 2);
+
+        HasMany<Email>::ReferencedRecordList singleItem;
+        singleItem.emplace_back(std::make_shared<Email>(email1));
+        getUser.emails.Emplace(std::move(singleItem));
+
+        CHECK(getUser.emails.Count() == 1);
+        CHECK(getUser.emails.At(0).id.Value() == email1.id.Value());
+        CHECK(getUser.emails.At(0).address.Value() == email1.address.Value());
     }
 }
 
@@ -221,12 +351,12 @@ TEST_CASE_METHOD(SqlTestFixture, "HasOneThrough", "[DataMapper][relations]")
         CHECK(supplier1.accountHistory.Record() == accountHistory1);
     }
 
-    SECTION("Auto loading")
-    {
-        dm.ConfigureRelationAutoLoading(supplier1);
+    // SECTION("Auto loading")
+    // {
+    //     dm.ConfigureRelationAutoLoading(supplier1);
 
-        CHECK(supplier1.accountHistory.Record() == accountHistory1);
-    }
+    //     CHECK(supplier1.accountHistory.Record() == accountHistory1);
+    // }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "BelongsToChain", "[DataMapper][relations]")

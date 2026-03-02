@@ -163,6 +163,18 @@ static_assert(RecordPrimaryKeyIndex<PKTestMulti> == 2,
               "Primary key index should be the first primary key field in the record");
 static_assert(std::same_as<RecordPrimaryKeyType<PKTestMulti>, SqlTrimmedFixedString<10>>);
 
+struct NoPKRecord
+{
+    Field<int> fieldA;
+    Field<char> fieldB;
+};
+
+static_assert(HasPrimaryKey<PKTest0>);
+static_assert(HasPrimaryKey<PKTest1>);
+static_assert(HasPrimaryKey<PKTestMulti>);
+static_assert(HasPrimaryKey<Person>);
+static_assert(!HasPrimaryKey<NoPKRecord>);
+
 TEST_CASE_METHOD(SqlTestFixture, "Primary key access", "[DataMapper]")
 {
     PKTest0 pk0;
@@ -176,6 +188,39 @@ TEST_CASE_METHOD(SqlTestFixture, "Primary key access", "[DataMapper]")
     PKTestMulti pkMulti;
     RecordPrimaryKeyOf(pkMulti) = "World";
     CHECK(pkMulti.pk1.Value() == "World");
+}
+
+TEST_CASE("GetPrimaryKeyField", "[DataMapper][Record]")
+{
+    SECTION("int PK at field index 0")
+    {
+        PKTest0 record;
+        record.pk = 42;
+        CHECK(GetPrimaryKeyField(record) == 42);
+    }
+
+    SECTION("string PK at field index 1")
+    {
+        PKTest1 record;
+        record.pk = "Hello";
+        CHECK(GetPrimaryKeyField(record) == SqlTrimmedFixedString<10> { "Hello" });
+    }
+
+    SECTION("first PK returned when multiple PKs present")
+    {
+        PKTestMulti record;
+        record.pk1 = "World";
+        record.pk2 = 3.14;
+        CHECK(GetPrimaryKeyField(record) == SqlTrimmedFixedString<10> { "World" });
+    }
+
+    SECTION("SqlGuid PK")
+    {
+        auto const guid = SqlGuid::Create();
+        Person record;
+        record.id = guid;
+        CHECK(GetPrimaryKeyField(record) == guid);
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "MapFromRecordFields", "[DataMapper]")

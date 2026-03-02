@@ -68,7 +68,7 @@ class HasOneThrough
 
     struct Loader
     {
-        std::function<void()> loadReference {};
+        std::function<std::shared_ptr<ReferencedRecord>()> loadReference {};
     };
 
     /// Used internally to configure on-demand loading of the record.
@@ -84,7 +84,7 @@ class HasOneThrough
             return;
 
         if (_loader.loadReference)
-            _loader.loadReference();
+            _record = _loader.loadReference();
 
         if (!IsLoaded())
             throw SqlRequireLoadedError { Reflection::TypeNameOf<std::remove_cvref_t<decltype(*this)>> };
@@ -93,7 +93,7 @@ class HasOneThrough
     Loader _loader {};
 
     // We use shared_ptr to not require ReferencedRecord to be declared before HasOneThrough.
-    std::shared_ptr<ReferencedRecord> _record {};
+    mutable std::shared_ptr<ReferencedRecord> _record {};
 };
 
 namespace detail
