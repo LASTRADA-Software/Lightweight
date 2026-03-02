@@ -641,6 +641,23 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Fields.QualifiedColumns", "[Sq
         QueryExpectations::All(R"(SELECT "That"."foo", "That"."bar" FROM "That")"));
 }
 
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Fields.QualifiedColumns.InitailizerList", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("That")
+                .Select()
+                .Fields({
+                    SqlQualifiedTableColumnName{ .tableName = "That", .columnName = "foo" },
+                    SqlQualifiedTableColumnName{ .tableName = "That", .columnName = "bar" },
+                })
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "That"."foo", "That"."bar" FROM "That")"));
+}
+
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FromSchemaTable.Select", "[SqlQueryBuilder]")
 {
     // Test SELECT with schema-qualified table name

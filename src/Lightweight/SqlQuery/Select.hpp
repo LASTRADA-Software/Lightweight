@@ -136,6 +136,9 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlBasicSelectQueryBuild
     /// Adds a sequence of qualified table column names to the SELECT clause.
     LIGHTWEIGHT_API SqlSelectQueryBuilder& Fields(std::span<SqlQualifiedTableColumnName const> fieldNames);
 
+    /// Adds a sequence of qualified table column names to the SELECT clause.
+    LIGHTWEIGHT_API SqlSelectQueryBuilder& Fields(std::initializer_list<SqlQualifiedTableColumnName const> fieldNames);
+
     /// Adds a sequence of columns from the given tables to the SELECT clause.
     template <typename FirstRecord, typename... MoreRecords>
     SqlSelectQueryBuilder& Fields();
