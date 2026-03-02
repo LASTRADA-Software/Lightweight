@@ -176,38 +176,38 @@ namespace
     // These are the special characters in Windows-1252 that differ from Latin-1
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
     char8_t const* const kWindows1252ToUtf8[32] = {
-        u8"\xE2\x82\xAC", // 0x80 Euro sign
-        u8"\xEF\xBF\xBD", // 0x81 Undefined (replacement char)
-        u8"\xE2\x80\x9A", // 0x82 Single low-9 quotation mark
-        u8"\xC6\x92",     // 0x83 Latin small letter f with hook
-        u8"\xE2\x80\x9E", // 0x84 Double low-9 quotation mark
-        u8"\xE2\x80\xA6", // 0x85 Horizontal ellipsis
-        u8"\xE2\x80\xA0", // 0x86 Dagger
-        u8"\xE2\x80\xA1", // 0x87 Double dagger
-        u8"\xCB\x86",     // 0x88 Modifier letter circumflex accent
-        u8"\xE2\x80\xB0", // 0x89 Per mille sign
-        u8"\xC5\xA0",     // 0x8A Latin capital letter S with caron
-        u8"\xE2\x80\xB9", // 0x8B Single left-pointing angle quotation mark
-        u8"\xC5\x92",     // 0x8C Latin capital ligature OE
-        u8"\xEF\xBF\xBD", // 0x8D Undefined (replacement char)
-        u8"\xC5\xBD",     // 0x8E Latin capital letter Z with caron
-        u8"\xEF\xBF\xBD", // 0x8F Undefined (replacement char)
-        u8"\xEF\xBF\xBD", // 0x90 Undefined (replacement char)
-        u8"\xE2\x80\x98", // 0x91 Left single quotation mark
-        u8"\xE2\x80\x99", // 0x92 Right single quotation mark
-        u8"\xE2\x80\x9C", // 0x93 Left double quotation mark
-        u8"\xE2\x80\x9D", // 0x94 Right double quotation mark
-        u8"\xE2\x80\xA2", // 0x95 Bullet
-        u8"\xE2\x80\x93", // 0x96 En dash
-        u8"\xE2\x80\x94", // 0x97 Em dash
-        u8"\xCB\x9C",     // 0x98 Small tilde
-        u8"\xE2\x84\xA2", // 0x99 Trade mark sign
-        u8"\xC5\xA1",     // 0x9A Latin small letter s with caron
-        u8"\xE2\x80\xBA", // 0x9B Single right-pointing angle quotation mark
-        u8"\xC5\x93",     // 0x9C Latin small ligature oe
-        u8"\xEF\xBF\xBD", // 0x9D Undefined (replacement char)
-        u8"\xC5\xBE",     // 0x9E Latin small letter z with caron
-        u8"\xC5\xB8",     // 0x9F Latin capital letter Y with diaeresis
+        u8"\u20AC", // 0x80 Euro sign
+        u8"\uFFFD", // 0x81 Undefined (replacement char)
+        u8"\u201A", // 0x82 Single low-9 quotation mark
+        u8"\u0192", // 0x83 Latin small letter f with hook
+        u8"\u201E", // 0x84 Double low-9 quotation mark
+        u8"\u2026", // 0x85 Horizontal ellipsis
+        u8"\u2020", // 0x86 Dagger
+        u8"\u2021", // 0x87 Double dagger
+        u8"\u02C6", // 0x88 Modifier letter circumflex accent
+        u8"\u2030", // 0x89 Per mille sign
+        u8"\u0160", // 0x8A Latin capital letter S with caron
+        u8"\u2039", // 0x8B Single left-pointing angle quotation mark
+        u8"\u0152", // 0x8C Latin capital ligature OE
+        u8"\uFFFD", // 0x8D Undefined (replacement char)
+        u8"\u017D", // 0x8E Latin capital letter Z with caron
+        u8"\uFFFD", // 0x8F Undefined (replacement char)
+        u8"\uFFFD", // 0x90 Undefined (replacement char)
+        u8"\u2018", // 0x91 Left single quotation mark
+        u8"\u2019", // 0x92 Right single quotation mark
+        u8"\u201C", // 0x93 Left double quotation mark
+        u8"\u201D", // 0x94 Right double quotation mark
+        u8"\u2022", // 0x95 Bullet
+        u8"\u2013", // 0x96 En dash
+        u8"\u2014", // 0x97 Em dash
+        u8"\u02DC", // 0x98 Small tilde
+        u8"\u2122", // 0x99 Trade mark sign
+        u8"\u0161", // 0x9A Latin small letter s with caron
+        u8"\u203A", // 0x9B Single right-pointing angle quotation mark
+        u8"\u0153", // 0x9C Latin small ligature oe
+        u8"\uFFFD", // 0x9D Undefined (replacement char)
+        u8"\u017E", // 0x9E Latin small letter z with caron
+        u8"\u0178", // 0x9F Latin capital letter Y with diaeresis
     };
 
 } // namespace

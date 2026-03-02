@@ -58,45 +58,45 @@ TEST_CASE("ConvertWindows1252ToUtf8.AsciiPassthrough", "[lup2dbtool]")
 
 TEST_CASE("ConvertWindows1252ToUtf8.SpecialCharacters", "[lup2dbtool]")
 {
-    // Euro sign (0x80) -> UTF-8: E2 82 AC
-    CHECK(ConvertWindows1252ToUtf8("\x80") == u8"\xE2\x82\xAC");
+    // Euro sign (0x80) -> U+20AC
+    CHECK(ConvertWindows1252ToUtf8("\x80") == u8"\u20AC");
 
-    // Left double quotation mark (0x93) -> UTF-8: E2 80 9C
-    CHECK(ConvertWindows1252ToUtf8("\x93") == u8"\xE2\x80\x9C");
+    // Left double quotation mark (0x93) -> U+201C
+    CHECK(ConvertWindows1252ToUtf8("\x93") == u8"\u201C");
 
-    // Right double quotation mark (0x94) -> UTF-8: E2 80 9D
-    CHECK(ConvertWindows1252ToUtf8("\x94") == u8"\xE2\x80\x9D");
+    // Right double quotation mark (0x94) -> U+201D
+    CHECK(ConvertWindows1252ToUtf8("\x94") == u8"\u201D");
 
-    // En dash (0x96) -> UTF-8: E2 80 93
-    CHECK(ConvertWindows1252ToUtf8("\x96") == u8"\xE2\x80\x93");
+    // En dash (0x96) -> U+2013
+    CHECK(ConvertWindows1252ToUtf8("\x96") == u8"\u2013");
 
-    // Trade mark sign (0x99) -> UTF-8: E2 84 A2
-    CHECK(ConvertWindows1252ToUtf8("\x99") == u8"\xE2\x84\xA2");
+    // Trade mark sign (0x99) -> U+2122
+    CHECK(ConvertWindows1252ToUtf8("\x99") == u8"\u2122");
 }
 
 TEST_CASE("ConvertWindows1252ToUtf8.Latin1Supplement", "[lup2dbtool]")
 {
     // German umlauts (Latin-1 supplement range 0xA0-0xFF)
-    // ä (0xE4) -> UTF-8: C3 A4
-    CHECK(ConvertWindows1252ToUtf8("\xE4") == u8"\xC3\xA4");
+    // ä (0xE4) -> U+00E4
+    CHECK(ConvertWindows1252ToUtf8("\xE4") == u8"\u00E4");
 
-    // ö (0xF6) -> UTF-8: C3 B6
-    CHECK(ConvertWindows1252ToUtf8("\xF6") == u8"\xC3\xB6");
+    // ö (0xF6) -> U+00F6
+    CHECK(ConvertWindows1252ToUtf8("\xF6") == u8"\u00F6");
 
-    // ü (0xFC) -> UTF-8: C3 BC
-    CHECK(ConvertWindows1252ToUtf8("\xFC") == u8"\xC3\xBC");
+    // ü (0xFC) -> U+00FC
+    CHECK(ConvertWindows1252ToUtf8("\xFC") == u8"\u00FC");
 
-    // ß (0xDF) -> UTF-8: C3 9F
-    CHECK(ConvertWindows1252ToUtf8("\xDF") == u8"\xC3\x9F");
+    // ß (0xDF) -> U+00DF
+    CHECK(ConvertWindows1252ToUtf8("\xDF") == u8"\u00DF");
 
-    // Ä (0xC4) -> UTF-8: C3 84
-    CHECK(ConvertWindows1252ToUtf8("\xC4") == u8"\xC3\x84");
+    // Ä (0xC4) -> U+00C4
+    CHECK(ConvertWindows1252ToUtf8("\xC4") == u8"\u00C4");
 
-    // Ö (0xD6) -> UTF-8: C3 96
-    CHECK(ConvertWindows1252ToUtf8("\xD6") == u8"\xC3\x96");
+    // Ö (0xD6) -> U+00D6
+    CHECK(ConvertWindows1252ToUtf8("\xD6") == u8"\u00D6");
 
-    // Ü (0xDC) -> UTF-8: C3 9C
-    CHECK(ConvertWindows1252ToUtf8("\xDC") == u8"\xC3\x9C");
+    // Ü (0xDC) -> U+00DC
+    CHECK(ConvertWindows1252ToUtf8("\xDC") == u8"\u00DC");
 }
 
 TEST_CASE("ConvertWindows1252ToUtf8.MixedContent", "[lup2dbtool]")
