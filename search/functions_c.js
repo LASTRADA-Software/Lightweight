@@ -7,6 +7,6 @@ var searchData=
   ['now_4',['Now',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a1fda36e61fa3eed7869cda1f456ee27a',1,'Lightweight::SqlDateTime']]],
   ['nowutc_5',['NowUTC',['../d6/dfa/structLightweight_1_1SqlDateTime.html#ab39a3e35e5b4cbffe0dfb0c377bd287d',1,'Lightweight::SqlDateTime']]],
   ['nulllogger_6',['NullLogger',['../db/dfd/classLightweight_1_1SqlLogger.html#a2bf0dba43c73124eba0f6b0a01ce82b5',1,'Lightweight::SqlLogger']]],
-  ['numcolumnsaffected_7',['NumColumnsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c',1,'Lightweight::SqlResultCursor']]],
-  ['numrowsaffected_8',['NumRowsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586',1,'Lightweight::SqlResultCursor']]]
+  ['numcolumnsaffected_7',['numcolumnsaffected',['../db/dad/classLightweight_1_1SqlStatement.html#a5072cda5b6433463ec8850296c906d9b',1,'Lightweight::SqlStatement::NumColumnsAffected()'],['../d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c',1,'Lightweight::SqlResultCursor::NumColumnsAffected()']]],
+  ['numrowsaffected_8',['numrowsaffected',['../db/dad/classLightweight_1_1SqlStatement.html#abd020b58bdd8c2ba1ed07f00eb838046',1,'Lightweight::SqlStatement::NumRowsAffected()'],['../d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586',1,'Lightweight::SqlResultCursor::NumRowsAffected()']]]
 ];

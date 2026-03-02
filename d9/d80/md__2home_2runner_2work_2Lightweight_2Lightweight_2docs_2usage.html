@@ -124,12 +124,13 @@ Prepared Statements</h1>
 <div class="line"><span class="keyword">auto</span> conn = SqlConnection {};</div>
 <div class="line"><span class="keyword">auto</span> stmt = SqlStatement { conn };</div>
 <div class="line">stmt.Prepare(<span class="stringliteral">&quot;SELECT a, b, c FROM That WHERE a = ? OR b = ?&quot;</span>);</div>
-<div class="line"><span class="keyword">auto</span> cursor = stmt.Execute(42, 43);</div>
+<div class="line">stmt.Execute(42, 43);</div>
 <div class="line"> </div>
+<div class="line">SqlResultCursor cursor = stmt.GetResultCursor();</div>
 <div class="line"><span class="keyword">auto</span> record = Record {};</div>
-<div class="line">cursor.BindOutputColumns(&amp;record.a, &amp;record.b, &amp;record.c);</div>
+<div class="line">cursor.BindOutputColumns&lt;Record&gt;(&amp;record.a, &amp;rcord.b, &amp;record.c);</div>
 <div class="line"><span class="keywordflow">while</span> (cursor.FetchRow())</div>
-<div class="line">    std::println(<span class="stringliteral">&quot;{}|{}|{}&quot;</span>, record.a, record.b, record.c);</div>
+<div class="line">    std::println(<span class="stringliteral">&quot;{}|{}|{}&quot;</span>, a, b, c);</div>
 </div><!-- fragment --><h1><a class="anchor" id="sql-query-builder"></a>
 SQL Query Builder</h1>
 <p>Or construct statement using <code>SqlQueryBuilder</code> </p><div class="fragment"><div class="line"><span class="keyword">auto</span> stmt = SqlStatement { };</div>

@@ -188,7 +188,7 @@ $(document).ready(function(){initNavTree('d3/d6b/Record_8hpp_source.html','../..
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Record&gt;</div>
 <div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>    <span class="keyword">struct </span>RecordPrimaryKeyTypeHelper</div>
 <div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>    {</div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>        <span class="keyword">using </span>type = void;</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>        <span class="keyword">using </span>type = std::monostate;</div>
 <div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>    };</div>
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span> </div>
 <div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Record&gt;</div>
@@ -287,16 +287,18 @@ $(document).ready(function(){initNavTree('d3/d6b/Record_8hpp_source.html','../..
 <div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span> </div>
 <div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>    <span class="keyword">auto</span> result = RecordPrimaryKeyType&lt;Record&gt; {};</div>
 <div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>    Reflection::EnumerateMembers(record, [&amp;]&lt;<span class="keywordtype">size_t</span> I, <span class="keyword">typename</span> FieldType&gt;(FieldType <span class="keyword">const</span>&amp; field) {</div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (IsPrimaryKey&lt;FieldType&gt; &amp;&amp; std::same_as&lt;FieldType, RecordPrimaryKeyType&lt;Record&gt;&gt;)</div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>        {</div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>            result = field;</div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>        }</div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>    });</div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>    <span class="keywordflow">return</span> result;</div>
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>}</div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>        <span class="comment">// std::same_as&lt;typename FieldType::ValueType, RecordPrimaryKeyType&lt;Record&gt;&gt;condition is for the case where there are</span></div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>        <span class="comment">// multiple primary keys, we want to return the first one</span></div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (IsField&lt;FieldType&gt;)</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>            <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (IsPrimaryKey&lt;FieldType&gt;)</div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>                <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::same_as&lt;typename FieldType::ValueType, RecordPrimaryKeyType&lt;Record&gt;&gt;)</div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>                    result = field.Value();</div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>    });</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>    <span class="keywordflow">return</span> result;</div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>}</div>
 </div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span> </div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span> </div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aconceptLightweight_1_1DataMapperRecord_html"><div class="ttname"><a href="../../de/d36/conceptLightweight_1_1DataMapperRecord.html">Lightweight::DataMapperRecord</a></div><div class="ttdoc">Represents a record type that can be used with the DataMapper.</div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00047">Record.hpp:47</a></div></div>
 <div class="ttc" id="aconceptLightweight_1_1FieldWithStorage_html"><div class="ttname"><a href="../../dd/da7/conceptLightweight_1_1FieldWithStorage.html">Lightweight::FieldWithStorage</a></div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00124">Record.hpp:124</a></div></div>
 <div class="ttc" id="agroup__DataMapper_html_ga0690ab017d7ae25c81a0889a6385ba33"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33">Lightweight::GetPrimaryKeyField</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE RecordPrimaryKeyType&lt; Record &gt; GetPrimaryKeyField(Record const &amp;record) noexcept</div><div class="ttdef"><b>Definition</b> <a href="../../d3/d6b/Record_8hpp_source.html#l00178">Record.hpp:178</a></div></div>
