@@ -68,9 +68,9 @@ void SetupDatabase()
 
     // Insert data with explicit IDs
     stmt.Prepare("INSERT INTO test_table (id, content) VALUES (?, ?)");
-    stmt.Execute(1, "row1");
-    stmt.Execute(2, "row2");
-    stmt.Execute(3, "quoted \"content\"");
+    (void) stmt.Execute(1, "row1");
+    (void) stmt.Execute(2, "row2");
+    (void) stmt.Execute(3, "quoted \"content\"");
 }
 
 void VerifyDatabase()
@@ -162,8 +162,8 @@ void SetupComplexDatabase()
     uint8_t const rawBinary[] = { 0x01, 0x00, 0xFF, 0x10 };
     SqlDynamicBinary<1024> binaryData { rawBinary };
     stmt.Prepare("INSERT INTO complex_table (id, b, c, vc, content) VALUES (?, ?, ?, ?, ?)");
-    stmt.Execute(1, binaryData, "HI", "Varchar value",
-                 u"Unicode \U0001F601"); // Emoji Grinning Face, U+1F601
+    (void) stmt.Execute(1, binaryData, "HI", "Varchar value",
+                        u"Unicode \U0001F601"); // Emoji Grinning Face, U+1F601
 }
 
 void VerifyComplexDatabase()
@@ -328,13 +328,13 @@ TEST_CASE("SqlBackup: Corner Cases", "[SqlBackup]")
         });
 
         // Single quote
-        stmt.ExecuteDirect("INSERT INTO corner_cases (id, txt) VALUES (1, 'L''Abbaye')");
+        (void) stmt.ExecuteDirect("INSERT INTO corner_cases (id, txt) VALUES (1, 'L''Abbaye')");
         // Newline
-        stmt.ExecuteDirect("INSERT INTO corner_cases (id, txt) VALUES (2, 'Line1\nLine2')");
+        (void) stmt.ExecuteDirect("INSERT INTO corner_cases (id, txt) VALUES (2, 'Line1\nLine2')");
         // Quotes and commas
-        stmt.ExecuteDirect("INSERT INTO corner_cases (id, txt) VALUES (3, '\"quoted\", comma')");
+        (void) stmt.ExecuteDirect("INSERT INTO corner_cases (id, txt) VALUES (3, '\"quoted\", comma')");
         // Empty string
-        stmt.ExecuteDirect("INSERT INTO corner_cases (id, txt) VALUES (4, '')");
+        (void) stmt.ExecuteDirect("INSERT INTO corner_cases (id, txt) VALUES (4, '')");
     };
 
     setup();
@@ -400,13 +400,13 @@ TEST_CASE("SqlBackup: Concurrent Restore", "[SqlBackup]")
             migration.CreateTable("large_table").PrimaryKey("id", Integer {}).Column("data", Varchar { 100 });
         });
 
-        stmt.ExecuteDirect("BEGIN TRANSACTION");
+        (void) stmt.ExecuteDirect("BEGIN TRANSACTION");
         stmt.Prepare("INSERT INTO large_table (id, data) VALUES (?, ?)");
         for (int i = 0; i < 1000; ++i)
         {
-            stmt.Execute(i + 1, std::format("Row {}", i));
+            (void) stmt.Execute(i + 1, std::format("Row {}", i));
         }
-        stmt.ExecuteDirect("COMMIT");
+        (void) stmt.ExecuteDirect("COMMIT");
     }
 
     // 2. Backup (concurrency 4)
@@ -497,7 +497,7 @@ TEST_CASE("SqlBackup: Table With Spaces", "[SqlBackup]")
             migration.CreateTable("Order Details").PrimaryKey("id", Integer {}).Column("product_name", Varchar { 100 });
         });
 
-        stmt.ExecuteDirect(R"(INSERT INTO "Order Details" ("id", "product_name") VALUES (1, 'Tofu'))");
+        (void) stmt.ExecuteDirect(R"(INSERT INTO "Order Details" ("id", "product_name") VALUES (1, 'Tofu'))");
     }
 
     auto progress = SqlBackup::Progress {};
@@ -571,14 +571,14 @@ TEST_CASE("SqlBackup: DateTime Columns", "[SqlBackup]")
 
         auto const datetime1 =
             SqlDateTime { year { 2024 }, month { 6 }, day { 15 }, hours { 14 }, minutes { 30 }, seconds { 45 } };
-        stmt.Execute(1, "First Record", datetime1);
+        (void) stmt.Execute(1, "First Record", datetime1);
 
         auto const datetime2 =
             SqlDateTime { year { 1999 }, month { 12 }, day { 31 }, hours { 23 }, minutes { 59 }, seconds { 59 } };
-        stmt.Execute(2, "Second Record", datetime2);
+        (void) stmt.Execute(2, "Second Record", datetime2);
 
         // Test NULL datetime
-        stmt.Execute(3, "Null DateTime", std::optional<SqlDateTime> {});
+        (void) stmt.Execute(3, "Null DateTime", std::optional<SqlDateTime> {});
     }
 
     // Backup
@@ -677,13 +677,13 @@ TEST_CASE("SqlBackup: Date Columns", "[SqlBackup]")
         using namespace std::chrono;
 
         auto const date1 = SqlDate { year { 2024 }, month { 6 }, day { 15 } };
-        stmt.Execute(1, "First Record", date1);
+        (void) stmt.Execute(1, "First Record", date1);
 
         auto const date2 = SqlDate { year { 1999 }, month { 12 }, day { 31 } };
-        stmt.Execute(2, "Second Record", date2);
+        (void) stmt.Execute(2, "Second Record", date2);
 
         // Test NULL date
-        stmt.Execute(3, "Null Date", std::optional<SqlDate> {});
+        (void) stmt.Execute(3, "Null Date", std::optional<SqlDate> {});
     }
 
     // Backup
@@ -777,24 +777,24 @@ TEST_CASE("SqlBackup: Time Columns", "[SqlBackup]")
         if (conn.ServerType() == SqlServerType::MICROSOFT_SQL)
         {
             // Insert using string literals to preserve fractional seconds
-            stmt.ExecuteDirect(
+            (void) stmt.ExecuteDirect(
                 "INSERT INTO time_backup_test (id, name, event_time) VALUES (1, 'First Record', '14:30:45.123456')");
-            stmt.ExecuteDirect(
+            (void) stmt.ExecuteDirect(
                 "INSERT INTO time_backup_test (id, name, event_time) VALUES (2, 'Second Record', '23:59:59.000000')");
-            stmt.ExecuteDirect("INSERT INTO time_backup_test (id, name, event_time) VALUES (3, 'Null Time', NULL)");
-            stmt.ExecuteDirect(
+            (void) stmt.ExecuteDirect("INSERT INTO time_backup_test (id, name, event_time) VALUES (3, 'Null Time', NULL)");
+            (void) stmt.ExecuteDirect(
                 "INSERT INTO time_backup_test (id, name, event_time) VALUES (4, 'Midnight', '00:00:00.000000')");
         }
         else if (conn.ServerType() == SqlServerType::POSTGRESQL)
         {
             // PostgreSQL: Use string literals to preserve microseconds
             // (SqlTime binding uses SQL_C_TYPE_TIME which loses fractional seconds)
-            stmt.ExecuteDirect(
+            (void) stmt.ExecuteDirect(
                 "INSERT INTO time_backup_test (id, name, event_time) VALUES (1, 'First Record', '14:30:45.123456')");
-            stmt.ExecuteDirect(
+            (void) stmt.ExecuteDirect(
                 "INSERT INTO time_backup_test (id, name, event_time) VALUES (2, 'Second Record', '23:59:59')");
-            stmt.ExecuteDirect("INSERT INTO time_backup_test (id, name, event_time) VALUES (3, 'Null Time', NULL)");
-            stmt.ExecuteDirect("INSERT INTO time_backup_test (id, name, event_time) VALUES (4, 'Midnight', '00:00:00')");
+            (void) stmt.ExecuteDirect("INSERT INTO time_backup_test (id, name, event_time) VALUES (3, 'Null Time', NULL)");
+            (void) stmt.ExecuteDirect("INSERT INTO time_backup_test (id, name, event_time) VALUES (4, 'Midnight', '00:00:00')");
         }
         else
         {
@@ -804,17 +804,17 @@ TEST_CASE("SqlBackup: Time Columns", "[SqlBackup]")
             using namespace std::chrono;
 
             auto const time1 = SqlTime { hours { 14 }, minutes { 30 }, seconds { 45 }, microseconds { 123456 } };
-            stmt.Execute(1, "First Record", time1);
+            (void) stmt.Execute(1, "First Record", time1);
 
             auto const time2 = SqlTime { hours { 23 }, minutes { 59 }, seconds { 59 }, microseconds { 0 } };
-            stmt.Execute(2, "Second Record", time2);
+            (void) stmt.Execute(2, "Second Record", time2);
 
             // Test NULL time
-            stmt.Execute(3, "Null Time", std::optional<SqlTime> {});
+            (void) stmt.Execute(3, "Null Time", std::optional<SqlTime> {});
 
             // Test midnight
             auto const time4 = SqlTime { hours { 0 }, minutes { 0 }, seconds { 0 }, microseconds { 0 } };
-            stmt.Execute(4, "Midnight", time4);
+            (void) stmt.Execute(4, "Midnight", time4);
         }
     }
 
@@ -952,33 +952,33 @@ TEST_CASE("SqlBackup: Decimal Precision", "[SqlBackup]")
         // (MSSQL parses numeric literals as floats, which loses precision for large numbers)
         if (conn.ServerType() == SqlServerType::MICROSOFT_SQL)
         {
-            stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
-                               "(1, 'Small', CAST('123.4567890123' AS DECIMAL(28,10)))");
-            stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
-                               "(2, 'Large', CAST('123456789012345678.1234567890' AS DECIMAL(28,10)))");
-            stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
-                               "(3, 'Tiny', CAST('0.0000000001' AS DECIMAL(28,10)))");
-            stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
-                               "(4, 'Null', NULL)");
-            stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
-                               "(5, 'Zero', CAST('0.0000000000' AS DECIMAL(28,10)))");
-            stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
-                               "(6, 'Negative', CAST('-99999999999999.9999999999' AS DECIMAL(28,10)))");
+            (void) stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
+                                      "(1, 'Small', CAST('123.4567890123' AS DECIMAL(28,10)))");
+            (void) stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
+                                      "(2, 'Large', CAST('123456789012345678.1234567890' AS DECIMAL(28,10)))");
+            (void) stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
+                                      "(3, 'Tiny', CAST('0.0000000001' AS DECIMAL(28,10)))");
+            (void) stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
+                                      "(4, 'Null', NULL)");
+            (void) stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
+                                      "(5, 'Zero', CAST('0.0000000000' AS DECIMAL(28,10)))");
+            (void) stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
+                                      "(6, 'Negative', CAST('-99999999999999.9999999999' AS DECIMAL(28,10)))");
         }
         else
         {
-            stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
-                               "(1, 'Small', 123.4567890123)");
-            stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
-                               "(2, 'Large', 123456789012345678.1234567890)");
-            stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
-                               "(3, 'Tiny', 0.0000000001)");
-            stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
-                               "(4, 'Null', NULL)");
-            stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
-                               "(5, 'Zero', 0.0000000000)");
-            stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
-                               "(6, 'Negative', -99999999999999.9999999999)");
+            (void) stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
+                                      "(1, 'Small', 123.4567890123)");
+            (void) stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
+                                      "(2, 'Large', 123456789012345678.1234567890)");
+            (void) stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
+                                      "(3, 'Tiny', 0.0000000001)");
+            (void) stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
+                                      "(4, 'Null', NULL)");
+            (void) stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
+                                      "(5, 'Zero', 0.0000000000)");
+            (void) stmt.ExecuteDirect("INSERT INTO decimal_backup_test (id, name, amount) VALUES "
+                                      "(6, 'Negative', -99999999999999.9999999999)");
         }
     }
 
@@ -1151,7 +1151,7 @@ TEST_CASE("SqlBackup: Backup with Custom Compression", "[SqlBackup]")
 
         stmt.Prepare("INSERT INTO compression_test (id, data) VALUES (?, ?)");
         for (int i = 1; i <= 10; ++i)
-            stmt.Execute(i, std::format("Row data {}", i));
+            (void) stmt.Execute(i, std::format("Row data {}", i));
     }
 
     LambdaProgressManager pm { [](auto&&) {} };
@@ -1205,9 +1205,9 @@ TEST_CASE("SqlBackup: Backup with Table Filter", "[SqlBackup]")
             migration.CreateTable("other_table").PrimaryKey("id", Integer {}).Column("data", Varchar { 50 });
         });
 
-        stmt.ExecuteDirect("INSERT INTO filter_table_a (id, data) VALUES (1, 'A1')");
-        stmt.ExecuteDirect("INSERT INTO filter_table_b (id, data) VALUES (1, 'B1')");
-        stmt.ExecuteDirect("INSERT INTO other_table (id, data) VALUES (1, 'O1')");
+        (void) stmt.ExecuteDirect("INSERT INTO filter_table_a (id, data) VALUES (1, 'A1')");
+        (void) stmt.ExecuteDirect("INSERT INTO filter_table_b (id, data) VALUES (1, 'B1')");
+        (void) stmt.ExecuteDirect("INSERT INTO other_table (id, data) VALUES (1, 'O1')");
     }
 
     LambdaProgressManager pm { [](auto&&) {} };
@@ -1549,7 +1549,7 @@ TEST_CASE("SqlBackup: Restore rejects unsupported format version", "[SqlBackup]"
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
             migration.CreateTable("version_test_table").Column("id", SqlColumnTypeDefinitions::Integer {});
         });
-        stmt.ExecuteDirect("INSERT INTO version_test_table (id) VALUES (1)");
+        (void) stmt.ExecuteDirect("INSERT INTO version_test_table (id) VALUES (1)");
     }
 
     SqlBackup::NullProgressManager pm;

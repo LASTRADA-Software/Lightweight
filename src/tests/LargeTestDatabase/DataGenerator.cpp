@@ -272,7 +272,7 @@ void DropSchema(Light::DataMapper& dm)
     {
         try
         {
-            stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS \"{}\"", table));
+            (void) stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS \"{}\"", table));
         }
         // NOLINTNEXTLINE(bugprone-empty-catch) - intentionally ignoring errors during cleanup
         catch (...)

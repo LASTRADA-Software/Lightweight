@@ -26,9 +26,9 @@ std::optional<int64_t> TransitionGlue::GetCurrentLupVersion(Lightweight::SqlConn
         Lightweight::SqlStatement stmt(connection);
 
         // Try to query the version - if table doesn't exist, this will throw
-        stmt.ExecuteDirect("SELECT VALUE FROM LASTRADA_PROPERTIES WHERE NR = 4");
-        if (stmt.FetchRow())
-            return stmt.GetColumn<int64_t>(1);
+        auto cursor = stmt.ExecuteDirect("SELECT VALUE FROM LASTRADA_PROPERTIES WHERE NR = 4");
+        if (cursor.FetchRow())
+            return cursor.GetColumn<int64_t>(1);
     }
     catch (std::exception const& /*ex*/) // NOLINT(bugprone-empty-catch)
     {

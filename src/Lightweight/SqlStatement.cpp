@@ -189,10 +189,10 @@ void SqlStatement::Prepare(std::string_view query) &
     m_data->indicators.resize(static_cast<size_t>(m_expectedParameterCount) + 1);
 }
 
-void SqlStatement::ExecuteDirect(std::string_view const& query, std::source_location location)
+SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::source_location location)
 {
     if (query.empty())
-        return;
+        return SqlResultCursor { *this };
 
     m_preparedQuery.clear();
     m_numColumns.reset();
@@ -205,9 +205,10 @@ void SqlStatement::ExecuteDirect(std::string_view const& query, std::source_loca
     SqlLogger::GetLogger().OnExecuteDirect(query);
 
     RequireSuccess(SQLExecDirectA(m_hStmt, (SQLCHAR*) query.data(), (SQLINTEGER) query.size()), location);
+    return SqlResultCursor { *this };
 }
 
-void SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const& args)
+SqlResultCursor SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const& args)
 {
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
@@ -231,9 +232,10 @@ void SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const& args)
     if (rc != SQL_NO_DATA)
         RequireSuccess(rc);
     ProcessPostExecuteCallbacks();
+    return SqlResultCursor { *this };
 }
 
-void SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount)
+SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount)
 {
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
@@ -258,6 +260,7 @@ void SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns, size_t ro
     RequireSuccess(SQLExecute(m_hStmt));
     ProcessPostExecuteCallbacks();
     ClearBatchIndicators();
+    return SqlResultCursor { *this };
 }
 
 // Retrieves the number of rows affected by the last query.

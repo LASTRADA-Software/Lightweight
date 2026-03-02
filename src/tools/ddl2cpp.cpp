@@ -70,7 +70,7 @@ void CreateTestTables()
         );
     )";
     auto stmt = SqlStatement();
-    stmt.ExecuteDirect(std::format(createStatement, PrimaryKeyAutoIncrement(stmt.Connection().ServerType())));
+    (void) stmt.ExecuteDirect(std::format(createStatement, PrimaryKeyAutoIncrement(stmt.Connection().ServerType())));
 }
 
 void PostConnectedHook(SqlConnection& connection)
@@ -80,7 +80,7 @@ void PostConnectedHook(SqlConnection& connection)
         case SqlServerType::SQLITE: {
             auto stmt = SqlStatement { connection };
             // Enable foreign key constraints for SQLite
-            stmt.ExecuteDirect("PRAGMA foreign_keys = ON");
+            (void) stmt.ExecuteDirect("PRAGMA foreign_keys = ON");
             break;
         }
         case SqlServerType::MICROSOFT_SQL:

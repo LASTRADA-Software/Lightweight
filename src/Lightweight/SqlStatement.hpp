@@ -125,32 +125,12 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     template <SqlInputParameterBinder Arg, typename ColumnName>
     void BindInputParameter(SQLSMALLINT columnIndex, Arg const& arg, ColumnName&& columnNameHint);
 
-    /// Binds the given arguments to the prepared statement to store the fetched data to.
-    ///
-    /// @note The statement must be prepared before calling this function.
-    template <SqlOutputColumnBinder... Args>
-    void BindOutputColumns(Args*... args);
-
-    /// Binds the given arguments to the prepared statement to store the fetched data to.
-    ///
-    /// @param records The records to bind each member to.
-    ///
-    /// @note The statement must be prepared before calling this function.
-    /// @note The records must be aggregate types, i.e. classes with public members and no user-defined constructors.
-    template <typename... Records>
-        requires(((std::is_class_v<Records> && std::is_aggregate_v<Records>) && ...))
-    void BindOutputColumnsToRecord(Records*... records);
-
-    /// Binds a single output column at the given index to store fetched data.
-    template <SqlOutputColumnBinder T>
-    void BindOutputColumn(SQLUSMALLINT columnIndex, T* arg);
-
     /// Binds the given arguments to the prepared statement and executes it.
     template <SqlInputParameterBinder... Args>
-    void Execute(Args const&... args);
+    [[nodiscard]] SqlResultCursor Execute(Args const&... args);
 
     /// Binds the given arguments to the prepared statement and executes it.
-    LIGHTWEIGHT_API void ExecuteWithVariants(std::vector<SqlVariant> const& args);
+    [[nodiscard]] LIGHTWEIGHT_API SqlResultCursor ExecuteWithVariants(std::vector<SqlVariant> const& args);
 
     /// Executes the prepared statement on a batch of data.
     ///
@@ -161,7 +141,8 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// Also the input range itself must be contiguous.
     /// If any of these conditions are not met, the function will not compile - use ExecuteBatch() instead.
     template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguous_range... MoreColumnBatches>
-    void ExecuteBatchNative(FirstColumnBatch const& firstColumnBatch, MoreColumnBatches const&... moreColumnBatches);
+    [[nodiscard]] SqlResultCursor ExecuteBatchNative(FirstColumnBatch const& firstColumnBatch,
+                                                     MoreColumnBatches const&... moreColumnBatches);
 
     /// Executes the prepared statement on a batch of data.
     ///
@@ -172,7 +153,8 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// This function will bind and execute each row separately,
     /// which is less efficient than ExecuteBatchNative(), but works non-contiguous input ranges.
     template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches>
-    void ExecuteBatchSoft(FirstColumnBatch const& firstColumnBatch, MoreColumnBatches const&... moreColumnBatches);
+    [[nodiscard]] SqlResultCursor ExecuteBatchSoft(FirstColumnBatch const& firstColumnBatch,
+                                                   MoreColumnBatches const&... moreColumnBatches);
 
     /// Executes the prepared statement on a batch of data.
     ///
@@ -180,20 +162,22 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// and the number of elements in these bound column containers will
     /// mandate how many executions will happen.
     template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches>
-    void ExecuteBatch(FirstColumnBatch const& firstColumnBatch, MoreColumnBatches const&... moreColumnBatches);
+    [[nodiscard]] SqlResultCursor ExecuteBatch(FirstColumnBatch const& firstColumnBatch,
+                                               MoreColumnBatches const&... moreColumnBatches);
 
     /// Executes the prepared statement on a batch of SqlRawColumn-prepared data.
     ///
     /// @param columns The columns to bind as input parameters.
     /// @param rowCount The number of rows to execute.
-    LIGHTWEIGHT_API void ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount);
+    [[nodiscard]] LIGHTWEIGHT_API SqlResultCursor ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount);
 
     /// Executes the given query directly.
-    LIGHTWEIGHT_API void ExecuteDirect(std::string_view const& query,
-                                       std::source_location location = std::source_location::current());
+    [[nodiscard]] LIGHTWEIGHT_API SqlResultCursor
+    ExecuteDirect(std::string_view const& query, std::source_location location = std::source_location::current());
 
     /// Executes the given query directly.
-    void ExecuteDirect(SqlQueryObject auto const& query, std::source_location location = std::source_location::current());
+    [[nodiscard]] SqlResultCursor ExecuteDirect(SqlQueryObject auto const& query,
+                                                std::source_location location = std::source_location::current());
 
     /// Executes an SQL migration query, as created b the callback.
     template <typename Callable>
@@ -226,61 +210,41 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     [[nodiscard]] T ExecuteDirectScalar(SqlQueryObject auto const& query,
                                         std::source_location location = std::source_location::current());
 
-    /// Retrieves the number of rows affected by the last query.
-    [[nodiscard]] LIGHTWEIGHT_API size_t NumRowsAffected() const;
-
-    /// Retrieves the number of columns affected by the last query.
-    [[nodiscard]] LIGHTWEIGHT_API size_t NumColumnsAffected() const;
-
     /// Retrieves the last insert ID of the given table.
     [[nodiscard]] LIGHTWEIGHT_API size_t LastInsertId(std::string_view tableName);
 
-    /// Fetches the next row of the result set.
-    ///
-    /// @note Automatically closes the cursor at the end of the result set.
-    ///
-    /// @retval true The next result row was successfully fetched
-    /// @retval false No result row was fetched, because the end of the result set was reached.
-    [[nodiscard]] LIGHTWEIGHT_API bool FetchRow();
+  private:
+    friend class SqlResultCursor;
 
-    /// Attempts to fetch the next row, returning an error info on failure instead of throwing.
+    [[nodiscard]] LIGHTWEIGHT_API size_t NumRowsAffected() const;
+    [[nodiscard]] LIGHTWEIGHT_API size_t NumColumnsAffected() const;
+    [[nodiscard]] LIGHTWEIGHT_API bool FetchRow();
     [[nodiscard]] LIGHTWEIGHT_API std::expected<bool, SqlErrorInfo> TryFetchRow(
         std::source_location location = std::source_location::current()) noexcept;
-
-    /// Closes the result cursor on queries that yield a result set, e.g. SELECT statements.
-    ///
-    /// Call this function when done with fetching the results before the end of the result set is reached.
     void CloseCursor() noexcept;
 
-    /// Retrieves the result cursor for reading an SQL query result.
-    SqlResultCursor GetResultCursor() noexcept;
+    template <SqlOutputColumnBinder... Args>
+    void BindOutputColumns(Args*... args);
 
-    /// Retrieves the variant row cursor for reading an SQL query result of unknown column types and column count.
-    SqlVariantRowCursor GetVariantRowCursor() noexcept;
+    template <typename... Records>
+        requires(((std::is_class_v<Records> && std::is_aggregate_v<Records>) && ...))
+    void BindOutputColumnsToRecord(Records*... records);
 
-    /// Retrieves the value of the column at the given index for the currently selected row.
-    ///
-    /// Returns true if the value is not NULL, false otherwise.
+    template <SqlOutputColumnBinder T>
+    void BindOutputColumn(SQLUSMALLINT columnIndex, T* arg);
+
     template <SqlGetColumnNativeType T>
     [[nodiscard]] bool GetColumn(SQLUSMALLINT column, T* result) const;
 
-    /// Retrieves the value of the column at the given index for the currently selected row.
     template <SqlGetColumnNativeType T>
     [[nodiscard]] T GetColumn(SQLUSMALLINT column) const;
 
-    /// Retrieves the value of the column at the given index for the currently selected row.
-    ///
-    /// If the value is NULL, std::nullopt is returned.
     template <SqlGetColumnNativeType T>
     [[nodiscard]] std::optional<T> GetNullableColumn(SQLUSMALLINT column) const;
 
-    /// Retrieves the value of the column at the given index for the currently selected row.
-    ///
-    /// If the value is NULL, the given @p defaultValue is returned.
     template <SqlGetColumnNativeType T>
     [[nodiscard]] T GetColumnOr(SQLUSMALLINT column, T&& defaultValue) const;
 
-  private:
     LIGHTWEIGHT_API void RequireSuccess(SQLRETURN error,
                                         std::source_location sourceLocation = std::source_location::current()) const;
     LIGHTWEIGHT_API void PlanPostExecuteCallback(std::function<void()>&& cb) override;
@@ -378,6 +342,21 @@ class [[nodiscard]] SqlResultCursor
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE bool FetchRow()
     {
         return m_stmt->FetchRow();
+    }
+
+    /// Attempts to fetch the next row, returning an error info on failure instead of throwing.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE std::expected<bool, SqlErrorInfo> TryFetchRow(
+        std::source_location location = std::source_location::current()) noexcept
+    {
+        return m_stmt->TryFetchRow(location);
+    }
+
+    /// Binds the given records to the prepared statement to store the fetched data to.
+    template <typename... Records>
+        requires(((std::is_class_v<Records> && std::is_aggregate_v<Records>) && ...))
+    LIGHTWEIGHT_FORCE_INLINE void BindOutputColumnsToRecord(Records*... records)
+    {
+        m_stmt->BindOutputColumnsToRecord(records...);
     }
 
     /// Retrieves the value of the column at the given index for the currently selected row.
@@ -536,14 +515,12 @@ class SqlRowIterator
 
         iterator& operator++()
         {
-            _is_end = !_stmt->FetchRow();
-            if (!_is_end)
+            if (_cursor)
             {
+                _is_end = !_cursor->FetchRow();
+                return *this;
             }
-            else
-            {
-                _stmt->CloseCursor();
-            }
+            _is_end = true;
             return *this;
         }
 
@@ -552,7 +529,7 @@ class SqlRowIterator
             auto res = T {};
 
             Reflection::EnumerateMembers(res, [this]<size_t I>(auto&& value) {
-                auto tmp = _stmt->GetColumn<typename Reflection::MemberTypeOf<I, value_type>::ValueType>(I + 1);
+                auto tmp = _cursor->GetColumn<typename Reflection::MemberTypeOf<I, value_type>::ValueType>(I + 1);
                 value = tmp;
             });
 
@@ -565,12 +542,14 @@ class SqlRowIterator
         }
 
         constexpr iterator(std::default_sentinel_t /*sentinel*/) noexcept:
-            _is_end { true }
+            _is_end { true },
+            _cursor { std::nullopt }
         {
         }
 
         explicit iterator(SqlConnection& conn):
-            _stmt { std::make_unique<SqlStatement>(conn) }
+            _stmt { std::make_unique<SqlStatement>(conn) },
+            _cursor { std::nullopt }
         {
         }
 
@@ -579,9 +558,15 @@ class SqlRowIterator
             return *_stmt;
         }
 
+        void SetCursor(SqlResultCursor cursor) noexcept
+        {
+            _cursor.emplace(std::move(cursor));
+        }
+
       private:
         bool _is_end = false;
         std::unique_ptr<SqlStatement> _stmt;
+        std::optional<SqlResultCursor> _cursor;
     };
 
     /// Returns an iterator to the first row of the result set.
@@ -590,7 +575,7 @@ class SqlRowIterator
         auto it = iterator { *_connection };
         auto& stmt = it.Statement();
         stmt.Prepare(it.Statement().Query(RecordTableName<T>).Select().template Fields<T>().All());
-        stmt.Execute();
+        it.SetCursor(stmt.Execute());
         ++it;
         return it;
     }
@@ -706,7 +691,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindInputParameter(SQLSMALLIN
 }
 
 template <SqlInputParameterBinder... Args>
-void SqlStatement::Execute(Args const&... args)
+SqlResultCursor SqlStatement::Execute(Args const&... args)
 {
     // Each input parameter must have an address,
     // such that we can call SQLBindParameter() without needing to copy it.
@@ -731,6 +716,7 @@ void SqlStatement::Execute(Args const&... args)
         throw SqlException(SqlErrorInfo::FromStatementHandle(m_hStmt), std::source_location::current());
 
     ProcessPostExecuteCallbacks();
+    return SqlResultCursor { *this };
 }
 
 // clang-format off
@@ -763,8 +749,8 @@ concept SqlNativeBatchable =
 // clang-format on
 
 template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguous_range... MoreColumnBatches>
-void SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstColumnBatch,
-                                      MoreColumnBatches const&... moreColumnBatches)
+SqlResultCursor SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstColumnBatch,
+                                                 MoreColumnBatches const&... moreColumnBatches)
 {
     static_assert(SqlNativeBatchable<FirstColumnBatch, MoreColumnBatches...>,
                   "Must be a supported native contiguous element type.");
@@ -794,23 +780,25 @@ void SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstColumnBatch,
     RequireSuccess(SQLExecute(m_hStmt));
     ProcessPostExecuteCallbacks();
     // clang-format on
+    return SqlResultCursor { *this };
 }
 
 /// @copydoc SqlStatement::ExecuteBatch
 template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches>
-inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::ExecuteBatch(FirstColumnBatch const& firstColumnBatch,
-                                                                MoreColumnBatches const&... moreColumnBatches)
+inline LIGHTWEIGHT_FORCE_INLINE SqlResultCursor SqlStatement::ExecuteBatch(FirstColumnBatch const& firstColumnBatch,
+                                                                           MoreColumnBatches const&... moreColumnBatches)
 {
     // If the input ranges are contiguous and their element types are contiguous and supported as well,
     // we can use the native batch execution.
     if constexpr (SqlNativeBatchable<FirstColumnBatch, MoreColumnBatches...>)
-        ExecuteBatchNative(firstColumnBatch, moreColumnBatches...);
+        return ExecuteBatchNative(firstColumnBatch, moreColumnBatches...);
     else
-        ExecuteBatchSoft(firstColumnBatch, moreColumnBatches...);
+        return ExecuteBatchSoft(firstColumnBatch, moreColumnBatches...);
 }
 
 template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches>
-void SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColumnBatch, MoreColumnBatches const&... moreColumnBatches)
+SqlResultCursor SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColumnBatch,
+                                               MoreColumnBatches const&... moreColumnBatches)
 {
     if (m_expectedParameterCount != 1 + sizeof...(moreColumnBatches))
         throw std::invalid_argument { "Invalid number of columns" };
@@ -833,6 +821,7 @@ void SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColumnBatch, Mo
                 std::ref(
                     *std::ranges::next(std::ranges::begin(moreColumnBatches), static_cast<std::ptrdiff_t>(rowIndex)))...));
     }
+    return SqlResultCursor { *this };
 }
 
 template <SqlGetColumnNativeType T>
@@ -880,8 +869,8 @@ T SqlStatement::GetColumnOr(SQLUSMALLINT column, T&& defaultValue) const
     return GetNullableColumn<T>(column).value_or(std::forward<T>(defaultValue));
 }
 
-inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::ExecuteDirect(SqlQueryObject auto const& query,
-                                                                 std::source_location location)
+inline LIGHTWEIGHT_FORCE_INLINE SqlResultCursor SqlStatement::ExecuteDirect(SqlQueryObject auto const& query,
+                                                                            std::source_location location)
 {
     return ExecuteDirect(query.ToSql(), location);
 }
@@ -895,8 +884,7 @@ void SqlStatement::MigrateDirect(Callable const& callable, std::source_location 
     auto const queries = migration.GetPlan().ToSql();
     for (auto const& query: queries)
     {
-        ExecuteDirect(query, location);
-        CloseCursor();
+        [[maybe_unused]] auto cursor = ExecuteDirect(query, location);
     }
 }
 
@@ -904,8 +892,7 @@ template <typename T>
     requires(!std::same_as<T, SqlVariant>)
 inline std::optional<T> SqlStatement::ExecuteDirectScalar(std::string_view const& query, std::source_location location)
 {
-    auto const _ = detail::Finally([this] { CloseCursor(); });
-    ExecuteDirect(query, location);
+    auto cursor = ExecuteDirect(query, location);
     RequireSuccess(FetchRow());
     return GetNullableColumn<T>(1);
 }
@@ -914,8 +901,7 @@ template <typename T>
     requires(std::same_as<T, SqlVariant>)
 inline T SqlStatement::ExecuteDirectScalar(std::string_view const& query, std::source_location location)
 {
-    auto const _ = detail::Finally([this] { CloseCursor(); });
-    ExecuteDirect(query, location);
+    auto cursor = ExecuteDirect(query, location);
     RequireSuccess(FetchRow());
     if (auto result = GetNullableColumn<T>(1); result.has_value())
         return *result;
@@ -941,16 +927,6 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::CloseCursor() noexcept
     // SQLCloseCursor(m_hStmt);
     SQLFreeStmt(m_hStmt, SQL_CLOSE);
     SqlLogger::GetLogger().OnFetchEnd();
-}
-
-inline LIGHTWEIGHT_FORCE_INLINE SqlResultCursor SqlStatement::GetResultCursor() noexcept
-{
-    return SqlResultCursor { *this };
-}
-
-inline LIGHTWEIGHT_FORCE_INLINE SqlVariantRowCursor SqlStatement::GetVariantRowCursor() noexcept
-{
-    return SqlVariantRowCursor { SqlResultCursor { *this } };
 }
 
 // }}}

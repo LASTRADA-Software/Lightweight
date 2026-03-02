@@ -59,11 +59,12 @@ namespace
         SqlErrorInfo::RequireStatementSuccess(sqlResult, stmt.NativeHandle(), "SQLTables");
 
         auto result = std::vector<TableWithSchema>();
-        while (stmt.FetchRow())
+        auto cursor = SqlResultCursor(stmt);
+        while (cursor.FetchRow())
         {
-            auto schemaOpt = stmt.GetNullableColumn<std::string>(2);
-            auto nameOpt = stmt.GetNullableColumn<std::string>(3);
-            auto typeOpt = stmt.GetNullableColumn<std::string>(4);
+            auto schemaOpt = cursor.GetNullableColumn<std::string>(2);
+            auto nameOpt = cursor.GetNullableColumn<std::string>(3);
+            auto typeOpt = cursor.GetNullableColumn<std::string>(4);
             if (!nameOpt)
                 continue;
 
@@ -111,28 +112,29 @@ namespace
         // ODBC SQLForeignKeys() should return at least 14 columns per the spec.
         // However, some drivers (e.g., MS SQL ODBC Driver 18 in certain environments) may
         // return fewer columns. We need at least 9 columns (KEY_SEQ) to process foreign keys.
+        auto cursor = SqlResultCursor(stmt);
         constexpr size_t MinRequiredColumns = 9;
-        auto const numColumns = stmt.NumColumnsAffected();
+        auto const numColumns = cursor.NumColumnsAffected();
         if (numColumns < MinRequiredColumns)
             return {}; // Driver didn't return expected columns, return empty result
 
         using ColumnList = std::vector<std::pair<std::string /*fk*/, std::string /*pk*/>>;
         auto constraints = std::map<KeyPair, ColumnList>();
-        while (stmt.FetchRow())
+        while (cursor.FetchRow())
         {
             auto primaryKeyTable = FullyQualifiedTableName {
-                .catalog = stmt.GetNullableColumn<std::string>(1).value_or(""),
-                .schema = stmt.GetNullableColumn<std::string>(2).value_or(""),
-                .table = stmt.GetNullableColumn<std::string>(3).value_or(""),
+                .catalog = cursor.GetNullableColumn<std::string>(1).value_or(""),
+                .schema = cursor.GetNullableColumn<std::string>(2).value_or(""),
+                .table = cursor.GetNullableColumn<std::string>(3).value_or(""),
             };
-            auto pkColumnName = stmt.GetNullableColumn<std::string>(4).value_or("");
+            auto pkColumnName = cursor.GetNullableColumn<std::string>(4).value_or("");
             auto foreignKeyTable = FullyQualifiedTableName {
-                .catalog = stmt.GetNullableColumn<std::string>(5).value_or(""),
-                .schema = stmt.GetNullableColumn<std::string>(6).value_or(""),
-                .table = stmt.GetNullableColumn<std::string>(7).value_or(""),
+                .catalog = cursor.GetNullableColumn<std::string>(5).value_or(""),
+                .schema = cursor.GetNullableColumn<std::string>(6).value_or(""),
+                .table = cursor.GetNullableColumn<std::string>(7).value_or(""),
             };
-            auto foreignKeyColumn = stmt.GetNullableColumn<std::string>(8).value_or("");
-            auto const sequenceNumber = static_cast<size_t>(stmt.GetNullableColumn<int16_t>(9).value_or(1));
+            auto foreignKeyColumn = cursor.GetNullableColumn<std::string>(8).value_or("");
+            auto const sequenceNumber = static_cast<size_t>(cursor.GetNullableColumn<int16_t>(9).value_or(1));
             ColumnList& keyColumns = constraints[{ foreignKeyTable, primaryKeyTable }];
             if (sequenceNumber > keyColumns.size())
                 keyColumns.resize(sequenceNumber);
@@ -171,14 +173,14 @@ namespace
             else
                 query = std::format("PRAGMA table_info(\"{}\")", table.table);
 
-            stmt.ExecuteDirect(query);
+            auto cursor = stmt.ExecuteDirect(query);
 
             std::vector<std::pair<int, std::string>> pkCols;
-            while (stmt.FetchRow())
+            while (cursor.FetchRow())
             {
                 // cid, name, type, notnull, dflt_value, pk
-                auto name = stmt.GetColumn<std::string>(2);
-                auto pkInfo = stmt.GetColumn<int>(6);
+                auto name = cursor.GetColumn<std::string>(2);
+                auto pkInfo = cursor.GetColumn<int>(6);
                 if (pkInfo > 0)
                     pkCols.emplace_back(pkInfo, name);
             }
@@ -205,10 +207,11 @@ namespace
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLPrimaryKeys failed: {}", stmt.LastError()));
 
-        while (stmt.FetchRow())
+        auto cursor = SqlResultCursor(stmt);
+        while (cursor.FetchRow())
         {
-            keys.emplace_back(stmt.GetNullableColumn<std::string>(4).value_or(""));
-            sequenceNumbers.emplace_back(stmt.GetNullableColumn<int16_t>(5).value_or(0));
+            keys.emplace_back(cursor.GetNullableColumn<std::string>(4).value_or(""));
+            sequenceNumbers.emplace_back(cursor.GetNullableColumn<int16_t>(5).value_or(0));
         }
 
         std::vector<std::string> sortedKeys;
@@ -247,19 +250,20 @@ namespace
         // ODBC SQLStatistics() should return at least 13 columns per the spec.
         // However, some drivers (e.g., MS SQL ODBC Driver 18 in certain environments) may
         // return fewer columns. We need at least 9 columns (COLUMN_NAME) to process unique columns.
+        auto cursor = SqlResultCursor(stmt);
         constexpr size_t MinRequiredColumns = 9;
-        auto const numColumns = stmt.NumColumnsAffected();
+        auto const numColumns = cursor.NumColumnsAffected();
         if (numColumns < MinRequiredColumns)
             return {}; // Driver didn't return expected columns, return empty result
 
         std::map<std::string, std::vector<std::string>> uniqueIndices;
 
-        while (stmt.FetchRow())
+        while (cursor.FetchRow())
         {
             // Col 6: INDEX_NAME
             // Col 9: COLUMN_NAME
-            auto indexName = stmt.GetNullableColumn<std::string>(6).value_or("");
-            auto columnName = stmt.GetNullableColumn<std::string>(9).value_or("");
+            auto indexName = cursor.GetNullableColumn<std::string>(6).value_or("");
+            auto columnName = cursor.GetNullableColumn<std::string>(9).value_or("");
             if (!indexName.empty() && !columnName.empty())
                 uniqueIndices[indexName].push_back(columnName);
         }
@@ -309,8 +313,9 @@ namespace
             // ODBC SQLStatistics() should return at least 13 columns per the spec.
             // However, some drivers (e.g., MS SQL ODBC Driver 18 in certain environments) may
             // return fewer columns. We need at least 9 columns (COLUMN_NAME) to process indexes.
+            auto indexCursor = SqlResultCursor(indexStmt);
             constexpr size_t MinRequiredColumns = 9;
-            auto const numColumns = indexStmt.NumColumnsAffected();
+            auto const numColumns = indexCursor.NumColumnsAffected();
             if (numColumns < MinRequiredColumns)
                 return {}; // Driver didn't return expected columns, return empty result
 
@@ -322,7 +327,7 @@ namespace
             };
             std::map<std::string, IndexInfo> indexMap;
 
-            while (indexStmt.FetchRow())
+            while (indexCursor.FetchRow())
             {
                 // Column mappings from SQLStatistics result set:
                 //   4: NON_UNIQUE (0 = unique, 1 = not unique, NULL for statistics rows)
@@ -332,18 +337,18 @@ namespace
                 //   9: COLUMN_NAME
 
                 // Skip statistics rows (TYPE == 0)
-                auto typeOpt = indexStmt.GetNullableColumn<int16_t>(7);
+                auto typeOpt = indexCursor.GetNullableColumn<int16_t>(7);
                 if (!typeOpt || *typeOpt == 0)
                     continue;
 
-                auto indexNameOpt = indexStmt.GetNullableColumn<std::string>(6);
-                auto columnNameOpt = indexStmt.GetNullableColumn<std::string>(9);
+                auto indexNameOpt = indexCursor.GetNullableColumn<std::string>(6);
+                auto columnNameOpt = indexCursor.GetNullableColumn<std::string>(9);
 
                 if (!indexNameOpt || indexNameOpt->empty() || !columnNameOpt || columnNameOpt->empty())
                     continue;
 
-                auto ordinalOpt = indexStmt.GetNullableColumn<int16_t>(8);
-                auto nonUniqueOpt = indexStmt.GetNullableColumn<int16_t>(4);
+                auto ordinalOpt = indexCursor.GetNullableColumn<int16_t>(8);
+                auto nonUniqueOpt = indexCursor.GetNullableColumn<int16_t>(4);
 
                 IndexInfo& info = indexMap[*indexNameOpt];
                 info.columnsWithOrdinal.emplace_back(ordinalOpt.value_or(1), *columnNameOpt);
@@ -422,11 +427,11 @@ namespace
                 // However, we should use a fresh statement to be safe if stmt is active?
                 // ReadAllTables loop reuses stmt for PrimaryKeys etc. It should be fine.
                 // Actually AllUniqueColumns etc use stmt.
-                stmt.ExecuteDirect(sql);
+                auto identityCursor = stmt.ExecuteDirect(sql);
                 std::vector<std::string> identityCols;
-                while (stmt.FetchRow())
+                while (identityCursor.FetchRow())
                 {
-                    identityCols.push_back(stmt.GetColumn<std::string>(1));
+                    identityCols.push_back(identityCursor.GetColumn<std::string>(1));
                 }
                 return identityCols;
             }
@@ -505,26 +510,27 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
         // ODBC SQLColumns() should return 18 columns per the spec.
         // However, some drivers may return fewer columns. Track the actual column count
         // to avoid accessing non-existent columns which causes ODBC errors.
-        auto const numColumns = columnStmt.NumColumnsAffected();
+        auto columnCursor = SqlResultCursor(columnStmt);
+        auto const numColumns = columnCursor.NumColumnsAffected();
 
         Column column;
 
-        while (columnStmt.FetchRow())
+        while (columnCursor.FetchRow())
         {
             // std::cerr << "DEBUG: FetchRow success for " << tableName << "\n";
             int type = 0;
             try
             {
-                column.name = columnStmt.GetNullableColumn<std::string>(4).value_or("");
-                type = columnStmt.GetColumn<int>(5); // DATA_TYPE
-                column.dialectDependantTypeString = columnStmt.GetNullableColumn<std::string>(6).value_or("");
+                column.name = columnCursor.GetNullableColumn<std::string>(4).value_or("");
+                type = columnCursor.GetColumn<int>(5); // DATA_TYPE
+                column.dialectDependantTypeString = columnCursor.GetNullableColumn<std::string>(6).value_or("");
                 // COLUMN_SIZE (column 7) can be negative for some drivers (e.g., PostgreSQL returns -4 for BYTEA)
                 // to indicate "unknown" size. Treat negative values as 0.
-                auto const rawSize = columnStmt.GetColumn<int>(7);
+                auto const rawSize = columnCursor.GetColumn<int>(7);
                 column.size = rawSize > 0 ? static_cast<size_t>(rawSize) : 0;
 
                 // 8 - bufferLength
-                column.decimalDigits = numColumns >= 9 ? columnStmt.GetNullableColumn<uint16_t>(9).value_or(0) : 0;
+                column.decimalDigits = numColumns >= 9 ? columnCursor.GetNullableColumn<uint16_t>(9).value_or(0) : 0;
             }
             catch (std::exception const&)
             {
@@ -538,7 +544,7 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
             {
                 try
                 {
-                    column.isNullable = columnStmt.GetColumn<bool>(11);
+                    column.isNullable = columnCursor.GetColumn<bool>(11);
                 }
                 catch (std::exception&)
                 {
@@ -556,7 +562,7 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
             {
                 try
                 {
-                    column.defaultValue = columnStmt.GetNullableColumn<std::string>(13).value_or("");
+                    column.defaultValue = columnCursor.GetNullableColumn<std::string>(13).value_or("");
                 }
                 catch (std::exception&)
                 {

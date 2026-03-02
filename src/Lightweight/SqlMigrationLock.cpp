@@ -137,11 +137,11 @@ void MigrationLock::AcquireLockSqlServer(std::chrono::milliseconds timeout)
                                  _lockName,
                                  timeout.count());
 
-    stmt.ExecuteDirect(sql);
+    auto cursor = stmt.ExecuteDirect(sql);
 
-    if (stmt.FetchRow())
+    if (cursor.FetchRow())
     {
-        auto const result = stmt.GetColumn<int>(1);
+        auto const result = cursor.GetColumn<int>(1);
         if (result >= 0)
         {
             _locked = true;
@@ -163,7 +163,7 @@ void MigrationLock::ReleaseLockSqlServer()
 {
     auto stmt = SqlStatement { *_connection };
     auto const sql = std::format("EXEC sp_releaseapplock @Resource = N'{}', @LockOwner = N'Session';", _lockName);
-    stmt.ExecuteDirect(sql);
+    [[maybe_unused]] auto releaseCursor = stmt.ExecuteDirect(sql);
 }
 
 // PostgreSQL implementation using pg_advisory_lock
@@ -172,7 +172,7 @@ void MigrationLock::AcquireLockPostgreSQL(std::chrono::milliseconds timeout)
     auto stmt = SqlStatement { *_connection };
 
     // Set lock timeout
-    stmt.ExecuteDirect(std::format("SET lock_timeout = '{} ms';", timeout.count()));
+    [[maybe_unused]] auto timeoutCursor = stmt.ExecuteDirect(std::format("SET lock_timeout = '{} ms';", timeout.count()));
 
     // Use pg_try_advisory_lock with a hash of the lock name
     // pg_advisory_lock uses a 64-bit key, we hash the lock name
@@ -180,7 +180,7 @@ void MigrationLock::AcquireLockPostgreSQL(std::chrono::milliseconds timeout)
 
     try
     {
-        stmt.ExecuteDirect(sql);
+        [[maybe_unused]] auto lockCursor = stmt.ExecuteDirect(sql);
         _locked = true;
     }
     catch (SqlException const&)
@@ -194,7 +194,7 @@ void MigrationLock::ReleaseLockPostgreSQL()
 {
     auto stmt = SqlStatement { *_connection };
     auto const sql = std::format("SELECT pg_advisory_unlock(hashtext('{}')::bigint);", _lockName);
-    stmt.ExecuteDirect(sql);
+    [[maybe_unused]] auto unlockCursor = stmt.ExecuteDirect(sql);
 }
 
 // SQLite implementation using a lock table
@@ -205,10 +205,10 @@ void MigrationLock::AcquireLockSQLite(std::chrono::milliseconds timeout)
     auto stmt = SqlStatement { *_connection };
 
     // Set busy timeout for waiting on locks
-    stmt.ExecuteDirect(std::format("PRAGMA busy_timeout = {};", timeout.count()));
+    [[maybe_unused]] auto busyCursor = stmt.ExecuteDirect(std::format("PRAGMA busy_timeout = {};", timeout.count()));
 
     // Create lock table if it doesn't exist
-    stmt.ExecuteDirect("CREATE TABLE IF NOT EXISTS \"_migration_locks\" ("
+    [[maybe_unused]] auto createCursor = stmt.ExecuteDirect("CREATE TABLE IF NOT EXISTS \"_migration_locks\" ("
                        "\"lock_name\" VARCHAR(255) PRIMARY KEY, "
                        "\"acquired_at\" TEXT DEFAULT CURRENT_TIMESTAMP"
                        ");");
@@ -216,7 +216,7 @@ void MigrationLock::AcquireLockSQLite(std::chrono::milliseconds timeout)
     // Try to insert a lock record - this will fail if already locked
     try
     {
-        stmt.ExecuteDirect(std::format(R"(INSERT INTO "_migration_locks" ("lock_name") VALUES ('{}');)", _lockName));
+        [[maybe_unused]] auto insertCursor = stmt.ExecuteDirect(std::format(R"(INSERT INTO "_migration_locks" ("lock_name") VALUES ('{}');)", _lockName));
         _locked = true;
     }
     catch (SqlException const&)
@@ -232,7 +232,7 @@ void MigrationLock::ReleaseLockSQLite()
     auto stmt = SqlStatement { *_connection };
     try
     {
-        stmt.ExecuteDirect(std::format(R"(DELETE FROM "_migration_locks" WHERE "lock_name" = '{}';)", _lockName));
+        [[maybe_unused]] auto deleteCursor = stmt.ExecuteDirect(std::format(R"(DELETE FROM "_migration_locks" WHERE "lock_name" = '{}';)", _lockName));
     }
     // NOLINTNEXTLINE(bugprone-empty-catch)
     catch (...)

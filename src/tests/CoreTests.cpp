@@ -126,10 +126,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement: ctor std::nullopt")
 TEST_CASE_METHOD(SqlTestFixture, "select: get columns")
 {
     auto stmt = Lightweight::SqlStatement {};
-    stmt.ExecuteDirect("SELECT 42");
-    (void) stmt.FetchRow();
-    REQUIRE(stmt.GetColumn<int>(1) == 42);
-    (void) stmt.FetchRow();
+    auto cursor = stmt.ExecuteDirect("SELECT 42");
+    (void) cursor.FetchRow();
+    REQUIRE(cursor.GetColumn<int>(1) == 42);
+    (void) cursor.FetchRow();
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "move semantics", "[SqlConnection]")
@@ -185,13 +185,13 @@ TEST_CASE_METHOD(SqlTestFixture, "move semantics", "[SqlStatement]")
 TEST_CASE_METHOD(SqlTestFixture, "select: get column (invalid index)")
 {
     auto stmt = Lightweight::SqlStatement {};
-    stmt.ExecuteDirect("SELECT 42");
-    (void) stmt.FetchRow();
+    auto cursor = stmt.ExecuteDirect("SELECT 42");
+    (void) cursor.FetchRow();
 
     auto const _ = ScopedSqlNullLogger {}; // suppress the error message, we are testing for it
 
-    CHECK_THROWS_AS(stmt.GetColumn<int>(2), std::invalid_argument);
-    (void) stmt.FetchRow();
+    CHECK_THROWS_AS(cursor.GetColumn<int>(2), std::invalid_argument);
+    (void) cursor.FetchRow();
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "execute bound parameters and select back: VARCHAR, INT")
@@ -203,32 +203,32 @@ TEST_CASE_METHOD(SqlTestFixture, "execute bound parameters and select back: VARC
     stmt.Prepare(R"(INSERT INTO "Employees" ("FirstName", "LastName", "Salary") VALUES (?, ?, ?))");
     REQUIRE(stmt.IsPrepared());
 
-    stmt.Execute("Alice", "Smith", 50'000);
-    stmt.Execute("Bob", "Johnson", 60'000);
-    stmt.Execute("Charlie", "Brown", 70'000);
+    (void) stmt.Execute("Alice", "Smith", 50'000);
+    (void) stmt.Execute("Bob", "Johnson", 60'000);
+    (void) stmt.Execute("Charlie", "Brown", 70'000);
 
-    stmt.ExecuteDirect(R"(SELECT COUNT(*) FROM "Employees")");
+    auto cursor = stmt.ExecuteDirect(R"(SELECT COUNT(*) FROM "Employees")");
     REQUIRE(!stmt.IsPrepared());
-    REQUIRE(stmt.NumColumnsAffected() == 1);
-    (void) stmt.FetchRow();
-    REQUIRE(stmt.GetColumn<int>(1) == 3);
-    REQUIRE(!stmt.FetchRow());
+    REQUIRE(cursor.NumColumnsAffected() == 1);
+    (void) cursor.FetchRow();
+    REQUIRE(cursor.GetColumn<int>(1) == 3);
+    REQUIRE(!cursor.FetchRow());
 
     stmt.Prepare(R"(SELECT "FirstName", "LastName", "Salary" FROM "Employees" WHERE "Salary" >= ?)");
-    REQUIRE(stmt.NumColumnsAffected() == 3);
-    stmt.Execute(55'000);
+    auto cursor2 = stmt.Execute(55'000);
+    REQUIRE(cursor2.NumColumnsAffected() == 3);
 
-    (void) stmt.FetchRow();
-    REQUIRE(stmt.GetColumn<std::string>(1) == "Bob");
-    REQUIRE(stmt.GetColumn<std::string>(2) == "Johnson");
-    REQUIRE(stmt.GetColumn<int>(3) == 60'000);
+    (void) cursor2.FetchRow();
+    REQUIRE(cursor2.GetColumn<std::string>(1) == "Bob");
+    REQUIRE(cursor2.GetColumn<std::string>(2) == "Johnson");
+    REQUIRE(cursor2.GetColumn<int>(3) == 60'000);
 
-    (void) stmt.FetchRow();
-    REQUIRE(stmt.GetColumn<std::string>(1) == "Charlie");
-    REQUIRE(stmt.GetColumn<std::string>(2) == "Brown");
-    REQUIRE(stmt.GetColumn<int>(3) == 70'000);
+    (void) cursor2.FetchRow();
+    REQUIRE(cursor2.GetColumn<std::string>(1) == "Charlie");
+    REQUIRE(cursor2.GetColumn<std::string>(2) == "Brown");
+    REQUIRE(cursor2.GetColumn<int>(3) == 70'000);
 
-    REQUIRE(!stmt.FetchRow());
+    REQUIRE(!cursor2.FetchRow());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "transaction: auto-rollback")
@@ -240,15 +240,15 @@ TEST_CASE_METHOD(SqlTestFixture, "transaction: auto-rollback")
     {
         auto transaction = Lightweight::SqlTransaction { stmt.Connection(), Lightweight::SqlTransactionMode::ROLLBACK };
         stmt.Prepare(R"(INSERT INTO "Employees" ("FirstName", "LastName", "Salary") VALUES (?, ?, ?))");
-        stmt.Execute("Alice", "Smith", 50'000);
+        (void) stmt.Execute("Alice", "Smith", 50'000);
         REQUIRE(stmt.Connection().TransactionActive());
     }
     // transaction automatically rolled back
 
     REQUIRE(!stmt.Connection().TransactionActive());
-    stmt.ExecuteDirect("SELECT COUNT(*) FROM \"Employees\"");
-    (void) stmt.FetchRow();
-    REQUIRE(stmt.GetColumn<int>(1) == 0);
+    auto cursor = stmt.ExecuteDirect("SELECT COUNT(*) FROM \"Employees\"");
+    (void) cursor.FetchRow();
+    REQUIRE(cursor.GetColumn<int>(1) == 0);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "transaction: auto-commit")
@@ -260,15 +260,15 @@ TEST_CASE_METHOD(SqlTestFixture, "transaction: auto-commit")
     {
         auto transaction = Lightweight::SqlTransaction { stmt.Connection(), Lightweight::SqlTransactionMode::COMMIT };
         stmt.Prepare(R"(INSERT INTO "Employees" ("FirstName", "LastName", "Salary") VALUES (?, ?, ?))");
-        stmt.Execute("Alice", "Smith", 50'000);
+        (void) stmt.Execute("Alice", "Smith", 50'000);
         REQUIRE(stmt.Connection().TransactionActive());
     }
     // transaction automatically committed
 
     REQUIRE(!stmt.Connection().TransactionActive());
-    stmt.ExecuteDirect("SELECT COUNT(*) FROM \"Employees\"");
-    (void) stmt.FetchRow();
-    REQUIRE(stmt.GetColumn<int>(1) == 1);
+    auto cursor = stmt.ExecuteDirect("SELECT COUNT(*) FROM \"Employees\"");
+    (void) cursor.FetchRow();
+    REQUIRE(cursor.GetColumn<int>(1) == 1);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "execute binding output parameters (direct)")
@@ -282,15 +282,15 @@ TEST_CASE_METHOD(SqlTestFixture, "execute binding output parameters (direct)")
     unsigned int salary {};
 
     stmt.Prepare(R"(SELECT "FirstName", "LastName", "Salary" FROM "Employees" WHERE "Salary" = ?)");
-    stmt.BindOutputColumns(&firstName, &lastName, &salary);
-    stmt.Execute(50'000);
+    auto cursor = stmt.Execute(50'000);
+    cursor.BindOutputColumns(&firstName, &lastName, &salary);
 
-    (void) stmt.FetchRow();
+    (void) cursor.FetchRow();
     CHECK(firstName == "Alice");
     CHECK(lastName == "Smith");
     CHECK(salary == 50'000);
 
-    REQUIRE(!stmt.FetchRow());
+    REQUIRE(!cursor.FetchRow());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch", "[SqlStatement]")
@@ -308,26 +308,26 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch", "[SqlStatement]")
     unsigned const salaries[3] = { 50'000, 60'000, 70'000 };                // C-style array
     // clang-format on
 
-    stmt.ExecuteBatch(firstNames, lastNames, salaries);
+    (void) stmt.ExecuteBatch(firstNames, lastNames, salaries);
 
-    stmt.ExecuteDirect(R"(SELECT "FirstName", "LastName", "Salary" FROM "Employees" ORDER BY "Salary" DESC)");
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "FirstName", "LastName", "Salary" FROM "Employees" ORDER BY "Salary" DESC)");
 
-    REQUIRE(stmt.FetchRow());
-    REQUIRE(stmt.GetColumn<std::string>(1) == "Charlie");
-    REQUIRE(stmt.GetColumn<std::string>(2) == "Brown");
-    REQUIRE(stmt.GetColumn<int>(3) == 70'000);
+    REQUIRE(cursor.FetchRow());
+    REQUIRE(cursor.GetColumn<std::string>(1) == "Charlie");
+    REQUIRE(cursor.GetColumn<std::string>(2) == "Brown");
+    REQUIRE(cursor.GetColumn<int>(3) == 70'000);
 
-    REQUIRE(stmt.FetchRow());
-    REQUIRE(stmt.GetColumn<std::string>(1) == "Bob");
-    REQUIRE(stmt.GetColumn<std::string>(2) == "Johnson");
-    REQUIRE(stmt.GetColumn<int>(3) == 60'000);
+    REQUIRE(cursor.FetchRow());
+    REQUIRE(cursor.GetColumn<std::string>(1) == "Bob");
+    REQUIRE(cursor.GetColumn<std::string>(2) == "Johnson");
+    REQUIRE(cursor.GetColumn<int>(3) == 60'000);
 
-    REQUIRE(stmt.FetchRow());
-    REQUIRE(stmt.GetColumn<std::string>(1) == "Alice");
-    REQUIRE(stmt.GetColumn<std::string>(2) == "Smith");
-    REQUIRE(stmt.GetColumn<int>(3) == 50'000);
+    REQUIRE(cursor.FetchRow());
+    REQUIRE(cursor.GetColumn<std::string>(1) == "Alice");
+    REQUIRE(cursor.GetColumn<std::string>(2) == "Smith");
+    REQUIRE(cursor.GetColumn<int>(3) == 50'000);
 
-    REQUIRE(!stmt.FetchRow());
+    REQUIRE(!cursor.FetchRow());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatchNative", "[SqlStatement]")
@@ -348,26 +348,26 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatchNative", "[SqlStateme
     auto const second = std::vector { 1.3, 2.3, 3.3 };
     unsigned const third[3] = { 50'000, 60'000, 70'000 };
 
-    stmt.ExecuteBatchNative(first, second, third);
+    (void) stmt.ExecuteBatchNative(first, second, third);
 
-    stmt.ExecuteDirect(R"(SELECT "A", "B", "C" FROM "Test" ORDER BY "C" DESC)");
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "A", "B", "C" FROM "Test" ORDER BY "C" DESC)");
 
-    REQUIRE(stmt.FetchRow());
-    CHECK(stmt.GetColumn<std::string>(1) == "!");
-    CHECK_THAT(stmt.GetColumn<double>(2), Catch::Matchers::WithinAbs(3.3, 0.000'001));
-    CHECK(stmt.GetColumn<int>(3) == 70'000);
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>(1) == "!");
+    CHECK_THAT(cursor.GetColumn<double>(2), Catch::Matchers::WithinAbs(3.3, 0.000'001));
+    CHECK(cursor.GetColumn<int>(3) == 70'000);
 
-    REQUIRE(stmt.FetchRow());
-    CHECK(stmt.GetColumn<std::string>(1) == "World");
-    CHECK_THAT(stmt.GetColumn<double>(2), Catch::Matchers::WithinAbs(2.3, 0.000'001));
-    CHECK(stmt.GetColumn<int>(3) == 60'000);
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>(1) == "World");
+    CHECK_THAT(cursor.GetColumn<double>(2), Catch::Matchers::WithinAbs(2.3, 0.000'001));
+    CHECK(cursor.GetColumn<int>(3) == 60'000);
 
-    REQUIRE(stmt.FetchRow());
-    CHECK(stmt.GetColumn<std::string>(1) == "Hello");
-    CHECK_THAT(stmt.GetColumn<double>(2), Catch::Matchers::WithinAbs(1.3, 0.000'001));
-    CHECK(stmt.GetColumn<int>(3) == 50'000);
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>(1) == "Hello");
+    CHECK_THAT(cursor.GetColumn<double>(2), Catch::Matchers::WithinAbs(1.3, 0.000'001));
+    CHECK(cursor.GetColumn<int>(3) == 50'000);
 
-    REQUIRE(!stmt.FetchRow());
+    REQUIRE(!cursor.FetchRow());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect", "[SqlConnection]")
@@ -450,11 +450,9 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT * FROM Table", "[SqlStatement]")
     CreateEmployeesTable(stmt);
     FillEmployeesTable(stmt);
 
-    stmt.ExecuteDirect("SELECT * FROM \"Employees\"");
+    auto result = stmt.ExecuteDirect("SELECT * FROM \"Employees\"");
 
-    auto result = stmt.GetResultCursor();
-
-    REQUIRE(stmt.NumColumnsAffected() == 4);
+    REQUIRE(result.NumColumnsAffected() == 4);
 
     REQUIRE(result.FetchRow());
     CHECK(result.GetColumn<int>(1) == 1);
@@ -486,10 +484,9 @@ TEST_CASE_METHOD(SqlTestFixture, "GetNullableColumn", "[SqlStatement]")
             .Column("Remarks2", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 });
     });
     stmt.Prepare(R"(INSERT INTO "Test" ("Remarks1", "Remarks2") VALUES (?, ?))");
-    stmt.Execute("Blurb", Lightweight::SqlNullValue);
+    (void) stmt.Execute("Blurb", Lightweight::SqlNullValue);
 
-    stmt.ExecuteDirect(R"(SELECT "Remarks1", "Remarks2" FROM "Test")");
-    auto result = stmt.GetResultCursor();
+    auto result = stmt.ExecuteDirect(R"(SELECT "Remarks1", "Remarks2" FROM "Test")");
     REQUIRE(result.FetchRow());
     auto const actual1 = result.GetNullableColumn<std::string>(1);
     auto const actual2 = result.GetNullableColumn<std::string>(2);
@@ -506,10 +503,9 @@ TEST_CASE_METHOD(SqlTestFixture, "GetColumnOr", "[SqlStatement]")
             .Column("Remarks2", Lightweight::SqlColumnTypeDefinitions::Varchar { 50 });
     });
     stmt.Prepare(R"(INSERT INTO "Test" ("Remarks1", "Remarks2") VALUES (?, ?))");
-    stmt.Execute("Blurb", Lightweight::SqlNullValue);
+    (void) stmt.Execute("Blurb", Lightweight::SqlNullValue);
 
-    stmt.ExecuteDirect(R"(SELECT "Remarks1", "Remarks2" FROM "Test")");
-    auto result = stmt.GetResultCursor();
+    auto result = stmt.ExecuteDirect(R"(SELECT "Remarks1", "Remarks2" FROM "Test")");
     REQUIRE(result.FetchRow());
     auto const actual1 = result.GetColumnOr<std::string>(1, "Foo");
     auto const actual2 = result.GetColumnOr<std::string>(2, "Bar");
@@ -521,9 +517,9 @@ TEST_CASE_METHOD(SqlTestFixture, "Prepare and move", "[SqlStatement]")
 {
     Lightweight::SqlStatement stmt;
     stmt = Lightweight::SqlStatement().Prepare("SELECT 42");
-    stmt.Execute();
-    REQUIRE(stmt.FetchRow());
-    CHECK(stmt.GetColumn<int>(1) == 42);
+    auto cursor = stmt.Execute();
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<int>(1) == 42);
 }
 
 struct Simple1
@@ -561,8 +557,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into two structs", "[SqlStatement]")
 
         WHEN("inserting some data and getting it via multi struct query building")
         {
-            stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
-            stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple2>).Insert().Set("c1", "a").Set("c2", "c"));
+            (void) stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
+            (void) stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple2>).Insert().Set("c1", "a").Set("c2", "c"));
 
             // clang-format off
             stmt.Prepare(
@@ -572,21 +568,21 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into two structs", "[SqlStatement]")
                     .LeftOuterJoin(Lightweight::RecordTableName<Simple2>, "c1", "c1").All());
             // clang-format on
 
-            stmt.Execute();
+            auto cursor = stmt.Execute();
 
             THEN("we can fetch the data using multi struct output binding")
             {
                 auto s1 = Simple1 {};
                 auto s2 = Simple2 {};
-                stmt.BindOutputColumnsToRecord(&s1, &s2);
+                cursor.BindOutputColumnsToRecord(&s1, &s2);
 
-                REQUIRE(stmt.FetchRow());
+                REQUIRE(cursor.FetchRow());
                 CHECK(s1.c1 == "a");
                 CHECK(s1.c2 == "b");
                 CHECK(s2.c1 == "a");
                 CHECK(s2.c2 == "c");
 
-                REQUIRE(!stmt.FetchRow());
+                REQUIRE(!cursor.FetchRow());
             }
         }
     }
@@ -609,8 +605,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into SqlVariantRowIterator", "[SqlState
 
         WHEN("inserting some data and getting it via multi struct query building")
         {
-            stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
-            stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "A").Set("c2", "B"));
+            (void) stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
+            (void) stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "A").Set("c2", "B"));
 
             // clang-format off
             stmt.Prepare(
@@ -620,12 +616,12 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into SqlVariantRowIterator", "[SqlState
                     .All());
             // clang-format on
 
-            stmt.Execute();
+            auto cursor = stmt.Execute();
 
             THEN("we can fetch the data using SqlVariantRowIterator")
             {
                 auto rowCount = 0;
-                for (auto& row: stmt.GetVariantRowCursor())
+                for (auto& row: Lightweight::SqlVariantRowCursor(std::move(cursor)))
                 {
                     ++rowCount;
                     CAPTURE(rowCount);

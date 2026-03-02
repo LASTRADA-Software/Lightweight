@@ -106,7 +106,7 @@ TEST_CASE("SqlBackup: Composite Foreign Keys", "[SqlBackup][ForeignKeys]")
             WARN("DEBUG: Creating Parents table...");
             // MSSQL supports TEXT but VARCHAR(MAX) is preferred. Using TEXT for compatibility with existing code if
             // possible. But let's stick to standard types.
-            stmt.ExecuteDirect("CREATE TABLE Parents ("
+            (void) stmt.ExecuteDirect("CREATE TABLE Parents ("
                                "  p1 INT,"
                                "  p2 INT,"
                                "  info VARCHAR(100),"
@@ -114,7 +114,7 @@ TEST_CASE("SqlBackup: Composite Foreign Keys", "[SqlBackup][ForeignKeys]")
                                ")");
 
             WARN("DEBUG: Creating Children table...");
-            stmt.ExecuteDirect("CREATE TABLE Children ("
+            (void) stmt.ExecuteDirect("CREATE TABLE Children ("
                                "  c1 INT PRIMARY KEY,"
                                "  p1 INT,"
                                "  p2 INT,"
@@ -123,10 +123,10 @@ TEST_CASE("SqlBackup: Composite Foreign Keys", "[SqlBackup][ForeignKeys]")
                                ")");
 
             WARN("DEBUG: Inserting data...");
-            stmt.ExecuteDirect("INSERT INTO Parents (p1, p2, info) VALUES (1, 1, 'Mom')");
-            stmt.ExecuteDirect("INSERT INTO Parents (p1, p2, info) VALUES (1, 2, 'Dad')");
-            stmt.ExecuteDirect("INSERT INTO Children (c1, p1, p2, extra) VALUES (100, 1, 1, 'Child1')");
-            stmt.ExecuteDirect("INSERT INTO Children (c1, p1, p2, extra) VALUES (101, 1, 2, 'Child2')");
+            (void) stmt.ExecuteDirect("INSERT INTO Parents (p1, p2, info) VALUES (1, 1, 'Mom')");
+            (void) stmt.ExecuteDirect("INSERT INTO Parents (p1, p2, info) VALUES (1, 2, 'Dad')");
+            (void) stmt.ExecuteDirect("INSERT INTO Children (c1, p1, p2, extra) VALUES (100, 1, 1, 'Child1')");
+            (void) stmt.ExecuteDirect("INSERT INTO Children (c1, p1, p2, extra) VALUES (101, 1, 2, 'Child2')");
         }
         catch (std::exception const& e)
         {

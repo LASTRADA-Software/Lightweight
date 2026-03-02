@@ -67,9 +67,9 @@ TEST_CASE("SqlBackup: Composite Primary Key Order", "[SqlBackup][MultiPk]")
         SqlConnection conn;
         conn.Connect(SqlConnection::DefaultConnectionString());
         SqlStatement stmt { conn };
-        stmt.ExecuteDirect("DROP TABLE IF EXISTS multipk");
-        stmt.ExecuteDirect("CREATE TABLE multipk (a INTEGER, b INTEGER, content VARCHAR(100), PRIMARY KEY (b, a))");
-        stmt.ExecuteDirect("INSERT INTO multipk (a, b, content) VALUES (1, 2, 'row1')");
+        (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS multipk");
+        (void) stmt.ExecuteDirect("CREATE TABLE multipk (a INTEGER, b INTEGER, content VARCHAR(100), PRIMARY KEY (b, a))");
+        (void) stmt.ExecuteDirect("INSERT INTO multipk (a, b, content) VALUES (1, 2, 'row1')");
     }
 
     // 2. Backup
@@ -82,7 +82,7 @@ TEST_CASE("SqlBackup: Composite Primary Key Order", "[SqlBackup][MultiPk]")
     {
         SqlConnection conn;
         conn.Connect(SqlConnection::DefaultConnectionString());
-        SqlStatement { conn }.ExecuteDirect("DROP TABLE multipk");
+        (void) SqlStatement { conn }.ExecuteDirect("DROP TABLE multipk");
 
         SilentProgressManager pm;
         SqlBackup::Restore(BackupFile, SqlConnection::DefaultConnectionString(), 1, pm);
@@ -98,22 +98,22 @@ TEST_CASE("SqlBackup: Composite Primary Key Order", "[SqlBackup][MultiPk]")
 
         if (conn.ServerType() == SqlServerType::MICROSOFT_SQL)
         {
-            stmt.ExecuteDirect(R"(
+            auto cursor = stmt.ExecuteDirect(R"(
                 SELECT COLUMN_NAME
                 FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
                 WHERE OBJECTPROPERTY(OBJECT_ID(CONSTRAINT_SCHEMA + '.' + CONSTRAINT_NAME), 'IsPrimaryKey') = 1
                   AND TABLE_NAME = 'multipk'
                 ORDER BY ORDINAL_POSITION
             )");
-            while (stmt.FetchRow())
+            while (cursor.FetchRow())
             {
-                pkColumns.push_back(stmt.GetColumn<std::string>(1));
+                pkColumns.push_back(cursor.GetColumn<std::string>(1));
             }
         }
         else if (conn.ServerType() == SqlServerType::POSTGRESQL)
         {
             // PostgreSQL: Query primary key columns from information_schema
-            stmt.ExecuteDirect(R"(
+            auto cursor = stmt.ExecuteDirect(R"(
                 SELECT kcu.column_name
                 FROM information_schema.table_constraints tc
                 JOIN information_schema.key_column_usage kcu
@@ -123,21 +123,21 @@ TEST_CASE("SqlBackup: Composite Primary Key Order", "[SqlBackup][MultiPk]")
                     AND tc.table_name = 'multipk'
                 ORDER BY kcu.ordinal_position
             )");
-            while (stmt.FetchRow())
+            while (cursor.FetchRow())
             {
-                pkColumns.push_back(stmt.GetColumn<std::string>(1));
+                pkColumns.push_back(cursor.GetColumn<std::string>(1));
             }
         }
         else
         {
             // SQLite
             // PRAGMA table_info returns columns.
-            stmt.ExecuteDirect("PRAGMA table_info(multipk)");
+            auto cursor = stmt.ExecuteDirect("PRAGMA table_info(multipk)");
             std::vector<std::pair<int, std::string>> explicitPks;
-            while (stmt.FetchRow())
+            while (cursor.FetchRow())
             {
-                auto name = stmt.GetColumn<std::string>(2);
-                auto pk = stmt.GetColumn<int>(6);
+                auto name = cursor.GetColumn<std::string>(2);
+                auto pk = cursor.GetColumn<int>(6);
                 if (pk > 0)
                 {
                     explicitPks.emplace_back(pk, name);

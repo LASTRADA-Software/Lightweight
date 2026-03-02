@@ -89,12 +89,12 @@ void RunSqlQueryBuilder(QueryBuilderCheck const& info,
     {
         auto sqlPrepareStatements = info.prepare(conn.Migration()).ToSql();
         for (auto const& sql: sqlPrepareStatements)
-            stmt.ExecuteDirect(sql);
+            (void) stmt.ExecuteDirect(sql);
     }
 
     auto sqlTestStatements = info.test(conn.Migration()).ToSql();
     for (auto const& sql: sqlTestStatements)
-        stmt.ExecuteDirect(sql);
+        (void) stmt.ExecuteDirect(sql);
 
     if (info.post)
     {
@@ -859,10 +859,10 @@ TEST_CASE_METHOD(SqlTestFixture, "Use SqlQueryBuilder for SqlStatement.ExecuteDi
     CreateEmployeesTable(stmt);
     FillEmployeesTable(stmt);
 
-    stmt.ExecuteDirect(stmt.Connection().Query("Employees").Select().Fields("FirstName", "LastName").All());
+    auto cursor = stmt.ExecuteDirect(stmt.Connection().Query("Employees").Select().Fields("FirstName", "LastName").All());
 
-    REQUIRE(stmt.FetchRow());
-    CHECK(stmt.GetColumn<std::string>(1) == "Alice");
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>(1) == "Alice");
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Use SqlQueryBuilder for SqlStatement.Prepare", "[SqlQueryBuilder]")
@@ -882,13 +882,13 @@ TEST_CASE_METHOD(SqlTestFixture, "Use SqlQueryBuilder for SqlStatement.Prepare",
     CHECK(std::get<int>(inputBindings[1].value) == 50'000);
 
     stmt.Prepare(sqlQuery);
-    stmt.ExecuteWithVariants(inputBindings);
+    (void) stmt.ExecuteWithVariants(inputBindings);
 
-    stmt.ExecuteDirect(R"(SELECT "FirstName", "LastName", "Salary" FROM "Employees" WHERE "Salary" = 55000)");
-    REQUIRE(stmt.FetchRow());
-    CHECK(stmt.GetColumn<std::string>(1) == "Alice");
-    CHECK(stmt.GetColumn<std::string>(2) == "Smith");
-    CHECK(stmt.GetColumn<int>(3) == 55'000);
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "FirstName", "LastName", "Salary" FROM "Employees" WHERE "Salary" = 55000)");
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>(1) == "Alice");
+    CHECK(cursor.GetColumn<std::string>(2) == "Smith");
+    CHECK(cursor.GetColumn<int>(3) == 55'000);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Use SqlQueryBuilder for SqlStatement.Prepare: iterative", "[SqlQueryBuilder]")
@@ -916,7 +916,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Use SqlQueryBuilder for SqlStatement.Prepare: 
             inputBindings.emplace_back(std::string(1, c) + std::to_string(i));
 
         // Execute the query with the prepared data
-        stmt.ExecuteWithVariants(inputBindings);
+        (void) stmt.ExecuteWithVariants(inputBindings);
     }
 }
 
@@ -924,8 +924,8 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: sub select with Where", "[Sql
 {
     auto stmt = SqlStatement {};
 
-    stmt.ExecuteDirect(R"SQL(DROP TABLE IF EXISTS "Test")SQL");
-    stmt.ExecuteDirect(R"SQL(
+    (void) stmt.ExecuteDirect(R"SQL(DROP TABLE IF EXISTS "Test")SQL");
+    (void) stmt.ExecuteDirect(R"SQL(
         CREATE TABLE "Test" (
             "name" VARCHAR(20) NULL,
             "secret" INT NULL
@@ -935,7 +935,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: sub select with Where", "[Sql
     stmt.Prepare(R"SQL(INSERT INTO "Test" ("name", "secret") VALUES (?, ?))SQL");
     auto const names = std::vector<SqlFixedString<20>> { "Alice", "Bob", "Charlie", "David" };
     auto const secrets = std::vector<int> { 42, 43, 44, 45 };
-    stmt.ExecuteBatchSoft(names, secrets);
+    (void) stmt.ExecuteBatchSoft(names, secrets);
 
     auto const totalRecords = stmt.ExecuteDirectScalar<int>(R"SQL(SELECT COUNT(*) FROM "Test")SQL");
     REQUIRE(totalRecords.value_or(0) == 4);
@@ -953,21 +953,21 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: sub select with Where", "[Sql
                                  .All();
     // clang-format on
     stmt.Prepare(selectQuery);
-    stmt.Execute();
+    auto cursor = stmt.Execute();
 
-    REQUIRE(stmt.FetchRow());
-    CHECK(stmt.GetColumn<std::string>(1) == "Alice");
-    CHECK(stmt.GetColumn<int>(2) == 42);
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>(1) == "Alice");
+    CHECK(cursor.GetColumn<int>(2) == 42);
 
-    REQUIRE(!stmt.FetchRow());
+    REQUIRE(!cursor.FetchRow());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: sub select with WhereIn", "[SqlQueryBuilder]")
 {
     auto stmt = SqlStatement {};
 
-    stmt.ExecuteDirect(R"SQL(DROP TABLE IF EXISTS "Test")SQL");
-    stmt.ExecuteDirect(R"SQL(
+    (void) stmt.ExecuteDirect(R"SQL(DROP TABLE IF EXISTS "Test")SQL");
+    (void) stmt.ExecuteDirect(R"SQL(
         CREATE TABLE "Test" (
             "name" VARCHAR(20) NULL,
             "secret" INT NULL
@@ -977,7 +977,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: sub select with WhereIn", "[S
     stmt.Prepare(R"SQL(INSERT INTO "Test" ("name", "secret") VALUES (?, ?))SQL");
     auto const names = std::vector<SqlFixedString<20>> { "Alice", "Bob", "Charlie", "David" };
     auto const secrets = std::vector<int> { 42, 43, 44, 45 };
-    stmt.ExecuteBatchSoft(names, secrets);
+    (void) stmt.ExecuteBatchSoft(names, secrets);
 
     auto const totalRecords = stmt.ExecuteDirectScalar<int>("SELECT COUNT(*) FROM \"Test\"");
     REQUIRE(totalRecords.value_or(0) == 4);
@@ -995,17 +995,17 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: sub select with WhereIn", "[S
                                  .All();
     // clang-format on
     stmt.Prepare(selectQuery);
-    stmt.Execute();
+    auto cursor = stmt.Execute();
 
-    REQUIRE(stmt.FetchRow());
-    CHECK(stmt.GetColumn<std::string>(1) == "Alice");
-    CHECK(stmt.GetColumn<int>(2) == 42);
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>(1) == "Alice");
+    CHECK(cursor.GetColumn<int>(2) == 42);
 
-    REQUIRE(stmt.FetchRow());
-    CHECK(stmt.GetColumn<std::string>(1) == "Bob");
-    CHECK(stmt.GetColumn<int>(2) == 43);
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>(1) == "Bob");
+    CHECK(cursor.GetColumn<int>(2) == 43);
 
-    REQUIRE(!stmt.FetchRow());
+    REQUIRE(!cursor.FetchRow());
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "DropTable", "[SqlQueryBuilder][Migration]")

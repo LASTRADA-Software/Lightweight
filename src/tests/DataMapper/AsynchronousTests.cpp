@@ -30,7 +30,7 @@ using namespace std::string_view_literals;
 using namespace std::string_literals;
 using namespace Lightweight;
 
-TEST_CASE("Fetch from Local data mapper", "[DataMapper],[Executors]")
+TEST_CASE_METHOD(SqlTestFixture, "Fetch from Local data mapper", "[DataMapper],[Executors]")
 {
     auto pool = exec::static_thread_pool(3);
 

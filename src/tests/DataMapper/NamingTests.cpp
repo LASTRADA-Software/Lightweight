@@ -114,8 +114,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Check aliasing of the columns and table for cr
     record1.name = "43";
     dm.Update(record1);
 
-    SqlStatement(dm.Connection())
-        .ExecuteDirect(R"( INSERT INTO "Human" ("index", "not_name") VALUES (5, 'Direct Insert') )");
+    (void) SqlStatement(dm.Connection())
+               .ExecuteDirect(R"( INSERT INTO "Human" ("index", "not_name") VALUES (5, 'Direct Insert') )");
     CHECK(dm.Query<Models::Person>().Count() == 2);
     {
         auto queriedRecordResult = dm.QuerySingle<Models::Person>(record1.id);

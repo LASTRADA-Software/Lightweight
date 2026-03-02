@@ -618,14 +618,14 @@ TEST_CASE_METHOD(SqlTestFixture, "Query builder", "[DataMapper]")
 
     if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
     {
-        stmt.ExecuteDirect(R"SQL(
+        (void) stmt.ExecuteDirect(R"SQL(
         CREATE TABLE "That" (
             "a" INT,
             "b" INT,
             "c" INT
         ))SQL");
 
-        stmt.ExecuteDirect(R"SQL(INSERT INTO "That" ("a", "b", "c") VALUES (1, 2, 3))SQL");
+        (void) stmt.ExecuteDirect(R"SQL(INSERT INTO "That" ("a", "b", "c") VALUES (1, 2, 3))SQL");
 
         auto const result = dm.Query<QueryResult>(query);
         REQUIRE(result.size() == 1);

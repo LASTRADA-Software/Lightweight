@@ -225,7 +225,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Revert Migration", "[SqlMigration]")
         auto conn = SqlConnection {};
         auto stmt = SqlStatement { conn };
         // Should not throw
-        stmt.ExecuteDirect("SELECT count(*) FROM reversible_table");
+        (void) stmt.ExecuteDirect("SELECT count(*) FROM reversible_table");
     }
 
     // Revert
@@ -241,7 +241,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Revert Migration", "[SqlMigration]")
         auto stmt = SqlStatement { conn };
         auto const _ = ScopedSqlNullLogger {};
         // Should throw because table does not exist
-        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT count(*) FROM reversible_table"), SqlException);
+        CHECK_THROWS_AS((void) stmt.ExecuteDirect("SELECT count(*) FROM reversible_table"), SqlException);
     }
 }
 
@@ -275,7 +275,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Transaction Rollback", "[SqlMigration
         auto stmt = SqlStatement { conn };
         auto const _ = ScopedSqlNullLogger {};
         // Should throw because table should have been rolled back
-        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT count(*) FROM should_not_exist"), SqlException);
+        CHECK_THROWS_AS((void) stmt.ExecuteDirect("SELECT count(*) FROM should_not_exist"), SqlException);
     }
 }
 
@@ -301,9 +301,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Raw SQL Migration", "[SqlMigration]")
         auto conn = SqlConnection {};
         auto stmt = SqlStatement { conn };
         // Verify using QueryBuilder to ensure portability
-        stmt.ExecuteDirect("SELECT id FROM raw_sql_test WHERE id = 42");
-        CHECK(stmt.FetchRow());
-        CHECK(stmt.GetColumn<int>(1) == 42);
+        auto cursor = stmt.ExecuteDirect("SELECT id FROM raw_sql_test WHERE id = 42");
+        CHECK(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == 42);
     }
 
     // Revert
@@ -315,7 +315,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Raw SQL Migration", "[SqlMigration]")
         auto stmt = SqlStatement { conn };
         {
             auto const _ = ScopedSqlNullLogger {}; // suppress the error message, we are testing for it
-            CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM raw_sql_test"), SqlException);
+            CHECK_THROWS_AS((void) stmt.ExecuteDirect("SELECT * FROM raw_sql_test"), SqlException);
         }
     }
 }
@@ -355,7 +355,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Dry Run Migration", "[SqlMigration]")
         auto conn = SqlConnection {};
         auto stmt = SqlStatement { conn };
         auto const _ = ScopedSqlNullLogger {};
-        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM dry_run_test"), SqlException);
+        CHECK_THROWS_AS((void) stmt.ExecuteDirect("SELECT * FROM dry_run_test"), SqlException);
     }
 }
 
@@ -393,7 +393,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Checksum Stored on Migration", "[SqlM
         auto const _ = ScopedSqlNullLogger {};
         try
         {
-            stmt.ExecuteDirect("DROP TABLE schema_migrations");
+            (void) stmt.ExecuteDirect("DROP TABLE schema_migrations");
         }
         // NOLINTNEXTLINE(bugprone-empty-catch) - Table may not exist, intentionally ignoring
         catch (SqlException const&)
@@ -490,7 +490,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "MarkMigrationAsApplied", "[SqlMigrati
         auto conn = SqlConnection {};
         auto stmt = SqlStatement { conn };
         auto const _ = ScopedSqlNullLogger {};
-        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM mark_applied_test"), SqlException);
+        CHECK_THROWS_AS((void) stmt.ExecuteDirect("SELECT * FROM mark_applied_test"), SqlException);
     }
 }
 
@@ -560,15 +560,15 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "RevertToMigration", "[SqlMigration]")
         auto conn = SqlConnection {};
         auto stmt = SqlStatement { conn };
         auto const _ = ScopedSqlNullLogger {};
-        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM revert_to_2"), SqlException);
-        CHECK_THROWS_AS(stmt.ExecuteDirect("SELECT * FROM revert_to_3"), SqlException);
+        CHECK_THROWS_AS((void) stmt.ExecuteDirect("SELECT * FROM revert_to_2"), SqlException);
+        CHECK_THROWS_AS((void) stmt.ExecuteDirect("SELECT * FROM revert_to_3"), SqlException);
     }
 
     // Table 1 should still exist
     {
         auto conn = SqlConnection {};
         auto stmt = SqlStatement { conn };
-        stmt.ExecuteDirect("SELECT * FROM revert_to_1");
+        (void) stmt.ExecuteDirect("SELECT * FROM revert_to_1");
     }
 }
 
@@ -652,7 +652,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "CreateTableIfNotExists", "[SqlMigrati
     {
         auto conn = SqlConnection {};
         auto stmt = SqlStatement { conn };
-        stmt.ExecuteDirect("SELECT * FROM idempotent_table");
+        (void) stmt.ExecuteDirect("SELECT * FROM idempotent_table");
     }
 }
 

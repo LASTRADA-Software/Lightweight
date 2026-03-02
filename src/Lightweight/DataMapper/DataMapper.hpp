@@ -435,16 +435,10 @@ class DataMapper
     void SetId(Record& record, ValueType&& id);
 
     template <typename Record, size_t InitialOffset = 1>
-    Record& BindOutputColumns(Record& record);
-
-    template <typename Record, size_t InitialOffset = 1>
-    Record& BindOutputColumns(Record& record, SqlStatement* stmt);
+    Record& BindOutputColumns(Record& record, SqlResultCursor& cursor);
 
     template <typename ElementMask, typename Record, size_t InitialOffset = 1>
-    Record& BindOutputColumns(Record& record);
-
-    template <typename ElementMask, typename Record, size_t InitialOffset = 1>
-    Record& BindOutputColumns(Record& record, SqlStatement* stmt);
+    Record& BindOutputColumns(Record& record, SqlResultCursor& cursor);
 
     template <typename FieldType>
     std::optional<typename FieldType::ReferencedRecord> LoadBelongsTo(FieldType::ValueType value);
@@ -692,8 +686,7 @@ size_t SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Count()
                                         this->_query.searchCondition.tableAlias,
                                         this->_query.searchCondition.tableJoins,
                                         this->_query.searchCondition.condition));
-    stmt.ExecuteWithVariants(_boundInputs);
-    auto reader = stmt.GetResultCursor();
+    auto reader = stmt.ExecuteWithVariants(_boundInputs);
     if (reader.FetchRow())
         return reader.GetColumn<size_t>(1);
     return 0;
@@ -714,8 +707,7 @@ bool SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Exist()
                                               1);
 
     stmt.Prepare(query);
-    stmt.ExecuteWithVariants(_boundInputs);
-    if (SqlResultCursor reader = stmt.GetResultCursor(); reader.FetchRow())
+    if (auto reader = stmt.ExecuteWithVariants(_boundInputs); reader.FetchRow())
         return true;
     return false;
 }
@@ -732,8 +724,7 @@ void SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Delete()
 
     stmt.Prepare(query);
     stmt.Prepare(query);
-    stmt.ExecuteWithVariants(_boundInputs);
-    stmt.CloseCursor();
+    [[maybe_unused]] auto cursor = stmt.ExecuteWithVariants(_boundInputs);
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
@@ -750,8 +741,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
                                       this->_query.searchCondition.condition,
                                       this->_query.orderBy,
                                       this->_query.groupBy));
-    stmt.ExecuteWithVariants(_boundInputs);
-    Derived::ReadResults(stmt.Connection().ServerType(), stmt.GetResultCursor(), &records);
+    Derived::ReadResults(stmt.Connection().ServerType(), stmt.ExecuteWithVariants(_boundInputs), &records);
     if constexpr (DataMapperRecord<Record>)
     {
         // This can be called when record type is not plain aggregate type
@@ -789,8 +779,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All() -> std:
                                       this->_query.searchCondition.condition,
                                       this->_query.orderBy,
                                       this->_query.groupBy));
-    stmt.ExecuteWithVariants(_boundInputs);
-    SqlResultCursor reader = stmt.GetResultCursor();
+    auto reader = stmt.ExecuteWithVariants(_boundInputs);
     auto const outputColumnsBound = detail::CanSafelyBindOutputColumn<value_type>(stmt.Connection().ServerType());
     while (true)
     {
@@ -827,10 +816,9 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All() -> std:
                                       this->_query.searchCondition.condition,
                                       this->_query.orderBy,
                                       this->_query.groupBy));
-    stmt.ExecuteWithVariants(_boundInputs);
 
+    auto reader = stmt.ExecuteWithVariants(_boundInputs);
     auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ServerType());
-    SqlResultCursor reader = stmt.GetResultCursor();
     while (true)
     {
         auto& record = records.emplace_back();
@@ -868,8 +856,7 @@ std::optional<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOption
                                         this->_query.searchCondition.condition,
                                         this->_query.orderBy,
                                         1));
-    stmt.ExecuteWithVariants(_boundInputs);
-    Derived::ReadResult(stmt.Connection().ServerType(), stmt.GetResultCursor(), &record);
+    Derived::ReadResult(stmt.Connection().ServerType(), stmt.ExecuteWithVariants(_boundInputs), &record);
     if constexpr (QueryOptions.loadRelations)
     {
         if (record)
@@ -897,8 +884,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First() -> st
                                         this->_query.searchCondition.condition,
                                         this->_query.orderBy,
                                         count));
-    stmt.ExecuteWithVariants(_boundInputs);
-    if (SqlResultCursor reader = stmt.GetResultCursor(); reader.FetchRow())
+    if (auto reader = stmt.ExecuteWithVariants(_boundInputs); reader.FetchRow())
         return reader.template GetColumn<ReferencedFieldTypeOf<Field>>(1);
     return std::nullopt;
 }
@@ -919,10 +905,9 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First() -> st
                                         this->_query.searchCondition.condition,
                                         this->_query.orderBy,
                                         1));
-    stmt.ExecuteWithVariants(_boundInputs);
 
     auto& record = optionalRecord.emplace();
-    SqlResultCursor reader = stmt.GetResultCursor();
+    auto reader = stmt.ExecuteWithVariants(_boundInputs);
     auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ServerType());
     if (outputColumnsBound)
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
@@ -958,8 +943,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
                                         this->_query.searchCondition.condition,
                                         this->_query.orderBy,
                                         n));
-    stmt.ExecuteWithVariants(_boundInputs);
-    Derived::ReadResults(stmt.Connection().ServerType(), stmt.GetResultCursor(), &records);
+    Derived::ReadResults(stmt.Connection().ServerType(), stmt.ExecuteWithVariants(_boundInputs), &records);
 
     if constexpr (QueryOptions.loadRelations)
     {
@@ -988,8 +972,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
                                this->_query.groupBy,
                                offset,
                                limit));
-    stmt.ExecuteWithVariants(_boundInputs);
-    Derived::ReadResults(stmt.Connection().ServerType(), stmt.GetResultCursor(), &records);
+    Derived::ReadResults(stmt.Connection().ServerType(), stmt.ExecuteWithVariants(_boundInputs), &records);
     if constexpr (QueryOptions.loadRelations)
     {
         for (auto& record: records)
@@ -1018,10 +1001,9 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
                                this->_query.groupBy,
                                offset,
                                limit));
-    stmt.ExecuteWithVariants(_boundInputs);
 
+    auto reader = stmt.ExecuteWithVariants(_boundInputs);
     auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ServerType());
-    SqlResultCursor reader = stmt.GetResultCursor();
     while (true)
     {
         auto& record = records.emplace_back();
@@ -1067,10 +1049,9 @@ template <auto... ReferencedFields>
                                         this->_query.searchCondition.condition,
                                         this->_query.orderBy,
                                         n));
-    stmt.ExecuteWithVariants(_boundInputs);
 
+    auto reader = stmt.ExecuteWithVariants(_boundInputs);
     auto const outputColumnsBound = detail::CanSafelyBindOutputColumns<Record>(stmt.Connection().ServerType());
-    SqlResultCursor reader = stmt.GetResultCursor();
     while (true)
     {
         auto& record = records.emplace_back();
@@ -1230,8 +1211,8 @@ void DataMapper::CreateTable()
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
     auto const sqlQueryStrings = CreateTableString<Record>(_connection.ServerType());
-    for (auto const& sqlQueryString: sqlQueryStrings)
-        _stmt.ExecuteDirect(sqlQueryString);
+    for (auto const& sqlQueryString: sqlQueryStrings) [[maybe_unused]]
+        auto cursor = _stmt.ExecuteDirect(sqlQueryString);
 }
 
 template <typename FirstRecord, typename... MoreRecords>
@@ -1327,7 +1308,7 @@ RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
                                   }
                               });
 #endif
-    _stmt.Execute();
+    [[maybe_unused]] auto cursor = _stmt.Execute();
 
     if constexpr (HasAutoIncrementPrimaryKey<Record>)
         return { _stmt.LastInsertId(RecordTableName<Record>) };
@@ -1482,7 +1463,7 @@ void DataMapper::Update(Record& record)
     });
 #endif
 
-    _stmt.Execute();
+    [[maybe_unused]] auto cursor = _stmt.Execute();
 
     SetModifiedState<ModifiedState::NotModified>(record);
 }
@@ -1530,9 +1511,9 @@ std::size_t DataMapper::Delete(Record const& record)
         });
 #endif
 
-    _stmt.Execute();
+    auto cursor = _stmt.Execute();
 
-    return _stmt.NumRowsAffected();
+    return cursor.NumRowsAffected();
 }
 
 template <typename Record, typename... PrimaryKeyTypes>
@@ -1553,10 +1534,9 @@ std::optional<Record> DataMapper::QuerySingleWithoutRelationAutoLoading(PrimaryK
     });
 
     _stmt.Prepare(queryBuilder.First());
-    _stmt.Execute(std::forward<PrimaryKeyTypes>(primaryKeys)...);
+    auto reader = _stmt.Execute(std::forward<PrimaryKeyTypes>(primaryKeys)...);
 
     auto resultRecord = std::optional<Record> { Record {} };
-    auto reader = _stmt.GetResultCursor();
     if (!detail::ReadSingleResult(_stmt.Connection().ServerType(), reader, *resultRecord))
         return std::nullopt;
 
@@ -1587,10 +1567,9 @@ std::optional<Record> DataMapper::QuerySingle(SqlSelectQueryBuilder selectQuery,
             selectQuery.Field(SqlQualifiedTableColumnName { RecordTableName<Record>, FieldNameAt<I, Record> });
     });
     _stmt.Prepare(selectQuery.First().ToSql());
-    _stmt.Execute(std::forward<Args>(args)...);
+    auto reader = _stmt.Execute(std::forward<Args>(args)...);
 
     auto resultRecord = std::optional<Record> { Record {} };
-    auto reader = _stmt.GetResultCursor();
     if (!detail::ReadSingleResult(_stmt.Connection().ServerType(), reader, *resultRecord))
         return std::nullopt;
 
@@ -1619,14 +1598,14 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
     if constexpr (std::same_as<Record, SqlVariantRow>)
     {
         _stmt.Prepare(sqlQueryString);
-        _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
-        size_t const numResultColumns = _stmt.NumColumnsAffected();
-        while (_stmt.FetchRow())
+        SqlResultCursor cursor = _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
+        size_t const numResultColumns = cursor.NumColumnsAffected();
+        while (cursor.FetchRow())
         {
             auto& record = result.emplace_back();
             record.reserve(numResultColumns);
             for (auto const i: std::views::iota(1U, numResultColumns + 1))
-                record.emplace_back(_stmt.GetColumn<SqlVariant>(static_cast<SQLUSMALLINT>(i)));
+                record.emplace_back(cursor.GetColumn<SqlVariant>(static_cast<SQLUSMALLINT>(i)));
         }
     }
     else
@@ -1636,16 +1615,14 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
         bool const canSafelyBindOutputColumns = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
 
         _stmt.Prepare(sqlQueryString);
-        _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
-
-        auto reader = _stmt.GetResultCursor();
+        auto reader = _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
 
         for (;;)
         {
             auto& record = result.emplace_back();
 
             if (canSafelyBindOutputColumns)
-                BindOutputColumns(record);
+                BindOutputColumns(record, reader);
 
             if (!reader.FetchRow())
                 break;
@@ -1675,8 +1652,7 @@ std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQuery
     auto result = std::vector<value_type> {};
 
     _stmt.Prepare(selectQuery.ToSql());
-    _stmt.Execute();
-    auto reader = _stmt.GetResultCursor();
+    auto reader = _stmt.Execute();
 
     constexpr auto calculateOffset = []<size_t I, typename Tuple>() {
         size_t offset = 1;
@@ -1695,7 +1671,7 @@ std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQuery
             using TupleElement = std::decay_t<std::tuple_element_t<I, value_type>>;
             auto& element = std::get<I>(record);
             constexpr size_t offset = calculateOffset.template operator()<I, value_type>();
-            this->BindOutputColumns<TupleElement, offset>(element);
+            this->BindOutputColumns<TupleElement, offset>(element, reader);
         });
     };
 
@@ -1755,21 +1731,20 @@ std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
     _stmt.Prepare(selectQuery.ToSql());
-    _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
 
     auto records = std::vector<Record> {};
 
     // TODO: We could optimize this further by only considering ElementMask fields in Record.
     bool const canSafelyBindOutputColumns = detail::CanSafelyBindOutputColumns<Record>(_stmt.Connection().ServerType());
 
-    auto reader = _stmt.GetResultCursor();
+    auto reader = _stmt.Execute(std::forward<InputParameters>(inputParameters)...);
 
     for (;;)
     {
         auto& record = records.emplace_back();
 
         if (canSafelyBindOutputColumns)
-            BindOutputColumns<ElementMask>(record);
+            BindOutputColumns<ElementMask>(record, reader);
 
         if (!reader.FetchRow())
             break;
@@ -2240,36 +2215,20 @@ inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::SetId(Record& record, ValueType
 #endif
 }
 
-/// Binds all output columns of the record to the internal statement.
+/// Binds all output columns of the record via the given cursor.
 template <typename Record, size_t InitialOffset>
-inline LIGHTWEIGHT_FORCE_INLINE Record& DataMapper::BindOutputColumns(Record& record)
+inline LIGHTWEIGHT_FORCE_INLINE Record& DataMapper::BindOutputColumns(Record& record, SqlResultCursor& cursor)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-    BindOutputColumns<Record, InitialOffset>(record, &_stmt);
-    return record;
-}
-
-template <typename Record, size_t InitialOffset>
-Record& DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
-{
     return BindOutputColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>, Record, InitialOffset>(
-        record, stmt);
-}
-
-/// Binds output columns selected by ElementMask of the record to the internal statement.
-template <typename ElementMask, typename Record, size_t InitialOffset>
-inline LIGHTWEIGHT_FORCE_INLINE Record& DataMapper::BindOutputColumns(Record& record)
-{
-    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-    return BindOutputColumns<ElementMask, Record, InitialOffset>(record, &_stmt);
+        record, cursor);
 }
 
 template <typename ElementMask, typename Record, size_t InitialOffset>
-Record& DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
+Record& DataMapper::BindOutputColumns(Record& record, SqlResultCursor& cursor)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     static_assert(!std::is_const_v<Record>);
-    assert(stmt != nullptr);
 
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
     auto constexpr ctx = std::meta::access_context::current();
@@ -2280,23 +2239,23 @@ Record& DataMapper::BindOutputColumns(Record& record, SqlStatement* stmt)
         using FieldType = typename[:std::meta::type_of(el):];
         if constexpr (IsField<FieldType>)
         {
-            stmt->BindOutputColumn(i++, &record.[:el:].MutableValue());
+            cursor.BindOutputColumn(i++, &record.[:el:].MutableValue());
         }
         else if constexpr (SqlOutputColumnBinder<FieldType>)
         {
-            stmt->BindOutputColumn(i++, &record.[:el:]);
+            cursor.BindOutputColumn(i++, &record.[:el:]);
         }
     }
 #else
     Reflection::EnumerateMembers<ElementMask>(
-        record, [stmt, i = SQLUSMALLINT { InitialOffset }]<size_t I, typename Field>(Field& field) mutable {
+        record, [&cursor, i = SQLUSMALLINT { InitialOffset }]<size_t I, typename Field>(Field& field) mutable {
             if constexpr (IsField<Field>)
             {
-                stmt->BindOutputColumn(i++, &field.MutableValue());
+                cursor.BindOutputColumn(i++, &field.MutableValue());
             }
             else if constexpr (SqlOutputColumnBinder<Field>)
             {
-                stmt->BindOutputColumn(i++, &field);
+                cursor.BindOutputColumn(i++, &field);
             }
         });
 #endif
@@ -2332,11 +2291,10 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                         DataMapper& dm = DataMapper::AcquireThreadLocal();
                         auto selectQuery = dm.BuildHasManySelectQuery<FieldIndex, ReferencedRecord>();
                         dm._stmt.Prepare(selectQuery.Count());
-                        dm._stmt.Execute(pkValue);
+                        SqlResultCursor cursor = dm._stmt.Execute(pkValue);
                         size_t count = 0;
-                        if (dm._stmt.FetchRow())
-                            count = dm._stmt.GetColumn<size_t>(1);
-                        dm._stmt.CloseCursor();
+                        if (cursor.FetchRow())
+                            count = cursor.GetColumn<size_t>(1);
                         return count;
                     },
                     .all = [pkValue]() -> typename FieldType::ReferencedRecordList {
@@ -2350,16 +2308,16 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                             auto selectQuery = dm.BuildHasManySelectQuery<FieldIndex, ReferencedRecord>();
                             auto stmt = SqlStatement { dm._connection };
                             stmt.Prepare(selectQuery.All());
-                            stmt.Execute(pkValue);
+                            auto cursor = stmt.Execute(pkValue);
 
                             auto referencedRecord = ReferencedRecord {};
-                            dm.BindOutputColumns(referencedRecord, &stmt);
+                            dm.BindOutputColumns(referencedRecord, cursor);
                             dm.ConfigureRelationAutoLoading(referencedRecord);
 
-                            while (stmt.FetchRow())
+                            while (cursor.FetchRow())
                             {
                                 each(referencedRecord);
-                                dm.BindOutputColumns(referencedRecord, &stmt);
+                                dm.BindOutputColumns(referencedRecord, cursor);
                             }
                         },
                 });
@@ -2394,10 +2352,9 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                     dm.CallOnHasManyThroughByPK<ReferencedRecord, ThroughRecord, Record>(
                         pkValue, [&](SqlSelectQueryBuilder& selectQuery, auto const& pk) {
                             dm._stmt.Prepare(selectQuery.Count());
-                            dm._stmt.Execute(pk);
-                            if (dm._stmt.FetchRow())
-                                count = dm._stmt.GetColumn<size_t>(1);
-                            dm._stmt.CloseCursor();
+                            SqlResultCursor cursor = dm._stmt.Execute(pk);
+                            if (cursor.FetchRow())
+                                count = cursor.GetColumn<size_t>(1);
                         });
                     return count;
                 },
@@ -2419,16 +2376,15 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                             pkValue, [&](SqlSelectQueryBuilder& selectQuery, auto const& pk) {
                                 auto stmt = SqlStatement { dm._connection };
                                 stmt.Prepare(selectQuery.All());
-                                stmt.Execute(pk);
-
+                                auto cursor = stmt.Execute(pk);
                                 auto referencedRecord = ReferencedRecord {};
-                                dm.BindOutputColumns(referencedRecord, &stmt);
+                                dm.BindOutputColumns(referencedRecord, cursor);
                                 dm.ConfigureRelationAutoLoading(referencedRecord);
 
-                                while (stmt.FetchRow())
+                                while (cursor.FetchRow())
                                 {
                                     each(referencedRecord);
-                                    dm.BindOutputColumns(referencedRecord, &stmt);
+                                    dm.BindOutputColumns(referencedRecord, cursor);
                                 }
                             });
                     },

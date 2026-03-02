@@ -95,9 +95,9 @@ void SetupTestTable()
     });
 
     stmt.Prepare("INSERT INTO prod_test_table (id, name) VALUES (?, ?)");
-    stmt.Execute(1, "Alice");
-    stmt.Execute(2, "Bob");
-    stmt.Execute(3, "Charlie");
+    (void) stmt.Execute(1, "Alice");
+    (void) stmt.Execute(2, "Bob");
+    (void) stmt.Execute(3, "Charlie");
 }
 
 } // namespace
@@ -235,9 +235,9 @@ TEST_CASE("SqlBackup: Filter tables in restore", "[SqlBackup][ProductionReadines
             migration.CreateTable("orders_table").PrimaryKey("id", Integer {}).Column("amount", Integer {});
         });
 
-        stmt.ExecuteDirect("INSERT INTO users_table (id, name) VALUES (1, 'User1')");
-        stmt.ExecuteDirect("INSERT INTO products_table (id, name) VALUES (1, 'Product1')");
-        stmt.ExecuteDirect("INSERT INTO orders_table (id, amount) VALUES (1, 100)");
+        (void) stmt.ExecuteDirect("INSERT INTO users_table (id, name) VALUES (1, 'User1')");
+        (void) stmt.ExecuteDirect("INSERT INTO products_table (id, name) VALUES (1, 'Product1')");
+        (void) stmt.ExecuteDirect("INSERT INTO orders_table (id, amount) VALUES (1, 100)");
     }
 
     // Backup all tables

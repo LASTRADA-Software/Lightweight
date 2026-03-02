@@ -41,13 +41,12 @@ struct Record { int a; int b; int c; };
 auto conn = SqlConnection {};
 auto stmt = SqlStatement { conn };
 stmt.Prepare("SELECT a, b, c FROM That WHERE a = ? OR b = ?");
-stmt.Execute(42, 43);
+auto cursor = stmt.Execute(42, 43);
 
-SqlResultCursor cursor = stmt.GetResultCursor();
 auto record = Record {};
-cursor.BindOutputColumns<Record>(&record.a, &rcord.b, &record.c);
+cursor.BindOutputColumns(&record.a, &record.b, &record.c);
 while (cursor.FetchRow())
-    std::println("{}|{}|{}", a, b, c);
+    std::println("{}|{}|{}", record.a, record.b, record.c);
 ```
 
 ## SQL Query Builder
