@@ -626,6 +626,21 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FromTableAs", "[SqlQueryBuilde
         QueryExpectations::All(R"(SELECT "O"."foo", "O"."bar" FROM "Other" AS "O")"));
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Fields.QualifiedColumns", "[SqlQueryBuilder]")
+{
+    CheckSqlQueryBuilder(
+        [](SqlQueryBuilder& q) {
+            return q.FromTable("That")
+                .Select()
+                .Fields(std::vector<SqlQualifiedTableColumnName> {
+                    { .tableName = "That", .columnName = "foo" },
+                    { .tableName = "That", .columnName = "bar" },
+                })
+                .All();
+        },
+        QueryExpectations::All(R"(SELECT "That"."foo", "That"."bar" FROM "That")"));
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.FromSchemaTable.Select", "[SqlQueryBuilder]")
 {
     // Test SELECT with schema-qualified table name
