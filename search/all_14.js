@@ -19,6 +19,6 @@ var searchData=
   ['nullable_16',['nullable',['../dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#a782c413681d6e9b9918c5d4643ccba09',1,'Lightweight::SqlAlterTableCommands::AddColumnIfNotExists::nullable'],['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10',1,'Lightweight::SqlRawColumnMetadata::nullable']]],
   ['nullindicators_17',['nullIndicators',['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#a074a838190de09219aa9b08ae5a931db',1,'Lightweight::SqlBackup::ColumnBatch']]],
   ['nulllogger_18',['NullLogger',['../db/dfd/classLightweight_1_1SqlLogger.html#a2bf0dba43c73124eba0f6b0a01ce82b5',1,'Lightweight::SqlLogger']]],
-  ['numcolumnsaffected_19',['numcolumnsaffected',['../db/dad/classLightweight_1_1SqlStatement.html#a5072cda5b6433463ec8850296c906d9b',1,'Lightweight::SqlStatement::NumColumnsAffected()'],['../d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c',1,'Lightweight::SqlResultCursor::NumColumnsAffected()']]],
-  ['numrowsaffected_20',['numrowsaffected',['../db/dad/classLightweight_1_1SqlStatement.html#abd020b58bdd8c2ba1ed07f00eb838046',1,'Lightweight::SqlStatement::NumRowsAffected()'],['../d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586',1,'Lightweight::SqlResultCursor::NumRowsAffected()']]]
+  ['numcolumnsaffected_19',['NumColumnsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c',1,'Lightweight::SqlResultCursor']]],
+  ['numrowsaffected_20',['NumRowsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586',1,'Lightweight::SqlResultCursor']]]
 ];

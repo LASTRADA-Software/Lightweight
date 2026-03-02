@@ -10,5 +10,5 @@ var group__Unicode =
     [ "Lightweight::ToUtf32", "d1/d7d/group__Unicode.html#ga7185a14aa1e28912448d3c7dc27afd5b", null ],
     [ "Lightweight::ToStdWideString", "d1/d7d/group__Unicode.html#gae624ec6c44dd0598fba20b67ff1fd6c5", null ],
     [ "Lightweight::ToStdWideString", "d1/d7d/group__Unicode.html#ga2e8d680b779d3c6c66521ca29632f44a", null ],
-    [ "Lightweight::ConvertWindows1252ToUtf8", "d1/d7d/group__Unicode.html#ga1badb7bbd5ce53d6cbfe2e6918f0ec86", null ]
+    [ "Lightweight::ConvertWindows1252ToUtf8", "d1/d7d/group__Unicode.html#gae6ae48e9907829b2807887536ab3b45a", null ]
 ];

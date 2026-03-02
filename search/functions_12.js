@@ -22,7 +22,7 @@ var searchData=
   ['transactionsallowed_19',['TransactionsAllowed',['../da/da8/classLightweight_1_1SqlConnection.html#a59365fb5e67607dea67ec0c46cac83cc',1,'Lightweight::SqlConnection']]],
   ['trycommit_20',['TryCommit',['../d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70',1,'Lightweight::SqlTransaction']]],
   ['trydeclarename_21',['TryDeclareName',['../da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44',1,'Lightweight::UniqueNameBuilder']]],
-  ['tryfetchrow_22',['TryFetchRow',['../db/dad/classLightweight_1_1SqlStatement.html#a7863b8678d7e081cf16bc6274bf3da68',1,'Lightweight::SqlStatement']]],
+  ['tryfetchrow_22',['TryFetchRow',['../d8/d63/classLightweight_1_1SqlResultCursor.html#af36c15db70c2dc5b5cfb3e5e1007867d',1,'Lightweight::SqlResultCursor']]],
   ['trygetbool_23',['TryGetBool',['../df/d3f/structLightweight_1_1SqlVariant.html#ad4df6e7ae555895c331c2675ed9e6ab8',1,'Lightweight::SqlVariant']]],
   ['trygetdate_24',['TryGetDate',['../df/d3f/structLightweight_1_1SqlVariant.html#ac5c1e9628e855853ed821e1d864830fc',1,'Lightweight::SqlVariant']]],
   ['trygetdatetime_25',['TryGetDateTime',['../df/d3f/structLightweight_1_1SqlVariant.html#a118c7ea1064e337ea3a7af5296f3dd4d',1,'Lightweight::SqlVariant']]],
