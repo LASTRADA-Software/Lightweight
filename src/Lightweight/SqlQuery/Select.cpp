@@ -145,6 +145,21 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::initializer_list<std::
     return *this;
 }
 
+
+SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::initializer_list<SqlQualifiedTableColumnName const> fieldNames)
+{
+    for (auto const& fieldName: fieldNames)
+        Field(fieldName);
+    return *this;
+}
+
+SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::span<SqlQualifiedTableColumnName const> fieldNames)
+{
+    for (auto const& fieldName: fieldNames)
+        Field(fieldName);
+    return *this;
+}
+
 SqlSelectQueryBuilder::ComposedQuery SqlSelectQueryBuilder::Count()
 {
     _query.selectType = SelectType::Count;

@@ -8,6 +8,8 @@
 
 #include <reflection-cpp/reflection.hpp>
 
+#include <span>
+
 namespace Lightweight
 {
 
@@ -130,6 +132,12 @@ class [[nodiscard]] SqlSelectQueryBuilder final: public SqlBasicSelectQueryBuild
     /// Adds a sequence of columns from the given table to the SELECT clause.
     LIGHTWEIGHT_API SqlSelectQueryBuilder& Fields(std::initializer_list<std::string_view> const& fieldNames,
                                                   std::string_view tableName);
+
+    /// Adds a sequence of qualified table column names to the SELECT clause.
+    LIGHTWEIGHT_API SqlSelectQueryBuilder& Fields(std::span<SqlQualifiedTableColumnName const> fieldNames);
+
+    /// Adds a sequence of qualified table column names to the SELECT clause.
+    LIGHTWEIGHT_API SqlSelectQueryBuilder& Fields(std::initializer_list<SqlQualifiedTableColumnName const> fieldNames);
 
     /// Adds a sequence of columns from the given tables to the SELECT clause.
     template <typename FirstRecord, typename... MoreRecords>
