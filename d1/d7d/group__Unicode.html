@@ -127,8 +127,8 @@ requires std::same_as&lt;T, char32_t&gt; || (std::same_as&lt;T, wchar_t&gt; &amp
 <tr class="separator:gae624ec6c44dd0598fba20b67ff1fd6c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga2e8d680b779d3c6c66521ca29632f44a" id="r_ga2e8d680b779d3c6c66521ca29632f44a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::wstring&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#ga2e8d680b779d3c6c66521ca29632f44a">Lightweight::ToStdWideString</a> (std::string const &amp;localeInputString)</td></tr>
 <tr class="separator:ga2e8d680b779d3c6c66521ca29632f44a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gae6ae48e9907829b2807887536ab3b45a" id="r_gae6ae48e9907829b2807887536ab3b45a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#gae6ae48e9907829b2807887536ab3b45a">Lightweight::ConvertWindows1252ToUtf8</a> (std::string_view input)</td></tr>
-<tr class="separator:gae6ae48e9907829b2807887536ab3b45a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga1badb7bbd5ce53d6cbfe2e6918f0ec86" id="r_ga1badb7bbd5ce53d6cbfe2e6918f0ec86"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::u8string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#ga1badb7bbd5ce53d6cbfe2e6918f0ec86">Lightweight::ConvertWindows1252ToUtf8</a> (std::string_view input)</td></tr>
+<tr class="separator:ga1badb7bbd5ce53d6cbfe2e6918f0ec86"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Functions for converting between different (Unicode) encodings. </p>
@@ -353,14 +353,14 @@ template&lt;typename T  = std::u32string&gt; </div>
 
 </div>
 </div>
-<a id="gae6ae48e9907829b2807887536ab3b45a" name="gae6ae48e9907829b2807887536ab3b45a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gae6ae48e9907829b2807887536ab3b45a">&#9670;&#160;</a></span>ConvertWindows1252ToUtf8()</h2>
+<a id="ga1badb7bbd5ce53d6cbfe2e6918f0ec86" name="ga1badb7bbd5ce53d6cbfe2e6918f0ec86"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga1badb7bbd5ce53d6cbfe2e6918f0ec86">&#9670;&#160;</a></span>ConvertWindows1252ToUtf8()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_API std::string Lightweight::ConvertWindows1252ToUtf8 </td>
+          <td class="memname">LIGHTWEIGHT_API std::u8string Lightweight::ConvertWindows1252ToUtf8 </td>
           <td>(</td>
           <td class="paramtype">std::string_view&#160;</td>
           <td class="paramname"><em>input</em></td><td>)</td>
