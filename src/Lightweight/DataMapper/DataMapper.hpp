@@ -210,18 +210,8 @@ class DataMapper
     ///
     /// The primary key(s) are used to identify the record to load.
     /// If the record is not found, std::nullopt is returned.
-    template <typename Record, typename... PrimaryKeyTypes>
+    template <typename Record, DataMapperOptions QueryOptions = {}, typename... PrimaryKeyTypes>
     std::optional<Record> QuerySingle(PrimaryKeyTypes&&... primaryKeys);
-
-    /// @brief Queries a single record (based on primary key) from the database without auto-loading relations.
-    ///
-    /// The primary key(s) are used to identify the record to load.
-    ///
-    /// Main goal of this function is to load record without relationships to
-    /// decrease compilation time and work around some limitations of template instantiation
-    /// depth on MSVC compiler.
-    template <typename Record, typename... PrimaryKeyTypes>
-    std::optional<Record> QuerySingleWithoutRelationAutoLoading(PrimaryKeyTypes&&... primaryKeys);
 
     /// Queries multiple records from the database, based on the given query.
     template <typename Record, typename... InputParameters>
@@ -1516,8 +1506,8 @@ std::size_t DataMapper::Delete(Record const& record)
     return cursor.NumRowsAffected();
 }
 
-template <typename Record, typename... PrimaryKeyTypes>
-std::optional<Record> DataMapper::QuerySingleWithoutRelationAutoLoading(PrimaryKeyTypes&&... primaryKeys)
+template <typename Record, DataMapperOptions QueryOptions, typename... PrimaryKeyTypes>
+std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
@@ -1543,18 +1533,13 @@ std::optional<Record> DataMapper::QuerySingleWithoutRelationAutoLoading(PrimaryK
     if (resultRecord)
         SetModifiedState<ModifiedState::NotModified>(resultRecord.value());
 
-    return resultRecord;
-}
-
-template <typename Record, typename... PrimaryKeyTypes>
-std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
-{
-    auto record = QuerySingleWithoutRelationAutoLoading<Record>(std::forward<PrimaryKeyTypes>(primaryKeys)...);
-    if (record)
+    if constexpr (QueryOptions.loadRelations)
     {
-        ConfigureRelationAutoLoading(*record);
+        if (resultRecord)
+            ConfigureRelationAutoLoading(*resultRecord);
     }
-    return record;
+
+    return resultRecord;
 }
 
 template <typename Record, typename... Args>

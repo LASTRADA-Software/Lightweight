@@ -2,6 +2,7 @@
 
 #include "../Utils.hpp"
 #include "Entities.hpp"
+#include "Lightweight/DataMapper/QueryBuilders.hpp"
 
 #include <Lightweight/Lightweight.hpp>
 
@@ -92,7 +93,7 @@ TEST_CASE_METHOD(SqlTestFixture, "BelongsTo do not load", "[DataMapper][relation
     auto email1 = Email { .id = SqlGuid::Create(), .address = "john@doe.com", .user = user };
     dm.Create(email1);
 
-    auto actualEmail1 = dm.QuerySingleWithoutRelationAutoLoading<Email>(email1.id).value();
+    auto actualEmail1 = dm.QuerySingle<Email, DataMapperOptions { .loadRelations = false }>(email1.id).value();
 
     CHECK(actualEmail1.address == email1.address);
 
@@ -168,9 +169,8 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
         auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
         REQUIRE(getUser.emails.Count() == 2);
         auto const returnedIds = std::set<SqlGuid> { getUser.emails.At(0).id.Value(), getUser.emails.At(1).id.Value() };
-        auto const returnedAddresses =
-            std::set<std::string> { std::string(getUser.emails.At(0).address.Value()),
-                                    std::string(getUser.emails.At(1).address.Value()) };
+        auto const returnedAddresses = std::set<std::string> { std::string(getUser.emails.At(0).address.Value()),
+                                                               std::string(getUser.emails.At(1).address.Value()) };
         CHECK(returnedIds == std::set<SqlGuid> { email1.id.Value(), email2.id.Value() });
         CHECK(returnedAddresses == std::set<std::string> { "john@doe.com", "john2@doe.com" });
     }
@@ -180,9 +180,8 @@ TEST_CASE_METHOD(SqlTestFixture, "HasMany", "[DataMapper][relations]")
         auto getUser = dm.QuerySingle<User>(johnDoe.id).value();
         REQUIRE(getUser.emails.Count() == 2);
         auto const returnedIds = std::set<SqlGuid> { getUser.emails[0].id.Value(), getUser.emails[1].id.Value() };
-        auto const returnedAddresses =
-            std::set<std::string> { std::string(getUser.emails[0].address.Value()),
-                                    std::string(getUser.emails[1].address.Value()) };
+        auto const returnedAddresses = std::set<std::string> { std::string(getUser.emails[0].address.Value()),
+                                                               std::string(getUser.emails[1].address.Value()) };
         CHECK(returnedIds == std::set<SqlGuid> { email1.id.Value(), email2.id.Value() });
         CHECK(returnedAddresses == std::set<std::string> { "john@doe.com", "john2@doe.com" });
     }
