@@ -214,7 +214,7 @@ class DataMapper
     std::optional<Record> QuerySingle(PrimaryKeyTypes&&... primaryKeys);
 
     /// Queries multiple records from the database, based on the given query.
-    template <typename Record, typename... InputParameters>
+    template <typename Record, DataMapperOptions QueryOptions = {}, typename... InputParameters>
     std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters);
 
     /// Queries multiple records from the database, based on the given query.
@@ -246,7 +246,7 @@ class DataMapper
     ///     }
     /// }
     /// @endcode
-    template <typename Record, typename... InputParameters>
+    template <typename Record, DataMapperOptions QueryOptions = {}, typename... InputParameters>
     std::vector<Record> Query(std::string_view sqlQueryString, InputParameters&&... inputParameters);
 
     /// Queries records from the database, based on the given query and can be used to retrieve only part of the record
@@ -273,7 +273,7 @@ class DataMapper
     ///    // only info.name and info.city are loaded
     /// }
     /// @endcode
-    template <typename ElementMask, typename Record, typename... InputParameters>
+    template <typename ElementMask, typename Record, DataMapperOptions QueryOptions = {}, typename... InputParameters>
     std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters);
 
     /// Queries records of different types from the database, based on the given query.
@@ -304,27 +304,6 @@ class DataMapper
     template <typename First, typename Second, typename... Rest, DataMapperOptions QueryOptions = {}>
         requires DataMapperRecord<First> && DataMapperRecord<Second> && DataMapperRecords<Rest...>
     std::vector<std::tuple<First, Second, Rest...>> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery);
-
-    /// Queries records of different types from the database, based on the given query.
-    template <typename FirstRecord, typename NextRecord, DataMapperOptions QueryOptions = {}>
-        requires DataMapperRecord<FirstRecord> && DataMapperRecord<NextRecord>
-    SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>, QueryOptions> Query()
-    {
-        std::string fields;
-
-        auto const emplaceRecordsFrom = [&fields]<typename Record>() {
-            Reflection::EnumerateMembers<Record>([&fields]<size_t I, typename Field>() {
-                if (!fields.empty())
-                    fields += ", ";
-                fields += std::format(R"("{}"."{}")", RecordTableName<Record>, FieldNameAt<I, Record>);
-            });
-        };
-
-        emplaceRecordsFrom.template operator()<FirstRecord>();
-        emplaceRecordsFrom.template operator()<NextRecord>();
-
-        return SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>, QueryOptions>(*this, std::move(fields));
-    }
 
     /// Queries records of given Record type.
     ///
@@ -1567,16 +1546,16 @@ std::optional<Record> DataMapper::QuerySingle(SqlSelectQueryBuilder selectQuery,
 // TODO: Provide Query(QueryBuilder, ...) method variant
 
 /// Queries multiple records from the database using a composed query and optional input parameters.
-template <typename Record, typename... InputParameters>
+template <typename Record, DataMapperOptions QueryOptions, typename... InputParameters>
 inline LIGHTWEIGHT_FORCE_INLINE std::vector<Record> DataMapper::Query(
     SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters)
 {
     static_assert(DataMapperRecord<Record> || std::same_as<Record, SqlVariantRow>, "Record must satisfy DataMapperRecord");
 
-    return Query<Record>(selectQuery.ToSql(), std::forward<InputParameters>(inputParameters)...);
+    return Query<Record, QueryOptions>(selectQuery.ToSql(), std::forward<InputParameters>(inputParameters)...);
 }
 
-template <typename Record, typename... InputParameters>
+template <typename Record, DataMapperOptions QueryOptions, typename... InputParameters>
 std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputParameters&&... inputParameters)
 {
     auto result = std::vector<Record> {};
@@ -1622,7 +1601,8 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
         for (auto& record: result)
         {
             SetModifiedState<ModifiedState::NotModified>(record);
-            ConfigureRelationAutoLoading(record);
+            if constexpr (QueryOptions.loadRelations)
+                ConfigureRelationAutoLoading(record);
         }
     }
 
@@ -1709,7 +1689,7 @@ std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQuery
     return result;
 }
 
-template <typename ElementMask, typename Record, typename... InputParameters>
+template <typename ElementMask, typename Record, DataMapperOptions QueryOptions, typename... InputParameters>
 std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
                                       InputParameters&&... inputParameters)
 {
@@ -1744,7 +1724,8 @@ std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const
     for (auto& record: records)
     {
         SetModifiedState<ModifiedState::NotModified>(record);
-        ConfigureRelationAutoLoading(record);
+        if constexpr (QueryOptions.loadRelations)
+            ConfigureRelationAutoLoading(record);
     }
 
     return records;

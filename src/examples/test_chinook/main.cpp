@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include <iterator>
 #include <format>
+#include <iterator>
 #include <optional>
 #include <print>
 #include <ranges>
@@ -11,8 +11,8 @@
 #ifdef LIGHTWEIGHT_BUILD_MODULES
 import Lightweight;
 #else
-#include <Lightweight/Lightweight.hpp>
-#include <Lightweight/SqlLogger.hpp>
+    #include <Lightweight/Lightweight.hpp>
+    #include <Lightweight/SqlLogger.hpp>
 #endif
 
 using std::basic_string_view;
@@ -78,8 +78,8 @@ void Log(format_string<Args...> fmt, Args&&... args)
 template <typename Entity>
 void DumpTable(DataMapper& dm, size_t limit = 1)
 {
-    const auto entries = dm.Query<Entity>().First(limit);
-    for (const auto& entry: entries)
+    auto const entries = dm.Query<Entity>().First(limit);
+    for (auto const& entry: entries)
     {
         Log("{}", DataMapper::Inspect(entry));
     }
@@ -87,7 +87,7 @@ void DumpTable(DataMapper& dm, size_t limit = 1)
 
 int main()
 {
-    if (const auto odbcConnectionString = GetEnvironmentVariable("ODBC_CONNECTION_STRING"); !odbcConnectionString.empty())
+    if (auto const odbcConnectionString = GetEnvironmentVariable("ODBC_CONNECTION_STRING"); !odbcConnectionString.empty())
     {
         SqlConnection::SetDefaultConnectionString(SqlConnectionString { odbcConnectionString });
     }
@@ -101,14 +101,14 @@ int main()
     DataMapper dm;
 
     // helper function to create std::string from string_view<char16_t>
-    const auto toString = [](basic_string_view<char16_t> str) {
-        const auto u8Str = Lightweight::ToUtf8(str);
-        return string(reinterpret_cast<const char*>(u8Str.data()), u8Str.size());
+    auto const toString = [](basic_string_view<char16_t> str) {
+        auto const u8Str = Lightweight::ToUtf8(str);
+        return string(reinterpret_cast<char const*>(u8Str.data()), u8Str.size());
     };
 
     // get all employees
-    const auto employees = dm.Query<Employee>().All();
-    for (const auto& employee: employees)
+    auto const employees = dm.Query<Employee>().All();
+    for (auto const& employee: employees)
     {
         Log("EmployeeId: {}, FirstName: {}, LastName: {}",
             employee.EmployeeId.Value(),
@@ -116,9 +116,9 @@ int main()
             toString(employee.LastName.Value().c_str()));
     }
 
-        // directly iterate over elements
+    // directly iterate over elements
     int numberOfAlbums = 0;
-    for (const auto& album: SqlRowIterator<Album>(dm.Connection()))
+    for (auto const& album: SqlRowIterator<Album>(dm.Connection()))
     {
         Log("{}", toString(album.Title.Value().c_str()));
         ++numberOfAlbums;
@@ -155,14 +155,14 @@ int main()
 
         Log("got {} albums", albums.size());
 
-        auto albumIds = albums | transform([](const auto& album) { return album.AlbumId.Value(); });
+        auto albumIds = albums | transform([](auto const& album) { return album.AlbumId.Value(); });
         // get all tracks from all albums
         auto tracks = dm.Query<Track>().WhereIn(FieldNameOf<&Track::AlbumId>, albumIds).All();
 
         Log("got {} tracks", tracks.size());
 
         // iterate over all tracks and print song names
-        for (const auto& track: tracks)
+        for (auto const& track: tracks)
         {
             Log("TrackId: {}, Name: {}, Bytes: {} , UnitPrice: {}",
                 track.TrackId.Value(),
@@ -181,17 +181,20 @@ int main()
                 toString(track.MediaTypeId->Name.ValueOr(u"").ToStringView()),
                 toString(track.GenreId.Record().transform(Unwrap).value().Name.ValueOr(u"").ToStringView()),
                 toString(track.AlbumId.Record().transform(Unwrap).value().Title.Value().ToStringView()),
-                toString(
-                    track.AlbumId.Record().transform(Unwrap).value().ArtistId->Name.ValueOr(u"").ToStringView()));
+                toString(track.AlbumId.Record().transform(Unwrap).value().ArtistId->Name.ValueOr(u"").ToStringView()));
             // NOLINTEND(bugprone-unchecked-optional-access)
         }
     }
 
     {
         // get pair of customer and employee
-        auto records = dm.Query<Customer, Employee>().InnerJoin<&Employee::EmployeeId, &Customer::SupportRepId>().All();
+        auto records = dm.Query<Customer, Employee>(dm.FromTable(Lightweight::RecordTableName<Customer>)
+                                                        .Select()
+                                                        .Fields<Customer, Employee>()
+                                                        .InnerJoin<&Employee::EmployeeId, &Customer::SupportRepId>()
+                                                        .All());
 
-        for (const auto& [customer, employee]: records)
+        for (auto const& [customer, employee]: records)
         {
             Log("CustomerId: {}, FirstName: {}, LastName: {}",
                 customer.CustomerId.Value(),
@@ -230,4 +233,3 @@ int main()
 
     Log("Found {} employees.", employees.size());
 }
-
