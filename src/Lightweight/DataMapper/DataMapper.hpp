@@ -183,6 +183,9 @@ class DataMapper
     ///
     /// The record is inserted into the database and the primary key is set on this record.
     ///
+    /// @tparam QueryOptions A specialization of DataMapperOptions that controls query behavior.
+    /// @tparam Record       The record type to insert.
+    /// @param record        The record to insert. The primary key field is updated in-place after the insert.
     /// @return The primary key of the newly created record.
     template <DataMapperOptions QueryOptions = {}, typename Record>
     RecordPrimaryKeyType<Record> Create(Record& record);
@@ -191,6 +194,8 @@ class DataMapper
     ///
     /// @note This is a variation of the Create() method and does not update the record's primary key.
     ///
+    /// @tparam Record The record type to insert.
+    /// @param record  The record to insert. Unlike Create(), the primary key field is NOT updated in-place.
     /// @return The primary key of the newly created record.
     template <typename Record>
     RecordPrimaryKeyType<Record> CreateExplicit(Record const& record);
@@ -210,21 +215,37 @@ class DataMapper
     ///
     /// The primary key(s) are used to identify the record to load.
     /// If the record is not found, std::nullopt is returned.
-    template <typename Record, typename... PrimaryKeyTypes>
+    ///
+    /// @tparam Record       The record type to query and materialize.
+    /// @tparam QueryOptions A specialization of DataMapperOptions that controls query behavior,
+    ///                      such as whether related records should be auto-loaded. For example,
+    ///                      set the relation loading option to false to disable auto-loading of
+    ///                      relations when reading a single record.
+    /// @tparam PrimaryKeyTypes The type(s) of the primary key value(s) used to look up the record.
+    /// @param primaryKeys   The primary key value(s) identifying the record to load.
+    /// @return              An initialized Record if found; otherwise std::nullopt.
+    ///
+    /// @code
+    /// // Example: disable auto-loading of relations when querying a single record
+    /// auto result = dataMapper
+    ///     .QuerySingle<MyRecord, DataMapperOptions{ .loadRelations = false }>(primaryKeyValue);
+    /// if (result)
+    /// {
+    ///     // use *result; relations have not been auto-loaded
+    /// }
+    /// @endcode
+    template <typename Record, DataMapperOptions QueryOptions = {}, typename... PrimaryKeyTypes>
     std::optional<Record> QuerySingle(PrimaryKeyTypes&&... primaryKeys);
 
-    /// @brief Queries a single record (based on primary key) from the database without auto-loading relations.
-    ///
-    /// The primary key(s) are used to identify the record to load.
-    ///
-    /// Main goal of this function is to load record without relationships to
-    /// decrease compilation time and work around some limitations of template instantiation
-    /// depth on MSVC compiler.
-    template <typename Record, typename... PrimaryKeyTypes>
-    std::optional<Record> QuerySingleWithoutRelationAutoLoading(PrimaryKeyTypes&&... primaryKeys);
-
     /// Queries multiple records from the database, based on the given query.
-    template <typename Record, typename... InputParameters>
+    ///
+    /// @tparam Record          The record type to query and materialize.
+    /// @tparam QueryOptions    A specialization of DataMapperOptions that controls query behavior.
+    /// @tparam InputParameters The types of the input parameters to bind before executing the query.
+    /// @param selectQuery      The composed SQL select query to execute.
+    /// @param inputParameters  Zero or more values to bind as positional parameters in the query.
+    /// @return A vector of records populated from the query results.
+    template <typename Record, DataMapperOptions QueryOptions = {}, typename... InputParameters>
     std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters);
 
     /// Queries multiple records from the database, based on the given query.
@@ -256,41 +277,61 @@ class DataMapper
     ///     }
     /// }
     /// @endcode
-    template <typename Record, typename... InputParameters>
+    template <typename Record, DataMapperOptions QueryOptions = {}, typename... InputParameters>
     std::vector<Record> Query(std::string_view sqlQueryString, InputParameters&&... inputParameters);
 
     /// Queries records from the database, based on the given query and can be used to retrieve only part of the record
     /// by specifying the ElementMask.
     ///
-    /// example:
+    /// @tparam ElementMask     A SqlElements<Idx...> specialization specifying the zero-based field indices to populate.
+    /// @tparam Record          The record type to query and materialize.
+    /// @tparam QueryOptions    A specialization of DataMapperOptions that controls query behavior.
+    /// @tparam InputParameters The types of the input parameters to bind before executing the query.
+    /// @param selectQuery      The composed SQL select query to execute. Only the columns listed in the SELECT clause
+    ///                         are bound; the remaining fields of Record are left at their default values.
+    /// @param inputParameters  Zero or more values to bind as positional parameters in the query.
+    /// @return A vector of partially populated records; only fields at the specified indices are filled in.
+    ///
     /// @code
     ///
     /// struct Person
     /// {
-    ///    int id;
-    ///    std::string name;
-    ///    std::string email;
-    ///    std::string phone;
-    ///    std::string address;
-    ///    std::string city;
-    ///    std::string country;
+    ///    Field<int> id;
+    ///    Field<std::string> name;   // index 1
+    ///    Field<std::string> email;
+    ///    Field<std::string> phone;
+    ///    Field<std::string> address;
+    ///    Field<std::string> city;   // index 5
+    ///    Field<std::string> country;
     /// };
     ///
-    /// auto infos = dm.Query<SqlElements<1,5>(RecordTableName<Person>.Fields({"name"sv, "city"sv}));
-    ///
-    /// for(auto const& info : infos)
+    /// void example(DataMapper& dm)
     /// {
-    ///    // only info.name and info.city are loaded
+    ///     auto const query = dm.FromTable(RecordTableName<Person>)
+    ///                          .Select()
+    ///                          .Fields({ "name"sv, "city"sv })
+    ///                          .All();
+    ///     auto const infos = dm.Query<SqlElements<1, 5>, Person>(query);
+    ///     for (auto const& info : infos)
+    ///     {
+    ///         // only info.name and info.city are populated
+    ///     }
     /// }
     /// @endcode
-    template <typename ElementMask, typename Record, typename... InputParameters>
+    template <typename ElementMask, typename Record, DataMapperOptions QueryOptions = {}, typename... InputParameters>
     std::vector<Record> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters);
 
     /// Queries records of different types from the database, based on the given query.
     /// User can constructed query that selects columns from the multiple tables
     /// this function is used to get result of the query
     ///
-    /// example:
+    /// @tparam First        The first record type to materialize from each result row.
+    /// @tparam Second       The second record type to materialize from each result row.
+    /// @tparam Rest         Zero or more additional record types to materialize from each result row.
+    /// @tparam QueryOptions A specialization of DataMapperOptions that controls query behavior.
+    /// @param selectQuery   The composed SQL select query whose column list covers all fields of First, Second, and Rest.
+    /// @return A vector of tuples, each containing one instance of every requested record type per result row.
+    ///
     /// @code
     ///
     /// struct JointA{};
@@ -315,33 +356,14 @@ class DataMapper
         requires DataMapperRecord<First> && DataMapperRecord<Second> && DataMapperRecords<Rest...>
     std::vector<std::tuple<First, Second, Rest...>> Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery);
 
-    /// Queries records of different types from the database, based on the given query.
-    template <typename FirstRecord, typename NextRecord, DataMapperOptions QueryOptions = {}>
-        requires DataMapperRecord<FirstRecord> && DataMapperRecord<NextRecord>
-    SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>, QueryOptions> Query()
-    {
-        std::string fields;
-
-        auto const emplaceRecordsFrom = [&fields]<typename Record>() {
-            Reflection::EnumerateMembers<Record>([&fields]<size_t I, typename Field>() {
-                if (!fields.empty())
-                    fields += ", ";
-                fields += std::format(R"("{}"."{}")", RecordTableName<Record>, FieldNameAt<I, Record>);
-            });
-        };
-
-        emplaceRecordsFrom.template operator()<FirstRecord>();
-        emplaceRecordsFrom.template operator()<NextRecord>();
-
-        return SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, NextRecord>, QueryOptions>(*this, std::move(fields));
-    }
-
     /// Queries records of given Record type.
     ///
     /// The query builder can be used to further refine the query.
     /// The query builder will execute the query when a method like All(), First(n), etc. is called.
     ///
-    /// @returns A query builder for the given Record type.
+    /// @tparam Record       The record type to query and materialize.
+    /// @tparam QueryOptions A specialization of DataMapperOptions that controls query behavior.
+    /// @return A query builder for the given Record type.
     ///
     /// @code
     /// auto const records = dm.Query<Person>()
@@ -365,19 +387,33 @@ class DataMapper
     }
 
     /// Returns a SqlQueryBuilder using the default query formatter.
-    /// This can be used to build custom queries separately from the DataMapper.
-    /// and execute them via the DataMapper's Query() methods that SqlSelectQueryBuilder
     ///
+    /// This can be used to build custom queries separately from the DataMapper
+    /// and execute them via the DataMapper's typed Query() overloads that accept a SqlSelectQueryBuilder.
+    ///
+    /// @return A SqlQueryBuilder bound to the connection's query formatter.
     SqlQueryBuilder Query()
     {
         return SqlQueryBuilder(_connection.QueryFormatter());
     }
 
     /// Updates the record in the database.
+    ///
+    /// Only fields that have been modified since the record was last loaded or saved are written.
+    /// Fields that were not changed are excluded from the UPDATE statement.
+    ///
+    /// @tparam Record The record type to update.
+    /// @param record  The record to update. Only its modified fields are written to the database.
     template <typename Record>
     void Update(Record& record);
 
     /// Deletes the record from the database.
+    ///
+    /// The record is identified by its primary key(s). The row is removed from the backing table.
+    ///
+    /// @tparam Record The record type to delete.
+    /// @param record  The record to delete. Its primary key field(s) identify the row to remove.
+    /// @return The number of rows deleted (typically 1 if the record was found, 0 otherwise).
     template <typename Record>
     std::size_t Delete(Record const& record);
 
@@ -388,6 +424,10 @@ class DataMapper
     }
 
     /// Checks if the record has any modified fields.
+    ///
+    /// @tparam Record The record type to inspect.
+    /// @param record  The record to check.
+    /// @return True if at least one field has been modified since the record was last loaded or saved.
     template <typename Record>
     bool IsModified(Record const& record) const noexcept;
 
@@ -400,10 +440,17 @@ class DataMapper
 
     /// Sets the modified state of the record after receiving from the database.
     /// This marks all fields as not modified.
+    ///
+    /// @tparam state  The target modified state for all fields (Modified or NotModified).
+    /// @tparam Record The record type whose fields are to be updated.
+    /// @param record  The record whose field modification flags are set to @p state.
     template <ModifiedState state, typename Record>
     void SetModifiedState(Record& record) noexcept;
 
     /// Loads all direct relations to this record.
+    ///
+    /// @tparam Record The record type whose relation fields are to be populated.
+    /// @param record  The record whose BelongsTo, HasMany, HasOneThrough, and HasManyThrough fields are loaded.
     template <typename Record>
     void LoadRelations(Record& record);
 
@@ -411,13 +458,18 @@ class DataMapper
     ///
     /// This means, that no explicit loading of relations is required.
     /// The relations are automatically loaded when accessed.
+    ///
+    /// @tparam Record The record type to configure auto-loading for.
+    /// @param record  The record whose relation fields are set up to load lazily on first access.
     template <typename Record>
     void ConfigureRelationAutoLoading(Record& record);
 
     /// Helper function that allow to execute query directly via data mapper
     /// and get scalar result without need to create SqlStatement manually
     ///
+    /// @tparam T             The scalar type of the expected result value.
     /// @param sqlQueryString The SQL query string to execute.
+    /// @return The first column of the first result row cast to T, or std::nullopt if the query returns no rows.
     template <typename T>
     [[nodiscard]] std::optional<T> Execute(std::string_view sqlQueryString);
 
@@ -1516,8 +1568,8 @@ std::size_t DataMapper::Delete(Record const& record)
     return cursor.NumRowsAffected();
 }
 
-template <typename Record, typename... PrimaryKeyTypes>
-std::optional<Record> DataMapper::QuerySingleWithoutRelationAutoLoading(PrimaryKeyTypes&&... primaryKeys)
+template <typename Record, DataMapperOptions QueryOptions, typename... PrimaryKeyTypes>
+std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
@@ -1543,18 +1595,13 @@ std::optional<Record> DataMapper::QuerySingleWithoutRelationAutoLoading(PrimaryK
     if (resultRecord)
         SetModifiedState<ModifiedState::NotModified>(resultRecord.value());
 
-    return resultRecord;
-}
-
-template <typename Record, typename... PrimaryKeyTypes>
-std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
-{
-    auto record = QuerySingleWithoutRelationAutoLoading<Record>(std::forward<PrimaryKeyTypes>(primaryKeys)...);
-    if (record)
+    if constexpr (QueryOptions.loadRelations)
     {
-        ConfigureRelationAutoLoading(*record);
+        if (resultRecord)
+            ConfigureRelationAutoLoading(*resultRecord);
     }
-    return record;
+
+    return resultRecord;
 }
 
 template <typename Record, typename... Args>
@@ -1582,16 +1629,16 @@ std::optional<Record> DataMapper::QuerySingle(SqlSelectQueryBuilder selectQuery,
 // TODO: Provide Query(QueryBuilder, ...) method variant
 
 /// Queries multiple records from the database using a composed query and optional input parameters.
-template <typename Record, typename... InputParameters>
+template <typename Record, DataMapperOptions QueryOptions, typename... InputParameters>
 inline LIGHTWEIGHT_FORCE_INLINE std::vector<Record> DataMapper::Query(
     SqlSelectQueryBuilder::ComposedQuery const& selectQuery, InputParameters&&... inputParameters)
 {
     static_assert(DataMapperRecord<Record> || std::same_as<Record, SqlVariantRow>, "Record must satisfy DataMapperRecord");
 
-    return Query<Record>(selectQuery.ToSql(), std::forward<InputParameters>(inputParameters)...);
+    return Query<Record, QueryOptions>(selectQuery.ToSql(), std::forward<InputParameters>(inputParameters)...);
 }
 
-template <typename Record, typename... InputParameters>
+template <typename Record, DataMapperOptions QueryOptions, typename... InputParameters>
 std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputParameters&&... inputParameters)
 {
     auto result = std::vector<Record> {};
@@ -1637,7 +1684,8 @@ std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputPara
         for (auto& record: result)
         {
             SetModifiedState<ModifiedState::NotModified>(record);
-            ConfigureRelationAutoLoading(record);
+            if constexpr (QueryOptions.loadRelations)
+                ConfigureRelationAutoLoading(record);
         }
     }
 
@@ -1724,7 +1772,7 @@ std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQuery
     return result;
 }
 
-template <typename ElementMask, typename Record, typename... InputParameters>
+template <typename ElementMask, typename Record, DataMapperOptions QueryOptions, typename... InputParameters>
 std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const& selectQuery,
                                       InputParameters&&... inputParameters)
 {
@@ -1759,7 +1807,8 @@ std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const
     for (auto& record: records)
     {
         SetModifiedState<ModifiedState::NotModified>(record);
-        ConfigureRelationAutoLoading(record);
+        if constexpr (QueryOptions.loadRelations)
+            ConfigureRelationAutoLoading(record);
     }
 
     return records;

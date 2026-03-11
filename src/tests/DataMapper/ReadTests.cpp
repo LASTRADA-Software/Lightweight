@@ -531,10 +531,12 @@ TEST_CASE_METHOD(SqlTestFixture, "MapForJointStatement", "[DataMapper]")
         dm.Create(c);
     }
 
-    auto const records = dm.Query<JoinA, JoinC>()
-                             .InnerJoin<Member(JoinB::a_id), Member(JoinA::id)>()
-                             .InnerJoin<Member(JoinC::id), Member(JoinB::c_id)>()
-                             .All();
+    auto const records = dm.Query<JoinA, JoinC>(dm.FromTable(RecordTableName<JoinA>)
+                                                    .Select()
+                                                    .Fields<JoinA, JoinC>()
+                                                    .InnerJoin<Member(JoinB::a_id), Member(JoinA::id)>()
+                                                    .InnerJoin<Member(JoinC::id), Member(JoinB::c_id)>()
+                                                    .All());
 
     CHECK(records.size() == 50);
     int i = 1;
