@@ -1,9 +1,5 @@
-option(LIGHTWEIGHT_BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen) [Default: OFF]" OFF)
-option(LIGHTWEIGHT_DOCS_WARN_AS_ERROR "Treat Doxygen warnings as errors [Default: OFF]" OFF)
-
-if(LIGHTWEIGHT_BUILD_DOCUMENTATION)
-  find_package(Doxygen REQUIRED)
-  message(STATUS "Doxygen found: ${DOXYGEN_EXECUTABLE}")
+find_package(Doxygen REQUIRED)
+message(STATUS "Doxygen found: ${DOXYGEN_EXECUTABLE}")
 
   FetchContent_Declare(
     doxygen-awesome-css
@@ -70,7 +66,3 @@ if(LIGHTWEIGHT_BUILD_DOCUMENTATION)
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
     COMMENT "Generate HTML documentation"
   )
-
-else()
-    message(STATUS "Not building documentation, LIGHTWEIGHT_BUILD_DOCUMENTATION is OFF")
-endif()

@@ -1,13 +1,6 @@
 # Large Database Generator Tool
 # Enabled by default in Debug, opt-in in Release
 
-option(LIGHTWEIGHT_BUILD_LARGEDB_TOOL "Build large database generator tool" OFF)
-
-# Auto-enable in Debug builds
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(LIGHTWEIGHT_BUILD_LARGEDB_TOOL ON)
-endif()
-
 if(NOT LIGHTWEIGHT_BUILD_LARGEDB_TOOL)
     message(STATUS "Skipping large-db-generator (set LIGHTWEIGHT_BUILD_LARGEDB_TOOL=ON to build)")
     return()

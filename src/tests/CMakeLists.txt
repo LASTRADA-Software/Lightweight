@@ -1,9 +1,3 @@
-option(LIGHTWEIGHT_BUILD_TESTS "Build Lightweight tests" ON)
-
-if(NOT LIGHTWEIGHT_BUILD_TESTS)
-    return()
-endif()
-
 # Try to find TBB for stdexec support
 find_package(TBB QUIET)
 

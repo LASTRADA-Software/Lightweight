@@ -1,11 +1,3 @@
-# Define shared library option early, before dependencies that need to know about it
-set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT OFF)
-if(WIN32)
-    set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT ON)
-endif()
-
-option(LIGHTWEIGHT_BUILD_SHARED "Build Lightweight as a shared library" ${LIGHTWEIGHT_BUILD_SHARED_DEFAULT})
-
 if(LIGHTWEIGHT_BUILD_SHARED)
     set(LIGHTWEIGHT_LIBRARY_TYPE SHARED)
 else()
