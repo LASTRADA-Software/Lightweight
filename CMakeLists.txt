@@ -63,7 +63,13 @@ if(reflection-cpp_FOUND)
     message(STATUS "reflection-cpp found: ${reflection-cpp_INCLUDE_DIRS}")
 else()
     message(STATUS "reflection-cpp not found, downloading...")
-    CPMAddPackage("gh:contour-terminal/reflection-cpp#master")
+    CPMAddPackage(
+        NAME reflection-cpp
+        GITHUB_REPOSITORY contour-terminal/reflection-cpp
+        GIT_TAG master
+        EXCLUDE_FROM_ALL YES
+        SYSTEM YES
+    )
 endif()
 
 # libzip support (Linux only)
@@ -102,6 +108,7 @@ if(NOT WIN32)
             NAME libzip
             GITHUB_REPOSITORY nih-at/libzip
             GIT_TAG v1.11.3
+            EXCLUDE_FROM_ALL YES
             OPTIONS ${LIBZIP_OPTIONS}
         )
         # Note: CPM-built libzip already creates a `zip` target (libzip::zip is an alias to it)

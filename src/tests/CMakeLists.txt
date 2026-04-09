@@ -19,6 +19,7 @@ if(TBB_FOUND)
       NAME stdexec
       GITHUB_REPOSITORY NVIDIA/stdexec
       GIT_TAG nvhpc-25.09
+      EXCLUDE_FROM_ALL YES
     )
 
     # Suppress warnings-as-errors for stdexec's own targets built with our pedantic flags
