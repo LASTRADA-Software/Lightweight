@@ -27,6 +27,30 @@ find_package(nlohmann_json CONFIG QUIET)
 option(LIGHTWEIGHT_CXX26_REFLECTION "Enable experimental reflection support from C++26" OFF)
 option(LIGHTWEIGHT_BUILD_MODULES "Build Lightweight as C++20 modules (requires CMake 3.28+)" OFF)
 
+# Shared library default: ON for Windows (DLL), OFF for other platforms
+set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT OFF)
+if(WIN32)
+    set(LIGHTWEIGHT_BUILD_SHARED_DEFAULT ON)
+endif()
+option(LIGHTWEIGHT_BUILD_SHARED "Build Lightweight as a shared library" ${LIGHTWEIGHT_BUILD_SHARED_DEFAULT})
+
+# Component build options
+option(LIGHTWEIGHT_BUILD_TESTS "Build Lightweight tests" ON)
+option(LIGHTWEIGHT_BUILD_TOOLS "Build Lightweight tools" ON)
+option(LIGHTWEIGHT_BUILD_EXAMPLES "Build Lightweight examples" ON)
+option(LIGHTWEIGHT_BUILD_BENCHMARK "Build Lightweight benchmark" OFF)
+
+# Auto-enable large-db-generator in Debug builds by default
+set(LIGHTWEIGHT_BUILD_LARGEDB_TOOL_DEFAULT OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(LIGHTWEIGHT_BUILD_LARGEDB_TOOL_DEFAULT ON)
+endif()
+option(LIGHTWEIGHT_BUILD_LARGEDB_TOOL "Build large database generator tool" ${LIGHTWEIGHT_BUILD_LARGEDB_TOOL_DEFAULT})
+unset(LIGHTWEIGHT_BUILD_LARGEDB_TOOL_DEFAULT)
+
+option(LIGHTWEIGHT_BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" OFF)
+option(LIGHTWEIGHT_DOCS_WARN_AS_ERROR "Treat Doxygen warnings as errors" OFF)
+
 if(LIGHTWEIGHT_BUILD_MODULES)
     if(CMAKE_VERSION VERSION_LESS "3.28")
         message(FATAL_ERROR "C++20 module support requires CMake 3.28 or higher. Current version: ${CMAKE_VERSION}")
@@ -154,8 +178,23 @@ set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
 enable_testing()
 
 add_subdirectory(src/Lightweight)
-add_subdirectory(src/tools)
-add_subdirectory(src/tests)
-add_subdirectory(src/benchmark)
-add_subdirectory(src/examples)
-add_subdirectory(docs)
+
+if(LIGHTWEIGHT_BUILD_TOOLS)
+    add_subdirectory(src/tools)
+endif()
+
+if(LIGHTWEIGHT_BUILD_TESTS)
+    add_subdirectory(src/tests)
+endif()
+
+if(LIGHTWEIGHT_BUILD_BENCHMARK)
+    add_subdirectory(src/benchmark)
+endif()
+
+if(LIGHTWEIGHT_BUILD_EXAMPLES)
+    add_subdirectory(src/examples)
+endif()
+
+if(LIGHTWEIGHT_BUILD_DOCUMENTATION)
+    add_subdirectory(docs)
+endif()

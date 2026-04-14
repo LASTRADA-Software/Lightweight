@@ -18,4 +18,4 @@ ddl2cpp --connection-string 'DRIVER=SQLite3;Database=test.sqlite' --output src/b
 ```
 
 
-Then configure cmake with `LIGHWEIGHT_BENCHMARK=ON` and compile target `LightweightBenchmark` 
+Then configure cmake with `LIGHTWEIGHT_BUILD_BENCHMARK=ON` and compile target `LightweightBenchmark` 
