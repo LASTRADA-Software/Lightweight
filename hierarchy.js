@@ -83,11 +83,10 @@ var hierarchy =
     [ "Lightweight::SqlJoinConditionBuilder", "dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html", null ],
     [ "Lightweight::SqlLogger", "db/dfd/classLightweight_1_1SqlLogger.html", null ],
     [ "Lightweight::SqlMigration::ChecksumVerificationResult", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html", null ],
-    [ "Lightweight::SqlMigration::MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", [
-      [ "Lightweight::SqlMigration::Migration", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html", null ]
-    ] ],
+    [ "Lightweight::SqlMigration::MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", null ],
     [ "Lightweight::SqlMigration::MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html", null ],
     [ "Lightweight::SqlMigration::MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", null ],
+    [ "Lightweight::SqlMigration::MigrationMetadata", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html", null ],
     [ "Lightweight::SqlMigration::MigrationStatus", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html", null ],
     [ "Lightweight::SqlMigration::MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", null ],
     [ "Lightweight::SqlMigration::RevertResult", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html", null ],

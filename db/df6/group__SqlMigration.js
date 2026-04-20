@@ -45,7 +45,8 @@ var group__SqlMigration =
       [ "VerifyChecksums", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a63ce9461c4cd37394364f25f4e9f0cc8", null ],
       [ "MarkMigrationAsApplied", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a0ddf3ef0e6d833b829509ac769d04530", null ],
       [ "RevertToMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1dece4a4dc2811ac8cd8dce1c1130b11", null ],
-      [ "GetMigrationStatus", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aaaca2ec37763d11612d487ecad5daebf", null ]
+      [ "GetMigrationStatus", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aaaca2ec37763d11612d487ecad5daebf", null ],
+      [ "ValidateDependencies", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ab30c624d73149913fc06226b9d7b595a", null ]
     ] ],
     [ "Lightweight::SqlMigration::MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", [
       [ "MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a8ee0594832c46d4679a3db0a139b77b9", null ],
@@ -54,15 +55,17 @@ var group__SqlMigration =
       [ "Up", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a08e7f32b9ae6147732e6cc89cf6ac35e", null ],
       [ "Down", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#abf76f7e1b5519cef9ca2aee981d9054b", null ],
       [ "HasDownImplementation", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#ae34f5e169eb26bf9318270631669f8d4", null ],
+      [ "GetDependencies", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a1af4ea7db6effd658b141e8d599978dc", null ],
+      [ "GetAuthor", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a2ec317eaae756e721addecb505082902", null ],
+      [ "GetDescription", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a4d9ec4afc996dacc72bbe5948aa7db73", null ],
       [ "GetTimestamp", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e", null ],
       [ "GetTitle", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0", null ],
       [ "ComputeChecksum", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#aa91e611caafae9e19e8850e786baf5c0", null ]
     ] ],
-    [ "Lightweight::SqlMigration::Migration", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html", [
-      [ "Migration", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html#aea01e979cd0e92552600fd0724181c1c", null ],
-      [ "Up", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html#a2abe483adae21a4c19644ecbfd1d41cc", null ],
-      [ "Down", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html#a13649ad4f057e2a4ba74037fc4f0db3a", null ],
-      [ "HasDownImplementation", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html#afebf915b88dc1dc1ff3720ee3e3e7d67", null ]
+    [ "Lightweight::SqlMigration::MigrationMetadata", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html", [
+      [ "dependencies", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aaacc540bd4fd3ab8f556b8cc92f2894b", null ],
+      [ "author", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62", null ],
+      [ "description", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aede084084d8c094a9f4e08d86b8f13f8", null ]
     ] ],
     [ "Lightweight::SqlMigration::MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html", [
       [ "MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#ad96abad387505fd1f962993f60d91913", null ],

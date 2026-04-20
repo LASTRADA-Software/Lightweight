@@ -43,11 +43,6 @@ var NAVTREEINDEX1 =
 "d3/ded/structLightweight_1_1SqlMigrationPlan.html#af68f6e6d4328db95b59ada75a24f17f3":[10,4,23,0],
 "d3/dfd/Backup_8hpp_source.html":[13,0,1,3,0],
 "d4/d01/Invoiceline_8hpp_source.html":[13,0,0,0,0,6],
-"d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html":[10,3,6],
-"d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html#a13649ad4f057e2a4ba74037fc4f0db3a":[10,3,6,2],
-"d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html#a2abe483adae21a4c19644ecbfd1d41cc":[10,3,6,1],
-"d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html#aea01e979cd0e92552600fd0724181c1c":[10,3,6,0],
-"d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html#afebf915b88dc1dc1ff3720ee3e3e7d67":[10,3,6,3],
 "d4/d46/StringLiteral_8hpp_source.html":[13,0,1,0,20],
 "d4/d48/ThreadSafeQueue_8hpp_source.html":[13,0,1,27],
 "d4/d52/SqlDateTime_8hpp_source.html":[13,0,1,0,5],
@@ -73,6 +68,7 @@ var NAVTREEINDEX1 =
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a9f6136aee1902543bdb428d6890574ee":[10,3,4,9],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aa670c82bec993bd89189cb4a37007572":[10,3,4,10],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aaaca2ec37763d11612d487ecad5daebf":[10,3,4,21],
+"d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ab30c624d73149913fc06226b9d7b595a":[10,3,4,22],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#add42626ceb43ee64238c5a1dd0d0d27f":[10,3,4,7],
 "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae7a7e92f9a2ef9cb11402812eaac3566":[10,3,4,11],
 "d4/d5f/SqlErrorDetection_8hpp_source.html":[13,0,1,15],
@@ -249,5 +245,9 @@ var NAVTREEINDEX1 =
 "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37":[12,0,0,22,3],
 "d6/d8f/Sha256_8hpp_source.html":[13,0,1,3,5],
 "d6/daa/group__QueryBuilder.html":[10,4],
-"d6/daa/group__QueryBuilder.html#ga17470447b60d4554d19d30e877645d07":[10,4,26]
+"d6/daa/group__QueryBuilder.html#ga17470447b60d4554d19d30e877645d07":[10,4,26],
+"d6/daa/group__QueryBuilder.html#ga35da70532d7195d108a26ea3ab737ec3":[10,4,24],
+"d6/daa/group__QueryBuilder.html#ga4c68045b2a9228548ad924f9699f036f":[10,4,28],
+"d6/daa/group__QueryBuilder.html#ga7d3d803ee8e7236cf6257b7bf760b471":[10,4,27],
+"d6/daa/group__QueryBuilder.html#gace7448ea30e7d08a6417adef1c6edc6e":[10,4,25]
 };

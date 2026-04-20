@@ -1,9 +1,5 @@
 var NAVTREEINDEX4 =
 {
-"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a89072cc6f0d70a556d2a16a52ab698d7":[10,4,10,1],
-"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#aef625c1fdddcae0cdb986548f30f2ff9":[10,4,10,0],
-"db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html":[10,4,2],
-"db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#a1459637ec9641e6554ca94d6faf0edfe":[10,4,2,0],
 "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#a721158a65634bdfa5abfd7c666a18e06":[10,4,2,1],
 "db/dad/classLightweight_1_1SqlStatement.html":[12,0,0,63],
 "db/dad/classLightweight_1_1SqlStatement.html#a0123c0f721c9374f8992e7c454294721":[12,0,0,63,13],
@@ -81,6 +77,10 @@ var NAVTREEINDEX4 =
 "db/dfd/classLightweight_1_1SqlLogger.html#af7c5638382912daeb780c763c5711ee2":[12,0,0,42,23],
 "db/dfd/classLightweight_1_1SqlLogger.html#af7d984686564f12829697aaffa839395":[12,0,0,42,13],
 "db/dfd/classLightweight_1_1SqlLogger.html#af9ba5d916ab908a9a5a5d0ea7966751b":[12,0,0,42,4],
+"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html":[10,3,6],
+"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aaacc540bd4fd3ab8f556b8cc92f2894b":[10,3,6,0],
+"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62":[10,3,6,1],
+"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aede084084d8c094a9f4e08d86b8f13f8":[10,3,6,2],
 "dc/d47/structLightweight_1_1SqlRawSqlPlan.html":[10,4,18],
 "dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d":[10,4,18,0],
 "dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html":[12,0,0,60],

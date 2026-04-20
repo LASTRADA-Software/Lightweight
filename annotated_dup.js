@@ -22,10 +22,10 @@ var annotated_dup =
       ] ],
       [ "SqlMigration", null, [
         [ "ChecksumVerificationResult", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult" ],
-        [ "Migration", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration.html", "d4/d32/classLightweight_1_1SqlMigration_1_1Migration" ],
         [ "MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase" ],
         [ "MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock" ],
         [ "MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager" ],
+        [ "MigrationMetadata", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata" ],
         [ "MigrationStatus", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus" ],
         [ "MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp" ],
         [ "RevertResult", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult" ]

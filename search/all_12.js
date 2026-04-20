@@ -30,7 +30,7 @@ var searchData=
   ['list_20pending_27',['list-pending',['../d5/dc4/dbtool.html#list-pending',1,'']]],
   ['loading_28',['Relationships with Lazy Loading',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#relationships-with-lazy-loading',1,'']]],
   ['loading_20plugins_29',['Loading Plugins',['../d5/dc4/dbtool.html#loading-plugins',1,'']]],
-  ['loadrelations_30',['loadrelations',['../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a',1,'Lightweight::DataMapperOptions::loadRelations'],['../de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702',1,'Lightweight::DataMapper::LoadRelations()']]],
+  ['loadrelations_30',['loadrelations',['../de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702',1,'Lightweight::DataMapper::LoadRelations()'],['../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a',1,'Lightweight::DataMapperOptions::loadRelations']]],
   ['locateentry_31',['LocateEntry',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#ad890fbbd6aadf8a5a2ceb6204a57a299',1,'Lightweight::Zip::ZipArchive']]],
   ['lock_20acquisition_20failed_32',['Lock Acquisition Failed',['../d5/dc4/dbtool.html#lock-acquisition-failed',1,'']]],
   ['logic_20separate_33',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]],

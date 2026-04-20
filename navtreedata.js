@@ -208,9 +208,9 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html",
-"d6/daa/group__QueryBuilder.html#ga35da70532d7195d108a26ea3ab737ec3",
-"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6b6a91e9a51a6f601b7073269ce28f2e",
-"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a89072cc6f0d70a556d2a16a52ab698d7",
+"d6/daa/group__QueryBuilder.html#gaeba5ba4ebe64ce27d81a82bdf1ea11d7",
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a864f9b5e3f759b096b505b66b999c887",
+"db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#a721158a65634bdfa5abfd7c666a18e06",
 "de/dae/classLightweight_1_1SqlFixedString.html#a3e156a8794ac28b0b372a45311adbb89"
 ];
 
