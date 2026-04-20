@@ -49,11 +49,11 @@ namespace SqlMigration
     /// @ingroup SqlMigration
     struct ChecksumVerificationResult
     {
-        MigrationTimestamp timestamp;   ///< The timestamp of the verified migration.
-        std::string_view title;        ///< The title of the verified migration.
-        std::string storedChecksum;    ///< The checksum stored in the database.
-        std::string computedChecksum;  ///< The checksum computed from the current migration definition.
-        bool matches;                  ///< Whether the stored and computed checksums match.
+        MigrationTimestamp timestamp; ///< The timestamp of the verified migration.
+        std::string_view title;       ///< The title of the verified migration.
+        std::string storedChecksum;   ///< The checksum stored in the database.
+        std::string computedChecksum; ///< The checksum computed from the current migration definition.
+        bool matches;                 ///< Whether the stored and computed checksums match.
     };
 
     /// Result of reverting multiple migrations.
@@ -229,7 +229,24 @@ namespace SqlMigration
         /// @return Status struct with counts of applied, pending, and mismatched migrations.
         [[nodiscard]] LIGHTWEIGHT_API MigrationStatus GetMigrationStatus() const;
 
+        /// Validate that all registered migrations have satisfiable dependencies.
+        ///
+        /// For each pending migration, verifies that every declared dependency is either
+        /// already applied or itself pending (so it will be applied first due to topological
+        /// ordering). Also detects cycles among pending migrations.
+        ///
+        /// @throws std::runtime_error if any dependency is unresolved or a cycle is found.
+        LIGHTWEIGHT_API void ValidateDependencies() const;
+
       private:
+        /// Return the pending list in dependency-respecting order.
+        ///
+        /// Dependencies among pending migrations are resolved via topological sort.
+        /// Migrations with no dependency between them keep timestamp order.
+        /// Throws on missing deps or cycles.
+        [[nodiscard]] MigrationList TopoSortPending(MigrationList pending,
+                                                    std::vector<MigrationTimestamp> const& applied) const;
+
         MigrationList _migrations;
         mutable DataMapper* _dataMapper { nullptr };
     };
@@ -274,7 +291,10 @@ namespace SqlMigration
         /// Revert the migration.
         ///
         /// @param plan Query builder to use for building the migration plan.
-        virtual void Down(SqlMigrationQueryBuilder& plan) const { (void) plan; }
+        virtual void Down(SqlMigrationQueryBuilder& plan) const
+        {
+            (void) plan;
+        }
 
         /// Check if this migration has a Down() implementation for rollback.
         ///
@@ -286,6 +306,37 @@ namespace SqlMigration
         [[nodiscard]] virtual bool HasDownImplementation() const noexcept
         {
             return false;
+        }
+
+        /// Get the timestamps of migrations that this migration depends on.
+        ///
+        /// Dependencies are enforced at apply time: each declared dependency must be
+        /// registered and applied (or pending in the same run, in dependency order)
+        /// before this migration will run. The default implementation returns no
+        /// dependencies, preserving timestamp-ordered apply behavior.
+        ///
+        /// @return Vector of dependency timestamps. Empty if this migration has none.
+        [[nodiscard]] virtual std::vector<MigrationTimestamp> GetDependencies() const
+        {
+            return {};
+        }
+
+        /// Get the author of the migration, if any.
+        ///
+        /// @return Author string, empty if not set.
+        [[nodiscard]] virtual std::string_view GetAuthor() const noexcept
+        {
+            return {};
+        }
+
+        /// Get the long-form description of the migration, if any.
+        ///
+        /// This is a multi-line description in addition to the short title.
+        ///
+        /// @return Description string, empty if not set.
+        [[nodiscard]] virtual std::string_view GetDescription() const noexcept
+        {
+            return {};
         }
 
         /// Get the timestamp of the migration.
@@ -324,6 +375,22 @@ namespace SqlMigration
     /// This class is a convenience class that can be used to create a migration.
     ///
     /// @ingroup SqlMigration
+    /// Optional metadata attached to a Migration at construction time.
+    ///
+    /// All fields are optional. Unset fields behave as if the feature
+    /// were not used (e.g. empty dependencies preserves timestamp order).
+    ///
+    /// @ingroup SqlMigration
+    struct MigrationMetadata
+    {
+        /// Migrations that must be applied before this one.
+        std::vector<MigrationTimestamp> dependencies {};
+        /// Author of the migration. Recorded in schema_migrations when the migration is applied.
+        std::string_view author {};
+        /// Long-form description. Recorded in schema_migrations when the migration is applied.
+        std::string_view description {};
+    };
+
     class Migration: public MigrationBase
     {
       public:
@@ -340,6 +407,25 @@ namespace SqlMigration
             MigrationBase(timestamp, title),
             _up { up },
             _down { down }
+        {
+        }
+
+        /// Create a new migration with optional metadata (dependencies, author, description).
+        ///
+        /// @param timestamp Timestamp of the migration.
+        /// @param title Title of the migration.
+        /// @param metadata Optional metadata including dependencies, author, and description.
+        /// @param up Function to apply the migration.
+        /// @param down Function to revert the migration (optional).
+        Migration(MigrationTimestamp timestamp,
+                  std::string_view title,
+                  MigrationMetadata metadata,
+                  std::function<void(SqlMigrationQueryBuilder&)> const& up,
+                  std::function<void(SqlMigrationQueryBuilder&)> const& down = {}):
+            MigrationBase(timestamp, title),
+            _up { up },
+            _down { down },
+            _metadata { std::move(metadata) }
         {
         }
 
@@ -368,9 +454,28 @@ namespace SqlMigration
             return static_cast<bool>(_down);
         }
 
+        /// Get the declared dependencies for this migration.
+        [[nodiscard]] std::vector<MigrationTimestamp> GetDependencies() const override
+        {
+            return _metadata.dependencies;
+        }
+
+        /// Get the author of this migration.
+        [[nodiscard]] std::string_view GetAuthor() const noexcept override
+        {
+            return _metadata.author;
+        }
+
+        /// Get the long-form description of this migration.
+        [[nodiscard]] std::string_view GetDescription() const noexcept override
+        {
+            return _metadata.description;
+        }
+
       private:
         std::function<void(SqlMigrationQueryBuilder&)> _up;
         std::function<void(SqlMigrationQueryBuilder&)> _down;
+        MigrationMetadata _metadata {};
     };
 
 } // namespace SqlMigration

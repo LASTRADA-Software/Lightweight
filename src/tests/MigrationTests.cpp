@@ -656,6 +656,300 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "CreateTableIfNotExists", "[SqlMigrati
     }
 }
 
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependencies applied in declared order", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // migration_b depends on migration_a but is declared with an earlier-sounding description.
+    // Despite declaration order, apply should respect the dependency.
+    auto migrationA = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601010001 }, "dep base", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("dep_a").PrimaryKey("id", Integer());
+        });
+
+    auto migrationB = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601010002 },
+        "dep dependent",
+        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::MigrationTimestamp { 202601010001 } } },
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("dep_b")
+                .PrimaryKey("id", Integer())
+                .ForeignKey(
+                    "a_id", Integer(), SqlForeignKeyReferenceDefinition { .tableName = "dep_a", .columnName = "id" });
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    CHECK_NOTHROW(manager.ApplyPendingMigrations());
+
+    auto const appliedIds = manager.GetAppliedMigrationIds();
+    CHECK(appliedIds.size() == 2);
+    CHECK(appliedIds[0].value == 202601010001);
+    CHECK(appliedIds[1].value == 202601010002);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependency on unknown timestamp throws", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601020001 },
+        "orphan dep",
+        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::MigrationTimestamp { 999999999999 } } },
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_orphan").PrimaryKey("id", Integer()); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    auto const _ = ScopedSqlNullLogger {};
+    CHECK_THROWS_AS(manager.ApplyPendingMigrations(), std::runtime_error);
+    CHECK_THROWS_AS(manager.ValidateDependencies(), std::runtime_error);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependency cycle detected", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migrationA = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601030001 },
+        "cycle a",
+        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::MigrationTimestamp { 202601030002 } } },
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("cycle_a").PrimaryKey("id", Integer()); });
+
+    auto migrationB = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601030002 },
+        "cycle b",
+        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::MigrationTimestamp { 202601030001 } } },
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("cycle_b").PrimaryKey("id", Integer()); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    auto const _ = ScopedSqlNullLogger {};
+    CHECK_THROWS_AS(manager.ValidateDependencies(), std::runtime_error);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependency already applied is satisfied", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto base = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601040001 }, "base", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("dep_base2").PrimaryKey("id", Integer());
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    manager.ApplySingleMigration(base);
+    CHECK(manager.GetAppliedMigrationIds().size() == 1);
+
+    auto follow = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601040002 },
+        "depends on base",
+        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::MigrationTimestamp { 202601040001 } } },
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_follow").PrimaryKey("id", Integer()); });
+
+    CHECK_NOTHROW(manager.ApplySingleMigration(follow));
+    CHECK(manager.GetAppliedMigrationIds().size() == 2);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "Migration dependency not applied via ApplySingleMigration throws",
+                 "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto base = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601050001 }, "unapplied base", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("dep_b_base").PrimaryKey("id", Integer());
+        });
+
+    auto follow = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601050002 },
+        "follow requires unapplied",
+        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::MigrationTimestamp { 202601050001 } } },
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_b_follow").PrimaryKey("id", Integer()); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    auto const _ = ScopedSqlNullLogger {};
+    CHECK_THROWS_AS(manager.ApplySingleMigration(follow), std::runtime_error);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Audit metadata recorded on apply", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // Start from a fresh schema_migrations table so the new audit columns exist.
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        auto const _ = ScopedSqlNullLogger {};
+        try
+        {
+            (void) stmt.ExecuteDirect("DROP TABLE schema_migrations");
+        }
+        catch (SqlException const&) // NOLINT(bugprone-empty-catch)
+        {
+        }
+    }
+
+    auto migration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601060001 },
+        "audited",
+        SqlMigration::MigrationMetadata { .author = "Ada Lovelace", .description = "First documented migration." },
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("audited_table").PrimaryKey("id", Integer()); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    manager.ApplySingleMigration(migration);
+
+    auto conn = SqlConnection {};
+    auto stmt = SqlStatement { conn };
+    auto cursor = stmt.ExecuteDirect(
+        "SELECT author, description, execution_duration_ms FROM schema_migrations WHERE version = 202601060001");
+    CHECK(cursor.FetchRow());
+
+    auto const author = cursor.GetColumn<std::optional<std::string>>(1);
+    auto const description = cursor.GetColumn<std::optional<std::string>>(2);
+    auto const duration = cursor.GetColumn<std::optional<int64_t>>(3);
+
+    CHECK(author.has_value());
+    CHECK(author.value_or("") == "Ada Lovelace");
+    CHECK(description.has_value());
+    CHECK(description.value_or("") == "First documented migration.");
+    CHECK(duration.has_value());
+    CHECK(duration.value_or(-1) >= 0);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Audit metadata null when unspecified", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        auto const _ = ScopedSqlNullLogger {};
+        try
+        {
+            (void) stmt.ExecuteDirect("DROP TABLE schema_migrations");
+        }
+        catch (SqlException const&) // NOLINT(bugprone-empty-catch)
+        {
+        }
+    }
+
+    auto migration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601060002 }, "plain", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("plain_table").PrimaryKey("id", Integer());
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    manager.ApplySingleMigration(migration);
+
+    auto conn = SqlConnection {};
+    auto stmt = SqlStatement { conn };
+    auto cursor = stmt.ExecuteDirect("SELECT author, description FROM schema_migrations WHERE version = 202601060002");
+    CHECK(cursor.FetchRow());
+    CHECK(!cursor.GetColumn<std::optional<std::string>>(1).has_value());
+    CHECK(!cursor.GetColumn<std::optional<std::string>>(2).has_value());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Audit metadata duration null when MarkAsApplied", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        auto const _ = ScopedSqlNullLogger {};
+        try
+        {
+            (void) stmt.ExecuteDirect("DROP TABLE schema_migrations");
+        }
+        catch (SqlException const&) // NOLINT(bugprone-empty-catch)
+        {
+        }
+    }
+
+    auto migration = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601060003 }, "marked", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("marked_only").PrimaryKey("id", Integer());
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    manager.MarkMigrationAsApplied(migration);
+
+    auto conn = SqlConnection {};
+    auto stmt = SqlStatement { conn };
+    auto cursor = stmt.ExecuteDirect("SELECT execution_duration_ms FROM schema_migrations WHERE version = 202601060003");
+    CHECK(cursor.FetchRow());
+    CHECK(!cursor.GetColumn<std::optional<int64_t>>(1).has_value());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "AddColumnIfNotExists idempotent", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto create = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601070001 },
+        "create table for idempotent add",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("idempotent_cols").PrimaryKey("id", Integer()).RequiredColumn("name", Varchar(50));
+        });
+
+    auto addOnce = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601070002 }, "add column once", [](SqlMigrationQueryBuilder& plan) {
+            plan.AlterTable("idempotent_cols").AddColumnIfNotExists("note", Varchar(100));
+        });
+
+    auto addAgain = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601070003 }, "add column again", [](SqlMigrationQueryBuilder& plan) {
+            plan.AlterTable("idempotent_cols").AddColumnIfNotExists("note", Varchar(100));
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    CHECK_NOTHROW(manager.ApplyPendingMigrations());
+    CHECK(manager.GetAppliedMigrationIds().size() == 3);
+
+    // Column should be usable.
+    auto conn = SqlConnection {};
+    auto stmt = SqlStatement { conn };
+    (void) stmt.ExecuteDirect(R"(INSERT INTO idempotent_cols (id, name, note) VALUES (1, 'x', 'y'))");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "DropColumnIfExists idempotent", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto create = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601080001 }, "create for idempotent drop", [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("idempotent_drop").PrimaryKey("id", Integer()).Column("removeme", Varchar(50));
+        });
+
+    auto dropOnce = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601080002 }, "drop column once", [](SqlMigrationQueryBuilder& plan) {
+            plan.AlterTable("idempotent_drop").DropColumnIfExists("removeme");
+        });
+
+    auto dropAgain = SqlMigration::Migration(
+        SqlMigration::MigrationTimestamp { 202601080003 }, "drop column again", [](SqlMigrationQueryBuilder& plan) {
+            plan.AlterTable("idempotent_drop").DropColumnIfExists("removeme");
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    CHECK_NOTHROW(manager.ApplyPendingMigrations());
+    CHECK(manager.GetAppliedMigrationIds().size() == 3);
+}
+
 TEST_CASE_METHOD(SqlMigrationTestFixture, "DropIndexIfExists", "[SqlMigration]")
 {
     using namespace SqlColumnTypeDefinitions;
