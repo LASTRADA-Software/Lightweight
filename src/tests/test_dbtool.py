@@ -3,6 +3,8 @@ import argparse
 import subprocess
 import sys
 import os
+import tempfile
+import zipfile
 from pathlib import Path
 
 try:
@@ -168,6 +170,35 @@ def main():
     if "Add Email Column" not in output:
         print("Final verification failed")
         sys.exit(1)
+
+    print("--- 8. Schema-only Backup ---")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        schema_zip = os.path.join(tmpdir, "schema.zip")
+        run_command(base_cmd + ["backup", "--schema-only", "--output", schema_zip])
+        if not os.path.exists(schema_zip):
+            print("Schema-only backup did not produce an output file")
+            sys.exit(1)
+
+        with zipfile.ZipFile(schema_zip) as zf:
+            names = zf.namelist()
+
+        if "metadata.json" not in names:
+            print(f"Schema-only backup missing metadata.json (entries: {names})")
+            sys.exit(1)
+        if "checksums.json" in names:
+            print(f"Schema-only backup unexpectedly contains checksums.json (entries: {names})")
+            sys.exit(1)
+        data_entries = [n for n in names if n.startswith("data/")]
+        if data_entries:
+            print(f"Schema-only backup unexpectedly contains data entries: {data_entries}")
+            sys.exit(1)
+
+        print("--- 9. Schema-only Dry-run Backup ---")
+        dry_output = run_command(base_cmd + ["backup", "--schema-only", "--dry-run",
+                                             "--output", os.path.join(tmpdir, "discard.zip")]).stdout
+        if "schema only" not in dry_output.lower():
+            print(f"Dry-run output did not mention schema-only backup:\n{dry_output}")
+            sys.exit(1)
 
     print("SUCCESS")
 

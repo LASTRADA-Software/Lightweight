@@ -1633,4 +1633,123 @@ TEST_CASE("SqlBackup: Restore rejects unsupported format version", "[SqlBackup]"
     }
 }
 
+// =============================================================================
+// Schema-only Backup / Restore Tests
+// =============================================================================
+
+TEST_CASE("SqlBackup: Schema-only Backup and Restore", "[SqlBackup]")
+{
+    ScopedFileRemoved const backupFileCleaner { BackupFile };
+
+    SetupDatabase(); // creates test_table and inserts 3 rows
+
+    LambdaProgressManager pm { [](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+            FAIL_CHECK("Backup Error: " << p.message);
+    } };
+
+    SqlBackup::BackupSettings const backupSettings { .schemaOnly = true };
+    REQUIRE_NOTHROW(
+        SqlBackup::Backup(BackupFile, GetConnectionString(), 1, pm, "", "*", SqlBackup::RetrySettings {}, backupSettings));
+    REQUIRE(std::filesystem::exists(BackupFile));
+
+    // Inspect the archive: schema-only backup must contain metadata.json,
+    // must NOT contain any data/*.msgpack entries, and must NOT contain checksums.json.
+    // NOLINTBEGIN(clang-analyzer-nullability.*)
+    {
+        int err = 0;
+        zip_t* zip = zip_open(BackupFile.string().c_str(), ZIP_RDONLY, &err);
+        REQUIRE(zip != nullptr);
+
+        bool hasMetadata = false;
+        bool hasChecksums = false;
+        int dataEntryCount = 0;
+
+        zip_int64_t const numEntries = zip_get_num_entries(zip, 0);
+        for (zip_int64_t i = 0; i < numEntries; ++i)
+        {
+            char const* name = zip_get_name(zip, static_cast<zip_uint64_t>(i), 0);
+            if (name == nullptr)
+                continue;
+            std::string_view const sv { name };
+            if (sv == "metadata.json")
+                hasMetadata = true;
+            else if (sv == "checksums.json")
+                hasChecksums = true;
+            else if (sv.starts_with("data/"))
+                ++dataEntryCount;
+        }
+
+        zip_close(zip);
+
+        CHECK(hasMetadata);
+        CHECK_FALSE(hasChecksums);
+        CHECK(dataEntryCount == 0);
+    }
+    // NOLINTEND(clang-analyzer-nullability.*)
+
+    // Drop the table to simulate a clean target, then restore schema-only.
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTable("test_table"); });
+    }
+
+    LambdaProgressManager restorePm { [](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+            FAIL_CHECK("Restore Error: " << p.message);
+    } };
+
+    SqlBackup::RestoreSettings const restoreSettings { .schemaOnly = true };
+    REQUIRE_NOTHROW(SqlBackup::Restore(
+        BackupFile, GetConnectionString(), 1, restorePm, "", "*", SqlBackup::RetrySettings {}, restoreSettings));
+
+    // Table must exist but contain no rows.
+    SqlConnection conn;
+    conn.Connect(GetConnectionString());
+    SqlStatement stmt { conn };
+    auto const count = stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM test_table");
+    REQUIRE(count == 0);
+}
+
+TEST_CASE("SqlBackup: Schema-only restore from full backup", "[SqlBackup]")
+{
+    ScopedFileRemoved const backupFileCleaner { BackupFile };
+
+    SetupDatabase(); // creates test_table and inserts 3 rows
+
+    // Produce a full backup (data included).
+    LambdaProgressManager pm { [](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+            FAIL_CHECK("Backup Error: " << p.message);
+    } };
+    REQUIRE_NOTHROW(SqlBackup::Backup(BackupFile, GetConnectionString(), 1, pm));
+    REQUIRE(std::filesystem::exists(BackupFile));
+
+    // Drop the table, then schema-only restore from the full archive.
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTable("test_table"); });
+    }
+
+    LambdaProgressManager restorePm { [](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+            FAIL_CHECK("Restore Error: " << p.message);
+    } };
+
+    SqlBackup::RestoreSettings const restoreSettings { .schemaOnly = true };
+    REQUIRE_NOTHROW(SqlBackup::Restore(
+        BackupFile, GetConnectionString(), 1, restorePm, "", "*", SqlBackup::RetrySettings {}, restoreSettings));
+
+    // The data chunks present in the archive must have been ignored.
+    SqlConnection conn;
+    conn.Connect(GetConnectionString());
+    SqlStatement stmt { conn };
+    auto const count = stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM test_table");
+    REQUIRE(count == 0);
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)
