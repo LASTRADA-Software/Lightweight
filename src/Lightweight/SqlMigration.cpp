@@ -300,6 +300,84 @@ void MigrationManager::ValidateDependencies() const
     (void) TopoSortPending(std::move(pending), applied);
 }
 
+void MigrationManager::RegisterRelease(std::string version, MigrationTimestamp highestTimestamp)
+{
+    // Reject duplicate version strings.
+    auto const byVersion = std::ranges::find_if(_releases, [&](MigrationRelease const& r) { return r.version == version; });
+    if (byVersion != _releases.end())
+    {
+        throw std::runtime_error(
+            std::format("Duplicate release registration for version '{}' (existing timestamp {}, new timestamp {}).",
+                        version,
+                        byVersion->highestTimestamp.value,
+                        highestTimestamp.value));
+    }
+
+    // Reject duplicate timestamps — two releases cannot share the same cut-point.
+    auto const byTimestamp =
+        std::ranges::find_if(_releases, [&](MigrationRelease const& r) { return r.highestTimestamp == highestTimestamp; });
+    if (byTimestamp != _releases.end())
+    {
+        throw std::runtime_error(std::format("Duplicate release timestamp {}: '{}' conflicts with existing release '{}'.",
+                                             highestTimestamp.value,
+                                             version,
+                                             byTimestamp->version));
+    }
+
+    _releases.emplace_back(MigrationRelease { .version = std::move(version), .highestTimestamp = highestTimestamp });
+    std::ranges::sort(_releases, [](MigrationRelease const& a, MigrationRelease const& b) {
+        return a.highestTimestamp < b.highestTimestamp;
+    });
+}
+
+void MigrationManager::RemoveAllReleases()
+{
+    _releases.clear();
+}
+
+std::vector<MigrationRelease> const& MigrationManager::GetAllReleases() const noexcept
+{
+    return _releases;
+}
+
+MigrationRelease const* MigrationManager::FindReleaseByVersion(std::string_view version) const noexcept
+{
+    auto const it = std::ranges::find_if(_releases, [&](MigrationRelease const& r) { return r.version == version; });
+    return it != _releases.end() ? &*it : nullptr;
+}
+
+MigrationRelease const* MigrationManager::FindReleaseForTimestamp(MigrationTimestamp timestamp) const noexcept
+{
+    // _releases is sorted ascending by highestTimestamp. Return the first release whose
+    // highestTimestamp covers `timestamp`.
+    auto const it = std::ranges::lower_bound(_releases, timestamp, {}, &MigrationRelease::highestTimestamp);
+    return it != _releases.end() ? &*it : nullptr;
+}
+
+MigrationManager::MigrationList MigrationManager::GetMigrationsForRelease(std::string_view version) const
+{
+    auto const* target = FindReleaseByVersion(version);
+    if (!target)
+        return {};
+
+    // Determine the previous release's highestTimestamp as an exclusive lower bound.
+    MigrationTimestamp prev { 0 };
+    for (auto const& r: _releases)
+    {
+        if (r.highestTimestamp < target->highestTimestamp && r.highestTimestamp > prev)
+            prev = r.highestTimestamp;
+    }
+
+    MigrationList result;
+    for (auto const* migration: _migrations)
+    {
+        auto const ts = migration->GetTimestamp();
+        if (ts > prev && ts <= target->highestTimestamp)
+            result.push_back(migration);
+    }
+    return result;
+}
+
 namespace
 {
     std::optional<SqlString<128>> MakeOptionalSqlString128(std::string_view value)

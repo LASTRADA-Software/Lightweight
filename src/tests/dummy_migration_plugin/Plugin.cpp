@@ -3,8 +3,6 @@
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlQuery/Migrate.hpp>
 
-#include <iostream>
-
 using namespace Lightweight;
 
 // Define the plugin entry point
@@ -17,28 +15,16 @@ LIGHTWEIGHT_SQL_MIGRATION(20230101000000, "Initial Migration")
         .Column("name", SqlColumnTypeDefinitions::Varchar(50));
 }
 
-struct Migration_20230102000000: public Lightweight::SqlMigration::MigrationBase
-{
-    Migration_20230102000000():
-        Lightweight::SqlMigration::MigrationBase(Lightweight::SqlMigration::MigrationTimestamp { 20230102000000 },
-                                                 "Add Email Column")
-    {
-    }
-
-    void Up(Lightweight::SqlMigrationQueryBuilder& plan) const override
-    {
+// A reversible migration: both Up and Down are declared together as a
+// single registration, so there is exactly one source of truth for the
+// migration's behaviour.
+static SqlMigration::Migration<20230102000000> const migration_20230102000000(
+    "Add Email Column",
+    [](SqlMigrationQueryBuilder& plan) {
         plan.AlterTable("dummy_users").AddColumn("email", SqlColumnTypeDefinitions::Varchar(100));
-    }
+    },
+    [](SqlMigrationQueryBuilder& plan) { plan.AlterTable("dummy_users").DropColumn("email"); });
 
-    void Down(Lightweight::SqlMigrationQueryBuilder& plan) const override
-    {
-        plan.AlterTable("dummy_users").DropColumn("email");
-    }
-
-    [[nodiscard]] bool HasDownImplementation() const noexcept override
-    {
-        return true;
-    }
-};
-
-static Migration_20230102000000 migration_20230102000000;
+// Declare a release marker for plugin 1. Releases expose a version -> highest-timestamp
+// mapping that dbtool surfaces via `releases` and `rollback-to-release`.
+LIGHTWEIGHT_SQL_RELEASE("1.0.0", 20230102000000);

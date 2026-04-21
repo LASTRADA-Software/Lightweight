@@ -27,6 +27,7 @@ class SqlMigrationTestFixture: public SqlTestFixture
         SqlTestFixture()
     {
         Lightweight::SqlMigration::MigrationManager::GetInstance().RemoveAllMigrations();
+        Lightweight::SqlMigration::MigrationManager::GetInstance().RemoveAllReleases();
     }
     SqlMigrationTestFixture(SqlMigrationTestFixture&&) = delete;
     SqlMigrationTestFixture(SqlMigrationTestFixture const&) = delete;
@@ -944,4 +945,140 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "DropIndexIfExists", "[SqlMigration]")
 
     // Second drop should not throw - IF EXISTS handles non-existent index
     CHECK_NOTHROW(manager.ApplyPendingMigrations());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "RegisterRelease stores and orders releases", "[SqlMigration]")
+{
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+
+    // Register out of order; expect ascending-by-timestamp order afterwards.
+    manager.RegisterRelease("6.8.0", SqlMigration::MigrationTimestamp { 202606010000 });
+    manager.RegisterRelease("6.6.0", SqlMigration::MigrationTimestamp { 202601010000 });
+    manager.RegisterRelease("6.7.0", SqlMigration::MigrationTimestamp { 202603010000 });
+
+    auto const& releases = manager.GetAllReleases();
+    REQUIRE(releases.size() == 3);
+    CHECK(releases[0].version == "6.6.0");
+    CHECK(releases[1].version == "6.7.0");
+    CHECK(releases[2].version == "6.8.0");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "RegisterRelease rejects duplicate version", "[SqlMigration]")
+{
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.RegisterRelease("7.0.0", SqlMigration::MigrationTimestamp { 202701010000 });
+
+    CHECK_THROWS_AS(manager.RegisterRelease("7.0.0", SqlMigration::MigrationTimestamp { 202701020000 }), std::runtime_error);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "RegisterRelease rejects duplicate timestamp", "[SqlMigration]")
+{
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.RegisterRelease("7.1.0", SqlMigration::MigrationTimestamp { 202702010000 });
+
+    CHECK_THROWS_AS(manager.RegisterRelease("7.1.1", SqlMigration::MigrationTimestamp { 202702010000 }), std::runtime_error);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "FindReleaseByVersion and FindReleaseForTimestamp", "[SqlMigration]")
+{
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.RegisterRelease("8.0.0", SqlMigration::MigrationTimestamp { 202801010000 });
+    manager.RegisterRelease("8.1.0", SqlMigration::MigrationTimestamp { 202802010000 });
+
+    auto const* v800 = manager.FindReleaseByVersion("8.0.0");
+    REQUIRE(v800 != nullptr);
+    CHECK(v800->highestTimestamp.value == 202801010000);
+
+    CHECK(manager.FindReleaseByVersion("does-not-exist") == nullptr);
+
+    // Before any release — still covered by the first release, because lower_bound returns the first
+    // release whose highestTimestamp >= ts.
+    auto const* early = manager.FindReleaseForTimestamp(SqlMigration::MigrationTimestamp { 202701010000 });
+    REQUIRE(early != nullptr);
+    CHECK(early->version == "8.0.0");
+
+    // Exactly at the first release's timestamp.
+    auto const* atFirst = manager.FindReleaseForTimestamp(SqlMigration::MigrationTimestamp { 202801010000 });
+    REQUIRE(atFirst != nullptr);
+    CHECK(atFirst->version == "8.0.0");
+
+    // Between first and second.
+    auto const* between = manager.FindReleaseForTimestamp(SqlMigration::MigrationTimestamp { 202801150000 });
+    REQUIRE(between != nullptr);
+    CHECK(between->version == "8.1.0");
+
+    // Past the last release.
+    CHECK(manager.FindReleaseForTimestamp(SqlMigration::MigrationTimestamp { 202901010000 }) == nullptr);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "GetMigrationsForRelease returns range-bounded migrations", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto m1 = SqlMigration::Migration<202801010000>(
+        "m1",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m1").PrimaryKey("id", Integer()); });
+    auto m2 = SqlMigration::Migration<202802010000>(
+        "m2",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m2").PrimaryKey("id", Integer()); });
+    auto m3 = SqlMigration::Migration<202803010000>(
+        "m3",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m3").PrimaryKey("id", Integer()); });
+    auto m4 = SqlMigration::Migration<202804010000>(
+        "m4",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m4").PrimaryKey("id", Integer()); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    // Release A covers m1+m2; release B covers m3 only. m4 is post-all-releases.
+    manager.RegisterRelease("A", SqlMigration::MigrationTimestamp { 202802010000 });
+    manager.RegisterRelease("B", SqlMigration::MigrationTimestamp { 202803010000 });
+
+    auto const inA = manager.GetMigrationsForRelease("A");
+    REQUIRE(inA.size() == 2);
+    auto itA = inA.begin();
+    CHECK((*itA++)->GetTimestamp().value == 202801010000);
+    CHECK((*itA)->GetTimestamp().value == 202802010000);
+
+    auto const inB = manager.GetMigrationsForRelease("B");
+    REQUIRE(inB.size() == 1);
+    CHECK(inB.front()->GetTimestamp().value == 202803010000);
+
+    // Unknown version => empty list, not an error.
+    CHECK(manager.GetMigrationsForRelease("does-not-exist").empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "RollbackToRelease semantics via RevertToMigration", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto m1 = SqlMigration::Migration<202810010000>(
+        "rel r1",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_r1").PrimaryKey("id", Integer()); },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("rel_r1"); });
+    auto m2 = SqlMigration::Migration<202810020000>(
+        "rel r2",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_r2").PrimaryKey("id", Integer()); },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("rel_r2"); });
+    auto m3 = SqlMigration::Migration<202810030000>(
+        "rel r3",
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_r3").PrimaryKey("id", Integer()); },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("rel_r3"); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.RegisterRelease("9.0.0", SqlMigration::MigrationTimestamp { 202810020000 });
+
+    manager.CreateMigrationHistory();
+    CHECK(manager.ApplyPendingMigrations() == 3);
+
+    // Semantically: rollback-to-release 9.0.0 reverts everything after 202810020000 — i.e. m3.
+    auto const* release = manager.FindReleaseByVersion("9.0.0");
+    REQUIRE(release != nullptr);
+
+    auto result = manager.RevertToMigration(release->highestTimestamp);
+    CHECK(result.revertedTimestamps.size() == 1);
+    CHECK(!result.failedAt.has_value());
+
+    auto const appliedIds = manager.GetAppliedMigrationIds();
+    CHECK(appliedIds.size() == 2);
+    CHECK(appliedIds.back().value == 202810020000);
 }

@@ -171,6 +171,29 @@ def main():
         print("Final verification failed")
         sys.exit(1)
 
+    print("--- 7a. Releases ---")
+    releases_output = run_command(base_cmd + ["releases"]).stdout
+    if "1.0.0" not in releases_output or "2.0.0" not in releases_output:
+        print(f"Releases command did not list expected versions:\n{releases_output}")
+        sys.exit(1)
+
+    print("--- 7b. Rollback-to-release ---")
+    run_command(base_cmd + ["rollback-to-release", "1.0.0"])
+    output = run_command(base_cmd + ["list-applied"]).stdout
+    if "Second Plugin Migration" in output:
+        print(f"rollback-to-release did not revert migrations past 1.0.0:\n{output}")
+        sys.exit(1)
+    if "Add Email Column" not in output:
+        print(f"rollback-to-release 1.0.0 incorrectly reverted a migration inside the release:\n{output}")
+        sys.exit(1)
+
+    print("--- 7c. Re-apply after release rollback ---")
+    run_command(base_cmd + ["migrate"])
+    output = run_command(base_cmd + ["list-applied"]).stdout
+    if "Second Plugin Migration" not in output:
+        print(f"Re-migrate after rollback-to-release did not re-apply plugin 2 migration:\n{output}")
+        sys.exit(1)
+
     print("--- 8. Schema-only Backup ---")
     with tempfile.TemporaryDirectory() as tmpdir:
         schema_zip = os.path.join(tmpdir, "schema.zip")
