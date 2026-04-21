@@ -117,7 +117,10 @@ void PrintUsage()
                  c.command, c.reset, c.param, c.reset);
     std::println("  {}rollback-to{} {}<TIMESTAMP>{}  Rolls back all migrations after the given timestamp",
                  c.command, c.reset, c.param, c.reset);
+    std::println("  {}rollback-to-release{} {}<VERSION>{}  Rolls back all migrations after the given release",
+                 c.command, c.reset, c.param, c.reset);
     std::println("  {}status{}                   Shows migration status summary", c.command, c.reset);
+    std::println("  {}releases{}                 Lists declared releases and their migrations", c.command, c.reset);
     std::println("  {}mark-applied{} {}<TIMESTAMP>{} Marks a migration as applied without executing",
                  c.command, c.reset, c.param, c.reset);
     std::println("  {}backup{} --output FILE     Backs up the database to a file", c.command, c.reset);
@@ -580,6 +583,12 @@ void CollectMigrations(std::vector<Tools::PluginLoader> const& plugins, Migratio
                     {
                         centralManager.AddMigration(migration);
                     }
+                    // Copy release declarations alongside migrations so CLI commands like
+                    // `releases` and `rollback-to-release` see them.
+                    for (auto const& release: pluginManager->GetAllReleases())
+                    {
+                        centralManager.RegisterRelease(release.version, release.highestTimestamp);
+                    }
                 }
             }
         }
@@ -837,6 +846,112 @@ int RollbackTo(MigrationManager& manager, std::string_view argument)
 
     std::println("");
     std::println("Successfully rolled back {} migration(s).", result.revertedTimestamps.size());
+    return EXIT_SUCCESS;
+}
+
+/// Lists all declared software releases with their highest-migration timestamps
+/// and how many registered migrations fall in each release's range.
+///
+/// @param manager The migration manager instance.
+/// @return EXIT_SUCCESS.
+int Releases(MigrationManager& manager)
+{
+    auto const& releases = manager.GetAllReleases();
+
+    if (releases.empty())
+    {
+        std::println("No releases declared.");
+        return EXIT_SUCCESS;
+    }
+
+    auto const applied = manager.GetAppliedMigrationIds();
+    auto const isApplied = [&](MigrationTimestamp ts) {
+        return std::ranges::contains(applied, ts);
+    };
+
+    std::println("Releases:");
+    std::println("");
+    std::println("  {:<16} {:<24} {:>10}  {}", "Version", "Highest Timestamp", "Migrations", "Status");
+
+    for (auto const& release: releases)
+    {
+        auto const migrations = manager.GetMigrationsForRelease(release.version);
+
+        // A release is "fully applied" iff every migration in its range is applied.
+        // If it has no migrations, treat as "empty" rather than applied.
+        auto const allApplied =
+            !migrations.empty()
+            && std::ranges::all_of(migrations, [&](MigrationBase const* m) { return isApplied(m->GetTimestamp()); });
+        auto const anyApplied =
+            std::ranges::any_of(migrations, [&](MigrationBase const* m) { return isApplied(m->GetTimestamp()); });
+
+        std::string_view status;
+        if (migrations.empty())
+            status = "empty";
+        else if (allApplied)
+            status = "applied";
+        else if (anyApplied)
+            status = "partial";
+        else
+            status = "pending";
+
+        std::println(
+            "  {:<16} {:<24} {:>10}  {}", release.version, release.highestTimestamp.value, migrations.size(), status);
+    }
+
+    return EXIT_SUCCESS;
+}
+
+/// Rolls back all migrations applied after the release identified by `version`.
+///
+/// Resolves `version` to its `highestTimestamp` and delegates to `RevertToMigration`. Migrations
+/// whose timestamp is `<= highestTimestamp` are kept; those strictly greater are reverted in
+/// reverse timestamp order.
+///
+/// @param manager The migration manager instance.
+/// @param argument The target release version string.
+/// @return EXIT_SUCCESS on success, EXIT_FAILURE on error.
+int RollbackToRelease(MigrationManager& manager, std::string_view argument)
+{
+    if (argument.empty())
+    {
+        std::println(std::cerr, "Error: Target release version is required.");
+        return EXIT_FAILURE;
+    }
+
+    auto const* release = manager.FindReleaseByVersion(argument);
+    if (!release)
+    {
+        std::println(std::cerr, "Error: Release '{}' is not declared.", argument);
+        return EXIT_FAILURE;
+    }
+
+    std::println(
+        "Rolling back migrations after release '{}' (timestamp {})...", release->version, release->highestTimestamp.value);
+    std::println("");
+
+    auto const result = manager.RevertToMigration(release->highestTimestamp, [](MigrationBase const& m, size_t i, size_t n) {
+        std::println("[{}/{}] Rolling back {} - {}", i + 1, n, m.GetTimestamp().value, m.GetTitle());
+    });
+
+    if (result.revertedTimestamps.empty() && !result.failedAt.has_value())
+    {
+        std::println("No migrations to rollback. Database is already at or before release '{}'.", argument);
+        return EXIT_SUCCESS;
+    }
+
+    if (result.failedAt.has_value())
+    {
+        std::println(std::cerr, "");
+        std::println(std::cerr, "Error: Failed to rollback migration {}: {}", result.failedAt->value, result.errorMessage);
+        std::println(std::cerr,
+                     "Rollback stopped. {} migration(s) were rolled back before the failure.",
+                     result.revertedTimestamps.size());
+        return EXIT_FAILURE;
+    }
+
+    std::println("");
+    std::println("Successfully rolled back {} migration(s) to release '{}'.", result.revertedTimestamps.size(), argument);
     return EXIT_SUCCESS;
 }
 
@@ -1447,6 +1562,8 @@ int main(int argc, char** argv)
             return ListAppliedMigrations(GetMigrationManager(options));
         else if (options.command == "status")
             return Status(GetMigrationManager(options));
+        else if (options.command == "releases")
+            return Releases(GetMigrationManager(options));
 
         // Write commands (lock recommended)
         else if (options.command == "migrate")
@@ -1472,6 +1589,12 @@ int main(int argc, char** argv)
             auto& manager = GetMigrationManager(options);
             OptionalMigrationLock lock(manager, options.noLock);
             return RollbackTo(manager, options.argument);
+        }
+        else if (options.command == "rollback-to-release")
+        {
+            auto& manager = GetMigrationManager(options);
+            OptionalMigrationLock lock(manager, options.noLock);
+            return RollbackToRelease(manager, options.argument);
         }
         else if (options.command == "mark-applied")
         {
