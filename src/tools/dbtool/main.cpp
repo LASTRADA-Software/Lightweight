@@ -17,6 +17,7 @@
 #include <iostream>
 #include <print>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #if defined(__clang__)
@@ -120,7 +121,8 @@ void PrintUsage()
     std::println("  {}rollback-to-release{} {}<VERSION>{}  Rolls back all migrations after the given release",
                  c.command, c.reset, c.param, c.reset);
     std::println("  {}status{}                   Shows migration status summary", c.command, c.reset);
-    std::println("  {}releases{}                 Lists declared releases and their migrations", c.command, c.reset);
+    std::println("  {}releases{}                 Lists declared releases and their migration counts/status",
+                 c.command, c.reset);
     std::println("  {}mark-applied{} {}<TIMESTAMP>{} Marks a migration as applied without executing",
                  c.command, c.reset, c.param, c.reset);
     std::println("  {}backup{} --output FILE     Backs up the database to a file", c.command, c.reset);
@@ -579,15 +581,16 @@ void CollectMigrations(std::vector<Tools::PluginLoader> const& plugins, Migratio
                 MigrationManager* pluginManager = acquireParams();
                 if (pluginManager && pluginManager != &centralManager)
                 {
-                    for (auto const* migration: pluginManager->GetAllMigrations())
-                    {
-                        centralManager.AddMigration(migration);
-                    }
-                    // Copy release declarations alongside migrations so CLI commands like
-                    // `releases` and `rollback-to-release` see them.
+                    // Register releases before migrations: the failure mode most likely to throw
+                    // here is a cross-plugin duplicate release, and we'd rather skip the whole
+                    // plugin on conflict than end up with migrations imported but releases missing.
                     for (auto const& release: pluginManager->GetAllReleases())
                     {
                         centralManager.RegisterRelease(release.version, release.highestTimestamp);
+                    }
+                    for (auto const* migration: pluginManager->GetAllMigrations())
+                    {
+                        centralManager.AddMigration(migration);
                     }
                 }
             }
@@ -864,10 +867,14 @@ int Releases(MigrationManager& manager)
         return EXIT_SUCCESS;
     }
 
+    // Materialize applied IDs into a hash set so the per-release all_of/any_of checks below
+    // are O(1) per lookup instead of a linear scan over `applied`.
     auto const applied = manager.GetAppliedMigrationIds();
-    auto const isApplied = [&](MigrationTimestamp ts) {
-        return std::ranges::contains(applied, ts);
-    };
+    std::unordered_set<uint64_t> appliedSet;
+    appliedSet.reserve(applied.size());
+    for (auto const& ts: applied)
+        appliedSet.insert(ts.value);
+    auto const isApplied = [&](MigrationTimestamp ts) { return appliedSet.contains(ts.value); };
 
     std::println("Releases:");
     std::println("");
