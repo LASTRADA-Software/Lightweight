@@ -134,10 +134,10 @@ Macros</h2></td></tr>
 <tr class="memdesc:ga41dacd6fabd65f95ca0dfb209e7d187e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new migration.  <br /></td></tr>
 <tr class="separator:ga41dacd6fabd65f95ca0dfb209e7d187e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga76c71fe0a6e518e2b94b51bcbdf9e164" id="r_ga76c71fe0a6e518e2b94b51bcbdf9e164"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164">LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE</a>(timestamp,  description)</td></tr>
-<tr class="memdesc:ga76c71fe0a6e518e2b94b51bcbdf9e164"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new reversible migration whose <code>Down()</code> is defined out-of-line via <a class="el" href="../../db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c">LIGHTWEIGHT_SQL_MIGRATION_DOWN</a>.  <br /></td></tr>
+<tr class="memdesc:ga76c71fe0a6e518e2b94b51bcbdf9e164"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates a new reversible migration whose <code>Down()</code> is defined out-of-line via <code>LIGHTWEIGHT_SQL_MIGRATION_DOWN</code>.  <br /></td></tr>
 <tr class="separator:ga76c71fe0a6e518e2b94b51bcbdf9e164"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga885073903b9f8e7bd81d9dabc8e33d5c" id="r_ga885073903b9f8e7bd81d9dabc8e33d5c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c">LIGHTWEIGHT_SQL_MIGRATION_DOWN</a>(timestamp)&#160;&#160;&#160;    void Migration_##timestamp::Down(<a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">Lightweight::SqlMigrationQueryBuilder</a>&amp; plan) const</td></tr>
-<tr class="memdesc:ga885073903b9f8e7bd81d9dabc8e33d5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Companion to LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE: defines the out-of-line <code>Down()</code> body.  <br /></td></tr>
+<tr class="memdesc:ga885073903b9f8e7bd81d9dabc8e33d5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Companion to <code>LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE</code> defining the out-of-line <code>Down()</code> body.  <br /></td></tr>
 <tr class="separator:ga885073903b9f8e7bd81d9dabc8e33d5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga91ef871053a7180297054840ef21a41a" id="r_ga91ef871053a7180297054840ef21a41a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a">LIGHTWEIGHT_SQL_RELEASE</a>(version,  highestTimestamp)</td></tr>
 <tr class="memdesc:ga91ef871053a7180297054840ef21a41a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associates a software release (version string) with the highest migration timestamp present at the time of that release.  <br /></td></tr>
@@ -314,8 +314,8 @@ Macros</h2></td></tr>
 <div class="line">                                                                                                                  \</div>
 <div class="line">    <span class="keywordtype">void</span> Migration_##timestamp::Up(<a class="code hl_class" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">Lightweight::SqlMigrationQueryBuilder</a>&amp; plan) <span class="keyword">const</span></div>
 </div><!-- fragment -->
-<p>Creates a new reversible migration whose <code>Down()</code> is defined out-of-line via <a class="el" href="../../db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c">LIGHTWEIGHT_SQL_MIGRATION_DOWN</a>. </p>
-<p>Use this variant when the migration needs to be reversible. Follow the macro with the <code>Up()</code> body, then later use <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c" title="Companion to LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE: defines the out-of-line Down() body.">LIGHTWEIGHT_SQL_MIGRATION_DOWN(timestamp)</a> { ... }</code> to provide the <code>Down()</code> body.</p>
+<p>Creates a new reversible migration whose <code>Down()</code> is defined out-of-line via <code>LIGHTWEIGHT_SQL_MIGRATION_DOWN</code>. </p>
+<p>Use this variant when the migration needs to be reversible. Follow the macro with the <code>Up()</code> body, then later use <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c" title="Companion to LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE defining the out-of-line Down() body.">LIGHTWEIGHT_SQL_MIGRATION_DOWN(timestamp)</a> { ... }</code> to provide the <code>Down()</code> body.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">timestamp</td><td>Timestamp of the migration. </td></tr>
@@ -333,7 +333,7 @@ Macros</h2></td></tr>
 <div class="line">    plan.DropTable(<span class="stringliteral">&quot;MyTable&quot;</span>);</div>
 <div class="line">}</div>
 <div class="ttc" id="agroup__SqlMigration_html_ga76c71fe0a6e518e2b94b51bcbdf9e164"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164">LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE(timestamp, description)</div><div class="ttdoc">Creates a new reversible migration whose Down() is defined out-of-line via LIGHTWEIGHT_SQL_MIGRATION_...</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00644">SqlMigration.hpp:644</a></div></div>
-<div class="ttc" id="agroup__SqlMigration_html_ga885073903b9f8e7bd81d9dabc8e33d5c"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c">LIGHTWEIGHT_SQL_MIGRATION_DOWN</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION_DOWN(timestamp)</div><div class="ttdoc">Companion to LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE: defines the out-of-line Down() body.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00674">SqlMigration.hpp:674</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga885073903b9f8e7bd81d9dabc8e33d5c"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c">LIGHTWEIGHT_SQL_MIGRATION_DOWN</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION_DOWN(timestamp)</div><div class="ttdoc">Companion to LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE defining the out-of-line Down() body.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00674">SqlMigration.hpp:674</a></div></div>
 </div><!-- fragment --> 
 <p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00644">644</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
@@ -355,7 +355,7 @@ Macros</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Companion to LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE: defines the out-of-line <code>Down()</code> body. </p>
+<p>Companion to <code>LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE</code> defining the out-of-line <code>Down()</code> body. </p>
 <p>Must be used in the same translation unit and follow the matching <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164" title="Creates a new reversible migration whose Down() is defined out-of-line via LIGHTWEIGHT_SQL_MIGRATION_...">LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE(timestamp, ...)</a></code> declaration.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">

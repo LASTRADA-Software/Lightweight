@@ -761,7 +761,7 @@ $(document).ready(function(){initNavTree('d6/d35/SqlMigration_8hpp_source.html',
 </div>
 <div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span><span class="comment"></span> </div>
 <div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span><span class="comment">/// @brief Creates a new reversible migration whose `Down()` is defined out-of-line</span></div>
-<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span><span class="comment">/// via @ref LIGHTWEIGHT_SQL_MIGRATION_DOWN.</span></div>
+<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span><span class="comment">/// via @c LIGHTWEIGHT_SQL_MIGRATION_DOWN.</span></div>
 <div class="line"><a id="l00623" name="l00623"></a><span class="lineno">  623</span><span class="comment">///</span></div>
 <div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span><span class="comment">/// Use this variant when the migration needs to be reversible. Follow the macro with</span></div>
 <div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span><span class="comment">/// the `Up()` body, then later use `LIGHTWEIGHT_SQL_MIGRATION_DOWN(timestamp) { ... }`</span></div>
@@ -807,7 +807,7 @@ $(document).ready(function(){initNavTree('d6/d35/SqlMigration_8hpp_source.html',
 <div class="line"><a id="l00664" name="l00664"></a><span class="lineno">  664</span><span class="preprocessor">    void Migration_##timestamp::Up(Lightweight::SqlMigrationQueryBuilder&amp; plan) const</span></div>
 </div>
 <div class="line"><a id="l00665" name="l00665"></a><span class="lineno">  665</span><span class="comment"></span> </div>
-<div class="line"><a id="l00666" name="l00666"></a><span class="lineno">  666</span><span class="comment">/// @brief Companion to @ref LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE: defines the out-of-line `Down()` body.</span></div>
+<div class="line"><a id="l00666" name="l00666"></a><span class="lineno">  666</span><span class="comment">/// @brief Companion to @c LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE defining the out-of-line `Down()` body.</span></div>
 <div class="line"><a id="l00667" name="l00667"></a><span class="lineno">  667</span><span class="comment">///</span></div>
 <div class="line"><a id="l00668" name="l00668"></a><span class="lineno">  668</span><span class="comment">/// Must be used in the same translation unit and follow the matching</span></div>
 <div class="line"><a id="l00669" name="l00669"></a><span class="lineno">  669</span><span class="comment">/// `LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE(timestamp, ...)` declaration.</span></div>
