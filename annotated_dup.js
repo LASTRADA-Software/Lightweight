@@ -26,8 +26,10 @@ var annotated_dup =
         [ "MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock" ],
         [ "MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager" ],
         [ "MigrationMetadata", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata" ],
+        [ "MigrationRelease", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease" ],
         [ "MigrationStatus", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus" ],
         [ "MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp" ],
+        [ "ReleaseRegistrar", "dc/d0e/structLightweight_1_1SqlMigration_1_1ReleaseRegistrar.html", "dc/d0e/structLightweight_1_1SqlMigration_1_1ReleaseRegistrar" ],
         [ "RevertResult", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult" ]
       ] ],
       [ "SqlSchema", null, [

@@ -22,5 +22,11 @@ var classLightweight_1_1SqlMigration_1_1MigrationManager =
     [ "MarkMigrationAsApplied", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a0ddf3ef0e6d833b829509ac769d04530", null ],
     [ "RevertToMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1dece4a4dc2811ac8cd8dce1c1130b11", null ],
     [ "GetMigrationStatus", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aaaca2ec37763d11612d487ecad5daebf", null ],
-    [ "ValidateDependencies", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ab30c624d73149913fc06226b9d7b595a", null ]
+    [ "ValidateDependencies", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ab30c624d73149913fc06226b9d7b595a", null ],
+    [ "RegisterRelease", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a542c4d9a99d7bbd8116e7c5f688be0bd", null ],
+    [ "RemoveAllReleases", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a4a3c08e9053c7409a170abd9891e15bf", null ],
+    [ "GetAllReleases", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad390ac8da8ac693c7357b67bc183bb60", null ],
+    [ "FindReleaseByVersion", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a68b4434898a6ebceb06025065af79ec0", null ],
+    [ "FindReleaseForTimestamp", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97663a37d26d962c2c17d97706651c0f", null ],
+    [ "GetMigrationsForRelease", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97918619adda32f2e9f65b089221a01f", null ]
 ];

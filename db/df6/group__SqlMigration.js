@@ -23,6 +23,10 @@ var group__SqlMigration =
       [ "unknownAppliedCount", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#add9ed9d433afd954d99e936d1d3e0367", null ],
       [ "totalRegistered", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a5ae7285c2d9fe56478bbd53631e5fb27", null ]
     ] ],
+    [ "Lightweight::SqlMigration::MigrationRelease", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html", [
+      [ "version", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#ab1116d155822475c5e653b49aa5805aa", null ],
+      [ "highestTimestamp", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#a48cc0c694f65a3ad2e43b839ab5d5088", null ]
+    ] ],
     [ "Lightweight::SqlMigration::MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", [
       [ "MigrationList", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1", null ],
       [ "ExecuteCallback", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364", null ],
@@ -46,7 +50,13 @@ var group__SqlMigration =
       [ "MarkMigrationAsApplied", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a0ddf3ef0e6d833b829509ac769d04530", null ],
       [ "RevertToMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1dece4a4dc2811ac8cd8dce1c1130b11", null ],
       [ "GetMigrationStatus", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aaaca2ec37763d11612d487ecad5daebf", null ],
-      [ "ValidateDependencies", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ab30c624d73149913fc06226b9d7b595a", null ]
+      [ "ValidateDependencies", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ab30c624d73149913fc06226b9d7b595a", null ],
+      [ "RegisterRelease", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a542c4d9a99d7bbd8116e7c5f688be0bd", null ],
+      [ "RemoveAllReleases", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a4a3c08e9053c7409a170abd9891e15bf", null ],
+      [ "GetAllReleases", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad390ac8da8ac693c7357b67bc183bb60", null ],
+      [ "FindReleaseByVersion", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a68b4434898a6ebceb06025065af79ec0", null ],
+      [ "FindReleaseForTimestamp", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97663a37d26d962c2c17d97706651c0f", null ],
+      [ "GetMigrationsForRelease", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97918619adda32f2e9f65b089221a01f", null ]
     ] ],
     [ "Lightweight::SqlMigration::MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", [
       [ "MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a8ee0594832c46d4679a3db0a139b77b9", null ],
@@ -67,6 +77,9 @@ var group__SqlMigration =
       [ "author", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62", null ],
       [ "description", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aede084084d8c094a9f4e08d86b8f13f8", null ]
     ] ],
+    [ "Lightweight::SqlMigration::ReleaseRegistrar", "dc/d0e/structLightweight_1_1SqlMigration_1_1ReleaseRegistrar.html", [
+      [ "ReleaseRegistrar", "dc/d0e/structLightweight_1_1SqlMigration_1_1ReleaseRegistrar.html#a59afee8174a02bb6e657569e8326343d", null ]
+    ] ],
     [ "Lightweight::SqlMigration::MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html", [
       [ "MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#ad96abad387505fd1f962993f60d91913", null ],
       [ "~MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#a2ac5fc5f8d975982e9f079eae1d2ad80", null ],
@@ -77,5 +90,8 @@ var group__SqlMigration =
     ] ],
     [ "LIGHTWEIGHT_MIGRATION_PLUGIN", "db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73", null ],
     [ "LIGHTWEIGHT_MIGRATION_INSTANCE", "db/df6/group__SqlMigration.html#ga32d47d81e5b99a703e522a33a54fdc74", null ],
-    [ "LIGHTWEIGHT_SQL_MIGRATION", "db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e", null ]
+    [ "LIGHTWEIGHT_SQL_MIGRATION", "db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e", null ],
+    [ "LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE", "db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164", null ],
+    [ "LIGHTWEIGHT_SQL_MIGRATION_DOWN", "db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c", null ],
+    [ "LIGHTWEIGHT_SQL_RELEASE", "db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a", null ]
 ];

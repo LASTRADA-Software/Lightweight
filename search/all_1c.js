@@ -9,5 +9,6 @@ var searchData=
   ['varying_6',['Varying',['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ad6c4d16035eeae14498503654c48dcbb',1,'Lightweight::SqlSelectQueryBuilder']]],
   ['verification_7',['Status &amp; Verification',['../d2/da6/sql-migrations.html#status--verification',1,'']]],
   ['verifychecksums_8',['VerifyChecksums',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a63ce9461c4cd37394364f25f4e9f0cc8',1,'Lightweight::SqlMigration::MigrationManager']]],
-  ['via_20structs_9',['Simple row retrieval via structs',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'']]]
+  ['version_9',['version',['../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#ab1116d155822475c5e653b49aa5805aa',1,'Lightweight::SqlMigration::MigrationRelease']]],
+  ['via_20structs_10',['Simple row retrieval via structs',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'']]]
 ];

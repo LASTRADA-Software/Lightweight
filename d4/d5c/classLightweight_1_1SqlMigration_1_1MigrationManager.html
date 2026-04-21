@@ -159,6 +159,22 @@ LIGHTWEIGHT_API <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.
 <tr class="separator:aaaca2ec37763d11612d487ecad5daebf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab30c624d73149913fc06226b9d7b595a" id="r_ab30c624d73149913fc06226b9d7b595a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ab30c624d73149913fc06226b9d7b595a">ValidateDependencies</a> () const</td></tr>
 <tr class="separator:ab30c624d73149913fc06226b9d7b595a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a542c4d9a99d7bbd8116e7c5f688be0bd" id="r_a542c4d9a99d7bbd8116e7c5f688be0bd"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a542c4d9a99d7bbd8116e7c5f688be0bd">RegisterRelease</a> (std::string version, <a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> highestTimestamp)</td></tr>
+<tr class="separator:a542c4d9a99d7bbd8116e7c5f688be0bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4a3c08e9053c7409a170abd9891e15bf" id="r_a4a3c08e9053c7409a170abd9891e15bf"><td class="memItemLeft" align="right" valign="top"><a id="a4a3c08e9053c7409a170abd9891e15bf" name="a4a3c08e9053c7409a170abd9891e15bf"></a>
+LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>RemoveAllReleases</b> ()</td></tr>
+<tr class="memdesc:a4a3c08e9053c7409a170abd9891e15bf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove all registered releases. Useful for resetting state in tests. <br /></td></tr>
+<tr class="separator:a4a3c08e9053c7409a170abd9891e15bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad390ac8da8ac693c7357b67bc183bb60" id="r_ad390ac8da8ac693c7357b67bc183bb60"><td class="memItemLeft" align="right" valign="top"><a id="ad390ac8da8ac693c7357b67bc183bb60" name="ad390ac8da8ac693c7357b67bc183bb60"></a>
+LIGHTWEIGHT_API std::vector&lt; <a class="el" href="../../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html">MigrationRelease</a> &gt; const &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>GetAllReleases</b> () const noexcept</td></tr>
+<tr class="memdesc:ad390ac8da8ac693c7357b67bc183bb60"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get all registered releases, sorted ascending by <code>highestTimestamp</code>. <br /></td></tr>
+<tr class="separator:ad390ac8da8ac693c7357b67bc183bb60"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a68b4434898a6ebceb06025065af79ec0" id="r_a68b4434898a6ebceb06025065af79ec0"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html">MigrationRelease</a> const *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a68b4434898a6ebceb06025065af79ec0">FindReleaseByVersion</a> (std::string_view version) const noexcept</td></tr>
+<tr class="separator:a68b4434898a6ebceb06025065af79ec0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a97663a37d26d962c2c17d97706651c0f" id="r_a97663a37d26d962c2c17d97706651c0f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html">MigrationRelease</a> const *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97663a37d26d962c2c17d97706651c0f">FindReleaseForTimestamp</a> (<a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> timestamp) const noexcept</td></tr>
+<tr class="separator:a97663a37d26d962c2c17d97706651c0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a97918619adda32f2e9f65b089221a01f" id="r_a97918619adda32f2e9f65b089221a01f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1">MigrationList</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97918619adda32f2e9f65b089221a01f">GetMigrationsForRelease</a> (std::string_view version) const</td></tr>
+<tr class="separator:a97918619adda32f2e9f65b089221a01f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -169,7 +185,7 @@ Static Public Member Functions</h2></td></tr>
 <div class="textblock"><p>Main API to use for managing SQL migrations</p>
 <p>This class is a singleton and can be accessed using the <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8">GetInstance()</a> method. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00086">86</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00105">105</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="a259626f016bf24f265c81c1bc4446ae1" name="a259626f016bf24f265c81c1bc4446ae1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a259626f016bf24f265c81c1bc4446ae1">&#9670;&#160;</a></span>MigrationList</h2>
@@ -185,7 +201,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Type alias for a list of migration pointers. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00090">90</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00109">109</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -203,7 +219,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Callback type invoked during migration execution to report progress. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00127">127</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00146">146</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -235,7 +251,7 @@ Static Public Member Functions</h2></td></tr>
 <dd>
 Reference to the migration manager. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00277">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00337">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>, and <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00566">Lightweight::SqlMigration::ReleaseRegistrar::ReleaseRegistrar()</a>.</p>
 
 </div>
 </div>
@@ -262,7 +278,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00277">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00337">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -493,7 +509,7 @@ Reference to the migration manager. </dd></dl>
 
 <p>Get the data mapper used for migrations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00158">158</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00177">177</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094">GetDataMapper()</a>.</p>
 
@@ -728,6 +744,134 @@ Reference to the migration manager. </dd></dl>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a542c4d9a99d7bbd8116e7c5f688be0bd" name="a542c4d9a99d7bbd8116e7c5f688be0bd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a542c4d9a99d7bbd8116e7c5f688be0bd">&#9670;&#160;</a></span>RegisterRelease()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API void Lightweight::SqlMigration::MigrationManager::RegisterRelease </td>
+          <td>(</td>
+          <td class="paramtype">std::string&#160;</td>
+          <td class="paramname"><em>version</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a>&#160;</td>
+          <td class="paramname"><em>highestTimestamp</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Register a release marker for a software version.</p>
+<p>Typically called from <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a" title="Associates a software release (version string) with the highest migration timestamp present at the ti...">LIGHTWEIGHT_SQL_RELEASE(version, timestamp)</a></code> at static init time. Releases are ordered by <code>highestTimestamp</code>; two releases may not share the same <code>highestTimestamp</code>, and the same version string may not be registered twice.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">version</td><td>Human-readable version, e.g. "6.7.0". </td></tr>
+    <tr><td class="paramname">highestTimestamp</td><td>Highest migration timestamp (inclusive) that belongs to this release. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">std::runtime_error</td><td>on duplicate version or duplicate timestamp. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00566">Lightweight::SqlMigration::ReleaseRegistrar::ReleaseRegistrar()</a>.</p>
+
+</div>
+</div>
+<a id="a68b4434898a6ebceb06025065af79ec0" name="a68b4434898a6ebceb06025065af79ec0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a68b4434898a6ebceb06025065af79ec0">&#9670;&#160;</a></span>FindReleaseByVersion()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html">MigrationRelease</a> const  * Lightweight::SqlMigration::MigrationManager::FindReleaseByVersion </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>version</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Find a release by exact version string match.</p>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to the matching release, or nullptr if no release with that version is registered. </dd></dl>
+
+</div>
+</div>
+<a id="a97663a37d26d962c2c17d97706651c0f" name="a97663a37d26d962c2c17d97706651c0f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a97663a37d26d962c2c17d97706651c0f">&#9670;&#160;</a></span>FindReleaseForTimestamp()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html">MigrationRelease</a> const  * Lightweight::SqlMigration::MigrationManager::FindReleaseForTimestamp </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a>&#160;</td>
+          <td class="paramname"><em>timestamp</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Find the release whose timestamp range contains <code>timestamp</code>.</p>
+<p>Returns the release with the smallest <code>highestTimestamp</code> that is <code>&gt;= timestamp</code>. Returns nullptr if <code>timestamp</code> is greater than every registered release's highestTimestamp (i.e., the migration is post-all-releases / unreleased). </p>
+
+</div>
+</div>
+<a id="a97918619adda32f2e9f65b089221a01f" name="a97918619adda32f2e9f65b089221a01f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a97918619adda32f2e9f65b089221a01f">&#9670;&#160;</a></span>GetMigrationsForRelease()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1">MigrationList</a> Lightweight::SqlMigration::MigrationManager::GetMigrationsForRelease </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>version</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Get all registered migrations belonging to a given release.</p>
+<p>A migration <code>M</code> belongs to release <code>R</code> iff <code>prev_release_ts &lt; M.timestamp &lt;= R.highestTimestamp</code>, where <code>prev_release_ts</code> is the previous release's timestamp (or 0 if <code>R</code> is the first release).</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">version</td><td>The version string to look up. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Migrations in the release, ordered by timestamp. Empty if the version is unknown. </dd></dl>
 
 </div>
 </div>

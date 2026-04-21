@@ -1,5 +1,14 @@
 var NAVTREEINDEX3 =
 {
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a3731b7ec6676cd87f087c41aa4a89ded":[10,4,12,6],
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a4290b5a70e3635cd356d83de3983c4b8":[10,4,12,5],
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a503a9d905ab222a68bb4fcbec1510154":[10,4,12,23],
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433":[10,4,12,22],
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6814368089abf7691cdd525806db0ae6":[10,4,12,7],
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6b6a91e9a51a6f601b7073269ce28f2e":[10,4,12,15],
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a6f66ef03096fe468348719335050a313":[10,4,12,17],
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a711667d1ef5b5b5a168aa21b2150a394":[10,4,12,1],
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a8364a9d3f3c11bad337d461b51a3df6b":[10,4,12,14],
 "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a864f9b5e3f759b096b505b66b999c887":[10,4,12,16],
 "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a95479644c39a4f2e98701951813f3e79":[10,4,12,11],
 "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#aa7662bd7885424c8970e4f11703a03a7":[10,4,12,20],
@@ -240,14 +249,5 @@ var NAVTREEINDEX3 =
 "da/df4/classLightweight_1_1HasMany.html#acea92f62bbba17fef8765578507e62e4":[10,2,6,5],
 "da/df4/classLightweight_1_1HasMany.html#ad61f5d9a2f12fe8aa41569414ca4c62e":[10,2,6,13],
 "da/df4/classLightweight_1_1HasMany.html#adb89edafa7435160b169cae7a7f095a5":[10,2,6,11],
-"db/d1c/SqlSchema_8hpp_source.html":[13,0,1,22],
-"db/d47/MigrationPlan_8hpp_source.html":[13,0,1,4,4],
-"db/d83/SqlQuery_2Core_8hpp_source.html":[13,0,1,4,0],
-"db/d8a/SqlDynamicBinary_8hpp_source.html":[13,0,1,0,6],
-"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html":[10,4,10],
-"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a1ce4484daf2a224ff8f4ca1fc74793a6":[10,4,10,2],
-"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a89072cc6f0d70a556d2a16a52ab698d7":[10,4,10,1],
-"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#aef625c1fdddcae0cdb986548f30f2ff9":[10,4,10,0],
-"db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html":[10,4,2],
-"db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#a1459637ec9641e6554ca94d6faf0edfe":[10,4,2,0]
+"db/d1c/SqlSchema_8hpp_source.html":[13,0,1,22]
 };
