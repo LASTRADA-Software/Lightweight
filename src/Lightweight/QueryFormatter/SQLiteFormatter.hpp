@@ -24,6 +24,21 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
   public:
+    /// Builds the SQL query used to check whether a column exists on a SQLite table.
+    ///
+    /// The migration executor uses this to resolve the `-- LIGHTWEIGHT_SQLITE_GUARD:`
+    /// sentinels emitted by @ref AlterTable for `AddColumnIfNotExists` / `DropColumnIfExists`.
+    /// Keeping the pragma SQL here ensures the sentinel-emitting side and the
+    /// runtime-presence-check side share a single source of truth.
+    ///
+    /// @param tableName Name of the table to inspect.
+    /// @param columnName Name of the column whose existence to check.
+    /// @return SQL string returning a single integer column: non-zero iff the column exists.
+    [[nodiscard]] static std::string BuildColumnExistsQuery(std::string_view tableName, std::string_view columnName)
+    {
+        return std::format(R"(SELECT COUNT(*) FROM pragma_table_info('{}') WHERE name = '{}';)", tableName, columnName);
+    }
+
     [[nodiscard]] std::string Insert(std::string_view intoTable,
                                      std::string_view fields,
                                      std::string_view values) const override
@@ -388,17 +403,16 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
             return std::format(R"("{}")", tableName);
         };
 
-        std::stringstream sqlQueryString;
+        // SQLite has no native IF NOT EXISTS / IF EXISTS for columns. We emit each command
+        // as its own result entry; guarded commands are prefixed with a sentinel comment
+        // that the migration executor recognizes and uses to perform a pragma_table_info
+        // presence check at runtime.
+        StringList result;
 
-        int currentCommand = 0;
+        using namespace SqlAlterTableCommands;
         for (SqlAlterTableCommand const& command: commands)
         {
-            if (currentCommand > 0)
-                sqlQueryString << '\n';
-            ++currentCommand;
-
-            using namespace SqlAlterTableCommands;
-            sqlQueryString << std::visit(
+            std::string sql = std::visit(
                 detail::overloaded {
                     [&formatTable](RenameTable const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE {} RENAME TO "{}";)", formatTable(), actualCommand.newTableName);
@@ -453,33 +467,39 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                         // We return empty string or comment to satisfy visitor.
                         return std::format(R"(-- AddCompositeForeignKey not supported for {};)", tableName);
                     },
-                    [&formatTable, this](AddColumnIfNotExists const& actualCommand) -> std::string {
+                    [&formatTable, tableName, this](AddColumnIfNotExists const& actualCommand) -> std::string {
                         // SQLite doesn't support IF NOT EXISTS for ADD COLUMN.
-                        // Generate a comment and the statement; caller should handle errors.
+                        // Emit a sentinel comment so the migration executor can presence-check
+                        // via pragma_table_info() before running the ALTER TABLE.
                         return std::format(
-                            R"(-- AddColumnIfNotExists: SQLite doesn't support IF NOT EXISTS for columns
-ALTER TABLE {} ADD COLUMN "{}" {} {};)",
-                            formatTable(),
+                            R"(-- LIGHTWEIGHT_SQLITE_GUARD: ADD_COLUMN_IF_NOT_EXISTS "{0}" "{1}"
+ALTER TABLE {2} ADD COLUMN "{1}" {3} {4};)",
+                            tableName,
                             actualCommand.columnName,
+                            formatTable(),
                             ColumnType(actualCommand.columnType),
                             actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                     },
-                    [&formatTable](DropColumnIfExists const& actualCommand) -> std::string {
-                        // SQLite doesn't support IF EXISTS for DROP COLUMN.
+                    [&formatTable, tableName](DropColumnIfExists const& actualCommand) -> std::string {
+                        // SQLite doesn't support IF EXISTS for DROP COLUMN; guarded like above.
                         return std::format(
-                            R"(-- DropColumnIfExists: SQLite doesn't support IF EXISTS for columns
-ALTER TABLE {} DROP COLUMN "{}";)",
-                            formatTable(),
-                            actualCommand.columnName);
+                            R"(-- LIGHTWEIGHT_SQLITE_GUARD: DROP_COLUMN_IF_EXISTS "{0}" "{1}"
+ALTER TABLE {2} DROP COLUMN "{1}";)",
+                            tableName,
+                            actualCommand.columnName,
+                            formatTable());
                     },
                     [tableName](DropIndexIfExists const& actualCommand) -> std::string {
                         return std::format(R"(DROP INDEX IF EXISTS "{0}_{1}_index";)", tableName, actualCommand.columnName);
                     },
                 },
                 command);
+
+            if (!sql.empty())
+                result.push_back(std::move(sql));
         }
 
-        return { sqlQueryString.str() };
+        return result;
     }
 
     [[nodiscard]] std::string ColumnType(SqlColumnTypeDefinition const& type) const override
