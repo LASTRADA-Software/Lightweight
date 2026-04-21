@@ -24,6 +24,21 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
   public:
+    /// Builds the SQL query used to check whether a column exists on a SQLite table.
+    ///
+    /// The migration executor uses this to resolve the `-- LIGHTWEIGHT_SQLITE_GUARD:`
+    /// sentinels emitted by @ref AlterTable for `AddColumnIfNotExists` / `DropColumnIfExists`.
+    /// Keeping the pragma SQL here ensures the sentinel-emitting side and the
+    /// runtime-presence-check side share a single source of truth.
+    ///
+    /// @param tableName Name of the table to inspect.
+    /// @param columnName Name of the column whose existence to check.
+    /// @return SQL string returning a single integer column: non-zero iff the column exists.
+    [[nodiscard]] static std::string BuildColumnExistsQuery(std::string_view tableName, std::string_view columnName)
+    {
+        return std::format(R"(SELECT COUNT(*) FROM pragma_table_info('{}') WHERE name = '{}';)", tableName, columnName);
+    }
+
     [[nodiscard]] std::string Insert(std::string_view intoTable,
                                      std::string_view fields,
                                      std::string_view values) const override

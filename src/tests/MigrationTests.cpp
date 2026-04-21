@@ -660,17 +660,20 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependencies applied in dec
 {
     using namespace SqlColumnTypeDefinitions;
 
+    // Name each timestamp once and reuse it to avoid mismatch between
+    // the Migration construction and the dependency list.
+    constexpr auto tsA = SqlMigration::MigrationTimestamp { 202601010001 };
+    constexpr auto tsB = SqlMigration::MigrationTimestamp { 202601010002 };
+
     // migration_b depends on migration_a but is declared with an earlier-sounding description.
     // Despite declaration order, apply should respect the dependency.
     auto migrationA = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601010001 }, "dep base", [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("dep_a").PrimaryKey("id", Integer());
-        });
+        tsA, "dep base", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_a").PrimaryKey("id", Integer()); });
 
     auto migrationB = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601010002 },
+        tsB,
         "dep dependent",
-        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::MigrationTimestamp { 202601010001 } } },
+        SqlMigration::MigrationMetadata { .dependencies = { tsA } },
         [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTable("dep_b")
                 .PrimaryKey("id", Integer())
@@ -685,18 +688,21 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependencies applied in dec
 
     auto const appliedIds = manager.GetAppliedMigrationIds();
     CHECK(appliedIds.size() == 2);
-    CHECK(appliedIds[0].value == 202601010001);
-    CHECK(appliedIds[1].value == 202601010002);
+    CHECK(appliedIds[0] == tsA);
+    CHECK(appliedIds[1] == tsB);
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependency on unknown timestamp throws", "[SqlMigration]")
 {
     using namespace SqlColumnTypeDefinitions;
 
+    constexpr auto tsMigration = SqlMigration::MigrationTimestamp { 202601020001 };
+    constexpr auto tsUnknown = SqlMigration::MigrationTimestamp { 999999999999 };
+
     auto migration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601020001 },
+        tsMigration,
         "orphan dep",
-        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::MigrationTimestamp { 999999999999 } } },
+        SqlMigration::MigrationMetadata { .dependencies = { tsUnknown } },
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_orphan").PrimaryKey("id", Integer()); });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
@@ -711,17 +717,18 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependency cycle detected",
 {
     using namespace SqlColumnTypeDefinitions;
 
+    constexpr auto tsA = SqlMigration::MigrationTimestamp { 202601030001 };
+    constexpr auto tsB = SqlMigration::MigrationTimestamp { 202601030002 };
+
     auto migrationA = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601030001 },
-        "cycle a",
-        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::MigrationTimestamp { 202601030002 } } },
-        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("cycle_a").PrimaryKey("id", Integer()); });
+        tsA, "cycle a", SqlMigration::MigrationMetadata { .dependencies = { tsB } }, [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("cycle_a").PrimaryKey("id", Integer());
+        });
 
     auto migrationB = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601030002 },
-        "cycle b",
-        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::MigrationTimestamp { 202601030001 } } },
-        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("cycle_b").PrimaryKey("id", Integer()); });
+        tsB, "cycle b", SqlMigration::MigrationMetadata { .dependencies = { tsA } }, [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("cycle_b").PrimaryKey("id", Integer());
+        });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
@@ -734,10 +741,11 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependency already applied 
 {
     using namespace SqlColumnTypeDefinitions;
 
+    constexpr auto tsBase = SqlMigration::MigrationTimestamp { 202601040001 };
+    constexpr auto tsFollow = SqlMigration::MigrationTimestamp { 202601040002 };
+
     auto base = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601040001 }, "base", [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("dep_base2").PrimaryKey("id", Integer());
-        });
+        tsBase, "base", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_base2").PrimaryKey("id", Integer()); });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
@@ -745,9 +753,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependency already applied 
     CHECK(manager.GetAppliedMigrationIds().size() == 1);
 
     auto follow = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601040002 },
+        tsFollow,
         "depends on base",
-        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::MigrationTimestamp { 202601040001 } } },
+        SqlMigration::MigrationMetadata { .dependencies = { tsBase } },
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_follow").PrimaryKey("id", Integer()); });
 
     CHECK_NOTHROW(manager.ApplySingleMigration(follow));
@@ -760,15 +768,17 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto base = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601050001 }, "unapplied base", [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("dep_b_base").PrimaryKey("id", Integer());
-        });
+    constexpr auto tsBase = SqlMigration::MigrationTimestamp { 202601050001 };
+    constexpr auto tsFollow = SqlMigration::MigrationTimestamp { 202601050002 };
+
+    auto base = SqlMigration::Migration(tsBase, "unapplied base", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("dep_b_base").PrimaryKey("id", Integer());
+    });
 
     auto follow = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601050002 },
+        tsFollow,
         "follow requires unapplied",
-        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::MigrationTimestamp { 202601050001 } } },
+        SqlMigration::MigrationMetadata { .dependencies = { tsBase } },
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_b_follow").PrimaryKey("id", Integer()); });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();

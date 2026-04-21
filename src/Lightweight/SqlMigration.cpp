@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "DataMapper/DataMapper.hpp"
+#include "QueryFormatter/SQLiteFormatter.hpp"
 #include "SqlBackup/Sha256.hpp"
 #include "SqlConnection.hpp"
 #include "SqlErrorDetection.hpp"
@@ -391,13 +392,13 @@ namespace
     }
 
     /// Check whether a column exists on a SQLite table via pragma_table_info().
+    ///
+    /// Delegates query construction to @ref SQLiteQueryFormatter::BuildColumnExistsQuery so the
+    /// sentinel-emitting formatter and the runtime check share a single SQL definition.
     [[nodiscard]] bool SqliteColumnExists(SqlConnection& connection, std::string_view tableName, std::string_view columnName)
     {
         auto stmt = SqlStatement { connection };
-        // Using parameterized pragma_table_info via subquery; quote-escaping for SQLite.
-        auto const sql =
-            std::format(R"(SELECT COUNT(*) FROM pragma_table_info('{}') WHERE name = '{}';)", tableName, columnName);
-        auto cursor = stmt.ExecuteDirect(sql);
+        auto cursor = stmt.ExecuteDirect(SQLiteQueryFormatter::BuildColumnExistsQuery(tableName, columnName));
         if (!cursor.FetchRow())
             return false;
         return cursor.GetColumn<int64_t>(1) > 0;
@@ -441,7 +442,7 @@ namespace
 
 void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
 {
-    // Check declared dependencies: every dep must already be applied.
+    // Check declared dependencies: every dependency must already be applied.
     if (auto const deps = migration.GetDependencies(); !deps.empty())
     {
         auto const applied = GetAppliedMigrationIds();
