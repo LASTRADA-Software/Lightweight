@@ -1,9 +1,5 @@
 var NAVTREEINDEX6 =
 {
-"index.html#generate-example-for-the-existing-database":[0,5],
-"index.html#high-level-api":[0,3],
-"index.html#mapping-query-results-to-a-simple-struct":[0,3,2],
-"index.html#mapping-query-to-multiple-struct":[0,3,3],
 "index.html#namespace":[0,2],
 "index.html#simple-one-record-example":[0,3,0],
 "index.html#sqlite-odbc-driver-installation-on-other-operating-systems":[0,4,0],

@@ -1,9 +1,5 @@
 var NAVTREEINDEX5 =
 {
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#a9220ec49d875faa49983e9a53a507ef3":[10,4,0,10],
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#aa69bce960ab6b67f3a39750799754c4e":[10,4,0,11],
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#ad9d7e0290e84a1b8560e32a9f37d5a1f":[10,4,0,7],
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#adeb820498dd1bc9a5c575244e1bdf853":[10,4,0,9],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#af144019a618b92754fdc3879e226632d":[10,4,0,3],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#af7ef6f1c5540f6aba2f607f81c7938ec":[10,4,0,2],
 "de/dae/classLightweight_1_1SqlFixedString.html":[10,0,5],
@@ -249,5 +245,9 @@ var NAVTREEINDEX5 =
 "index.html":[0],
 "index.html#building-with-c20-modules":[0,7],
 "index.html#compile-using-c26-reflection-support":[0,6],
-"index.html#foreign-keys-relation":[0,3,1]
+"index.html#foreign-keys-relation":[0,3,1],
+"index.html#generate-example-for-the-existing-database":[0,5],
+"index.html#high-level-api":[0,3],
+"index.html#mapping-query-results-to-a-simple-struct":[0,3,2],
+"index.html#mapping-query-to-multiple-struct":[0,3,3]
 };

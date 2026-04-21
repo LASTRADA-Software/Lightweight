@@ -90,7 +90,6 @@ var hierarchy =
     [ "Lightweight::SqlMigration::MigrationRelease", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html", null ],
     [ "Lightweight::SqlMigration::MigrationStatus", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html", null ],
     [ "Lightweight::SqlMigration::MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", null ],
-    [ "Lightweight::SqlMigration::ReleaseRegistrar", "dc/d0e/structLightweight_1_1SqlMigration_1_1ReleaseRegistrar.html", null ],
     [ "Lightweight::SqlMigration::RevertResult", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html", null ],
     [ "Lightweight::SqlMigrationDeleteBuilder", "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html", null ],
     [ "Lightweight::SqlMigrationInsertBuilder", "d0/d05/classLightweight_1_1SqlMigrationInsertBuilder.html", null ],

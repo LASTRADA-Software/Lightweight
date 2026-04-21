@@ -691,163 +691,102 @@ $(document).ready(function(){initNavTree('d6/d35/SqlMigration_8hpp_source.html',
 <div class="line"><a id="l00555" name="l00555"></a><span class="lineno">  555</span><span class="comment">    /// @tparam T A migration type exposing `static constexpr MigrationTimestamp TimeStamp`.</span></div>
 <div class="line"><a id="l00556" name="l00556"></a><span class="lineno">  556</span><span class="comment"></span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
 <div class="line"><a id="l00557" name="l00557"></a><span class="lineno">  557</span>    <span class="keyword">inline</span> <span class="keyword">constexpr</span> MigrationTimestamp TimestampOf = T::TimeStamp;</div>
-<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span><span class="comment"></span> </div>
-<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span><span class="comment">    /// RAII registrar used by `LIGHTWEIGHT_SQL_RELEASE` to register a release with the</span></div>
-<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span><span class="comment">    /// migration manager at static-initialization time. Not intended for direct use.</span></div>
-<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span><span class="comment">    /// @ingroup SqlMigration</span></div>
-<div class="foldopen" id="foldopen00563" data-start="{" data-end="};">
-<div class="line"><a id="l00563" name="l00563"></a><span class="lineno"><a class="line" href="../../dc/d0e/structLightweight_1_1SqlMigration_1_1ReleaseRegistrar.html">  563</a></span><span class="comment"></span>    <span class="keyword">struct </span><a class="code hl_struct" href="../../dc/d0e/structLightweight_1_1SqlMigration_1_1ReleaseRegistrar.html">ReleaseRegistrar</a></div>
-<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span>    {<span class="comment"></span></div>
-<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span><span class="comment">        /// Registers `{version, highestTimestamp}` with the singleton manager.</span></div>
-<div class="foldopen" id="foldopen00566" data-start="{" data-end="}">
-<div class="line"><a id="l00566" name="l00566"></a><span class="lineno"><a class="line" href="../../dc/d0e/structLightweight_1_1SqlMigration_1_1ReleaseRegistrar.html#a59afee8174a02bb6e657569e8326343d">  566</a></span><span class="comment"></span>        <a class="code hl_function" href="../../dc/d0e/structLightweight_1_1SqlMigration_1_1ReleaseRegistrar.html#a59afee8174a02bb6e657569e8326343d">ReleaseRegistrar</a>(std::string version, <a class="code hl_struct" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> highestTimestamp)</div>
-<div class="line"><a id="l00567" name="l00567"></a><span class="lineno">  567</span>        {</div>
-<div class="line"><a id="l00568" name="l00568"></a><span class="lineno">  568</span>            <a class="code hl_function" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8">MigrationManager::GetInstance</a>().<a class="code hl_function" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a542c4d9a99d7bbd8116e7c5f688be0bd">RegisterRelease</a>(std::move(version), highestTimestamp);</div>
-<div class="line"><a id="l00569" name="l00569"></a><span class="lineno">  569</span>        }</div>
-</div>
-<div class="line"><a id="l00570" name="l00570"></a><span class="lineno">  570</span>    };</div>
-</div>
-<div class="line"><a id="l00571" name="l00571"></a><span class="lineno">  571</span> </div>
-<div class="line"><a id="l00572" name="l00572"></a><span class="lineno">  572</span>} <span class="comment">// namespace SqlMigration</span></div>
-<div class="line"><a id="l00573" name="l00573"></a><span class="lineno">  573</span> </div>
-<div class="line"><a id="l00574" name="l00574"></a><span class="lineno">  574</span>} <span class="comment">// namespace Lightweight</span></div>
-<div class="line"><a id="l00575" name="l00575"></a><span class="lineno">  575</span> </div>
-<div class="line"><a id="l00576" name="l00576"></a><span class="lineno">  576</span><span class="preprocessor">#define _LIGHTWEIGHT_CONCATENATE(s1, s2)       s1##s2</span></div>
-<div class="line"><a id="l00577" name="l00577"></a><span class="lineno">  577</span><span class="preprocessor">#define _LIGHTWEIGHT_CONCATENATE_INNER(s1, s2) _LIGHTWEIGHT_CONCATENATE(s1, s2)</span></div>
-<div class="line"><a id="l00578" name="l00578"></a><span class="lineno">  578</span><span class="comment"></span> </div>
-<div class="line"><a id="l00579" name="l00579"></a><span class="lineno">  579</span><span class="comment">/// @brief Represents the C++ migration object for a given timestamped migration.</span></div>
-<div class="line"><a id="l00580" name="l00580"></a><span class="lineno">  580</span><span class="comment">/// @param timestamp Timestamp of the migration.</span></div>
-<div class="line"><a id="l00581" name="l00581"></a><span class="lineno">  581</span><span class="comment">///</span></div>
-<div class="line"><a id="l00582" name="l00582"></a><span class="lineno">  582</span><span class="comment">/// @ingroup SqlMigration</span></div>
-<div class="line"><a id="l00583" name="l00583"></a><span class="lineno"><a class="line" href="../../db/df6/group__SqlMigration.html#ga32d47d81e5b99a703e522a33a54fdc74">  583</a></span><span class="comment"></span><span class="preprocessor">#define LIGHTWEIGHT_MIGRATION_INSTANCE(timestamp) migration_##timestamp</span></div>
-<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span><span class="comment"></span> </div>
-<div class="line"><a id="l00585" name="l00585"></a><span class="lineno">  585</span><span class="comment">/// @brief Creates a new migration.</span></div>
-<div class="line"><a id="l00586" name="l00586"></a><span class="lineno">  586</span><span class="comment">/// @param timestamp Timestamp of the migration.</span></div>
-<div class="line"><a id="l00587" name="l00587"></a><span class="lineno">  587</span><span class="comment">/// @param description Description of the migration.</span></div>
-<div class="line"><a id="l00588" name="l00588"></a><span class="lineno">  588</span><span class="comment">///</span></div>
-<div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span><span class="comment">/// @note The migration will be registered with the migration manager automatically.</span></div>
-<div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span><span class="comment">///</span></div>
-<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span><span class="comment">/// @code</span></div>
-<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span><span class="comment">/// #include &lt;Lightweight/SqlMigration.hpp&gt;</span></div>
+<div class="line"><a id="l00558" name="l00558"></a><span class="lineno">  558</span> </div>
+<div class="line"><a id="l00559" name="l00559"></a><span class="lineno">  559</span>    <span class="keyword">namespace </span>detail</div>
+<div class="line"><a id="l00560" name="l00560"></a><span class="lineno">  560</span>    {<span class="comment"></span></div>
+<div class="line"><a id="l00561" name="l00561"></a><span class="lineno">  561</span><span class="comment">        /// RAII registrar used by `LIGHTWEIGHT_SQL_RELEASE` to register a release with the</span></div>
+<div class="line"><a id="l00562" name="l00562"></a><span class="lineno">  562</span><span class="comment">        /// migration manager at static-initialization time. Not intended for direct use.</span></div>
+<div class="line"><a id="l00563" name="l00563"></a><span class="lineno">  563</span><span class="comment">        ///</span></div>
+<div class="line"><a id="l00564" name="l00564"></a><span class="lineno">  564</span><span class="comment">        /// @ingroup SqlMigration</span></div>
+<div class="line"><a id="l00565" name="l00565"></a><span class="lineno">  565</span><span class="comment"></span>        <span class="keyword">struct </span>ReleaseRegistrar</div>
+<div class="line"><a id="l00566" name="l00566"></a><span class="lineno">  566</span>        {<span class="comment"></span></div>
+<div class="line"><a id="l00567" name="l00567"></a><span class="lineno">  567</span><span class="comment">            /// Registers `{version, highestTimestamp}` with the singleton manager.</span></div>
+<div class="line"><a id="l00568" name="l00568"></a><span class="lineno">  568</span><span class="comment"></span>            ReleaseRegistrar(std::string version, MigrationTimestamp highestTimestamp)</div>
+<div class="line"><a id="l00569" name="l00569"></a><span class="lineno">  569</span>            {</div>
+<div class="line"><a id="l00570" name="l00570"></a><span class="lineno">  570</span>                <a class="code hl_function" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8">MigrationManager::GetInstance</a>().<a class="code hl_function" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a542c4d9a99d7bbd8116e7c5f688be0bd">RegisterRelease</a>(std::move(version), highestTimestamp);</div>
+<div class="line"><a id="l00571" name="l00571"></a><span class="lineno">  571</span>            }</div>
+<div class="line"><a id="l00572" name="l00572"></a><span class="lineno">  572</span>        };</div>
+<div class="line"><a id="l00573" name="l00573"></a><span class="lineno">  573</span>    } <span class="comment">// namespace detail</span></div>
+<div class="line"><a id="l00574" name="l00574"></a><span class="lineno">  574</span> </div>
+<div class="line"><a id="l00575" name="l00575"></a><span class="lineno">  575</span>} <span class="comment">// namespace SqlMigration</span></div>
+<div class="line"><a id="l00576" name="l00576"></a><span class="lineno">  576</span> </div>
+<div class="line"><a id="l00577" name="l00577"></a><span class="lineno">  577</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00578" name="l00578"></a><span class="lineno">  578</span> </div>
+<div class="line"><a id="l00579" name="l00579"></a><span class="lineno">  579</span><span class="preprocessor">#define _LIGHTWEIGHT_CONCATENATE(s1, s2)       s1##s2</span></div>
+<div class="line"><a id="l00580" name="l00580"></a><span class="lineno">  580</span><span class="preprocessor">#define _LIGHTWEIGHT_CONCATENATE_INNER(s1, s2) _LIGHTWEIGHT_CONCATENATE(s1, s2)</span></div>
+<div class="line"><a id="l00581" name="l00581"></a><span class="lineno">  581</span><span class="comment"></span> </div>
+<div class="line"><a id="l00582" name="l00582"></a><span class="lineno">  582</span><span class="comment">/// @brief Represents the C++ migration object for a given timestamped migration.</span></div>
+<div class="line"><a id="l00583" name="l00583"></a><span class="lineno">  583</span><span class="comment">/// @param timestamp Timestamp of the migration.</span></div>
+<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span><span class="comment">///</span></div>
+<div class="line"><a id="l00585" name="l00585"></a><span class="lineno">  585</span><span class="comment">/// @ingroup SqlMigration</span></div>
+<div class="line"><a id="l00586" name="l00586"></a><span class="lineno"><a class="line" href="../../db/df6/group__SqlMigration.html#ga32d47d81e5b99a703e522a33a54fdc74">  586</a></span><span class="comment"></span><span class="preprocessor">#define LIGHTWEIGHT_MIGRATION_INSTANCE(timestamp) migration_##timestamp</span></div>
+<div class="line"><a id="l00587" name="l00587"></a><span class="lineno">  587</span><span class="comment"></span> </div>
+<div class="line"><a id="l00588" name="l00588"></a><span class="lineno">  588</span><span class="comment">/// @brief Creates a new migration.</span></div>
+<div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span><span class="comment">/// @param timestamp Timestamp of the migration.</span></div>
+<div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span><span class="comment">/// @param description Description of the migration.</span></div>
+<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span><span class="comment">///</span></div>
+<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span><span class="comment">/// @note The migration will be registered with the migration manager automatically.</span></div>
 <div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span><span class="comment">///</span></div>
-<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span><span class="comment">/// LIGHTWEIGHT_SQL_MIGRATION(20260117234120, &quot;Create table &#39;MyTable&#39;&quot;)</span></div>
-<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span><span class="comment">/// {</span></div>
-<div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span><span class="comment">///     // Use &#39;plan&#39; to define the migration steps, for example creating tables.</span></div>
-<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span><span class="comment">/// }</span></div>
-<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span><span class="comment">/// @endcode</span></div>
-<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span><span class="comment">///</span></div>
-<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span><span class="comment">/// @see Lightweight::SqlMigrationQueryBuilder</span></div>
-<div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span><span class="comment">///</span></div>
-<div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span><span class="comment">/// @ingroup SqlMigration</span></div>
-<div class="foldopen" id="foldopen00603" data-start="" data-end="">
-<div class="line"><a id="l00603" name="l00603"></a><span class="lineno"><a class="line" href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">  603</a></span><span class="comment"></span><span class="preprocessor">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)                                                              \</span></div>
-<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span><span class="preprocessor">    struct Migration_##timestamp: public Lightweight::SqlMigration::MigrationBase                                      \</span></div>
-<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span><span class="preprocessor">    {                                                                                                                  \</span></div>
-<div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span><span class="preprocessor"></span><span class="comment">        /** The migration&#39;s timestamp, exposed so @ref TimestampOf can extract it from the type. */</span><span class="preprocessor">                    \</span></div>
-<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span><span class="preprocessor">        static constexpr Lightweight::SqlMigration::MigrationTimestamp TimeStamp { static_cast&lt;uint64_t&gt;(timestamp) }; \</span></div>
-<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span><span class="preprocessor">        explicit Migration_##timestamp():                                                                              \</span></div>
-<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span><span class="preprocessor">            Lightweight::SqlMigration::MigrationBase(TimeStamp, description)                                           \</span></div>
-<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span><span class="preprocessor">        {                                                                                                              \</span></div>
-<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span><span class="preprocessor">        }                                                                                                              \</span></div>
-<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span><span class="preprocessor">                                                                                                                       \</span></div>
-<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span><span class="preprocessor">        void Up(Lightweight::SqlMigrationQueryBuilder&amp; plan) const override;                                           \</span></div>
-<div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span><span class="preprocessor">        void Down(Lightweight::SqlMigrationQueryBuilder&amp; </span><span class="comment">/*plan*/</span><span class="preprocessor">) const override {}                                   \</span></div>
-<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span><span class="preprocessor">    };                                                                                                                 \</span></div>
-<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span><span class="preprocessor">                                                                                                                       \</span></div>
-<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span><span class="preprocessor">    static Migration_##timestamp _LIGHTWEIGHT_CONCATENATE(migration_, timestamp);                                      \</span></div>
-<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span><span class="preprocessor">                                                                                                                       \</span></div>
-<div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span><span class="preprocessor">    void Migration_##timestamp::Up(Lightweight::SqlMigrationQueryBuilder&amp; plan) const</span></div>
+<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span><span class="comment">/// @code</span></div>
+<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span><span class="comment">/// #include &lt;Lightweight/SqlMigration.hpp&gt;</span></div>
+<div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span><span class="comment">///</span></div>
+<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span><span class="comment">/// LIGHTWEIGHT_SQL_MIGRATION(20260117234120, &quot;Create table &#39;MyTable&#39;&quot;)</span></div>
+<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span><span class="comment">/// {</span></div>
+<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span><span class="comment">///     // Use &#39;plan&#39; to define the migration steps, for example creating tables.</span></div>
+<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span><span class="comment">/// }</span></div>
+<div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span><span class="comment">/// @endcode</span></div>
+<div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span><span class="comment">///</span></div>
+<div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span><span class="comment">/// @see Lightweight::SqlMigrationQueryBuilder</span></div>
+<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span><span class="comment">///</span></div>
+<div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span><span class="comment">/// @ingroup SqlMigration</span></div>
+<div class="foldopen" id="foldopen00606" data-start="" data-end="">
+<div class="line"><a id="l00606" name="l00606"></a><span class="lineno"><a class="line" href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">  606</a></span><span class="comment"></span><span class="preprocessor">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)                                                              \</span></div>
+<div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span><span class="preprocessor">    struct Migration_##timestamp: public Lightweight::SqlMigration::MigrationBase                                      \</span></div>
+<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span><span class="preprocessor">    {                                                                                                                  \</span></div>
+<div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span><span class="preprocessor"></span><span class="comment">        /** The migration&#39;s timestamp, exposed so @ref TimestampOf can extract it from the type. */</span><span class="preprocessor">                    \</span></div>
+<div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span><span class="preprocessor">        static constexpr Lightweight::SqlMigration::MigrationTimestamp TimeStamp { static_cast&lt;uint64_t&gt;(timestamp) }; \</span></div>
+<div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span><span class="preprocessor">        explicit Migration_##timestamp():                                                                              \</span></div>
+<div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span><span class="preprocessor">            Lightweight::SqlMigration::MigrationBase(TimeStamp, description)                                           \</span></div>
+<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span><span class="preprocessor">        {                                                                                                              \</span></div>
+<div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span><span class="preprocessor">        }                                                                                                              \</span></div>
+<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span><span class="preprocessor">                                                                                                                       \</span></div>
+<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span><span class="preprocessor">        void Up(Lightweight::SqlMigrationQueryBuilder&amp; plan) const override;                                           \</span></div>
+<div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span><span class="preprocessor">        void Down(Lightweight::SqlMigrationQueryBuilder&amp; </span><span class="comment">/*plan*/</span><span class="preprocessor">) const override {}                                   \</span></div>
+<div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span><span class="preprocessor">    };                                                                                                                 \</span></div>
+<div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span><span class="preprocessor">                                                                                                                       \</span></div>
+<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span><span class="preprocessor">    static Migration_##timestamp _LIGHTWEIGHT_CONCATENATE(migration_, timestamp);                                      \</span></div>
+<div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span><span class="preprocessor">                                                                                                                       \</span></div>
+<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span><span class="preprocessor">    void Migration_##timestamp::Up(Lightweight::SqlMigrationQueryBuilder&amp; plan) const</span></div>
 </div>
-<div class="line"><a id="l00620" name="l00620"></a><span class="lineno">  620</span><span class="comment"></span> </div>
-<div class="line"><a id="l00621" name="l00621"></a><span class="lineno">  621</span><span class="comment">/// @brief Creates a new reversible migration whose `Down()` is defined out-of-line</span></div>
-<div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span><span class="comment">/// via @c LIGHTWEIGHT_SQL_MIGRATION_DOWN.</span></div>
-<div class="line"><a id="l00623" name="l00623"></a><span class="lineno">  623</span><span class="comment">///</span></div>
-<div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span><span class="comment">/// Use this variant when the migration needs to be reversible. Follow the macro with</span></div>
-<div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span><span class="comment">/// the `Up()` body, then later use `LIGHTWEIGHT_SQL_MIGRATION_DOWN(timestamp) { ... }`</span></div>
-<div class="line"><a id="l00626" name="l00626"></a><span class="lineno">  626</span><span class="comment">/// to provide the `Down()` body.</span></div>
-<div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span><span class="comment">///</span></div>
-<div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span><span class="comment">/// @param timestamp Timestamp of the migration.</span></div>
-<div class="line"><a id="l00629" name="l00629"></a><span class="lineno">  629</span><span class="comment">/// @param description Description of the migration.</span></div>
+<div class="line"><a id="l00623" name="l00623"></a><span class="lineno">  623</span><span class="comment"></span> </div>
+<div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span><span class="comment">/// @brief Associates a software release (version string) with the highest migration timestamp</span></div>
+<div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span><span class="comment">/// present at the time of that release.</span></div>
+<div class="line"><a id="l00626" name="l00626"></a><span class="lineno">  626</span><span class="comment">///</span></div>
+<div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span><span class="comment">/// Declare one `LIGHTWEIGHT_SQL_RELEASE` per cut release, alongside the migrations that belong to it.</span></div>
+<div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span><span class="comment">/// The macro registers with the migration manager at static-initialization time. Multiple releases</span></div>
+<div class="line"><a id="l00629" name="l00629"></a><span class="lineno">  629</span><span class="comment">/// may coexist in the same translation unit.</span></div>
 <div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span><span class="comment">///</span></div>
-<div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span><span class="comment">/// @code</span></div>
-<div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span><span class="comment">/// LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE(20260117234120, &quot;Create table &#39;MyTable&#39;&quot;)</span></div>
-<div class="line"><a id="l00633" name="l00633"></a><span class="lineno">  633</span><span class="comment">/// {</span></div>
-<div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span><span class="comment">///     plan.CreateTable(&quot;MyTable&quot;).PrimaryKey(&quot;id&quot;, Integer());</span></div>
-<div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span><span class="comment">/// }</span></div>
-<div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span><span class="comment">///</span></div>
-<div class="line"><a id="l00637" name="l00637"></a><span class="lineno">  637</span><span class="comment">/// LIGHTWEIGHT_SQL_MIGRATION_DOWN(20260117234120)</span></div>
-<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span><span class="comment">/// {</span></div>
-<div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span><span class="comment">///     plan.DropTable(&quot;MyTable&quot;);</span></div>
-<div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span><span class="comment">/// }</span></div>
-<div class="line"><a id="l00641" name="l00641"></a><span class="lineno">  641</span><span class="comment">/// @endcode</span></div>
-<div class="line"><a id="l00642" name="l00642"></a><span class="lineno">  642</span><span class="comment">///</span></div>
-<div class="line"><a id="l00643" name="l00643"></a><span class="lineno">  643</span><span class="comment">/// @ingroup SqlMigration</span></div>
-<div class="foldopen" id="foldopen00644" data-start="" data-end="">
-<div class="line"><a id="l00644" name="l00644"></a><span class="lineno"><a class="line" href="../../db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164">  644</a></span><span class="comment"></span><span class="preprocessor">#define LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE(timestamp, description)                                              \</span></div>
-<div class="line"><a id="l00645" name="l00645"></a><span class="lineno">  645</span><span class="preprocessor">    struct Migration_##timestamp: public Lightweight::SqlMigration::MigrationBase                                 \</span></div>
-<div class="line"><a id="l00646" name="l00646"></a><span class="lineno">  646</span><span class="preprocessor">    {                                                                                                             \</span></div>
-<div class="line"><a id="l00647" name="l00647"></a><span class="lineno">  647</span><span class="preprocessor">        explicit Migration_##timestamp():                                                                         \</span></div>
-<div class="line"><a id="l00648" name="l00648"></a><span class="lineno">  648</span><span class="preprocessor">            Lightweight::SqlMigration::MigrationBase(Lightweight::SqlMigration::MigrationTimestamp { timestamp }, \</span></div>
-<div class="line"><a id="l00649" name="l00649"></a><span class="lineno">  649</span><span class="preprocessor">                                                     description)                                                 \</span></div>
-<div class="line"><a id="l00650" name="l00650"></a><span class="lineno">  650</span><span class="preprocessor">        {                                                                                                         \</span></div>
-<div class="line"><a id="l00651" name="l00651"></a><span class="lineno">  651</span><span class="preprocessor">        }                                                                                                         \</span></div>
-<div class="line"><a id="l00652" name="l00652"></a><span class="lineno">  652</span><span class="preprocessor">                                                                                                                  \</span></div>
-<div class="line"><a id="l00653" name="l00653"></a><span class="lineno">  653</span><span class="preprocessor">        void Up(Lightweight::SqlMigrationQueryBuilder&amp; plan) const override;                                      \</span></div>
-<div class="line"><a id="l00654" name="l00654"></a><span class="lineno">  654</span><span class="preprocessor">        void Down(Lightweight::SqlMigrationQueryBuilder&amp; plan) const override;                                    \</span></div>
-<div class="line"><a id="l00655" name="l00655"></a><span class="lineno">  655</span><span class="preprocessor">                                                                                                                  \</span></div>
-<div class="line"><a id="l00656" name="l00656"></a><span class="lineno">  656</span><span class="preprocessor">        [[nodiscard]] bool HasDownImplementation() const noexcept override                                        \</span></div>
-<div class="line"><a id="l00657" name="l00657"></a><span class="lineno">  657</span><span class="preprocessor">        {                                                                                                         \</span></div>
-<div class="line"><a id="l00658" name="l00658"></a><span class="lineno">  658</span><span class="preprocessor">            return true;                                                                                          \</span></div>
-<div class="line"><a id="l00659" name="l00659"></a><span class="lineno">  659</span><span class="preprocessor">        }                                                                                                         \</span></div>
-<div class="line"><a id="l00660" name="l00660"></a><span class="lineno">  660</span><span class="preprocessor">    };                                                                                                            \</span></div>
-<div class="line"><a id="l00661" name="l00661"></a><span class="lineno">  661</span><span class="preprocessor">                                                                                                                  \</span></div>
-<div class="line"><a id="l00662" name="l00662"></a><span class="lineno">  662</span><span class="preprocessor">    static Migration_##timestamp _LIGHTWEIGHT_CONCATENATE(migration_, timestamp);                                 \</span></div>
-<div class="line"><a id="l00663" name="l00663"></a><span class="lineno">  663</span><span class="preprocessor">                                                                                                                  \</span></div>
-<div class="line"><a id="l00664" name="l00664"></a><span class="lineno">  664</span><span class="preprocessor">    void Migration_##timestamp::Up(Lightweight::SqlMigrationQueryBuilder&amp; plan) const</span></div>
-</div>
-<div class="line"><a id="l00665" name="l00665"></a><span class="lineno">  665</span><span class="comment"></span> </div>
-<div class="line"><a id="l00666" name="l00666"></a><span class="lineno">  666</span><span class="comment">/// @brief Companion to @c LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE defining the out-of-line `Down()` body.</span></div>
-<div class="line"><a id="l00667" name="l00667"></a><span class="lineno">  667</span><span class="comment">///</span></div>
-<div class="line"><a id="l00668" name="l00668"></a><span class="lineno">  668</span><span class="comment">/// Must be used in the same translation unit and follow the matching</span></div>
-<div class="line"><a id="l00669" name="l00669"></a><span class="lineno">  669</span><span class="comment">/// `LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE(timestamp, ...)` declaration.</span></div>
-<div class="line"><a id="l00670" name="l00670"></a><span class="lineno">  670</span><span class="comment">///</span></div>
-<div class="line"><a id="l00671" name="l00671"></a><span class="lineno">  671</span><span class="comment">/// @param timestamp Timestamp of the migration whose Down() body follows.</span></div>
-<div class="line"><a id="l00672" name="l00672"></a><span class="lineno">  672</span><span class="comment">///</span></div>
-<div class="line"><a id="l00673" name="l00673"></a><span class="lineno">  673</span><span class="comment">/// @ingroup SqlMigration</span></div>
-<div class="foldopen" id="foldopen00674" data-start="" data-end="">
-<div class="line"><a id="l00674" name="l00674"></a><span class="lineno"><a class="line" href="../../db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c">  674</a></span><span class="comment"></span><span class="preprocessor">#define LIGHTWEIGHT_SQL_MIGRATION_DOWN(timestamp) \</span></div>
-<div class="line"><a id="l00675" name="l00675"></a><span class="lineno">  675</span><span class="preprocessor">    void Migration_##timestamp::Down(Lightweight::SqlMigrationQueryBuilder&amp; plan) const</span></div>
-</div>
-<div class="line"><a id="l00676" name="l00676"></a><span class="lineno">  676</span><span class="comment"></span> </div>
-<div class="line"><a id="l00677" name="l00677"></a><span class="lineno">  677</span><span class="comment">/// @brief Associates a software release (version string) with the highest migration timestamp</span></div>
-<div class="line"><a id="l00678" name="l00678"></a><span class="lineno">  678</span><span class="comment">/// present at the time of that release.</span></div>
-<div class="line"><a id="l00679" name="l00679"></a><span class="lineno">  679</span><span class="comment">///</span></div>
-<div class="line"><a id="l00680" name="l00680"></a><span class="lineno">  680</span><span class="comment">/// Declare one `LIGHTWEIGHT_SQL_RELEASE` per cut release, alongside the migrations that belong to it.</span></div>
-<div class="line"><a id="l00681" name="l00681"></a><span class="lineno">  681</span><span class="comment">/// The macro registers with the migration manager at static-initialization time. Multiple releases</span></div>
-<div class="line"><a id="l00682" name="l00682"></a><span class="lineno">  682</span><span class="comment">/// may coexist in the same translation unit.</span></div>
-<div class="line"><a id="l00683" name="l00683"></a><span class="lineno">  683</span><span class="comment">///</span></div>
-<div class="line"><a id="l00684" name="l00684"></a><span class="lineno">  684</span><span class="comment">/// @param version A string literal, e.g. `&quot;6.7.0&quot;`.</span></div>
-<div class="line"><a id="l00685" name="l00685"></a><span class="lineno">  685</span><span class="comment">/// @param highestTimestamp An unsigned integer literal matching the timestamp format used by migrations.</span></div>
-<div class="line"><a id="l00686" name="l00686"></a><span class="lineno">  686</span><span class="comment">///</span></div>
-<div class="line"><a id="l00687" name="l00687"></a><span class="lineno">  687</span><span class="comment">/// @code</span></div>
-<div class="line"><a id="l00688" name="l00688"></a><span class="lineno">  688</span><span class="comment">/// LIGHTWEIGHT_SQL_MIGRATION(20260101120000, &quot;Initial schema&quot;) { ... }</span></div>
-<div class="line"><a id="l00689" name="l00689"></a><span class="lineno">  689</span><span class="comment">/// LIGHTWEIGHT_SQL_RELEASE(&quot;6.6.0&quot;, 20260101120000);</span></div>
-<div class="line"><a id="l00690" name="l00690"></a><span class="lineno">  690</span><span class="comment">///</span></div>
-<div class="line"><a id="l00691" name="l00691"></a><span class="lineno">  691</span><span class="comment">/// LIGHTWEIGHT_SQL_MIGRATION(20260501120000, &quot;Add orders table&quot;) { ... }</span></div>
-<div class="line"><a id="l00692" name="l00692"></a><span class="lineno">  692</span><span class="comment">/// LIGHTWEIGHT_SQL_RELEASE(&quot;6.7.0&quot;, 20260501120000);</span></div>
-<div class="line"><a id="l00693" name="l00693"></a><span class="lineno">  693</span><span class="comment">/// @endcode</span></div>
-<div class="line"><a id="l00694" name="l00694"></a><span class="lineno">  694</span><span class="comment">///</span></div>
-<div class="line"><a id="l00695" name="l00695"></a><span class="lineno">  695</span><span class="comment">/// @ingroup SqlMigration</span></div>
-<div class="foldopen" id="foldopen00696" data-start="" data-end="">
-<div class="line"><a id="l00696" name="l00696"></a><span class="lineno"><a class="line" href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a">  696</a></span><span class="comment"></span><span class="preprocessor">#define LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp)                                                         \</span></div>
-<div class="line"><a id="l00697" name="l00697"></a><span class="lineno">  697</span><span class="preprocessor">    static ::Lightweight::SqlMigration::ReleaseRegistrar _LIGHTWEIGHT_CONCATENATE_INNER(_lw_release_, __COUNTER__) \</span></div>
-<div class="line"><a id="l00698" name="l00698"></a><span class="lineno">  698</span><span class="preprocessor">    {                                                                                                              \</span></div>
-<div class="line"><a id="l00699" name="l00699"></a><span class="lineno">  699</span><span class="preprocessor">        (version), ::Lightweight::SqlMigration::MigrationTimestamp                                                 \</span></div>
-<div class="line"><a id="l00700" name="l00700"></a><span class="lineno">  700</span><span class="preprocessor">        {                                                                                                          \</span></div>
-<div class="line"><a id="l00701" name="l00701"></a><span class="lineno">  701</span><span class="preprocessor">            (highestTimestamp)                                                                                     \</span></div>
-<div class="line"><a id="l00702" name="l00702"></a><span class="lineno">  702</span><span class="preprocessor">        }                                                                                                          \</span></div>
-<div class="line"><a id="l00703" name="l00703"></a><span class="lineno">  703</span><span class="preprocessor">    }</span></div>
+<div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span><span class="comment">/// @param version A string literal, e.g. `&quot;6.7.0&quot;`.</span></div>
+<div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span><span class="comment">/// @param highestTimestamp An unsigned integer literal matching the timestamp format used by migrations.</span></div>
+<div class="line"><a id="l00633" name="l00633"></a><span class="lineno">  633</span><span class="comment">///</span></div>
+<div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span><span class="comment">/// @code</span></div>
+<div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span><span class="comment">/// LIGHTWEIGHT_SQL_MIGRATION(20260101120000, &quot;Initial schema&quot;) { ... }</span></div>
+<div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span><span class="comment">/// LIGHTWEIGHT_SQL_RELEASE(&quot;6.6.0&quot;, 20260101120000);</span></div>
+<div class="line"><a id="l00637" name="l00637"></a><span class="lineno">  637</span><span class="comment">///</span></div>
+<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span><span class="comment">/// LIGHTWEIGHT_SQL_MIGRATION(20260501120000, &quot;Add orders table&quot;) { ... }</span></div>
+<div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span><span class="comment">/// LIGHTWEIGHT_SQL_RELEASE(&quot;6.7.0&quot;, 20260501120000);</span></div>
+<div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span><span class="comment">/// @endcode</span></div>
+<div class="line"><a id="l00641" name="l00641"></a><span class="lineno">  641</span><span class="comment">///</span></div>
+<div class="line"><a id="l00642" name="l00642"></a><span class="lineno">  642</span><span class="comment">/// @ingroup SqlMigration</span></div>
+<div class="foldopen" id="foldopen00643" data-start="" data-end="">
+<div class="line"><a id="l00643" name="l00643"></a><span class="lineno"><a class="line" href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a">  643</a></span><span class="comment"></span><span class="preprocessor">#define LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp)                                                                 \</span></div>
+<div class="line"><a id="l00644" name="l00644"></a><span class="lineno">  644</span><span class="preprocessor">    static ::Lightweight::SqlMigration::detail::ReleaseRegistrar _LIGHTWEIGHT_CONCATENATE_INNER(_lw_release_, __COUNTER__) \</span></div>
+<div class="line"><a id="l00645" name="l00645"></a><span class="lineno">  645</span><span class="preprocessor">    {                                                                                                                      \</span></div>
+<div class="line"><a id="l00646" name="l00646"></a><span class="lineno">  646</span><span class="preprocessor">        (version), ::Lightweight::SqlMigration::MigrationTimestamp                                                         \</span></div>
+<div class="line"><a id="l00647" name="l00647"></a><span class="lineno">  647</span><span class="preprocessor">        {                                                                                                                  \</span></div>
+<div class="line"><a id="l00648" name="l00648"></a><span class="lineno">  648</span><span class="preprocessor">            (highestTimestamp)                                                                                             \</span></div>
+<div class="line"><a id="l00649" name="l00649"></a><span class="lineno">  649</span><span class="preprocessor">        }                                                                                                                  \</span></div>
+<div class="line"><a id="l00650" name="l00650"></a><span class="lineno">  650</span><span class="preprocessor">    }</span></div>
 </div>
 <div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00088">DataMapper.hpp:89</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlMigrationQueryBuilder_html"><div class="ttname"><a href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">Lightweight::SqlMigrationQueryBuilder</a></div><div class="ttdoc">Query builder for building SQL migration queries.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6b/Migrate_8hpp_source.html#l00435">Migrate.hpp:436</a></div></div>
@@ -919,8 +858,6 @@ $(document).ready(function(){initNavTree('d6/d35/SqlMigration_8hpp_source.html',
 <div class="ttc" id="astructLightweight_1_1SqlMigration_1_1MigrationTimestamp_html"><div class="ttname"><a href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">Lightweight::SqlMigration::MigrationTimestamp</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00038">SqlMigration.hpp:39</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlMigration_1_1MigrationTimestamp_html_a04e7dbdc97868e3dfe263266363c4b45"><div class="ttname"><a href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html#a04e7dbdc97868e3dfe263266363c4b45">Lightweight::SqlMigration::MigrationTimestamp::operator&lt;=&gt;</a></div><div class="ttdeci">constexpr std::weak_ordering operator&lt;=&gt;(MigrationTimestamp const &amp;other) const noexcept=default</div><div class="ttdoc">Three-way comparison operator.</div></div>
 <div class="ttc" id="astructLightweight_1_1SqlMigration_1_1MigrationTimestamp_html_a7ff59005141458f049508004b33e77ee"><div class="ttname"><a href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html#a7ff59005141458f049508004b33e77ee">Lightweight::SqlMigration::MigrationTimestamp::value</a></div><div class="ttdeci">uint64_t value</div><div class="ttdoc">The numeric timestamp value identifying the migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00041">SqlMigration.hpp:41</a></div></div>
-<div class="ttc" id="astructLightweight_1_1SqlMigration_1_1ReleaseRegistrar_html"><div class="ttname"><a href="../../dc/d0e/structLightweight_1_1SqlMigration_1_1ReleaseRegistrar.html">Lightweight::SqlMigration::ReleaseRegistrar</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00563">SqlMigration.hpp:564</a></div></div>
-<div class="ttc" id="astructLightweight_1_1SqlMigration_1_1ReleaseRegistrar_html_a59afee8174a02bb6e657569e8326343d"><div class="ttname"><a href="../../dc/d0e/structLightweight_1_1SqlMigration_1_1ReleaseRegistrar.html#a59afee8174a02bb6e657569e8326343d">Lightweight::SqlMigration::ReleaseRegistrar::ReleaseRegistrar</a></div><div class="ttdeci">ReleaseRegistrar(std::string version, MigrationTimestamp highestTimestamp)</div><div class="ttdoc">Registers {version, highestTimestamp} with the singleton manager.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00566">SqlMigration.hpp:566</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlMigration_1_1RevertResult_html"><div class="ttname"><a href="../../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html">Lightweight::SqlMigration::RevertResult</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00062">SqlMigration.hpp:63</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlMigration_1_1RevertResult_html_a14223384e1e346debcb57e6c4383154f"><div class="ttname"><a href="../../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a14223384e1e346debcb57e6c4383154f">Lightweight::SqlMigration::RevertResult::revertedTimestamps</a></div><div class="ttdeci">std::vector&lt; MigrationTimestamp &gt; revertedTimestamps</div><div class="ttdoc">Successfully reverted migrations.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00064">SqlMigration.hpp:64</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlMigration_1_1RevertResult_html_a44e625e09b82ed9a3612acc9faf3eac8"><div class="ttname"><a href="../../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a44e625e09b82ed9a3612acc9faf3eac8">Lightweight::SqlMigration::RevertResult::failedAt</a></div><div class="ttdeci">std::optional&lt; MigrationTimestamp &gt; failedAt</div><div class="ttdoc">Migration that failed, if any.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00065">SqlMigration.hpp:65</a></div></div>
