@@ -99,8 +99,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "CreateTable", "[SqlMigration]")
     using namespace SqlColumnTypeDefinitions;
 
     // clang-format off
-    auto createTablesMigration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202412102211 },
+    auto createTablesMigration = SqlMigration::Migration<202412102211>(
         "description here",
         [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTable("users")
@@ -159,8 +158,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration with foreign key", "[SqlMig
     using namespace SqlColumnTypeDefinitions;
 
     // clang-format off
-    auto createPersonMigration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202412102211 },
+    auto createPersonMigration = SqlMigration::Migration<202412102211>(
         "create persons",
         [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTable("persons")
@@ -172,8 +170,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration with foreign key", "[SqlMig
         }
     );
 
-    auto createOrderMigration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202412102212 },
+    auto createOrderMigration = SqlMigration::Migration<202412102212>(
         "create orders",
         [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTable("orders")
@@ -203,8 +200,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Revert Migration", "[SqlMigration]")
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto reversibleMigration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202412102213 },
+    auto reversibleMigration = SqlMigration::Migration<202412102213>(
         "reversible migration",
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("reversible_table").PrimaryKey("id", Integer()); },
         [](SqlMigrationQueryBuilder& plan) { plan.DropTable("reversible_table"); });
@@ -249,12 +245,11 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Transaction Rollback", "[SqlMigration
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto badMigration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202412102214 }, "bad migration", [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("should_not_exist").PrimaryKey("id", Integer());
+    auto badMigration = SqlMigration::Migration<202412102214>("bad migration", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("should_not_exist").PrimaryKey("id", Integer());
 
-            plan.RawSql("THIS_IS_INVALID_SQL_TO_FORCE_FAILURE");
-        });
+        plan.RawSql("THIS_IS_INVALID_SQL_TO_FORCE_FAILURE");
+    });
 
     auto& migrationManager = SqlMigration::MigrationManager::GetInstance();
     migrationManager.CreateMigrationHistory();
@@ -281,8 +276,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Transaction Rollback", "[SqlMigration
 
 TEST_CASE_METHOD(SqlMigrationTestFixture, "Raw SQL Migration", "[SqlMigration]")
 {
-    auto rawSqlMigration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202412102215 },
+    auto rawSqlMigration = SqlMigration::Migration<202412102215>(
         "raw sql migration",
         [](SqlMigrationQueryBuilder& plan) {
             plan.RawSql("CREATE TABLE raw_sql_test (id INT PRIMARY KEY)");
@@ -323,14 +317,12 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Raw SQL Migration", "[SqlMigration]")
 TEST_CASE_METHOD(SqlMigrationTestFixture, "Duplicate Timestamp Prevention", "[SqlMigration]")
 {
     // First migration should succeed
-    auto migration1 = SqlMigration::Migration(SqlMigration::MigrationTimestamp { 202501230001 },
-                                              "First migration",
-                                              [](SqlMigrationQueryBuilder& plan) { plan.RawSql("SELECT 1"); });
+    auto migration1 = SqlMigration::Migration<202501230001>("First migration",
+                                                            [](SqlMigrationQueryBuilder& plan) { plan.RawSql("SELECT 1"); });
 
     // Second migration with same timestamp should throw
-    CHECK_THROWS_AS(SqlMigration::Migration(SqlMigration::MigrationTimestamp { 202501230001 },
-                                            "Duplicate migration",
-                                            [](SqlMigrationQueryBuilder& plan) { plan.RawSql("SELECT 2"); }),
+    CHECK_THROWS_AS(SqlMigration::Migration<202501230001>("Duplicate migration",
+                                                          [](SqlMigrationQueryBuilder& plan) { plan.RawSql("SELECT 2"); }),
                     std::runtime_error);
 }
 
@@ -338,10 +330,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Dry Run Migration", "[SqlMigration]")
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto migration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501230002 }, "Dry run test", [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("dry_run_test").PrimaryKey("id", Integer());
-        });
+    auto migration = SqlMigration::Migration<202501230002>("Dry run test", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("dry_run_test").PrimaryKey("id", Integer());
+    });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
@@ -363,10 +354,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Checksum Computation", "[SqlMigration
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto migration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501230003 }, "Checksum test", [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("checksum_test").PrimaryKey("id", Integer());
-        });
+    auto migration = SqlMigration::Migration<202501230003>("Checksum test", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("checksum_test").PrimaryKey("id", Integer());
+    });
 
     auto& dm = SqlMigration::MigrationManager::GetInstance().GetDataMapper();
     auto checksum1 = migration.ComputeChecksum(dm.Connection().QueryFormatter());
@@ -401,10 +391,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Checksum Stored on Migration", "[SqlM
         }
     }
 
-    auto migration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501230004 }, "Checksum storage test", [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("checksum_storage_test").PrimaryKey("id", Integer());
-        });
+    auto migration = SqlMigration::Migration<202501230004>("Checksum storage test", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("checksum_storage_test").PrimaryKey("id", Integer());
+    });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
@@ -422,8 +411,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "HasDownImplementation", "[SqlMigratio
     using namespace SqlColumnTypeDefinitions;
 
     // Migration with Down() should return true
-    auto migrationWithDown = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240001 },
+    auto migrationWithDown = SqlMigration::Migration<202501240001>(
         "with down",
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("with_down_test").PrimaryKey("id", Integer()); },
         [](SqlMigrationQueryBuilder& plan) { plan.DropTable("with_down_test"); });
@@ -431,10 +419,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "HasDownImplementation", "[SqlMigratio
     CHECK(migrationWithDown.HasDownImplementation() == true);
 
     // Migration without Down() should return false
-    auto migrationWithoutDown = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240002 }, "without down", [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("without_down_test").PrimaryKey("id", Integer());
-        });
+    auto migrationWithoutDown = SqlMigration::Migration<202501240002>("without down", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("without_down_test").PrimaryKey("id", Integer());
+    });
 
     CHECK(migrationWithoutDown.HasDownImplementation() == false);
 }
@@ -443,8 +430,8 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "RevertSingleMigration throws without 
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto migrationWithoutDown = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240003 }, "no down migration", [](SqlMigrationQueryBuilder& plan) {
+    auto migrationWithoutDown =
+        SqlMigration::Migration<202501240003>("no down migration", [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTable("no_down_test").PrimaryKey("id", Integer());
         });
 
@@ -469,10 +456,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "MarkMigrationAsApplied", "[SqlMigrati
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto migration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240004 }, "mark applied test", [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("mark_applied_test").PrimaryKey("id", Integer());
-        });
+    auto migration = SqlMigration::Migration<202501240004>("mark applied test", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("mark_applied_test").PrimaryKey("id", Integer());
+    });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
@@ -498,8 +484,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "MarkMigrationAsApplied duplicate thro
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto migration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240005 },
+    auto migration = SqlMigration::Migration<202501240005>(
         "duplicate mark test",
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dup_mark_test").PrimaryKey("id", Integer()); },
         [](SqlMigrationQueryBuilder& plan) { plan.DropTable("dup_mark_test"); });
@@ -518,20 +503,17 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "RevertToMigration", "[SqlMigration]")
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto migration1 = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240010 },
+    auto migration1 = SqlMigration::Migration<202501240010>(
         "migration 1",
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("revert_to_1").PrimaryKey("id", Integer()); },
         [](SqlMigrationQueryBuilder& plan) { plan.DropTable("revert_to_1"); });
 
-    auto migration2 = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240011 },
+    auto migration2 = SqlMigration::Migration<202501240011>(
         "migration 2",
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("revert_to_2").PrimaryKey("id", Integer()); },
         [](SqlMigrationQueryBuilder& plan) { plan.DropTable("revert_to_2"); });
 
-    auto migration3 = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240012 },
+    auto migration3 = SqlMigration::Migration<202501240012>(
         "migration 3",
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("revert_to_3").PrimaryKey("id", Integer()); },
         [](SqlMigrationQueryBuilder& plan) { plan.DropTable("revert_to_3"); });
@@ -576,14 +558,12 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "GetMigrationStatus", "[SqlMigration]"
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto migration1 = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240020 },
+    auto migration1 = SqlMigration::Migration<202501240020>(
         "status test 1",
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("status_test_1").PrimaryKey("id", Integer()); },
         [](SqlMigrationQueryBuilder& plan) { plan.DropTable("status_test_1"); });
 
-    auto migration2 = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240021 },
+    auto migration2 = SqlMigration::Migration<202501240021>(
         "status test 2",
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("status_test_2").PrimaryKey("id", Integer()); },
         [](SqlMigrationQueryBuilder& plan) { plan.DropTable("status_test_2"); });
@@ -622,8 +602,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "CreateTableIfNotExists", "[SqlMigrati
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto migration1 = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240030 },
+    auto migration1 = SqlMigration::Migration<202501240030>(
         "create table if not exists",
         [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTableIfNotExists("idempotent_table").PrimaryKey("id", Integer()).RequiredColumn("name", Varchar(50));
@@ -637,8 +616,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "CreateTableIfNotExists", "[SqlMigrati
     CHECK(manager.ApplyPendingMigrations() == 1);
 
     // Manually create a second migration that also tries to create the same table
-    auto migration2 = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240031 },
+    auto migration2 = SqlMigration::Migration<202501240031>(
         "create same table again",
         [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTableIfNotExists("idempotent_table").PrimaryKey("id", Integer()).RequiredColumn("name", Varchar(50));
@@ -660,20 +638,14 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependencies applied in dec
 {
     using namespace SqlColumnTypeDefinitions;
 
-    // Name each timestamp once and reuse it to avoid mismatch between
-    // the Migration construction and the dependency list.
-    constexpr auto tsA = SqlMigration::MigrationTimestamp { 202601010001 };
-    constexpr auto tsB = SqlMigration::MigrationTimestamp { 202601010002 };
-
     // migration_b depends on migration_a but is declared with an earlier-sounding description.
     // Despite declaration order, apply should respect the dependency.
-    auto migrationA = SqlMigration::Migration(
-        tsA, "dep base", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_a").PrimaryKey("id", Integer()); });
+    auto migrationA = SqlMigration::Migration<202601010001>(
+        "dep base", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_a").PrimaryKey("id", Integer()); });
 
-    auto migrationB = SqlMigration::Migration(
-        tsB,
+    auto migrationB = SqlMigration::Migration<202601010002>(
         "dep dependent",
-        SqlMigration::MigrationMetadata { .dependencies = { tsA } },
+        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::TimestampOf<decltype(migrationA)> } },
         [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTable("dep_b")
                 .PrimaryKey("id", Integer())
@@ -688,22 +660,20 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependencies applied in dec
 
     auto const appliedIds = manager.GetAppliedMigrationIds();
     CHECK(appliedIds.size() == 2);
-    CHECK(appliedIds[0] == tsA);
-    CHECK(appliedIds[1] == tsB);
+    CHECK(appliedIds[0] == SqlMigration::TimestampOf<decltype(migrationA)>);
+    CHECK(appliedIds[1] == SqlMigration::TimestampOf<decltype(migrationB)>);
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependency on unknown timestamp throws", "[SqlMigration]")
 {
     using namespace SqlColumnTypeDefinitions;
 
-    constexpr auto tsMigration = SqlMigration::MigrationTimestamp { 202601020001 };
     constexpr auto tsUnknown = SqlMigration::MigrationTimestamp { 999999999999 };
 
-    auto migration = SqlMigration::Migration(
-        tsMigration,
-        "orphan dep",
-        SqlMigration::MigrationMetadata { .dependencies = { tsUnknown } },
-        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_orphan").PrimaryKey("id", Integer()); });
+    auto migration = SqlMigration::Migration<202601020001>(
+        "orphan dep", SqlMigration::MigrationMetadata { .dependencies = { tsUnknown } }, [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("dep_orphan").PrimaryKey("id", Integer());
+        });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
@@ -717,18 +687,20 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependency cycle detected",
 {
     using namespace SqlColumnTypeDefinitions;
 
-    constexpr auto tsA = SqlMigration::MigrationTimestamp { 202601030001 };
-    constexpr auto tsB = SqlMigration::MigrationTimestamp { 202601030002 };
+    // Forward-declare each migration's type so the mutually-referential dependency lists
+    // can use SqlMigrationTimestampOf on the opposite migration's type.
+    using MigrationA = SqlMigration::Migration<202601030001>;
+    using MigrationB = SqlMigration::Migration<202601030002>;
 
-    auto migrationA = SqlMigration::Migration(
-        tsA, "cycle a", SqlMigration::MigrationMetadata { .dependencies = { tsB } }, [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("cycle_a").PrimaryKey("id", Integer());
-        });
+    auto migrationA =
+        MigrationA("cycle a",
+                   SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::TimestampOf<MigrationB> } },
+                   [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("cycle_a").PrimaryKey("id", Integer()); });
 
-    auto migrationB = SqlMigration::Migration(
-        tsB, "cycle b", SqlMigration::MigrationMetadata { .dependencies = { tsA } }, [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("cycle_b").PrimaryKey("id", Integer());
-        });
+    auto migrationB =
+        MigrationB("cycle b",
+                   SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::TimestampOf<MigrationA> } },
+                   [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("cycle_b").PrimaryKey("id", Integer()); });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
@@ -741,21 +713,17 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Migration dependency already applied 
 {
     using namespace SqlColumnTypeDefinitions;
 
-    constexpr auto tsBase = SqlMigration::MigrationTimestamp { 202601040001 };
-    constexpr auto tsFollow = SqlMigration::MigrationTimestamp { 202601040002 };
-
-    auto base = SqlMigration::Migration(
-        tsBase, "base", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_base2").PrimaryKey("id", Integer()); });
+    auto base = SqlMigration::Migration<202601040001>(
+        "base", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_base2").PrimaryKey("id", Integer()); });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
     manager.ApplySingleMigration(base);
     CHECK(manager.GetAppliedMigrationIds().size() == 1);
 
-    auto follow = SqlMigration::Migration(
-        tsFollow,
+    auto follow = SqlMigration::Migration<202601040002>(
         "depends on base",
-        SqlMigration::MigrationMetadata { .dependencies = { tsBase } },
+        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::TimestampOf<decltype(base)> } },
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_follow").PrimaryKey("id", Integer()); });
 
     CHECK_NOTHROW(manager.ApplySingleMigration(follow));
@@ -768,17 +736,13 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
 {
     using namespace SqlColumnTypeDefinitions;
 
-    constexpr auto tsBase = SqlMigration::MigrationTimestamp { 202601050001 };
-    constexpr auto tsFollow = SqlMigration::MigrationTimestamp { 202601050002 };
-
-    auto base = SqlMigration::Migration(tsBase, "unapplied base", [](SqlMigrationQueryBuilder& plan) {
+    auto base = SqlMigration::Migration<202601050001>("unapplied base", [](SqlMigrationQueryBuilder& plan) {
         plan.CreateTable("dep_b_base").PrimaryKey("id", Integer());
     });
 
-    auto follow = SqlMigration::Migration(
-        tsFollow,
+    auto follow = SqlMigration::Migration<202601050002>(
         "follow requires unapplied",
-        SqlMigration::MigrationMetadata { .dependencies = { tsBase } },
+        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::TimestampOf<decltype(base)> } },
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("dep_b_follow").PrimaryKey("id", Integer()); });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
@@ -806,8 +770,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Audit metadata recorded on apply", "[
         }
     }
 
-    auto migration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601060001 },
+    auto migration = SqlMigration::Migration<202601060001>(
         "audited",
         SqlMigration::MigrationMetadata { .author = "Ada Lovelace", .description = "First documented migration." },
         [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("audited_table").PrimaryKey("id", Integer()); });
@@ -851,10 +814,8 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Audit metadata null when unspecified"
         }
     }
 
-    auto migration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601060002 }, "plain", [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("plain_table").PrimaryKey("id", Integer());
-        });
+    auto migration = SqlMigration::Migration<202601060002>(
+        "plain", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("plain_table").PrimaryKey("id", Integer()); });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
@@ -885,10 +846,8 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Audit metadata duration null when Mar
         }
     }
 
-    auto migration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601060003 }, "marked", [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("marked_only").PrimaryKey("id", Integer());
-        });
+    auto migration = SqlMigration::Migration<202601060003>(
+        "marked", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("marked_only").PrimaryKey("id", Integer()); });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
@@ -905,22 +864,18 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "AddColumnIfNotExists idempotent", "[S
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto create = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601070001 },
-        "create table for idempotent add",
-        [](SqlMigrationQueryBuilder& plan) {
+    auto create =
+        SqlMigration::Migration<202601070001>("create table for idempotent add", [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTable("idempotent_cols").PrimaryKey("id", Integer()).RequiredColumn("name", Varchar(50));
         });
 
-    auto addOnce = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601070002 }, "add column once", [](SqlMigrationQueryBuilder& plan) {
-            plan.AlterTable("idempotent_cols").AddColumnIfNotExists("note", Varchar(100));
-        });
+    auto addOnce = SqlMigration::Migration<202601070002>("add column once", [](SqlMigrationQueryBuilder& plan) {
+        plan.AlterTable("idempotent_cols").AddColumnIfNotExists("note", Varchar(100));
+    });
 
-    auto addAgain = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601070003 }, "add column again", [](SqlMigrationQueryBuilder& plan) {
-            plan.AlterTable("idempotent_cols").AddColumnIfNotExists("note", Varchar(100));
-        });
+    auto addAgain = SqlMigration::Migration<202601070003>("add column again", [](SqlMigrationQueryBuilder& plan) {
+        plan.AlterTable("idempotent_cols").AddColumnIfNotExists("note", Varchar(100));
+    });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
@@ -938,20 +893,17 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "DropColumnIfExists idempotent", "[Sql
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto create = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601080001 }, "create for idempotent drop", [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("idempotent_drop").PrimaryKey("id", Integer()).Column("removeme", Varchar(50));
-        });
+    auto create = SqlMigration::Migration<202601080001>("create for idempotent drop", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("idempotent_drop").PrimaryKey("id", Integer()).Column("removeme", Varchar(50));
+    });
 
-    auto dropOnce = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601080002 }, "drop column once", [](SqlMigrationQueryBuilder& plan) {
-            plan.AlterTable("idempotent_drop").DropColumnIfExists("removeme");
-        });
+    auto dropOnce = SqlMigration::Migration<202601080002>("drop column once", [](SqlMigrationQueryBuilder& plan) {
+        plan.AlterTable("idempotent_drop").DropColumnIfExists("removeme");
+    });
 
-    auto dropAgain = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202601080003 }, "drop column again", [](SqlMigrationQueryBuilder& plan) {
-            plan.AlterTable("idempotent_drop").DropColumnIfExists("removeme");
-        });
+    auto dropAgain = SqlMigration::Migration<202601080003>("drop column again", [](SqlMigrationQueryBuilder& plan) {
+        plan.AlterTable("idempotent_drop").DropColumnIfExists("removeme");
+    });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
@@ -964,8 +916,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "DropIndexIfExists", "[SqlMigration]")
 {
     using namespace SqlColumnTypeDefinitions;
 
-    auto createMigration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240040 },
+    auto createMigration = SqlMigration::Migration<202501240040>(
         "create with index",
         [](SqlMigrationQueryBuilder& plan) {
             plan.CreateTable("drop_index_test").PrimaryKey("id", Integer()).RequiredColumn("name", Varchar(50)).Index();
@@ -978,8 +929,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "DropIndexIfExists", "[SqlMigration]")
     // Create table with index
     CHECK(manager.ApplyPendingMigrations() == 1);
 
-    auto dropIndexMigration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240041 },
+    auto dropIndexMigration = SqlMigration::Migration<202501240041>(
         "drop index if exists",
         [](SqlMigrationQueryBuilder& plan) { plan.AlterTable("drop_index_test").DropIndexIfExists("name"); },
         [](SqlMigrationQueryBuilder& plan) { plan.AlterTable("drop_index_test").AddIndex("name"); });
@@ -987,8 +937,8 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "DropIndexIfExists", "[SqlMigration]")
     // First drop should succeed
     CHECK(manager.ApplyPendingMigrations() == 1);
 
-    auto dropIndexAgainMigration = SqlMigration::Migration(
-        SqlMigration::MigrationTimestamp { 202501240042 }, "drop index if exists again", [](SqlMigrationQueryBuilder& plan) {
+    auto dropIndexAgainMigration =
+        SqlMigration::Migration<202501240042>("drop index if exists again", [](SqlMigrationQueryBuilder& plan) {
             plan.AlterTable("drop_index_test").DropIndexIfExists("name");
         });
 
