@@ -3,8 +3,6 @@
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlQuery/Migrate.hpp>
 
-#include <iostream>
-
 using namespace Lightweight;
 
 // Define the plugin entry point
@@ -17,15 +15,15 @@ LIGHTWEIGHT_SQL_MIGRATION(20230101000000, "Initial Migration")
         .Column("name", SqlColumnTypeDefinitions::Varchar(50));
 }
 
-LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE(20230102000000, "Add Email Column")
-{
-    plan.AlterTable("dummy_users").AddColumn("email", SqlColumnTypeDefinitions::Varchar(100));
-}
-
-LIGHTWEIGHT_SQL_MIGRATION_DOWN(20230102000000)
-{
-    plan.AlterTable("dummy_users").DropColumn("email");
-}
+// A reversible migration: both Up and Down are declared together as a
+// single registration, so there is exactly one source of truth for the
+// migration's behaviour.
+static SqlMigration::Migration<20230102000000> const migration_20230102000000(
+    "Add Email Column",
+    [](SqlMigrationQueryBuilder& plan) {
+        plan.AlterTable("dummy_users").AddColumn("email", SqlColumnTypeDefinitions::Varchar(100));
+    },
+    [](SqlMigrationQueryBuilder& plan) { plan.AlterTable("dummy_users").DropColumn("email"); });
 
 // Declare a release marker for plugin 1. Releases expose a version -> highest-timestamp
 // mapping that dbtool surfaces via `releases` and `rollback-to-release`.

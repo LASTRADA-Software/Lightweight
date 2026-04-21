@@ -556,18 +556,21 @@ namespace SqlMigration
     template <typename T>
     inline constexpr MigrationTimestamp TimestampOf = T::TimeStamp;
 
-    /// RAII registrar used by `LIGHTWEIGHT_SQL_RELEASE` to register a release with the
-    /// migration manager at static-initialization time. Not intended for direct use.
-    ///
-    /// @ingroup SqlMigration
-    struct ReleaseRegistrar
+    namespace detail
     {
-        /// Registers `{version, highestTimestamp}` with the singleton manager.
-        ReleaseRegistrar(std::string version, MigrationTimestamp highestTimestamp)
+        /// RAII registrar used by `LIGHTWEIGHT_SQL_RELEASE` to register a release with the
+        /// migration manager at static-initialization time. Not intended for direct use.
+        ///
+        /// @ingroup SqlMigration
+        struct ReleaseRegistrar
         {
-            MigrationManager::GetInstance().RegisterRelease(std::move(version), highestTimestamp);
-        }
-    };
+            /// Registers `{version, highestTimestamp}` with the singleton manager.
+            ReleaseRegistrar(std::string version, MigrationTimestamp highestTimestamp)
+            {
+                MigrationManager::GetInstance().RegisterRelease(std::move(version), highestTimestamp);
+            }
+        };
+    } // namespace detail
 
 } // namespace SqlMigration
 
@@ -618,62 +621,6 @@ namespace SqlMigration
                                                                                                                        \
     void Migration_##timestamp::Up(Lightweight::SqlMigrationQueryBuilder& plan) const
 
-/// @brief Creates a new reversible migration whose `Down()` is defined out-of-line
-/// via @c LIGHTWEIGHT_SQL_MIGRATION_DOWN.
-///
-/// Use this variant when the migration needs to be reversible. Follow the macro with
-/// the `Up()` body, then later use `LIGHTWEIGHT_SQL_MIGRATION_DOWN(timestamp) { ... }`
-/// to provide the `Down()` body.
-///
-/// @param timestamp Timestamp of the migration.
-/// @param description Description of the migration.
-///
-/// @code
-/// LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE(20260117234120, "Create table 'MyTable'")
-/// {
-///     plan.CreateTable("MyTable").PrimaryKey("id", Integer());
-/// }
-///
-/// LIGHTWEIGHT_SQL_MIGRATION_DOWN(20260117234120)
-/// {
-///     plan.DropTable("MyTable");
-/// }
-/// @endcode
-///
-/// @ingroup SqlMigration
-#define LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE(timestamp, description)                                              \
-    struct Migration_##timestamp: public Lightweight::SqlMigration::MigrationBase                                 \
-    {                                                                                                             \
-        explicit Migration_##timestamp():                                                                         \
-            Lightweight::SqlMigration::MigrationBase(Lightweight::SqlMigration::MigrationTimestamp { timestamp }, \
-                                                     description)                                                 \
-        {                                                                                                         \
-        }                                                                                                         \
-                                                                                                                  \
-        void Up(Lightweight::SqlMigrationQueryBuilder& plan) const override;                                      \
-        void Down(Lightweight::SqlMigrationQueryBuilder& plan) const override;                                    \
-                                                                                                                  \
-        [[nodiscard]] bool HasDownImplementation() const noexcept override                                        \
-        {                                                                                                         \
-            return true;                                                                                          \
-        }                                                                                                         \
-    };                                                                                                            \
-                                                                                                                  \
-    static Migration_##timestamp _LIGHTWEIGHT_CONCATENATE(migration_, timestamp);                                 \
-                                                                                                                  \
-    void Migration_##timestamp::Up(Lightweight::SqlMigrationQueryBuilder& plan) const
-
-/// @brief Companion to @c LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE defining the out-of-line `Down()` body.
-///
-/// Must be used in the same translation unit and follow the matching
-/// `LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE(timestamp, ...)` declaration.
-///
-/// @param timestamp Timestamp of the migration whose Down() body follows.
-///
-/// @ingroup SqlMigration
-#define LIGHTWEIGHT_SQL_MIGRATION_DOWN(timestamp) \
-    void Migration_##timestamp::Down(Lightweight::SqlMigrationQueryBuilder& plan) const
-
 /// @brief Associates a software release (version string) with the highest migration timestamp
 /// present at the time of that release.
 ///
@@ -693,11 +640,11 @@ namespace SqlMigration
 /// @endcode
 ///
 /// @ingroup SqlMigration
-#define LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp)                                                         \
-    static ::Lightweight::SqlMigration::ReleaseRegistrar _LIGHTWEIGHT_CONCATENATE_INNER(_lw_release_, __COUNTER__) \
-    {                                                                                                              \
-        (version), ::Lightweight::SqlMigration::MigrationTimestamp                                                 \
-        {                                                                                                          \
-            (highestTimestamp)                                                                                     \
-        }                                                                                                          \
+#define LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp)                                                                 \
+    static ::Lightweight::SqlMigration::detail::ReleaseRegistrar _LIGHTWEIGHT_CONCATENATE_INNER(_lw_release_, __COUNTER__) \
+    {                                                                                                                      \
+        (version), ::Lightweight::SqlMigration::MigrationTimestamp                                                         \
+        {                                                                                                                  \
+            (highestTimestamp)                                                                                             \
+        }                                                                                                                  \
     }
