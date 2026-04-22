@@ -36,6 +36,13 @@ target_link_libraries(dbtool-gui PRIVATE
     Qt6::QuickControls2
 )
 
+if(WIN32)
+    find_package(libzip CONFIG REQUIRED)
+    target_link_libraries(dbtool-gui PRIVATE libzip::zip)
+else()
+    target_link_libraries(dbtool-gui PRIVATE zip)
+endif()
+
 target_compile_features(dbtool-gui PRIVATE cxx_std_23)
 
 set_target_properties(dbtool-gui PROPERTIES

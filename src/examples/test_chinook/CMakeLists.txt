@@ -9,4 +9,3 @@ if(LIGHTWEIGHT_BUILD_MODULES)
 endif()
 
 add_subdirectory(migrations)
-add_subdirectory(chinook_migrate)
