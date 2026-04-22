@@ -3,6 +3,7 @@ target_link_libraries(ddl2cpp PRIVATE Lightweight::Lightweight Lightweight::Tool
 install(TARGETS ddl2cpp DESTINATION bin)
 
 add_subdirectory(dbtool)
+add_subdirectory(dbtool_gui)
 add_subdirectory(large-db-generator)
 add_subdirectory(lup2dbtool)
 add_subdirectory(LupMigrationsPlugin)
