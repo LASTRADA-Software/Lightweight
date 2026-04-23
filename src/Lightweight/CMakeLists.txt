@@ -83,6 +83,9 @@ set(HEADER_FILES
     Zip/ZipArchive.hpp
     Zip/ZipEntry.hpp
     Zip/ZipError.hpp
+
+    Config/ProfileStore.hpp
+
     SqlConnectInfo.hpp
     SqlConnection.hpp
     SqlError.hpp
@@ -115,6 +118,9 @@ set(SOURCE_FILES
     SqlBackup/Restore.cpp
     SqlBackup/SqlBackup.cpp
     SqlBackup/TableFilter.cpp
+
+    Config/ProfileStore.cpp
+
     SqlConnectInfo.cpp
     SqlConnection.cpp
     SqlError.cpp
@@ -186,6 +192,10 @@ target_include_directories(Lightweight PUBLIC
 
 target_link_libraries(Lightweight PUBLIC reflection-cpp::reflection-cpp)
 target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>)
+# yaml-cpp is used only by Config/ProfileStore.cpp; linkage is PRIVATE so it
+# does not propagate to library consumers. `find_package(yaml-cpp)` runs in
+# the top-level CMakeLists.txt.
+target_link_libraries(Lightweight PRIVATE yaml-cpp::yaml-cpp)
 
 if(LIGHTWEIGHT_ENABLE_TRACY)
     target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_TRACY_ENABLED)
