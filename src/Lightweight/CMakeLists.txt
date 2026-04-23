@@ -86,6 +86,12 @@ set(HEADER_FILES
 
     Config/ProfileStore.hpp
 
+    Secrets/ISecretBackend.hpp
+    Secrets/SecretResolver.hpp
+    Secrets/backends/EnvBackend.hpp
+    Secrets/backends/FileBackend.hpp
+    Secrets/backends/StdinBackend.hpp
+
     SqlConnectInfo.hpp
     SqlConnection.hpp
     SqlError.hpp
@@ -120,6 +126,11 @@ set(SOURCE_FILES
     SqlBackup/TableFilter.cpp
 
     Config/ProfileStore.cpp
+
+    Secrets/SecretResolver.cpp
+    Secrets/backends/EnvBackend.cpp
+    Secrets/backends/FileBackend.cpp
+    Secrets/backends/StdinBackend.cpp
 
     SqlConnectInfo.cpp
     SqlConnection.cpp
