@@ -1,6 +1,19 @@
 var annotated_dup =
 [
     [ "Lightweight", null, [
+      [ "Config", null, [
+        [ "Profile", "d6/da2/structLightweight_1_1Config_1_1Profile.html", "d6/da2/structLightweight_1_1Config_1_1Profile" ],
+        [ "ProfileStore", "d7/d36/classLightweight_1_1Config_1_1ProfileStore.html", "d7/d36/classLightweight_1_1Config_1_1ProfileStore" ]
+      ] ],
+      [ "Odbc", null, [
+        [ "DataSourceInfo", "da/d67/structLightweight_1_1Odbc_1_1DataSourceInfo.html", "da/d67/structLightweight_1_1Odbc_1_1DataSourceInfo" ],
+        [ "DriverInfo", "da/d88/structLightweight_1_1Odbc_1_1DriverInfo.html", "da/d88/structLightweight_1_1Odbc_1_1DriverInfo" ]
+      ] ],
+      [ "Secrets", null, [
+        [ "ISecretBackend", "d2/d7e/classLightweight_1_1Secrets_1_1ISecretBackend.html", "d2/d7e/classLightweight_1_1Secrets_1_1ISecretBackend" ],
+        [ "ResolveError", "d1/d7b/structLightweight_1_1Secrets_1_1ResolveError.html", "d1/d7b/structLightweight_1_1Secrets_1_1ResolveError" ],
+        [ "SecretResolver", "d0/d5a/classLightweight_1_1Secrets_1_1SecretResolver.html", "d0/d5a/classLightweight_1_1Secrets_1_1SecretResolver" ]
+      ] ],
       [ "SqlAlterTableCommands", null, [
         [ "AddColumnIfNotExists", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists" ],
         [ "DropColumnIfExists", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists.html", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists" ],
