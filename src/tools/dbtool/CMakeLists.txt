@@ -5,7 +5,7 @@ add_library(dbtool_lib STATIC
     StandardProgressManager.hpp
 )
 
-target_link_libraries(dbtool_lib PUBLIC Lightweight yaml-cpp::yaml-cpp)
+target_link_libraries(dbtool_lib PUBLIC Lightweight)
 
 add_executable(dbtool main.cpp)
 if(WIN32)
