@@ -5,7 +5,9 @@
 #include "PluginLoader.hpp"
 #include "StandardProgressManager.hpp"
 
+#include <Lightweight/Config/ProfileStore.hpp>
 #include <Lightweight/DataMapper/DataMapper.hpp>
+#include <Lightweight/Secrets/SecretResolver.hpp>
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlMigration.hpp>
@@ -14,6 +16,7 @@
 
 #include <expected>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <print>
 #include <string>
@@ -29,16 +32,10 @@
     #pragma clang diagnostic pop
 #endif
 
-#include <yaml-cpp/yaml.h>
-
 #ifdef _WIN32
     #include <io.h>
-    #include <shlobj.h>
     #include <windows.h>
 #else
-    #include <sys/types.h>
-
-    #include <pwd.h>
     #include <unistd.h>
 #endif
 
@@ -127,6 +124,8 @@ void PrintUsage()
                  c.command, c.reset, c.param, c.reset);
     std::println("  {}backup{} --output FILE     Backs up the database to a file", c.command, c.reset);
     std::println("  {}restore{} --input FILE     Restores the database from a file", c.command, c.reset);
+    std::println("  {}resolve-secret{} {}<REF>{}   Prints a resolved secret to stdout (env:, file:, stdin:)",
+                 c.command, c.reset, c.param, c.reset);
     std::println("");
 
     // Descriptions start at column 29 (longest option is 27 chars + 2 space minimum gap)
@@ -139,6 +138,8 @@ void PrintUsage()
     std::println("  {}--schema{} {}<NAME>{}           Database schema to use",
                  c.option, c.reset, c.param, c.reset);
     std::println("  {}--config{} {}<FILE>{}           Path to configuration file",
+                 c.option, c.reset, c.param, c.reset);
+    std::println("  {}--profile{} {}<NAME>{}          Named profile from the config file (default: the file's defaultProfile)",
                  c.option, c.reset, c.param, c.reset);
     std::println("  {}--output{} {}<FILE>{}           Output file for backup",
                  c.option, c.reset, c.param, c.reset);
@@ -244,6 +245,7 @@ struct Options
     std::filesystem::path pluginsDir;
     SqlConnectionString connectionString;
     std::string configFile;
+    std::string profileName; ///< Named profile selected via --profile (empty = ProfileStore default)
     std::filesystem::path outputFile;
     std::filesystem::path inputFile;
     ProgressType progressType = ProgressType::Unicode;
@@ -263,43 +265,19 @@ struct Options
     bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
 };
 
-std::filesystem::path GetDefaultConfigPath()
+/// Loads a profile from a `ProfileStore` and fills `options` fields that were not
+/// already set on the CLI. Supports both the legacy single-profile YAML shape
+/// (top-level `PluginsDir` / `ConnectionString` / `Schema`) and the multi-profile
+/// shape (`profiles: {name: {...}}`) via `ProfileStore::LoadOrDefault`.
+///
+/// When `--config` is given but points to a missing file we treat that as a hard
+/// error, matching the old loader's behaviour. A missing *default* config is not
+/// an error — callers may rely entirely on CLI flags / environment variables.
+void ApplyProfileToOptions(Options& options)
 {
-#ifdef _WIN32
-    char path[MAX_PATH];
-    if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, path)))
-    {
-        return std::filesystem::path(path) / "dbtool" / "dbtool.yml";
-    }
-    return "dbtool.yml";
-#else
-    const char* xdgConfigHome = std::getenv("XDG_CONFIG_HOME");
-    if (xdgConfigHome)
-    {
-        return std::filesystem::path(xdgConfigHome) / "dbtool" / "dbtool.yml";
-    }
+    namespace Cfg = Lightweight::Config;
 
-    char const* home = std::getenv("HOME");
-    if (!home)
-    {
-        struct passwd* pwd = getpwuid(getuid());
-        if (pwd)
-            home = pwd->pw_dir;
-    }
-
-    if (home)
-    {
-        return std::filesystem::path(home) / ".config" / "dbtool" / "dbtool.yml";
-    }
-
-    return "dbtool.yml";
-#endif
-}
-
-void LoadConfig(Options& options)
-{
     std::filesystem::path configPath;
-
     if (!options.configFile.empty())
     {
         configPath = options.configFile;
@@ -311,36 +289,63 @@ void LoadConfig(Options& options)
     }
     else
     {
-        configPath = GetDefaultConfigPath();
+        configPath = Cfg::ProfileStore::DefaultPath();
         if (!std::filesystem::exists(configPath))
-        {
-            return; // No default config, just return
-        }
+            return; // No config at all — pure CLI / env mode.
     }
 
-    try
+    auto storeResult = Cfg::ProfileStore::LoadOrDefault(configPath);
+    if (!storeResult)
     {
-        YAML::Node config = YAML::LoadFile(configPath.string());
-
-        if (config["PluginsDir"] && !options.pluginsDirSet)
-        {
-            options.pluginsDir = config["PluginsDir"].as<std::string>();
-        }
-
-        if (config["ConnectionString"] && !options.connectionStringSet)
-        {
-            options.connectionString = SqlConnectionString { config["ConnectionString"].as<std::string>() };
-        }
-
-        if (config["Schema"] && options.schema.empty())
-        {
-            options.schema = config["Schema"].as<std::string>();
-        }
-    }
-    catch (std::exception const& e)
-    {
-        std::println(std::cerr, "Error loading config file: {}", e.what());
+        std::println(std::cerr, "Error loading config file: {}", storeResult.error());
         std::exit(EXIT_FAILURE);
+    }
+    auto const& store = *storeResult;
+
+    Cfg::Profile const* profile = nullptr;
+    if (!options.profileName.empty())
+    {
+        profile = store.Find(options.profileName);
+        if (!profile)
+        {
+            std::println(std::cerr, "Error: profile '{}' not found in {}.", options.profileName, configPath.string());
+            std::exit(EXIT_FAILURE);
+        }
+    }
+    else
+    {
+        profile = store.Default(); // legacy files synthesise a "default" profile
+    }
+
+    if (!profile)
+        return; // empty store, nothing to apply
+
+    if (!profile->pluginsDir.empty() && !options.pluginsDirSet)
+        options.pluginsDir = profile->pluginsDir;
+
+    if (!profile->schema.empty() && options.schema.empty())
+        options.schema = profile->schema;
+
+    if (!options.connectionStringSet)
+    {
+        if (!profile->connectionString.empty())
+        {
+            options.connectionString = SqlConnectionString { profile->connectionString };
+        }
+        else if (!profile->dsn.empty())
+        {
+            // Profiles keyed by DSN are flattened into an ODBC connection string so
+            // the rest of dbtool (which speaks `SqlConnectionString` everywhere) sees
+            // a uniform shape. Secret resolution lands in a follow-up; for now the
+            // profile's `secretRef` is ignored and the driver is expected to prompt
+            // or fall back to integrated auth.
+            SqlConnectionDataSource ds {
+                .datasource = profile->dsn,
+                .username = profile->uid,
+                .password = {},
+            };
+            options.connectionString = ds.ToConnectionString();
+        }
     }
 }
 
@@ -388,6 +393,12 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
             if (i + 1 >= argc)
                 return std::unexpected { "Error: --schema requires an argument" };
             options.schema = argv[++i];
+        }
+        else if (arg == "--profile")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --profile requires an argument" };
+            options.profileName = argv[++i];
         }
         else if (arg == "--config")
         {
@@ -634,6 +645,9 @@ bool SetupConnectionString(SqlConnectionString const& connectionString)
                      "environment variable, or configure it in ~/.config/dbtool/dbtool.yml.\n");
         return false;
     }
+    auto const& defaultString = SqlConnection::DefaultConnectionString();
+    if (!EnsureSqliteDatabaseFileExists(defaultString))
+        std::println(std::cerr, "Warning: could not ensure SQLite database file exists for {}", defaultString.Sanitized());
     return true;
 }
 
@@ -726,6 +740,48 @@ int RollbackMigration(MigrationManager& manager, std::string_view argument)
 ///
 /// @param manager The migration manager instance.
 /// @return EXIT_SUCCESS on success, EXIT_FAILURE on error.
+/// Latest release whose migrations have at least one applied entry, plus how many
+/// of that release's registered migrations are applied (`applied` ≤ `total`). When
+/// no release has any applied migration, `latest == nullptr`.
+struct LatestReleaseStatus
+{
+    MigrationRelease const* latest;
+    size_t applied;
+    size_t total;
+};
+
+/// Walks registered releases in ascending order, looking up applied state per release,
+/// and returns the *latest* release that has any applied migration in it (fully or
+/// partially). Releases after that point (with zero applied migrations) are ignored
+/// — they're pending work, not "applied-but-later".
+LatestReleaseStatus ComputeLatestAppliedRelease(MigrationManager& manager)
+{
+    auto const& releases = manager.GetAllReleases();
+    LatestReleaseStatus result { .latest = nullptr, .applied = 0, .total = 0 };
+    if (releases.empty())
+        return result;
+
+    std::unordered_set<uint64_t> appliedSet;
+    for (auto const& id: manager.GetAppliedMigrationIds())
+        appliedSet.insert(id.value);
+
+    for (auto const& release: releases)
+    {
+        auto const migs = manager.GetMigrationsForRelease(release.version);
+        size_t appliedHere = 0;
+        for (auto const* m: migs)
+            if (appliedSet.contains(m->GetTimestamp().value))
+                ++appliedHere;
+        if (appliedHere > 0)
+        {
+            result.latest = &release;
+            result.applied = appliedHere;
+            result.total = migs.size();
+        }
+    }
+    return result;
+}
+
 int Status(MigrationManager& manager)
 {
     auto const status = manager.GetMigrationStatus();
@@ -740,6 +796,21 @@ int Status(MigrationManager& manager)
     if (status.unknownAppliedCount > 0)
     {
         std::println("  Unknown applied:       {} (applied but not registered)", status.unknownAppliedCount);
+    }
+
+    if (!manager.GetAllReleases().empty())
+    {
+        auto const latest = ComputeLatestAppliedRelease(manager);
+        if (!latest.latest)
+        {
+            std::println("  Latest release:        (none applied)");
+        }
+        else
+        {
+            auto const* const label = (latest.applied == latest.total) ? "applied" : "partially applied";
+            std::println("  Latest release:        {} ({}, {}/{} migrations)",
+                         latest.latest->version, label, latest.applied, latest.total);
+        }
     }
 
     std::println("");
@@ -874,7 +945,9 @@ int Releases(MigrationManager& manager)
     appliedSet.reserve(applied.size());
     for (auto const& ts: applied)
         appliedSet.insert(ts.value);
-    auto const isApplied = [&](MigrationTimestamp ts) { return appliedSet.contains(ts.value); };
+    auto const isApplied = [&](MigrationTimestamp ts) {
+        return appliedSet.contains(ts.value);
+    };
 
     std::println("Releases:");
     std::println("");
@@ -1520,6 +1593,99 @@ MigrationManager& GetMigrationManager(Options const& options)
     return manager;
 }
 
+/// Dispatches a DB-connected command to its handler. Assumes the caller has
+/// already established the ODBC connection via `SetupConnectionString`.
+int DispatchDbCommand(Options const& options)
+{
+    if (options.command == "list-pending")
+        return ListPendingMigrations(GetMigrationManager(options));
+    if (options.command == "list-applied")
+        return ListAppliedMigrations(GetMigrationManager(options));
+    if (options.command == "status")
+        return Status(GetMigrationManager(options));
+    if (options.command == "releases")
+        return Releases(GetMigrationManager(options));
+
+    if (options.command == "migrate")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        return Migrate(manager, options.dryRun);
+    }
+    if (options.command == "apply")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock);
+        return ApplyMigration(manager, options.argument);
+    }
+    if (options.command == "rollback")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock);
+        return RollbackMigration(manager, options.argument);
+    }
+    if (options.command == "rollback-to")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock);
+        return RollbackTo(manager, options.argument);
+    }
+    if (options.command == "rollback-to-release")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock);
+        return RollbackToRelease(manager, options.argument);
+    }
+    if (options.command == "mark-applied")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock);
+        return MarkApplied(manager, options.argument);
+    }
+    if (options.command == "backup")
+        return Backup(options);
+    if (options.command == "restore")
+        return Restore(options);
+
+    std::println(std::cerr, "Unknown command: {}", options.command);
+    return EXIT_FAILURE;
+}
+
+/// Handles the `resolve-secret` command, which short-circuits before any DB
+/// connection is established so scripts can use dbtool as a thin secret
+/// lookup CLI.
+int ResolveSecretCommand(Options const& options)
+{
+    if (options.argument.empty())
+    {
+        std::println(std::cerr, "Error: resolve-secret requires a <REF> argument (e.g. env:MY_PWD).");
+        return EXIT_FAILURE;
+    }
+    auto const resolver = Lightweight::Secrets::MakeDefaultResolver();
+    auto const result = resolver.Resolve(options.argument, options.profileName);
+    if (!result)
+    {
+        std::println(std::cerr, "Error: {}", result.error().message);
+        return EXIT_FAILURE;
+    }
+    std::println("{}", *result);
+    return EXIT_SUCCESS;
+}
+
+#if defined(_WIN32)
+/// Enables VT sequence processing and UTF-8 output on the Windows console.
+void ConfigureWindowsConsole()
+{
+    if (const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE); hOut != INVALID_HANDLE_VALUE)
+        if (DWORD dwMode = 0; GetConsoleMode(hOut, &dwMode) != 0)
+            SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
+    if (const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE); hOut != INVALID_HANDLE_VALUE)
+        if (DWORD dwMode = 0; GetConsoleOutputCP() != CP_UTF8)
+            SetConsoleOutputCP(CP_UTF8);
+}
+#endif
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -1533,18 +1699,10 @@ int main(int argc, char** argv)
             return EXIT_FAILURE;
         }
         Options options = optionsResult.value();
-        LoadConfig(options); // Load config (and fill missing values if not set by CLI)
+        ApplyProfileToOptions(options); // Resolve a named (or default) profile and fill unset fields.
 
 #if defined(_WIN32)
-        // Enable VT support
-        if (const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE); hOut != INVALID_HANDLE_VALUE)
-            if (DWORD dwMode = 0; GetConsoleMode(hOut, &dwMode) != 0)
-                SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-
-        // Enable UTF-8
-        if (const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE); hOut != INVALID_HANDLE_VALUE)
-            if (DWORD dwMode = 0; GetConsoleOutputCP() != CP_UTF8)
-                SetConsoleOutputCP(CP_UTF8);
+        ConfigureWindowsConsole();
 #endif
 
         if (options.command.empty())
@@ -1559,63 +1717,13 @@ int main(int argc, char** argv)
             return EXIT_SUCCESS;
         }
 
+        if (options.command == "resolve-secret")
+            return ResolveSecretCommand(options);
+
         if (!SetupConnectionString(options.connectionString))
             return EXIT_FAILURE;
 
-        // Read-only commands (no lock needed)
-        if (options.command == "list-pending")
-            return ListPendingMigrations(GetMigrationManager(options));
-        else if (options.command == "list-applied")
-            return ListAppliedMigrations(GetMigrationManager(options));
-        else if (options.command == "status")
-            return Status(GetMigrationManager(options));
-        else if (options.command == "releases")
-            return Releases(GetMigrationManager(options));
-
-        // Write commands (lock recommended)
-        else if (options.command == "migrate")
-        {
-            auto& manager = GetMigrationManager(options);
-            OptionalMigrationLock lock(manager, options.noLock || options.dryRun);
-            return Migrate(manager, options.dryRun);
-        }
-        else if (options.command == "apply")
-        {
-            auto& manager = GetMigrationManager(options);
-            OptionalMigrationLock lock(manager, options.noLock);
-            return ApplyMigration(manager, options.argument);
-        }
-        else if (options.command == "rollback")
-        {
-            auto& manager = GetMigrationManager(options);
-            OptionalMigrationLock lock(manager, options.noLock);
-            return RollbackMigration(manager, options.argument);
-        }
-        else if (options.command == "rollback-to")
-        {
-            auto& manager = GetMigrationManager(options);
-            OptionalMigrationLock lock(manager, options.noLock);
-            return RollbackTo(manager, options.argument);
-        }
-        else if (options.command == "rollback-to-release")
-        {
-            auto& manager = GetMigrationManager(options);
-            OptionalMigrationLock lock(manager, options.noLock);
-            return RollbackToRelease(manager, options.argument);
-        }
-        else if (options.command == "mark-applied")
-        {
-            auto& manager = GetMigrationManager(options);
-            OptionalMigrationLock lock(manager, options.noLock);
-            return MarkApplied(manager, options.argument);
-        }
-        else if (options.command == "backup")
-            return Backup(options);
-        else if (options.command == "restore")
-            return Restore(options);
-
-        std::println(std::cerr, "Unknown command: {}", options.command);
-        return EXIT_FAILURE;
+        return DispatchDbCommand(options);
     }
     catch (SqlException const& e)
     {
