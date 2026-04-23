@@ -9,7 +9,7 @@
 // will automatically run lup2dbtool to generate C++ migrations.
 //
 // Example:
-//   cmake -DLUPMIGRATION_SQL_DIR=/path/to/model4_JP ..
+//   cmake -DLUPMIGRATION_SQL_DIR=/path/to/lup-sql ..
 //
 // The generated migrations are compiled as a separate source file and
 // linked into this plugin. Use TransitionGlue::Initialize() to migrate
