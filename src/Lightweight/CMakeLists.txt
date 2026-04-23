@@ -86,6 +86,8 @@ set(HEADER_FILES
 
     Config/ProfileStore.hpp
 
+    Odbc/DataSourceEnumerator.hpp
+
     SqlConnectInfo.hpp
     SqlConnection.hpp
     SqlError.hpp
@@ -118,6 +120,8 @@ set(SOURCE_FILES
     SqlBackup/TableFilter.cpp
 
     Config/ProfileStore.cpp
+
+    Odbc/DataSourceEnumerator.cpp
 
     SqlConnectInfo.cpp
     SqlConnection.cpp

@@ -74,6 +74,7 @@ set(SOURCE_FILES
     CoreTests.cpp
     CxxModelPrinterTests.cpp
     DataBinderTests.cpp
+    DataSourceEnumeratorTests.cpp
     DataMapper/CreateTests.cpp
     DataMapper/MiscTests.cpp
     DataMapper/NamingTests.cpp
