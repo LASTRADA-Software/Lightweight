@@ -88,6 +88,12 @@ set(HEADER_FILES
 
     Odbc/DataSourceEnumerator.hpp
 
+    Secrets/ISecretBackend.hpp
+    Secrets/SecretResolver.hpp
+    Secrets/backends/EnvBackend.hpp
+    Secrets/backends/FileBackend.hpp
+    Secrets/backends/StdinBackend.hpp
+
     SqlConnectInfo.hpp
     SqlConnection.hpp
     SqlError.hpp
@@ -122,6 +128,11 @@ set(SOURCE_FILES
     Config/ProfileStore.cpp
 
     Odbc/DataSourceEnumerator.cpp
+
+    Secrets/SecretResolver.cpp
+    Secrets/backends/EnvBackend.cpp
+    Secrets/backends/FileBackend.cpp
+    Secrets/backends/StdinBackend.cpp
 
     SqlConnectInfo.cpp
     SqlConnection.cpp
