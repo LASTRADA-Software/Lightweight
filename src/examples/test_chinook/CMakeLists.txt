@@ -7,3 +7,5 @@ if(LIGHTWEIGHT_BUILD_MODULES)
         CXX_SCAN_FOR_MODULES ON
     )
 endif()
+
+add_subdirectory(migrations)

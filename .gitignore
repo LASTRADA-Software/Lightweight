@@ -8,6 +8,7 @@ build/
 out/
 vcpkg_installed/
 CMakeSettings.json
+CMakeFiles/
 compile_commands.json
 *.sqlite
 *.db
