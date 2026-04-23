@@ -288,7 +288,8 @@ EXEC sp_executesql @sql;)",
         {
             for (auto const& fk: foreignKeys)
             {
-                ss << ",\n    CONSTRAINT " << std::format("\"FK_{}_{}\"", tableName, fk.columns[0]) // Basic name generation
+                ss << ",\n    CONSTRAINT \""
+                   << BuildForeignKeyConstraintName(tableName, fk.columns) << '"'
                    << " FOREIGN KEY (";
 
                 size_t i = 0;
@@ -438,10 +439,17 @@ EXEC sp_executesql @sql;)",
                                 R"(DROP INDEX "{0}_{1}_{2}_index";)", schemaName, tableName, actualCommand.columnName);
                     },
                     [schemaName, tableName](AddForeignKey const& actualCommand) -> std::string {
+                        // Guard with `IF NOT EXISTS (sys.foreign_keys WHERE name=…)` so the
+                        // statement is idempotent. LUP migrations re-add foreign keys that
+                        // earlier ALTER scripts already created (the 4_7_6 vs 5_0_0 overlap),
+                        // and SQL Server has no `ADD CONSTRAINT IF NOT EXISTS`.
+                        auto const fkName = std::format("FK_{}_{}", tableName, actualCommand.columnName);
                         return std::format(
-                            R"(ALTER TABLE {} ADD {};)",
+                            R"(IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = '{0}') ALTER TABLE {1} ADD {2};)",
+                            fkName,
                             FormatTableName(schemaName, tableName),
-                            BuildForeignKeyConstraint(tableName, actualCommand.columnName, actualCommand.referencedColumn));
+                            BuildForeignKeyConstraint(
+                                tableName, actualCommand.columnName, actualCommand.referencedColumn));
                     },
                     [schemaName, tableName](DropForeignKey const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE {} DROP CONSTRAINT "{}";)",
@@ -450,8 +458,9 @@ EXEC sp_executesql @sql;)",
                     },
                     [schemaName, tableName](AddCompositeForeignKey const& actualCommand) -> std::string {
                         std::stringstream ss;
-                        ss << "ALTER TABLE " << FormatTableName(schemaName, tableName) << " ADD CONSTRAINT "
-                           << std::format("\"FK_{}_{}\"", tableName, actualCommand.columns[0]) << " FOREIGN KEY (";
+                        ss << "ALTER TABLE " << FormatTableName(schemaName, tableName) << " ADD CONSTRAINT \""
+                           << BuildForeignKeyConstraintName(tableName, actualCommand.columns)
+                           << "\" FOREIGN KEY (";
 
                         size_t i = 0;
                         for (auto const& col: actualCommand.columns)

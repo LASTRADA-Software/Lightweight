@@ -434,9 +434,11 @@ SqlMigrationUpdateBuilder SqlMigrationQueryBuilder::Update(std::string_view tabl
         .schemaName = _schemaName,
         .tableName = std::string(tableName),
         .setColumns = {},
+        .setExpressions = {},
         .whereColumn = {},
         .whereOp = {},
         .whereValue = {},
+        .whereExpression = {},
     });
     return SqlMigrationUpdateBuilder { std::get<SqlUpdateDataPlan>(_migrationPlan.steps.back()) };
 }
@@ -449,6 +451,7 @@ SqlMigrationDeleteBuilder SqlMigrationQueryBuilder::Delete(std::string_view tabl
         .whereColumn = {},
         .whereOp = {},
         .whereValue = {},
+        .whereExpression = {},
     });
     return SqlMigrationDeleteBuilder { std::get<SqlDeleteDataPlan>(_migrationPlan.steps.back()) };
 }

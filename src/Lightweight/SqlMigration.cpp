@@ -405,11 +405,16 @@ namespace
         {
             AddColumnIfNotExists,
             DropColumnIfExists,
+            AddForeignKey,
+            DropForeignKey,
         };
 
         Kind kind;
         std::string tableName;
         std::string columnName;
+        // Only populated for Kind::AddForeignKey. Empty otherwise.
+        std::string referencedTable;
+        std::string referencedColumn;
     };
 
     /// Parse the leading sentinel (if any) from a SQL script.
@@ -442,31 +447,49 @@ namespace
                 return SqliteGuard::Kind::AddColumnIfNotExists;
             if (kindStr == "DROP_COLUMN_IF_EXISTS")
                 return SqliteGuard::Kind::DropColumnIfExists;
+            if (kindStr == "ADD_FOREIGN_KEY")
+                return SqliteGuard::Kind::AddForeignKey;
+            if (kindStr == "DROP_FOREIGN_KEY")
+                return SqliteGuard::Kind::DropForeignKey;
             return std::nullopt;
         }();
         if (!kind)
             return std::nullopt;
 
-        auto const firstQuote = directive.find('"', kindEnd);
-        if (firstQuote == std::string_view::npos)
-            return std::nullopt;
-        auto const secondQuote = directive.find('"', firstQuote + 1);
-        if (secondQuote == std::string_view::npos)
-            return std::nullopt;
-        auto const thirdQuote = directive.find('"', secondQuote + 1);
-        if (thirdQuote == std::string_view::npos)
-            return std::nullopt;
-        auto const fourthQuote = directive.find('"', thirdQuote + 1);
-        if (fourthQuote == std::string_view::npos)
-            return std::nullopt;
+        // Parse N quoted identifiers after the kind keyword. All existing kinds take
+        // exactly 2 quoted args (table, column); AddForeignKey takes 4 (adds referenced
+        // table, referenced column).
+        size_t const expectedStrings = (*kind == SqliteGuard::Kind::AddForeignKey) ? 4 : 2;
+        std::vector<std::string_view> quoted;
+        quoted.reserve(expectedStrings);
 
-        auto const tableName = directive.substr(firstQuote + 1, secondQuote - firstQuote - 1);
-        auto const columnName = directive.substr(thirdQuote + 1, fourthQuote - thirdQuote - 1);
+        size_t searchPos = kindEnd;
+        while (quoted.size() < expectedStrings)
+        {
+            auto const openQuote = directive.find('"', searchPos);
+            if (openQuote == std::string_view::npos)
+                return std::nullopt;
+            auto const closeQuote = directive.find('"', openQuote + 1);
+            if (closeQuote == std::string_view::npos)
+                return std::nullopt;
+            quoted.push_back(directive.substr(openQuote + 1, closeQuote - openQuote - 1));
+            searchPos = closeQuote + 1;
+        }
 
-        return std::pair {
-            SqliteGuard { .kind = *kind, .tableName = std::string { tableName }, .columnName = std::string { columnName } },
-            newlinePos + 1
+        SqliteGuard guard {
+            .kind = *kind,
+            .tableName = std::string { quoted[0] },
+            .columnName = std::string { quoted[1] },
+            .referencedTable = {},
+            .referencedColumn = {},
         };
+        if (*kind == SqliteGuard::Kind::AddForeignKey)
+        {
+            guard.referencedTable = std::string { quoted[2] };
+            guard.referencedColumn = std::string { quoted[3] };
+        }
+
+        return std::pair { std::move(guard), newlinePos + 1 };
     }
 
     /// Check whether a column exists on a SQLite table via pragma_table_info().
@@ -480,6 +503,208 @@ namespace
         if (!cursor.FetchRow())
             return false;
         return cursor.GetColumn<int64_t>(1) > 0;
+    }
+
+    /// Fetch the stored `CREATE TABLE` SQL for a SQLite table.
+    [[nodiscard]] std::string FetchSqliteCreateTableSql(SqlConnection& connection, std::string_view tableName)
+    {
+        auto stmt = SqlStatement { connection };
+        auto cursor = stmt.ExecuteDirect(std::format(
+            R"(SELECT sql FROM sqlite_schema WHERE type='table' AND name='{}')", tableName));
+        if (!cursor.FetchRow())
+            throw std::runtime_error(std::format("SQLite rebuild: table '{}' not found in sqlite_schema", tableName));
+        return cursor.GetColumn<std::string>(1);
+    }
+
+    /// Fetch the column names of a SQLite table in declared order.
+    [[nodiscard]] std::vector<std::string> FetchSqliteColumnNames(SqlConnection& connection, std::string_view tableName)
+    {
+        auto stmt = SqlStatement { connection };
+        auto cursor = stmt.ExecuteDirect(std::format(R"(PRAGMA table_info("{}"))", tableName));
+        std::vector<std::string> columns;
+        while (cursor.FetchRow())
+            columns.push_back(cursor.GetColumn<std::string>(2)); // column 2 is `name`
+        return columns;
+    }
+
+    /// Rebuild a SQLite table while transforming its stored `CREATE TABLE` SQL.
+    ///
+    /// The table rebuild follows the SQLite-recommended recipe:
+    ///   1. Build a modified `CREATE TABLE` pointing at a temp-named table.
+    ///   2. Copy data: `INSERT INTO tmp SELECT cols FROM orig`.
+    ///   3. `DROP TABLE orig`.
+    ///   4. `ALTER TABLE tmp RENAME TO orig`.
+    ///
+    /// The caller supplies `transformCreateSql` which receives the original SQL (with the
+    /// table name already substituted for the temp name) and returns the final CREATE TABLE
+    /// text. The migration transaction covers all four steps for atomicity.
+    ///
+    /// Assumes SQLite's default `foreign_keys = OFF` session setting, which is standard
+    /// during migrations — with enforcement on, `DROP TABLE orig` would succeed but the
+    /// brief interval between DROP and RENAME would leave FKs in other tables temporarily
+    /// dangling.
+    void RebuildSqliteTable(SqlConnection& connection,
+                            std::string_view tableName,
+                            auto&& transformCreateSql)
+    {
+        auto const originalSql = FetchSqliteCreateTableSql(connection, tableName);
+        auto const columns = FetchSqliteColumnNames(connection, tableName);
+        if (columns.empty())
+            throw std::runtime_error(
+                std::format("SQLite rebuild: table '{}' has no columns", tableName));
+
+        std::string const tmpName = std::string { tableName } + "__lw_rebuild";
+
+        // Substitute the original table name with the temp name in the stored SQL. We match
+        // the CREATE TABLE header quoting variants (quoted, bracketed, or bare) — Lightweight
+        // emits quoted, so the quoted form wins; the others are belt-and-braces.
+        auto replaceFirst = [](std::string s, std::string_view from, std::string_view to) {
+            if (auto const pos = s.find(from); pos != std::string::npos)
+                s.replace(pos, from.size(), to);
+            return s;
+        };
+        auto withTmpName = replaceFirst(originalSql,
+                                        std::format(R"("{}")", tableName),
+                                        std::format(R"("{}")", tmpName));
+        if (withTmpName == originalSql) // unquoted fallback
+            withTmpName = replaceFirst(originalSql, tableName, tmpName);
+
+        auto const newSql = transformCreateSql(std::move(withTmpName));
+
+        auto stmt = SqlStatement { connection };
+        auto exec = [&](std::string const& sql, std::string_view step) {
+            try
+            {
+                (void) stmt.ExecuteDirect(sql);
+            }
+            catch (SqlException const& ex)
+            {
+                auto const& info = ex.info();
+                throw SqlException(SqlErrorInfo {
+                    .nativeErrorCode = info.nativeErrorCode,
+                    .sqlState = info.sqlState,
+                    .message = std::format(
+                        "SQLite rebuild of '{}' failed at {}: {}\n  SQL: {}",
+                        tableName, step, info.message, sql),
+                });
+            }
+        };
+
+        exec(newSql, "CREATE TABLE (tmp)");
+
+        std::string columnList;
+        for (size_t i = 0; i < columns.size(); ++i)
+        {
+            if (i != 0)
+                columnList += ", ";
+            columnList += std::format(R"("{}")", columns[i]);
+        }
+        exec(std::format(R"(INSERT INTO "{}" ({}) SELECT {} FROM "{}")",
+                         tmpName, columnList, columnList, tableName),
+             "INSERT SELECT");
+        exec(std::format(R"(DROP TABLE "{}")", tableName), "DROP TABLE");
+        exec(std::format(R"(ALTER TABLE "{}" RENAME TO "{}")", tmpName, tableName),
+             "ALTER TABLE RENAME");
+    }
+
+    /// Rebuild a SQLite table to add a new foreign key constraint.
+    void SqliteRebuildAddForeignKey(SqlConnection& connection, SqliteGuard const& guard)
+    {
+        auto const fk = std::format(
+            R"(CONSTRAINT "FK_{0}_{1}" FOREIGN KEY ("{1}") REFERENCES "{2}"("{3}"))",
+            guard.tableName, guard.columnName, guard.referencedTable, guard.referencedColumn);
+
+        RebuildSqliteTable(connection, guard.tableName, [&](std::string createSql) {
+            auto const closeParen = createSql.rfind(')');
+            if (closeParen == std::string::npos)
+                throw std::runtime_error(
+                    std::format("SQLite rebuild: cannot find closing ')' in CREATE TABLE for '{}'",
+                                guard.tableName));
+            createSql.insert(closeParen, ", " + fk);
+            return createSql;
+        });
+    }
+
+    /// Advance past a `(...)` group starting at the first `(` at or after `from`.
+    /// Returns the index just past the matching close paren, or `std::string::npos`
+    /// if the text is malformed.
+    [[nodiscard]] size_t SkipMatchingParens(std::string_view s, size_t from)
+    {
+        auto const open = s.find('(', from);
+        if (open == std::string_view::npos)
+            return std::string_view::npos;
+        int depth = 1;
+        size_t scan = open + 1;
+        while (scan < s.size() && depth > 0)
+        {
+            if (s[scan] == '(')
+                ++depth;
+            else if (s[scan] == ')')
+                --depth;
+            ++scan;
+        }
+        return depth == 0 ? scan : std::string_view::npos;
+    }
+
+    /// Expand `[start..pos)` backwards to include adjacent whitespace and up to one
+    /// trailing comma — so erasing `[newStart..end)` from a column list also removes
+    /// the separator preceding the clause.
+    [[nodiscard]] size_t ExtendLeftPastSeparator(std::string_view s, size_t pos)
+    {
+        auto start = pos;
+        while (start > 0 && (s[start - 1] == ' ' || s[start - 1] == '\t' || s[start - 1] == '\n'))
+            --start;
+        if (start > 0 && s[start - 1] == ',')
+            --start;
+        return start;
+    }
+
+    /// Locate the FK clause to drop. Tries (in order):
+    ///   1. `CONSTRAINT "<fkName>"`
+    ///   2. `CONSTRAINT <fkName>` (unquoted)
+    ///   3. Bare `FOREIGN KEY ("<column>")` — SQLite's stored CREATE TABLE often omits
+    ///      the `CONSTRAINT <name>` prefix because Lightweight's SQLite formatter emits
+    ///      FKs inline without naming them.
+    [[nodiscard]] size_t FindForeignKeyClause(std::string_view sql,
+                                              std::string_view fkName,
+                                              std::string_view columnName)
+    {
+        if (auto const pos = sql.find(std::format(R"(CONSTRAINT "{}")", fkName));
+            pos != std::string_view::npos)
+            return pos;
+        if (auto const pos = sql.find(std::format(R"(CONSTRAINT {})", fkName));
+            pos != std::string_view::npos)
+            return pos;
+        return sql.find(std::format(R"(FOREIGN KEY ("{}"))", columnName));
+    }
+
+    /// Rebuild a SQLite table to drop a foreign key constraint.
+    ///
+    /// Strips `CONSTRAINT "FK_<table>_<column>" FOREIGN KEY (…) REFERENCES "T"("C")` —
+    /// or the unquoted variant — along with its leading comma-and-whitespace.
+    void SqliteRebuildDropForeignKey(SqlConnection& connection, SqliteGuard const& guard)
+    {
+        auto const fkName = std::format("FK_{}_{}", guard.tableName, guard.columnName);
+
+        RebuildSqliteTable(connection, guard.tableName, [&](std::string createSql) {
+            auto const pos = FindForeignKeyClause(createSql, fkName, guard.columnName);
+            if (pos == std::string::npos)
+                throw std::runtime_error(std::format(
+                    "SQLite rebuild: cannot locate FK for '{}.{}' in CREATE TABLE",
+                    guard.tableName, guard.columnName));
+
+            // Skip the FOREIGN KEY (...) list, then the REFERENCES table(col) list.
+            auto scan = SkipMatchingParens(createSql, pos);
+            if (scan == std::string::npos)
+                throw std::runtime_error("SQLite rebuild: malformed FOREIGN KEY paren group");
+            scan = SkipMatchingParens(createSql, scan);
+            if (scan == std::string::npos)
+                throw std::runtime_error("SQLite rebuild: malformed REFERENCES paren group");
+
+            auto const start = ExtendLeftPastSeparator(createSql, pos);
+            createSql.erase(start, scan - start);
+            return createSql;
+        });
     }
 
     /// Execute a SQL script that may be prefixed with a SQLite runtime-guard sentinel.
@@ -500,21 +725,23 @@ namespace
         auto const bodyStart = parsed->second;
         auto const body = script.substr(bodyStart);
 
-        auto const columnPresent = SqliteColumnExists(connection, guard.tableName, guard.columnName);
-
-        bool shouldExecute = true;
         switch (guard.kind)
         {
             case SqliteGuard::Kind::AddColumnIfNotExists:
-                shouldExecute = !columnPresent;
-                break;
+                if (!SqliteColumnExists(connection, guard.tableName, guard.columnName))
+                    (void) stmt.ExecuteDirect(body);
+                return;
             case SqliteGuard::Kind::DropColumnIfExists:
-                shouldExecute = columnPresent;
-                break;
+                if (SqliteColumnExists(connection, guard.tableName, guard.columnName))
+                    (void) stmt.ExecuteDirect(body);
+                return;
+            case SqliteGuard::Kind::AddForeignKey:
+                SqliteRebuildAddForeignKey(connection, guard);
+                return;
+            case SqliteGuard::Kind::DropForeignKey:
+                SqliteRebuildDropForeignKey(connection, guard);
+                return;
         }
-
-        if (shouldExecute)
-            (void) stmt.ExecuteDirect(body);
     }
 } // namespace
 

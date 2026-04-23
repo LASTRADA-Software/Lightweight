@@ -266,7 +266,10 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                                                                std::string_view columnName,
                                                                SqlForeignKeyReferenceDefinition const& referencedColumn)
     {
-        return std::format(R"(CONSTRAINT {} FOREIGN KEY ("{}") REFERENCES "{}"("{}"))",
+        // Double-quote the constraint name so PostgreSQL preserves its case (otherwise
+        // PG would fold to lowercase, breaking the matching `DROP CONSTRAINT "FK_<…>"`
+        // emitted by `DropForeignKey`).
+        return std::format(R"(CONSTRAINT "{}" FOREIGN KEY ("{}") REFERENCES "{}"("{}"))",
                            std::format("FK_{}_{}", tableName, columnName),
                            columnName,
                            referencedColumn.tableName,
@@ -314,7 +317,13 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
 
             for (SqlCompositeForeignKeyConstraint const& fk: foreignKeys)
             {
-                foreignKeyConstraints += ",\n    FOREIGN KEY (";
+                // Emit a deterministic CONSTRAINT name (`FK_<table>_<col1>_<col2>...`) so that
+                // a later `DropForeignKey` / SQLite-rebuild can locate the constraint by name
+                // instead of relying on the backend's auto-generated identifier (PostgreSQL
+                // would otherwise pick `<table>_<col>_fkey`).
+                foreignKeyConstraints += ",\n    CONSTRAINT \"";
+                foreignKeyConstraints += BuildForeignKeyConstraintName(tableName, fk.columns);
+                foreignKeyConstraints += "\" FOREIGN KEY (";
                 for (size_t i = 0; i < fk.columns.size(); ++i)
                 {
                     if (i > 0)
@@ -451,16 +460,29 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                     [tableName](DropIndex const& actualCommand) -> std::string {
                         return std::format(R"(DROP INDEX "{0}_{1}_index";)", tableName, actualCommand.columnName);
                     },
-                    [&formatTable, tableName](AddForeignKey const& actualCommand) -> std::string {
+                    [tableName](AddForeignKey const& actualCommand) -> std::string {
+                        // SQLite cannot `ALTER TABLE … ADD CONSTRAINT`. The runtime executor
+                        // recognizes this sentinel and rebuilds the table from sqlite_schema.
+                        // All metadata the executor needs fits in the sentinel itself. We keep
+                        // a commented-out equivalent MSSQL-style ALTER below so dry-run output
+                        // stays readable.
                         return std::format(
-                            R"(ALTER TABLE {} ADD {};)",
-                            formatTable(),
+                            R"(-- LIGHTWEIGHT_SQLITE_GUARD: ADD_FOREIGN_KEY "{0}" "{1}" "{2}" "{3}"
+-- ALTER TABLE "{0}" ADD {4};)",
+                            tableName,
+                            actualCommand.columnName,
+                            actualCommand.referencedColumn.tableName,
+                            actualCommand.referencedColumn.columnName,
                             BuildForeignKeyConstraint(tableName, actualCommand.columnName, actualCommand.referencedColumn));
                     },
-                    [&formatTable, tableName](DropForeignKey const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE {} DROP CONSTRAINT "{}";)",
-                                           formatTable(),
-                                           std::format("FK_{}_{}", tableName, actualCommand.columnName));
+                    [tableName](DropForeignKey const& actualCommand) -> std::string {
+                        // SQLite has no `DROP CONSTRAINT`. Executor rebuilds the table without
+                        // the matching `CONSTRAINT FK_<tbl>_<col>` clause.
+                        return std::format(
+                            R"(-- LIGHTWEIGHT_SQLITE_GUARD: DROP_FOREIGN_KEY "{0}" "{1}"
+-- ALTER TABLE "{0}" DROP CONSTRAINT "FK_{0}_{1}";)",
+                            tableName,
+                            actualCommand.columnName);
                     },
                     [tableName](AddCompositeForeignKey const& /*actualCommand*/) -> std::string {
                         // SQLite limitation: ALTER TABLE ADD CONSTRAINT not supported.

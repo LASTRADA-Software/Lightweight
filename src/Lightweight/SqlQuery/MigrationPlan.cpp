@@ -89,12 +89,27 @@ namespace
                     result += ", ";
                 result += std::format(R"("{}" = {})", columnName, FormatSqlLiteral(formatter, columnValue));
             }
+            // Raw expression assignments (column-to-column copies, arithmetic, etc.) are
+            // appended verbatim — the lup2dbtool emitter has already canonicalized
+            // identifier quoting in the expression string.
+            for (auto const& [columnName, expression]: step.setExpressions)
+            {
+                if (!result.empty())
+                    result += ", ";
+                result += std::format(R"("{}" = {})", columnName, expression);
+            }
             return result;
         }();
 
         auto tableName = FormatTableName(step.schemaName, step.tableName);
         std::string sql = std::format("UPDATE {} SET {}", tableName, setClause);
-        if (!step.whereColumn.empty())
+        if (!step.whereExpression.empty())
+        {
+            // Pre-rendered composite condition; emit verbatim (the lup2dbtool parser
+            // has already validated shape and canonicalized quoting).
+            sql += std::format(" WHERE {}", step.whereExpression);
+        }
+        else if (!step.whereColumn.empty())
         {
             sql += std::format(
                 R"( WHERE "{}" {} {})", step.whereColumn, step.whereOp, FormatSqlLiteral(formatter, step.whereValue));
@@ -106,7 +121,11 @@ namespace
     {
         auto tableName = FormatTableName(step.schemaName, step.tableName);
         std::string sql = std::format("DELETE FROM {}", tableName);
-        if (!step.whereColumn.empty())
+        if (!step.whereExpression.empty())
+        {
+            sql += std::format(" WHERE {}", step.whereExpression);
+        }
+        else if (!step.whereColumn.empty())
         {
             sql += std::format(
                 R"( WHERE "{}" {} {})", step.whereColumn, step.whereOp, FormatSqlLiteral(formatter, step.whereValue));

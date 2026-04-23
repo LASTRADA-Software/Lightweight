@@ -947,6 +947,83 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "DropIndexIfExists", "[SqlMigration]")
     CHECK_NOTHROW(manager.ApplyPendingMigrations());
 }
 
+TEST_CASE_METHOD(SqlMigrationTestFixture, "AlterTable AddForeignKey rebuilds SQLite table",
+                 "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // AddForeignKey via ALTER TABLE is a SQLite-specific code path (formatter emits a
+    // sentinel, executor rebuilds the table). Other dialects ALTER in place.
+    auto conn = SqlConnection {};
+    if (conn.ServerType() != SqlServerType::SQLITE)
+        return;
+
+    auto createParent = SqlMigration::Migration<202601010001>(
+        "create parent",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("Parent").PrimaryKey("id", Integer()).RequiredColumn("name", Varchar(50));
+        },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("Parent"); });
+
+    auto createChild = SqlMigration::Migration<202601010002>(
+        "create child",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("Child").PrimaryKey("id", Integer()).RequiredColumn("label", Varchar(50));
+        },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("Child"); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    CHECK(manager.ApplyPendingMigrations() == 2);
+
+    // Seed a row that must survive the table rebuild.
+    {
+        auto stmt = SqlStatement { conn };
+        (void) stmt.ExecuteDirect(R"(INSERT INTO "Parent" ("id", "name") VALUES (1, 'anchor'))");
+        (void) stmt.ExecuteDirect(R"(INSERT INTO "Child" ("id", "label") VALUES (10, 'row-a'))");
+    }
+
+    auto addFk = SqlMigration::Migration<202601010003>(
+        "add fk column + fk",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.AlterTable("Child").AddNotRequiredColumn("parent_id", Integer());
+            plan.AlterTable("Child").AddForeignKey("parent_id",
+                                                   SqlForeignKeyReferenceDefinition { .tableName = "Parent",
+                                                                                       .columnName = "id" });
+        },
+        [](SqlMigrationQueryBuilder&) {});
+
+    CHECK(manager.ApplyPendingMigrations() == 1);
+
+    // Row-preservation: rebuild must not lose data.
+    {
+        auto stmt = SqlStatement { conn };
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "id", "label", "parent_id" FROM "Child")");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int64_t>(1) == 10);
+        CHECK(cursor.GetColumn<std::string>(2) == "row-a");
+        CHECK(cursor.GetColumn<std::optional<int64_t>>(3) == std::nullopt);
+        CHECK_FALSE(cursor.FetchRow());
+    }
+
+    // FK presence: pragma_foreign_key_list must now report the new constraint.
+    {
+        auto stmt = SqlStatement { conn };
+        auto cursor = stmt.ExecuteDirect(R"(PRAGMA foreign_key_list("Child"))");
+        bool found = false;
+        while (cursor.FetchRow())
+        {
+            if (cursor.GetColumn<std::string>(3) == "Parent" // `table`
+                && cursor.GetColumn<std::string>(4) == "parent_id" // `from`
+                && cursor.GetColumn<std::string>(5) == "id") // `to`
+            {
+                found = true;
+            }
+        }
+        CHECK(found);
+    }
+}
+
 TEST_CASE_METHOD(SqlMigrationTestFixture, "RegisterRelease stores and orders releases", "[SqlMigration]")
 {
     auto& manager = SqlMigration::MigrationManager::GetInstance();

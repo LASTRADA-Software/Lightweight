@@ -1150,15 +1150,15 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with foreign key", "[SqlQueryBuild
         QueryExpectations {
             .sqlite = R"sql(CREATE TABLE "Table" (
                                    "other_id" INTEGER,
-                                   CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                   CONSTRAINT "FK_Table_other_id" FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
                                      );)sql",
             .postgres = R"sql(CREATE TABLE "Table" (
                                    "other_id" INTEGER,
-                                   CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                   CONSTRAINT "FK_Table_other_id" FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
                                      );)sql",
             .sqlServer = R"sql(CREATE TABLE "Table" (
                                    "other_id" INTEGER,
-                                   CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                   CONSTRAINT "FK_Table_other_id" FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
                                      );)sql",
         });
 }
@@ -1394,17 +1394,20 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddForeignKeyColumn", "[SqlQueryBui
             return migration.GetPlan();
         },
         QueryExpectations {
+            // SQLite cannot `ALTER TABLE … ADD CONSTRAINT`; the formatter emits a
+            // sentinel that the migration executor translates into a table rebuild.
             .sqlite = R"sql(
                         ALTER TABLE "Table" ADD COLUMN "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                        -- LIGHTWEIGHT_SQLITE_GUARD: ADD_FOREIGN_KEY "Table" "other_id" "OtherTable" "id"
+                        -- ALTER TABLE "Table" ADD CONSTRAINT "FK_Table_other_id" FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
                     )sql",
             .postgres = R"sql(
                         ALTER TABLE "Table" ADD COLUMN "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                        DO $$ BEGIN ALTER TABLE "Table" ADD CONSTRAINT "FK_Table_other_id" FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id"); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
                     )sql",
             .sqlServer = R"sql(
                         ALTER TABLE "Table" ADD "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                        IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Table_other_id') ALTER TABLE "Table" ADD CONSTRAINT "FK_Table_other_id" FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
                     )sql",
         });
 }
@@ -1421,8 +1424,10 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddCompositeForeignKey", "[SqlQuery
         QueryExpectations {
             // SQLite doesn't support ALTER TABLE ADD CONSTRAINT for foreign keys
             .sqlite = R"sql(-- AddCompositeForeignKey not supported for OrderItems;)sql",
-            .postgres = R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
-            .sqlServer = R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
+            // Constraint name now encodes every column so a composite FK whose first
+            // column matches an existing single-column FK doesn't collide on name.
+            .postgres = R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id_product_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
+            .sqlServer = R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id_product_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
         });
 }
 
