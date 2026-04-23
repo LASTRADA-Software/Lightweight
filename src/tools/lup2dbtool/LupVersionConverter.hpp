@@ -33,8 +33,12 @@ struct LupVersion
     /// - 6.8.8 -> 20000000060808
     [[nodiscard]] uint64_t ToMigrationTimestamp() const noexcept;
 
-    /// @brief Converts the version to a string in the format "X_Y_Z".
+    /// @brief Converts the version to a string in the format "X_YY_ZZ".
     [[nodiscard]] std::string ToString() const;
+
+    /// @brief Converts the version to a conventional dotted string "X.Y.Z" (no zero-padding).
+    /// Intended for release-marker version strings surfaced through dbtool / migrations-gui.
+    [[nodiscard]] std::string ToDottedString() const;
 
     /// @brief Parses a version string like "6.8.8" or "6_08_08".
     [[nodiscard]] static std::optional<LupVersion> Parse(std::string_view versionStr);
@@ -48,6 +52,7 @@ struct LupVersion
 /// - init_m_MAJOR_MINOR_PATCH.sql (e.g., init_m_2_1_5.sql)
 /// - upd_m_MAJOR_MINOR_PATCH.sql (e.g., upd_m_6_08_08.sql)
 /// - upd_m_MAJOR_MINOR_PATCH__MAJOR_MINOR_PATCH.sql (e.g., upd_m_2_1_6__2_1_9.sql)
+/// - upd_m_next_release.sql (development placeholder; returns sentinel 9999.99.99)
 ///
 /// @return The target version (last version in the filename).
 [[nodiscard]] std::optional<LupVersion> ParseFilename(std::string_view filename);
