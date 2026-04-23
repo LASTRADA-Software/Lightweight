@@ -47,7 +47,7 @@ ApplicationWindow {
         id: pluginDialog
         title: qsTr("Select migration plugin")
         nameFilters: ["Shared libraries (*.so *.dll *.dylib)", "All files (*)"]
-        onAccepted: backend.setPathFromUrl(selectedFile)
+        onAccepted: { backend.setPathFromUrl(selectedFile); backend.loadMigrationPlugin() }
     }
 
     FileDialog {
@@ -79,6 +79,80 @@ ApplicationWindow {
         onAccepted: { window._pendingRestoreFile = selectedFile; restorePathField.text = selectedFile.toString().replace("file://", "") }
     }
 
+    // ── Credentials dialog ───────────────────────────────────────────────
+    Dialog {
+        id: credentialsDialog
+        modal: true
+        anchors.centerIn: parent
+        width: 420
+        padding: 24
+        closePolicy: Popup.NoAutoClose
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        title: qsTr("Database Credentials")
+
+        property string errorMessage: ""
+
+        onAccepted: backend.connectWithCredentials(credUserField.text, credPassField.text)
+        onRejected: {}
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 16
+
+            Label {
+                visible: credentialsDialog.errorMessage.length > 0
+                text: credentialsDialog.errorMessage
+                color: dangerColor
+                font.pixelSize: 12
+                font.family: fontSans
+                wrapMode: Label.WordWrap
+                Layout.fillWidth: true
+            }
+
+            TextField {
+                id: credUserField
+                Layout.fillWidth: true
+                placeholderText: qsTr("Username")
+                text: backend.username
+                font.family: fontMono
+                font.pixelSize: 13
+                Material.accent: Material.primary
+                Keys.onReturnPressed: credPassField.forceActiveFocus()
+            }
+
+            TextField {
+                id: credPassField
+                Layout.fillWidth: true
+                placeholderText: qsTr("Password")
+                echoMode: TextInput.Password
+                font.family: fontMono
+                font.pixelSize: 13
+                Material.accent: Material.primary
+                Keys.onReturnPressed: credentialsDialog.accept()
+            }
+        }
+    }
+
+    Connections {
+        target: backend
+        function onCredentialsNeeded(errorMessage) {
+            credentialsDialog.errorMessage = errorMessage
+            credUserField.text = backend.username
+            credPassField.text = ""
+            credentialsDialog.open()
+        }
+        function onMigrationSqlReady(sql) {
+            sqlDialog.sqlText = sql
+        }
+        function onQueryResultReady(result) {
+            queryResults.text = result
+        }
+        function onSchemaReady(schema) {
+            schemaView.schemaData = schema
+            schemaView.selectedTable = schema.length > 0 ? 0 : -1
+        }
+    }
+
     Dialog {
         id: sqlDialog
         modal: true
@@ -100,8 +174,9 @@ ApplicationWindow {
             const t  = backend.migrations.data(idx, Qt.UserRole + 2)
             sqlDialog.migrationTs    = formatTimestamp(ts)
             sqlDialog.migrationTitle = t
-            sqlDialog.sqlText        = backend.migrationSql(ts)
+            sqlDialog.sqlText        = qsTr("Loading…")
             sqlDialog.open()
+            backend.migrationSql(ts)
         }
 
         header: Rectangle {
@@ -285,13 +360,13 @@ ApplicationWindow {
             Item { Layout.fillWidth: true }
 
             Chip {
-                label: backend.pluginLoaded ? qsTr("connected") : qsTr("disconnected")
-                bg: backend.pluginLoaded ? successSoft : "#FEE2E2"
-                fg: backend.pluginLoaded ? successColor : dangerColor
+                label: backend.dbConnected ? qsTr("connected") : qsTr("disconnected")
+                bg: backend.dbConnected ? successSoft : "#FEE2E2"
+                fg: backend.dbConnected ? successColor : dangerColor
             }
 
             Button {
-                text: backend.pluginLoaded ? qsTr("Reload") : qsTr("Connect")
+                text: backend.dbConnected ? qsTr("Reload") : qsTr("Connect")
                 highlighted: true
                 Material.background: Material.primary
                 onClicked: backend.loadPlugin()
@@ -391,6 +466,7 @@ ApplicationWindow {
                 NavItem { icon: "⌘"; label: qsTr("Schema"); viewIndex: 2 }
                 NavItem { icon: "⟩_"; label: qsTr("Execute Query"); viewIndex: 1 }
                 NavItem { icon: "⬇"; label: qsTr("Backup / Restore"); viewIndex: 3 }
+                NavItem { icon: "≡"; label: qsTr("Log"); viewIndex: 4 }
 
                 Item { Layout.fillHeight: true }
 
@@ -425,8 +501,9 @@ ApplicationWindow {
             currentIndex: window.currentView
 
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 20
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.margins: 20
         spacing: 16
 
         // Connection pane
@@ -440,18 +517,53 @@ ApplicationWindow {
                 anchors.fill: parent
                 spacing: 16
 
-                SectionTitle {
-                    title: qsTr("Connection")
-                    subtitle: qsTr("SQLite file via ODBC — edit paths or browse")
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 0
+
+                    SectionTitle {
+                        title: qsTr("Connection")
+                        subtitle: backend.useDsn ? qsTr("System ODBC DSN") : qsTr("SQLite file via ODBC — edit path or browse")
+                        Layout.fillWidth: true
+                    }
+
+                    // DSN / File toggle (Windows only)
+                    RowLayout {
+                        spacing: 4
+                        Label {
+                            text: qsTr("SQLite file")
+                            font.pixelSize: 12
+                            color: backend.useDsn ? textMuted : Material.foreground
+                            font.family: fontSans
+                        }
+                        Switch {
+                            id: dsnToggle
+                            checked: backend.useDsn
+                            onCheckedChanged: {
+                                backend.useDsn = checked
+                                if (checked)
+                                    dsnInputArea.loadDsns()
+                            }
+                        }
+                        Label {
+                            text: qsTr("System DSN")
+                            font.pixelSize: 12
+                            color: backend.useDsn ? Material.foreground : textMuted
+                            font.family: fontSans
+                        }
+                    }
                 }
 
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: 16
 
+                    // Database input: file path or DSN picker
                     RowLayout {
-                        Layout.fillWidth: true
+                        Layout.fillWidth: !backend.useDsn
+                        Layout.preferredWidth: backend.useDsn ? 0 : -1
                         spacing: 8
+                        visible: !backend.useDsn
 
                         TextField {
                             id: dbField
@@ -470,6 +582,42 @@ ApplicationWindow {
                         }
                     }
 
+                    ComboBox {
+                        id: dsnCombo
+                        Layout.fillWidth: backend.useDsn
+                        Layout.preferredWidth: backend.useDsn ? -1 : 0
+                        visible: backend.useDsn
+                        editable: true
+                        font.family: fontMono
+                        font.pixelSize: 13
+
+                        model: backend.availableOdbcDsns()
+
+                        Component.onCompleted: {
+                            var dsns = backend.availableOdbcDsns()
+                            model = dsns
+                            var idx = dsns.indexOf(backend.odbcDsn)
+                            if (idx >= 0) currentIndex = idx
+                            else { currentIndex = -1; editText = backend.odbcDsn }
+                        }
+
+                        onActivated: backend.odbcDsn = currentText
+                        onEditTextChanged: backend.odbcDsn = editText
+
+                        Connections {
+                            target: backend
+                            function onUseDsnChanged() {
+                                if (backend.useDsn) {
+                                    var dsns = backend.availableOdbcDsns()
+                                    dsnCombo.model = dsns
+                                    var idx = dsns.indexOf(backend.odbcDsn)
+                                    if (idx >= 0) dsnCombo.currentIndex = idx
+                                    else { dsnCombo.currentIndex = -1; dsnCombo.editText = backend.odbcDsn }
+                                }
+                            }
+                        }
+                    }
+
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 8
@@ -481,7 +629,7 @@ ApplicationWindow {
                             placeholderText: qsTr("Plugin path")
                             font.family: fontMono
                             font.pixelSize: 13
-                            onEditingFinished: backend.pluginPath = text
+                            onEditingFinished: { backend.pluginPath = text; backend.loadMigrationPlugin() }
                             Material.accent: Material.primary
                         }
                         Button {
@@ -495,13 +643,13 @@ ApplicationWindow {
                 RowLayout {
                     Layout.topMargin: 4
                     Label {
-                        text: qsTr("Database")
+                        text: backend.useDsn ? qsTr("DSN") : qsTr("Database")
                         font.pixelSize: 11
                         color: textMuted
                         font.weight: Font.Medium
                         font.capitalization: Font.AllUppercase
                         font.letterSpacing: 0.6
-                        Layout.preferredWidth: dbField.width + 80
+                        Layout.fillWidth: true
                     }
                     Label {
                         text: qsTr("Plugin")
@@ -758,8 +906,9 @@ ApplicationWindow {
 
     // ── Execute Query view (StackLayout child 1) ────────────────────
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 20
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.margins: 20
         spacing: 16
 
         // Editor pane
@@ -815,7 +964,7 @@ ApplicationWindow {
                             text: qsTr("▶  Execute")
                             highlighted: true
                             Material.background: Material.primary
-                            onClicked: queryResults.text = backend.executeQuery(queryInput.text)
+                            onClicked: { queryResults.text = qsTr("Running…"); backend.executeQuery(queryInput.text) }
                         }
                     }
 
@@ -853,7 +1002,8 @@ ApplicationWindow {
                             bottomPadding: 14
                             Keys.onPressed: function(event) {
                                 if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_Return) {
-                                    queryResults.text = backend.executeQuery(queryInput.text)
+                                    queryResults.text = qsTr("Running…")
+                                    backend.executeQuery(queryInput.text)
                                     event.accepted = true
                                 }
                             }
@@ -954,12 +1104,12 @@ ApplicationWindow {
                                    ? schemaData[selectedTable] : null
 
         function reload() {
-            schemaData = backend.databaseSchema()
-            selectedTable = schemaData.length > 0 ? 0 : -1
+            backend.loadSchema()
         }
 
         Connections {
             target: backend
+            function onDbConnectedChanged() { if (backend.dbConnected) schemaView.reload() }
             function onPluginLoadedChanged() { if (backend.pluginLoaded) schemaView.reload() }
         }
 
@@ -1092,7 +1242,7 @@ ApplicationWindow {
                             }
                             Label {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: backend.pluginLoaded
+                                text: backend.dbConnected
                                       ? qsTr("No tables found.")
                                       : qsTr("Connect to browse schema.")
                                 color: textMuted
@@ -1167,7 +1317,8 @@ ApplicationWindow {
                                 flat: true
                                 onClicked: {
                                     queryInput.text = "SELECT * FROM \"" + schemaView.currentTable.name + "\" LIMIT 100;"
-                                    queryResults.text = backend.executeQuery(queryInput.text)
+                                    queryResults.text = qsTr("Running…")
+                                    backend.executeQuery(queryInput.text)
                                     window.currentView = 1
                                 }
                             }
@@ -1352,7 +1503,7 @@ ApplicationWindow {
                             }
                             Label {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: backend.pluginLoaded
+                                text: backend.dbConnected
                                       ? qsTr("Select a table to see its columns.")
                                       : qsTr("Connect to view schema.")
                                 color: textMuted
@@ -1368,8 +1519,9 @@ ApplicationWindow {
 
     // ── Backup / Restore view (StackLayout child 3) ───────────────────
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 20
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        Layout.margins: 20
         spacing: 16
 
         // Backup card
@@ -1633,6 +1785,78 @@ ApplicationWindow {
         }
     }   // end Backup / Restore view (StackLayout child 3)
 
+    // ── Log view (StackLayout child 4) ───────────────────────────────────
+    Pane {
+        Material.background: "#0F172A"
+        padding: 0
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 0
+
+            // Toolbar
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 48
+                color: "#1E293B"
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 12
+                    spacing: 12
+
+                    Label {
+                        text: qsTr("Connection Log")
+                        font.family: fontSans
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                        color: "#E5E7EB"
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Button {
+                        text: qsTr("Clear")
+                        flat: true
+                        Material.foreground: "#9CA3AF"
+                        font.pixelSize: 12
+                        onClicked: backend.clearLog()
+                    }
+                }
+            }
+
+            // Log output
+            ScrollView {
+                id: logScroll
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+
+                TextArea {
+                    id: logArea
+                    readOnly: true
+                    selectByMouse: true
+                    wrapMode: TextArea.NoWrap
+                    text: backend.log
+                    font.family: fontMono
+                    font.pixelSize: 12
+                    color: "#D1FAE5"
+                    background: null
+                    leftPadding: 16
+                    rightPadding: 16
+                    topPadding: 12
+                    bottomPadding: 12
+
+                    onTextChanged: {
+                        // auto-scroll to bottom
+                        logArea.cursorPosition = logArea.length
+                    }
+                }
+            }
+        }
+    }   // end Log view (StackLayout child 4)
+
         }   // end StackLayout
     }   // end outer RowLayout
 
@@ -1664,17 +1888,17 @@ ApplicationWindow {
                     implicitWidth: 8
                     implicitHeight: 8
                     radius: 4
-                    color: backend.pluginLoaded ? successColor : "#9CA3AF"
+                    color: backend.dbConnected ? successColor : "#9CA3AF"
 
                     SequentialAnimation on opacity {
-                        running: backend.pluginLoaded
+                        running: backend.dbConnected
                         loops: Animation.Infinite
                         NumberAnimation { from: 1.0; to: 0.4; duration: 1200; easing.type: Easing.InOutQuad }
                         NumberAnimation { from: 0.4; to: 1.0; duration: 1200; easing.type: Easing.InOutQuad }
                     }
                 }
                 Label {
-                    text: backend.pluginLoaded ? qsTr("Connected") : qsTr("Idle")
+                    text: backend.dbConnected ? qsTr("Connected") : qsTr("Idle")
                     color: Material.foreground
                     font.pixelSize: 12
                     font.weight: Font.Medium
@@ -1709,13 +1933,13 @@ ApplicationWindow {
 
             Rectangle {
                 implicitWidth: 1; implicitHeight: 20; color: borderSoft
-                visible: backend.pluginLoaded
+                visible: backend.pluginLoaded && backend.dbConnected
             }
 
             // Plugin name
             RowLayout {
                 spacing: 6
-                visible: backend.pluginLoaded
+                visible: backend.pluginLoaded && backend.dbConnected
                 Label {
                     text: "Plugin"
                     color: textMuted
@@ -1749,13 +1973,13 @@ ApplicationWindow {
 
             Rectangle {
                 implicitWidth: 1; implicitHeight: 20; color: borderSoft
-                visible: backend.pluginLoaded
+                visible: backend.dbConnected
             }
 
             // Progress
             RowLayout {
                 spacing: 8
-                visible: backend.pluginLoaded
+                visible: backend.dbConnected
 
                 ProgressBar {
                     implicitWidth: 120

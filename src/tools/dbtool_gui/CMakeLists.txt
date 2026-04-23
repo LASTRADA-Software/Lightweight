@@ -54,3 +54,7 @@ install(TARGETS dbtool-gui
     BUNDLE  DESTINATION .
     RUNTIME DESTINATION bin
 )
+
+if(WIN32)
+    windeployqt(dbtool-gui)
+endif()
