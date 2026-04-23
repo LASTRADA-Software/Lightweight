@@ -28,6 +28,7 @@ export namespace Lightweight {
     using Lightweight::BelongsTo;
     using Lightweight::BuildConnectionString;
     using Lightweight::ConvertWindows1252ToUtf8;
+    using Lightweight::EnsureSqliteDatabaseFileExists;
     using Lightweight::DataMapper;
     using Lightweight::DataMapperOptions;
     using Lightweight::DataMapperRecord;

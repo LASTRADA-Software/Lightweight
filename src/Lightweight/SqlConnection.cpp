@@ -49,8 +49,13 @@ SqlConnection::SqlConnection(std::optional<SqlConnectionString> connectInfo):
     SQLSetEnvAttr(m_hEnv, SQL_ATTR_ODBC_VERSION, (SQLPOINTER) SQL_OV_ODBC3, 0);
     SQLAllocHandle(SQL_HANDLE_DBC, m_hEnv, &m_hDbc);
 
-    if (connectInfo.has_value())
-        Connect(std::move(*connectInfo));
+    // Capture the DBC-handle diagnostic *before* any subsequent ODBC call on
+    // this connection — otherwise the next `SQLAllocHandle(STMT, …)` from the
+    // enclosing DataMapper's SqlStatement member would clobber it, and the
+    // caller would see an empty `(0) -` error instead of the real driver
+    // message (auth failed, DSN not found, …).
+    if (connectInfo.has_value() && !Connect(std::move(*connectInfo)))
+        throw SqlException(LastError());
 }
 
 SqlConnection::SqlConnection(SqlConnection&& other) noexcept:
