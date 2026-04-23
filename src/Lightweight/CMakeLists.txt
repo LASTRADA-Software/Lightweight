@@ -86,6 +86,8 @@ set(HEADER_FILES
 
     Config/ProfileStore.hpp
 
+    Odbc/DataSourceEnumerator.hpp
+
     Secrets/ISecretBackend.hpp
     Secrets/SecretResolver.hpp
     Secrets/backends/EnvBackend.hpp
@@ -134,6 +136,8 @@ set(SOURCE_FILES
     SqlBackup/TableFilter.cpp
 
     Config/ProfileStore.cpp
+
+    Odbc/DataSourceEnumerator.cpp
 
     Secrets/SecretResolver.cpp
     Secrets/backends/EnvBackend.cpp
