@@ -8,7 +8,9 @@
 #include <algorithm>
 #include <array>
 #include <fstream>
+#include <print>
 #include <regex>
+#include <unordered_map>
 
 namespace Lup2DbTool
 {
@@ -298,6 +300,15 @@ std::optional<ParsedMigration> ParseSqlFile(std::filesystem::path const& filePat
     if (!versionOpt)
         return std::nullopt;
 
+    // Inform the user when a development placeholder file is picked up under the sentinel version.
+    if (*versionOpt == LupVersion { .major = 9999, .minor = 99, .patch = 99 })
+    {
+        std::println(stderr,
+                     "Info: '{}' assigned development sentinel version {}.",
+                     filePath.filename().string(),
+                     versionOpt->ToString());
+    }
+
     ParsedMigration migration;
     migration.sourceFile = filePath;
     migration.targetVersion = *versionOpt;
@@ -377,6 +388,106 @@ std::vector<std::filesystem::path> DiscoverMigrationFiles(std::filesystem::path 
         result.push_back(path);
 
     return result;
+}
+
+namespace
+{
+
+using SchemaMap = std::unordered_map<std::string, std::vector<std::string>>;
+
+/// True iff `name` consists entirely of decimal digits — the marker
+/// `ParseInsert` uses when the source `INSERT … VALUES` had no explicit
+/// column list and positional indices were synthesized in its place.
+bool IsPositionalColumnName(std::string_view name)
+{
+    if (name.empty())
+        return false;
+    return std::ranges::all_of(name, [](char c) { return c >= '0' && c <= '9'; });
+}
+
+bool HasAnyPositionalColumn(InsertStmt const& stmt)
+{
+    return std::ranges::any_of(stmt.columnValues,
+                               [](auto const& kv) { return IsPositionalColumnName(kv.first); });
+}
+
+void RecordCreateTable(SchemaMap& schema, CreateTableStmt const& s)
+{
+    auto& cols = schema[s.tableName];
+    cols.clear();
+    cols.reserve(s.columns.size());
+    for (auto const& col: s.columns)
+        cols.push_back(col.name);
+}
+
+void RewriteInsertColumns(InsertStmt& s, std::vector<std::string> const& trackedCols,
+                          std::string_view sourceFilename)
+{
+    for (auto& [name, _]: s.columnValues)
+    {
+        if (!IsPositionalColumnName(name))
+            continue;
+        auto const idx = static_cast<size_t>(std::stoul(name));
+        if (idx >= trackedCols.size())
+        {
+            std::println(stderr,
+                         "warn: INSERT into '{}' in {}: positional index {} "
+                         "exceeds tracked schema ({} columns) — likely a "
+                         "comma-in-string parser artifact; leaving untouched",
+                         s.tableName,
+                         sourceFilename,
+                         idx,
+                         trackedCols.size());
+            continue;
+        }
+        name = trackedCols[idx];
+    }
+}
+
+void ResolveInsertStatement(SchemaMap const& schema, InsertStmt& s, std::string_view sourceFilename)
+{
+    if (s.columnValues.empty() || !HasAnyPositionalColumn(s))
+        return;
+
+    auto const it = schema.find(s.tableName);
+    if (it == schema.end())
+    {
+        std::println(stderr,
+                     "warn: INSERT into unknown table '{}' in {} — "
+                     "cannot resolve positional columns",
+                     s.tableName,
+                     sourceFilename);
+        return;
+    }
+    RewriteInsertColumns(s, it->second, sourceFilename);
+}
+
+void ApplyStatementToSchema(SchemaMap& schema, ParsedStatement& stmt, std::string_view sourceFilename)
+{
+    std::visit(
+        [&](auto& s) {
+            using T = std::decay_t<decltype(s)>;
+            if constexpr (std::is_same_v<T, CreateTableStmt>)
+                RecordCreateTable(schema, s);
+            else if constexpr (std::is_same_v<T, AlterTableAddColumnStmt>)
+                schema[s.tableName].push_back(s.column.name);
+            else if constexpr (std::is_same_v<T, InsertStmt>)
+                ResolveInsertStatement(schema, s, sourceFilename);
+        },
+        stmt);
+}
+
+} // namespace
+
+void ResolvePositionalInserts(std::vector<ParsedMigration>& migrations)
+{
+    SchemaMap schema;
+    for (auto& migration: migrations)
+    {
+        auto const filename = migration.sourceFile.filename().string();
+        for (auto& stmtWithComments: migration.statements)
+            ApplyStatementToSchema(schema, stmtWithComments.statement, filename);
+    }
 }
 
 } // namespace Lup2DbTool

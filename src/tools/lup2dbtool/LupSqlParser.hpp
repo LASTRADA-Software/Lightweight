@@ -71,4 +71,26 @@ struct ParserConfig
 /// @return Vector of paths to discovered migration files, sorted by version
 [[nodiscard]] std::vector<std::filesystem::path> DiscoverMigrationFiles(std::filesystem::path const& directory);
 
+/// @brief Resolves positional column names in INSERT statements against the
+/// cumulative schema observed across all migrations.
+///
+/// The LUP SQL dialect permits columnless `INSERT INTO T VALUES (...)`, in
+/// which case `ParseInsert` stores synthetic numeric column names ("0", "1",
+/// ...) because it has no schema context at parse time. This pass walks the
+/// migrations in order, maintains a `tableName -> ordered column list` map
+/// built from `CreateTableStmt` + `AlterTableAddColumnStmt`, and substitutes
+/// real column names for those positional indices.
+///
+/// Any insert whose positional index exceeds the tracked column count is
+/// replaced with a `RawSqlStmt` carrying a commented-out original — this
+/// typically indicates malformed input (e.g. unbalanced string literals) and
+/// would otherwise produce broken SQL.
+///
+/// Idempotent: running it twice is a no-op because numeric-only column names
+/// are replaced on the first pass.
+///
+/// @param migrations Migrations to rewrite in place (must be in version order
+///                   so later ALTER TABLE calls observe earlier CREATE TABLE).
+void ResolvePositionalInserts(std::vector<ParsedMigration>& migrations);
+
 } // namespace Lup2DbTool

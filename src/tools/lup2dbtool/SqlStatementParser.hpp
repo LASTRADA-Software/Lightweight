@@ -75,6 +75,13 @@ struct InsertStmt
 };
 
 /// @brief Represents an UPDATE statement.
+///
+/// The WHERE clause is represented in one of two ways (not both):
+/// - Simple: `whereColumn` + `whereOp` + `whereValue` — for `col <op> val` and
+///   `col IS [NOT] NULL`.
+/// - Composite: `whereExpression` carries the canonical, pre-rendered SQL WHERE
+///   body for forms that need `AND`/`OR`/`NOT`, `IN (…)`, `EXISTS (…)`, etc.
+///   When non-empty, the structured fields above are ignored by the code generator.
 struct UpdateStmt
 {
     std::string tableName;
@@ -82,15 +89,20 @@ struct UpdateStmt
     std::string whereColumn;
     std::string whereOp;
     std::string whereValue;
+    std::string whereExpression;
 };
 
 /// @brief Represents a DELETE statement.
+///
+/// Same two-way WHERE encoding as @ref UpdateStmt — simple triple or
+/// `whereExpression` canonical text for composite conditions.
 struct DeleteStmt
 {
     std::string tableName;
     std::string whereColumn;
     std::string whereOp;
     std::string whereValue;
+    std::string whereExpression;
 };
 
 /// @brief Represents a CREATE INDEX statement.
