@@ -94,7 +94,7 @@ else()
     set(PLACEHOLDER_FILE "${GENERATED_MIGRATIONS_DIR}/GeneratedMigrations.cpp")
     file(WRITE "${PLACEHOLDER_FILE}"
         "// Auto-generated placeholder - set LUPMIGRATION_SQL_DIR to generate actual migrations\n"
-        "// Example: cmake -DLUPMIGRATION_SQL_DIR=/path/to/model4_JP ..\n"
+        "// Example: cmake -DLUPMIGRATION_SQL_DIR=/path/to/lup-sql ..\n"
     )
     set(GENERATED_MIGRATION_FILES "${PLACEHOLDER_FILE}")
 endif()
