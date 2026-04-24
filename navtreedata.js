@@ -193,7 +193,7 @@ var NAVTREE =
       [ "Class Members", "functions.html", [
         [ "All", "functions.html", "functions_dup" ],
         [ "Functions", "functions_func.html", "functions_func" ],
-        [ "Variables", "functions_vars.html", null ],
+        [ "Variables", "functions_vars.html", "functions_vars" ],
         [ "Typedefs", "functions_type.html", null ],
         [ "Enumerations", "functions_enum.html", null ]
       ] ]
@@ -207,12 +207,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#ae23217fb5f64fff58f792b3cf18fba8c",
-"d6/d35/SqlMigration_8hpp_source.html",
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#af20732b460e20ac1671e33b5510fbe7f",
-"da/da8/classLightweight_1_1SqlConnection.html#a63ba202ba517a1dbe5d36afe4654a85b",
-"de/d61/classLightweight_1_1DataMapper.html#a8a3bba1c99cbcff0f62611141fd1c219",
-"functions_f.html"
+"d2/dd0/structLightweight_1_1Field.html#ac38b8072a1d454cdab18e208bf86291b",
+"d6/d1b/structLightweight_1_1SqlNumeric.html#a8c3b31875a9b9761c4087184cfdfbac9",
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#abb5c8e2bfe209f9060884a6ac4c6e15b",
+"da/d88/structLightweight_1_1Odbc_1_1DriverInfo.html#a9912a4ccf7375ffd3b21245baa8768c6",
+"de/d61/classLightweight_1_1DataMapper.html#a26cf5a8f4f6f3cf5840bb6fe6974e168",
+"dir_6f1d6fa2b219487ffef8a5d5282640f4.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
