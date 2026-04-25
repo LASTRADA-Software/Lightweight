@@ -6,6 +6,7 @@
 #include "DataMapper/DataMapper.hpp"
 #include "SqlError.hpp"
 #include "SqlQuery/Migrate.hpp"
+#include "SqlQuery/MigrationPlan.hpp"
 #include "SqlTransaction.hpp"
 
 #include <cstddef>
@@ -13,7 +14,9 @@
 #include <functional>
 #include <list>
 #include <optional>
+#include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace Lightweight
@@ -250,6 +253,12 @@ namespace SqlMigration
         /// @param migration Pointer to the migration to apply.
         LIGHTWEIGHT_API void ApplySingleMigration(MigrationBase const& migration);
 
+        /// @brief Variant of `ApplySingleMigration` that threads a caller-owned render
+        /// context through to `ToSql`. Use this from loops over multiple migrations so
+        /// the column-width cache (and other per-run compat state) accumulates across
+        /// the sequence.
+        LIGHTWEIGHT_API void ApplySingleMigration(MigrationBase const& migration, MigrationRenderContext& context);
+
         /// Revert a single migration from a migration object.
         ///
         /// @param migration Pointer to the migration to revert.
@@ -284,6 +293,34 @@ namespace SqlMigration
         /// the migration manager is destroyed.
         LIGHTWEIGHT_API void CloseDataMapper();
 
+        /// @brief Per-migration compat policy.
+        ///
+        /// Given a migration about to be applied (or previewed), returns the set of compat
+        /// flags that should be active while rendering it. Plugins that ship legacy
+        /// migrations use this to scope compat behaviour to their own timestamp range
+        /// (e.g. `LupMigrationsPlugin` enables `lup-truncate` for migrations predating
+        /// release 6.0.0). Unset means "strict for every migration".
+        using CompatPolicy = std::function<std::set<std::string>(MigrationBase const&)>;
+
+        /// @brief Installs a per-migration compat policy. Pass `{}` to clear.
+        ///
+        /// Typically called once from a plugin's static initializer. Replaces any policy
+        /// previously installed — composition is the caller's responsibility for now.
+        LIGHTWEIGHT_API void SetCompatPolicy(CompatPolicy policy);
+
+        /// @brief Returns a view of the installed policy so it can be propagated across
+        /// managers (plugin → central). Empty callable if no policy was installed.
+        [[nodiscard]] LIGHTWEIGHT_API CompatPolicy const& GetCompatPolicy() const noexcept;
+
+        /// @brief Composes an additional policy with the currently installed one. If no
+        /// policy is installed, the argument becomes the policy as-is; otherwise both
+        /// policies are consulted and their flag sets unioned per migration.
+        LIGHTWEIGHT_API void ComposeCompatPolicy(CompatPolicy policy);
+
+        /// @brief Returns the compat flags the current policy assigns to `migration`, or
+        /// an empty set if no policy is installed.
+        [[nodiscard]] LIGHTWEIGHT_API std::set<std::string> CompatFlagsFor(MigrationBase const& migration) const;
+
         /// Get a transaction for the data mapper.
         ///
         /// @return Transaction.
@@ -296,6 +333,44 @@ namespace SqlMigration
         /// @param migration The migration to preview.
         /// @return Vector of SQL statements that would be executed.
         [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> PreviewMigration(MigrationBase const& migration) const;
+
+        /// @brief Variant of `PreviewMigration` that threads a caller-owned render
+        /// context so the column-width cache accumulates across a sequence of preview
+        /// calls. Used by `PreviewPendingMigrations` to render compat-aware dry runs.
+        [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> PreviewMigrationWithContext(
+            MigrationBase const& migration, MigrationRenderContext& context) const;
+
+        /// @brief One row in the `RewriteChecksumsResult.entries` list.
+        struct ChecksumRewriteEntry
+        {
+            MigrationTimestamp timestamp; ///< The migration whose stored checksum was rewritten.
+            std::string_view title;       ///< Title of the registered migration (or "(Unknown Migration)").
+            std::string oldChecksum;      ///< Stored checksum before the rewrite. Empty if there was none.
+            std::string newChecksum;      ///< Stored checksum after the rewrite.
+        };
+
+        /// @brief Result of a `RewriteChecksums` call.
+        struct RewriteChecksumsResult
+        {
+            std::vector<ChecksumRewriteEntry> entries;       ///< One entry per rewritten or would-be-rewritten row.
+            std::vector<MigrationTimestamp> unregisteredTimestamps; ///< Applied rows whose migration is no longer registered.
+            bool wasDryRun = false; ///< True if the call ran in dry-run mode.
+        };
+
+        /// @brief Re-stamps `schema_migrations.checksum` rows that have drifted.
+        ///
+        /// Applied migrations whose stored checksum no longer matches the current
+        /// `MigrationBase::ComputeChecksum` output are updated in-place. Migrations that
+        /// match are left alone. Rows that reference a migration which is no longer
+        /// registered (e.g. removed from the codebase) are surfaced via
+        /// `RewriteChecksumsResult.unregisteredTimestamps` and *not* touched.
+        ///
+        /// This is a recovery tool used when a regen of generated migrations changes
+        /// their byte-level shape but not their logical effect — running it without
+        /// understanding *why* the checksum drifted would defeat the integrity check.
+        ///
+        /// @param dryRun When true, returns the would-be diff without writing anything.
+        [[nodiscard]] LIGHTWEIGHT_API RewriteChecksumsResult RewriteChecksums(bool dryRun = false);
 
         /// Preview SQL statements for all pending migrations without executing.
         ///
@@ -405,9 +480,15 @@ namespace SqlMigration
         [[nodiscard]] MigrationList TopoSortPending(MigrationList pending,
                                                     std::vector<MigrationTimestamp> const& applied) const;
 
+        /// @brief Builds a fresh, policy-agnostic render context. The per-migration
+        /// compat knobs are layered on by `ApplySingleMigration` / `PreviewMigrationWithContext`
+        /// before rendering a given migration's steps.
+        [[nodiscard]] static MigrationRenderContext MakeRenderContext();
+
         MigrationList _migrations;
         std::vector<MigrationRelease> _releases;
         mutable DataMapper* _dataMapper { nullptr };
+        CompatPolicy _compatPolicy;
     };
 
 /// Requires the user to call LIGHTWEIGHT_MIGRATION_PLUGIN() in exactly one CPP file of the migration plugin.

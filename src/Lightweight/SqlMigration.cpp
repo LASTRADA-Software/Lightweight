@@ -127,6 +127,42 @@ void MigrationManager::CloseDataMapper()
     _dataMapper = nullptr;
 }
 
+void MigrationManager::SetCompatPolicy(CompatPolicy policy)
+{
+    _compatPolicy = std::move(policy);
+}
+
+MigrationManager::CompatPolicy const& MigrationManager::GetCompatPolicy() const noexcept
+{
+    return _compatPolicy;
+}
+
+void MigrationManager::ComposeCompatPolicy(CompatPolicy policy)
+{
+    if (!policy)
+        return;
+    if (!_compatPolicy)
+    {
+        _compatPolicy = std::move(policy);
+        return;
+    }
+    // Compose: both policies are consulted and their flag sets unioned per migration.
+    _compatPolicy = [lhs = std::move(_compatPolicy),
+                     rhs = std::move(policy)](MigrationBase const& m) {
+        auto flags = lhs(m);
+        auto extra = rhs(m);
+        flags.insert(extra.begin(), extra.end());
+        return flags;
+    };
+}
+
+std::set<std::string> MigrationManager::CompatFlagsFor(MigrationBase const& migration) const
+{
+    if (!_compatPolicy)
+        return {};
+    return _compatPolicy(migration);
+}
+
 void MigrationManager::CreateMigrationHistory()
 {
     try
@@ -860,8 +896,98 @@ namespace
     }
 } // namespace
 
+namespace
+{
+    /// @brief Maps the SQL-Server / ANSI-style data type names emitted by
+    /// `INFORMATION_SCHEMA.COLUMNS` (`DATA_TYPE` column) to a `ColumnWidth`. Returns
+    /// `value=0` for non-character types so the caller can skip them.
+    ///
+    /// `varchar`/`char` are byte-counted (server budget is in bytes), `nvarchar`/`nchar`
+    /// are character-counted. `INFORMATION_SCHEMA.CHARACTER_MAXIMUM_LENGTH` already
+    /// reports chars for the N-prefixed types and bytes for the others, so the value
+    /// passes through unchanged — only the unit varies.
+    [[nodiscard]] MigrationRenderContext::ColumnWidth CharacterWidthFromDataType(std::string_view dataType,
+                                                                                  std::size_t maxLength) noexcept
+    {
+        using Unit = MigrationRenderContext::WidthUnit;
+        if (dataType == "nvarchar" || dataType == "nchar")
+            return { .value = maxLength, .unit = Unit::Characters };
+        if (dataType == "varchar" || dataType == "char")
+            return { .value = maxLength, .unit = Unit::Bytes };
+        return { .value = 0, .unit = Unit::Characters };
+    }
+
+    /// @brief Builds a lazy `widthLookup` callback that resolves missing widths via
+    /// `INFORMATION_SCHEMA.COLUMNS` against the supplied connection. The callback is
+    /// safe to invoke many times — every (schema, table) is queried at most once per
+    /// run thanks to `MigrationRenderContext::lookupAttempted`.
+    ///
+    /// Errors (e.g. INFORMATION_SCHEMA missing on SQLite, table not yet created) are
+    /// swallowed: the render path already treats a missing width as "don't truncate",
+    /// which is the same behaviour we want when the lookup fails for any reason.
+    auto MakeWidthLookup(SqlConnection& connection)
+    {
+        return [&connection](MigrationRenderContext& ctx,
+                              std::string_view schema,
+                              std::string_view table) {
+            auto const sql = schema.empty()
+                ? std::format("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH "
+                              "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{}'",
+                              table)
+                : std::format("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH "
+                              "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{}' AND TABLE_NAME = '{}'",
+                              schema, table);
+
+            auto stmt = SqlStatement { connection };
+            try
+            {
+                auto cursor = stmt.ExecuteDirect(sql);
+                while (cursor.FetchRow())
+                {
+                    auto const columnName = cursor.GetColumn<std::string>(1);
+                    auto const dataType = cursor.GetColumn<std::string>(2);
+                    // CHARACTER_MAXIMUM_LENGTH is NULL for non-character columns —
+                    // those rows are skipped silently.
+                    auto const maxLengthOpt = cursor.GetNullableColumn<long long>(3);
+                    if (!maxLengthOpt.has_value() || *maxLengthOpt <= 0)
+                        continue;
+                    auto const width =
+                        CharacterWidthFromDataType(dataType, static_cast<std::size_t>(*maxLengthOpt));
+                    if (width.value == 0)
+                        continue;
+                    ctx.columnWidths[{ std::string(schema), std::string(table), columnName }] = width;
+                }
+            }
+            catch (SqlException const&) // NOLINT(bugprone-empty-catch) — see function comment
+            {
+                // Suppressed by design — see function-level comment.
+            }
+        };
+    }
+} // namespace
+
+MigrationRenderContext MigrationManager::MakeRenderContext()
+{
+    return MigrationRenderContext {};
+}
+
 void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
 {
+    auto ctx = MakeRenderContext();
+    ctx.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
+    ApplySingleMigration(migration, ctx);
+}
+
+void MigrationManager::ApplySingleMigration(MigrationBase const& migration, MigrationRenderContext& context)
+{
+    // Re-derive compat knobs for this specific migration. The column-width cache in
+    // `context` persists across migrations (on purpose — CREATE TABLE in migration N
+    // populates widths an INSERT in migration N+k consults); the per-migration knobs
+    // do not.
+    auto const flags = CompatFlagsFor(migration);
+    context.lupTruncate = flags.contains(std::string(CompatFlagLupTruncateName));
+    context.activeMigrationTimestamp = migration.GetTimestamp().value;
+    context.activeMigrationTitle = std::string { migration.GetTitle() };
     // Check declared dependencies: every dependency must already be applied.
     if (auto const deps = migration.GetDependencies(); !deps.empty())
     {
@@ -894,7 +1020,7 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
 
     for (SqlMigrationPlanElement const& step: plan.steps)
     {
-        auto const sqlScripts = ToSql(dm.Connection().QueryFormatter(), step);
+        auto const sqlScripts = ToSql(dm.Connection().QueryFormatter(), step, context);
         for (auto const& sqlScript: sqlScripts)
         {
             try
@@ -979,6 +1105,13 @@ size_t MigrationManager::ApplyPendingMigrations(ExecuteCallback const& feedbackC
     ValidateDependencies();
     auto const pendingMigrations = GetPending();
 
+    // Shared render context so column-width state accumulates across the whole run —
+    // a CREATE TABLE in migration N populates widths an INSERT in migration N+k will
+    // consult when compat flags are active. The width-lookup fallback covers the case
+    // where the destination table was already present from a previous run.
+    auto context = MakeRenderContext();
+    context.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
+
 #if !defined(__cpp_lib_ranges_enumerate)
     int index { -1 };
     for (auto& migration: pendingMigrations)
@@ -990,7 +1123,7 @@ size_t MigrationManager::ApplyPendingMigrations(ExecuteCallback const& feedbackC
 #endif
         if (feedbackCallback)
             feedbackCallback(*migration, static_cast<size_t>(index), _migrations.size());
-        ApplySingleMigration(*migration);
+        ApplySingleMigration(*migration, context);
     }
 
     return pendingMigrations.size();
@@ -1003,18 +1136,42 @@ SqlTransaction MigrationManager::Transaction()
 
 std::vector<std::string> MigrationManager::PreviewMigration(MigrationBase const& migration) const
 {
+    auto ctx = MakeRenderContext();
+    ctx.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
+    return PreviewMigrationWithContext(migration, ctx);
+}
+
+std::vector<std::string> MigrationManager::PreviewMigrationWithContext(MigrationBase const& migration,
+                                                                        MigrationRenderContext& context) const
+{
+    auto const flags = CompatFlagsFor(migration);
+    context.lupTruncate = flags.contains(std::string(CompatFlagLupTruncateName));
+    context.activeMigrationTimestamp = migration.GetTimestamp().value;
+    context.activeMigrationTitle = std::string { migration.GetTitle() };
+
     auto& dm = GetDataMapper();
     SqlMigrationQueryBuilder migrationBuilder = dm.Connection().Migration();
     migration.Up(migrationBuilder);
 
     SqlMigrationPlan const plan = std::move(migrationBuilder).GetPlan();
-    return plan.ToSql();
+    std::vector<std::string> out;
+    for (auto const& step: plan.steps)
+    {
+        auto sql = ToSql(plan.formatter, step, context);
+        out.insert(out.end(), sql.begin(), sql.end());
+    }
+    return out;
 }
 
 std::vector<std::string> MigrationManager::PreviewPendingMigrations(ExecuteCallback const& feedbackCallback) const
 {
     auto const pendingMigrations = GetPending();
     std::vector<std::string> allStatements;
+
+    // See `ApplyPendingMigrations` — shared context so earlier CREATE TABLE widths are
+    // visible to later INSERT/UPDATE preview rendering.
+    auto context = MakeRenderContext();
+    context.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
 
 #if !defined(__cpp_lib_ranges_enumerate)
     int index { -1 };
@@ -1028,7 +1185,7 @@ std::vector<std::string> MigrationManager::PreviewPendingMigrations(ExecuteCallb
         if (feedbackCallback)
             feedbackCallback(*migration, static_cast<size_t>(index), pendingMigrations.size());
 
-        auto statements = PreviewMigration(*migration);
+        auto statements = PreviewMigrationWithContext(*migration, context);
         allStatements.insert(allStatements.end(), statements.begin(), statements.end());
     }
 
@@ -1051,6 +1208,50 @@ std::string MigrationBase::ComputeChecksum(SqlQueryFormatter const& formatter) c
     }
 
     return SqlBackup::Sha256::Hash(combined);
+}
+
+MigrationManager::RewriteChecksumsResult MigrationManager::RewriteChecksums(bool dryRun)
+{
+    RewriteChecksumsResult result;
+    result.wasDryRun = dryRun;
+
+    auto& dm = GetDataMapper();
+    auto records = dm.Query<SchemaMigration>().OrderBy("version", SqlResultOrdering::ASCENDING).All();
+
+    auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
+
+    for (auto& record: records)
+    {
+        auto const timestamp = MigrationTimestamp { record.version.Value() };
+        auto const* migration = GetMigration(timestamp);
+        if (!migration)
+        {
+            result.unregisteredTimestamps.push_back(timestamp);
+            continue;
+        }
+
+        auto const& storedOpt = record.checksum.Value();
+        std::string const stored = storedOpt.has_value() ? std::string(storedOpt->str()) : std::string {};
+        auto const computed = migration->ComputeChecksum(dm.Connection().QueryFormatter());
+        if (stored == computed)
+            continue;
+
+        result.entries.push_back(ChecksumRewriteEntry { .timestamp = timestamp,
+                                                        .title = migration->GetTitle(),
+                                                        .oldChecksum = stored,
+                                                        .newChecksum = computed });
+
+        if (!dryRun)
+        {
+            record.checksum = computed;
+            dm.Update(record);
+        }
+    }
+
+    if (!dryRun)
+        transaction.Commit();
+
+    return result;
 }
 
 std::vector<ChecksumVerificationResult> MigrationManager::VerifyChecksums() const

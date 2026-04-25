@@ -3,6 +3,7 @@
 #include "Utils.hpp"
 
 #include <Lightweight/Lightweight.hpp>
+#include <Lightweight/QueryFormatter/SqlServerFormatter.hpp>
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -1269,4 +1270,306 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "RollbackToRelease semantics via Rever
     auto const appliedIds = manager.GetAppliedMigrationIds();
     CHECK(appliedIds.size() == 2);
     CHECK(appliedIds.back().value == 202810020000);
+}
+
+namespace
+{
+
+/// @brief Catches every `OnWarning` invocation made while it is the active logger,
+/// so tests can assert truncation diagnostics fired (or didn't).
+class CapturingWarningLogger: public Lightweight::SqlLogger::Null
+{
+  public:
+    CapturingWarningLogger():
+        _previous { &Lightweight::SqlLogger::GetLogger() }
+    {
+        Lightweight::SqlLogger::SetLogger(*this);
+    }
+
+    ~CapturingWarningLogger() override
+    {
+        Lightweight::SqlLogger::SetLogger(*_previous);
+    }
+
+    CapturingWarningLogger(CapturingWarningLogger const&) = delete;
+    CapturingWarningLogger(CapturingWarningLogger&&) = delete;
+    CapturingWarningLogger& operator=(CapturingWarningLogger const&) = delete;
+    CapturingWarningLogger& operator=(CapturingWarningLogger&&) = delete;
+
+    void OnWarning(std::string_view const& message) override
+    {
+        _warnings.emplace_back(message);
+    }
+
+    [[nodiscard]] std::vector<std::string> const& Warnings() const noexcept
+    {
+        return _warnings;
+    }
+
+  private:
+    Lightweight::SqlLogger* _previous;
+    std::vector<std::string> _warnings;
+};
+
+/// @brief Tiny synthetic stand-in for `MigrationBase` used by policy-composition tests.
+/// We only need `GetTimestamp` to be callable from a `CompatPolicy` lambda.
+class StubMigration: public Lightweight::SqlMigration::MigrationBase
+{
+  public:
+    explicit StubMigration(uint64_t ts):
+        MigrationBase(Lightweight::SqlMigration::MigrationTimestamp { ts }, "stub")
+    {
+    }
+
+    void Up(Lightweight::SqlMigrationQueryBuilder& /*plan*/) const override {}
+};
+
+} // namespace
+
+TEST_CASE("ToSql: lup-truncate off leaves oversize INSERT values intact", "[SqlMigration][compat]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    using Lightweight::SqlInsertDataPlan;
+    using Lightweight::SqlCreateTablePlan;
+    using Lightweight::SqlColumnDeclaration;
+    using Lightweight::SqlMigrationPlanElement;
+    using Lightweight::MigrationRenderContext;
+
+    Lightweight::SqlServerQueryFormatter const formatter;
+    MigrationRenderContext context; // strict by default
+
+    SqlCreateTablePlan const create {
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 5 } } },
+        .foreignKeys = {},
+        .ifNotExists = false,
+    };
+    (void) Lightweight::ToSql(formatter, SqlMigrationPlanElement { create }, context);
+
+    SqlInsertDataPlan insert {
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { { "n", Lightweight::SqlVariant(std::string("hellooo")) } }, // 7 > 5
+    };
+
+    CapturingWarningLogger capture;
+    auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
+
+    REQUIRE(sql.size() == 1);
+    // Strict mode: the value lands in the INSERT verbatim.
+    CHECK(sql[0].find("'hellooo'") != std::string::npos);
+    CHECK(capture.Warnings().empty());
+}
+
+TEST_CASE("ToSql: lup-truncate on clips oversize INSERT values and warns", "[SqlMigration][compat]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    using Lightweight::SqlInsertDataPlan;
+    using Lightweight::SqlCreateTablePlan;
+    using Lightweight::SqlColumnDeclaration;
+    using Lightweight::SqlMigrationPlanElement;
+    using Lightweight::MigrationRenderContext;
+
+    Lightweight::SqlServerQueryFormatter const formatter;
+    MigrationRenderContext context;
+    context.lupTruncate = true;
+    context.activeMigrationTimestamp = 20'200'101'120'000ULL;
+    context.activeMigrationTitle = "widen N column";
+
+    SqlCreateTablePlan const create {
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 5 } } },
+        .foreignKeys = {},
+        .ifNotExists = false,
+    };
+    (void) Lightweight::ToSql(formatter, SqlMigrationPlanElement { create }, context);
+
+    SqlInsertDataPlan const insert {
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { { "n", Lightweight::SqlVariant(std::string("hellooo")) } },
+    };
+
+    CapturingWarningLogger capture;
+    auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
+
+    REQUIRE(sql.size() == 1);
+    CHECK(sql[0].find("'hello'") != std::string::npos);   // truncated to 5 chars
+    CHECK(sql[0].find("'hellooo'") == std::string::npos); // original gone
+    REQUIRE(capture.Warnings().size() == 1);
+    auto const& warning = capture.Warnings()[0];
+    CHECK(warning.find("lup-truncate") != std::string::npos);
+    CHECK(warning.find("T.n") != std::string::npos);
+    CHECK(warning.find("declared width 5") != std::string::npos);
+    // Migration identity attribution + the rendered SQL must travel with the warning so
+    // operators can answer "which migration?" / "which statement?" without re-running.
+    CHECK(warning.find("20200101120000") != std::string::npos);
+    CHECK(warning.find("widen N column") != std::string::npos);
+    CHECK(warning.find("statement: ") != std::string::npos);
+    CHECK(warning.find(sql[0]) != std::string::npos);
+}
+
+TEST_CASE("ToSql: lup-truncate handles UTF-8 multi-byte by character count", "[SqlMigration][compat]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    using Lightweight::SqlInsertDataPlan;
+    using Lightweight::SqlCreateTablePlan;
+    using Lightweight::SqlColumnDeclaration;
+    using Lightweight::SqlMigrationPlanElement;
+    using Lightweight::MigrationRenderContext;
+
+    Lightweight::SqlServerQueryFormatter const formatter;
+    MigrationRenderContext context;
+    context.lupTruncate = true;
+
+    SqlCreateTablePlan const create {
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 4 } } },
+        .foreignKeys = {},
+        .ifNotExists = false,
+    };
+    (void) Lightweight::ToSql(formatter, SqlMigrationPlanElement { create }, context);
+
+    // "Körnung" is 7 characters / 8 UTF-8 bytes. Width 4 → keep first 4 chars ("Körn"),
+    // which is 5 bytes.
+    SqlInsertDataPlan const insert {
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { { "n", Lightweight::SqlVariant(std::string("Körnung")) } },
+    };
+
+    CapturingWarningLogger capture;
+    auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
+
+    REQUIRE(sql.size() == 1);
+    CHECK(sql[0].find("'Körn'") != std::string::npos);
+    CHECK(capture.Warnings().size() == 1);
+}
+
+TEST_CASE("ToSql: lup-truncate truncates string_view values from char-array literals", "[SqlMigration][compat]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    using Lightweight::SqlInsertDataPlan;
+    using Lightweight::SqlCreateTablePlan;
+    using Lightweight::SqlColumnDeclaration;
+    using Lightweight::SqlMigrationPlanElement;
+    using Lightweight::MigrationRenderContext;
+
+    Lightweight::SqlServerQueryFormatter const formatter;
+    MigrationRenderContext context;
+    context.lupTruncate = true;
+
+    SqlCreateTablePlan const create {
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 5 } } },
+        .foreignKeys = {},
+        .ifNotExists = false,
+    };
+    (void) Lightweight::ToSql(formatter, SqlMigrationPlanElement { create }, context);
+
+    // Char-array literal forces the SqlVariant string_view ctor — the path that
+    // the silent-truncation regression on the LUP plugin exposed.
+    SqlInsertDataPlan const insert {
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { { "n", Lightweight::SqlVariant("hellooo") } },
+    };
+
+    auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
+
+    REQUIRE(sql.size() == 1);
+    CHECK(sql[0].find("'hello'") != std::string::npos);
+}
+
+TEST_CASE("ToSql: DROP TABLE evicts column widths from the cache", "[SqlMigration][compat]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    using Lightweight::SqlInsertDataPlan;
+    using Lightweight::SqlCreateTablePlan;
+    using Lightweight::SqlDropTablePlan;
+    using Lightweight::SqlColumnDeclaration;
+    using Lightweight::SqlMigrationPlanElement;
+    using Lightweight::MigrationRenderContext;
+
+    Lightweight::SqlServerQueryFormatter const formatter;
+    MigrationRenderContext context;
+    context.lupTruncate = true;
+
+    SqlCreateTablePlan const create {
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { SqlColumnDeclaration { .name = "n", .type = NVarchar { 5 } } },
+        .foreignKeys = {},
+        .ifNotExists = false,
+    };
+    (void) Lightweight::ToSql(formatter, SqlMigrationPlanElement { create }, context);
+    REQUIRE(context.columnWidths.size() == 1);
+
+    SqlDropTablePlan const drop { .schemaName = "", .tableName = "T", .ifExists = false, .cascade = false };
+    (void) Lightweight::ToSql(formatter, SqlMigrationPlanElement { drop }, context);
+
+    CHECK(context.columnWidths.empty());
+
+    // After DROP, an oversize INSERT no longer has a known width to clip against,
+    // so the value passes through untouched (and unwarned).
+    SqlInsertDataPlan const insert {
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { { "n", Lightweight::SqlVariant(std::string("hellooo")) } },
+    };
+    CapturingWarningLogger capture;
+    auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
+    REQUIRE(sql.size() == 1);
+    CHECK(sql[0].find("'hellooo'") != std::string::npos);
+    CHECK(capture.Warnings().empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "MigrationManager: ComposeCompatPolicy unions flag sets per migration",
+                 "[SqlMigration][compat]")
+{
+    auto& mgr = Lightweight::SqlMigration::MigrationManager::GetInstance();
+    REQUIRE(!mgr.GetCompatPolicy()); // fixture clears state
+
+    mgr.SetCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) {
+        return std::set<std::string> { "alpha" };
+    });
+    mgr.ComposeCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) {
+        return std::set<std::string> { "beta" };
+    });
+
+    StubMigration const m { 20'000'000'000'001ULL };
+    auto const flags = mgr.CompatFlagsFor(m);
+    CHECK(flags.size() == 2);
+    CHECK(flags.contains("alpha"));
+    CHECK(flags.contains("beta"));
+
+    // Reset so other tests aren't affected.
+    mgr.SetCompatPolicy({});
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "MigrationManager: per-migration policy enables lup-truncate by timestamp",
+                 "[SqlMigration][compat]")
+{
+    auto& mgr = Lightweight::SqlMigration::MigrationManager::GetInstance();
+    constexpr uint64_t kCutoff = 20'000'000'060'000ULL;
+
+    mgr.SetCompatPolicy([](Lightweight::SqlMigration::MigrationBase const& m) {
+        if (m.GetTimestamp().value < kCutoff)
+            return std::set<std::string> { std::string(Lightweight::CompatFlagLupTruncateName) };
+        return std::set<std::string> {};
+    });
+
+    StubMigration const legacy { kCutoff - 1 };
+    StubMigration const modern { kCutoff };
+
+    CHECK(mgr.CompatFlagsFor(legacy).contains("lup-truncate"));
+    CHECK(mgr.CompatFlagsFor(modern).empty());
+
+    mgr.SetCompatPolicy({});
 }
