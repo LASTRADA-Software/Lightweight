@@ -100,31 +100,56 @@ never sees an over-long value.
   issue.
 - **Widen every offending column via a preflight plugin** — works, but
   requires hand-curating a list of offenders and still leaves the
-  *semantics* divergent from 20 years of LUP installs. Good as an opt-in
-  escape hatch for columns where we refuse to lose data, not as the
-  default fix.
+  *semantics* divergent from 20 years of LUP installs. Rejected: the
+  curated list is unbounded in practice and the `compat: lup-truncate`
+  mode already handles the data-loss case uniformly.
 - **Edit the `.sql` files** — out of scope per project constraints.
 
 ## Plan
 
 Implement **LUpd-compatible client-side truncation** as an opt-in
-compat mode in Lightweight, and regenerate the plugin with
-`--force-unicode` so MSSQL uses `NVARCHAR`/`NCHAR` (character-counted,
-no UTF-8 byte-budget surprises).
+compat mode in Lightweight, and make Unicode textual columns
+(`NVARCHAR`/`NCHAR`) the generator default so MSSQL uses
+character-counted widths with no UTF-8 byte-budget surprises.
 
-### 1. Regenerate `LupMigrationsPlugin` with `--force-unicode`
+### 1. Make Unicode textual columns the default in `lup2dbtool`
 
-Add `--force-unicode` to the `lup2dbtool` invocation in
-`src/tools/LupMigrationsPlugin/CMakeLists.txt` (or expose it via a
-CMake cache variable gated on the target backend). This converts:
+`lup2dbtool` already has a `--force-unicode` flag; it is currently
+opt-in. The plan is to flip the default to *on* so `lup2dbtool` always
+emits `NVARCHAR`/`NCHAR`:
 
 - `VARCHAR(N)` → `NVARCHAR(N)`
 - `CHAR(N)` → `NCHAR(N)`
 
-in the generated DSL. On MSSQL, `NVARCHAR(N)` counts characters, not
-bytes, so German umlauts stop eating the budget. SQLite and PostgreSQL
-treat `NVARCHAR` the same as `VARCHAR` semantically, so this is a
-safe no-op for those backends.
+Concrete edits:
+
+- `src/tools/lup2dbtool/main.cpp:80` — change the default of
+  `args.forceUnicode` from `false` to `true`.
+- `src/tools/lup2dbtool/CodeGenerator.hpp:52` — mirror the default on
+  `CodeGeneratorConfig::forceUnicode`.
+- `src/tools/lup2dbtool/main.cpp` argparse — add a `--no-force-unicode`
+  opt-*out* for completeness. (Rename or keep `--force-unicode` as a
+  no-op accepted-but-ignored alias.)
+
+The mapping itself already lives in
+`src/tools/lup2dbtool/CodeGenerator.cpp:614-667`
+(`MapParameterizedType` / `MapSimpleType`) and needs no change.
+
+Backend behavior (unchanged, already implemented in the formatters):
+
+- **MSSQL** (`SqlServerFormatter.hpp:166-171`): emits
+  `NCHAR(N)` / `NVARCHAR(N)` — character-counted widths, which is the
+  primary driver.
+- **PostgreSQL** (`PostgreSqlFormatter.hpp:108-112`): downgrades back
+  to `CHAR(N)` / `VARCHAR(N)`. Semantic no-op (PG is UTF-8,
+  char-counted already).
+- **SQLite** (`SQLiteFormatter.hpp:582-583`): passes `NCHAR` /
+  `NVARCHAR` through; SQLite's name-based type affinity resolves any
+  `CHAR`-containing name to `TEXT` affinity. Semantic no-op.
+
+Because the formatters already handle both forms per backend, flipping
+the generator default is the entire code change — no conditional, no
+per-backend branching in the generator.
 
 **Checksum impact:** regenerated `.cpp` files produce different
 checksums. For already-applied migrations this would fail validation.
@@ -139,50 +164,48 @@ Two ways to handle that:
   operation for this profile that updates `schema_migrations` rows to
   the new checksums after verifying the migration logically matches.
 
-### 2. Add an opt-in compat mode: `compat: lup-truncate`
+### 2. Plugin-installed `lup-truncate` compat policy
 
-Wire a new per-profile compat flag through the existing chain:
+Compat scope is a property of the legacy code, not of the deployment.
+The `LupMigrationsPlugin` itself decides which migrations need
+LUpd-compatible truncation, by timestamp:
 
-- `Lightweight::Config::Profile` gains a `compatFlags` field (string set
-  or bitmask) parsed from YAML: `compat: lup-truncate` or
-  `compat: [lup-truncate]`.
-- `dbtool` + `migrations-gui` propagate the flag into the migration
-  runner via the existing profile → `SqlMigration` path.
-- At the `SqlStatement` binding layer, when the flag is active and the
-  bound parameter is a character type whose value exceeds the
-  destination column's declared width, the value is truncated to that
-  width *before* `SQLBindParameter`.
+- `MigrationManager::SetCompatPolicy(fn)` lets a plugin install a
+  per-migration callback that returns the active compat flags.
+- `MigrationManager::ComposeCompatPolicy(fn)` composes additional
+  policies on top — used by dbtool when collecting migrations from
+  multiple plugins (each plugin's static-init sets its own policy on
+  its own singleton manager; `CollectMigrations` propagates them onto
+  the central manager).
+- The LUP plugin installs a pure function that returns
+  `{lup-truncate}` for every migration with timestamp `< 20'000'000'060'000`
+  (the first 6.0.0 migration). Modern migrations get `{}`.
 
-Column widths come from a per-table cache populated lazily via
-`SQLDescribeCol` or `INFORMATION_SCHEMA.COLUMNS`. The cache is
-invalidated when a migration alters the table (trivially: clear on
-`ALTER TABLE` / `DROP TABLE` / `CREATE TABLE`).
+`ApplySingleMigration` / `PreviewMigrationWithContext` re-derive
+`context.lupTruncate` from the policy for each migration before
+rendering its steps.
 
-### 3. Scope of the compat mode
+The actual truncation lives in `MigrationPlan.cpp`:
 
-- **Default: off.** Strict behavior (current) is correct for new
-  projects; LUP is the exception, not the rule.
-- **Activation: profile-local.** Only `lastrada-sql2022` /
-  `lastrada-postgres` / `lastrada-sqlite` opt in. Other profiles remain
-  strict.
-- **Logging: every truncation is logged** with migration timestamp,
-  table, column, declared width, original length, and the truncated
-  tail. Silent in LUpd — **not silent** here. This is the one place we
-  intentionally diverge from LUpd, so that the data loss remains
-  auditable.
+- `ToSql(formatter, element, MigrationRenderContext&)` is the
+  context-aware overload. It consumes `CreateTable` / `AlterTable` /
+  `DropTable` plan elements to maintain a per-(schema, table, column)
+  width cache, then visits `SqlInsertDataPlan` / `SqlUpdateDataPlan`
+  values and clips any that exceed their column's declared width.
+- For tables already present in the database (e.g. created by an
+  earlier run), a lazy lookup hits `INFORMATION_SCHEMA.COLUMNS` once
+  per table and feeds the widths into the cache.
+- Widths are tracked with a unit (`Bytes` for `varchar`/`char` columns,
+  `Characters` for `nvarchar`/`nchar`) so MSSQL `varchar(100)` (which
+  holds 100 *bytes*) doesn't get clipped to 100 *characters* of UTF-8
+  with German umlauts overflowing the byte budget.
+- Every truncation emits `SqlLogger::OnWarning` naming the operation,
+  schema, table, column, original size, declared width, and unit.
+  Silent in LUpd — **not silent** here. This is the deliberate
+  divergence from LUpd that keeps the data loss auditable.
 
-### 4. Optional escape hatch — column-widening preflight
-
-For columns where truncation would corrupt a reference (not just a
-display string), add a small sideloaded preflight plugin that widens
-them up front:
-
-```cpp
-ALTER TABLE PROBEN_PRUEFUNGEN ALTER COLUMN NAME NVARCHAR(250) NOT NULL;
-```
-
-This plugin has no migrations of its own — it is a compat shim loaded
-before `LupMigrationsPlugin`. Keep the list short and curated.
+No surface in `Profile`, `dbtool.yml`, or any CLI flag — the operator
+never sees this knob.
 
 ## Test plan
 
@@ -217,9 +240,37 @@ before `LupMigrationsPlugin`. Keep the list short and curated.
   a cached `std::size_t` compare on every bind. Truncation itself is a
   substring copy, O(width). No per-row SQL round-trip.
 
+## As shipped
+
+- **Section 1 (Unicode-default generator):** flipped via two-line
+  default change in `lup2dbtool` plus `--no-force-unicode` opt-out.
+  `LupMigrationsPlugin` regenerates with `NVARCHAR`/`NCHAR` everywhere.
+- **Section 2 (compat policy):** moved to plugin-side ownership rather
+  than profile-side. `LupMigrationsPlugin` installs a `CompatPolicy`
+  on `MigrationManager` from a static initializer; the threshold is
+  `20'000'000'060'000` (first 6.0.0 migration). Truncation lives in
+  `MigrationPlan.cpp::ToSql` with byte-vs-character unit awareness.
+  Width cache populated from CREATE/ALTER plans plus a lazy
+  `INFORMATION_SCHEMA.COLUMNS` fallback for pre-existing tables.
+  Logged via `SqlLogger::OnWarning`.
+- **Section 3 (checksum rewrite):** new `dbtool rewrite-checksums`
+  admin command. Defaults to dry-run; requires explicit `--yes` to
+  write. `MigrationManager::RewriteChecksums(dryRun)` implements the
+  primitive. Verified end-to-end against the staging MSSQL database
+  (rewrote 150 drifted checksums; subsequent migrate proceeds past
+  the 4_07_05 truncation boundary that originally blocked the run).
+
 ## Out of scope
 
 - Rewriting the LUP `.sql` files.
 - Changing LUpd.
 - Generalizing the compat mode to other legacy apps without a
   concrete customer need.
+- Logical-equivalence checksum hashes (the long-term shape mentioned
+  in the plan). The pragmatic `rewrite-checksums` tool is enough for
+  the current Unicode-default transition; the broader change is
+  deferred until a second compat-driven regen is on the horizon.
+- Foreign-key shape mismatches that surface on a partially-migrated
+  legacy database after the Unicode regen — these are real schema
+  drift, not silently-truncated data, and need a per-database
+  remediation plan rather than a generic compat flag.
