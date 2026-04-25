@@ -4,6 +4,8 @@
 #include "LupSqlParser.hpp"
 #include "SqlStatementParser.hpp"
 
+#include <Lightweight/CodeGen/SplitFileWriter.hpp>
+
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
@@ -441,26 +443,30 @@ bool WriteSplitPartFile(std::string const& partPath,
 /// (the last chunk may be smaller). A single statement larger than the
 /// threshold gets its own oversize chunk — we never split mid-statement, since
 /// statements are chained builder calls that cannot be broken across TUs.
+///
+/// Thin wrapper that adapts lup2dbtool's `vector<string>` block representation to
+/// the shared `Lightweight::CodeGen::CodeBlock` format and back. The bin-packing
+/// itself lives in `Lightweight::CodeGen::GroupBlocksByLineBudget` so dbtool's
+/// fold emitter can reuse the same logic.
 std::vector<std::vector<std::string>> GroupBlocksByLineBudget(
     std::vector<std::string> const& blocks, size_t maxLines)
 {
-    std::vector<std::vector<std::string>> chunks;
-    chunks.emplace_back();
-    size_t currentLines = 0;
-    for (auto const& block: blocks)
+    std::vector<Lightweight::CodeGen::CodeBlock> codeBlocks;
+    codeBlocks.reserve(blocks.size());
+    for (auto const& b: blocks)
+        codeBlocks.push_back(Lightweight::CodeGen::CodeBlock { .content = b, .lineCount = CountLines(b) });
+    auto chunks = Lightweight::CodeGen::GroupBlocksByLineBudget(codeBlocks, maxLines);
+    std::vector<std::vector<std::string>> result;
+    result.reserve(chunks.size());
+    for (auto& chunk: chunks)
     {
-        auto const blockLines = CountLines(block);
-        if (!chunks.back().empty() && currentLines + blockLines > maxLines)
-        {
-            chunks.emplace_back();
-            currentLines = 0;
-        }
-        chunks.back().push_back(block);
-        currentLines += blockLines;
+        std::vector<std::string> stringChunk;
+        stringChunk.reserve(chunk.size());
+        for (auto& block: chunk)
+            stringChunk.push_back(std::move(block.content));
+        result.push_back(std::move(stringChunk));
     }
-    if (chunks.back().empty())
-        chunks.pop_back();
-    return chunks;
+    return result;
 }
 
 /// @brief Writes one migration as a single file (no split).
