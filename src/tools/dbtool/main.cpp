@@ -10,6 +10,7 @@
 #include <Lightweight/Secrets/SecretResolver.hpp>
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlError.hpp>
+#include <Lightweight/SqlLogger.hpp>
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlMigrationLock.hpp>
 #include <Lightweight/SqlSchema.hpp>
@@ -122,6 +123,9 @@ void PrintUsage()
                  c.command, c.reset);
     std::println("  {}mark-applied{} {}<TIMESTAMP>{} Marks a migration as applied without executing",
                  c.command, c.reset, c.param, c.reset);
+    std::println("  {}rewrite-checksums{}         Rewrites schema_migrations.checksum to match current code",
+                 c.command, c.reset);
+    std::println("                            (use after a regen that changes only byte shape, not logic)");
     std::println("  {}backup{} --output FILE     Backs up the database to a file", c.command, c.reset);
     std::println("  {}restore{} --input FILE     Restores the database from a file", c.command, c.reset);
     std::println("  {}resolve-secret{} {}<REF>{}   Prints a resolved secret to stdout (env:, file:, stdin:)",
@@ -263,6 +267,7 @@ struct Options
     bool dryRun = false;     ///< If true, show what would be done without actually doing it
     bool noLock = false;     ///< If true, skip migration locking for write operations
     bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
+    bool yes = false;        ///< If true, confirm destructive actions (e.g. rewrite-checksums)
 };
 
 /// Loads a profile from a `ProfileStore` and fills `options` fields that were not
@@ -519,6 +524,10 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         {
             options.schemaOnly = true;
         }
+        else if (arg == "--yes" || arg == "-y")
+        {
+            options.yes = true;
+        }
         else if (options.command.empty())
         {
             options.command = arg;
@@ -603,6 +612,11 @@ void CollectMigrations(std::vector<Tools::PluginLoader> const& plugins, Migratio
                     {
                         centralManager.AddMigration(migration);
                     }
+                    // Propagate any compat policy the plugin installed on its own singleton
+                    // manager. Composition lets multiple plugins contribute policies in the
+                    // same dbtool process; see `MigrationManager::ComposeCompatPolicy`.
+                    if (auto const& policy = pluginManager->GetCompatPolicy())
+                        centralManager.ComposeCompatPolicy(policy);
                 }
             }
         }
@@ -838,6 +852,63 @@ int Status(MigrationManager& manager)
         std::println("All applied migrations have valid checksums.");
     }
 
+    return EXIT_SUCCESS;
+}
+
+/// Rewrites stored checksums in `schema_migrations` to match the current code.
+///
+/// Used after a regen of generated migrations changes byte shape but not logical
+/// effect (the Unicode-default flip in `lup2dbtool` is the canonical case). The
+/// caller is expected to have verified out-of-band that the regen is logically
+/// equivalent — this command is a recovery tool, not a maintenance loop.
+///
+/// In dry-run mode the diff is printed and nothing is written. Without dry-run the
+/// caller must explicitly confirm; otherwise the command exits without writing.
+int RewriteChecksums(MigrationManager& manager, bool dryRun, bool yes)
+{
+    auto const result = manager.RewriteChecksums(/*dryRun=*/true);
+
+    if (result.entries.empty() && result.unregisteredTimestamps.empty())
+    {
+        std::println("No checksum drift detected. Nothing to rewrite.");
+        return EXIT_SUCCESS;
+    }
+
+    if (!result.entries.empty())
+    {
+        std::println("Checksum drift ({} migration(s)):", result.entries.size());
+        for (auto const& entry: result.entries)
+        {
+            std::println("  {} - {}", entry.timestamp.value, entry.title);
+            std::println("      Stored:   {}", entry.oldChecksum.empty() ? "(none)" : entry.oldChecksum);
+            std::println("      Computed: {}", entry.newChecksum);
+        }
+        std::println("");
+    }
+
+    if (!result.unregisteredTimestamps.empty())
+    {
+        std::println("Applied but unregistered ({}):", result.unregisteredTimestamps.size());
+        for (auto const& ts: result.unregisteredTimestamps)
+            std::println("  {}", ts.value);
+        std::println("  (these rows are NOT touched by rewrite-checksums)");
+        std::println("");
+    }
+
+    if (dryRun)
+    {
+        std::println("Dry run: nothing written. Re-run without --dry-run to apply.");
+        return EXIT_SUCCESS;
+    }
+
+    if (!yes)
+    {
+        std::println("Refusing to rewrite without --yes. Pass --yes to confirm.");
+        return EXIT_FAILURE;
+    }
+
+    auto const written = manager.RewriteChecksums(/*dryRun=*/false);
+    std::println("Rewrote {} checksum(s).", written.entries.size());
     return EXIT_SUCCESS;
 }
 
@@ -1675,6 +1746,12 @@ int DispatchDbCommand(Options const& options)
         OptionalMigrationLock const lock(manager, options.noLock);
         return MarkApplied(manager, options.argument);
     }
+    if (options.command == "rewrite-checksums")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        return RewriteChecksums(manager, options.dryRun, options.yes);
+    }
     if (options.command == "backup")
         return Backup(options);
     if (options.command == "restore")
@@ -1723,6 +1800,11 @@ void ConfigureWindowsConsole()
 
 int main(int argc, char** argv)
 {
+    // Surface Lightweight's warnings (e.g. legacy-migration truncation notices)
+    // to stderr. Without this, every `OnWarning` call is routed to the Null logger
+    // and silently dropped.
+    SqlLogger::SetLogger(SqlLogger::StandardLogger());
+
     try
     {
         auto optionsResult = ParseArguments(argc, argv);
