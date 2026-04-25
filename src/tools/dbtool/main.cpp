@@ -137,6 +137,9 @@ void PrintUsage()
     std::println("  {}unicode-upgrade-tables{}    Rewrites legacy VARCHAR/CHAR columns to NVARCHAR/NCHAR",
                  c.command, c.reset);
     std::println("                            where the registered migrations now declare wide types");
+    std::println("  {}exec{} {}<QUERY>{}             Executes the given SQL query and prints any result set.",
+                 c.command, c.reset, c.param, c.reset);
+    std::println("                            Pass `-` (or omit the argument) to read the query from stdin.");
     std::println("  {}diff{} {}<A>{} {}<B>{}            Compares two databases (schema + data) and prints a colored",
                  c.command, c.reset, c.param, c.reset, c.param, c.reset);
     std::println("                            report. Each <SOURCE> is either a profile name or a raw");
@@ -1851,6 +1854,84 @@ int Restore(Options const& options)
     return pm->ErrorCount() > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
+/// @brief Reads a SQL query from the command argument or, when no argument was
+/// supplied (or `-` was passed), from stdin until EOF. Stripped of trailing
+/// whitespace so a stray newline doesn't reach the driver.
+[[nodiscard]] std::string ResolveExecQueryText(std::string const& argument)
+{
+    std::string source;
+    if (argument.empty() || argument == "-")
+    {
+        std::string const stdinContent { std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>() };
+        source = stdinContent;
+    }
+    else
+    {
+        source = argument;
+    }
+    while (!source.empty() && (source.back() == '\n' || source.back() == '\r' || source.back() == ' ' || source.back() == '\t'))
+        source.pop_back();
+    return source;
+}
+
+/// @brief Executes a single SQL statement against the configured connection and
+/// streams the result set (if any) to stdout in a tab-separated layout.
+///
+/// Multi-statement scripts are supported by issuing the whole text as a single
+/// `ExecuteDirect` call — the ODBC driver advances through any subsequent result
+/// sets automatically. Empty result sets simply print a row count line.
+///
+/// Useful as a thin diagnostics helper (e.g. inspecting `INFORMATION_SCHEMA`)
+/// from CI / shell scripts. Reads the query from `--argument` or, when no
+/// argument is supplied, from stdin.
+int ExecQuery(Options const& options)
+{
+    auto const queryText = ResolveExecQueryText(options.argument);
+    if (queryText.empty())
+    {
+        std::println(std::cerr, "Error: exec requires a query — pass it as an argument or via stdin.");
+        return EXIT_FAILURE;
+    }
+
+    SqlConnection conn;
+    SqlStatement stmt(conn);
+
+    try
+    {
+        auto cursor = stmt.ExecuteDirect(queryText);
+        // Print column headers if the statement produced a result set.
+        auto const numColumns = cursor.NumColumnsAffected();
+        if (numColumns == 0)
+        {
+            std::println("(no result set)");
+            return EXIT_SUCCESS;
+        }
+
+        std::size_t rowCount = 0;
+        while (cursor.FetchRow())
+        {
+            for (size_t i = 1; i <= numColumns; ++i)
+            {
+                if (i != 1)
+                    std::print("\t");
+                auto const value = cursor.GetNullableColumn<std::string>(static_cast<SQLUSMALLINT>(i));
+                std::print("{}", value.value_or(std::string { "(null)" }));
+            }
+            std::println("");
+            ++rowCount;
+        }
+        std::println(std::cerr, "({} row{})", rowCount, rowCount == 1 ? "" : "s");
+        return EXIT_SUCCESS;
+    }
+    catch (SqlException const& ex)
+    {
+        std::println(std::cerr, "SQL error: {}", ex.info().message);
+        if (!ex.info().sqlState.empty() && ex.info().sqlState != "     ")
+            std::println(std::cerr, "  SQL State: {}, Native error: {}", ex.info().sqlState, ex.info().nativeErrorCode);
+        return EXIT_FAILURE;
+    }
+}
+
 /// Builds a single InProgress event for the schema-read or data-diff phases. Centralised
 /// here so the field-set (which clang's designated-init warning is picky about) lives in
 /// one place.
@@ -2142,6 +2223,8 @@ int DispatchDbCommand(Options const& options)
         return Backup(options);
     if (options.command == "restore")
         return Restore(options);
+    if (options.command == "exec")
+        return ExecQuery(options);
 
     std::println(std::cerr, "Unknown command: {}", options.command);
     return EXIT_FAILURE;
