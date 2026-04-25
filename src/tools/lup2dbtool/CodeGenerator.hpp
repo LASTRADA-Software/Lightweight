@@ -45,11 +45,13 @@ struct CodeGeneratorConfig
     /// The LUP source files are Windows-1252 encoded — `VARCHAR(n)` means *n bytes of
     /// codepage text*. That's fine when the target DB also uses codepage VARCHARs, but
     /// sending UTF-8 data into MSSQL `VARCHAR` causes truncation on multi-byte
-    /// characters (German umlauts, …). Enabling this option emits `NVARCHAR` on MSSQL,
-    /// which stores UTF-16 and measures length in characters instead of bytes. On
-    /// SQLite/PostgreSQL the Unicode variants fall back to TEXT affinity — same
-    /// runtime behaviour as `VARCHAR`.
-    bool forceUnicode = false;
+    /// characters (German umlauts, …). When this option is on the generator emits
+    /// `NVARCHAR`, which on MSSQL stores UTF-16 and measures length in characters
+    /// instead of bytes. On SQLite/PostgreSQL the Unicode variants fall back to TEXT
+    /// affinity — same runtime behaviour as `VARCHAR`. Defaults to true because the
+    /// char-counted semantics on MSSQL are the correct behaviour for multi-byte source
+    /// data and the non-MSSQL backends treat it as a no-op.
+    bool forceUnicode = true;
 
     /// @brief Multiplier applied to every parameterised character-column size.
     ///
@@ -131,7 +133,7 @@ class CodeGenerator
     /// `VARCHAR(n)` → `NVarchar(n)`, `LONG VARCHAR` → `NText`-equivalent (still `Text()`
     /// in the Lightweight DSL — the dialect formatter handles the MSSQL `NTEXT` mapping).
     [[nodiscard]] static std::expected<std::string, std::monostate> MapSqlType(
-        std::string_view sqlType, bool forceUnicode = false, int varcharScale = 1);
+        std::string_view sqlType, bool forceUnicode = true, int varcharScale = 1);
 
     /// @brief Writes a CMakeLists.txt for a self-contained migration plugin.
     ///

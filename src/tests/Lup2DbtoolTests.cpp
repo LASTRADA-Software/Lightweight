@@ -376,24 +376,25 @@ TEST_CASE("ResolvePositionalInserts leaves out-of-bounds indices untouched", "[l
 
 TEST_CASE("MapSqlType.ForceUnicodeWidensCharAndVarchar", "[lup2dbtool]")
 {
-    // Default (codepage VARCHAR): stays as narrow types.
-    CHECK(CodeGenerator::MapSqlType("VARCHAR(30)").value_or("?") == "Varchar(30)");
-    CHECK(CodeGenerator::MapSqlType("CHAR(3)").value_or("?") == "Char(3)");
+    // Default (forceUnicode=true): CHAR/VARCHAR widen to N-prefixed Unicode variants.
+    CHECK(CodeGenerator::MapSqlType("VARCHAR(30)").value_or("?") == "NVarchar(30)");
+    CHECK(CodeGenerator::MapSqlType("CHAR(3)").value_or("?") == "NChar(3)");
 
-    // --force-unicode: widen to the N-prefixed Unicode variants.
-    CHECK(CodeGenerator::MapSqlType("VARCHAR(30)", /*forceUnicode=*/true).value_or("?")
-          == "NVarchar(30)");
-    CHECK(CodeGenerator::MapSqlType("CHAR(3)", /*forceUnicode=*/true).value_or("?") == "NChar(3)");
+    // Explicit opt-out: stays as narrow types.
+    CHECK(CodeGenerator::MapSqlType("VARCHAR(30)", /*forceUnicode=*/false).value_or("?")
+          == "Varchar(30)");
+    CHECK(CodeGenerator::MapSqlType("CHAR(3)", /*forceUnicode=*/false).value_or("?") == "Char(3)");
 
     // Already-unicode types are left alone either way.
-    CHECK(CodeGenerator::MapSqlType("NVARCHAR(30)", /*forceUnicode=*/true).value_or("?")
+    CHECK(CodeGenerator::MapSqlType("NVARCHAR(30)").value_or("?") == "NVarchar(30)");
+    CHECK(CodeGenerator::MapSqlType("NCHAR(3)").value_or("?") == "NChar(3)");
+    CHECK(CodeGenerator::MapSqlType("NVARCHAR(30)", /*forceUnicode=*/false).value_or("?")
           == "NVarchar(30)");
-    CHECK(CodeGenerator::MapSqlType("NCHAR(3)", /*forceUnicode=*/true).value_or("?") == "NChar(3)");
+    CHECK(CodeGenerator::MapSqlType("NCHAR(3)", /*forceUnicode=*/false).value_or("?") == "NChar(3)");
 
     // Non-char types are unaffected.
-    CHECK(CodeGenerator::MapSqlType("INTEGER", /*forceUnicode=*/true).value_or("?") == "Integer()");
-    CHECK(CodeGenerator::MapSqlType("DECIMAL(10,2)", /*forceUnicode=*/true).value_or("?")
-          == "Decimal(10, 2)");
+    CHECK(CodeGenerator::MapSqlType("INTEGER").value_or("?") == "Integer()");
+    CHECK(CodeGenerator::MapSqlType("DECIMAL(10,2)").value_or("?") == "Decimal(10, 2)");
 }
 
 TEST_CASE("ParseWhereClause rejects empty input", "[lup2dbtool]")
@@ -889,8 +890,9 @@ TEST_CASE("MapSqlType.LongVarbinary", "[lup2dbtool]")
 
 TEST_CASE("MapSqlType.ParameterizedTypesStillWork", "[lup2dbtool]")
 {
-    CHECK(*CodeGenerator::MapSqlType("varchar(50)") == "Varchar(50)");
-    CHECK(*CodeGenerator::MapSqlType("char(30)") == "Char(30)");
+    // Default forceUnicode=true widens char/varchar; pass false to check the narrow path.
+    CHECK(*CodeGenerator::MapSqlType("varchar(50)", /*forceUnicode=*/false) == "Varchar(50)");
+    CHECK(*CodeGenerator::MapSqlType("char(30)", /*forceUnicode=*/false) == "Char(30)");
     CHECK(*CodeGenerator::MapSqlType("decimal(10,2)") == "Decimal(10, 2)");
     CHECK(*CodeGenerator::MapSqlType("decimal(10)") == "Decimal(10)");
 }
