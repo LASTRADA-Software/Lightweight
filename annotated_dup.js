@@ -1,9 +1,17 @@
 var annotated_dup =
 [
     [ "Lightweight", null, [
+      [ "CodeGen", null, [
+        [ "CodeBlock", "d5/d38/structLightweight_1_1CodeGen_1_1CodeBlock.html", null ],
+        [ "WriteResult", "d2/d38/structLightweight_1_1CodeGen_1_1WriteResult.html", "d2/d38/structLightweight_1_1CodeGen_1_1WriteResult" ]
+      ] ],
       [ "Config", null, [
         [ "Profile", "d6/da2/structLightweight_1_1Config_1_1Profile.html", "d6/da2/structLightweight_1_1Config_1_1Profile" ],
         [ "ProfileStore", "d7/d36/classLightweight_1_1Config_1_1ProfileStore.html", "d7/d36/classLightweight_1_1Config_1_1ProfileStore" ]
+      ] ],
+      [ "MigrationFold", null, [
+        [ "CppEmitOptions", "df/ddc/structLightweight_1_1MigrationFold_1_1CppEmitOptions.html", "df/ddc/structLightweight_1_1MigrationFold_1_1CppEmitOptions" ],
+        [ "SqlEmitOptions", "d2/d92/structLightweight_1_1MigrationFold_1_1SqlEmitOptions.html", "d2/d92/structLightweight_1_1MigrationFold_1_1SqlEmitOptions" ]
       ] ],
       [ "Odbc", null, [
         [ "DataSourceInfo", "da/d67/structLightweight_1_1Odbc_1_1DataSourceInfo.html", "da/d67/structLightweight_1_1Odbc_1_1DataSourceInfo" ],
@@ -65,6 +73,7 @@ var annotated_dup =
       [ "HasMany", "da/df4/classLightweight_1_1HasMany.html", "da/df4/classLightweight_1_1HasMany" ],
       [ "HasManyThrough", "de/d73/classLightweight_1_1HasManyThrough.html", "de/d73/classLightweight_1_1HasManyThrough" ],
       [ "HasOneThrough", "df/d63/classLightweight_1_1HasOneThrough.html", "df/d63/classLightweight_1_1HasOneThrough" ],
+      [ "MigrationRenderContext", "d4/d23/structLightweight_1_1MigrationRenderContext.html", "d4/d23/structLightweight_1_1MigrationRenderContext" ],
       [ "Pool", "d3/d30/classLightweight_1_1Pool.html", "d3/d30/classLightweight_1_1Pool" ],
       [ "PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", "df/d1a/structLightweight_1_1PoolConfig" ],
       [ "SqlAllFieldsQueryBuilder", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ],

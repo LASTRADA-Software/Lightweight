@@ -207,12 +207,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#ac38b8072a1d454cdab18e208bf86291b",
-"d6/d1b/structLightweight_1_1SqlNumeric.html#a8c3b31875a9b9761c4087184cfdfbac9",
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#abb5c8e2bfe209f9060884a6ac4c6e15b",
-"da/d88/structLightweight_1_1Odbc_1_1DriverInfo.html#a9912a4ccf7375ffd3b21245baa8768c6",
-"de/d61/classLightweight_1_1DataMapper.html#a26cf5a8f4f6f3cf5840bb6fe6974e168",
-"dir_6f1d6fa2b219487ffef8a5d5282640f4.html"
+"d2/dd0/structLightweight_1_1Field.html#a526143a1f5e23a97cb46958bb6471609",
+"d5/dc4/dbtool.html#creating-a-migration-plugin",
+"d7/d53/structLightweight_1_1SqlTime.html#a8113bd80b73f33f870275927fafed62d",
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#abccc1073f563291d8caf94685890f64d",
+"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#ac7edfc2036f6d77ebce95c4a17d39fd8",
+"df/d63/classLightweight_1_1HasOneThrough.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
