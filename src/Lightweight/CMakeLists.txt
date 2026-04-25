@@ -63,6 +63,8 @@ set(HEADER_FILES
     SqlQuery/Select.hpp
     SqlQuery/Update.hpp
 
+    CodeGen/SplitFileWriter.hpp
+
     DataMapper/BelongsTo.hpp
     DataMapper/DataMapper.hpp
     DataMapper/Error.hpp
@@ -155,6 +157,8 @@ set(SOURCE_FILES
     SqlQuery/Migrate.cpp
     SqlQuery/MigrationPlan.cpp
     SqlQuery/Select.cpp
+
+    CodeGen/SplitFileWriter.cpp
     SqlQueryFormatter.cpp
     SqlDataDiff.cpp
     SqlSchema.cpp
