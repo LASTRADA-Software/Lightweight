@@ -65,6 +65,10 @@ set(HEADER_FILES
 
     CodeGen/SplitFileWriter.hpp
 
+    MigrationFold/Folder.hpp
+    MigrationFold/CppEmitter.hpp
+    MigrationFold/SqlEmitter.hpp
+
     DataMapper/BelongsTo.hpp
     DataMapper/DataMapper.hpp
     DataMapper/Error.hpp
@@ -149,6 +153,10 @@ set(SOURCE_FILES
     SqlQuery/Select.cpp
 
     CodeGen/SplitFileWriter.cpp
+
+    MigrationFold/Folder.cpp
+    MigrationFold/CppEmitter.cpp
+    MigrationFold/SqlEmitter.cpp
     SqlQueryFormatter.cpp
     SqlSchema.cpp
     SqlStatement.cpp

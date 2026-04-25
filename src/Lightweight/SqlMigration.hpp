@@ -7,12 +7,14 @@
 #include "SqlError.hpp"
 #include "SqlQuery/Migrate.hpp"
 #include "SqlQuery/MigrationPlan.hpp"
+#include "SqlSchema.hpp"
 #include "SqlTransaction.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <list>
+#include <map>
 #include <optional>
 #include <set>
 #include <string>
@@ -356,6 +358,149 @@ namespace SqlMigration
             std::vector<MigrationTimestamp> unregisteredTimestamps; ///< Applied rows whose migration is no longer registered.
             bool wasDryRun = false; ///< True if the call ran in dry-run mode.
         };
+
+        /// @brief Snapshot of the schema the registered migrations *intend* to produce.
+        ///
+        /// Pure plan-walk — never executes SQL, never opens a connection. Folds the
+        /// effects of every registered migration (up to an optional cut-off timestamp)
+        /// into a per-table view of "the final shape" plus a chronological list of
+        /// data steps and surviving indexes/releases. Used by:
+        ///
+        ///   - `dbtool fold` to emit a self-contained baseline (`.cpp` plugin or `.sql`)
+        ///   - `HardReset` to know which tables the migrations would have created
+        ///   - `UnicodeUpgradeTables` to know which char/varchar columns the migrations
+        ///     now declare wide
+        ///
+        /// All three are pure operations — `FoldRegisteredMigrations` itself never
+        /// executes a single statement. See `FoldRegisteredMigrations` for the API.
+        struct PlanFoldingResult
+        {
+            /// Per-table state: ordered column declarations + per-table FK list.
+            struct TableState
+            {
+                std::vector<SqlColumnDeclaration> columns;
+                std::vector<SqlCompositeForeignKeyConstraint> compositeForeignKeys;
+                bool ifNotExists = false;
+            };
+
+            /// (schema, table) → folded `TableState`. Insertion order is *not* preserved by
+            /// `std::map` — for emission order use `creationOrder` below.
+            std::map<SqlSchema::FullyQualifiedTableName, TableState> tables;
+
+            /// Tables in *creation* order (first-time-seen). Reverse for safe DROP ordering
+            /// when tearing the schema down.
+            std::vector<SqlSchema::FullyQualifiedTableName> creationOrder;
+
+            /// Indexes that survive folding (created on tables still present at end).
+            std::vector<SqlCreateIndexPlan> indexes;
+
+            /// One data step (INSERT/UPDATE/DELETE/RawSql) tagged with its source migration.
+            struct DataStep
+            {
+                MigrationTimestamp sourceTimestamp;
+                std::string sourceTitle;
+                SqlMigrationPlanElement element;
+            };
+
+            /// Data steps in chronological order. **No coalescing** — the fold replays
+            /// every data step verbatim, exactly as if migrations were applied in order.
+            std::vector<DataStep> dataSteps;
+
+            /// Releases declared via `LIGHTWEIGHT_SQL_RELEASE` that fall within the fold range.
+            std::vector<MigrationRelease> releases;
+
+            /// Migrations that contributed to the fold (timestamp + title). Used by emitters
+            /// to write a header comment explaining what was collapsed.
+            std::vector<std::pair<MigrationTimestamp, std::string>> foldedMigrations;
+        };
+
+        /// @brief Pure plan-walk that folds the effect of every registered migration.
+        ///
+        /// Visits each migration's `Up()` plan in timestamp order (or up to
+        /// `upToInclusive` if provided) and accumulates the cumulative end-state into a
+        /// `PlanFoldingResult`. **Never** executes SQL or touches a database connection
+        /// — the supplied formatter is only used to build the in-memory plan elements.
+        ///
+        /// @param formatter Formatter used by the migration query builder while walking
+        ///                  each migration's `Up()`. Any standard formatter works; the
+        ///                  walk inspects plan element shapes, not rendered SQL.
+        /// @param upToInclusive If set, fold only migrations with `timestamp <= upToInclusive`.
+        ///                     If unset, fold all registered migrations.
+        ///
+        /// @return The folded snapshot. Safe to call without a `MigrationManager`-attached
+        ///         data mapper.
+        [[nodiscard]] LIGHTWEIGHT_API PlanFoldingResult FoldRegisteredMigrations(
+            SqlQueryFormatter const& formatter,
+            std::optional<MigrationTimestamp> upToInclusive = std::nullopt) const;
+
+        /// @brief Result of a `HardReset` call.
+        struct HardResetResult
+        {
+            bool wasDryRun = false;
+            /// Tables the registered migrations *would* have created and were also present
+            /// in the live DB — these were dropped (or would be dropped on a real run).
+            std::vector<SqlSchema::FullyQualifiedTableName> droppedTables;
+            /// Tables registered migrations declare but that aren't in the live DB —
+            /// nothing to do for these. Reported for visibility only.
+            std::vector<SqlSchema::FullyQualifiedTableName> absentTables;
+            /// Tables in the live DB the registered migrations don't know about — left
+            /// alone (user-owned). Reported prominently so operators notice.
+            std::vector<SqlSchema::FullyQualifiedTableName> preservedTables;
+            /// Whether the `schema_migrations` table itself was dropped (always true on a
+            /// real run, false on dry-run).
+            bool schemaMigrationsDropped = false;
+        };
+
+        /// @brief Drops every table the registered migrations would create (incl.
+        /// `schema_migrations`), preserving any user-created tables.
+        ///
+        /// Folds all registered migrations to compute the migration-owned set, intersects
+        /// with the live schema (via `SqlSchema::ReadAllTables`), then drops the matching
+        /// live tables in **reverse** creation order with `cascade=true ifExists=true`. The
+        /// `schema_migrations` table is dropped explicitly because it's created outside the
+        /// registered-migrations stream.
+        ///
+        /// Tables present in the live DB but not in the migration plan are left alone and
+        /// reported under `preservedTables` so operators can spot them.
+        ///
+        /// @param dryRun When true, returns the would-be plan without writing anything.
+        [[nodiscard]] LIGHTWEIGHT_API HardResetResult HardReset(bool dryRun = false);
+
+        /// @brief One column upgrade entry in `UnicodeUpgradeResult`.
+        struct ColumnUpgradeEntry
+        {
+            SqlSchema::FullyQualifiedTableName table;
+            std::string column;
+            /// Live byte-counted type the column currently has.
+            SqlColumnTypeDefinition liveType;
+            /// Char-counted type the migrations now declare for this column.
+            SqlColumnTypeDefinition intendedType;
+            bool nullable = true;
+        };
+
+        /// @brief Result of an `UnicodeUpgradeTables` call.
+        struct UnicodeUpgradeResult
+        {
+            bool wasDryRun = false;
+            /// Columns whose live type drifted from the intended type and were upgraded
+            /// (or would be on a real run).
+            std::vector<ColumnUpgradeEntry> columns;
+            /// Foreign keys that had to be dropped + re-added to upgrade their
+            /// participating columns. Reported so operators see the FK churn.
+            std::vector<SqlCompositeForeignKeyConstraint> rebuiltForeignKeys;
+        };
+
+        /// @brief Rewrites legacy `VARCHAR/CHAR` columns to `NVARCHAR/NCHAR` where the
+        /// registered migrations now declare wide types.
+        ///
+        /// Compares the folded plan's intended column types against `SqlSchema::ReadAllTables`
+        /// output; an upgrade is triggered iff intended is `NVarchar`/`NChar` AND live is
+        /// `Varchar`/`Char` with the same `size`. Foreign keys that touch any upgrade column
+        /// are dropped before the alter and re-added afterwards. Cross-backend; SQLite
+        /// uses the in-tree `RebuildSqliteTable` recipe under the hood.
+        ///
+        /// @param dryRun When true, returns the would-be diff without writing anything.
+        [[nodiscard]] LIGHTWEIGHT_API UnicodeUpgradeResult UnicodeUpgradeTables(bool dryRun = false);
 
         /// @brief Re-stamps `schema_migrations.checksum` rows that have drifted.
         ///

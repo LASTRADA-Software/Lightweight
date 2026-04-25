@@ -7,6 +7,9 @@
 
 #include <Lightweight/Config/ProfileStore.hpp>
 #include <Lightweight/DataMapper/DataMapper.hpp>
+#include <Lightweight/MigrationFold/CppEmitter.hpp>
+#include <Lightweight/MigrationFold/Folder.hpp>
+#include <Lightweight/MigrationFold/SqlEmitter.hpp>
 #include <Lightweight/Secrets/SecretResolver.hpp>
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlError.hpp>
@@ -20,6 +23,7 @@
 #include <fstream>
 #include <iostream>
 #include <print>
+#include <set>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -126,6 +130,17 @@ void PrintUsage()
     std::println("  {}rewrite-checksums{}         Rewrites schema_migrations.checksum to match current code",
                  c.command, c.reset);
     std::println("                            (use after a regen that changes only byte shape, not logic)");
+    std::println("  {}hard-reset{}                Drops every migration-owned table (preserves user tables)",
+                 c.command, c.reset);
+    std::println("                            and the schema_migrations table; pair with `migrate`");
+    std::println("  {}unicode-upgrade-tables{}    Rewrites legacy VARCHAR/CHAR columns to NVARCHAR/NCHAR",
+                 c.command, c.reset);
+    std::println("                            where the registered migrations now declare wide types");
+    std::println("  {}fold{} --output FILE        Emits a baseline (.cpp plugin or .sql script) reproducing",
+                 c.command, c.reset);
+    std::println("                            the post-migration state. No DB connection required.");
+    std::println("                            For .sql output, --dialect is required (sqlite, postgres,");
+    std::println("                            mssql, mysql).");
     std::println("  {}backup{} --output FILE     Backs up the database to a file", c.command, c.reset);
     std::println("  {}restore{} --input FILE     Restores the database from a file", c.command, c.reset);
     std::println("  {}resolve-secret{} {}<REF>{}   Prints a resolved secret to stdout (env:, file:, stdin:)",
@@ -268,6 +283,18 @@ struct Options
     bool noLock = false;     ///< If true, skip migration locking for write operations
     bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
     bool yes = false;        ///< If true, confirm destructive actions (e.g. rewrite-checksums)
+
+    /// @brief `--up-to <X>` for `fold`. Empty = default to latest registered release.
+    std::string upTo;
+    /// @brief `--max-lines-per-file <N>` for `fold` (cpp output split). 0 disables splitting.
+    std::size_t foldMaxLinesPerFile = 5000;
+    /// @brief `--emit-cmake` flag for `fold` cpp output.
+    bool foldEmitCmake = false;
+    /// @brief `--plugin-name <NAME>` used by `--emit-cmake`.
+    std::string foldPluginName;
+    /// @brief `--dialect <NAME>` for `fold` sql output. Required when output is `.sql`,
+    /// rejected when output is `.cpp` (plugins defer rendering to the loading backend).
+    std::string foldDialect;
 };
 
 /// Loads a profile from a `ProfileStore` and fills `options` fields that were not
@@ -527,6 +554,34 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         else if (arg == "--yes" || arg == "-y")
         {
             options.yes = true;
+        }
+        else if (arg == "--up-to")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --up-to requires an argument" };
+            options.upTo = argv[++i];
+        }
+        else if (arg == "--max-lines-per-file")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --max-lines-per-file requires an argument" };
+            options.foldMaxLinesPerFile = static_cast<std::size_t>(std::stoull(argv[++i]));
+        }
+        else if (arg == "--emit-cmake")
+        {
+            options.foldEmitCmake = true;
+        }
+        else if (arg == "--plugin-name")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --plugin-name requires an argument" };
+            options.foldPluginName = argv[++i];
+        }
+        else if (arg == "--dialect")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --dialect requires an argument" };
+            options.foldDialect = argv[++i];
         }
         else if (options.command.empty())
         {
@@ -855,6 +910,50 @@ int Status(MigrationManager& manager)
     return EXIT_SUCCESS;
 }
 
+/// @brief Generic "render plan → if empty, exit success → print diff → if dry-run,
+/// exit success → if not `--yes`, refuse → execute → print summary" loop, factored
+/// out so `rewrite-checksums`, `hard-reset`, and `unicode-upgrade-tables` share
+/// the same UX without duplicating it.
+///
+/// The caller supplies the four template hooks via lambdas — `run` is invoked
+/// twice (once with `dryRun=true`, once with `dryRun=false`) so the manager-level
+/// API doesn't have to memoize results across calls.
+template <typename Result>
+int RunAdminCommand(std::string_view name,
+                     bool dryRun,
+                     bool yes,
+                     auto&& runFn,
+                     auto&& isEmptyFn,
+                     auto&& printDiffFn,
+                     auto&& printSummaryFn)
+{
+    auto const preview = runFn(/*dryRun=*/true);
+
+    if (isEmptyFn(preview))
+    {
+        std::println("No {} changes needed. Nothing to do.", name);
+        return EXIT_SUCCESS;
+    }
+
+    printDiffFn(preview);
+
+    if (dryRun)
+    {
+        std::println("Dry run: nothing written. Re-run without --dry-run to apply.");
+        return EXIT_SUCCESS;
+    }
+
+    if (!yes)
+    {
+        std::println("Refusing to {} without --yes. Pass --yes to confirm.", name);
+        return EXIT_FAILURE;
+    }
+
+    auto const written = runFn(/*dryRun=*/false);
+    printSummaryFn(written);
+    return EXIT_SUCCESS;
+}
+
 /// Rewrites stored checksums in `schema_migrations` to match the current code.
 ///
 /// Used after a regen of generated migrations changes byte shape but not logical
@@ -866,49 +965,241 @@ int Status(MigrationManager& manager)
 /// caller must explicitly confirm; otherwise the command exits without writing.
 int RewriteChecksums(MigrationManager& manager, bool dryRun, bool yes)
 {
-    auto const result = manager.RewriteChecksums(/*dryRun=*/true);
+    return RunAdminCommand<MigrationManager::RewriteChecksumsResult>(
+        "rewrite-checksums",
+        dryRun,
+        yes,
+        [&](bool dr) { return manager.RewriteChecksums(dr); },
+        [](auto const& r) { return r.entries.empty() && r.unregisteredTimestamps.empty(); },
+        [](auto const& r) {
+            if (!r.entries.empty())
+            {
+                std::println("Checksum drift ({} migration(s)):", r.entries.size());
+                for (auto const& entry: r.entries)
+                {
+                    std::println("  {} - {}", entry.timestamp.value, entry.title);
+                    std::println("      Stored:   {}", entry.oldChecksum.empty() ? "(none)" : entry.oldChecksum);
+                    std::println("      Computed: {}", entry.newChecksum);
+                }
+                std::println("");
+            }
+            if (!r.unregisteredTimestamps.empty())
+            {
+                std::println("Applied but unregistered ({}):", r.unregisteredTimestamps.size());
+                for (auto const& ts: r.unregisteredTimestamps)
+                    std::println("  {}", ts.value);
+                std::println("  (these rows are NOT touched by rewrite-checksums)");
+                std::println("");
+            }
+        },
+        [](auto const& r) { std::println("Rewrote {} checksum(s).", r.entries.size()); });
+}
 
-    if (result.entries.empty() && result.unregisteredTimestamps.empty())
+/// @brief Drops every migration-owned table, preserves user tables.
+int HardReset(MigrationManager& manager, bool dryRun, bool yes)
+{
+    return RunAdminCommand<MigrationManager::HardResetResult>(
+        "hard-reset",
+        dryRun,
+        yes,
+        [&](bool dr) { return manager.HardReset(dr); },
+        [](auto const& r) { return r.droppedTables.empty() && r.absentTables.empty() && r.preservedTables.empty(); },
+        [](auto const& r) {
+            if (!r.droppedTables.empty())
+            {
+                std::println("Tables to drop ({}):", r.droppedTables.size());
+                for (auto const& t: r.droppedTables)
+                    std::println("  {}", t.table);
+            }
+            if (!r.absentTables.empty())
+            {
+                std::println("Migration-declared but absent ({}): no-op", r.absentTables.size());
+                for (auto const& t: r.absentTables)
+                    std::println("  {}", t.table);
+            }
+            if (!r.preservedTables.empty())
+            {
+                std::println("");
+                std::println("USER-OWNED tables (preserved, NOT dropped) ({}):", r.preservedTables.size());
+                for (auto const& t: r.preservedTables)
+                    std::println("  {}", t.table);
+                std::println("");
+            }
+        },
+        [](auto const& r) {
+            std::println("Dropped {} table(s){}.", r.droppedTables.size(),
+                         r.schemaMigrationsDropped ? " plus schema_migrations" : "");
+        });
+}
+
+/// @brief Upgrades legacy VARCHAR/CHAR columns to NVARCHAR/NCHAR.
+int UnicodeUpgradeTables(MigrationManager& manager, bool dryRun, bool yes)
+{
+    return RunAdminCommand<MigrationManager::UnicodeUpgradeResult>(
+        "unicode-upgrade-tables",
+        dryRun,
+        yes,
+        [&](bool dr) { return manager.UnicodeUpgradeTables(dr); },
+        [](auto const& r) { return r.columns.empty(); },
+        [](auto const& r) {
+            std::println("Columns to upgrade ({}):", r.columns.size());
+            for (auto const& c: r.columns)
+                std::println("  {}.{}", c.table.table, c.column);
+            if (!r.rebuiltForeignKeys.empty())
+            {
+                std::println("");
+                std::println("Foreign keys to drop and re-add ({}):", r.rebuiltForeignKeys.size());
+                for (auto const& fk: r.rebuiltForeignKeys)
+                {
+                    std::print("  ");
+                    for (auto const& c: fk.columns)
+                        std::print("{} ", c);
+                    std::println("→ {}", fk.referencedTableName);
+                }
+            }
+        },
+        [](auto const& r) {
+            std::set<std::string> tables;
+            for (auto const& c: r.columns)
+                tables.insert(c.table.table);
+            std::println("Upgraded {} column(s) across {} table(s).", r.columns.size(), tables.size());
+        });
+}
+
+/// @brief Resolves a textual dialect name to a `SqlServerType` value. Case-insensitive.
+[[nodiscard]] std::expected<SqlServerType, std::string> ResolveDialect(std::string raw)
+{
+    std::ranges::transform(raw, raw.begin(), [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+    if (raw == "sqlite" || raw == "sqlite3")
+        return SqlServerType::SQLITE;
+    if (raw == "postgres" || raw == "postgresql" || raw == "pg")
+        return SqlServerType::POSTGRESQL;
+    if (raw == "mssql" || raw == "sqlserver" || raw == "ms-sql")
+        return SqlServerType::MICROSOFT_SQL;
+    if (raw == "mysql")
+        return SqlServerType::MYSQL;
+    return std::unexpected(std::format("Unknown dialect '{}'. Accepted: sqlite, postgres, mssql, mysql.", raw));
+}
+
+[[nodiscard]] std::string_view DialectLabel(SqlServerType type)
+{
+    switch (type)
     {
-        std::println("No checksum drift detected. Nothing to rewrite.");
-        return EXIT_SUCCESS;
+        case SqlServerType::SQLITE: return "SQLite";
+        case SqlServerType::POSTGRESQL: return "PostgreSQL";
+        case SqlServerType::MICROSOFT_SQL: return "Microsoft SQL Server";
+        case SqlServerType::MYSQL: return "MySQL";
+        case SqlServerType::UNKNOWN: return "Unknown";
     }
+    return "Unknown";
+}
 
-    if (!result.entries.empty())
+/// @brief `dbtool fold` command — pure offline transformation, no DB connection.
+///
+/// Output format is picked from the file extension: `.cpp` emits a baseline plugin,
+/// `.sql` emits a flat dialect-specific script. `--dialect` is required for `.sql`
+/// and rejected for `.cpp`.
+int Fold(MigrationManager& manager, Options const& options)
+{
+    if (options.outputFile.empty())
     {
-        std::println("Checksum drift ({} migration(s)):", result.entries.size());
-        for (auto const& entry: result.entries)
-        {
-            std::println("  {} - {}", entry.timestamp.value, entry.title);
-            std::println("      Stored:   {}", entry.oldChecksum.empty() ? "(none)" : entry.oldChecksum);
-            std::println("      Computed: {}", entry.newChecksum);
-        }
-        std::println("");
+        std::println(std::cerr, "Error: --output is required for fold.");
+        return EXIT_FAILURE;
     }
-
-    if (!result.unregisteredTimestamps.empty())
+    auto const ext = options.outputFile.extension().string();
+    auto const isCpp = ext == ".cpp";
+    auto const isSql = ext == ".sql";
+    if (!isCpp && !isSql)
     {
-        std::println("Applied but unregistered ({}):", result.unregisteredTimestamps.size());
-        for (auto const& ts: result.unregisteredTimestamps)
-            std::println("  {}", ts.value);
-        std::println("  (these rows are NOT touched by rewrite-checksums)");
-        std::println("");
-    }
-
-    if (dryRun)
-    {
-        std::println("Dry run: nothing written. Re-run without --dry-run to apply.");
-        return EXIT_SUCCESS;
-    }
-
-    if (!yes)
-    {
-        std::println("Refusing to rewrite without --yes. Pass --yes to confirm.");
+        std::println(std::cerr, "Error: --output must end in .cpp or .sql (got '{}')", ext);
         return EXIT_FAILURE;
     }
 
-    auto const written = manager.RewriteChecksums(/*dryRun=*/false);
-    std::println("Rewrote {} checksum(s).", written.entries.size());
+    SqlMigration::MigrationTimestamp upTo { std::numeric_limits<uint64_t>::max() };
+    try
+    {
+        upTo = MigrationFold::ResolveUpTo(manager, options.upTo);
+    }
+    catch (std::exception const& ex)
+    {
+        std::println(std::cerr, "Error: {}", ex.what());
+        return EXIT_FAILURE;
+    }
+
+    if (isCpp)
+    {
+        if (!options.foldDialect.empty())
+        {
+            std::println(std::cerr,
+                         "Error: --dialect is not allowed for .cpp output (plugins defer rendering to the loading backend).");
+            return EXIT_FAILURE;
+        }
+        // Fold uses the SQLite formatter purely for in-memory plan-walking; the
+        // emitted .cpp plugin is dialect-agnostic.
+        auto const fold = MigrationFold::Fold(manager, SqlQueryFormatter::Sqlite(), upTo);
+        MigrationFold::CppEmitOptions opts {
+            .outputPath = options.outputFile,
+            .maxLinesPerFile = options.foldMaxLinesPerFile,
+            .pluginName = options.foldPluginName,
+            .emitCmake = options.foldEmitCmake,
+        };
+        try
+        {
+            MigrationFold::EmitCppBaseline(fold, opts);
+        }
+        catch (std::exception const& ex)
+        {
+            std::println(std::cerr, "Error emitting cpp baseline: {}", ex.what());
+            return EXIT_FAILURE;
+        }
+        std::println("Folded {} migration(s) → {}", fold.foldedMigrations.size(), options.outputFile.string());
+        return EXIT_SUCCESS;
+    }
+
+    // .sql path: --dialect required, --emit-cmake/--max-lines-per-file rejected.
+    if (options.foldDialect.empty())
+    {
+        std::println(std::cerr,
+                     "Error: --dialect is required for .sql output. "
+                     "Accepted: sqlite, postgres, mssql, mysql.");
+        return EXIT_FAILURE;
+    }
+    if (options.foldEmitCmake)
+    {
+        std::println(std::cerr, "Error: --emit-cmake is only valid for .cpp output.");
+        return EXIT_FAILURE;
+    }
+
+    auto const dialectResult = ResolveDialect(options.foldDialect);
+    if (!dialectResult)
+    {
+        std::println(std::cerr, "Error: {}", dialectResult.error());
+        return EXIT_FAILURE;
+    }
+    auto const* formatter = SqlQueryFormatter::Get(*dialectResult);
+    if (!formatter)
+    {
+        std::println(std::cerr, "Error: dialect '{}' has no formatter implementation.", options.foldDialect);
+        return EXIT_FAILURE;
+    }
+
+    auto const fold = MigrationFold::Fold(manager, *formatter, upTo);
+
+    MigrationFold::SqlEmitOptions opts {
+        .outputPath = options.outputFile,
+        .formatter = formatter,
+        .dialectLabel = DialectLabel(*dialectResult),
+    };
+    try
+    {
+        MigrationFold::EmitSqlBaseline(fold, opts);
+    }
+    catch (std::exception const& ex)
+    {
+        std::println(std::cerr, "Error emitting sql baseline: {}", ex.what());
+        return EXIT_FAILURE;
+    }
+    std::println("Folded {} migration(s) → {}", fold.foldedMigrations.size(), options.outputFile.string());
     return EXIT_SUCCESS;
 }
 
@@ -1697,6 +1988,27 @@ MigrationManager& GetMigrationManager(Options const& options)
     return manager;
 }
 
+/// @brief Connection-less variant of `GetMigrationManager` for `dbtool fold`.
+///
+/// Identical lifetime contract: the static plugins vector outlives the singleton,
+/// so the singleton's `_compatPolicy` (whose target is a function pointer in plugin
+/// code) doesn't dangle at exit time. Differs from `GetMigrationManager` only by
+/// skipping the `CreateMigrationHistory()` call (no DB connection to write to).
+MigrationManager& GetMigrationManagerOffline(Options const& options)
+{
+    static std::vector<Tools::PluginLoader> plugins;
+    static bool initialized = false;
+
+    auto& manager = MigrationManager::GetInstance();
+    if (!initialized)
+    {
+        plugins = LoadPlugins(options.pluginsDir);
+        CollectMigrations(plugins, manager);
+        initialized = true;
+    }
+    return manager;
+}
+
 /// Dispatches a DB-connected command to its handler. Assumes the caller has
 /// already established the ODBC connection via `SetupConnectionString`.
 int DispatchDbCommand(Options const& options)
@@ -1751,6 +2063,18 @@ int DispatchDbCommand(Options const& options)
         auto& manager = GetMigrationManager(options);
         OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
         return RewriteChecksums(manager, options.dryRun, options.yes);
+    }
+    if (options.command == "hard-reset")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        return HardReset(manager, options.dryRun, options.yes);
+    }
+    if (options.command == "unicode-upgrade-tables")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        return UnicodeUpgradeTables(manager, options.dryRun, options.yes);
     }
     if (options.command == "backup")
         return Backup(options);
@@ -1834,6 +2158,13 @@ int main(int argc, char** argv)
 
         if (options.command == "resolve-secret")
             return ResolveSecretCommand(options);
+
+        // `fold` is a pure offline transformation — no database connection required.
+        // It loads migration plugins, walks the registered migrations in memory, and
+        // writes a baseline file. Gating connection setup on `command != "fold"` lets
+        // operators run `dbtool fold` on a laptop with no DB at all.
+        if (options.command == "fold")
+            return Fold(GetMigrationManagerOffline(options), options);
 
         if (!SetupConnectionString(options.connectionString))
             return EXIT_FAILURE;
