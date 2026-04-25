@@ -43,10 +43,13 @@ void PrintUsage(char const* programName)
     std::println(stderr, "                          Set N=4 when targeting Unicode-counting backends like");
     std::println(stderr, "                          PostgreSQL where multi-byte data needs more headroom.");
     std::println(stderr, "  --force-unicode         Widen CHAR/VARCHAR columns to NCHAR/NVARCHAR in the");
-    std::println(stderr, "                          generated DSL. Use this when the target database is");
-    std::println(stderr, "                          MSSQL and the LUP source data contains multi-byte");
-    std::println(stderr, "                          characters (e.g. German umlauts) that would overflow");
-    std::println(stderr, "                          byte-counted VARCHAR columns.");
+    std::println(stderr, "                          generated DSL. This is the default: it keeps MSSQL");
+    std::println(stderr, "                          char-counted so multi-byte source data (e.g. German");
+    std::println(stderr, "                          umlauts) does not overflow byte-counted VARCHAR");
+    std::println(stderr, "                          columns. Semantic no-op on SQLite/PostgreSQL.");
+    std::println(stderr, "                          Accepted for backwards compatibility; has no effect");
+    std::println(stderr, "                          unless `--no-force-unicode` was passed earlier.");
+    std::println(stderr, "  --no-force-unicode      Opt out of Unicode widening; emit CHAR/VARCHAR as-is.");
     std::println(stderr, "  --help                  Show this help message");
     std::println(stderr, "");
     std::println(stderr, "Examples:");
@@ -76,8 +79,10 @@ struct Arguments
     size_t maxLinesPerFile = 5000;
 
     /// When true, widen every byte-char column type to its Unicode variant. See
-    /// `CodeGeneratorConfig::forceUnicode` for rationale.
-    bool forceUnicode = false;
+    /// `CodeGeneratorConfig::forceUnicode` for rationale. Defaults to true — the
+    /// backend formatters downgrade back to `CHAR`/`VARCHAR` on SQLite/PostgreSQL,
+    /// so this is a semantic no-op there, while MSSQL gets char-counted widths.
+    bool forceUnicode = true;
 
     /// Multiplier for `varchar(N)` / `char(N)` sizes. See `CodeGeneratorConfig::varcharScale`.
     int varcharScale = 1;
@@ -167,6 +172,12 @@ bool ParseSingleArg(int& i, int argc, char* argv[], Arguments& args)
     if (std::strcmp(argv[i], "--force-unicode") == 0)
     {
         args.forceUnicode = true;
+        return true;
+    }
+
+    if (std::strcmp(argv[i], "--no-force-unicode") == 0)
+    {
+        args.forceUnicode = false;
         return true;
     }
 
