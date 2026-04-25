@@ -1433,8 +1433,9 @@ TEST_CASE("ToSql: lup-truncate handles UTF-8 multi-byte by character count", "[S
     };
     (void) Lightweight::ToSql(formatter, SqlMigrationPlanElement { create }, context);
 
-    // "Körnung" is 7 characters / 8 UTF-8 bytes. Width 4 → keep first 4 chars ("Körn"),
-    // which is 5 bytes.
+    // "Körnung" is 7 characters / 8 UTF-8 bytes. Width 4 → keep first 4 chars ("Körn").
+    // The MSSQL formatter then encodes the literal as `N'K' + NCHAR(246) + N'rn'` so
+    // arbitrary UTF-8 round-trips correctly under the database's narrow code page.
     SqlInsertDataPlan const insert {
         .schemaName = "",
         .tableName = "T",
@@ -1445,7 +1446,8 @@ TEST_CASE("ToSql: lup-truncate handles UTF-8 multi-byte by character count", "[S
     auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
 
     REQUIRE(sql.size() == 1);
-    CHECK(sql[0].find("'Körn'") != std::string::npos);
+    // 'ö' is U+00F6 = 246 decimal. The encoder splits the run on the non-ASCII char.
+    CHECK(sql[0].find("N'K' + NCHAR(246) + N'rn'") != std::string::npos);
     CHECK(capture.Warnings().size() == 1);
 }
 
