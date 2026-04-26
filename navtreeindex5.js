@@ -1,5 +1,8 @@
 var NAVTREEINDEX5 =
 {
+"dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html#a8c6e0209082d4a10bb1ace84edd67648":[12,0,0,66,0],
+"dc/d73/ZipArchive_8hpp_source.html":[13,0,1,12,0],
+"dc/d74/CollectDifferences_8hpp_source.html":[13,0,1,3,1],
 "dc/d74/MarkdownTable_8hpp_source.html":[13,0,1,11,1],
 "dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html":[12,0,0,8,2],
 "dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html#a969aa6a133298244220d6ddf892e5b60":[12,0,0,8,2,1],
@@ -246,8 +249,5 @@ var NAVTREEINDEX5 =
 "df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c":[12,0,0,20,1],
 "df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f":[12,0,0,20,2],
 "df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4":[12,0,0,20,0],
-"df/d25/Customer_8hpp_source.html":[13,0,0,0,0,2],
-"df/d2d/SecretResolver_8hpp_source.html":[13,0,1,7,2],
-"df/d36/Playlist_8hpp_source.html":[13,0,0,0,0,8],
-"df/d39/SgrBuilder_8hpp_source.html":[13,0,1,11,2]
+"df/d25/Customer_8hpp_source.html":[13,0,0,0,0,2]
 };

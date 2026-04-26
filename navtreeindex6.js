@@ -1,5 +1,8 @@
 var NAVTREEINDEX6 =
 {
+"df/d2d/SecretResolver_8hpp_source.html":[13,0,1,7,2],
+"df/d36/Playlist_8hpp_source.html":[13,0,0,0,0,8],
+"df/d39/SgrBuilder_8hpp_source.html":[13,0,1,11,2],
 "df/d3f/structLightweight_1_1SqlVariant.html":[10,0,11],
 "df/d3f/structLightweight_1_1SqlVariant.html#a001b083ef4020390b319901974533265":[10,0,11,5],
 "df/d3f/structLightweight_1_1SqlVariant.html#a03f3abedb73fca7403adafd87d2e3ad0":[10,0,11,6],
