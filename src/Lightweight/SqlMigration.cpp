@@ -11,12 +11,53 @@
 #include <algorithm>
 #include <chrono>
 #include <format>
+#include <span>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 
 namespace Lightweight::SqlMigration
 {
+
+namespace
+{
+    /// Compose a single-line summary suitable for `what()`. The detailed
+    /// breakdown (title/step/sql/driver msg) lives in the structured fields;
+    /// this keeps the base `std::runtime_error::what()` short enough for
+    /// single-line terminal output while still naming the failing migration.
+    std::string FormatMigrationWhat(MigrationException::Operation op,
+                                    MigrationTimestamp timestamp,
+                                    std::string_view title,
+                                    std::size_t stepIndex,
+                                    SqlErrorInfo const& driverError)
+    {
+        auto const* const verb = op == MigrationException::Operation::Apply ? "apply" : "rollback";
+        return std::format(
+            "Failed to {} migration {} '{}' at step {}: {}", verb, timestamp.value, title, stepIndex, driverError.message);
+    }
+} // namespace
+
+MigrationException::MigrationException(Operation operation,
+                                       MigrationTimestamp timestamp,
+                                       std::string title,
+                                       std::size_t stepIndex,
+                                       std::string failedSql,
+                                       SqlErrorInfo driverError):
+    // Reconstruct the SqlException base with a message that names the migration
+    // — so every existing `catch (SqlException const&)` path still sees useful
+    // context in `info().message` and `what()` without having to know about
+    // the new type. Keep the native driver fields intact.
+    SqlException(SqlErrorInfo { .nativeErrorCode = driverError.nativeErrorCode,
+                                .sqlState = driverError.sqlState,
+                                .message = FormatMigrationWhat(operation, timestamp, title, stepIndex, driverError) }),
+    _operation { operation },
+    _timestamp { timestamp },
+    _title { std::move(title) },
+    _stepIndex { stepIndex },
+    _failedSql { std::move(failedSql) },
+    _driverMessage { std::move(driverError.message) }
+{
+}
 
 void MigrationManager::AddMigration(MigrationBase const* migration)
 {
@@ -407,6 +448,7 @@ namespace
             DropColumnIfExists,
             AddForeignKey,
             DropForeignKey,
+            AddCompositeForeignKey,
         };
 
         Kind kind;
@@ -415,7 +457,87 @@ namespace
         // Only populated for Kind::AddForeignKey. Empty otherwise.
         std::string referencedTable;
         std::string referencedColumn;
+        // Only populated for Kind::AddCompositeForeignKey. Empty otherwise.
+        std::vector<std::string> columns;
+        std::vector<std::string> referencedColumns;
     };
+
+    [[nodiscard]] std::optional<SqliteGuard::Kind> ParseSqliteGuardKind(std::string_view kindStr)
+    {
+        if (kindStr == "ADD_COLUMN_IF_NOT_EXISTS")
+            return SqliteGuard::Kind::AddColumnIfNotExists;
+        if (kindStr == "DROP_COLUMN_IF_EXISTS")
+            return SqliteGuard::Kind::DropColumnIfExists;
+        if (kindStr == "ADD_FOREIGN_KEY")
+            return SqliteGuard::Kind::AddForeignKey;
+        if (kindStr == "DROP_FOREIGN_KEY")
+            return SqliteGuard::Kind::DropForeignKey;
+        if (kindStr == "ADD_COMPOSITE_FOREIGN_KEY")
+            return SqliteGuard::Kind::AddCompositeForeignKey;
+        return std::nullopt;
+    }
+
+    [[nodiscard]] std::optional<std::vector<std::string_view>> ExtractQuotedStrings(std::string_view directive,
+                                                                                    size_t searchPos,
+                                                                                    size_t expectedStrings)
+    {
+        std::vector<std::string_view> quoted;
+        quoted.reserve(expectedStrings);
+        while (quoted.size() < expectedStrings)
+        {
+            auto const openQuote = directive.find('"', searchPos);
+            if (openQuote == std::string_view::npos)
+                return std::nullopt;
+            auto const closeQuote = directive.find('"', openQuote + 1);
+            if (closeQuote == std::string_view::npos)
+                return std::nullopt;
+            quoted.push_back(directive.substr(openQuote + 1, closeQuote - openQuote - 1));
+            searchPos = closeQuote + 1;
+        }
+        return quoted;
+    }
+
+    [[nodiscard]] std::vector<std::string> SplitCommaList(std::string_view list)
+    {
+        std::vector<std::string> result;
+        size_t begin = 0;
+        while (begin <= list.size())
+        {
+            auto const comma = list.find(',', begin);
+            auto const end = comma == std::string_view::npos ? list.size() : comma;
+            result.emplace_back(list.substr(begin, end - begin));
+            if (comma == std::string_view::npos)
+                break;
+            begin = comma + 1;
+        }
+        return result;
+    }
+
+    [[nodiscard]] SqliteGuard BuildSqliteGuard(SqliteGuard::Kind kind, std::span<std::string_view const> quoted)
+    {
+        SqliteGuard guard {
+            .kind = kind,
+            .tableName = std::string { quoted[0] },
+            .columnName = std::string { quoted[1] },
+            .referencedTable = {},
+            .referencedColumn = {},
+            .columns = {},
+            .referencedColumns = {},
+        };
+        if (kind == SqliteGuard::Kind::AddForeignKey)
+        {
+            guard.referencedTable = std::string { quoted[2] };
+            guard.referencedColumn = std::string { quoted[3] };
+        }
+        else if (kind == SqliteGuard::Kind::AddCompositeForeignKey)
+        {
+            guard.columnName.clear(); // scalar field unused for composite kind
+            guard.columns = SplitCommaList(quoted[1]);
+            guard.referencedTable = std::string { quoted[2] };
+            guard.referencedColumns = SplitCommaList(quoted[3]);
+        }
+        return guard;
+    }
 
     /// Parse the leading sentinel (if any) from a SQL script.
     ///
@@ -441,55 +563,21 @@ namespace
         if (kindEnd == std::string_view::npos)
             return std::nullopt;
 
-        auto const kindStr = directive.substr(kindStart, kindEnd - kindStart);
-        auto const kind = [&]() -> std::optional<SqliteGuard::Kind> {
-            if (kindStr == "ADD_COLUMN_IF_NOT_EXISTS")
-                return SqliteGuard::Kind::AddColumnIfNotExists;
-            if (kindStr == "DROP_COLUMN_IF_EXISTS")
-                return SqliteGuard::Kind::DropColumnIfExists;
-            if (kindStr == "ADD_FOREIGN_KEY")
-                return SqliteGuard::Kind::AddForeignKey;
-            if (kindStr == "DROP_FOREIGN_KEY")
-                return SqliteGuard::Kind::DropForeignKey;
-            return std::nullopt;
-        }();
+        auto const kind = ParseSqliteGuardKind(directive.substr(kindStart, kindEnd - kindStart));
         if (!kind)
             return std::nullopt;
 
-        // Parse N quoted identifiers after the kind keyword. All existing kinds take
+        // Parse N quoted identifiers after the kind keyword. Single-column kinds take
         // exactly 2 quoted args (table, column); AddForeignKey takes 4 (adds referenced
-        // table, referenced column).
-        size_t const expectedStrings = (*kind == SqliteGuard::Kind::AddForeignKey) ? 4 : 2;
-        std::vector<std::string_view> quoted;
-        quoted.reserve(expectedStrings);
+        // table, referenced column); AddCompositeForeignKey also takes 4 but the 2nd
+        // and 4th are comma-joined column lists split by the consumer.
+        size_t const expectedStrings =
+            (*kind == SqliteGuard::Kind::AddForeignKey || *kind == SqliteGuard::Kind::AddCompositeForeignKey) ? 4 : 2;
+        auto const quoted = ExtractQuotedStrings(directive, kindEnd, expectedStrings);
+        if (!quoted)
+            return std::nullopt;
 
-        size_t searchPos = kindEnd;
-        while (quoted.size() < expectedStrings)
-        {
-            auto const openQuote = directive.find('"', searchPos);
-            if (openQuote == std::string_view::npos)
-                return std::nullopt;
-            auto const closeQuote = directive.find('"', openQuote + 1);
-            if (closeQuote == std::string_view::npos)
-                return std::nullopt;
-            quoted.push_back(directive.substr(openQuote + 1, closeQuote - openQuote - 1));
-            searchPos = closeQuote + 1;
-        }
-
-        SqliteGuard guard {
-            .kind = *kind,
-            .tableName = std::string { quoted[0] },
-            .columnName = std::string { quoted[1] },
-            .referencedTable = {},
-            .referencedColumn = {},
-        };
-        if (*kind == SqliteGuard::Kind::AddForeignKey)
-        {
-            guard.referencedTable = std::string { quoted[2] };
-            guard.referencedColumn = std::string { quoted[3] };
-        }
-
-        return std::pair { std::move(guard), newlinePos + 1 };
+        return std::pair { BuildSqliteGuard(*kind, *quoted), newlinePos + 1 };
     }
 
     /// Check whether a column exists on a SQLite table via pragma_table_info().
@@ -509,8 +597,8 @@ namespace
     [[nodiscard]] std::string FetchSqliteCreateTableSql(SqlConnection& connection, std::string_view tableName)
     {
         auto stmt = SqlStatement { connection };
-        auto cursor = stmt.ExecuteDirect(std::format(
-            R"(SELECT sql FROM sqlite_schema WHERE type='table' AND name='{}')", tableName));
+        auto cursor =
+            stmt.ExecuteDirect(std::format(R"(SELECT sql FROM sqlite_schema WHERE type='table' AND name='{}')", tableName));
         if (!cursor.FetchRow())
             throw std::runtime_error(std::format("SQLite rebuild: table '{}' not found in sqlite_schema", tableName));
         return cursor.GetColumn<std::string>(1);
@@ -543,15 +631,12 @@ namespace
     /// during migrations — with enforcement on, `DROP TABLE orig` would succeed but the
     /// brief interval between DROP and RENAME would leave FKs in other tables temporarily
     /// dangling.
-    void RebuildSqliteTable(SqlConnection& connection,
-                            std::string_view tableName,
-                            auto&& transformCreateSql)
+    void RebuildSqliteTable(SqlConnection& connection, std::string_view tableName, auto&& transformCreateSql)
     {
         auto const originalSql = FetchSqliteCreateTableSql(connection, tableName);
         auto const columns = FetchSqliteColumnNames(connection, tableName);
         if (columns.empty())
-            throw std::runtime_error(
-                std::format("SQLite rebuild: table '{}' has no columns", tableName));
+            throw std::runtime_error(std::format("SQLite rebuild: table '{}' has no columns", tableName));
 
         std::string const tmpName = std::string { tableName } + "__lw_rebuild";
 
@@ -563,9 +648,7 @@ namespace
                 s.replace(pos, from.size(), to);
             return s;
         };
-        auto withTmpName = replaceFirst(originalSql,
-                                        std::format(R"("{}")", tableName),
-                                        std::format(R"("{}")", tmpName));
+        auto withTmpName = replaceFirst(originalSql, std::format(R"("{}")", tableName), std::format(R"("{}")", tmpName));
         if (withTmpName == originalSql) // unquoted fallback
             withTmpName = replaceFirst(originalSql, tableName, tmpName);
 
@@ -584,8 +667,7 @@ namespace
                     .nativeErrorCode = info.nativeErrorCode,
                     .sqlState = info.sqlState,
                     .message = std::format(
-                        "SQLite rebuild of '{}' failed at {}: {}\n  SQL: {}",
-                        tableName, step, info.message, sql),
+                        "SQLite rebuild of '{}' failed at {}: {}\n  SQL: {}", tableName, step, info.message, sql),
                 });
             }
         };
@@ -599,27 +681,62 @@ namespace
                 columnList += ", ";
             columnList += std::format(R"("{}")", columns[i]);
         }
-        exec(std::format(R"(INSERT INTO "{}" ({}) SELECT {} FROM "{}")",
-                         tmpName, columnList, columnList, tableName),
+        exec(std::format(R"(INSERT INTO "{}" ({}) SELECT {} FROM "{}")", tmpName, columnList, columnList, tableName),
              "INSERT SELECT");
         exec(std::format(R"(DROP TABLE "{}")", tableName), "DROP TABLE");
-        exec(std::format(R"(ALTER TABLE "{}" RENAME TO "{}")", tmpName, tableName),
-             "ALTER TABLE RENAME");
+        exec(std::format(R"(ALTER TABLE "{}" RENAME TO "{}")", tmpName, tableName), "ALTER TABLE RENAME");
     }
 
     /// Rebuild a SQLite table to add a new foreign key constraint.
     void SqliteRebuildAddForeignKey(SqlConnection& connection, SqliteGuard const& guard)
     {
-        auto const fk = std::format(
-            R"(CONSTRAINT "FK_{0}_{1}" FOREIGN KEY ("{1}") REFERENCES "{2}"("{3}"))",
-            guard.tableName, guard.columnName, guard.referencedTable, guard.referencedColumn);
+        auto const fk = std::format(R"(CONSTRAINT "FK_{0}_{1}" FOREIGN KEY ("{1}") REFERENCES "{2}"("{3}"))",
+                                    guard.tableName,
+                                    guard.columnName,
+                                    guard.referencedTable,
+                                    guard.referencedColumn);
 
         RebuildSqliteTable(connection, guard.tableName, [&](std::string createSql) {
             auto const closeParen = createSql.rfind(')');
             if (closeParen == std::string::npos)
                 throw std::runtime_error(
-                    std::format("SQLite rebuild: cannot find closing ')' in CREATE TABLE for '{}'",
-                                guard.tableName));
+                    std::format("SQLite rebuild: cannot find closing ')' in CREATE TABLE for '{}'", guard.tableName));
+            createSql.insert(closeParen, ", " + fk);
+            return createSql;
+        });
+    }
+
+    /// Rebuild a SQLite table to add a new composite foreign key constraint.
+    ///
+    /// Mirrors `SqliteRebuildAddForeignKey` but emits a multi-column FOREIGN KEY clause.
+    /// The constraint name is shared with the CREATE TABLE path
+    /// (`SqlQueryFormatter::BuildForeignKeyConstraintName`) so DROP lookups remain consistent.
+    void SqliteRebuildAddCompositeForeignKey(SqlConnection& connection, SqliteGuard const& guard)
+    {
+        auto const joinQuoted = [](std::vector<std::string> const& v) {
+            std::string out;
+            for (size_t i = 0; i < v.size(); ++i)
+            {
+                if (i != 0)
+                    out += ", ";
+                out += '"';
+                out += v[i];
+                out += '"';
+            }
+            return out;
+        };
+        auto const fkName = SqlQueryFormatter::BuildForeignKeyConstraintName(guard.tableName, guard.columns);
+        auto const fk = std::format(R"(CONSTRAINT "{0}" FOREIGN KEY ({1}) REFERENCES "{2}"({3}))",
+                                    fkName,
+                                    joinQuoted(guard.columns),
+                                    guard.referencedTable,
+                                    joinQuoted(guard.referencedColumns));
+
+        RebuildSqliteTable(connection, guard.tableName, [&](std::string createSql) {
+            auto const closeParen = createSql.rfind(')');
+            if (closeParen == std::string::npos)
+                throw std::runtime_error(
+                    std::format("SQLite rebuild: cannot find closing ')' in CREATE TABLE for '{}'", guard.tableName));
             createSql.insert(closeParen, ", " + fk);
             return createSql;
         });
@@ -665,15 +782,11 @@ namespace
     ///   3. Bare `FOREIGN KEY ("<column>")` — SQLite's stored CREATE TABLE often omits
     ///      the `CONSTRAINT <name>` prefix because Lightweight's SQLite formatter emits
     ///      FKs inline without naming them.
-    [[nodiscard]] size_t FindForeignKeyClause(std::string_view sql,
-                                              std::string_view fkName,
-                                              std::string_view columnName)
+    [[nodiscard]] size_t FindForeignKeyClause(std::string_view sql, std::string_view fkName, std::string_view columnName)
     {
-        if (auto const pos = sql.find(std::format(R"(CONSTRAINT "{}")", fkName));
-            pos != std::string_view::npos)
+        if (auto const pos = sql.find(std::format(R"(CONSTRAINT "{}")", fkName)); pos != std::string_view::npos)
             return pos;
-        if (auto const pos = sql.find(std::format(R"(CONSTRAINT {})", fkName));
-            pos != std::string_view::npos)
+        if (auto const pos = sql.find(std::format(R"(CONSTRAINT {})", fkName)); pos != std::string_view::npos)
             return pos;
         return sql.find(std::format(R"(FOREIGN KEY ("{}"))", columnName));
     }
@@ -690,8 +803,7 @@ namespace
             auto const pos = FindForeignKeyClause(createSql, fkName, guard.columnName);
             if (pos == std::string::npos)
                 throw std::runtime_error(std::format(
-                    "SQLite rebuild: cannot locate FK for '{}.{}' in CREATE TABLE",
-                    guard.tableName, guard.columnName));
+                    "SQLite rebuild: cannot locate FK for '{}.{}' in CREATE TABLE", guard.tableName, guard.columnName));
 
             // Skip the FOREIGN KEY (...) list, then the REFERENCES table(col) list.
             auto scan = SkipMatchingParens(createSql, pos);
@@ -741,6 +853,9 @@ namespace
             case SqliteGuard::Kind::DropForeignKey:
                 SqliteRebuildDropForeignKey(connection, guard);
                 return;
+            case SqliteGuard::Kind::AddCompositeForeignKey:
+                SqliteRebuildAddCompositeForeignKey(connection, guard);
+                return;
         }
     }
 } // namespace
@@ -788,15 +903,12 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
             }
             catch (SqlException const& ex)
             {
-                throw SqlException(
-                    SqlErrorInfo { .nativeErrorCode = ex.info().nativeErrorCode,
-                                   .sqlState = ex.info().sqlState,
-                                   .message = std::format("Migration '{}' (timestamp {}) failed at step {}: {}\nSQL: {}",
-                                                          migration.GetTitle(),
-                                                          migration.GetTimestamp().value,
-                                                          stepIndex,
-                                                          ex.info().message,
-                                                          sqlScript) });
+                throw MigrationException(MigrationException::Operation::Apply,
+                                         migration.GetTimestamp(),
+                                         std::string { migration.GetTitle() },
+                                         stepIndex,
+                                         sqlScript,
+                                         ex.info());
             }
         }
         ++stepIndex;
@@ -847,15 +959,12 @@ void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
             }
             catch (SqlException const& ex)
             {
-                throw SqlException(SqlErrorInfo {
-                    .nativeErrorCode = ex.info().nativeErrorCode,
-                    .sqlState = ex.info().sqlState,
-                    .message = std::format("Migration rollback '{}' (timestamp {}) failed at step {}: {}\nSQL: {}",
-                                           migration.GetTitle(),
-                                           migration.GetTimestamp().value,
-                                           stepIndex,
-                                           ex.info().message,
-                                           sqlScript) });
+                throw MigrationException(MigrationException::Operation::Revert,
+                                         migration.GetTimestamp(),
+                                         std::string { migration.GetTitle() },
+                                         stepIndex,
+                                         sqlScript,
+                                         ex.info());
             }
         }
         ++stepIndex;
@@ -1069,9 +1178,28 @@ RevertResult MigrationManager::RevertToMigration(MigrationTimestamp target, Exec
             RevertSingleMigration(*migration);
             result.revertedTimestamps.push_back(timestamp);
         }
+        catch (MigrationException const& ex)
+        {
+            // Preserve the same timestamp mapping callers already rely on,
+            // but pull the *structured* diagnostic fields out of the
+            // exception — so the CLI and GUI can render a breakdown rather
+            // than parsing a single formatted message.
+            result.failedAt = timestamp;
+            result.failedTitle = ex.GetMigrationTitle();
+            result.failedStepIndex = ex.GetStepIndex();
+            result.failedSql = ex.GetFailedSql();
+            result.sqlState = ex.info().sqlState;
+            result.nativeErrorCode = ex.info().nativeErrorCode;
+            // errorMessage keeps the raw driver message (no migration prefix),
+            // so CLI/GUI callers can build their own layout around it without
+            // stripping the composed summary.
+            result.errorMessage = ex.GetDriverMessage();
+            return result;
+        }
         catch (std::exception const& ex)
         {
             result.failedAt = timestamp;
+            result.failedTitle = std::string { migration->GetTitle() };
             result.errorMessage = ex.what();
             return result;
         }

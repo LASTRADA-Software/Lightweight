@@ -275,6 +275,41 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Transaction Rollback", "[SqlMigration
     }
 }
 
+TEST_CASE_METHOD(SqlMigrationTestFixture, "MigrationException carries structured context", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // Apply path: second step is deliberately bogus; the first CreateTable
+    // statement succeeds, so the failure surfaces at step 1 with the exact
+    // invalid SQL script we supplied.
+    auto failingMigration = SqlMigration::Migration<202412102220>("failing migration", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("should_not_exist_ctx").PrimaryKey("id", Integer());
+        plan.RawSql("THIS_IS_INVALID_SQL_FOR_DIAG");
+    });
+
+    auto& migrationManager = SqlMigration::MigrationManager::GetInstance();
+    migrationManager.CreateMigrationHistory();
+
+    ScopedSqlNullLogger const nullLogger; // suppress the expected error message
+    (void) nullLogger;
+    try
+    {
+        migrationManager.ApplySingleMigration(failingMigration);
+        FAIL("expected MigrationException");
+    }
+    catch (SqlMigration::MigrationException const& ex)
+    {
+        CHECK(ex.GetOperation() == SqlMigration::MigrationException::Operation::Apply);
+        CHECK(ex.GetMigrationTimestamp().value == 202412102220);
+        CHECK(ex.GetMigrationTitle() == "failing migration");
+        CHECK(ex.GetStepIndex() == 1);
+        CHECK(ex.GetFailedSql().find("THIS_IS_INVALID_SQL_FOR_DIAG") != std::string::npos);
+        CHECK_FALSE(ex.GetDriverMessage().empty());
+        // Base-class accessors keep working for catch(SqlException) callers.
+        CHECK(ex.info().message.find("failing migration") != std::string::npos);
+    }
+}
+
 TEST_CASE_METHOD(SqlMigrationTestFixture, "Raw SQL Migration", "[SqlMigration]")
 {
     auto rawSqlMigration = SqlMigration::Migration<202412102215>(
@@ -947,8 +982,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "DropIndexIfExists", "[SqlMigration]")
     CHECK_NOTHROW(manager.ApplyPendingMigrations());
 }
 
-TEST_CASE_METHOD(SqlMigrationTestFixture, "AlterTable AddForeignKey rebuilds SQLite table",
-                 "[SqlMigration]")
+TEST_CASE_METHOD(SqlMigrationTestFixture, "AlterTable AddForeignKey rebuilds SQLite table", "[SqlMigration]")
 {
     using namespace SqlColumnTypeDefinitions;
 
@@ -987,9 +1021,8 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "AlterTable AddForeignKey rebuilds SQL
         "add fk column + fk",
         [](SqlMigrationQueryBuilder& plan) {
             plan.AlterTable("Child").AddNotRequiredColumn("parent_id", Integer());
-            plan.AlterTable("Child").AddForeignKey("parent_id",
-                                                   SqlForeignKeyReferenceDefinition { .tableName = "Parent",
-                                                                                       .columnName = "id" });
+            plan.AlterTable("Child").AddForeignKey(
+                "parent_id", SqlForeignKeyReferenceDefinition { .tableName = "Parent", .columnName = "id" });
         },
         [](SqlMigrationQueryBuilder&) {});
 
@@ -1013,14 +1046,96 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "AlterTable AddForeignKey rebuilds SQL
         bool found = false;
         while (cursor.FetchRow())
         {
-            if (cursor.GetColumn<std::string>(3) == "Parent" // `table`
+            if (cursor.GetColumn<std::string>(3) == "Parent"       // `table`
                 && cursor.GetColumn<std::string>(4) == "parent_id" // `from`
-                && cursor.GetColumn<std::string>(5) == "id") // `to`
+                && cursor.GetColumn<std::string>(5) == "id")       // `to`
             {
                 found = true;
             }
         }
         CHECK(found);
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "AlterTable AddCompositeForeignKey rebuilds SQLite table", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // AddCompositeForeignKey via ALTER TABLE is a SQLite-specific code path (formatter
+    // emits an ADD_COMPOSITE_FOREIGN_KEY sentinel, executor rebuilds the table with
+    // the multi-column FOREIGN KEY clause appended). Other dialects ALTER in place.
+    auto conn = SqlConnection {};
+    if (conn.ServerType() != SqlServerType::SQLITE)
+        return;
+
+    auto createParent = SqlMigration::Migration<202601020001>(
+        "create composite parent",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("CPParent")
+                .PrimaryKey("a", Integer())
+                .PrimaryKey("b", Integer())
+                .RequiredColumn("name", Varchar(50));
+        },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("CPParent"); });
+
+    auto createChild = SqlMigration::Migration<202601020002>(
+        "create composite child",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("CPChild").PrimaryKey("id", Integer()).Column("pa", Integer()).Column("pb", Integer());
+        },
+        [](SqlMigrationQueryBuilder& plan) { plan.DropTable("CPChild"); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+    CHECK(manager.ApplyPendingMigrations() == 2);
+
+    // Seed a row that must survive the table rebuild.
+    {
+        auto stmt = SqlStatement { conn };
+        (void) stmt.ExecuteDirect(R"(INSERT INTO "CPParent" ("a", "b", "name") VALUES (1, 2, 'anchor'))");
+        (void) stmt.ExecuteDirect(R"(INSERT INTO "CPChild" ("id", "pa", "pb") VALUES (100, 1, 2))");
+    }
+
+    auto addCompositeFk = SqlMigration::Migration<202601020003>(
+        "add composite fk",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.AlterTable("CPChild").AddCompositeForeignKey({ "pa", "pb" }, "CPParent", { "a", "b" });
+        },
+        [](SqlMigrationQueryBuilder&) {});
+
+    CHECK(manager.ApplyPendingMigrations() == 1);
+
+    // Row-preservation: rebuild must not lose data.
+    {
+        auto stmt = SqlStatement { conn };
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "id", "pa", "pb" FROM "CPChild")");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int64_t>(1) == 100);
+        CHECK(cursor.GetColumn<int64_t>(2) == 1);
+        CHECK(cursor.GetColumn<int64_t>(3) == 2);
+        CHECK_FALSE(cursor.FetchRow());
+    }
+
+    // FK presence: pragma_foreign_key_list must now report both columns of the composite FK.
+    {
+        auto stmt = SqlStatement { conn };
+        auto cursor = stmt.ExecuteDirect(R"(PRAGMA foreign_key_list("CPChild"))");
+        bool foundPa = false;
+        bool foundPb = false;
+        while (cursor.FetchRow())
+        {
+            if (cursor.GetColumn<std::string>(3) == "CPParent") // `table`
+            {
+                auto const from = cursor.GetColumn<std::string>(4); // `from`
+                auto const to = cursor.GetColumn<std::string>(5);   // `to`
+                if (from == "pa" && to == "a")
+                    foundPa = true;
+                else if (from == "pb" && to == "b")
+                    foundPb = true;
+            }
+        }
+        CHECK(foundPa);
+        CHECK(foundPb);
     }
 }
 
@@ -1093,17 +1208,13 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "GetMigrationsForRelease returns range
     using namespace SqlColumnTypeDefinitions;
 
     auto m1 = SqlMigration::Migration<202801010000>(
-        "m1",
-        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m1").PrimaryKey("id", Integer()); });
+        "m1", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m1").PrimaryKey("id", Integer()); });
     auto m2 = SqlMigration::Migration<202802010000>(
-        "m2",
-        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m2").PrimaryKey("id", Integer()); });
+        "m2", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m2").PrimaryKey("id", Integer()); });
     auto m3 = SqlMigration::Migration<202803010000>(
-        "m3",
-        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m3").PrimaryKey("id", Integer()); });
+        "m3", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m3").PrimaryKey("id", Integer()); });
     auto m4 = SqlMigration::Migration<202804010000>(
-        "m4",
-        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m4").PrimaryKey("id", Integer()); });
+        "m4", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m4").PrimaryKey("id", Integer()); });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     // Release A covers m1+m2; release B covers m3 only. m4 is post-all-releases.
