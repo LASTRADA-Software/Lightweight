@@ -37,7 +37,7 @@ struct LupVersion
     [[nodiscard]] std::string ToString() const;
 
     /// @brief Converts the version to a conventional dotted string "X.Y.Z" (no zero-padding).
-    /// Intended for release-marker version strings surfaced through dbtool / migrations-gui.
+    /// Intended for release-marker version strings surfaced through dbtool / dbtool-gui.
     [[nodiscard]] std::string ToDottedString() const;
 
     /// @brief Parses a version string like "6.8.8" or "6_08_08".

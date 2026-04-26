@@ -1,0 +1,1160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1440" />
+<title>Lightweight — Migrations GUI mockup (issue #472)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Qt Fluent-ish neutral palette with a hint of blue */
+    --bg-page:        #eceef2;
+    --bg-window:      #ffffff;
+    --bg-chrome:      #f6f7f9;
+    --bg-sidebar:     #fafbfc;
+    --bg-panel:       #ffffff;
+    --bg-subtle:      #f2f4f7;
+    --bg-hover:       #eef1f6;
+    --bg-selected:    #e8f1fe;
+
+    --border:         #e3e6ec;
+    --border-strong:  #cfd4dc;
+    --divider:        #eceff4;
+
+    --text:           #1f2430;
+    --text-muted:     #5b6372;
+    --text-faint:     #8a93a4;
+
+    --accent:         #0a66d6;
+    --accent-hover:   #0a5cc2;
+    --accent-soft:    #dbeafe;
+
+    --ok:             #17a34a;
+    --ok-soft:        #dcfce7;
+    --warn:           #d97706;
+    --warn-soft:      #fef3c7;
+    --err:            #dc2626;
+    --err-soft:       #fee2e2;
+    --info:           #0a66d6;
+    --info-soft:      #dbeafe;
+
+    --shadow-sm: 0 1px 2px rgba(15,23,42,0.04), 0 1px 1px rgba(15,23,42,0.03);
+    --shadow-md: 0 6px 16px rgba(15,23,42,0.06), 0 2px 4px rgba(15,23,42,0.04);
+    --shadow-lg: 0 24px 48px rgba(15,23,42,0.12), 0 8px 16px rgba(15,23,42,0.06);
+
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 10px;
+
+    --font-ui:   'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-ui);
+    color: var(--text);
+    background:
+      radial-gradient(1200px 600px at 20% -10%, #d9e4f2 0%, transparent 60%),
+      radial-gradient(900px 500px at 90% 110%, #e7e0f2 0%, transparent 60%),
+      var(--bg-page);
+    min-height: 100vh;
+    padding: 28px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page-label {
+    max-width: 1380px;
+    margin: 0 auto 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    color: var(--text-muted);
+    font-size: 12.5px;
+  }
+  .page-label b { color: var(--text); font-weight: 600; }
+  .page-label .crumbs { font-family: var(--font-mono); color: var(--text-faint); font-size: 12px; }
+
+  /* Window chrome */
+  .window {
+    max-width: 1380px;
+    margin: 0 auto;
+    background: var(--bg-window);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 40px;
+    padding: 0 12px;
+    background: var(--bg-chrome);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .traffic-lights { display: flex; gap: 8px; padding-right: 4px; }
+  .traffic-lights span {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 0.5px solid rgba(0,0,0,0.08);
+  }
+  .tl-close  { background: #ff5f57; }
+  .tl-min    { background: #febc2e; }
+  .tl-max    { background: #28c840; }
+  .titlebar-title {
+    flex: 1;
+    text-align: center;
+    color: var(--text-muted);
+    font-weight: 500;
+    letter-spacing: 0.2px;
+  }
+  .titlebar-title b { color: var(--text); font-weight: 600; }
+  .titlebar-actions { display: flex; gap: 6px; color: var(--text-muted); }
+  .titlebar-actions .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 2px 8px; border-radius: 999px;
+    background: var(--bg-panel); border: 1px solid var(--border);
+    font-size: 11.5px;
+  }
+  .titlebar-actions .chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px var(--ok-soft); }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px;
+    background: var(--bg-window);
+    border-bottom: 1px solid var(--border);
+  }
+  .toolbar .logo {
+    width: 26px; height: 26px; border-radius: 6px;
+    background: linear-gradient(135deg, #0a66d6, #7c3aed);
+    display: grid; place-items: center; color: white; font-weight: 700; font-size: 13px;
+  }
+  .toolbar h1 {
+    font-size: 15px; font-weight: 600; margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .toolbar h1 .sub { color: var(--text-faint); font-weight: 500; margin-left: 6px; }
+  .spacer { flex: 1; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 30px; padding: 0 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-strong);
+    background: var(--bg-window);
+    color: var(--text);
+    font: 500 12.5px var(--font-ui);
+    cursor: pointer;
+    transition: background 80ms ease, border-color 80ms ease;
+  }
+  .btn:hover { background: var(--bg-hover); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    box-shadow: 0 1px 0 rgba(10,102,214,0.35) inset, var(--shadow-sm);
+  }
+  .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
+  .btn.ghost:hover { background: var(--bg-hover); color: var(--text); }
+  .btn.sm { height: 26px; padding: 0 9px; font-size: 12px; }
+  .btn .kbd { font: 500 10.5px var(--font-mono); color: var(--text-faint); margin-left: 4px;
+              padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-subtle); }
+
+  .icon { width: 14px; height: 14px; stroke-width: 1.8; color: currentColor; flex-shrink: 0; }
+  .icon.sm { width: 12px; height: 12px; }
+
+  /* Body grid */
+  .body {
+    display: grid;
+    grid-template-columns: 280px 1fr 340px;
+    min-height: 720px;
+  }
+
+  /* Left sidebar */
+  .sidebar {
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .section-title {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 2px 0 6px;
+  }
+  .card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 12px;
+    box-shadow: var(--shadow-sm);
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { font-size: 11.5px; font-weight: 500; color: var(--text-muted); }
+  .field .input {
+    display: flex; align-items: center; gap: 6px;
+    height: 30px; padding: 0 10px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font: 500 12.5px var(--font-mono);
+    color: var(--text);
+  }
+  .field .input .ph { color: var(--text-faint); font-family: var(--font-ui); font-weight: 500; }
+  .field .help { font-size: 11px; color: var(--text-faint); }
+  .row-inline { display: flex; gap: 6px; }
+
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .stat {
+    padding: 10px;
+    border-radius: var(--radius-md);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+  }
+  .stat .n { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+  .stat .lbl { font-size: 11px; color: var(--text-muted); }
+  .stat.applied .n { color: var(--ok); }
+  .stat.pending .n { color: var(--warn); }
+  .stat.unknown .n { color: var(--err); }
+
+  .test-result {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 8px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--ok-soft);
+    color: #0d7a37;
+    font-size: 11.5px;
+    font-weight: 500;
+  }
+
+  /* Main content */
+  .main {
+    padding: 16px 18px;
+    display: flex; flex-direction: column; gap: 12px;
+    min-width: 0;
+  }
+
+  .filters {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .tabs {
+    display: inline-flex;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .tabs .tab {
+    padding: 4px 12px;
+    font: 500 12px var(--font-ui);
+    color: var(--text-muted);
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .tabs .tab.active {
+    background: var(--bg-panel);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+  }
+  .tabs .tab .count {
+    font-size: 10.5px;
+    background: var(--bg-hover);
+    color: var(--text-muted);
+    padding: 1px 6px;
+    border-radius: 999px;
+  }
+  .tabs .tab.active .count { background: var(--accent-soft); color: var(--accent); }
+
+  .search {
+    display: flex; align-items: center; gap: 6px;
+    height: 30px; padding: 0 10px; flex: 1; max-width: 320px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-muted); font-size: 12.5px;
+  }
+
+  /* Timeline list */
+  .timeline {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    flex: 1;
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .list-header {
+    display: grid;
+    grid-template-columns: 28px 92px 1fr 190px 100px 28px;
+    gap: 10px;
+    padding: 9px 14px;
+    font-size: 11px; font-weight: 600; color: var(--text-faint);
+    letter-spacing: 0.04em; text-transform: uppercase;
+    background: var(--bg-chrome);
+    border-bottom: 1px solid var(--border);
+  }
+  .list-body {
+    overflow: auto;
+  }
+  .release-divider {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px;
+    background: linear-gradient(90deg, rgba(10,102,214,0.05), transparent 70%);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    font-size: 11.5px;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  .release-divider:hover { background: linear-gradient(90deg, rgba(10,102,214,0.09), rgba(10,102,214,0.02) 70%); }
+  .release-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--info-soft);
+    color: var(--info);
+    font: 600 11px var(--font-mono);
+  }
+  .release-divider .meta { color: var(--text-faint); font-size: 11px; }
+
+  /* Collapsible release groups */
+  .group { border-bottom: 1px solid var(--divider); }
+  .group:last-child { border-bottom: none; }
+  .chevron {
+    width: 16px; height: 16px;
+    display: inline-grid; place-items: center;
+    color: var(--text-muted);
+    transition: transform 140ms ease;
+    flex-shrink: 0;
+  }
+  .group[data-expanded="false"] .chevron { transform: rotate(-90deg); }
+  .group[data-expanded="false"] .group-body { display: none; }
+
+  /* Tri-state selection box for each release header */
+  .tri {
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 3px;
+    background: white;
+    flex-shrink: 0;
+    position: relative;
+    cursor: pointer;
+  }
+  .tri[data-sel="all"] {
+    background: var(--accent); border-color: var(--accent);
+  }
+  .tri[data-sel="all"]::after {
+    content: ""; position: absolute; left: 3px; top: 0px;
+    width: 4px; height: 8px;
+    border: solid white; border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .tri[data-sel="some"] {
+    background: var(--accent); border-color: var(--accent);
+  }
+  .tri[data-sel="some"]::after {
+    content: ""; position: absolute; left: 2px; right: 2px; top: 5px;
+    height: 2px; background: white; border-radius: 1px;
+  }
+
+  .group-meta {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--text-faint);
+  }
+  .group-meta .sep { color: var(--border-strong); }
+  .group-meta .sel-count {
+    padding: 1px 6px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font: 500 10.5px var(--font-mono);
+    color: var(--text-muted);
+  }
+  .group-meta .sel-count.active { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+
+  .bulk-controls {
+    display: inline-flex; align-items: center; gap: 2px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 2px;
+  }
+  .bulk-controls .bulk-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 24px; padding: 0 8px;
+    border-radius: 4px;
+    font: 500 11.5px var(--font-ui);
+    color: var(--text-muted);
+    cursor: pointer;
+    background: transparent; border: none;
+  }
+  .bulk-controls .bulk-btn:hover { background: var(--bg-hover); color: var(--text); }
+  .bulk-controls .bulk-btn.active { background: var(--bg-panel); color: var(--text); box-shadow: var(--shadow-sm); }
+  .bulk-controls .divider { width: 1px; height: 14px; background: var(--border); margin: 0 2px; }
+
+  .mig {
+    display: grid;
+    grid-template-columns: 28px 92px 1fr 190px 100px 28px;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--divider);
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .mig:hover { background: var(--bg-hover); }
+  .mig.selected { background: var(--bg-selected); }
+  .mig.selected::before {
+    content: ""; position: absolute; left: 0; width: 3px; height: 100%;
+    background: var(--accent);
+  }
+  .mig:last-child { border-bottom: none; }
+  .mig input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; margin: 0; }
+
+  .mig .ts {
+    font: 500 12px var(--font-mono);
+    color: var(--text-muted);
+  }
+  .mig .title {
+    display: flex; align-items: center; gap: 8px;
+    min-width: 0;
+  }
+  .mig .title .name { font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mig .title .author { font-size: 11px; color: var(--text-faint); }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 1.5px 7px;
+    border-radius: 999px;
+    font: 500 11px var(--font-ui);
+  }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .badge.applied { background: var(--ok-soft); color: #0d7a37; }
+  .badge.applied .dot { background: var(--ok); }
+  .badge.pending { background: var(--warn-soft); color: #925005; }
+  .badge.pending .dot { background: var(--warn); }
+  .badge.unknown { background: var(--err-soft); color: #991b1b; }
+  .badge.unknown .dot { background: var(--err); }
+  .badge.checksum { background: var(--err-soft); color: #991b1b; }
+  .badge.dry      { background: #eef2ff; color: #4338ca; }
+
+  .mig .applied-at { color: var(--text-muted); font-size: 11.5px; }
+  .mig .menu { color: var(--text-faint); text-align: center; }
+
+  /* Right panel (actions) */
+  .actions {
+    background: var(--bg-sidebar);
+    border-left: 1px solid var(--border);
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .target-opt {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-panel);
+    cursor: pointer;
+  }
+  .target-opt.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    background: white;
+  }
+  .target-opt .radio {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid var(--border-strong);
+    flex-shrink: 0; margin-top: 2px;
+    position: relative;
+  }
+  .target-opt.active .radio { border-color: var(--accent); }
+  .target-opt.active .radio::after {
+    content: ""; position: absolute; inset: 3px;
+    background: var(--accent); border-radius: 50%;
+  }
+  .target-opt .label { font-weight: 500; color: var(--text); font-size: 12.5px; }
+  .target-opt .help  { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+  .target-opt select {
+    margin-top: 6px;
+    width: 100%; height: 28px; padding: 0 8px;
+    font: 500 12px var(--font-mono);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+  }
+
+  .plan-summary {
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    background: var(--info-soft);
+    color: #0c4a8d;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .plan-summary b { color: var(--info); font-weight: 700; }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0;
+    font-size: 12.5px;
+  }
+  .toggle-row .desc { color: var(--text-muted); font-size: 11.5px; margin-top: 2px; }
+  .toggle {
+    width: 30px; height: 18px; border-radius: 999px;
+    background: var(--border-strong); position: relative; flex-shrink: 0; cursor: pointer;
+  }
+  .toggle::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; background: white; border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: left 120ms ease;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle.on::after { left: 14px; }
+
+  .primary-action {
+    display: flex; flex-direction: column; gap: 4px;
+    margin-top: 4px;
+  }
+  .primary-action .btn.primary {
+    height: 38px; padding: 0 14px; font-size: 13px; font-weight: 600; justify-content: center;
+  }
+  .primary-action .subnote { font-size: 11.5px; color: var(--text-faint); text-align: center; }
+
+  .danger-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--err); font-size: 12px; font-weight: 500;
+    padding: 6px 8px; border-radius: 4px; cursor: pointer; align-self: flex-start;
+  }
+  .danger-link:hover { background: var(--err-soft); }
+
+  /* Bottom log panel */
+  .logpanel {
+    border-top: 1px solid var(--border);
+    background: var(--bg-chrome);
+  }
+  .logpanel .log-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px;
+    font-size: 12px; color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .logpanel .log-head .dotted { display: flex; align-items: center; gap: 6px; }
+  .logpanel .log-head .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } }
+  .logpanel .log-body {
+    padding: 10px 14px 14px;
+    font: 500 12px var(--font-mono);
+    color: #334155;
+    max-height: 150px;
+    overflow: auto;
+    background: #0f172a;
+    color: #cbd5e1;
+  }
+  .logpanel .log-body .line { white-space: pre; }
+  .logpanel .log-body .ok { color: #4ade80; }
+  .logpanel .log-body .warn { color: #fbbf24; }
+  .logpanel .log-body .info { color: #93c5fd; }
+  .logpanel .log-body .dim { color: #64748b; }
+
+  .progressbar {
+    display: inline-block; vertical-align: middle;
+    width: 160px; height: 6px;
+    background: #1e293b; border-radius: 3px; overflow: hidden;
+    margin: 0 8px;
+  }
+  .progressbar .fill { display: block; height: 100%; background: linear-gradient(90deg, #22c55e, #4ade80); }
+
+  /* Annotations */
+  .annotation {
+    max-width: 1380px;
+    margin: 16px auto 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .note {
+    background: var(--bg-window);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 12px 14px;
+    box-shadow: var(--shadow-sm);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .note b { color: var(--text); }
+  .note code { font-family: var(--font-mono); font-size: 11.5px; background: var(--bg-subtle); padding: 1px 5px; border-radius: 3px; color: var(--text); }
+
+  /* small helpers */
+  .iconbtn { width: 28px; height: 28px; display: inline-grid; place-items: center; border-radius: 5px; color: var(--text-muted); cursor: pointer; }
+  .iconbtn:hover { background: var(--bg-hover); color: var(--text); }
+  .divider-v { width: 1px; height: 20px; background: var(--border); }
+  .small { font-size: 11.5px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="page-label">
+  <div><b>Mockup · Issue #472</b> · Add GUI for executing SQL migrations</div>
+  <div class="crumbs">LASTRADA-Software/Lightweight · Qt/QML target (rendered here as HTML for review)</div>
+</div>
+
+<div class="window">
+
+  <!-- Title bar -->
+  <div class="titlebar">
+    <div class="traffic-lights"><span class="tl-close"></span><span class="tl-min"></span><span class="tl-max"></span></div>
+    <div class="titlebar-title">Lightweight Migrations <b>— acme-orders@prod-sqlserver</b></div>
+    <div class="titlebar-actions">
+      <span class="chip"><span class="dot"></span>Connected · 4ms</span>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="logo">L</div>
+    <h1>Database Migrations <span class="sub">/ acme-orders</span></h1>
+    <div class="spacer"></div>
+    <button class="btn ghost">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+    <button class="btn ghost">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a10 10 0 1 0 10 10"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      Dry-run history
+    </button>
+    <div class="divider-v"></div>
+    <button class="btn ghost">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+  </div>
+
+  <!-- Main body -->
+  <div class="body">
+
+    <!-- Left sidebar: connection + status -->
+    <aside class="sidebar">
+
+      <div class="section-title">Connection</div>
+      <div class="card">
+        <div class="field">
+          <label>Profile</label>
+          <div class="input">
+            <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>
+            <span>acme-orders · prod</span>
+            <span style="margin-left:auto; color: var(--text-faint);">▾</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Connection string</label>
+          <div class="input" title="DRIVER=ODBC Driver 18 for SQL Server;SERVER=db-prod;DATABASE=acme_orders;…">
+            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">DRIVER=ODBC Driver 18…DATABASE=acme_orders</span>
+          </div>
+          <div class="help">Stored in OS keychain · no plaintext on disk</div>
+        </div>
+        <div class="row-inline">
+          <div class="field" style="flex: 1; margin: 0;">
+            <label>Schema</label>
+            <div class="input"><span>dbo</span></div>
+          </div>
+          <div class="field" style="flex: 1; margin: 0;">
+            <label>Plugins dir</label>
+            <div class="input" title="/opt/acme/migrations"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">./migrations</span></div>
+          </div>
+        </div>
+        <div class="test-result">
+          <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>
+          Connection ok · ODBC 18 · SQL Server 2022
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:4px;">Status</div>
+      <div class="card" style="padding: 10px 12px;">
+        <div style="display:flex; align-items:baseline; justify-content: space-between;">
+          <div style="font-size:11.5px; color:var(--text-muted);">Registered migrations</div>
+          <div style="font-weight:700; font-size:15px;">47</div>
+        </div>
+        <div class="status-grid">
+          <div class="stat applied"><div class="n">39</div><div class="lbl">Applied</div></div>
+          <div class="stat pending"><div class="n">7</div><div class="lbl">Pending</div></div>
+          <div class="stat unknown"><div class="n">1</div><div class="lbl">Unknown</div></div>
+          <div class="stat"><div class="n" style="color: var(--err);">1</div><div class="lbl">Checksum ≠</div></div>
+        </div>
+        <div class="small" style="margin-top: 10px; display:flex; align-items:center; gap:6px;">
+          <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          Last scan 6s ago · 47 files in <code style="font-family:var(--font-mono);">./migrations</code>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:4px;">Releases</div>
+      <div class="card" style="padding: 6px 8px;">
+        <div style="display:flex; align-items:center; justify-content: space-between; padding: 4px 4px;">
+          <div style="display:flex; align-items:center; gap:6px;"><span class="release-tag">1.5.0</span><span class="small" style="font-family:var(--font-mono);" title="highestTimestamp">…03141035</span></div>
+          <span class="badge pending"><span class="dot"></span>pending</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content: space-between; padding: 4px 4px;">
+          <div style="display:flex; align-items:center; gap:6px;"><span class="release-tag">1.4.2</span><span class="small" style="font-family:var(--font-mono);" title="highestTimestamp">…03011200</span></div>
+          <span class="badge pending"><span class="dot"></span>partial</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content: space-between; padding: 4px 4px;">
+          <div style="display:flex; align-items:center; gap:6px;"><span class="release-tag">1.4.0</span><span class="small" style="font-family:var(--font-mono);" title="highestTimestamp">…02100815</span></div>
+          <span class="badge applied"><span class="dot"></span>applied</span>
+        </div>
+        <div style="display:flex; align-items:center; justify-content: space-between; padding: 4px 4px;">
+          <div style="display:flex; align-items:center; gap:6px;"><span class="release-tag">1.3.2</span><span class="small" style="font-family:var(--font-mono);" title="highestTimestamp">…01151212</span></div>
+          <span class="badge applied"><span class="dot"></span>applied</span>
+        </div>
+        <div class="small" style="padding: 6px 4px 2px; color: var(--text-faint); display:flex; align-items:center; gap:6px; border-top: 1px dashed var(--border); margin-top: 2px;">
+          <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          Imported from plugins via <code style="font-family:var(--font-mono);">LIGHTWEIGHT_SQL_RELEASE</code>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Main content: migrations list -->
+    <section class="main">
+
+      <!-- Filter bar -->
+      <div class="filters">
+        <div class="tabs">
+          <div class="tab active">All <span class="count">47</span></div>
+          <div class="tab">Pending <span class="count">7</span></div>
+          <div class="tab">Applied <span class="count">39</span></div>
+          <div class="tab">Issues <span class="count">2</span></div>
+        </div>
+        <div class="search">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>Search by title or timestamp…</span>
+          <span class="kbd" style="margin-left:auto; font:500 10.5px var(--font-mono); color:var(--text-faint);">⌘F</span>
+        </div>
+        <div class="spacer"></div>
+
+        <div class="bulk-controls" title="Expand or collapse every release group">
+          <button class="bulk-btn active">
+            <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>
+            Expand all
+          </button>
+          <div class="divider"></div>
+          <button class="bulk-btn">
+            <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="18 15 12 9 6 15"/></svg>
+            Collapse all
+          </button>
+        </div>
+
+        <div class="bulk-controls" title="Select or deselect every pending migration">
+          <button class="bulk-btn">
+            <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="8 12 11 15 16 9"/></svg>
+            Select all
+          </button>
+          <div class="divider"></div>
+          <button class="bulk-btn active">
+            <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+            Deselect all
+          </button>
+        </div>
+      </div>
+
+      <!-- Timeline list -->
+      <div class="timeline">
+        <div class="list-header">
+          <div><input type="checkbox" style="accent-color: var(--accent); margin: 0;"></div>
+          <div>Timestamp</div>
+          <div>Migration</div>
+          <div>Applied at</div>
+          <div>Status</div>
+          <div></div>
+        </div>
+
+        <div class="list-body">
+
+          <!-- Unreleased (post all declared releases) -->
+          <div class="group" data-expanded="true">
+            <div class="release-divider">
+              <div class="chevron">
+                <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <div class="tri" data-sel="none" title="No migrations selected"></div>
+              <span class="release-tag" style="background: var(--bg-subtle); color: var(--text-muted);">unreleased</span>
+              <span><b style="color:var(--text); font-weight:600;">Post-release migrations</b></span>
+              <div class="group-meta">
+                <span>1 migration</span>
+                <span class="sep">·</span>
+                <span class="sel-count">0 of 1 selected</span>
+                <span class="sep">·</span>
+                <span>timestamp &gt; every declared release</span>
+              </div>
+              <span class="spacer" style="flex:1"></span>
+              <span class="small">not reachable via rollback-to-release</span>
+            </div>
+            <div class="group-body">
+              <div class="mig">
+                <div><input type="checkbox"></div>
+                <div class="ts">20260320094500</div>
+                <div class="title"><span class="name">Add ShippingZone lookup table</span><span class="author">· alice</span></div>
+                <div class="applied-at">—</div>
+                <div><span class="badge pending"><span class="dot"></span>pending</span></div>
+                <div class="menu">⋯</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 1.5.0 RELEASE -->
+          <div class="group" data-expanded="true">
+            <div class="release-divider">
+              <div class="chevron">
+                <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <div class="tri" data-sel="all" title="All migrations in this release selected"></div>
+              <span class="release-tag">1.5.0</span>
+              <span class="badge pending" title="No migrations in this release have been applied"><span class="dot"></span>pending</span>
+              <div class="group-meta">
+                <span>3 migrations</span>
+                <span class="sep">·</span>
+                <span class="sel-count active">3 of 3 selected</span>
+                <span class="sep">·</span>
+                <span style="font-family:var(--font-mono);" title="highestTimestamp">highestTs 20260314103500</span>
+              </div>
+              <span class="spacer" style="flex:1"></span>
+              <span class="small">Target cutoff →</span>
+            </div>
+            <div class="group-body">
+              <div class="mig">
+                <div><input type="checkbox" checked></div>
+                <div class="ts">20260314103500</div>
+                <div class="title"><span class="name">Add CustomerTier lookup table</span><span class="author">· alice</span></div>
+                <div class="applied-at">—</div>
+                <div><span class="badge pending"><span class="dot"></span>pending</span></div>
+                <div class="menu">⋯</div>
+              </div>
+              <div class="mig">
+                <div><input type="checkbox" checked></div>
+                <div class="ts">20260312091200</div>
+                <div class="title"><span class="name">Backfill Orders.customerTierId</span><span class="author">· alice</span></div>
+                <div class="applied-at">—</div>
+                <div><span class="badge pending"><span class="dot"></span>pending</span></div>
+                <div class="menu">⋯</div>
+              </div>
+              <div class="mig selected" style="position:relative;">
+                <div><input type="checkbox" checked></div>
+                <div class="ts">20260308174421</div>
+                <div class="title"><span class="name">Drop legacy LoyaltyPoints table</span><span class="author">· christian</span></div>
+                <div class="applied-at">—</div>
+                <div><span class="badge pending"><span class="dot"></span>pending</span></div>
+                <div class="menu">⋯</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 1.4.2 (partial) -->
+          <div class="group" data-expanded="true">
+            <div class="release-divider">
+              <div class="chevron">
+                <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <div class="tri" data-sel="some" title="2 of 4 migrations in this release selected"></div>
+              <span class="release-tag">1.4.2</span>
+              <span class="badge pending" title="Some migrations in this release applied, some still pending"><span class="dot"></span>partial</span>
+              <div class="group-meta">
+                <span>4 migrations</span>
+                <span class="sep">·</span>
+                <span class="sel-count active">2 of 4 selected</span>
+                <span class="sep">·</span>
+                <span style="font-family:var(--font-mono);" title="highestTimestamp">highestTs 20260301120000</span>
+              </div>
+            </div>
+            <div class="group-body">
+              <div class="mig">
+                <div><input type="checkbox" checked></div>
+                <div class="ts">20260301120000</div>
+                <div class="title"><span class="name">Add index Orders_CustomerId</span><span class="author">· ben</span></div>
+                <div class="applied-at">—</div>
+                <div><span class="badge pending"><span class="dot"></span>pending</span></div>
+                <div class="menu">⋯</div>
+              </div>
+              <div class="mig">
+                <div><input type="checkbox" checked></div>
+                <div class="ts">20260228185940</div>
+                <div class="title"><span class="name">Fix NULL handling in v_OrderSummary</span><span class="author">· ben</span></div>
+                <div class="applied-at">—</div>
+                <div><span class="badge pending"><span class="dot"></span>pending</span></div>
+                <div class="menu">⋯</div>
+              </div>
+              <div class="mig">
+                <div><input type="checkbox"></div>
+                <div class="ts">20260225094500</div>
+                <div class="title"><span class="name">Widen Customers.email to NVARCHAR(320)</span><span class="author">· alice</span></div>
+                <div class="applied-at">—</div>
+                <div><span class="badge pending"><span class="dot"></span>pending</span></div>
+                <div class="menu">⋯</div>
+              </div>
+              <div class="mig">
+                <div><input type="checkbox"></div>
+                <div class="ts">20260220142330</div>
+                <div class="title"><span class="name">Seed CountryCodes reference data</span><span class="author">· ops</span></div>
+                <div class="applied-at">—</div>
+                <div><span class="badge pending"><span class="dot"></span>pending</span></div>
+                <div class="menu">⋯</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 1.4.0 APPLIED (COLLAPSED BY DEFAULT) -->
+          <div class="group" data-expanded="false">
+            <div class="release-divider">
+              <div class="chevron">
+                <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <div class="tri" data-sel="none" title="No migrations selected (all already applied)"></div>
+              <span class="release-tag">1.4.0</span>
+              <span class="badge applied" title="Every migration in this release is applied"><span class="dot"></span>applied</span>
+              <div class="group-meta">
+                <span>4 migrations</span>
+                <span class="sep">·</span>
+                <span class="sel-count">0 of 4 selected</span>
+                <span class="sep">·</span>
+                <span style="font-family:var(--font-mono);" title="highestTimestamp">highestTs 20260210081500</span>
+              </div>
+              <span class="spacer" style="flex:1"></span>
+              <span class="small" style="font-style: italic;">collapsed</span>
+            </div>
+            <div class="group-body">
+              <div class="mig">
+                <div><input type="checkbox" disabled></div>
+                <div class="ts">20260210081500</div>
+                <div class="title"><span class="name">Partition Orders by ship_date (monthly)</span><span class="author">· alice</span></div>
+                <div class="applied-at">2026-02-10 08:22 · by deploy-bot</div>
+                <div><span class="badge applied"><span class="dot"></span>applied</span></div>
+                <div class="menu">⋯</div>
+              </div>
+              <div class="mig">
+                <div><input type="checkbox" disabled></div>
+                <div class="ts">20260205113000</div>
+                <div class="title">
+                  <span class="name">Rename Accounts.user_name → username</span>
+                  <span class="author">· christian</span>
+                  <span class="badge checksum" style="margin-left:6px;" title="Source file checksum differs from applied record">
+                    <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    checksum ≠
+                  </span>
+                </div>
+                <div class="applied-at">2026-02-05 11:41 · by deploy-bot</div>
+                <div><span class="badge applied"><span class="dot"></span>applied</span></div>
+                <div class="menu">⋯</div>
+              </div>
+              <div class="mig">
+                <div><input type="checkbox" disabled></div>
+                <div class="ts">20260130164500</div>
+                <div class="title"><span class="name">Add AuditLog tracking columns</span><span class="author">· ben</span></div>
+                <div class="applied-at">2026-01-30 16:58 · by deploy-bot</div>
+                <div><span class="badge applied"><span class="dot"></span>applied</span></div>
+                <div class="menu">⋯</div>
+              </div>
+              <div class="mig">
+                <div><input type="checkbox" disabled></div>
+                <div class="ts">20260122093000</div>
+                <div class="title">
+                  <span class="name">(unregistered) Hotfix: DROP INDEX IX_Orders_temp</span>
+                  <span class="author">· manual</span>
+                </div>
+                <div class="applied-at">2026-01-22 09:31 · by dba@acme</div>
+                <div><span class="badge unknown"><span class="dot"></span>unknown</span></div>
+                <div class="menu">⋯</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 1.3.2 (also collapsed) -->
+          <div class="group" data-expanded="false">
+            <div class="release-divider">
+              <div class="chevron">
+                <svg class="icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <div class="tri" data-sel="none" title="No migrations selected (all already applied)"></div>
+              <span class="release-tag">1.3.2</span>
+              <span class="badge applied" title="Every migration in this release is applied"><span class="dot"></span>applied</span>
+              <div class="group-meta">
+                <span>9 migrations</span>
+                <span class="sep">·</span>
+                <span class="sel-count">0 of 9 selected</span>
+                <span class="sep">·</span>
+                <span style="font-family:var(--font-mono);" title="highestTimestamp">highestTs 20260115121212</span>
+              </div>
+              <span class="spacer" style="flex:1"></span>
+              <span class="small" style="font-style: italic;">collapsed</span>
+            </div>
+            <div class="group-body">
+              <div class="mig">
+                <div><input type="checkbox" disabled></div>
+                <div class="ts">20260115121212</div>
+                <div class="title"><span class="name">Introduce DiscountCodes table</span><span class="author">· alice</span></div>
+                <div class="applied-at">2026-01-15 12:19 · by deploy-bot</div>
+                <div><span class="badge applied"><span class="dot"></span>applied</span></div>
+                <div class="menu">⋯</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Bottom log panel -->
+      <div class="logpanel">
+        <div class="log-head">
+          <div class="dotted"><span class="dot"></span><b style="color:var(--text);">Dry-run · Apply to release 1.4.2</b></div>
+          <span class="small">7 operations · started 12s ago</span>
+          <div class="spacer" style="flex:1;"></div>
+          <button class="btn sm ghost">Clear</button>
+          <button class="btn sm ghost">Export log</button>
+        </div>
+        <div class="log-body">
+<span class="line"><span class="info">[12:04:18]</span> <span class="ok">✓</span> Acquired migration lock (sp_Lightweight_lock)</span>
+<span class="line"><span class="info">[12:04:18]</span> <span class="dim">→</span> Target = release 1.4.2 (highestTs 20260301120000) · plan = 4 applies, 0 rollbacks</span>
+<span class="line"><span class="info">[12:04:18]</span> <span class="dim">›</span> 20260220142330  Seed CountryCodes reference data              <span class="progressbar"><span class="fill" style="width:100%"></span></span> 184 rows · 42ms  <span class="ok">ok</span></span>
+<span class="line"><span class="info">[12:04:19]</span> <span class="dim">›</span> 20260225094500  Widen Customers.email to NVARCHAR(320)        <span class="progressbar"><span class="fill" style="width:100%"></span></span> ALTER · 1.1s    <span class="ok">ok</span></span>
+<span class="line"><span class="info">[12:04:20]</span> <span class="dim">›</span> 20260228185940  Fix NULL handling in v_OrderSummary           <span class="progressbar"><span class="fill" style="width:100%"></span></span> ALTER VIEW · 88ms <span class="ok">ok</span></span>
+<span class="line"><span class="info">[12:04:20]</span> <span class="dim">›</span> 20260301120000  Add index Orders_CustomerId                   <span class="progressbar"><span class="fill" style="width:62%"></span></span> 62% · 18M of 29M rows indexed…</span>
+<span class="line"><span class="warn">[12:04:22]</span> <span class="warn">!</span> This is a dry-run. No changes will be committed. <span class="dim">(toggle off "Dry-run" in the Actions panel to execute.)</span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right sidebar: actions -->
+    <aside class="actions">
+
+      <div class="section-title">Target</div>
+
+      <div class="target-opt">
+        <div class="radio"></div>
+        <div style="flex:1; min-width:0;">
+          <div class="label">Latest (all pending)</div>
+          <div class="help">Apply every pending migration, including any post-release ones. Wraps <code style="font-family:var(--font-mono); font-size:11px;">dbtool migrate</code>.</div>
+        </div>
+      </div>
+
+      <div class="target-opt active">
+        <div class="radio"></div>
+        <div style="flex:1; min-width:0;">
+          <div class="label">Release version</div>
+          <div class="help">Apply up to the <code style="font-family:var(--font-mono); font-size:11px;">highestTimestamp</code> of a declared release.</div>
+          <select>
+            <option>1.4.2 · highestTs 20260301120000 · partial</option>
+            <option>1.5.0 · highestTs 20260314103500 · pending</option>
+            <option>1.4.0 · highestTs 20260210081500 · applied</option>
+            <option>1.3.2 · highestTs 20260115121212 · applied</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="target-opt">
+        <div class="radio"></div>
+        <div style="flex:1; min-width:0;">
+          <div class="label">Specific timestamp</div>
+          <div class="help">Pick any migration file as the target cutoff. Wraps <code style="font-family:var(--font-mono); font-size:11px;">apply</code> / <code style="font-family:var(--font-mono); font-size:11px;">rollback-to</code>.</div>
+        </div>
+      </div>
+
+      <div class="plan-summary">
+        <b>Plan:</b> apply <b>4</b> pending migrations up to release <b>1.4.2</b>.<br>
+        No rollbacks needed · 3 pending after target (incl. 1 unreleased) will remain <b>pending</b>.
+      </div>
+
+      <div class="section-title" style="margin-top:4px;">Options</div>
+      <div class="card" style="padding: 6px 12px;">
+        <div class="toggle-row">
+          <div>
+            <div>Dry-run</div>
+            <div class="desc">Show SQL &amp; progress; roll back at end.</div>
+          </div>
+          <div class="toggle on"></div>
+        </div>
+        <div class="toggle-row" style="border-top: 1px solid var(--divider);">
+          <div>
+            <div>Acquire lock</div>
+            <div class="desc">Prevent concurrent migrators (recommended).</div>
+          </div>
+          <div class="toggle on"></div>
+        </div>
+        <div class="toggle-row" style="border-top: 1px solid var(--divider);">
+          <div>
+            <div>Backup before apply</div>
+            <div class="desc">Snapshot schema + data to <code style="font-family:var(--font-mono);font-size:11px;">.zip</code>.</div>
+          </div>
+          <div class="toggle"></div>
+        </div>
+        <div class="toggle-row" style="border-top: 1px solid var(--divider); display:grid; grid-template-columns: 1fr auto; gap: 10px;">
+          <div>
+            <div>Concurrent jobs</div>
+            <div class="desc">For data-heavy migrations (default 1).</div>
+          </div>
+          <div class="input" style="width: 56px; height:28px; justify-content:center; padding: 0; font-family:var(--font-mono); font-weight:500;">2</div>
+        </div>
+      </div>
+
+      <div class="primary-action">
+        <button class="btn primary">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Dry-run 4 migrations → release 1.4.2
+        </button>
+        <div class="subnote" style="font-family: var(--font-mono); font-size: 11px;">≈ dbtool migrate --dry-run · up to 20260301120000</div>
+      </div>
+
+      <div class="danger-link" title="Calls `dbtool rollback-to-release 1.4.2` on the selected target">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Rollback to release 1.4.2…
+      </div>
+
+    </aside>
+  </div>
+
+</div>
+
+<!-- Annotations beneath the window -->
+<div class="annotation">
+  <div class="note">
+    <b>CLI parity.</b> Every control maps 1:1 to a <code>dbtool</code> subcommand/flag, including the new
+    <code>releases</code> and <code>rollback-to-release &lt;VERSION&gt;</code> from PR #471 (plus the existing
+    <code>migrate</code>, <code>apply</code>, <code>rollback-to</code>, <code>status</code>, <code>--dry-run</code>, <code>--no-lock</code>, <code>--jobs</code>, <code>--plugins-dir</code>, <code>--connection-string</code>, <code>--schema</code>).
+    The GUI reuses <code>Lightweight::SqlMigration::MigrationManager</code> directly — no duplicate logic.
+  </div>
+  <div class="note">
+    <b>Release model (faithful to PR #471).</b> Releases are <code>{version, highestTimestamp}</code> pairs declared
+    in plugin TUs via <code>LIGHTWEIGHT_SQL_RELEASE(version, timestamp)</code>. <code>MigrationManager</code> merges
+    them from every loaded plugin — there's no <code>schema_releases</code> table, no yaml, no git tags. Per-release
+    status in the UI (<code>applied</code>/<code>partial</code>/<code>pending</code>) is computed exactly like
+    <code>dbtool releases</code> does, via <code>GetMigrationsForRelease</code> + <code>GetAppliedMigrationIds</code>.
+    The "unreleased" group covers migrations whose timestamp is greater than every registered release.
+  </div>
+  <div class="note">
+    <b>Reusable QML component.</b> The center list + log panel can ship as <code>Lightweight.Migrations 1.0 / MigrationView</code>
+    with a <code>migrationManager</code> QObject property exposing <code>allReleases</code>, <code>migrationsForRelease(v)</code>,
+    and the existing apply/rollback APIs. Downstream apps drop it in with <code>import Lightweight.Migrations 1.0</code>
+    and bind their own <code>MigrationManager</code> instance (same one they already feed to <code>dbtool</code>).
+  </div>
+</div>
+
+</body>
+</html>
