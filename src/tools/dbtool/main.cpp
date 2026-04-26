@@ -202,10 +202,20 @@ void PrintUsage()
     std::println("  {}--max-rows{} {}<N>{}            Cap rows scanned per table for `diff --data` (default: unlimited)",
                  c.option, c.reset, c.param, c.reset);
     std::println("  {}--quiet{}                   Suppress progress output", c.option, c.reset);
+    std::println("  {}--show-examples{}           Show usage examples and exit", c.option, c.reset);
     std::println("  {}--help{}                    Show this help message", c.option, c.reset);
     std::println("");
+    std::println("Run {}dbtool --show-examples{} to see usage examples.", c.option, c.reset);
+    // clang-format on
+}
+
+void PrintExamples()
+{
+    // clang-format off
+    auto const c = IsStdoutTerminal() ? HelpColors::Colored() : HelpColors::Plain();
 
     std::println("{}Examples:{}", c.heading, c.reset);
+    std::println("");
 
     std::println("  {}# Apply pending migrations using an SQLite database file via ODBC:{}", c.example, c.reset);
     std::println("  {}dbtool migrate --connection-string \"DRIVER=SQLite3;Database=test.db\"{}", c.code, c.reset);
@@ -434,6 +444,11 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         if (arg == "--help")
         {
             options.command = "help";
+            break;
+        }
+        else if (arg == "--show-examples")
+        {
+            options.command = "show-examples";
             break;
         }
         else if (arg == "--plugins-dir")
@@ -2307,6 +2322,12 @@ int main(int argc, char** argv)
         if (options.command == "help")
         {
             PrintUsage();
+            return EXIT_SUCCESS;
+        }
+
+        if (options.command == "show-examples")
+        {
+            PrintExamples();
             return EXIT_SUCCESS;
         }
 
