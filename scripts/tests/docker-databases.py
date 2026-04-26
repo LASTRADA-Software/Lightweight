@@ -230,18 +230,24 @@ def ensure_image_exists(image: str) -> bool:
         print(f"  Image {Colors.cyan(image)} already exists locally")
         return True
 
-    # Pull the image
+    return pull_image_by_name(image)
+
+
+def pull_image_by_name(image: str) -> bool:
+    """Unconditionally pull the given image (streams progress). Returns True on success."""
     print(f"  Pulling image {Colors.cyan(image)}...")
-    result = subprocess.run(
-        ["docker", "pull", image],
-        capture_output=True,
-        text=True,
-    )
+    # Stream progress so the user sees layer download activity; do not capture output.
+    result = subprocess.run(["docker", "pull", image])
     if result.returncode != 0:
-        print(f"  {Colors.red('Failed')} to pull image: {result.stderr}")
+        print(f"  {Colors.red('Failed')} to pull image {image}")
         return False
     print(f"  {Colors.green('Pulled')} image successfully")
     return True
+
+
+def pull_image(db: DatabaseConfig) -> bool:
+    """Pull the image for a database config. Returns True on success."""
+    return pull_image_by_name(db.image)
 
 
 def start_container(db: DatabaseConfig) -> bool:
@@ -654,6 +660,8 @@ Examples:
   %(prog)s --start                 Start all databases
   %(prog)s --start --wait          Start all and wait for readiness
   %(prog)s --start mssql2022       Start only MS SQL 2022
+  %(prog)s --pull                  Pull all images (no container starts)
+  %(prog)s --pull mssql2022        Pull only the MS SQL 2022 image
   %(prog)s --stop                  Stop all databases
   %(prog)s --status                Show container status
   %(prog)s --remove                Remove all containers
@@ -665,6 +673,7 @@ Examples:
     action_group.add_argument("--stop", action="store_true", help="Stop database containers")
     action_group.add_argument("--status", action="store_true", help="Show container status")
     action_group.add_argument("--remove", action="store_true", help="Remove containers")
+    action_group.add_argument("--pull", action="store_true", help="Pull container images without starting containers")
     action_group.add_argument("--load-sql", metavar="FILE", help="Load SQL file into database (requires DATABASE argument)")
 
     parser.add_argument("--wait", action="store_true", help="Wait for databases to be ready (with --start)")
@@ -686,6 +695,9 @@ Examples:
     if args.status:
         show_status(dbs)
         return 0
+
+    if args.pull:
+        return do_action(dbs, pull_image, "Pulling", "pulled")
 
     if args.load_sql:
         if len(dbs) != 1:

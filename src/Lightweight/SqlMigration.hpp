@@ -4,12 +4,16 @@
 
 #include "Api.hpp"
 #include "DataMapper/DataMapper.hpp"
+#include "SqlError.hpp"
 #include "SqlQuery/Migrate.hpp"
 #include "SqlTransaction.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <list>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace Lightweight
@@ -44,6 +48,81 @@ namespace SqlMigration
         constexpr std::weak_ordering operator<=>(MigrationTimestamp const& other) const noexcept = default;
     };
 
+    /// Exception thrown when applying or reverting a single migration fails.
+    ///
+    /// Carries structured diagnostic context so callers (CLI, GUI) can render
+    /// the *which migration*, *which step*, *which SQL statement* and the
+    /// underlying driver error as separate fields instead of parsing one
+    /// opaque message string.
+    ///
+    /// @ingroup SqlMigration
+    class LIGHTWEIGHT_API MigrationException: public SqlException
+    {
+      public:
+        /// Whether the failure happened while applying (Up) or reverting (Down).
+        enum class Operation : std::uint8_t
+        {
+            Apply,
+            Revert,
+        };
+
+        /// Constructs a migration exception that wraps a driver error with
+        /// the migration identity and the exact SQL statement that failed.
+        ///
+        /// @param operation Whether the failure happened during apply or revert.
+        /// @param timestamp The migration that failed.
+        /// @param title Human-readable migration title.
+        /// @param stepIndex Zero-based step index inside the migration plan.
+        /// @param failedSql The SQL statement that produced the driver error.
+        /// @param driverError The ODBC-level error info as received from the driver.
+        MigrationException(Operation operation,
+                           MigrationTimestamp timestamp,
+                           std::string title,
+                           std::size_t stepIndex,
+                           std::string failedSql,
+                           SqlErrorInfo driverError);
+
+        /// Whether the failure occurred while applying or reverting.
+        [[nodiscard]] Operation GetOperation() const noexcept
+        {
+            return _operation;
+        }
+        /// Timestamp of the failing migration.
+        [[nodiscard]] MigrationTimestamp GetMigrationTimestamp() const noexcept
+        {
+            return _timestamp;
+        }
+        /// Human-readable title of the failing migration.
+        [[nodiscard]] std::string const& GetMigrationTitle() const noexcept
+        {
+            return _title;
+        }
+        /// Zero-based step index inside the plan of the failing migration.
+        [[nodiscard]] std::size_t GetStepIndex() const noexcept
+        {
+            return _stepIndex;
+        }
+        /// The exact SQL statement that the driver rejected.
+        [[nodiscard]] std::string const& GetFailedSql() const noexcept
+        {
+            return _failedSql;
+        }
+        /// Raw driver error message, without the migration context prefix that
+        /// `what()` and `info().message` decorate it with.
+        [[nodiscard]] std::string const& GetDriverMessage() const noexcept
+        {
+            return _driverMessage;
+        }
+
+      private:
+        Operation _operation;
+        MigrationTimestamp _timestamp;
+        std::string _title;
+        std::size_t _stepIndex;
+        std::string _failedSql;
+        std::string _driverMessage;
+    };
+
     /// Result of verifying a migration's checksum.
     ///
     /// @ingroup SqlMigration
@@ -63,7 +142,27 @@ namespace SqlMigration
     {
         std::vector<MigrationTimestamp> revertedTimestamps; ///< Successfully reverted migrations
         std::optional<MigrationTimestamp> failedAt;         ///< Migration that failed, if any
-        std::string errorMessage;                           ///< Error message if failed
+        std::string errorMessage;                           ///< Short error message if failed (driver message only)
+
+        /// Title of the migration that failed (if any). Empty when no failure or
+        /// when the failure happened before the migration could be located.
+        std::string failedTitle;
+
+        /// Zero-based step index inside the failed migration's plan. Meaningful
+        /// only when `failedAt` is set and the failure came from a driver error
+        /// (not from e.g. a missing registered migration).
+        std::size_t failedStepIndex {};
+
+        /// The exact SQL statement that failed, if available. Empty when the
+        /// failure happened outside of SQL execution (e.g. missing Down()
+        /// implementation, unregistered migration).
+        std::string failedSql;
+
+        /// SQLSTATE diagnostic code from the driver, if available.
+        std::string sqlState;
+
+        /// Native driver error code, if available.
+        SQLINTEGER nativeErrorCode {};
     };
 
     /// Status summary of migrations.

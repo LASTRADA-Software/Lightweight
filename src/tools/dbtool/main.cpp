@@ -841,7 +841,22 @@ int RollbackTo(MigrationManager& manager, std::string_view argument)
     if (result.failedAt.has_value())
     {
         std::println(std::cerr, "");
-        std::println(std::cerr, "Error: Failed to rollback migration {}: {}", result.failedAt->value, result.errorMessage);
+        std::println(std::cerr, "Error: failed to rollback migration.");
+        std::println(std::cerr, "  Migration:    {} - {}", result.failedAt->value, result.failedTitle);
+        if (!result.failedSql.empty())
+        {
+            std::println(std::cerr, "  Step:         {}", result.failedStepIndex);
+            if (!result.sqlState.empty() && result.sqlState != "     ")
+                std::println(std::cerr, "  SQL State:    {}, Native error: {}", result.sqlState, result.nativeErrorCode);
+            std::println(std::cerr, "  Driver message:");
+            std::println(std::cerr, "    {}", result.errorMessage);
+            std::println(std::cerr, "  Failed SQL:");
+            std::println(std::cerr, "    {}", result.failedSql);
+        }
+        else
+        {
+            std::println(std::cerr, "  Message:      {}", result.errorMessage);
+        }
         std::println(std::cerr,
                      "Rollback stopped. {} migration(s) were rolled back before the failure.",
                      result.revertedTimestamps.size());
@@ -953,7 +968,22 @@ int RollbackToRelease(MigrationManager& manager, std::string_view argument)
     if (result.failedAt.has_value())
     {
         std::println(std::cerr, "");
-        std::println(std::cerr, "Error: Failed to rollback migration {}: {}", result.failedAt->value, result.errorMessage);
+        std::println(std::cerr, "Error: failed to rollback migration.");
+        std::println(std::cerr, "  Migration:    {} - {}", result.failedAt->value, result.failedTitle);
+        if (!result.failedSql.empty())
+        {
+            std::println(std::cerr, "  Step:         {}", result.failedStepIndex);
+            if (!result.sqlState.empty() && result.sqlState != "     ")
+                std::println(std::cerr, "  SQL State:    {}, Native error: {}", result.sqlState, result.nativeErrorCode);
+            std::println(std::cerr, "  Driver message:");
+            std::println(std::cerr, "    {}", result.errorMessage);
+            std::println(std::cerr, "  Failed SQL:");
+            std::println(std::cerr, "    {}", result.failedSql);
+        }
+        else
+        {
+            std::println(std::cerr, "  Message:      {}", result.errorMessage);
+        }
         std::println(std::cerr,
                      "Rollback stopped. {} migration(s) were rolled back before the failure.",
                      result.revertedTimestamps.size());
@@ -1626,6 +1656,26 @@ int main(int argc, char** argv)
             return Restore(options);
 
         std::println(std::cerr, "Unknown command: {}", options.command);
+        return EXIT_FAILURE;
+    }
+    catch (Lightweight::SqlMigration::MigrationException const& e)
+    {
+        // Multi-line structured report so operators immediately see *which*
+        // migration failed and *which* statement the driver rejected. The
+        // original driver message is preserved verbatim so we don't lose
+        // database-specific diagnostics (e.g. MSSQL's "Cannot insert NULL
+        // into column X of table Y").
+        auto const* const verb =
+            e.GetOperation() == Lightweight::SqlMigration::MigrationException::Operation::Apply ? "apply" : "rollback";
+        std::println(std::cerr, "Error: failed to {} migration.", verb);
+        std::println(std::cerr, "  Migration:    {} - {}", e.GetMigrationTimestamp().value, e.GetMigrationTitle());
+        std::println(std::cerr, "  Step:         {}", e.GetStepIndex());
+        if (!e.info().sqlState.empty() && e.info().sqlState != "     ")
+            std::println(std::cerr, "  SQL State:    {}, Native error: {}", e.info().sqlState, e.info().nativeErrorCode);
+        std::println(std::cerr, "  Driver message:");
+        std::println(std::cerr, "    {}", e.GetDriverMessage());
+        std::println(std::cerr, "  Failed SQL:");
+        std::println(std::cerr, "    {}", e.GetFailedSql());
         return EXIT_FAILURE;
     }
     catch (SqlException const& e)
