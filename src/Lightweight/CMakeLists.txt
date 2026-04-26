@@ -93,7 +93,9 @@ set(HEADER_FILES
     SqlMigration.hpp
     SqlOdbcWide.hpp
     SqlQueryFormatter.hpp
+    SqlDataDiff.hpp
     SqlSchema.hpp
+    SqlSchemaDiff.hpp
     SqlScopedLock.hpp
     SqlScopedTraceLogger.hpp
     SqlServerType.hpp
@@ -137,7 +139,9 @@ set(SOURCE_FILES
 
     SqlQueryFormatter.cpp
     SqlScopedLock.cpp
+    SqlDataDiff.cpp
     SqlSchema.cpp
+    SqlSchemaDiff.cpp
     SqlStatement.cpp
     SqlTransaction.cpp
     Utils.cpp
