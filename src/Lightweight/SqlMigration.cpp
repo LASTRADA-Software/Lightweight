@@ -1768,24 +1768,37 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
     if (dryRun)
         return result;
 
-    auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
+    // Drop in batches and commit each one. A single transaction over hundreds of tables
+    // exhausts Postgres's per-transaction lock pool (each `DROP TABLE ... CASCADE` takes
+    // an AccessExclusiveLock and any locks from CASCADE-triggered drops, capped by
+    // `max_locks_per_transaction * (max_connections + max_prepared_transactions)`).
+    // 32 keeps us well under the default 64 per-transaction limit even when CASCADE
+    // pulls in dependent objects.
+    constexpr std::size_t dropBatchSize = 32;
 
-    for (auto const& key: result.droppedTables)
-    {
+    auto dropOne = [&](SqlSchema::FullyQualifiedTableName const& key) {
         auto const sqls = formatter.DropTable(key.schema, key.table, /*ifExists=*/true, /*cascade=*/true);
         for (auto const& sql: sqls)
             (void) stmt.ExecuteDirect(sql);
+    };
+
+    for (auto&& batch: result.droppedTables | std::views::chunk(dropBatchSize))
+    {
+        auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
+        std::ranges::for_each(batch, dropOne);
+        transaction.Commit();
     }
 
     if (liveNames.contains("schema_migrations"))
     {
+        auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
         auto const sqls = formatter.DropTable(std::string_view {}, std::string_view { "schema_migrations" }, true, true);
         for (auto const& sql: sqls)
             (void) stmt.ExecuteDirect(sql);
         result.schemaMigrationsDropped = true;
+        transaction.Commit();
     }
 
-    transaction.Commit();
     return result;
 }
 
