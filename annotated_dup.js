@@ -55,9 +55,15 @@ var annotated_dup =
       ] ],
       [ "SqlSchema", null, [
         [ "Column", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html", "d2/db8/structLightweight_1_1SqlSchema_1_1Column" ],
+        [ "ColumnDiff", "de/d75/structLightweight_1_1SqlSchema_1_1ColumnDiff.html", "de/d75/structLightweight_1_1SqlSchema_1_1ColumnDiff" ],
+        [ "DiffProgressEvent", "dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html", "dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent" ],
         [ "EventHandler", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler" ],
         [ "IndexDefinition", "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html", "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition" ],
-        [ "Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", "d3/dda/structLightweight_1_1SqlSchema_1_1Table" ]
+        [ "RowDiff", "d2/d37/structLightweight_1_1SqlSchema_1_1RowDiff.html", "d2/d37/structLightweight_1_1SqlSchema_1_1RowDiff" ],
+        [ "SchemaDiff", "d0/dd0/structLightweight_1_1SqlSchema_1_1SchemaDiff.html", "d0/dd0/structLightweight_1_1SqlSchema_1_1SchemaDiff" ],
+        [ "Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", "d3/dda/structLightweight_1_1SqlSchema_1_1Table" ],
+        [ "TableDataDiff", "d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html", "d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff" ],
+        [ "TableDiff", "da/d90/structLightweight_1_1SqlSchema_1_1TableDiff.html", "da/d90/structLightweight_1_1SqlSchema_1_1TableDiff" ]
       ] ],
       [ "Zip", null, [
         [ "EntryInfo", "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html", "d7/d09/structLightweight_1_1Zip_1_1EntryInfo" ],
@@ -135,5 +141,11 @@ var annotated_dup =
       [ "SqlWildcardType", "d2/d74/structLightweight_1_1SqlWildcardType.html", null ],
       [ "ThreadSafeQueue", "d4/d9e/classLightweight_1_1ThreadSafeQueue.html", "d4/d9e/classLightweight_1_1ThreadSafeQueue" ],
       [ "UniqueNameBuilder", "da/d15/classLightweight_1_1UniqueNameBuilder.html", "da/d15/classLightweight_1_1UniqueNameBuilder" ]
+    ] ],
+    [ "tui", null, [
+      [ "InlineCodeSpan", "d3/dd3/structtui_1_1InlineCodeSpan.html", "d3/dd3/structtui_1_1InlineCodeSpan" ],
+      [ "ParsedTable", "d2/dfc/structtui_1_1ParsedTable.html", null ],
+      [ "RgbColor", "d9/d81/structtui_1_1RgbColor.html", null ],
+      [ "Style", "d6/d18/structtui_1_1Style.html", null ]
     ] ]
 ];

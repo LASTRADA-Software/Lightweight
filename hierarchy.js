@@ -130,9 +130,15 @@ var hierarchy =
     [ "Lightweight::SqlResultCursor", "d8/d63/classLightweight_1_1SqlResultCursor.html", null ],
     [ "Lightweight::SqlRowIterator< T >", "d2/d8e/classLightweight_1_1SqlRowIterator.html", null ],
     [ "Lightweight::SqlSchema::Column", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html", null ],
+    [ "Lightweight::SqlSchema::ColumnDiff", "de/d75/structLightweight_1_1SqlSchema_1_1ColumnDiff.html", null ],
+    [ "Lightweight::SqlSchema::DiffProgressEvent", "dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html", null ],
     [ "Lightweight::SqlSchema::EventHandler", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html", null ],
     [ "Lightweight::SqlSchema::IndexDefinition", "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html", null ],
+    [ "Lightweight::SqlSchema::RowDiff", "d2/d37/structLightweight_1_1SqlSchema_1_1RowDiff.html", null ],
+    [ "Lightweight::SqlSchema::SchemaDiff", "d0/dd0/structLightweight_1_1SqlSchema_1_1SchemaDiff.html", null ],
     [ "Lightweight::SqlSchema::Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", null ],
+    [ "Lightweight::SqlSchema::TableDataDiff", "d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html", null ],
+    [ "Lightweight::SqlSchema::TableDiff", "da/d90/structLightweight_1_1SqlSchema_1_1TableDiff.html", null ],
     [ "Lightweight::SqlScopedTimeLogger", "dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html", null ],
     [ "Lightweight::SqlScopedTraceLogger", "df/d9c/classLightweight_1_1SqlScopedTraceLogger.html", null ],
     [ "Lightweight::SqlText", "de/dfe/structLightweight_1_1SqlText.html", null ],
@@ -159,6 +165,10 @@ var hierarchy =
         [ "Lightweight::SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html", null ]
       ] ]
     ] ],
+    [ "tui::InlineCodeSpan", "d3/dd3/structtui_1_1InlineCodeSpan.html", null ],
+    [ "tui::ParsedTable", "d2/dfc/structtui_1_1ParsedTable.html", null ],
+    [ "tui::RgbColor", "d9/d81/structtui_1_1RgbColor.html", null ],
+    [ "tui::Style", "d6/d18/structtui_1_1Style.html", null ],
     [ "std::vector< uint8_t >", null, [
       [ "Lightweight::SqlBinary", "db/db6/classLightweight_1_1SqlBinary.html", null ]
     ] ]
