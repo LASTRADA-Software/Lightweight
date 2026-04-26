@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cctype>
+#include <charconv>
 #include <exception>
 
 #include <sql.h>
@@ -82,10 +84,84 @@ namespace
         return result;
     }
 
+    /// SQLite-specific path: the SQLite ODBC driver does not populate FK_NAME (column 12 of
+    /// SQLForeignKeys), so two distinct FK constraints between the same pair of tables
+    /// collapse into one entry — see the FK_NAME-keyed grouping below. PRAGMA
+    /// foreign_key_list returns each constraint with a stable `id` we can use as a
+    /// synthetic name. Only used for the "FKs originating from `table`" lookup, which is
+    /// what the schema reader needs per table.
+    [[nodiscard]] std::vector<ForeignKeyConstraint> AllForeignKeysFromSqlite(SqlStatement& stmt,
+                                                                             FullyQualifiedTableName const& table)
+    {
+        auto query = !table.schema.empty() ? std::format(R"(PRAGMA "{}".foreign_key_list("{}"))", table.schema, table.table)
+                                           : std::format(R"(PRAGMA foreign_key_list("{}"))", table.table);
+
+        auto cursor = stmt.ExecuteDirect(query);
+
+        // Group rows by `id` (column 1) — each unique id is one FK constraint.
+        struct Row
+        {
+            int seq {};
+            std::string fkColumn;
+            std::string pkColumn;
+            std::string targetTable;
+        };
+        auto byId = std::map<int, std::vector<Row>> {};
+        auto idOrder = std::vector<int> {};
+        while (cursor.FetchRow())
+        {
+            // 0 id, 1 seq, 2 table, 3 from, 4 to, 5 on_update, 6 on_delete, 7 match
+            auto const id = cursor.GetColumn<int>(1);
+            auto row = Row {
+                .seq = cursor.GetColumn<int>(2),
+                .fkColumn = cursor.GetColumn<std::string>(4),
+                .pkColumn = cursor.GetColumn<std::string>(5),
+                .targetTable = cursor.GetColumn<std::string>(3),
+            };
+            if (!byId.contains(id))
+                idOrder.push_back(id);
+            byId[id].push_back(std::move(row));
+        }
+
+        auto result = std::vector<ForeignKeyConstraint> {};
+        result.reserve(idOrder.size());
+        for (auto const id: idOrder)
+        {
+            auto rows = std::move(byId.at(id));
+            std::ranges::sort(rows, [](Row const& a, Row const& b) { return a.seq < b.seq; });
+            auto fk = ForeignKeyConstraint {
+                .foreignKey = { .table = table, .columns = {} },
+                .primaryKey = {
+                    .table = FullyQualifiedTableName {
+                        .catalog = {},
+                        .schema = {},
+                        .table = rows.front().targetTable,
+                    },
+                    .columns = {},
+                },
+            };
+            for (auto& row: rows)
+            {
+                fk.foreignKey.columns.push_back(std::move(row.fkColumn));
+                fk.primaryKey.columns.push_back(std::move(row.pkColumn));
+            }
+            result.push_back(std::move(fk));
+        }
+        return result;
+    }
+
     std::vector<ForeignKeyConstraint> AllForeignKeys(SqlStatement& stmt,
                                                      FullyQualifiedTableName const& primaryKey,
                                                      FullyQualifiedTableName const& foreignKey)
     {
+        // SQLite ODBC's SQLForeignKeys does not return FK_NAME, so distinct FKs between the
+        // same table pair collapse. Use PRAGMA foreign_key_list when querying outbound FKs
+        // (the case the table reader uses).
+        if (stmt.Connection().ServerType() == SqlServerType::SQLITE && primaryKey.table.empty() && !foreignKey.table.empty())
+        {
+            return AllForeignKeysFromSqlite(stmt, foreignKey);
+        }
+
         auto* pkCatalog = (SQLCHAR*) (!primaryKey.catalog.empty() ? primaryKey.catalog.c_str() : nullptr);
         auto* pkSchema = (SQLCHAR*) (!primaryKey.schema.empty() ? primaryKey.schema.c_str() : nullptr);
         auto* pkTable = (SQLCHAR*) (!primaryKey.table.empty() ? primaryKey.table.c_str() : nullptr);
@@ -118,8 +194,28 @@ namespace
         if (numColumns < MinRequiredColumns)
             return {}; // Driver didn't return expected columns, return empty result
 
+        // Group rows that belong to the same constraint. ODBC SQLForeignKeys returns one row
+        // per (constraint, column-position) tuple — composite keys span multiple rows. The
+        // grouping key must include the constraint name (FK_NAME, column 12), otherwise two
+        // separate FKs that happen to point between the same pair of tables (e.g.
+        // `ASPHALT.BINDEMITTEL_NR -> BINDEMITTEL` and `ASPHALT.BINDEMITTEL2_NR -> BINDEMITTEL`)
+        // collapse into one and the second overwrites the first at sequence number 1.
+        struct ConstraintKey
+        {
+            std::string fkName;
+            FullyQualifiedTableName fkTable;
+            FullyQualifiedTableName pkTable;
+            bool operator<(ConstraintKey const& other) const noexcept
+            {
+                return std::tie(fkName, fkTable, pkTable) < std::tie(other.fkName, other.fkTable, other.pkTable);
+            }
+        };
         using ColumnList = std::vector<std::pair<std::string /*fk*/, std::string /*pk*/>>;
-        auto constraints = std::map<KeyPair, ColumnList>();
+        auto constraints = std::map<ConstraintKey, ColumnList> {};
+        // Track insertion order so the result preserves the driver-reported order rather than
+        // the lexical order of constraint names.
+        auto constraintOrder = std::vector<ConstraintKey> {};
+        auto seen = std::set<ConstraintKey> {};
         while (cursor.FetchRow())
         {
             auto primaryKeyTable = FullyQualifiedTableName {
@@ -135,23 +231,34 @@ namespace
             };
             auto foreignKeyColumn = cursor.GetNullableColumn<std::string>(8).value_or("");
             auto const sequenceNumber = static_cast<size_t>(cursor.GetNullableColumn<int16_t>(9).value_or(1));
-            ColumnList& keyColumns = constraints[{ foreignKeyTable, primaryKeyTable }];
+            // FK_NAME is column 12 in the ODBC spec; some drivers may not expose it.
+            auto fkName = numColumns >= 12 ? cursor.GetNullableColumn<std::string>(12).value_or("") : std::string {};
+            auto key = ConstraintKey {
+                .fkName = std::move(fkName),
+                .fkTable = std::move(foreignKeyTable),
+                .pkTable = std::move(primaryKeyTable),
+            };
+            if (seen.insert(key).second)
+                constraintOrder.push_back(key);
+            ColumnList& keyColumns = constraints[key];
             if (sequenceNumber > keyColumns.size())
                 keyColumns.resize(sequenceNumber);
             keyColumns[sequenceNumber - 1] = { std::move(foreignKeyColumn), std::move(pkColumnName) };
         }
 
-        auto result = std::vector<ForeignKeyConstraint>();
-        for (auto const& [keyPair, columns]: constraints)
+        auto result = std::vector<ForeignKeyConstraint> {};
+        result.reserve(constraintOrder.size());
+        for (auto const& key: constraintOrder)
         {
+            auto const& columns = constraints.at(key);
             auto const [fromColumns, toColumns] = Unzip(columns);
             result.emplace_back(ForeignKeyConstraint {
                 .foreignKey = {
-                    .table = keyPair.first,
+                    .table = key.fkTable,
                     .columns = fromColumns,
                 },
                 .primaryKey = {
-                    .table = keyPair.second,
+                    .table = key.pkTable,
                     .columns = toColumns,
                 },
             });
@@ -283,10 +390,93 @@ namespace
     /// @param table The fully qualified table name.
     /// @param primaryKeys The list of primary key columns (used to filter out PK indexes).
     /// @return A vector of index definitions, excluding primary key indexes.
+    /// MSSQL-specific path: SQLStatistics on the Microsoft ODBC driver returns no index
+    /// rows for non-clustered, non-unique indexes in our environment, even with
+    /// SQL_INDEX_ALL — leaving the schema reader thinking MSSQL has none. Query
+    /// `sys.indexes` directly so the introspection lines up with what migrations created.
+    [[nodiscard]] std::vector<IndexDefinition> AllIndexesMssql(SqlStatement& stmt,
+                                                               FullyQualifiedTableName const& table,
+                                                               std::vector<std::string> const& primaryKeys)
+    {
+        auto sql = std::string {};
+        auto const schemaFilter =
+            !table.schema.empty() ? std::format("AND SCHEMA_NAME(t.schema_id) = '{}'", table.schema) : std::string {};
+        sql = std::format(R"(SELECT i.name AS index_name,
+                                    i.is_unique AS is_unique,
+                                    c.name AS column_name,
+                                    ic.key_ordinal AS key_ordinal
+                             FROM sys.indexes i
+                             INNER JOIN sys.tables t ON i.object_id = t.object_id
+                             INNER JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+                             INNER JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+                             WHERE t.name = '{}' {}
+                               AND i.is_primary_key = 0
+                               AND i.is_unique_constraint = 0
+                               AND i.type > 0
+                               AND ic.is_included_column = 0
+                             ORDER BY i.name, ic.key_ordinal)",
+                          table.table,
+                          schemaFilter);
+
+        auto cursor = stmt.ExecuteDirect(sql);
+        struct Info
+        {
+            bool isUnique = false;
+            std::vector<std::pair<int, std::string>> columns;
+        };
+        auto byName = std::map<std::string, Info> {};
+        auto order = std::vector<std::string> {};
+        while (cursor.FetchRow())
+        {
+            auto name = cursor.GetColumn<std::string>(1);
+            auto isUnique = cursor.GetColumn<bool>(2);
+            auto column = cursor.GetColumn<std::string>(3);
+            auto ordinal = cursor.GetColumn<int>(4);
+            if (!byName.contains(name))
+                order.push_back(name);
+            auto& info = byName[name];
+            info.isUnique = isUnique;
+            info.columns.emplace_back(ordinal, std::move(column));
+        }
+
+        auto result = std::vector<IndexDefinition> {};
+        result.reserve(order.size());
+        for (auto const& name: order)
+        {
+            auto info = std::move(byName.at(name));
+            std::ranges::sort(info.columns, [](auto const& a, auto const& b) { return a.first < b.first; });
+            auto cols = std::vector<std::string> {};
+            cols.reserve(info.columns.size());
+            for (auto& [_, col]: info.columns)
+                cols.push_back(std::move(col));
+
+            // Skip indexes whose columns exactly match the table's primary key — those are
+            // implicit PK indexes that the cross-engine reader treats separately.
+            bool const matchesPk =
+                cols.size() == primaryKeys.size() && std::ranges::equal(cols, primaryKeys, [](auto const& a, auto const& b) {
+                    return std::ranges::equal(a, b, [](char c1, char c2) {
+                        return std::tolower(static_cast<unsigned char>(c1)) == std::tolower(static_cast<unsigned char>(c2));
+                    });
+                });
+            if (matchesPk)
+                continue;
+
+            result.push_back(IndexDefinition {
+                .name = name,
+                .columns = std::move(cols),
+                .isUnique = info.isUnique,
+            });
+        }
+        return result;
+    }
+
     std::vector<IndexDefinition> AllIndexes(SqlStatement& stmt,
                                             FullyQualifiedTableName const& table,
                                             std::vector<std::string> const& primaryKeys)
     {
+        if (stmt.Connection().ServerType() == SqlServerType::MICROSOFT_SQL)
+            return AllIndexesMssql(stmt, table, primaryKeys);
+
         try
         {
             // Use a separate statement to avoid issues with pending cursors from previous operations
@@ -602,6 +792,48 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
                 else if (column.dialectDependantTypeString == "bool")
                 {
                     column.type = SqlColumnTypeDefinitions::Bool {};
+                }
+                // SQLite is dynamically typed; the ODBC driver reports columns declared as
+                // `DECIMAL(p, s)` as SQL_VARCHAR (so they fall into the Varchar branch
+                // above). Recover the canonical Decimal by parsing the dialect type string
+                // when it carries `(p, s)`. Drivers that reported the column as SQL_DECIMAL/
+                // SQL_NUMERIC already produced a Decimal — leave those untouched, and don't
+                // collapse a parenless `numeric` to `Decimal(0,0)`.
+                else if ((column.dialectDependantTypeString.starts_with("DECIMAL")
+                          || column.dialectDependantTypeString.starts_with("decimal")
+                          || column.dialectDependantTypeString.starts_with("NUMERIC")
+                          || column.dialectDependantTypeString.starts_with("numeric"))
+                         && column.dialectDependantTypeString.find('(') != std::string::npos)
+                {
+                    auto precision = std::size_t {};
+                    auto scale = std::size_t {};
+                    auto const open = column.dialectDependantTypeString.find('(');
+                    auto const close = column.dialectDependantTypeString.find(')', open);
+                    if (close != std::string::npos)
+                    {
+                        auto const inner =
+                            std::string_view { column.dialectDependantTypeString }.substr(open + 1, close - open - 1);
+                        auto parseSize = [](std::string_view sv) -> std::size_t {
+                            while (!sv.empty() && std::isspace(static_cast<unsigned char>(sv.front())))
+                                sv.remove_prefix(1);
+                            while (!sv.empty() && std::isspace(static_cast<unsigned char>(sv.back())))
+                                sv.remove_suffix(1);
+                            auto value = std::size_t {};
+                            auto const result = std::from_chars(sv.data(), sv.data() + sv.size(), value);
+                            return result.ec == std::errc {} ? value : 0;
+                        };
+                        auto const comma = inner.find(',');
+                        if (comma != std::string_view::npos)
+                        {
+                            precision = parseSize(inner.substr(0, comma));
+                            scale = parseSize(inner.substr(comma + 1));
+                        }
+                        else
+                        {
+                            precision = parseSize(inner);
+                        }
+                    }
+                    column.type = SqlColumnTypeDefinitions::Decimal { .precision = precision, .scale = scale };
                 }
             }
             // NOLINTNEXTLINE(bugprone-empty-catch) - intentionally ignoring column type detection errors
