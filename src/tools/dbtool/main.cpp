@@ -2,6 +2,7 @@
 // Force recompile after header change
 
 #include "Lightweight/SqlConnectInfo.hpp"
+#include "DiffRenderer.hpp"
 #include "PluginLoader.hpp"
 #include "StandardProgressManager.hpp"
 
@@ -11,9 +12,11 @@
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlLogger.hpp>
+#include <Lightweight/SqlDataDiff.hpp>
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlMigrationLock.hpp>
 #include <Lightweight/SqlSchema.hpp>
+#include <Lightweight/SqlSchemaDiff.hpp>
 
 #include <cstdio>
 #include <expected>
@@ -124,6 +127,11 @@ void PrintUsage()
                  c.command, c.reset);
     std::println("  {}mark-applied{} {}<TIMESTAMP>{} Marks a migration as applied without executing",
                  c.command, c.reset, c.param, c.reset);
+    std::println("  {}diff{} {}<A>{} {}<B>{}            Compares two databases (schema + data) and prints a colored",
+                 c.command, c.reset, c.param, c.reset, c.param, c.reset);
+    std::println("                            report. Each <SOURCE> is either a profile name or a raw");
+    std::println("                            ODBC connection string starting with DRIVER=...");
+    std::println("                            Read-only on both sides. Exit code: 0 = equivalent, 1 = differs.");
     std::println("  {}backup{} --output FILE     Backs up the database to a file", c.command, c.reset);
     std::println("  {}restore{} --input FILE     Restores the database from a file", c.command, c.reset);
     std::println("  {}resolve-secret{} {}<REF>{}   Prints a resolved secret to stdout (env:, file:, stdin:)",
@@ -174,8 +182,12 @@ void PrintUsage()
                  c.option, c.reset, c.option, c.reset);
     std::println("  {}--no-lock{}                 Skip migration locking for write operations",
                  c.option, c.reset);
-    std::println("  {}--schema-only{}             Backup/restore schema only, skip data",
+    std::println("  {}--schema-only{}             Backup/restore schema only, skip data; for `diff` skips the data diff",
                  c.option, c.reset);
+    std::println("  {}--no-color{}                Disable ANSI colors in `diff` output (auto-disabled when not at a tty)",
+                 c.option, c.reset);
+    std::println("  {}--max-rows{} {}<N>{}            Cap rows scanned per table for `diff --data` (default: unlimited)",
+                 c.option, c.reset, c.param, c.reset);
     std::println("  {}--quiet{}                   Suppress progress output", c.option, c.reset);
     std::println("  {}--help{}                    Show this help message", c.option, c.reset);
     std::println("");
@@ -229,6 +241,17 @@ void PrintUsage()
 
     std::println("  {}# Restore schema only (create empty tables):{}", c.example, c.reset);
     std::println("  {}dbtool restore --input backup.zip --schema-only{}", c.code, c.reset);
+    std::println("");
+
+    std::println("  {}# Diff two databases (schema + data) using profile names:{}", c.example, c.reset);
+    std::println("  {}dbtool diff prod staging{}", c.code, c.reset);
+    std::println("");
+
+    std::println("  {}# Diff using raw connection strings (schema only, no color):{}", c.example, c.reset);
+    std::println("  {}{}{}",
+                 c.code,
+                 R"(dbtool diff "DRIVER=SQLite3;Database=a.db" "DRIVER=SQLite3;Database=b.db" --schema-only --no-color)",
+                 c.reset);
     // clang-format on
 }
 
@@ -244,6 +267,7 @@ struct Options
 {
     std::string command;
     std::string argument;
+    std::string secondArgument; ///< Second positional argument (currently used by `diff` for source-B).
     std::filesystem::path pluginsDir;
     SqlConnectionString connectionString;
     std::string configFile;
@@ -265,7 +289,35 @@ struct Options
     bool dryRun = false;     ///< If true, show what would be done without actually doing it
     bool noLock = false;     ///< If true, skip migration locking for write operations
     bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
+    /// @brief `--no-color` for `diff` (and other text-rendering commands). When true,
+    /// ANSI colors are suppressed.
+    bool noColor = false;
+
+    /// @brief `--max-rows <N>` for `diff --data` mode. 0 means unlimited.
+    std::size_t diffMaxRows = 0;
 };
+
+/// Flattens a parsed profile into an ODBC connection string, mirroring the legacy
+/// behaviour of `ApplyProfileToOptions`: prefer an explicit connection string, fall
+/// back to a DSN-flavoured profile (which is converted via `SqlConnectionDataSource`).
+///
+/// Returns an empty connection string when the profile carries neither — callers should
+/// fail with a meaningful error in that case.
+[[nodiscard]] SqlConnectionString ProfileToConnectionString(Lightweight::Config::Profile const& profile)
+{
+    if (!profile.connectionString.empty())
+        return SqlConnectionString { profile.connectionString };
+    if (!profile.dsn.empty())
+    {
+        SqlConnectionDataSource ds {
+            .datasource = profile.dsn,
+            .username = profile.uid,
+            .password = {},
+        };
+        return ds.ToConnectionString();
+    }
+    return SqlConnectionString {};
+}
 
 /// Loads a profile from a `ProfileStore` and fills `options` fields that were not
 /// already set on the CLI. Supports both the legacy single-profile YAML shape
@@ -330,24 +382,14 @@ void ApplyProfileToOptions(Options& options)
 
     if (!options.connectionStringSet)
     {
-        if (!profile->connectionString.empty())
-        {
-            options.connectionString = SqlConnectionString { profile->connectionString };
-        }
-        else if (!profile->dsn.empty())
-        {
-            // Profiles keyed by DSN are flattened into an ODBC connection string so
-            // the rest of dbtool (which speaks `SqlConnectionString` everywhere) sees
-            // a uniform shape. Secret resolution lands in a follow-up; for now the
-            // profile's `secretRef` is ignored and the driver is expected to prompt
-            // or fall back to integrated auth.
-            SqlConnectionDataSource ds {
-                .datasource = profile->dsn,
-                .username = profile->uid,
-                .password = {},
-            };
-            options.connectionString = ds.ToConnectionString();
-        }
+        // Profiles keyed by DSN are flattened into an ODBC connection string so the
+        // rest of dbtool (which speaks `SqlConnectionString` everywhere) sees a
+        // uniform shape. Secret resolution lands in a follow-up; for now the profile's
+        // `secretRef` is ignored and the driver is expected to prompt or fall back to
+        // integrated auth.
+        auto const cs = ProfileToConnectionString(*profile);
+        if (!cs.value.empty())
+            options.connectionString = cs;
     }
 }
 
@@ -521,6 +563,16 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         {
             options.schemaOnly = true;
         }
+        else if (arg == "--no-color")
+        {
+            options.noColor = true;
+        }
+        else if (arg == "--max-rows")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --max-rows requires an argument" };
+            options.diffMaxRows = static_cast<std::size_t>(std::stoull(argv[++i]));
+        }
         else if (options.command.empty())
         {
             options.command = arg;
@@ -528,6 +580,10 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         else if (options.argument.empty())
         {
             options.argument = arg;
+        }
+        else if (options.secondArgument.empty())
+        {
+            options.secondArgument = arg;
         }
         else
         {
@@ -1606,6 +1662,209 @@ int Restore(Options const& options)
     return pm->ErrorCount() > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
+/// Builds a single InProgress event for the schema-read or data-diff phases. Centralised
+/// here so the field-set (which clang's designated-init warning is picky about) lives in
+/// one place.
+[[nodiscard]] SqlBackup::Progress MakeProgressEvent(std::string tableName,
+                                                    std::size_t current,
+                                                    std::optional<std::size_t> total = std::nullopt,
+                                                    SqlBackup::Progress::State state = SqlBackup::Progress::State::InProgress)
+{
+    auto p = SqlBackup::Progress {};
+    p.state = state;
+    p.tableName = std::move(tableName);
+    p.currentRows = current;
+    p.totalRows = total;
+    return p;
+}
+
+/// Walks every table on side A whose name is also present on side B and runs
+/// `SqlSchema::DiffTableData`, accumulating non-empty results. Live progress events are
+/// fed into @p progress so the user sees current row counts and an ETA.
+[[nodiscard]] std::vector<SqlSchema::TableDataDiff> DiffSharedTables(
+    SqlConnection& connA,
+    SqlConnection& connB,
+    SqlSchema::TableList const& tablesA,
+    SqlSchema::TableList const& tablesB,
+    std::size_t maxRows,
+    SqlBackup::ProgressManager* progress)
+{
+    auto tablesByName = std::map<std::string, SqlSchema::Table const*> {};
+    for (auto const& t: tablesB)
+        tablesByName.emplace(t.name, &t);
+
+    auto onProgress = [&](SqlSchema::DiffProgressEvent const& ev) {
+        if (!progress)
+            return;
+        progress->Update(MakeProgressEvent(std::format("data: {}", ev.tableName),
+                                           ev.rowsScannedA + ev.rowsScannedB));
+    };
+
+    auto diffs = std::vector<SqlSchema::TableDataDiff> {};
+    for (auto const& tA: tablesA)
+    {
+        if (!tablesByName.contains(tA.name))
+            continue; // Schema diff already reports "only in A" — skip.
+
+        // Catch per-table errors so one un-diffable table doesn't abort the whole run.
+        // Driver-side coercion failures (e.g. "Numeric value out of range" on wide numeric
+        // columns) get reported as a per-table `skipReason` and the diff continues.
+        auto diff = SqlSchema::TableDataDiff { .tableName = tA.name };
+        try
+        {
+            diff = SqlSchema::DiffTableData(connA, connB, tA, maxRows, onProgress);
+        }
+        catch (Lightweight::SqlException const& ex)
+        {
+            diff.skipReason = std::format("error: {}", ex.info().message);
+        }
+
+        if (progress)
+            progress->Update(MakeProgressEvent(std::format("data: {}", tA.name),
+                                               diff.aRowCount + diff.bRowCount,
+                                               std::nullopt,
+                                               SqlBackup::Progress::State::Finished));
+        if (!diff.rows.empty() || diff.skipReason.has_value())
+            diffs.push_back(std::move(diff));
+    }
+    return diffs;
+}
+
+/// Decides whether @p token is a raw ODBC connection string (`DRIVER=...`) or a
+/// profile name to look up via `Cfg::ProfileStore`. Returns the resolved connection
+/// string, or an error string suitable for printing to stderr.
+[[nodiscard]] std::expected<SqlConnectionString, std::string> ResolveDiffSource(std::string_view token,
+                                                                                Options const& options)
+{
+    namespace Cfg = Lightweight::Config;
+
+    // Heuristic: ODBC connection strings start with `DRIVER=` (case-insensitive).
+    auto looksLikeOdbcCs = [](std::string_view t) {
+        constexpr auto kExpected = std::string_view { "DRIVER=" };
+        if (t.size() < kExpected.size())
+            return false;
+        for (std::size_t i = 0; i < kExpected.size(); ++i)
+        {
+            auto const lhs = static_cast<char>(std::tolower(static_cast<unsigned char>(t[i])));
+            auto const rhs = static_cast<char>(std::tolower(static_cast<unsigned char>(kExpected[i])));
+            if (lhs != rhs)
+                return false;
+        }
+        return true;
+    };
+
+    if (looksLikeOdbcCs(token))
+        return SqlConnectionString { std::string { token } };
+
+    // Treat as profile name. Resolve through the same `ProfileStore` as the rest of dbtool,
+    // honoring `--config` if the user passed one.
+    auto configPath = !options.configFile.empty() ? std::filesystem::path { options.configFile }
+                                                  : Cfg::ProfileStore::DefaultPath();
+    if (!std::filesystem::exists(configPath))
+        return std::unexpected { std::format("Error: profile '{}' requested but no config file at {}", token,
+                                             configPath.string()) };
+
+    auto storeResult = Cfg::ProfileStore::LoadOrDefault(configPath);
+    if (!storeResult)
+        return std::unexpected { std::format("Error loading config file: {}", storeResult.error()) };
+
+    auto const* profile = storeResult->Find(std::string { token });
+    if (!profile)
+        return std::unexpected { std::format("Error: profile '{}' not found in {}", token, configPath.string()) };
+
+    auto cs = ProfileToConnectionString(*profile);
+    if (cs.value.empty())
+        return std::unexpected { std::format("Error: profile '{}' has no connectionString or dsn", token) };
+    return cs;
+}
+
+/// Implements `dbtool diff <SOURCE-A> <SOURCE-B>`. Read-only; opens two independent
+/// connections (no global default), runs the schema diff and (unless --schema-only)
+/// the data diff, prints a colored report to stdout, and returns a non-zero exit code
+/// when any differences were found.
+int DiffDatabases(Options const& options)
+{
+    if (options.argument.empty() || options.secondArgument.empty())
+    {
+        std::println(std::cerr,
+                     "Error: diff requires two source arguments (profile name or DRIVER=... connection string).");
+        std::println(std::cerr,
+                     "Usage: dbtool diff <SOURCE-A> <SOURCE-B> [--schema-only] [--no-color] [--max-rows N]");
+        return EXIT_FAILURE;
+    }
+
+    auto const csA = ResolveDiffSource(options.argument, options);
+    if (!csA)
+    {
+        std::println(std::cerr, "{}", csA.error());
+        return EXIT_FAILURE;
+    }
+    auto const csB = ResolveDiffSource(options.secondArgument, options);
+    if (!csB)
+    {
+        std::println(std::cerr, "{}", csB.error());
+        return EXIT_FAILURE;
+    }
+
+    try
+    {
+        auto connA = SqlConnection { *csA };
+        auto connB = SqlConnection { *csB };
+        if (!connA.IsAlive())
+        {
+            std::println(std::cerr, "Error: failed to connect to source A.");
+            return EXIT_FAILURE;
+        }
+        if (!connB.IsAlive())
+        {
+            std::println(std::cerr, "Error: failed to connect to source B.");
+            return EXIT_FAILURE;
+        }
+
+        auto progress = CreateProgressManager(options);
+
+        // Schema phase — feed the per-table callbacks of `ReadAllTables` into the
+        // progress manager so the user sees "n/total" while introspection runs.
+        auto stmtA = SqlStatement { connA };
+        auto stmtB = SqlStatement { connB };
+
+        auto schemaProgressFor = [&](std::string const& side) {
+            return [&, side](std::string_view tableName, std::size_t current, std::size_t total) {
+                if (progress)
+                    progress->Update(MakeProgressEvent(std::format("{}: {}", side, tableName), current, total));
+            };
+        };
+
+        auto const tablesA = SqlSchema::ReadAllTables(stmtA, connA.DatabaseName(), options.schema,
+                                                     schemaProgressFor("schema A"));
+        auto const tablesB = SqlSchema::ReadAllTables(stmtB, connB.DatabaseName(), options.schema,
+                                                     schemaProgressFor("schema B"));
+
+        auto const schemaDiff = SqlSchema::DiffSchemas(tablesA, tablesB);
+
+        auto dataDiffs = options.schemaOnly
+            ? std::vector<SqlSchema::TableDataDiff> {}
+            : DiffSharedTables(connA, connB, tablesA, tablesB, options.diffMaxRows, progress.get());
+
+        if (progress)
+            progress->AllDone();
+
+        auto const useColor = !options.noColor && (isatty(fileno(stdout)) != 0);
+        auto const renderOpts = Lightweight::Tools::DiffRenderOptions { .useColor = useColor };
+        Lightweight::Tools::RenderDiff(std::cout, schemaDiff, dataDiffs, renderOpts);
+
+        auto const anyDataDiff = std::ranges::any_of(
+            dataDiffs, [](SqlSchema::TableDataDiff const& d) { return !d.rows.empty(); });
+        return (schemaDiff.Empty() && !anyDataDiff) ? EXIT_SUCCESS : 1;
+    }
+    catch (SqlException const& ex)
+    {
+        std::println(std::cerr, "SQL error: {}", ex.info().message);
+        return EXIT_FAILURE;
+    }
+}
+
+
 MigrationManager& GetMigrationManager(Options const& options)
 {
     // Keep plugins loaded for the lifetime of the program.
@@ -1765,6 +2024,12 @@ int main(int argc, char** argv)
 
         if (options.command == "resolve-secret")
             return ResolveSecretCommand(options);
+
+        // `diff` opens its own two connections from the positional args and does not
+        // use the global default connection string. Skip the SetupConnectionString
+        // gate, which would otherwise reject invocations that pass no `--connection-string`.
+        if (options.command == "diff")
+            return DiffDatabases(options);
 
         if (!SetupConnectionString(options.connectionString))
             return EXIT_FAILURE;
