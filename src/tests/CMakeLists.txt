@@ -85,6 +85,8 @@ set(SOURCE_FILES
     MigrationTests.cpp
     MigrationReflectionTests.cpp
     QueryBuilderTests.cpp
+    SqlDataDiffTests.cpp
+    SqlSchemaDiffTests.cpp
     SqlBackup/BatchManagerIntegrationTests.cpp
     SqlBackup/BatchManagerTests.cpp
     SqlBackup/MsgPackChunkFormatsTests.cpp
