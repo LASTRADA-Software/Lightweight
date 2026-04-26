@@ -42,8 +42,18 @@ struct ColumnDiff
 /// A diff entry for a single table.
 struct TableDiff
 {
-    std::string schema;
+    /// Table name (schema-unqualified). Tables are paired across the two inputs by name only —
+    /// engine-specific schema labels (`dbo`, `public`, `""`) are kept for display but ignored
+    /// for identity, so the same logical table compares as equal across SQL dialects.
     std::string name;
+
+    /// Schema name on the left-hand side. Empty when @ref kind is @ref DiffKind::OnlyInB
+    /// or when the left-hand engine reports no schema (e.g. SQLite).
+    std::string schemaA;
+
+    /// Schema name on the right-hand side. Empty when @ref kind is @ref DiffKind::OnlyInA
+    /// or when the right-hand engine reports no schema.
+    std::string schemaB;
 
     /// Table-level classification: @ref DiffKind::OnlyInA / @ref DiffKind::OnlyInB
     /// when one side lacks the table entirely; @ref DiffKind::Changed when both
@@ -78,10 +88,16 @@ struct SchemaDiff
 
 /// Compares two table lists field-by-field and returns a structural diff.
 ///
-/// Pairs tables by `(schema, name)` and columns by name. Column comparison covers
-/// type, nullability, size, decimal digits, default value, auto-increment, primary
-/// key membership, foreign-key membership, and uniqueness. Foreign-key constraints
-/// are compared at the table level (not per column).
+/// Pairs tables by **name only** so the same logical table matches across SQL dialects
+/// even when engine-specific schema labels differ (`dbo` vs `public` vs `""`). Both
+/// schema labels are kept on @ref TableDiff for the renderer. Columns are paired by name.
+///
+/// Column comparison uses the canonical @ref Column::type variant (engine-agnostic),
+/// not the dialect-dependent type string, so an `INTEGER` column compares equal whether
+/// the driver reports `int4`, `int`, or `INTEGER`. Other compared fields: nullability,
+/// size, decimal digits, default value, auto-increment, primary-key membership,
+/// foreign-key membership, and uniqueness. Foreign-key constraints are compared at the
+/// table level (not per column).
 ///
 /// Pure function — no I/O, no logging, no exceptions.
 LIGHTWEIGHT_API SchemaDiff DiffSchemas(TableList const& a, TableList const& b);
