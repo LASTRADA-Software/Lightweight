@@ -1,9 +1,11 @@
 add_library(dbtool_lib STATIC
+    DiffRenderer.cpp
+    DiffRenderer.hpp
     StandardProgressManager.cpp
     StandardProgressManager.hpp
 )
 
-target_link_libraries(dbtool_lib PUBLIC Lightweight tools_shared)
+target_link_libraries(dbtool_lib PUBLIC Lightweight Lightweight::Tui tools_shared)
 
 add_executable(dbtool main.cpp)
 if(WIN32)
