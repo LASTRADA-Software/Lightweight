@@ -28,7 +28,7 @@ TEST_CASE("LupVersion.ToString", "[lup2dbtool]")
 TEST_CASE("LupVersion.ToDottedString", "[lup2dbtool]")
 {
     // The dotted form matches the convention used by release markers surfaced
-    // through dbtool / migrations-gui: no zero-padding, dot-separated segments.
+    // through dbtool / dbtool-gui: no zero-padding, dot-separated segments.
     CHECK(LupVersion { 6, 8, 8 }.ToDottedString() == "6.8.8");
     CHECK(LupVersion { 2, 1, 5 }.ToDottedString() == "2.1.5");
     CHECK(LupVersion { 10, 0, 0 }.ToDottedString() == "10.0.0");

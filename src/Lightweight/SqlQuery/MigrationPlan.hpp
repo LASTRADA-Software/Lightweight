@@ -559,7 +559,7 @@ inline constexpr std::string_view CompatFlagLupTruncateName = "lup-truncate";
 /// @brief Opt-in behavioural knobs that the `ToSql` migration-plan renderer honours.
 ///
 /// When a profile declares a `compat:` flag (see `Lightweight::Config::CompatFlags`), dbtool
-/// / migrations-gui construct one of these and pass it alongside the formatter so migration
+/// / dbtool-gui construct one of these and pass it alongside the formatter so migration
 /// rendering can diverge from strict behaviour per-run.
 ///
 /// The context is mutable across successive `ToSql` calls within the same migration run:

@@ -101,7 +101,7 @@ class CodeGenerator
     ///
     /// Each parsed LUP migration file corresponds to exactly one release (the LUP
     /// version it targets). The emitted marker registers the release with the migration
-    /// manager at static-init time so `dbtool status` and the migrations-gui can
+    /// manager at static-init time so `dbtool status` and the dbtool-gui can
     /// surface release progress ("Latest release: 6.8.8 (applied, 1/1 migrations)").
     /// Shared by the single-file and split-file emitters.
     void WriteReleaseMarker(ParsedMigration const& migration, std::ostream& out) const;
