@@ -101,7 +101,9 @@ set(HEADER_FILES
     SqlMigrationLock.hpp
     SqlOdbcWide.hpp
     SqlQueryFormatter.hpp
+    SqlDataDiff.hpp
     SqlSchema.hpp
+    SqlSchemaDiff.hpp
     SqlScopedTraceLogger.hpp
     SqlServerType.hpp
     SqlStatement.hpp
@@ -150,7 +152,9 @@ set(SOURCE_FILES
     SqlQuery/MigrationPlan.cpp
     SqlQuery/Select.cpp
     SqlQueryFormatter.cpp
+    SqlDataDiff.cpp
     SqlSchema.cpp
+    SqlSchemaDiff.cpp
     SqlStatement.cpp
     SqlTransaction.cpp
     Utils.cpp
