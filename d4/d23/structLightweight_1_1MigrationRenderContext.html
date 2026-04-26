@@ -134,7 +134,7 @@ Public Attributes</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Opt-in behavioural knobs that the <code>ToSql</code> migration-plan renderer honours. </p>
-<p>When a profile declares a <code>compat:</code> flag (see <code>Lightweight::Config::CompatFlags</code>), dbtool / migrations-gui construct one of these and pass it alongside the formatter so migration rendering can diverge from strict behaviour per-run.</p>
+<p>When a profile declares a <code>compat:</code> flag (see <code>Lightweight::Config::CompatFlags</code>), dbtool / dbtool-gui construct one of these and pass it alongside the formatter so migration rendering can diverge from strict behaviour per-run.</p>
 <p>The context is mutable across successive <code>ToSql</code> calls within the same migration run: it accumulates a column-width cache populated from <code>CreateTable</code> / <code>AlterTable</code> steps as they are rendered, so later <code>Insert</code> / <code>Update</code> steps can truncate oversize values without a server round-trip.</p>
 <p>Default-constructed instances are strict (no truncation, no logging); this is the shape used by code paths that don't care about compat, so existing callers keep their behaviour. </p>
 
