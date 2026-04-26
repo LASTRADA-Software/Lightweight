@@ -108,7 +108,9 @@ set(HEADER_FILES
     SqlMigration.hpp
     SqlMigrationLock.hpp
     SqlQueryFormatter.hpp
+    SqlDataDiff.hpp
     SqlSchema.hpp
+    SqlSchemaDiff.hpp
     SqlScopedTraceLogger.hpp
     SqlServerType.hpp
     SqlStatement.hpp
@@ -164,7 +166,9 @@ set(SOURCE_FILES
     MigrationFold/CppEmitter.cpp
     MigrationFold/SqlEmitter.cpp
     SqlQueryFormatter.cpp
+    SqlDataDiff.cpp
     SqlSchema.cpp
+    SqlSchemaDiff.cpp
     SqlStatement.cpp
     SqlTransaction.cpp
     Utils.cpp
