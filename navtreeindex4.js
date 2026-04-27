@@ -109,7 +109,6 @@ var NAVTREEINDEX4 =
 "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a33a69b26419eed12fa5726e3a76ea3e1":[12,0,0,1,2,3],
 "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a9d666c263d9e7ea0cccc45ae71365837":[12,0,0,1,2,1],
 "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26":[12,0,0,1,2,0],
-"dd/d2a/TracyProfiler_8hpp_source.html":[13,0,1,28],
 "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html":[10,4,22],
 "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a1ba5415c2f11dad96724e8b20963a239":[10,4,22,3],
 "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a601ee8dc6af98175063c3b6b5917aff9":[10,4,22,0],
@@ -249,5 +248,6 @@ var NAVTREEINDEX4 =
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#a83960533b5032f3a161070e9a6e8da5c":[10,4,0,8],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#a9220ec49d875faa49983e9a53a507ef3":[10,4,0,10],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#aa69bce960ab6b67f3a39750799754c4e":[10,4,0,11],
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#ad9d7e0290e84a1b8560e32a9f37d5a1f":[10,4,0,7]
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#ad9d7e0290e84a1b8560e32a9f37d5a1f":[10,4,0,7],
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#adeb820498dd1bc9a5c575244e1bdf853":[10,4,0,9]
 };
