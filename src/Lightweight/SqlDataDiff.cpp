@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "SqlDataDiff.hpp"
-
 #include "DataBinder/SqlVariant.hpp"
 #include "SqlConnection.hpp"
+#include "SqlDataDiff.hpp"
 #include "SqlServerType.hpp"
 #include "SqlStatement.hpp"
 
@@ -61,8 +60,7 @@ namespace
     /// the typed variant avoids letting the ODBC driver coerce wide numeric columns
     /// (`BIGINT`, large `DECIMAL`, `MONEY`, …) to string itself, which can fail with
     /// `Numeric value out of range` on some drivers (e.g. ODBC Driver 18 for SQL Server).
-    [[nodiscard]] std::optional<std::vector<std::string>> FetchRowAsStrings(SqlResultCursor& cursor,
-                                                                            std::size_t numColumns)
+    [[nodiscard]] std::optional<std::vector<std::string>> FetchRowAsStrings(SqlResultCursor& cursor, std::size_t numColumns)
     {
         if (!cursor.FetchRow())
             return std::nullopt;
@@ -124,14 +122,20 @@ namespace
         return layout;
     }
 
-    /// Like BuildScanQuery but uses the explicit column ordering from the layout.
-    [[nodiscard]] std::string BuildScanQueryFromLayout(Table const& tableSchema,
+    /// Builds the SELECT used to scan one side of the diff.
+    ///
+    /// Column list and PK ordering come from @p layout (which is derived from the side
+    /// whose schema we trust as authoritative — see @ref BuildColumnLayout). The schema
+    /// label and table name are taken from @p tableOnThisSide so cross-engine pairs
+    /// (e.g. `public.X` ↔ `dbo.X`) each get a query that resolves on their own server.
+    [[nodiscard]] std::string BuildScanQueryFromLayout(Table const& tableOnThisSide,
                                                        ColumnLayout const& layout,
                                                        SqlServerType server)
     {
-        auto const tableRef = tableSchema.schema.empty()
-            ? Quote(tableSchema.name, server)
-            : std::format("{}.{}", Quote(tableSchema.schema, server), Quote(tableSchema.name, server));
+        auto const tableRef =
+            tableOnThisSide.schema.empty()
+                ? Quote(tableOnThisSide.name, server)
+                : std::format("{}.{}", Quote(tableOnThisSide.schema, server), Quote(tableOnThisSide.name, server));
 
         auto cols = std::string {};
         for (auto const& [i, name]: std::views::enumerate(layout.orderedColumnNames))
@@ -142,20 +146,19 @@ namespace
         }
 
         auto orderBy = std::string {};
-        for (auto const& [i, pk]: std::views::enumerate(tableSchema.primaryKeys))
+        // The PK columns are exactly the first `numKeyCols` entries of the layout.
+        for (auto const i: std::views::iota(std::size_t { 0 }, layout.numKeyCols))
         {
             if (i != 0)
                 orderBy += ", ";
-            orderBy += Quote(pk, server);
+            orderBy += Quote(layout.orderedColumnNames[i], server);
         }
 
         return std::format("SELECT {} FROM {} ORDER BY {}", cols, tableRef, orderBy);
     }
 
-    [[nodiscard]] std::vector<std::tuple<std::string, std::string, std::string>>
-    DiffRowValues(std::vector<std::string> const& a,
-                  std::vector<std::string> const& b,
-                  ColumnLayout const& layout)
+    [[nodiscard]] std::vector<std::tuple<std::string, std::string, std::string>> DiffRowValues(
+        std::vector<std::string> const& a, std::vector<std::string> const& b, ColumnLayout const& layout)
     {
         auto cells = std::vector<std::tuple<std::string, std::string, std::string>> {};
         // Skip PK columns — by definition they match (we paired by them).
@@ -221,21 +224,26 @@ namespace
 
 TableDataDiff DiffTableData(SqlConnection& a,
                             SqlConnection& b,
-                            Table const& tableSchema,
+                            Table const& tableA,
+                            Table const& tableB,
                             std::size_t maxRows,
                             DiffProgressCallback onProgress)
 {
-    auto result = TableDataDiff { .tableName = tableSchema.name };
+    auto result = TableDataDiff { .tableName = tableA.name };
 
-    if (tableSchema.primaryKeys.empty())
+    if (tableA.primaryKeys.empty())
     {
         result.skipReason = "no primary key";
         return result;
     }
 
-    auto const layout = BuildColumnLayout(tableSchema);
-    auto const queryA = BuildScanQueryFromLayout(tableSchema, layout, a.ServerType());
-    auto const queryB = BuildScanQueryFromLayout(tableSchema, layout, b.ServerType());
+    auto const layout = BuildColumnLayout(tableA);
+    // Each side qualifies the SELECT with its own schema label — postgres uses `public`,
+    // MSSQL uses `dbo`, SQLite has none. Cross-engine pairs reach this function with
+    // mismatched labels but identical column shape (the schema diff already verified that),
+    // so a single column layout is fine for both queries.
+    auto const queryA = BuildScanQueryFromLayout(tableA, layout, a.ServerType());
+    auto const queryB = BuildScanQueryFromLayout(tableB, layout, b.ServerType());
 
     auto stmtA = SqlStatement { a };
     auto stmtB = SqlStatement { b };
@@ -258,7 +266,7 @@ TableDataDiff DiffTableData(SqlConnection& a,
             return;
         lastReport = now;
         onProgress(DiffProgressEvent {
-            .tableName = tableSchema.name,
+            .tableName = tableA.name,
             .rowsScannedA = result.aRowCount,
             .rowsScannedB = result.bRowCount,
         });
