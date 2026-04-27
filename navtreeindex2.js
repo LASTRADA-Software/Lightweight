@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#ab985d9d131e68d85195d7d507b909a98":[12,0,0,6,5,2],
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fc":[12,0,0,6,5,0],
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca0eaadb4fcb48a0a0ed7bc9868be9fbaa":[12,0,0,6,5,0,4],
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca12d868c18cb29bf58f02b504be9033fd":[12,0,0,6,5,0,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX2 =
 "d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33":[10,2,13],
 "d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0":[10,2,16],
 "d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab":[10,2,18],
-"d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24":[10,2,17],
-"d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25":[10,2,12]
+"d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24":[10,2,17]
 };

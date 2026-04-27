@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"df/d25/Customer_8hpp_source.html":[13,0,0,0,0,2],
 "df/d2d/SecretResolver_8hpp_source.html":[13,0,1,7,2],
 "df/d36/Playlist_8hpp_source.html":[13,0,0,0,0,8],
 "df/d39/SgrBuilder_8hpp_source.html":[13,0,1,11,2],

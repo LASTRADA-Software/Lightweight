@@ -131,6 +131,11 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a72202fddb710d0fd35f5135ddcf97c7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7d5c90cf0a765b640b1de1ed07a24f28" id="r_a7d5c90cf0a765b640b1de1ed07a24f28"><td class="memItemLeft" align="right" valign="top">std::set&lt; <a class="el" href="../../d4/d6d/structLightweight_1_1MigrationRenderContext_1_1TableKey.html">TableKey</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d23/structLightweight_1_1MigrationRenderContext.html#a7d5c90cf0a765b640b1de1ed07a24f28">lookupAttempted</a></td></tr>
 <tr class="separator:a7d5c90cf0a765b640b1de1ed07a24f28"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a11788fb09cb998464573d4a57ede7607" id="r_a11788fb09cb998464573d4a57ede7607"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d23/structLightweight_1_1MigrationRenderContext.html#a11788fb09cb998464573d4a57ede7607">activeMigrationTitle</a></td></tr>
+<tr class="memdesc:a11788fb09cb998464573d4a57ede7607"><td class="mdescLeft">&#160;</td><td class="mdescRight">Identity of the migration currently being rendered. Set by <code>MigrationManager::ApplySingleMigration</code> before <code>ToSql</code> is called for each step so warnings (e.g. <code>lup-truncate</code>) can attribute themselves to the offending migration. Empty / zero when rendering happens outside a migration run (e.g. unit tests calling <code>ToSql</code> directly).  <br /></td></tr>
+<tr class="separator:a11788fb09cb998464573d4a57ede7607"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5d4b74f5a642f65b26bab98b334783ab" id="r_a5d4b74f5a642f65b26bab98b334783ab"><td class="memItemLeft" align="right" valign="top">std::uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d23/structLightweight_1_1MigrationRenderContext.html#a5d4b74f5a642f65b26bab98b334783ab">activeMigrationTimestamp</a> = 0</td></tr>
+<tr class="separator:a5d4b74f5a642f65b26bab98b334783ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Opt-in behavioural knobs that the <code>ToSql</code> migration-plan renderer honours. </p>
@@ -232,6 +237,40 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00632">632</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a11788fb09cb998464573d4a57ede7607" name="a11788fb09cb998464573d4a57ede7607"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a11788fb09cb998464573d4a57ede7607">&#9670;&#160;</a></span>activeMigrationTitle</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string Lightweight::MigrationRenderContext::activeMigrationTitle</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Identity of the migration currently being rendered. Set by <code>MigrationManager::ApplySingleMigration</code> before <code>ToSql</code> is called for each step so warnings (e.g. <code>lup-truncate</code>) can attribute themselves to the offending migration. Empty / zero when rendering happens outside a migration run (e.g. unit tests calling <code>ToSql</code> directly). </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00639">639</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a5d4b74f5a642f65b26bab98b334783ab" name="a5d4b74f5a642f65b26bab98b334783ab"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5d4b74f5a642f65b26bab98b334783ab">&#9670;&#160;</a></span>activeMigrationTimestamp</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::uint64_t Lightweight::MigrationRenderContext::activeMigrationTimestamp = 0</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00640">640</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>

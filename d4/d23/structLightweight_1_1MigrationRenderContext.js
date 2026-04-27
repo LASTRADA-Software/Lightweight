@@ -7,5 +7,6 @@ var structLightweight_1_1MigrationRenderContext =
       [ "Bytes", "d4/d23/structLightweight_1_1MigrationRenderContext.html#a1b18204eec6e670fe48c98ce38f9819ba600e754f49b68aa0fc90a9cd64eb7051", null ]
     ] ],
     [ "lupTruncate", "d4/d23/structLightweight_1_1MigrationRenderContext.html#a2951b6980a9d504a748699de0167c8de", null ],
-    [ "widthLookup", "d4/d23/structLightweight_1_1MigrationRenderContext.html#a72202fddb710d0fd35f5135ddcf97c7b", null ]
+    [ "widthLookup", "d4/d23/structLightweight_1_1MigrationRenderContext.html#a72202fddb710d0fd35f5135ddcf97c7b", null ],
+    [ "activeMigrationTitle", "d4/d23/structLightweight_1_1MigrationRenderContext.html#a11788fb09cb998464573d4a57ede7607", null ]
 ];

@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25":[10,2,12],
 "d7/d2f/group__DataMapper.html#ga8e59547a0c0c6f118824cab220ae43c4":[10,2,20],
 "d7/d2f/group__DataMapper.html#gac7df2f7b61cdd663f50496fe92c80a73":[10,2,14],
 "d7/d2f/group__DataMapper.html#gae0874e29a73741a5badb14bacafae06e":[10,2,15],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "d9/de1/structLightweight_1_1SqlDate.html#a649f582462bd3257f353e570070ea36f":[10,0,1,8],
 "d9/de1/structLightweight_1_1SqlDate.html#abb63b8190ca89408601b6b10e58b7c9d":[10,0,1,0],
 "d9/de1/structLightweight_1_1SqlDate.html#ac22e4292f9c821d76c65c2dcd76ec3d2":[10,0,1,10],
-"d9/de1/structLightweight_1_1SqlDate.html#ac8926c16c74e11a1467098a40b13e552":[10,0,1,9],
-"d9/de1/structLightweight_1_1SqlDate.html#acbb3cb3b332956f35ba25c25d6dc34b5":[10,0,1,6]
+"d9/de1/structLightweight_1_1SqlDate.html#ac8926c16c74e11a1467098a40b13e552":[10,0,1,9]
 };

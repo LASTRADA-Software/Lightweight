@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"d9/de1/structLightweight_1_1SqlDate.html#acbb3cb3b332956f35ba25c25d6dc34b5":[10,0,1,6],
 "d9/de1/structLightweight_1_1SqlDate.html#afe238c510db9a86dc6aac51196e8e3f1":[10,0,1,5],
 "d9/de5/SqlLogger_8hpp_source.html":[13,0,1,23],
 "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html":[10,3,6,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "dc/d47/structLightweight_1_1SqlRawSqlPlan.html":[10,4,18],
 "dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d":[10,4,18,0],
 "dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html":[12,0,0,66],
-"dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html#a34abfccd3b12c420297704361a2738a8":[12,0,0,66,2],
-"dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html#a72d0fccef271e1fc96affc5c22d280b3":[12,0,0,66,1]
+"dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html#a34abfccd3b12c420297704361a2738a8":[12,0,0,66,2]
 };
