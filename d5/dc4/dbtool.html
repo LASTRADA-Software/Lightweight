@@ -175,45 +175,6 @@ mark-applied &lt;TIMESTAMP&gt;</h2>
 <li>Baseline migrations when setting up an existing database</li>
 <li>Skipping migrations that were applied manually</li>
 </ul>
-<h1><a class="anchor" id="diff"></a>
-Diff</h1>
-<h2><a class="anchor" id="diff-1"></a>
-diff</h2>
-<p>Compares two databases and prints a colored, structured report of their differences. Default mode reports both <b>schema</b> (tables, columns, types, primary keys, foreign keys, indexes) and <b>data</b> (per-row diffs paired by primary key); <code>--schema-only</code> suppresses the data phase.</p>
-<div class="fragment"><div class="line">dbtool diff &lt;SOURCE-A&gt; &lt;SOURCE-B&gt; [--schema-only] [--no-color] [--max-rows N]</div>
-</div><!-- fragment --><p>Each <code>&lt;SOURCE&gt;</code> is either:</p>
-<ul>
-<li>a <b>profile name</b> from the dbtool config file (resolved like <code>--profile</code>), or</li>
-<li>a <b>raw ODBC connection string</b> starting with <code>DRIVER=...</code> (case-insensitive).</li>
-</ul>
-<p>Live progress lines (current table, rows scanned, smoothed-rate ETA) are emitted to stderr while the diff runs; the final report is printed to stdout once progress completes. <code>--quiet</code> and <code>--progress logline|ascii|unicode</code> apply as elsewhere.</p>
-<p><code>diff</code> is fully <b>read-only</b> — only <code>SELECT</code> queries are issued against either side.</p>
-<p>Exit codes:</p>
-<ul>
-<li><code>0</code> — databases are equivalent under the chosen mode</li>
-<li><code>1</code> — differences were found</li>
-<li><code>2</code> — error (connection failure, profile not found, etc.)</li>
-</ul>
-<h3><a class="anchor" id="examples"></a>
-Examples</h3>
-<div class="fragment"><div class="line"># Compare two profiles defined in your config:</div>
-<div class="line">dbtool diff prod staging</div>
-<div class="line"> </div>
-<div class="line"># Compare a profile against an SQLite snapshot:</div>
-<div class="line">dbtool diff prod &quot;DRIVER=SQLite3;Database=/tmp/snapshot.db&quot;</div>
-<div class="line"> </div>
-<div class="line"># Schema-only check (fast — useful for CI gating):</div>
-<div class="line">dbtool diff prod staging --schema-only</div>
-<div class="line"> </div>
-<div class="line"># Cap data scan to the first 10k rows per table:</div>
-<div class="line">dbtool diff prod staging --max-rows 10000</div>
-</div><!-- fragment --><h3><a class="anchor" id="caveats"></a>
-Caveats</h3>
-<ul>
-<li>Tables without a primary key are reported under the schema diff but <b>skipped</b> for the data diff (with a <code>(skipped: no primary key)</code> note). PK pairing is required to distinguish a <em>changed</em> row from an <em>added + removed</em> pair.</li>
-<li>Column values are compared as their ODBC string representation. This may produce false positives for floating-point or binary columns whose textual encoding differs across drivers; rerun with <code>--schema-only</code> to confirm if the column's type matches.</li>
-<li><code>--max-rows</code> truncation is per-side; the report flags <code>truncated</code> when hit.</li>
-</ul>
 <h1><a class="anchor" id="backup--restore"></a>
 Backup &amp; Restore</h1>
 <h2><a class="anchor" id="backup"></a>
@@ -274,14 +235,8 @@ Command-Line Options Reference</h1>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--no-lock</code>   </td><td class="markdownTableBodyNone">Skip migration locking   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--schema-only</code>   </td><td class="markdownTableBodyNone">For backup/restore: skip data. For <code>diff</code>: skip the data diff.   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--no-color</code>   </td><td class="markdownTableBodyNone">Disable ANSI colors in <code>diff</code> output (auto-disabled when not at a tty)   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--max-rows &lt;N&gt;</code>   </td><td class="markdownTableBodyNone">Cap rows scanned per table for <code>diff</code> data mode   </td><td class="markdownTableBodyNone"><code>0</code> (unlimited)    </td></tr>
-<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--max-retries &lt;N&gt;</code>   </td><td class="markdownTableBodyNone">Maximum retry attempts for transient errors   </td><td class="markdownTableBodyNone"><code>3</code>    </td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--help</code>   </td><td class="markdownTableBodyNone">Show help message   </td><td class="markdownTableBodyNone"></td></tr>
 </table>
 <h2><a class="anchor" id="size-suffixes"></a>
@@ -314,8 +269,8 @@ Creating a Migration Plugin</h2>
 <div class="line">        .RequiredColumn(<span class="stringliteral">&quot;email&quot;</span>, Varchar(255))</div>
 <div class="line">        .Timestamps();</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00931">SqlMigration.hpp:931</a></div></div>
-<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00642">SqlMigration.hpp:642</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00606">SqlMigration.hpp:606</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00317">SqlMigration.hpp:317</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="loading-plugins"></a>
 Loading Plugins</h2>
 <div class="fragment"><div class="line">dbtool migrate --plugins-dir ./build/plugins</div>

@@ -115,12 +115,6 @@ var NAVTREE =
         [ "rollback-to <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-to-timestamp", null ],
         [ "mark-applied <TIMESTAMP>", "d5/dc4/dbtool.html#mark-applied-timestamp", null ]
       ] ],
-      [ "Diff", "d5/dc4/dbtool.html#diff", [
-        [ "diff", "d5/dc4/dbtool.html#diff-1", [
-          [ "Examples", "d5/dc4/dbtool.html#examples", null ],
-          [ "Caveats", "d5/dc4/dbtool.html#caveats", null ]
-        ] ]
-      ] ],
       [ "Backup & Restore", "d5/dc4/dbtool.html#backup--restore", [
         [ "backup", "d5/dc4/dbtool.html#backup", null ],
         [ "restore", "d5/dc4/dbtool.html#restore", null ]
@@ -199,7 +193,7 @@ var NAVTREE =
       [ "Class Members", "functions.html", [
         [ "All", "functions.html", "functions_dup" ],
         [ "Functions", "functions_func.html", "functions_func" ],
-        [ "Variables", "functions_vars.html", "functions_vars" ],
+        [ "Variables", "functions_vars.html", null ],
         [ "Typedefs", "functions_type.html", null ],
         [ "Enumerations", "functions_enum.html", null ]
       ] ]
@@ -213,12 +207,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a2c422c24094f6180d3c3837e546d35ef",
-"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#ab985d9d131e68d85195d7d507b909a98",
-"d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25",
-"d9/de1/structLightweight_1_1SqlDate.html#acbb3cb3b332956f35ba25c25d6dc34b5",
-"dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html#a72d0fccef271e1fc96affc5c22d280b3",
-"df/d25/Customer_8hpp_source.html"
+"d3/d30/classLightweight_1_1Pool.html#a56fdfc02e3f33e88840e66dbe3491f0a",
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709",
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a3731b7ec6676cd87f087c41aa4a89ded",
+"db/d47/MigrationPlan_8hpp_source.html",
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#adeb820498dd1bc9a5c575244e1bdf853",
+"index.html#mapping-query-to-multiple-struct"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
