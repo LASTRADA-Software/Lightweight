@@ -70,24 +70,33 @@ namespace SqlSchema
 
     /// Compares the rows of one table across two databases.
     ///
-    /// Both @p a and @p b are expected to contain a table identical to @p tableSchema —
-    /// callers should run the schema diff first and only invoke this for tables that match.
-    /// Pairs rows by primary key (using the columns listed in @c tableSchema.primaryKeys).
-    /// Tables without a primary key are skipped: the returned @ref TableDataDiff has an empty
-    /// @c rows vector and @ref TableDataDiff::skipReason set.
+    /// Each side passes its own @ref Table descriptor: @p tableA describes the table on
+    /// connection @p a, @p tableB on connection @p b. Both descriptors are expected to
+    /// describe the same logical table — callers should run the schema diff first and
+    /// only invoke this for tables that match — but their engine-specific schema labels
+    /// (`dbo` vs `public` vs `""`) may differ. Each side's SELECT is qualified with its
+    /// own schema label so the same query doesn't fail on the other engine.
+    ///
+    /// Column order and primary keys are taken from @p tableA: cross-engine schema
+    /// equivalence guarantees the column names match, and using one side's order keeps
+    /// rows positionally aligned.
     ///
     /// All column values are compared as their ODBC string representation (the same coercion
     /// used by `dbtool exec`). This may produce false positives for floating-point or binary
     /// columns whose textual encoding differs across drivers.
     ///
-    /// @param a            Connection to the left-hand database (already connected).
-    /// @param b            Connection to the right-hand database (already connected).
-    /// @param tableSchema  Schema of the table; columns and primary keys are read from it.
-    /// @param maxRows      Maximum number of rows to scan per side. 0 means unlimited.
-    /// @param onProgress   Optional callback fired ~2 Hz with current scan counters.
+    /// @param a          Connection to the left-hand database (already connected).
+    /// @param b          Connection to the right-hand database (already connected).
+    /// @param tableA     Schema of the table on side A; columns and primary keys are
+    ///                   read from this descriptor.
+    /// @param tableB     Schema of the table on side B; only the schema label is used,
+    ///                   to qualify the SELECT issued against connection @p b.
+    /// @param maxRows    Maximum number of rows to scan per side. 0 means unlimited.
+    /// @param onProgress Optional callback fired ~2 Hz with current scan counters.
     LIGHTWEIGHT_API TableDataDiff DiffTableData(SqlConnection& a,
                                                 SqlConnection& b,
-                                                Table const& tableSchema,
+                                                Table const& tableA,
+                                                Table const& tableB,
                                                 std::size_t maxRows = 0,
                                                 DiffProgressCallback onProgress = {});
 

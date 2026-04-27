@@ -25,7 +25,8 @@ struct ScopedTempFile
 {
     std::filesystem::path path;
 
-    explicit ScopedTempFile(std::filesystem::path p): path(std::move(p))
+    explicit ScopedTempFile(std::filesystem::path p):
+        path(std::move(p))
     {
         std::filesystem::remove(path);
     }
@@ -50,8 +51,7 @@ void SetupUsersTable(SqlConnection& conn, std::vector<std::tuple<int, std::strin
 {
     auto stmt = SqlStatement { conn };
     (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS users");
-    (void) stmt.ExecuteDirect(
-        "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL)");
+    (void) stmt.ExecuteDirect("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL)");
     stmt.Prepare("INSERT INTO users (id, name, email) VALUES (?, ?, ?)");
     for (auto const& [id, name, email]: rows)
         (void) stmt.Execute(id, name, email);
@@ -89,7 +89,7 @@ TEST_CASE("DiffTableData: identical tables produce no row diffs", "[SqlDataDiff]
     SetupUsersTable(connB, rows);
 
     auto const schema = FetchTableSchema(connA, "users");
-    auto const diff = DiffTableData(connA, connB, schema);
+    auto const diff = DiffTableData(connA, connB, schema, schema);
 
     CHECK(diff.rows.empty());
     CHECK(diff.aRowCount == 2);
@@ -106,19 +106,21 @@ TEST_CASE("DiffTableData: detects added, removed, and changed rows", "[SqlDataDi
     auto connA = SqlConnection { SqliteConn(guardA.path) };
     auto connB = SqlConnection { SqliteConn(guardB.path) };
 
-    SetupUsersTable(connA, {
-                               { 1, "alice", "a@x" },
-                               { 2, "bob", "b@x" },
-                               { 3, "carol", "c@x" }, // only in A (removed in B)
-                           });
-    SetupUsersTable(connB, {
-                               { 1, "alice", "a@x" },
-                               { 2, "bob", "b@y" }, // changed: email differs
-                               { 4, "dave", "d@x" }, // only in B (added in B)
-                           });
+    SetupUsersTable(connA,
+                    {
+                        { 1, "alice", "a@x" },
+                        { 2, "bob", "b@x" },
+                        { 3, "carol", "c@x" }, // only in A (removed in B)
+                    });
+    SetupUsersTable(connB,
+                    {
+                        { 1, "alice", "a@x" },
+                        { 2, "bob", "b@y" },  // changed: email differs
+                        { 4, "dave", "d@x" }, // only in B (added in B)
+                    });
 
     auto const schema = FetchTableSchema(connA, "users");
-    auto const diff = DiffTableData(connA, connB, schema);
+    auto const diff = DiffTableData(connA, connB, schema, schema);
 
     REQUIRE(diff.rows.size() == 3);
 
@@ -166,10 +168,53 @@ TEST_CASE("DiffTableData: tables without a primary key are skipped", "[SqlDataDi
     schema.name = "log";
     schema.columns.push_back(Column { .name = "msg", .dialectDependantTypeString = "TEXT" });
 
-    auto const diff = DiffTableData(connA, connB, schema);
+    auto const diff = DiffTableData(connA, connB, schema, schema);
     REQUIRE(diff.skipReason.has_value());
     CHECK(diff.skipReason.value_or("") == "no primary key");
     CHECK(diff.rows.empty());
+}
+
+TEST_CASE("DiffTableData: each side uses its own descriptor to qualify the SELECT", "[SqlDataDiff]")
+{
+    // Regression for cross-engine diff: a postgres-vs-mssql diff failed with
+    // "Invalid object name 'public.schema_migrations'" because the data-diff SELECT
+    // was built once with side A's schema label and reused on side B. The fix takes
+    // one descriptor per side and qualifies each query with its own schema/name.
+    //
+    // We pin this with two SQLite databases that store the same logical table under
+    // different names. With the old single-descriptor API, side B's query would have
+    // referenced side A's name and failed; with the per-side API, each query resolves
+    // on its own connection.
+    auto const tmp = std::filesystem::temp_directory_path();
+    auto const guardA = ScopedTempFile { tmp / "diff_data_perside_a.sqlite" };
+    auto const guardB = ScopedTempFile { tmp / "diff_data_perside_b.sqlite" };
+
+    auto connA = SqlConnection { SqliteConn(guardA.path) };
+    auto connB = SqlConnection { SqliteConn(guardB.path) };
+
+    // Side A holds the table as `users`; side B as `users_b`. Same shape, different name.
+    auto const rows = std::vector<std::tuple<int, std::string, std::string>> {
+        { 1, "alice", "a@x" },
+        { 2, "bob", "b@x" },
+    };
+    SetupUsersTable(connA, rows);
+    {
+        auto stmt = SqlStatement { connB };
+        (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS users_b");
+        (void) stmt.ExecuteDirect("CREATE TABLE users_b (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL)");
+        stmt.Prepare("INSERT INTO users_b (id, name, email) VALUES (?, ?, ?)");
+        for (auto const& [id, name, email]: rows)
+            (void) stmt.Execute(id, name, email);
+    }
+
+    auto const schemaA = FetchTableSchema(connA, "users");
+    auto const schemaB = FetchTableSchema(connB, "users_b");
+    auto const diff = DiffTableData(connA, connB, schemaA, schemaB);
+
+    CHECK_FALSE(diff.skipReason.has_value());
+    CHECK(diff.rows.empty());
+    CHECK(diff.aRowCount == 2);
+    CHECK(diff.bRowCount == 2);
 }
 
 TEST_CASE("DiffTableData: progress callback fires", "[SqlDataDiff]")
@@ -188,7 +233,7 @@ TEST_CASE("DiffTableData: progress callback fires", "[SqlDataDiff]")
 
     auto const schema = FetchTableSchema(connA, "users");
     auto callCount = 0;
-    auto const diff = DiffTableData(connA, connB, schema, 0, [&](DiffProgressEvent const&) { ++callCount; });
+    auto const diff = DiffTableData(connA, connB, schema, schema, 0, [&](DiffProgressEvent const&) { ++callCount; });
 
     CHECK(diff.rows.empty());
     CHECK(callCount >= 1);
