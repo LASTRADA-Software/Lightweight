@@ -6,6 +6,7 @@ add_library(lup2dbtool_lib STATIC
     SqlStatementParser.cpp
     LupSqlParser.cpp
     CodeGenerator.cpp
+    WhereClauseParser.cpp
 )
 target_include_directories(lup2dbtool_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lup2dbtool_lib PUBLIC Lightweight::Lightweight)

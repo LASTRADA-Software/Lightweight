@@ -38,6 +38,33 @@ struct CodeGeneratorConfig
 
     /// Include guard prefix (default: "LUP_MIGRATIONS_")
     std::string includeGuardPrefix = "LUP_MIGRATIONS_";
+
+    /// @brief When set, widen every byte-char column type to its Unicode counterpart:
+    /// `CHAR(n)` → `NChar(n)`, `VARCHAR(n)` → `NVarchar(n)`.
+    ///
+    /// The LUP source files are Windows-1252 encoded — `VARCHAR(n)` means *n bytes of
+    /// codepage text*. That's fine when the target DB also uses codepage VARCHARs, but
+    /// sending UTF-8 data into MSSQL `VARCHAR` causes truncation on multi-byte
+    /// characters (German umlauts, …). When this option is on the generator emits
+    /// `NVARCHAR`, which on MSSQL stores UTF-16 and measures length in characters
+    /// instead of bytes. On SQLite/PostgreSQL the Unicode variants fall back to TEXT
+    /// affinity — same runtime behaviour as `VARCHAR`. Defaults to true because the
+    /// char-counted semantics on MSSQL are the correct behaviour for multi-byte source
+    /// data and the non-MSSQL backends treat it as a no-op.
+    bool forceUnicode = true;
+
+    /// @brief Multiplier applied to every parameterised character-column size.
+    ///
+    /// LUP's `varchar(N)` was authored against codepage backends (Sybase / Oracle / MSSQL
+    /// with cp1252 collation) where `N` is bytes and `byte == character`. PostgreSQL
+    /// (and PG-style varchar in general) treats `N` as *characters*, but the actual
+    /// LUP data already mixes German umlauts that legitimately occupy >1 byte once
+    /// re-encoded as UTF-8 — and several legacy INSERTs are >100 chars long even
+    /// before the multi-byte expansion. Scaling sizes here gives every backend
+    /// enough headroom to accept that data without changing the source SQL.
+    /// Default `1` keeps existing behaviour and tests; bump (typically `2` or `4`)
+    /// when generating migrations for a Unicode-byte-counting dialect like PG.
+    int varcharScale = 1;
 };
 
 /// @brief Generates C++ migration code from parsed migrations.
@@ -56,6 +83,29 @@ class CodeGenerator
                            std::ostream& out,
                            std::vector<CodeGeneratorDiagnostic>& diagnostics) const;
 
+    /// @brief Formats every statement in a migration to its own pre-rendered C++ block.
+    ///
+    /// Each returned string contains the leading comments plus the statement text, indented
+    /// for inclusion inside a function body (i.e. 4-space indent). Use together with
+    /// `GenerateMigrationHeaderComment` and the split-emission helpers in `main.cpp` when a
+    /// migration is large enough to warrant being spread across multiple `.cpp` TUs.
+    [[nodiscard]] std::vector<std::string> GenerateStatementBlocks(
+        ParsedMigration const& migration,
+        std::vector<CodeGeneratorDiagnostic>& diagnostics) const;
+
+    /// @brief Writes the per-migration banner comment (separator + source-file + versions).
+    /// Used by both the single-file and split-file emitters for consistent output.
+    void WriteMigrationHeaderComment(ParsedMigration const& migration, std::ostream& out) const;
+
+    /// @brief Emits a `LIGHTWEIGHT_SQL_RELEASE` marker for the given migration's version.
+    ///
+    /// Each parsed LUP migration file corresponds to exactly one release (the LUP
+    /// version it targets). The emitted marker registers the release with the migration
+    /// manager at static-init time so `dbtool status` and the dbtool-gui can
+    /// surface release progress ("Latest release: 6.8.8 (applied, 1/1 migrations)").
+    /// Shared by the single-file and split-file emitters.
+    void WriteReleaseMarker(ParsedMigration const& migration, std::ostream& out) const;
+
     /// @brief Generates C++ code for multiple migrations (single file mode).
     ///
     /// @param migrations The parsed migrations
@@ -72,19 +122,47 @@ class CodeGenerator
     /// @brief Generates the file footer with namespace closing.
     void GenerateFileFooter(std::ostream& out) const;
 
+    /// @brief Maps a SQL type string (e.g. "long varchar", "decimal(10,2)") to a Lightweight DSL
+    /// type constructor expression (e.g. "Text()", "Decimal(10, 2)").
+    ///
+    /// Input is whitespace-normalized and matched case-insensitively. Multi-word types such as
+    /// `long varchar` and `long varbinary` are supported. Parameterized types are recognized by
+    /// the presence of parentheses with digits. Returns std::unexpected if the type is unknown.
+    ///
+    /// When `forceUnicode` is true, byte-char types are widened: `CHAR(n)` → `NChar(n)`,
+    /// `VARCHAR(n)` → `NVarchar(n)`, `LONG VARCHAR` → `NText`-equivalent (still `Text()`
+    /// in the Lightweight DSL — the dialect formatter handles the MSSQL `NTEXT` mapping).
+    [[nodiscard]] static std::expected<std::string, std::monostate> MapSqlType(
+        std::string_view sqlType, bool forceUnicode = true, int varcharScale = 1);
+
+    /// @brief Writes a CMakeLists.txt for a self-contained migration plugin.
+    ///
+    /// The generated script globs every `lup_*.cpp` beside it and compiles them together
+    /// with the emitted Plugin.cpp into a MODULE library named @p pluginName. The
+    /// parent project can consume it with `add_subdirectory(<output-dir>)`.
+    static void GeneratePluginCMake(std::ostream& out, std::string_view pluginName);
+
+    /// @brief Writes a minimal Plugin.cpp that contains the LIGHTWEIGHT_MIGRATION_PLUGIN()
+    /// entry-point macro and nothing else — migrations self-register via static init.
+    static void GeneratePluginEntryPoint(std::ostream& out);
+
+    /// @brief Escapes a string literal for direct embedding between C++ double quotes.
+    /// Handles `\` and `"`; leaves other characters untouched.
+    [[nodiscard]] static std::string EscapeForCppStringLiteral(std::string_view str);
+
   private:
-    static bool WriteStatementCode(ParsedStatement const& stmt,
-                                   std::ostream& out,
-                                   std::string const& indent,
-                                   std::vector<CodeGeneratorDiagnostic>& diagnostics);
-    static bool WriteCreateTable(CreateTableStmt const& stmt,
-                                 std::ostream& out,
-                                 std::string const& indent,
-                                 std::vector<CodeGeneratorDiagnostic>& diagnostics);
-    static bool WriteAlterTableAddColumn(AlterTableAddColumnStmt const& stmt,
-                                         std::ostream& out,
-                                         std::string const& indent,
-                                         std::vector<CodeGeneratorDiagnostic>& diagnostics);
+    bool WriteStatementCode(ParsedStatement const& stmt,
+                            std::ostream& out,
+                            std::string const& indent,
+                            std::vector<CodeGeneratorDiagnostic>& diagnostics) const;
+    bool WriteCreateTable(CreateTableStmt const& stmt,
+                          std::ostream& out,
+                          std::string const& indent,
+                          std::vector<CodeGeneratorDiagnostic>& diagnostics) const;
+    bool WriteAlterTableAddColumn(AlterTableAddColumnStmt const& stmt,
+                                  std::ostream& out,
+                                  std::string const& indent,
+                                  std::vector<CodeGeneratorDiagnostic>& diagnostics) const;
     static void WriteAlterTableAddForeignKey(AlterTableAddForeignKeyStmt const& stmt,
                                              std::ostream& out,
                                              std::string const& indent);
@@ -101,7 +179,6 @@ class CodeGenerator
     static void WriteDelete(DeleteStmt const& stmt, std::ostream& out, std::string const& indent);
     static void WriteRawSql(RawSqlStmt const& stmt, std::ostream& out, std::string const& indent);
 
-    [[nodiscard]] static std::expected<std::string, std::monostate> MapSqlType(std::string_view sqlType);
     [[nodiscard]] static std::string FormatValueLiteral(std::string_view value);
 
     CodeGeneratorConfig _config;

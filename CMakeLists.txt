@@ -48,6 +48,10 @@ endif()
 option(LIGHTWEIGHT_BUILD_LARGEDB_TOOL "Build large database generator tool" ${LIGHTWEIGHT_BUILD_LARGEDB_TOOL_DEFAULT})
 unset(LIGHTWEIGHT_BUILD_LARGEDB_TOOL_DEFAULT)
 
+# GUI tool (Qt 6) — opt-in. If ON we auto-probe common Qt install locations
+# (C:/Qt, Homebrew qt@6, ~/Qt) and fall back gracefully if nothing is found.
+option(LIGHTWEIGHT_BUILD_GUI "Build the Qt 6 dbtool GUI (src/tools/dbtool-gui)" OFF)
+
 option(LIGHTWEIGHT_BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" OFF)
 option(LIGHTWEIGHT_DOCS_WARN_AS_ERROR "Treat Doxygen warnings as errors" OFF)
 
@@ -176,6 +180,29 @@ set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
 #set(CPACK_PACKAGE_INSTALL_DIRECTORY "Lightweight SQL ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 
 enable_testing()
+
+# Resolve Qt 6 for the optional migrations GUI before descending into tools.
+# When LIGHTWEIGHT_BUILD_GUI=ON we auto-probe common install locations; if
+# nothing is found we downgrade the option to OFF instead of failing the
+# configure, so the rest of the project (library, dbtool, tests) still builds.
+if(LIGHTWEIGHT_BUILD_GUI)
+    include(FindQt)
+    lightweight_probe_qt6(
+        MIN_VERSION 6.8.0
+        REQUIRED_COMPONENTS Core Gui Qml Quick QuickControls2
+        RESULT_VAR _LIGHTWEIGHT_QT6_PROBED
+    )
+    if(NOT _LIGHTWEIGHT_QT6_PROBED)
+        message(WARNING
+            "LIGHTWEIGHT_BUILD_GUI=ON but Qt 6 could not be auto-detected.\n"
+            "Pass -DQt6_DIR=<path-to-qt>/lib/cmake/Qt6 or add the Qt prefix to "
+            "CMAKE_PREFIX_PATH to enable the GUI. Disabling GUI build for now. "
+            "See cmake/FindQt.cmake for the list of probed install locations."
+        )
+        set(LIGHTWEIGHT_BUILD_GUI OFF CACHE BOOL "" FORCE)
+    endif()
+    unset(_LIGHTWEIGHT_QT6_PROBED)
+endif()
 
 add_subdirectory(src/Lightweight)
 

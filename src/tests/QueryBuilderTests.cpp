@@ -1150,15 +1150,15 @@ TEST_CASE_METHOD(SqlTestFixture, "CreateTable with foreign key", "[SqlQueryBuild
         QueryExpectations {
             .sqlite = R"sql(CREATE TABLE "Table" (
                                    "other_id" INTEGER,
-                                   CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                   CONSTRAINT "FK_Table_other_id" FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
                                      );)sql",
             .postgres = R"sql(CREATE TABLE "Table" (
                                    "other_id" INTEGER,
-                                   CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                   CONSTRAINT "FK_Table_other_id" FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
                                      );)sql",
             .sqlServer = R"sql(CREATE TABLE "Table" (
                                    "other_id" INTEGER,
-                                   CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
+                                   CONSTRAINT "FK_Table_other_id" FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id")
                                      );)sql",
         });
 }
@@ -1394,17 +1394,20 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddForeignKeyColumn", "[SqlQueryBui
             return migration.GetPlan();
         },
         QueryExpectations {
+            // SQLite cannot `ALTER TABLE … ADD CONSTRAINT`; the formatter emits a
+            // sentinel that the migration executor translates into a table rebuild.
             .sqlite = R"sql(
                         ALTER TABLE "Table" ADD COLUMN "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                        -- LIGHTWEIGHT_SQLITE_GUARD: ADD_FOREIGN_KEY "Table" "other_id" "OtherTable" "id"
+                        -- ALTER TABLE "Table" ADD CONSTRAINT "FK_Table_other_id" FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
                     )sql",
             .postgres = R"sql(
                         ALTER TABLE "Table" ADD COLUMN "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                        DO $$ BEGIN ALTER TABLE "Table" ADD CONSTRAINT "FK_Table_other_id" FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id"); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
                     )sql",
             .sqlServer = R"sql(
                         ALTER TABLE "Table" ADD "other_id" INTEGER NOT NULL;
-                        ALTER TABLE "Table" ADD CONSTRAINT FK_Table_other_id FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
+                        IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Table_other_id') ALTER TABLE "Table" ADD CONSTRAINT "FK_Table_other_id" FOREIGN KEY ("other_id") REFERENCES "OtherTable"("id");
                     )sql",
         });
 }
@@ -1419,11 +1422,45 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddCompositeForeignKey", "[SqlQuery
             return migration.GetPlan();
         },
         QueryExpectations {
-            // SQLite doesn't support ALTER TABLE ADD CONSTRAINT for foreign keys
-            .sqlite = R"sql(-- AddCompositeForeignKey not supported for OrderItems;)sql",
-            .postgres = R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
-            .sqlServer = R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
+            // SQLite cannot `ALTER TABLE … ADD CONSTRAINT`; the formatter emits a
+            // sentinel that the migration executor translates into a table rebuild.
+            .sqlite = R"sql(
+                        -- LIGHTWEIGHT_SQLITE_GUARD: ADD_COMPOSITE_FOREIGN_KEY "OrderItems" "order_id,product_id" "Catalog" "oid,pid"
+                        -- ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id_product_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog"("oid", "pid");
+                    )sql",
+            // Constraint name now encodes every column so a composite FK whose first
+            // column matches an existing single-column FK doesn't collide on name.
+            .postgres = R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id_product_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
+            .sqlServer = R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id_product_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
         });
+}
+
+TEST_CASE("MSSQL StringLiteral encodes UTF-8 via NCHAR concatenation", "[SqlQueryFormatter][MSSQL]")
+{
+    auto const& formatter = SqlQueryFormatter::SqlServer();
+
+    // ASCII content rendered as a single `N'...'` run.
+    CHECK(formatter.StringLiteral("hello") == "N'hello'");
+    // Empty literal.
+    CHECK(formatter.StringLiteral("") == "N''");
+    // Single-quote escaping inside an ASCII run still uses doubled `''`.
+    CHECK(formatter.StringLiteral("it's") == "N'it''s'");
+    // Multi-byte UTF-8 content (German umlaut) is split out as `NCHAR(N)` so MSSQL's
+    // narrow-codepage parser doesn't decode the UTF-8 bytes as separate Latin-1
+    // characters. `ü` = U+00FC = 252 decimal.
+    CHECK(formatter.StringLiteral("für") == "N'f' + NCHAR(252) + N'r'");
+    // Single-char overload also goes through the encoder.
+    CHECK(formatter.StringLiteral('x') == "N'x'");
+    CHECK(formatter.StringLiteral('\'') == "N''''");
+    // Pure non-ASCII codepoint renders as a bare `NCHAR()` (no surrounding empty `N''`).
+    CHECK(formatter.StringLiteral("ü") == "NCHAR(252)");
+}
+
+// Sanity check: SQLite and PostgreSQL still emit plain `'...'` literals.
+TEST_CASE("Non-MSSQL StringLiteral has no N prefix", "[SqlQueryFormatter]")
+{
+    CHECK(SqlQueryFormatter::Sqlite().StringLiteral("hi") == "'hi'");
+    CHECK(SqlQueryFormatter::PostgrSQL().StringLiteral("hi") == "'hi'");
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Migration Insert", "[SqlQueryBuilder][Migration]")
@@ -1437,7 +1474,10 @@ TEST_CASE_METHOD(SqlTestFixture, "Migration Insert", "[SqlQueryBuilder][Migratio
         QueryExpectations {
             .sqlite = R"sql(INSERT INTO "Users" ("name", "age", "active") VALUES ('John', 30, TRUE))sql",
             .postgres = R"sql(INSERT INTO "Users" ("name", "age", "active") VALUES ('John', 30, TRUE))sql",
-            .sqlServer = R"sql(INSERT INTO "Users" ("name", "age", "active") VALUES ('John', 30, 1))sql",
+            // MSSQL string literals are emitted with the `N'...'` prefix so the parser
+            // treats them as Unicode regardless of the column collation. See
+            // `SqlServerQueryFormatter::StringLiteral` for rationale.
+            .sqlServer = R"sql(INSERT INTO "Users" ("name", "age", "active") VALUES (N'John', 30, 1))sql",
         });
 }
 
@@ -1449,7 +1489,11 @@ TEST_CASE_METHOD(SqlTestFixture, "Migration Update", "[SqlQueryBuilder][Migratio
             migration.Update("Config").Set("value", 100).Where("key", "=", "timeout");
             return migration.GetPlan();
         },
-        QueryExpectations::All(R"sql(UPDATE "Config" SET "value" = 100 WHERE "key" = 'timeout')sql"));
+        QueryExpectations {
+            .sqlite = R"sql(UPDATE "Config" SET "value" = 100 WHERE "key" = 'timeout')sql",
+            .postgres = R"sql(UPDATE "Config" SET "value" = 100 WHERE "key" = 'timeout')sql",
+            .sqlServer = R"sql(UPDATE "Config" SET "value" = 100 WHERE "key" = N'timeout')sql",
+        });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Migration Update multiple columns", "[SqlQueryBuilder][Migration]")
@@ -1460,7 +1504,11 @@ TEST_CASE_METHOD(SqlTestFixture, "Migration Update multiple columns", "[SqlQuery
             migration.Update("Users").Set("name", "Jane").Set("age", 25).Where("id", "=", 1);
             return migration.GetPlan();
         },
-        QueryExpectations::All(R"sql(UPDATE "Users" SET "name" = 'Jane', "age" = 25 WHERE "id" = 1)sql"));
+        QueryExpectations {
+            .sqlite = R"sql(UPDATE "Users" SET "name" = 'Jane', "age" = 25 WHERE "id" = 1)sql",
+            .postgres = R"sql(UPDATE "Users" SET "name" = 'Jane', "age" = 25 WHERE "id" = 1)sql",
+            .sqlServer = R"sql(UPDATE "Users" SET "name" = N'Jane', "age" = 25 WHERE "id" = 1)sql",
+        });
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Migration Delete", "[SqlQueryBuilder][Migration]")

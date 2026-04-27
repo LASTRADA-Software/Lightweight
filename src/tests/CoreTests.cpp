@@ -393,6 +393,24 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect (invalid)", "[Sq
     CHECK(!conn.IsAlive());
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: ctor throws SqlException on bad connection string",
+                 "[SqlConnection]")
+{
+    // Regression: the optional-ctor used to silently discard the `Connect()`
+    // return value, so callers got an unconnected `SqlConnection` instead of
+    // an exception. The downstream failure (e.g. `SqlStatement` allocating on
+    // the unconnected handle) then reported an empty `(0) -` diagnostic
+    // because the real DBC-handle error had been clobbered.
+    auto const bad = Lightweight::SqlConnectionDataSource {
+        .datasource = "shouldNotExist",
+        .username = "shouldNotExist",
+        .password = "shouldNotExist",
+    }.ToConnectionString();
+
+    auto const _ = ScopedSqlNullLogger {};
+    CHECK_THROWS_AS((Lightweight::SqlConnection { std::optional { bad } }), Lightweight::SqlException);
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: reconnect after Close", "[SqlConnection]")
 {
     // This test verifies that SqlConnection can be reused after Close() has been called.

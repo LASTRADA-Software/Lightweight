@@ -67,6 +67,154 @@ EXEC sp_executesql @sql;)",
         return result;
     }
 
+    /// @brief Emits a SQL Server string literal that round-trips arbitrary UTF-8
+    /// content correctly under any database/connection code page.
+    ///
+    /// MSSQL parses the bytes between `'...'` (and `N'...'`) using the client/connection
+    /// ANSI code page — *not* UTF-8. A UTF-8 multi-byte sequence like `0xC3 0xBC` (`ü`)
+    /// embedded raw in `N'...'` is decoded as two separate CP-1252 characters (`Ã¼`),
+    /// which:
+    ///   1. garbles the stored value, and
+    ///   2. inflates the perceived character count, causing legitimate 100-codepoint
+    ///      strings to overflow `NVARCHAR(100)` with `String or binary data would be
+    ///      truncated` (error 2628).
+    ///
+    /// The `N'...'` prefix alone is *not* enough: it tells MSSQL to store as Unicode,
+    /// but doesn't change how the source bytes are decoded.
+    ///
+    /// To get exact round-tripping we split the literal at every non-ASCII codepoint
+    /// and concatenate `NCHAR(N)` calls for each one:
+    ///
+    /// ```
+    /// "EK-Min für x"  →  N'EK-Min f' + NCHAR(252) + N'r x'
+    /// ```
+    ///
+    /// `NCHAR()` takes the Unicode codepoint as an integer and returns the matching
+    /// `nchar(1)`. Concatenation with `+` glues the slices into one Unicode value
+    /// MSSQL counts at exactly the codepoint length our application sees, so
+    /// `lup-truncate`'s codepoint accounting matches the server's char accounting.
+    ///
+    /// Supplementary-plane codepoints (> U+FFFF) are emitted as a UTF-16 surrogate
+    /// pair (two `NCHAR()` calls) — required for any potential emoji or rare CJK in
+    /// the data.
+    [[nodiscard]] std::string StringLiteral(std::string_view value) const noexcept override
+    {
+        return EncodeUnicodeLiteral(value);
+    }
+
+    [[nodiscard]] std::string StringLiteral(char value) const noexcept override
+    {
+        // Single-char path goes through the same encoder so the escaping rules
+        // stay in one place. ASCII fast-paths produce `N'x'` directly.
+        char const buf[1] = { value };
+        return EncodeUnicodeLiteral(std::string_view { buf, 1 });
+    }
+
+  private:
+    /// @brief Decodes the byte length of the UTF-8 sequence starting at `s[i]`.
+    /// Returns `1` (and treats the byte as ASCII) for malformed lead bytes so the
+    /// encoder always makes forward progress.
+    static constexpr std::size_t Utf8SequenceLength(unsigned char c) noexcept
+    {
+        if (c < 0x80) return 1;
+        if (c < 0xC0) return 1; // stray continuation; treat as 1 to advance
+        if (c < 0xE0) return 2;
+        if (c < 0xF0) return 3;
+        return 4;
+    }
+
+    /// @brief Decodes one UTF-8 codepoint at `s[i]`. Returns the codepoint and the
+    /// number of bytes consumed. Malformed sequences yield the lead byte verbatim
+    /// as a single-byte codepoint so the encoder still produces *some* output.
+    static constexpr std::pair<char32_t, std::size_t> DecodeUtf8(std::string_view s, std::size_t i) noexcept
+    {
+        auto const len = Utf8SequenceLength(static_cast<unsigned char>(s[i]));
+        if (len == 1 || i + len > s.size())
+            return { static_cast<char32_t>(static_cast<unsigned char>(s[i])), 1 };
+        char32_t cp = 0;
+        auto const lead = static_cast<unsigned char>(s[i]);
+        switch (len)
+        {
+            case 2: cp = lead & 0x1F; break;
+            case 3: cp = lead & 0x0F; break;
+            case 4: cp = lead & 0x07; break;
+            default: cp = lead; break; // unreachable given the early-return above
+        }
+        for (std::size_t k = 1; k < len; ++k)
+            cp = (cp << 6) | (static_cast<unsigned char>(s[i + k]) & 0x3F);
+        return { cp, len };
+    }
+
+    /// @brief Encodes one codepoint into the running output. ASCII goes verbatim
+    /// (with `'` doubled per SQL escaping); BMP non-ASCII becomes `NCHAR(N)`;
+    /// supplementary-plane codepoints become a surrogate pair.
+    static void AppendCodepoint(std::string& out, bool& inQuotedRun, char32_t cp)
+    {
+        auto const closeRun = [&] {
+            if (inQuotedRun)
+            {
+                out += '\'';
+                inQuotedRun = false;
+            }
+        };
+        auto const openRun = [&] {
+            if (!inQuotedRun)
+            {
+                if (!out.empty())
+                    out += " + ";
+                out += "N'";
+                inQuotedRun = true;
+            }
+        };
+
+        if (cp < 0x80)
+        {
+            openRun();
+            if (cp == '\'')
+                out += "''";
+            else
+                out += static_cast<char>(cp);
+            return;
+        }
+        closeRun();
+        if (!out.empty())
+            out += " + ";
+        if (cp <= 0xFFFF)
+        {
+            out += std::format("NCHAR({})", static_cast<unsigned>(cp));
+            return;
+        }
+        // Supplementary plane: emit a UTF-16 surrogate pair.
+        char32_t const adjusted = cp - 0x10000;
+        char32_t const hi = 0xD800 + (adjusted >> 10);
+        char32_t const lo = 0xDC00 + (adjusted & 0x3FF);
+        out += std::format("NCHAR({}) + NCHAR({})", static_cast<unsigned>(hi), static_cast<unsigned>(lo));
+    }
+
+    /// @brief Top-level encoder: walks the UTF-8 input and emits a T-SQL expression
+    /// that evaluates to the input string under any client code page. Empty inputs
+    /// produce `N''` (the canonical empty Unicode literal).
+    static std::string EncodeUnicodeLiteral(std::string_view value)
+    {
+        if (value.empty())
+            return "N''";
+        std::string out;
+        out.reserve(value.size() + 4);
+        bool inQuotedRun = false;
+        std::size_t i = 0;
+        while (i < value.size())
+        {
+            auto const [cp, len] = DecodeUtf8(value, i);
+            AppendCodepoint(out, inQuotedRun, cp);
+            i += len;
+        }
+        if (inQuotedRun)
+            out += '\'';
+        return out;
+    }
+
+  public:
+
     [[nodiscard]] std::string QualifiedTableName(std::string_view schema, std::string_view table) const override
     {
         if (schema.empty())
@@ -288,7 +436,8 @@ EXEC sp_executesql @sql;)",
         {
             for (auto const& fk: foreignKeys)
             {
-                ss << ",\n    CONSTRAINT " << std::format("\"FK_{}_{}\"", tableName, fk.columns[0]) // Basic name generation
+                ss << ",\n    CONSTRAINT \""
+                   << BuildForeignKeyConstraintName(tableName, fk.columns) << '"'
                    << " FOREIGN KEY (";
 
                 size_t i = 0;
@@ -438,10 +587,17 @@ EXEC sp_executesql @sql;)",
                                 R"(DROP INDEX "{0}_{1}_{2}_index";)", schemaName, tableName, actualCommand.columnName);
                     },
                     [schemaName, tableName](AddForeignKey const& actualCommand) -> std::string {
+                        // Guard with `IF NOT EXISTS (sys.foreign_keys WHERE name=…)` so the
+                        // statement is idempotent. LUP migrations re-add foreign keys that
+                        // earlier ALTER scripts already created (the 4_7_6 vs 5_0_0 overlap),
+                        // and SQL Server has no `ADD CONSTRAINT IF NOT EXISTS`.
+                        auto const fkName = std::format("FK_{}_{}", tableName, actualCommand.columnName);
                         return std::format(
-                            R"(ALTER TABLE {} ADD {};)",
+                            R"(IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = '{0}') ALTER TABLE {1} ADD {2};)",
+                            fkName,
                             FormatTableName(schemaName, tableName),
-                            BuildForeignKeyConstraint(tableName, actualCommand.columnName, actualCommand.referencedColumn));
+                            BuildForeignKeyConstraint(
+                                tableName, actualCommand.columnName, actualCommand.referencedColumn));
                     },
                     [schemaName, tableName](DropForeignKey const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE {} DROP CONSTRAINT "{}";)",
@@ -450,8 +606,9 @@ EXEC sp_executesql @sql;)",
                     },
                     [schemaName, tableName](AddCompositeForeignKey const& actualCommand) -> std::string {
                         std::stringstream ss;
-                        ss << "ALTER TABLE " << FormatTableName(schemaName, tableName) << " ADD CONSTRAINT "
-                           << std::format("\"FK_{}_{}\"", tableName, actualCommand.columns[0]) << " FOREIGN KEY (";
+                        ss << "ALTER TABLE " << FormatTableName(schemaName, tableName) << " ADD CONSTRAINT \""
+                           << BuildForeignKeyConstraintName(tableName, actualCommand.columns)
+                           << "\" FOREIGN KEY (";
 
                         size_t i = 0;
                         for (auto const& col: actualCommand.columns)

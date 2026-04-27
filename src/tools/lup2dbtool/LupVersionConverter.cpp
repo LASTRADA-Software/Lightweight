@@ -32,6 +32,11 @@ std::string LupVersion::ToString() const
     return std::format("{}_{:02}_{:02}", major, minor, patch);
 }
 
+std::string LupVersion::ToDottedString() const
+{
+    return std::format("{}.{}.{}", major, minor, patch);
+}
+
 std::optional<LupVersion> LupVersion::Parse(std::string_view versionStr)
 {
     // Handle formats like "6.8.8" or "6_08_08"
@@ -120,6 +125,12 @@ std::optional<LupVersion> ParseFilename(std::string_view filename)
         version.patch = std::stoi(match[3].str());
         return version;
     }
+
+    // Development placeholder: `upd_m_next_release` is an in-progress migration file
+    // that hasn't been assigned a real version yet. Give it a sentinel version so it
+    // still gets converted and sorts strictly after every real version.
+    if (filenameStr == "upd_m_next_release")
+        return LupVersion { .major = 9999, .minor = 99, .patch = 99 };
 
     return std::nullopt;
 }

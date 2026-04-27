@@ -199,10 +199,17 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
                                 R"(DROP INDEX "{0}_{1}_{2}_index";)", schemaName, tableName, actualCommand.columnName);
                     },
                     [schemaName, tableName](AddForeignKey const& actualCommand) -> std::string {
+                        // Wrap in a `DO $$ … EXCEPTION WHEN duplicate_object …` block so the
+                        // ADD CONSTRAINT becomes idempotent. Several LUP migrations re-add
+                        // foreign keys that earlier ALTER scripts already created (notably
+                        // the 4_7_6 vs 5_0_0 overlap), and PostgreSQL — unlike Sybase — has
+                        // no native `IF NOT EXISTS` for `ADD CONSTRAINT`, so the guard
+                        // belongs in the DDL itself.
                         return std::format(
-                            R"(ALTER TABLE {} ADD {};)",
+                            "DO $$ BEGIN ALTER TABLE {} ADD {}; EXCEPTION WHEN duplicate_object THEN NULL; END $$;",
                             FormatTableName(schemaName, tableName),
-                            BuildForeignKeyConstraint(tableName, actualCommand.columnName, actualCommand.referencedColumn));
+                            BuildForeignKeyConstraint(
+                                tableName, actualCommand.columnName, actualCommand.referencedColumn));
                     },
                     [schemaName, tableName](DropForeignKey const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE {} DROP CONSTRAINT "{}";)",
@@ -211,8 +218,9 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
                     },
                     [schemaName, tableName](AddCompositeForeignKey const& actualCommand) -> std::string {
                         std::stringstream ss;
-                        ss << "ALTER TABLE " << FormatTableName(schemaName, tableName) << " ADD CONSTRAINT "
-                           << std::format("\"FK_{}_{}\"", tableName, actualCommand.columns[0]) << " FOREIGN KEY (";
+                        ss << "ALTER TABLE " << FormatTableName(schemaName, tableName) << " ADD CONSTRAINT \""
+                           << BuildForeignKeyConstraintName(tableName, actualCommand.columns)
+                           << "\" FOREIGN KEY (";
 
                         size_t i = 0;
                         for (auto const& col: actualCommand.columns)
