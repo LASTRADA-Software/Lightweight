@@ -1689,9 +1689,9 @@ int Restore(Options const& options)
     std::size_t maxRows,
     SqlBackup::ProgressManager* progress)
 {
-    auto tablesByName = std::map<std::string, SqlSchema::Table const*> {};
+    auto tablesByNameB = std::map<std::string, SqlSchema::Table const*> {};
     for (auto const& t: tablesB)
-        tablesByName.emplace(t.name, &t);
+        tablesByNameB.emplace(t.name, &t);
 
     auto onProgress = [&](SqlSchema::DiffProgressEvent const& ev) {
         if (!progress)
@@ -1703,8 +1703,10 @@ int Restore(Options const& options)
     auto diffs = std::vector<SqlSchema::TableDataDiff> {};
     for (auto const& tA: tablesA)
     {
-        if (!tablesByName.contains(tA.name))
+        auto const itB = tablesByNameB.find(tA.name);
+        if (itB == tablesByNameB.end())
             continue; // Schema diff already reports "only in A" — skip.
+        auto const& tB = *itB->second;
 
         // Catch per-table errors so one un-diffable table doesn't abort the whole run.
         // Driver-side coercion failures (e.g. "Numeric value out of range" on wide numeric
@@ -1712,7 +1714,7 @@ int Restore(Options const& options)
         auto diff = SqlSchema::TableDataDiff { .tableName = tA.name };
         try
         {
-            diff = SqlSchema::DiffTableData(connA, connB, tA, maxRows, onProgress);
+            diff = SqlSchema::DiffTableData(connA, connB, tA, tB, maxRows, onProgress);
         }
         catch (Lightweight::SqlException const& ex)
         {
