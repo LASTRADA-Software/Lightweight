@@ -28,14 +28,14 @@ namespace Lightweight
             return error.sqlState == "42P07";
         case SqlServerType::SQLITE:
             // SQLite uses generic SQLSTATE, check message
-            return error.message.find("already exists") != std::string::npos;
+            return error.message.contains("already exists");
         case SqlServerType::MYSQL:
             // SQLSTATE 42S01 = Base table or view already exists
             // Native error 1050 = "Table '...' already exists"
             return error.sqlState == "42S01" || error.nativeErrorCode == 1050;
         default:
             // Fallback: check message for common pattern
-            return error.message.find("already exists") != std::string::npos;
+            return error.message.contains("already exists");
     }
 }
 
@@ -57,15 +57,15 @@ namespace Lightweight
             return error.sqlState == "42P01";
         case SqlServerType::SQLITE:
             // SQLite uses generic SQLSTATE, check message
-            return error.message.find("no such table") != std::string::npos;
+            return error.message.contains("no such table");
         case SqlServerType::MYSQL:
             // SQLSTATE 42S02 = Base table or view not found
             // Native error 1146 = "Table '...' doesn't exist"
             return error.sqlState == "42S02" || error.nativeErrorCode == 1146;
         default:
             // Fallback: check message for common patterns
-            return error.message.find("not found") != std::string::npos || error.message.find("no such") != std::string::npos
-                   || error.message.find("does not exist") != std::string::npos;
+            return error.message.contains("not found") || error.message.contains("no such")
+                   || error.message.contains("does not exist");
     }
 }
 
@@ -103,11 +103,11 @@ namespace Lightweight
         return true;
 
     // SQLite-specific busy/locked conditions
-    if (error.message.find("database is locked") != std::string::npos)
+    if (error.message.contains("database is locked"))
         return true;
-    if (error.message.find("SQLITE_BUSY") != std::string::npos)
+    if (error.message.contains("SQLITE_BUSY"))
         return true;
-    if (error.message.find("SQLITE_LOCKED") != std::string::npos)
+    if (error.message.contains("SQLITE_LOCKED"))
         return true;
 
     // SQL Server specific transient errors
@@ -144,7 +144,7 @@ namespace Lightweight
             return error.sqlState == "23505";
         case SqlServerType::SQLITE:
             // SQLite uses generic SQLSTATE, check message
-            return error.message.find("UNIQUE constraint failed") != std::string::npos;
+            return error.message.contains("UNIQUE constraint failed");
         case SqlServerType::MYSQL:
             // Native error 1062 = Duplicate entry for key
             return error.nativeErrorCode == 1062;
@@ -170,7 +170,7 @@ namespace Lightweight
             return error.sqlState == "23503";
         case SqlServerType::SQLITE:
             // SQLite uses generic SQLSTATE, check message
-            return error.message.find("FOREIGN KEY constraint failed") != std::string::npos;
+            return error.message.contains("FOREIGN KEY constraint failed");
         case SqlServerType::MYSQL:
             // Native error 1451 = Cannot delete or update a parent row
             // Native error 1452 = Cannot add or update a child row

@@ -64,9 +64,9 @@ TEST_CASE("StandardProgressManager settles finished items", "[dbtool][StandardPr
 
     std::string const output = out.str();
     REQUIRE_FALSE(output.empty());
-    REQUIRE(output.find("Table1") != std::string::npos);
-    REQUIRE(output.find("Table2") != std::string::npos);
-    REQUIRE(output.find("Total time:") != std::string::npos);
+    REQUIRE(output.contains("Table1"));
+    REQUIRE(output.contains("Table2"));
+    REQUIRE(output.contains("Total time:"));
 }
 
 TEST_CASE("AddTotalItems accumulates correctly", "[dbtool][StandardProgressManager]")
@@ -87,7 +87,7 @@ TEST_CASE("AddTotalItems accumulates correctly", "[dbtool][StandardProgressManag
 
     std::string const output = out.str();
     // After AllDone, the total row count should be 225 (100 + 50 + 75)
-    REQUIRE(output.find("225 rows processed") != std::string::npos);
+    REQUIRE(output.contains("225 rows processed"));
 }
 
 TEST_CASE("Summary shows counting when total unknown", "[dbtool][StandardProgressManager]")
@@ -113,7 +113,7 @@ TEST_CASE("Summary shows counting when total unknown", "[dbtool][StandardProgres
 
     std::string const output = out.str();
     // When total is unknown (0), the summary should show "counting..."
-    REQUIRE(output.find("counting...") != std::string::npos);
+    REQUIRE(output.contains("counting..."));
 }
 
 TEST_CASE("AllDone shows 100% after capping at 99%", "[dbtool][StandardProgressManager]")
@@ -142,15 +142,15 @@ TEST_CASE("AllDone shows 100% after capping at 99%", "[dbtool][StandardProgressM
     std::string const midOutput = out.str();
     // Before AllDone, even with 100% completion, progress should be capped at 99%
     // The summary line should show a percentage less than 100
-    REQUIRE(midOutput.find("99") != std::string::npos);
+    REQUIRE(midOutput.contains("99"));
 
     // Now call AllDone
     pm.AllDone();
 
     std::string const finalOutput = out.str();
     // After AllDone, we should see 100% (or the final summary showing all rows processed)
-    REQUIRE(finalOutput.find("100") != std::string::npos);
-    REQUIRE(finalOutput.find("1000 rows processed") != std::string::npos);
+    REQUIRE(finalOutput.contains("100"));
+    REQUIRE(finalOutput.contains("1000 rows processed"));
 }
 
 TEST_CASE("Progress capped at 99% before AllDone", "[dbtool][StandardProgressManager]")
@@ -180,5 +180,5 @@ TEST_CASE("Progress capped at 99% before AllDone", "[dbtool][StandardProgressMan
     // Despite processing 100% of items, the display should still show 99% max
     // because we haven't called AllDone() yet
     // The output should contain 99.xx% somewhere in the progress line
-    REQUIRE(output.find("99") != std::string::npos);
+    REQUIRE(output.contains("99"));
 }

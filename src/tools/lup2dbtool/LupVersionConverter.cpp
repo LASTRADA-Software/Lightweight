@@ -126,12 +126,12 @@ std::optional<LupVersion> ParseFilename(std::string_view filename)
 
 bool IsInitMigration(std::string_view filename)
 {
-    return filename.find("init_m_") != std::string_view::npos;
+    return filename.contains("init_m_");
 }
 
 bool IsUpdateMigration(std::string_view filename)
 {
-    return filename.find("upd_m_") != std::string_view::npos;
+    return filename.contains("upd_m_");
 }
 
 } // namespace Lup2DbTool

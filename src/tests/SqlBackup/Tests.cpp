@@ -879,7 +879,7 @@ TEST_CASE("SqlBackup: Time Columns", "[SqlBackup]")
             // The string format may vary by database/ODBC driver:
             // - MSSQL: "14:30:45.12345" (5-7 fractional digits)
             // - PostgreSQL: "14:30:45.123456" or "14:30:45" (may omit trailing zeros)
-            if (t1str->find('.') != std::string::npos)
+            if (t1str->contains('.'))
             {
                 // Has decimal point - verify fractional part starts with "123"
                 auto const dotPos = t1str->find('.');
@@ -1072,7 +1072,7 @@ TEST_CASE("SqlBackup: Decimal Precision", "[SqlBackup]")
         REQUIRE(v6.has_value());
         REQUIRE(v6->find("-") == 0); // Should start with negative sign
         // Verify significant digits are preserved
-        REQUIRE(v6->find("99999999999999") != std::string::npos);
+        REQUIRE(v6->contains("99999999999999"));
 
         // Cleanup
         stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTableIfExists("decimal_backup_test"); });
@@ -1328,7 +1328,7 @@ TEST_CASE("SqlBackup: Restore nonexistent file", "[SqlBackup]")
     // Should not throw, but should report error via progress
     REQUIRE_NOTHROW(SqlBackup::Restore(nonexistentFile, GetConnectionString(), 1, pm));
     REQUIRE(errorReceived);
-    REQUIRE(errorMessage.find("does not exist") != std::string::npos);
+    REQUIRE(errorMessage.contains("does not exist"));
 }
 
 TEST_CASE("SqlBackup: Restore with invalid ZIP file", "[SqlBackup]")
@@ -1453,7 +1453,7 @@ TEST_CASE("SqlBackup: ParseSchema with unknown column type", "[SqlBackup]")
 
     bool warningReceived = false;
     LambdaProgressManager pm { [&](SqlBackup::Progress const& p) {
-        if (p.state == SqlBackup::Progress::State::Warning && p.message.find("unknown type") != std::string::npos)
+        if (p.state == SqlBackup::Progress::State::Warning && p.message.contains("unknown type"))
             warningReceived = true;
     } };
 
@@ -1622,7 +1622,7 @@ TEST_CASE("SqlBackup: Restore rejects unsupported format version", "[SqlBackup]"
 
     REQUIRE_NOTHROW(SqlBackup::Restore(modifiedBackup, GetConnectionString(), 1, errorPm));
     REQUIRE(errorReceived);
-    REQUIRE(errorMessage.find("Unsupported backup format version") != std::string::npos);
+    REQUIRE(errorMessage.contains("Unsupported backup format version"));
 
     // Cleanup
     {

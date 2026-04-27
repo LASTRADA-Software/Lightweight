@@ -31,9 +31,9 @@ bool IsTransientError(SqlErrorInfo const& error)
         return true;
 
     // Database locked (common in SQLite)
-    if (error.message.find("database is locked") != std::string::npos)
+    if (error.message.contains("database is locked"))
         return true;
-    if (error.message.find("SQLITE_BUSY") != std::string::npos)
+    if (error.message.contains("SQLITE_BUSY"))
         return true;
 
     return false;

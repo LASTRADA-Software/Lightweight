@@ -1421,8 +1421,10 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddCompositeForeignKey", "[SqlQuery
         QueryExpectations {
             // SQLite doesn't support ALTER TABLE ADD CONSTRAINT for foreign keys
             .sqlite = R"sql(-- AddCompositeForeignKey not supported for OrderItems;)sql",
-            .postgres = R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
-            .sqlServer = R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
+            .postgres =
+                R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
+            .sqlServer =
+                R"sql(ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog" ("oid", "pid");)sql",
         });
 }
 

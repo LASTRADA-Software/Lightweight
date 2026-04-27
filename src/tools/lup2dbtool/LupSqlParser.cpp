@@ -213,7 +213,7 @@ namespace
             if (!currentStatement.empty())
             {
                 auto parsed = ParseSqlStatement(currentStatement);
-                migration.statements.push_back({ std::move(currentComments), std::move(parsed) });
+                migration.statements.push_back({ .comments=std::move(currentComments), .statement=std::move(parsed) });
                 currentComments.clear();
                 currentStatement.clear();
                 parenBalance = 0;

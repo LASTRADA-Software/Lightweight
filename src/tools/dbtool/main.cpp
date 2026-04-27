@@ -1022,11 +1022,11 @@ class SimpleEventProgressManager: public Lightweight::SqlBackup::ErrorTrackingPr
 
         if (p.state == SqlBackup::Progress::State::Warning)
         {
-            _issuesByTable[p.tableName].push_back({ p.message, Tools::IssueType::Warning });
+            _issuesByTable[p.tableName].push_back({ .message=p.message, .type=Tools::IssueType::Warning });
         }
         if (p.state == SqlBackup::Progress::State::Error)
         {
-            _issuesByTable[p.tableName].push_back({ p.message, Tools::IssueType::Error });
+            _issuesByTable[p.tableName].push_back({ .message=p.message, .type=Tools::IssueType::Error });
         }
     }
 

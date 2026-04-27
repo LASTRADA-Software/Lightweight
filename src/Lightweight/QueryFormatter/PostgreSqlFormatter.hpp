@@ -62,7 +62,7 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         // Detect PostgreSQL auto-increment columns by checking for nextval() in default value.
         // This handles restore of backed-up tables where SERIAL columns have their default
         // value captured as nextval('"TableName_id_seq"'::regclass).
-        bool const isAutoIncrementViaDefault = column.defaultValue.find("nextval(") != std::string::npos;
+        bool const isAutoIncrementViaDefault = column.defaultValue.contains("nextval(");
         bool const isAutoIncrement = column.primaryKey == SqlPrimaryKeyType::AUTO_INCREMENT || isAutoIncrementViaDefault;
 
         if (isAutoIncrement)

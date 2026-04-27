@@ -77,7 +77,7 @@ void SetupBenchmarkDatabase(size_t rows)
     (void) stmt.ExecuteDirect("BEGIN TRANSACTION");
     stmt.Prepare("INSERT INTO bench_table (val_int, val_real, val_text) VALUES (?, ?, ?)");
 
-    std::mt19937 gen(42); // fixed seed
+    std::mt19937 gen(42); // fixed seed for reproducibility // NOLINT(bugprone-random-generator-seed)
     std::uniform_int_distribution<int64_t> distInt(0, 1000000);
     std::uniform_real_distribution<double> distReal(0.0, 1000000.0);
 
