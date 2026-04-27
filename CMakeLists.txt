@@ -51,6 +51,10 @@ unset(LIGHTWEIGHT_BUILD_LARGEDB_TOOL_DEFAULT)
 option(LIGHTWEIGHT_BUILD_DOCUMENTATION "Create and install the HTML based API documentation (requires Doxygen)" OFF)
 option(LIGHTWEIGHT_DOCS_WARN_AS_ERROR "Treat Doxygen warnings as errors" OFF)
 
+# Optional Tracy profiler integration. When ON, fetches Tracy
+# via vcpkg if available, otherwise via CPM
+option(LIGHTWEIGHT_ENABLE_TRACY "Enable Tracy profiler instrumentation in the Lightweight library and downstream code" OFF)
+
 if(LIGHTWEIGHT_BUILD_MODULES)
     if(CMAKE_VERSION VERSION_LESS "3.28")
         message(FATAL_ERROR "C++20 module support requires CMake 3.28 or higher. Current version: ${CMAKE_VERSION}")
@@ -94,6 +98,26 @@ else()
         EXCLUDE_FROM_ALL YES
         SYSTEM YES
     )
+endif()
+
+# Tracy profiler (optional). Prefer vcpkg (`vcpkg install lightweight[tracy]`),
+# fall back to CPM for non-vcpkg builds.
+if(LIGHTWEIGHT_ENABLE_TRACY)
+    find_package(Tracy CONFIG QUIET)
+    if(Tracy_FOUND)
+        message(STATUS "Tracy profiler found via find_package")
+    else()
+        message(STATUS "Tracy not found via find_package - downloading via CPM")
+        set(TRACY_ENABLE ON CACHE BOOL "" FORCE)
+        set(TRACY_ON_DEMAND ON CACHE BOOL "" FORCE)
+        CPMAddPackage(
+            NAME tracy
+            GITHUB_REPOSITORY wolfpld/tracy
+            GIT_TAG v0.13.1
+            EXCLUDE_FROM_ALL YES
+            SYSTEM YES
+        )
+    endif()
 endif()
 
 # libzip support (Linux only)

@@ -10,6 +10,7 @@
 #include "SqlConnection.hpp"
 #include "SqlQuery.hpp"
 #include "SqlServerType.hpp"
+#include "TracyProfiler.hpp"
 #include "Utils.hpp"
 
 #include <cstring>
@@ -697,6 +698,8 @@ SqlResultCursor SqlStatement::Execute(Args const&... args)
     // such that we can call SQLBindParameter() without needing to copy it.
     // The memory region behind the input parameter must exist until the SQLExecute() call.
 
+    ZoneScopedN("SqlStatement::Execute");
+    ZoneTextObject(m_preparedQuery);
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
     if (!(m_expectedParameterCount == (std::numeric_limits<decltype(m_expectedParameterCount)>::max)()
@@ -755,10 +758,14 @@ SqlResultCursor SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstCo
     static_assert(SqlNativeBatchable<FirstColumnBatch, MoreColumnBatches...>,
                   "Must be a supported native contiguous element type.");
 
+    ZoneScopedN("SqlStatement::ExecuteBatchNative");
+    ZoneTextObject(m_preparedQuery);
+
     if (m_expectedParameterCount != 1 + sizeof...(moreColumnBatches))
         throw std::invalid_argument { "Invalid number of columns" };
 
     auto const rowCount = std::ranges::size(firstColumnBatch);
+    ZoneValue(rowCount);
     if (!((std::size(moreColumnBatches) == rowCount) && ...))
         throw std::invalid_argument { "Uneven number of rows" };
 
@@ -800,10 +807,14 @@ template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... M
 SqlResultCursor SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColumnBatch,
                                                MoreColumnBatches const&... moreColumnBatches)
 {
+    ZoneScopedN("SqlStatement::ExecuteBatchSoft");
+    ZoneTextObject(m_preparedQuery);
+
     if (m_expectedParameterCount != 1 + sizeof...(moreColumnBatches))
         throw std::invalid_argument { "Invalid number of columns" };
 
     auto const rowCount = std::ranges::size(firstColumnBatch);
+    ZoneValue(rowCount);
     if (!((std::size(moreColumnBatches) == rowCount) && ...))
         throw std::invalid_argument { "Uneven number of rows" };
 
@@ -879,9 +890,11 @@ template <typename Callable>
     requires std::invocable<Callable, SqlMigrationQueryBuilder&>
 void SqlStatement::MigrateDirect(Callable const& callable, std::source_location location)
 {
+    ZoneScopedN("SqlStatement::MigrateDirect");
     auto migration = SqlMigrationQueryBuilder { Connection().QueryFormatter() };
     callable(migration);
     auto const queries = migration.GetPlan().ToSql();
+    ZoneValue(queries.size());
     for (auto const& query: queries)
     {
         [[maybe_unused]] auto cursor = ExecuteDirect(query, location);

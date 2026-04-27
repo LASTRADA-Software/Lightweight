@@ -3,6 +3,7 @@
 #include "../SqlQueryFormatter.hpp"
 #include "../SqlStatement.hpp"
 #include "../SqlTransaction.hpp"
+#include "../TracyProfiler.hpp"
 #include "BatchManager.hpp"
 #include "Common.hpp"
 #include "MsgPackChunkFormats.hpp"
@@ -112,6 +113,9 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChunkInfo const& chunk, size_t batchCapacity)
 {
+    ZoneScopedN("SqlBackup::RestoreChunkData");
+    ZoneTextObject(chunk.tableName);
+    ZoneValue(batchCapacity);
     auto const& tableInfo = *chunk.tableInfo;
     std::string const& tableName = chunk.tableName;
     std::string const& path = chunk.chunkPath;
@@ -152,7 +156,8 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                 if (hasIdentity)
                 {
                     identityTable = FormatTableName(ctx.schema, tableName);
-                    (void) SqlStatement { workerConn }.ExecuteDirect(std::format("SET IDENTITY_INSERT {} ON", identityTable));
+                    (void) SqlStatement { workerConn }.ExecuteDirect(
+                        std::format("SET IDENTITY_INSERT {} ON", identityTable));
                 }
             }
 
@@ -228,7 +233,8 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
             {
                 try
                 {
-                    (void) SqlStatement { workerConn }.ExecuteDirect(std::format("SET IDENTITY_INSERT {} OFF", identityTable));
+                    (void) SqlStatement { workerConn }.ExecuteDirect(
+                        std::format("SET IDENTITY_INSERT {} OFF", identityTable));
                 }
                 catch (...) // NOLINT(bugprone-empty-catch)
                 {

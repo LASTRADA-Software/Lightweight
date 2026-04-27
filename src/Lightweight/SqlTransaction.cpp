@@ -2,6 +2,7 @@
 
 #include "SqlConnection.hpp"
 #include "SqlTransaction.hpp"
+#include "TracyProfiler.hpp"
 
 namespace Lightweight
 {
@@ -50,6 +51,7 @@ SqlTransaction::~SqlTransaction() noexcept
 
 bool SqlTransaction::TryRollback() noexcept
 {
+    ZoneScopedN("SqlTransaction::TryRollback");
     SQLRETURN sqlReturn = SQLEndTran(SQL_HANDLE_DBC, NativeHandle(), SQL_ROLLBACK);
     if (sqlReturn != SQL_SUCCESS && sqlReturn != SQL_SUCCESS_WITH_INFO)
     {
@@ -71,6 +73,7 @@ bool SqlTransaction::TryRollback() noexcept
 // Commit the transaction
 bool SqlTransaction::TryCommit() noexcept
 {
+    ZoneScopedN("SqlTransaction::TryCommit");
     SQLRETURN sqlReturn = SQLEndTran(SQL_HANDLE_DBC, NativeHandle(), SQL_COMMIT);
     if (sqlReturn != SQL_SUCCESS && sqlReturn != SQL_SUCCESS_WITH_INFO)
     {

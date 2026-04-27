@@ -96,6 +96,7 @@ set(HEADER_FILES
     SqlScopedTraceLogger.hpp
     SqlServerType.hpp
     SqlStatement.hpp
+    TracyProfiler.hpp
 )
 
 set(SOURCE_FILES
@@ -185,6 +186,11 @@ target_include_directories(Lightweight PUBLIC
 
 target_link_libraries(Lightweight PUBLIC reflection-cpp::reflection-cpp)
 target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>)
+
+if(LIGHTWEIGHT_ENABLE_TRACY)
+    target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_TRACY_ENABLED)
+    target_link_libraries(Lightweight PUBLIC Tracy::TracyClient)
+endif()
 
 if(MSVC)
     if(PEDANTIC_COMPILER)
