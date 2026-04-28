@@ -113,6 +113,8 @@ void PrintUsage()
 
     std::println("{}Commands:{}", c.heading, c.reset);
     std::println("  {}migrate{}                  Applies pending migrations", c.command, c.reset);
+    std::println("  {}migrate-to-release{} {}<VERSION>{}  Applies pending migrations up to and including the named release",
+                 c.command, c.reset, c.param, c.reset);
     std::println("  {}list-pending{}             Lists pending migrations", c.command, c.reset);
     std::println("  {}list-applied{}             Lists applied migrations", c.command, c.reset);
     std::println("  {}apply{} {}<TIMESTAMP>{}        Applies the migration with the given timestamp",
@@ -228,6 +230,14 @@ void PrintExamples()
     std::println("  {}# Rollback a specific migration:{}", c.example, c.reset);
     std::println("  {}dbtool rollback 20230101000000 --connection-string \"DRIVER=SQLite3;Database=test.db\"{}",
                  c.code, c.reset);
+    std::println("");
+
+    std::println("  {}# Migrate up to (and including) a named release:{}", c.example, c.reset);
+    std::println("  {}dbtool migrate-to-release 1.0.0{}", c.code, c.reset);
+    std::println("");
+
+    std::println("  {}# Preview the SQL that would run up to release 1.0.0:{}", c.example, c.reset);
+    std::println("  {}dbtool migrate-to-release 1.0.0 --dry-run{}", c.code, c.reset);
     std::println("");
 
     std::println("  {}# Backup entire database:{}", c.example, c.reset);
@@ -1273,6 +1283,78 @@ int Releases(MigrationManager& manager)
     return EXIT_SUCCESS;
 }
 
+/// Applies all pending migrations whose timestamp is `<= highestTimestamp` of the named release.
+///
+/// Forward-only counterpart of `RollbackToRelease`: if the database is already at or past the
+/// target release, this is a no-op. To go *back* to an earlier release, use `rollback-to-release`.
+///
+/// @param manager The migration manager instance.
+/// @param argument The target release version string.
+/// @param dryRun When true, print the SQL that would be executed without touching the database.
+/// @return EXIT_SUCCESS on success, EXIT_FAILURE on error.
+int MigrateToRelease(MigrationManager& manager, std::string_view argument, bool dryRun)
+{
+    if (argument.empty())
+    {
+        std::println(std::cerr, "Error: Target release version is required.");
+        return EXIT_FAILURE;
+    }
+
+    auto const* release = manager.FindReleaseByVersion(argument);
+    if (!release)
+    {
+        std::println(std::cerr, "Error: Release '{}' is not declared.", argument);
+        return EXIT_FAILURE;
+    }
+
+    // Forward-only: refuse to silently revert if the user is already past the target.
+    auto const applied = manager.GetAppliedMigrationIds();
+    auto const highestApplied = std::ranges::max_element(
+        applied, {}, [](MigrationTimestamp ts) { return ts.value; });
+    if (highestApplied != applied.end() && highestApplied->value >= release->highestTimestamp.value)
+    {
+        std::println("Database is already at or past release '{}' (highest applied: {}, release boundary: {}).",
+                     argument,
+                     highestApplied->value,
+                     release->highestTimestamp.value);
+        std::println("Use `dbtool rollback-to-release {}` to go back.", argument);
+        return EXIT_SUCCESS;
+    }
+
+    if (dryRun)
+    {
+        std::println("-- Dry run: SQL that would be executed up to release '{}' (timestamp {})\n",
+                     release->version,
+                     release->highestTimestamp.value);
+        auto statements = manager.PreviewPendingMigrationsUpTo(
+            release->highestTimestamp, [](MigrationBase const& m, size_t i, size_t n) {
+                std::println("-- [{}/{}] Migration: {} - {}", i + 1, n, m.GetTimestamp().value, m.GetTitle());
+            });
+
+        if (statements.empty())
+        {
+            std::println("-- No pending migrations up to release '{}'.", argument);
+        }
+        else
+        {
+            for (auto const& sql: statements)
+                std::println("{};", sql);
+            std::println("\n-- Total: {} SQL statements", statements.size());
+        }
+        return EXIT_SUCCESS;
+    }
+
+    std::println("Applying pending migrations up to release '{}' (timestamp {})...",
+                 release->version,
+                 release->highestTimestamp.value);
+    size_t const count =
+        manager.ApplyPendingMigrationsUpTo(release->highestTimestamp, [](MigrationBase const& m, size_t i, size_t n) {
+            std::println("[{}/{}] Applying {} {}", i + 1, n, m.GetTimestamp().value, m.GetTitle());
+        });
+    std::println("Applied {} migration(s) up to release '{}'.", count, argument);
+    return EXIT_SUCCESS;
+}
+
 /// Rolls back all migrations applied after the release identified by `version`.
 ///
 /// Resolves `version` to its `highestTimestamp` and delegates to `RevertToMigration`. Migrations
@@ -2220,6 +2302,12 @@ int DispatchDbCommand(Options const& options)
         auto& manager = GetMigrationManager(options);
         OptionalMigrationLock const lock(manager, options.noLock);
         return RollbackToRelease(manager, options.argument);
+    }
+    if (options.command == "migrate-to-release")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        return MigrateToRelease(manager, options.argument, options.dryRun);
     }
     if (options.command == "mark-applied")
     {

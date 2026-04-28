@@ -74,6 +74,26 @@ Use `--dry-run` to preview SQL without executing:
 dbtool migrate --dry-run --connection-string "..."
 ```
 
+### migrate-to-release \<VERSION\>
+
+Apply pending migrations up to (and including) the named release. Forward-only:
+if the database is already at or past the target release, the command is a
+no-op and prints a hint pointing at `rollback-to-release`. Pair with
+`--dry-run` (`-n`) to preview the SQL without touching the database.
+
+```bash
+dbtool migrate-to-release 1.0.0
+dbtool migrate-to-release 1.0.0 --dry-run
+```
+
+The release version must match a `LIGHTWEIGHT_SQL_RELEASE(...)` declaration
+shipped by one of the loaded plugins. Use `dbtool releases` to list them.
+
+If a pending migration whose timestamp is `<= release.highestTimestamp`
+declares a dependency on a migration whose timestamp is `>` the release
+boundary (and is not already applied), `migrate-to-release` refuses to run
+rather than applying a partial state that violates the dependency contract.
+
 ### list-pending
 
 List migrations waiting to be applied:

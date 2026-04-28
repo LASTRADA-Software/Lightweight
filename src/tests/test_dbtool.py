@@ -198,6 +198,42 @@ def main():
         print(f"rollback-to-release 1.0.0 incorrectly reverted a migration inside the release:\n{output}")
         sys.exit(1)
 
+    print("--- 7b1. migrate-to-release dry-run ---")
+    dry_result = run_command(base_cmd + ["migrate-to-release", "2.0.0", "--dry-run"])
+    if "Second Plugin Migration" not in dry_result.stdout:
+        print(f"migrate-to-release --dry-run did not preview the plugin 2 migration:\n{dry_result.stdout}")
+        sys.exit(1)
+    output = run_command(base_cmd + ["list-applied"]).stdout
+    if "Second Plugin Migration" in output:
+        print(f"migrate-to-release --dry-run unexpectedly applied the plugin 2 migration:\n{output}")
+        sys.exit(1)
+
+    print("--- 7b2. migrate-to-release with unknown release ---")
+    bad_result = run_command(base_cmd + ["migrate-to-release", "does-not-exist"], check=False)
+    if bad_result.returncode == 0:
+        print("migrate-to-release with unknown version unexpectedly succeeded")
+        sys.exit(1)
+    if "not declared" not in bad_result.stderr:
+        print(f"migrate-to-release error message did not mention 'not declared':\n{bad_result.stderr}")
+        sys.exit(1)
+
+    print("--- 7b3. migrate-to-release when already at release ---")
+    same_result = run_command(base_cmd + ["migrate-to-release", "1.0.0"])
+    if "already at or past" not in same_result.stdout:
+        print(f"migrate-to-release at boundary did not report already-at-target:\n{same_result.stdout}")
+        sys.exit(1)
+    output = run_command(base_cmd + ["list-applied"]).stdout
+    if "Second Plugin Migration" in output:
+        print(f"migrate-to-release at boundary should not advance state:\n{output}")
+        sys.exit(1)
+
+    print("--- 7b4. migrate-to-release happy path ---")
+    run_command(base_cmd + ["migrate-to-release", "2.0.0"])
+    output = run_command(base_cmd + ["list-applied"]).stdout
+    if "Second Plugin Migration" not in output:
+        print(f"migrate-to-release 2.0.0 did not advance to plugin 2 migration:\n{output}")
+        sys.exit(1)
+
     print("--- 7c. Re-apply after release rollback ---")
     run_command(base_cmd + ["migrate"])
     output = run_command(base_cmd + ["list-applied"]).stdout
