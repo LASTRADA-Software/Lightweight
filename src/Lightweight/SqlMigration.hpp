@@ -272,6 +272,25 @@ namespace SqlMigration
         /// @return Number of applied migrations.
         LIGHTWEIGHT_API size_t ApplyPendingMigrations(ExecuteCallback const& feedbackCallback = {});
 
+        /// Apply pending migrations whose timestamp is <= `targetInclusive`.
+        ///
+        /// Honors dependency-respecting topological order, just like
+        /// `ApplyPendingMigrations`, and threads a single render context across
+        /// the run so column-width state from earlier CREATE TABLEs is visible
+        /// to later compat-aware INSERT/UPDATE rendering.
+        ///
+        /// If a pending migration with `ts <= target` declares a dependency on
+        /// a migration whose timestamp is `> target` (i.e. excluded by the
+        /// bound) and is not already applied, this throws — partial states
+        /// that violate dependencies are refused up front.
+        ///
+        /// @param targetInclusive Highest timestamp to apply (inclusive).
+        /// @param feedbackCallback Callback to be called for each migration.
+        /// @return Number of applied migrations (may be zero if already past `targetInclusive`).
+        /// @throws std::runtime_error if a dependency would cross the boundary.
+        LIGHTWEIGHT_API size_t ApplyPendingMigrationsUpTo(MigrationTimestamp targetInclusive,
+                                                          ExecuteCallback const& feedbackCallback = {});
+
         /// Create the migration history table if it does not exist.
         LIGHTWEIGHT_API void CreateMigrationHistory();
 
@@ -525,6 +544,19 @@ namespace SqlMigration
         /// @return Vector of all SQL statements that would be executed.
         [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> PreviewPendingMigrations(
             ExecuteCallback const& feedbackCallback = {}) const;
+
+        /// Preview SQL for pending migrations whose timestamp is <= `targetInclusive`.
+        ///
+        /// Bounded counterpart of `PreviewPendingMigrations`. Same dependency
+        /// rules as `ApplyPendingMigrationsUpTo`: if any included migration
+        /// depends on an excluded pending migration, this throws.
+        ///
+        /// @param targetInclusive Highest timestamp to preview (inclusive).
+        /// @param feedbackCallback Optional callback to be called for each migration.
+        /// @return Vector of all SQL statements that would be executed.
+        /// @throws std::runtime_error if a dependency would cross the boundary.
+        [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> PreviewPendingMigrationsUpTo(
+            MigrationTimestamp targetInclusive, ExecuteCallback const& feedbackCallback = {}) const;
 
         /// Verify checksums of all applied migrations.
         ///

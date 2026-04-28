@@ -1107,6 +1107,54 @@ void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
     transaction.Commit();
 }
 
+namespace
+{
+    /// Returns those of `pending` whose timestamp is `<= targetInclusive`, preserving the
+    /// caller's order. If any kept migration depends on an excluded (`> targetInclusive`)
+    /// pending migration that is also not in `applied`, throws — applying the kept set
+    /// would violate the dependency contract, and `ValidateDependencies` already passed
+    /// against the unfiltered set so we have to surface this here.
+    std::list<MigrationBase const*> FilterPendingUpTo(std::list<MigrationBase const*> const& pending,
+                                                      MigrationTimestamp targetInclusive,
+                                                      std::vector<MigrationTimestamp> const& applied)
+    {
+        std::unordered_set<uint64_t> appliedSet;
+        appliedSet.reserve(applied.size());
+        for (auto const& a: applied)
+            appliedSet.insert(a.value);
+
+        std::unordered_set<uint64_t> includedSet;
+        includedSet.reserve(pending.size());
+        for (auto const* m: pending)
+            if (m->GetTimestamp().value <= targetInclusive.value)
+                includedSet.insert(m->GetTimestamp().value);
+
+        for (auto const* m: pending)
+        {
+            if (m->GetTimestamp().value > targetInclusive.value)
+                continue;
+            for (auto const& dep: m->GetDependencies())
+            {
+                if (appliedSet.contains(dep.value) || includedSet.contains(dep.value))
+                    continue;
+                throw std::runtime_error(
+                    std::format("Migration {} (\"{}\") depends on migration {}, which is past the requested "
+                                "target {}. Migrating to this point would violate dependency ordering.",
+                                m->GetTimestamp().value,
+                                m->GetTitle(),
+                                dep.value,
+                                targetInclusive.value));
+            }
+        }
+
+        std::list<MigrationBase const*> result;
+        for (auto const* m: pending)
+            if (m->GetTimestamp().value <= targetInclusive.value)
+                result.push_back(m);
+        return result;
+    }
+} // namespace
+
 size_t MigrationManager::ApplyPendingMigrations(ExecuteCallback const& feedbackCallback)
 {
     ValidateDependencies();
@@ -1130,6 +1178,33 @@ size_t MigrationManager::ApplyPendingMigrations(ExecuteCallback const& feedbackC
 #endif
         if (feedbackCallback)
             feedbackCallback(*migration, static_cast<size_t>(index), _migrations.size());
+        ApplySingleMigration(*migration, context);
+    }
+
+    return pendingMigrations.size();
+}
+
+size_t MigrationManager::ApplyPendingMigrationsUpTo(MigrationTimestamp targetInclusive,
+                                                    ExecuteCallback const& feedbackCallback)
+{
+    ValidateDependencies();
+    auto const pendingMigrations =
+        FilterPendingUpTo(GetPending(), targetInclusive, GetAppliedMigrationIds());
+
+    auto context = MakeRenderContext();
+    context.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
+
+#if !defined(__cpp_lib_ranges_enumerate)
+    int index { -1 };
+    for (auto& migration: pendingMigrations)
+    {
+        ++index;
+#else
+    for (auto&& [index, migration]: pendingMigrations | std::views::enumerate)
+    {
+#endif
+        if (feedbackCallback)
+            feedbackCallback(*migration, static_cast<size_t>(index), pendingMigrations.size());
         ApplySingleMigration(*migration, context);
     }
 
@@ -1177,6 +1252,35 @@ std::vector<std::string> MigrationManager::PreviewPendingMigrations(ExecuteCallb
 
     // See `ApplyPendingMigrations` — shared context so earlier CREATE TABLE widths are
     // visible to later INSERT/UPDATE preview rendering.
+    auto context = MakeRenderContext();
+    context.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
+
+#if !defined(__cpp_lib_ranges_enumerate)
+    int index { -1 };
+    for (auto const* migration: pendingMigrations)
+    {
+        ++index;
+#else
+    for (auto&& [index, migration]: pendingMigrations | std::views::enumerate)
+    {
+#endif
+        if (feedbackCallback)
+            feedbackCallback(*migration, static_cast<size_t>(index), pendingMigrations.size());
+
+        auto statements = PreviewMigrationWithContext(*migration, context);
+        allStatements.insert(allStatements.end(), statements.begin(), statements.end());
+    }
+
+    return allStatements;
+}
+
+std::vector<std::string> MigrationManager::PreviewPendingMigrationsUpTo(
+    MigrationTimestamp targetInclusive, ExecuteCallback const& feedbackCallback) const
+{
+    auto const pendingMigrations =
+        FilterPendingUpTo(GetPending(), targetInclusive, GetAppliedMigrationIds());
+    std::vector<std::string> allStatements;
+
     auto context = MakeRenderContext();
     context.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
 

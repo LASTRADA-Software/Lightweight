@@ -1279,6 +1279,140 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "RollbackToRelease semantics via Rever
     CHECK(appliedIds.back().value == 202810020000);
 }
 
+TEST_CASE_METHOD(SqlMigrationTestFixture, "ApplyPendingMigrationsUpTo applies up to the boundary", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto m1 = SqlMigration::Migration<202811010000>(
+        "up r1", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("up_r1").PrimaryKey("id", Integer()); });
+    auto m2 = SqlMigration::Migration<202811020000>(
+        "up r2", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("up_r2").PrimaryKey("id", Integer()); });
+    auto m3 = SqlMigration::Migration<202811030000>(
+        "up r3", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("up_r3").PrimaryKey("id", Integer()); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.RegisterRelease("up-A", SqlMigration::MigrationTimestamp { 202811020000 });
+
+    manager.CreateMigrationHistory();
+    auto const* releaseA = manager.FindReleaseByVersion("up-A");
+    REQUIRE(releaseA != nullptr);
+
+    auto const applied = manager.ApplyPendingMigrationsUpTo(releaseA->highestTimestamp);
+    CHECK(applied == 2);
+
+    auto const ids = manager.GetAppliedMigrationIds();
+    REQUIRE(ids.size() == 2);
+    CHECK(ids[0].value == 202811010000);
+    CHECK(ids[1].value == 202811020000);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "ApplyPendingMigrationsUpTo with off-boundary target", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto m1 = SqlMigration::Migration<202812010000>(
+        "off r1", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("off_r1").PrimaryKey("id", Integer()); });
+    auto m2 = SqlMigration::Migration<202812020000>(
+        "off r2", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("off_r2").PrimaryKey("id", Integer()); });
+    auto m3 = SqlMigration::Migration<202812030000>(
+        "off r3", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("off_r3").PrimaryKey("id", Integer()); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    // Pick a target strictly between m2 and m3. Expect m1+m2 to be applied; m3 to remain pending.
+    auto const target = SqlMigration::MigrationTimestamp { 202812025000 };
+    CHECK(manager.ApplyPendingMigrationsUpTo(target) == 2);
+
+    auto const ids = manager.GetAppliedMigrationIds();
+    REQUIRE(ids.size() == 2);
+    CHECK(ids.back().value == 202812020000);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "ApplyPendingMigrationsUpTo is a no-op when already at target", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto m1 = SqlMigration::Migration<202813010000>(
+        "noop r1", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("noop_r1").PrimaryKey("id", Integer()); });
+    auto m2 = SqlMigration::Migration<202813020000>(
+        "noop r2", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("noop_r2").PrimaryKey("id", Integer()); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    auto const target = SqlMigration::MigrationTimestamp { 202813020000 };
+    CHECK(manager.ApplyPendingMigrationsUpTo(target) == 2);
+    // Second invocation finds nothing pending below the target — engine returns 0.
+    CHECK(manager.ApplyPendingMigrationsUpTo(target) == 0);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "PreviewPendingMigrationsUpTo emits the same SQL the bounded apply would", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto m1 = SqlMigration::Migration<202814010000>(
+        "prev r1", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("prev_r1").PrimaryKey("id", Integer()); });
+    auto m2 = SqlMigration::Migration<202814020000>(
+        "prev r2", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("prev_r2").PrimaryKey("id", Integer()); });
+    auto m3 = SqlMigration::Migration<202814030000>(
+        "prev r3", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("prev_r3").PrimaryKey("id", Integer()); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    auto const target = SqlMigration::MigrationTimestamp { 202814020000 };
+    auto const previewed = manager.PreviewPendingMigrationsUpTo(target);
+    CHECK_FALSE(previewed.empty());
+    // Preview must not move the database.
+    CHECK(manager.GetAppliedMigrationIds().empty());
+
+    // Each previewed statement must mention only included tables (prev_r1 / prev_r2),
+    // never the excluded m3's table (prev_r3).
+    for (auto const& sql: previewed)
+    {
+        CHECK(sql.find("prev_r3") == std::string::npos);
+    }
+    bool sawR1 = false;
+    bool sawR2 = false;
+    for (auto const& sql: previewed)
+    {
+        if (sql.find("prev_r1") != std::string::npos)
+            sawR1 = true;
+        if (sql.find("prev_r2") != std::string::npos)
+            sawR2 = true;
+    }
+    CHECK(sawR1);
+    CHECK(sawR2);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "ApplyPendingMigrationsUpTo refuses dependency-cross-boundary", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // m_below depends on m_above which is *above* the target — applying m_below alone
+    // would apply a migration whose dependency is unmet. Engine must refuse up front.
+    using MigrationAbove = SqlMigration::Migration<202815020000>;
+
+    auto mAbove = MigrationAbove(
+        "cross above", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("cross_above").PrimaryKey("id", Integer()); });
+
+    auto mBelow = SqlMigration::Migration<202815010000>(
+        "cross below",
+        SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::TimestampOf<MigrationAbove> } },
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("cross_below").PrimaryKey("id", Integer());
+        });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    auto const target = SqlMigration::MigrationTimestamp { 202815010000 };
+    auto const _ = ScopedSqlNullLogger {};
+    CHECK_THROWS_AS(manager.ApplyPendingMigrationsUpTo(target), std::runtime_error);
+    CHECK(manager.GetAppliedMigrationIds().empty());
+}
+
 namespace
 {
 
