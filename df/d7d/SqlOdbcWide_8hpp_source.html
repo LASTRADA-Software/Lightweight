@@ -120,9 +120,9 @@ $(document).ready(function(){initNavTree('df/d7d/SqlOdbcWide_8hpp_source.html','
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>              <span class="stringliteral">&quot;ODBC W variants require a 16-bit code unit; SQLWCHAR shape mismatch&quot;</span>);</div>
 <div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="comment"></span> </div>
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="comment">/// @brief Converts a UTF-8 string view into a `std::u16string` for ODBC W variants.</span></div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="comment">/// Distinct from `ToUtf16(std::string const&amp;)` in `UnicodeConverter.hpp`, which on</span></div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="comment">/// Windows interprets its input as the system ANSI codepage (CP_ACP) — the very</span></div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="comment">/// trap this whole switch to W variants exists to side-step.</span></div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="comment">/// Use this rather than `ToUtf16(std::string const&amp;)` from `UnicodeConverter.hpp`:</span></div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="comment">/// that overload treats its input as the platform narrow encoding (CP_ACP on</span></div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="comment">/// Windows), which silently corrupts UTF-8 bytes &gt;= 0x80.</span></div>
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span><span class="comment"></span><span class="keyword">inline</span> std::u16string OdbcUtf8ToUtf16(std::string_view utf8)</div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>{</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaaf5dbfcee3e69467bc1359226a9f6b2a">ToUtf16</a>(std::u8string_view { <span class="keyword">reinterpret_cast&lt;</span><span class="keywordtype">char8_t</span> const*<span class="keyword">&gt;</span>(utf8.data()), utf8.size() });</div>
