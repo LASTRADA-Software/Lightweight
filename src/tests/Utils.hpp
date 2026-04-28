@@ -4,9 +4,12 @@
 
 #if defined(_WIN32) || defined(_WIN64)
     #include <Windows.h>
+    #include <crtdbg.h>
+    #include <cstdlib>
 #endif
 
 #include <Lightweight/Lightweight.hpp>
+#include <Lightweight/SqlOdbcWide.hpp>
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -362,9 +365,29 @@ class SqlTestFixture
 
     using MainProgramArgs = std::tuple<int, char**>;
 
+    /// @brief Suppress modal Windows error dialogs that would otherwise block
+    /// unattended runs (CI, scripted/AI agents) on `abort()`, CRT debug asserts,
+    /// or Win32 critical errors. The diagnostic still reaches stderr; it just
+    /// does not pop a window that needs a human click.
+    static void SuppressBlockingErrorDialogs()
+    {
+#if defined(_WIN32) || defined(_WIN64)
+        _set_abort_behavior(0, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+        SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+    #if !defined(NDEBUG)
+        for (auto const reportType: { _CRT_ASSERT, _CRT_ERROR, _CRT_WARN })
+        {
+            _CrtSetReportMode(reportType, _CRTDBG_MODE_FILE);
+            _CrtSetReportFile(reportType, _CRTDBG_FILE_STDERR);
+        }
+    #endif
+#endif
+    }
+
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     static std::variant<MainProgramArgs, int> Initialize(int argc, char** argv)
     {
+        SuppressBlockingErrorDialogs();
         Lightweight::SqlLogger::SetLogger(TestSuiteSqlLogger::GetLogger());
 
         using namespace std::string_view_literals;
@@ -473,17 +496,28 @@ class SqlTestFixture
 
         Lightweight::SqlConnection::SetPostConnectedHook(&SqlTestFixture::PostConnectedHook);
 
-        auto sqlConnection = Lightweight::SqlConnection();
-        if (!sqlConnection.IsAlive())
+        try
         {
-            std::println("Failed to connect to the database: {}", sqlConnection.LastError());
-            std::abort();
-        }
+            auto sqlConnection = Lightweight::SqlConnection();
+            if (!sqlConnection.IsAlive())
+            {
+                std::println(stderr, "Failed to connect to the database: {}", sqlConnection.LastError());
+                return { EXIT_FAILURE };
+            }
 
-        std::println("Running test cases against: {} ({}) (identified as: {})",
-                     sqlConnection.ServerName(),
-                     sqlConnection.ServerVersion(),
-                     sqlConnection.ServerType());
+            std::println("Running test cases against: {} ({}) (identified as: {})",
+                         sqlConnection.ServerName(),
+                         sqlConnection.ServerVersion(),
+                         sqlConnection.ServerType());
+        }
+        catch (std::exception const& e)
+        {
+            // Catch here so an unhandled exception does not call std::terminate ->
+            // abort(), which on Windows can pop a modal "Abort/Retry/Ignore" dialog
+            // and break unattended runs (CI, scripted/AI agents).
+            std::println(stderr, "Failed to connect to the database: {}", e.what());
+            return { EXIT_FAILURE };
+        }
 
         return MainProgramArgs { argc - (i - 1), argv + (i - 1) };
     }
@@ -492,17 +526,18 @@ class SqlTestFixture
     {
         if (odbcTrace)
         {
-            auto const traceFile = []() -> std::string_view {
+            // Stay on the W path so we don't mix variants on a Unicode-mode handle. The
+            // file path here is ASCII so the conversion is trivial; we hold the buffer in
+            // a local std::u16string so SQL_NTS sees it NUL-terminated.
 #if !defined(_WIN32) && !defined(_WIN64)
-                return "/dev/stdout";
+            auto wTraceFile = std::u16string { u"/dev/stdout" };
 #else
-                return "CONOUT$";
+            auto wTraceFile = std::u16string { u"CONOUT$" };
 #endif
-            }();
-
             SQLHDBC handle = connection.NativeHandle();
-            SQLSetConnectAttrA(handle, SQL_ATTR_TRACEFILE, (SQLPOINTER) traceFile.data(), SQL_NTS);
-            SQLSetConnectAttrA(handle, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_ON, SQL_IS_UINTEGER);
+            SQLSetConnectAttrW(
+                handle, SQL_ATTR_TRACEFILE, Lightweight::detail::AsSqlWChar(wTraceFile.data()), SQL_NTS);
+            SQLSetConnectAttrW(handle, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_ON, SQL_IS_UINTEGER);
         }
 
         using Lightweight::SqlServerType;
@@ -528,10 +563,10 @@ class SqlTestFixture
         auto stmt = Lightweight::SqlStatement();
         REQUIRE(stmt.IsAlive());
 
-        char dbName[100]; // Buffer to store the database name
-        SQLSMALLINT dbNameLen {};
-        SQLGetInfo(stmt.Connection().NativeHandle(), SQL_DATABASE_NAME, dbName, sizeof(dbName), &dbNameLen);
-        if (dbNameLen > 0)
+        // SqlConnection already exposes a properly-decoded UTF-8 view of SQL_DATABASE_NAME
+        // via DatabaseName() (W variant + ToUtf8 conversion). Reuse it instead of issuing
+        // another raw SQLGetInfoA here, which would mix variants on the same handle.
+        if (auto const dbName = stmt.Connection().DatabaseName(); !dbName.empty())
             testDatabaseName = dbName;
 
         DropAllTablesInDatabase(stmt);
@@ -631,15 +666,20 @@ class SqlTestFixture
         using namespace std::string_literals;
         auto result = std::vector<std::string>();
         auto const schemaName = GetDefaultSchemaName(stmt.Connection());
-        auto const sqlResult = SQLTables(stmt.NativeHandle(),
-                                         (SQLCHAR*) testDatabaseName.data(),
-                                         (SQLSMALLINT) testDatabaseName.size(),
-                                         (SQLCHAR*) schemaName.data(),
-                                         (SQLSMALLINT) schemaName.size(),
-                                         nullptr,
-                                         0,
-                                         (SQLCHAR*) "TABLE",
-                                         SQL_NTS);
+        // Use the W variant to stay on the same Unicode-app path the library uses; the
+        // OdbcWideArg buffers own their bytes across the call (SQL_NTS).
+        auto wDatabase = Lightweight::detail::OdbcWideArg { testDatabaseName };
+        auto wSchema = Lightweight::detail::OdbcWideArg { schemaName };
+        auto wTableType = Lightweight::detail::OdbcWideArg { std::u16string { u"TABLE" } };
+        auto const sqlResult = SQLTablesW(stmt.NativeHandle(),
+                                          wDatabase.data(),
+                                          wDatabase.length(),
+                                          wSchema.data(),
+                                          wSchema.length(),
+                                          nullptr,
+                                          0,
+                                          wTableType.data(),
+                                          SQL_NTS);
         if (SQL_SUCCEEDED(sqlResult))
         {
             auto cursor = Lightweight::SqlResultCursor(stmt);

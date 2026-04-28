@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "DataBinder/SqlRawColumn.hpp"
+#include "SqlOdbcWide.hpp"
 #include "SqlQuery.hpp"
 #include "SqlStatement.hpp"
 #include "Utils.hpp"
@@ -183,8 +184,14 @@ void SqlStatement::Prepare(std::string_view query) &
     // Unbinds the columns, if any
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
 
-    // Prepares the statement
-    RequireSuccess(SQLPrepareA(m_hStmt, (SQLCHAR*) query.data(), (SQLINTEGER) query.size()));
+    // Prepares the statement on the W (Unicode) entry point so the ODBC driver stays
+    // on the same Unicode-app track that SQLDriverConnectW set up. Mixing A and W
+    // calls on the same handle works in theory (the Driver Manager auto-translates),
+    // but psqlODBC has historically treated SQL_C_CHAR parameter binds differently
+    // depending on the variant of the most recent statement-text call — so we keep
+    // the path uniformly W to side-step that.
+    auto wQuery = detail::OdbcWideArg { query };
+    RequireSuccess(SQLPrepareW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size())));
     RequireSuccess(SQLNumParams(m_hStmt, &m_expectedParameterCount));
     m_data->indicators.resize(static_cast<size_t>(m_expectedParameterCount) + 1);
 }
@@ -204,7 +211,9 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
 
     SqlLogger::GetLogger().OnExecuteDirect(query);
 
-    RequireSuccess(SQLExecDirectA(m_hStmt, (SQLCHAR*) query.data(), (SQLINTEGER) query.size()), location);
+    // Execute via the W entry point — see the rationale above SQLPrepareW.
+    auto wQuery = detail::OdbcWideArg { query };
+    RequireSuccess(SQLExecDirectW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size())), location);
     return SqlResultCursor { *this };
 }
 

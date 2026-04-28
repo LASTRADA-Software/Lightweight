@@ -90,6 +90,7 @@ set(HEADER_FILES
     SqlLogger.hpp
     SqlMigration.hpp
     SqlMigrationLock.hpp
+    SqlOdbcWide.hpp
     SqlQueryFormatter.hpp
     SqlSchema.hpp
     SqlScopedTraceLogger.hpp

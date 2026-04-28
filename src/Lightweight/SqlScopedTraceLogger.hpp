@@ -4,6 +4,7 @@
 
 #include "Api.hpp"
 #include "SqlConnection.hpp"
+#include "SqlOdbcWide.hpp"
 #include "SqlStatement.hpp"
 
 #include <filesystem>
@@ -49,8 +50,14 @@ class LIGHTWEIGHT_API SqlScopedTraceLogger
     explicit SqlScopedTraceLogger(SQLHDBC hDbc, std::filesystem::path const& logFile):
         m_nativeConnection { hDbc }
     {
-        SQLSetConnectAttrA(m_nativeConnection, SQL_ATTR_TRACEFILE, (SQLPOINTER) logFile.string().c_str(), SQL_NTS);
-        SQLSetConnectAttrA(m_nativeConnection, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_ON, SQL_IS_UINTEGER);
+        // Stay on the W path: the rest of the library puts the DBC handle into Unicode-app
+        // mode at connect time, so passing an ANSI trace-file name here would mix variants
+        // unnecessarily. `path::u16string()` does the platform-correct conversion (UTF-16
+        // is path's native form on Windows; UTF-8 → UTF-16 on POSIX).
+        auto wLogFile = logFile.u16string();
+        SQLSetConnectAttrW(
+            m_nativeConnection, SQL_ATTR_TRACEFILE, detail::AsSqlWChar(wLogFile.data()), SQL_NTS);
+        SQLSetConnectAttrW(m_nativeConnection, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_ON, SQL_IS_UINTEGER);
     }
 
     SqlScopedTraceLogger(SqlScopedTraceLogger&&) = delete;
@@ -60,7 +67,7 @@ class LIGHTWEIGHT_API SqlScopedTraceLogger
 
     ~SqlScopedTraceLogger()
     {
-        SQLSetConnectAttrA(m_nativeConnection, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_OFF, SQL_IS_UINTEGER);
+        SQLSetConnectAttrW(m_nativeConnection, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_OFF, SQL_IS_UINTEGER);
     }
 };
 
