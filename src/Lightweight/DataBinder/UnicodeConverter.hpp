@@ -279,13 +279,27 @@ template <typename T = std::u32string>
 T ToUtf32(std::u16string_view u16InputString)
 {
     auto result = T {};
+    result.reserve(u16InputString.size());
 
-    for (char16_t const c16: u16InputString)
+    for (size_t i = 0; i < u16InputString.size(); ++i)
     {
-        if (c16 < 0xD800 || c16 >= 0xDC00)
-            result.push_back(static_cast<char32_t>(c16));
+        auto const c16 = u16InputString[i];
+        if (c16 >= 0xD800 && c16 <= 0xDBFF && i + 1 < u16InputString.size() && u16InputString[i + 1] >= 0xDC00
+            && u16InputString[i + 1] <= 0xDFFF)
+        {
+            auto const high = static_cast<char32_t>(c16 - 0xD800);
+            auto const low = static_cast<char32_t>(u16InputString[++i] - 0xDC00);
+            result.push_back(static_cast<char32_t>(0x10000 + (high << 10) + low));
+        }
+        else if (c16 >= 0xD800 && c16 <= 0xDFFF)
+        {
+            // Orphan surrogate (high without low, or stray low) — emit replacement.
+            result.push_back(detail::Utf32Converter::InvalidCodePoint);
+        }
         else
-            result.push_back(static_cast<char32_t>(0x10000 + ((c16 & 0x3FF) | ((c16 & 0x3FF) << 10))));
+        {
+            result.push_back(static_cast<char32_t>(c16));
+        }
     }
 
     return result;
