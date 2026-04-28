@@ -1324,4 +1324,188 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlWideString read from VARCHAR column", "[Sql
     }
 }
 
+// Pins the regression that motivated the SQLDriverConnectW switch: psqlODBC on
+// Windows used to put DBC handles opened with SQLDriverConnectA into ANSI mode and
+// run every SQL_C_CHAR payload through cp1252, which mangled UTF-8 input bytes ≥ 0x80
+// (`Hellö` came back as `HellÃ¶`) and dropped UTF-16 surrogate pairs (emoji came back
+// as `??`). The fix is the entire `[Lightweight] {SqlConnection,SqlStatement,
+// SqlSchema} ... via W variants` series of commits plus the BasicStringBinder cleanup;
+// these tests run on every backend so a future regression on any one of them surfaces.
+TEST_CASE_METHOD(SqlTestFixture, "Unicode round-trip across binders", "[SqlDataBinder][Unicode]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("UnicodeRoundTrip").Column("value", SqlColumnTypeDefinitions::NVarchar { 64 });
+    });
+
+    SECTION("std::u8string with single non-ASCII char")
+    {
+        // Was: u8"Hellö" round-tripped as `HellÃ¶` on PostgreSQL/Windows because the
+        // pre-fix PG hatch in BasicStringBinder bound the UTF-8 bytes as SQL_C_CHAR.
+        stmt.Prepare(stmt.Query("UnicodeRoundTrip").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(u8"Hellö"s);
+        stmt.Prepare(stmt.Query("UnicodeRoundTrip").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        REQUIRE(reader.FetchRow());
+        CHECK(reader.GetColumn<std::u8string>(1) == u8"Hellö"s);
+    }
+
+    SECTION("std::u16string with supplementary-plane emoji")
+    {
+        // Was: u"Unicode \U0001F601" came back as `Unicode ??` on PostgreSQL/Windows
+        // because the surrogate pair could not be encoded as cp1252.
+        stmt.Prepare(stmt.Query("UnicodeRoundTrip").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(u"\U0001F601"s);
+        stmt.Prepare(stmt.Query("UnicodeRoundTrip").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        REQUIRE(reader.FetchRow());
+        CHECK(reader.GetColumn<std::u16string>(1) == u"\U0001F601"s);
+    }
+
+    SECTION("mixed BMP + supplementary-plane via std::u16string")
+    {
+        // Tests that surrogate pairs sandwiched between BMP characters round-trip
+        // intact — i.e. the driver doesn't truncate / re-encode at the boundary.
+        stmt.Prepare(stmt.Query("UnicodeRoundTrip").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(u"Hello \U0001F601 World"s);
+        stmt.Prepare(stmt.Query("UnicodeRoundTrip").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        REQUIRE(reader.FetchRow());
+        CHECK(reader.GetColumn<std::u16string>(1) == u"Hello \U0001F601 World"s);
+    }
+
+    SECTION("BindOutputColumns with std::u8string")
+    {
+        stmt.Prepare(stmt.Query("UnicodeRoundTrip").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(u8"Hellö"s);
+        stmt.Prepare(stmt.Query("UnicodeRoundTrip").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        std::u8string actual;
+        reader.BindOutputColumns(&actual);
+        REQUIRE(reader.FetchRow());
+        CHECK(actual == u8"Hellö"s);
+    }
+
+    SECTION("std::wstring with mixed BMP + supplementary-plane")
+    {
+        // Pins the wchar_t arm of the W-binder dispatch — on Windows std::wstring
+        // routes through the Utf16StringType specialization (sizeof(wchar_t) == 2),
+        // on Linux through the Utf32StringType specialization (sizeof(wchar_t) == 4).
+        // Both must round-trip surrogate-pair payloads intact.
+        stmt.Prepare(stmt.Query("UnicodeRoundTrip").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(L"Hello \U0001F601 World"s);
+        stmt.Prepare(stmt.Query("UnicodeRoundTrip").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        REQUIRE(reader.FetchRow());
+        CHECK(reader.GetColumn<std::wstring>(1) == L"Hello \U0001F601 World"s);
+    }
+}
+
+// Coverage for the SQL_C_WCHAR truncation arithmetic in
+// detail::GetRawColumnArrayData (BasicStringBinder.hpp). The function has two
+// re-fetch branches: (a) the driver reports total length up front and we re-
+// fetch into a sized-up buffer, (b) the driver reports SQL_NO_TOTAL and we
+// loop, doubling the buffer until we hit success. Both branches must compute
+// BufferLength in bytes (= chars * sizeof(CharType)) — a miscount on the
+// SQL_C_WCHAR path corrupts supplementary-plane data because each surrogate
+// pair occupies two char16_t units.
+//
+// Branch (a) is what the drivers in our test matrix (psqlODBC, ODBC Driver 18
+// for SQL Server) actually take for streaming columns, so these tests pin the
+// arithmetic for that branch. Branch (b) is rare in practice but its byte/char
+// math was previously off by sizeof(CharType); the tests below also serve as
+// forward-looking coverage if a future driver routes here.
+//
+// The streaming column type — NVARCHAR(MAX) on SQL Server, TEXT on Postgres /
+// SQLite — plus payloads that overflow the 255-char initial buffer in
+// GetColumnUtf16 are what get us into the re-fetch path at all.
+TEST_CASE_METHOD(SqlTestFixture, "GetRawColumnArrayData: long Unicode round-trip", "[SqlDataBinder][Unicode]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("LongUnicode").Column("value", SqlColumnTypeDefinitions::NVarchar { 0 });
+    });
+
+    SECTION("4 KiB std::u16string ASCII forces the truncation path")
+    {
+        auto const expected = MakeLargeText<char16_t>(4 * 1024);
+        stmt.Prepare(stmt.Query("LongUnicode").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(expected);
+        stmt.Prepare(stmt.Query("LongUnicode").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        REQUIRE(reader.FetchRow());
+        CHECK(reader.GetColumn<std::u16string>(1) == expected);
+    }
+
+    SECTION("3 KiB std::u16string with supplementary-plane characters throughout")
+    {
+        // Each iteration appends one BMP letter + one surrogate pair (3 char16_t).
+        // 1024 iterations = 3072 char16_t (~6 KiB) — well past the 255-char buffer.
+        // Any miscount in the byte/char arithmetic of the re-fetch path
+        // desynchronizes the surrogate-pair boundary in a visible way.
+        std::u16string expected;
+        expected.reserve(3 * 1024);
+        for ([[maybe_unused]] auto i: std::views::iota(0, 1024))
+            expected += u"A\U0001F601";
+        stmt.Prepare(stmt.Query("LongUnicode").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(expected);
+        stmt.Prepare(stmt.Query("LongUnicode").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        REQUIRE(reader.FetchRow());
+        CHECK(reader.GetColumn<std::u16string>(1) == expected);
+    }
+
+    SECTION("supplementary-plane surrogate pair straddles the 255-char buffer boundary")
+    {
+        // The initial GetColumnUtf16 buffer is 255 char16_t. Place a high surrogate
+        // at index 254 and the low surrogate at index 255 to verify that the
+        // re-fetch (whichever branch fires) does not split the pair across calls.
+        std::u16string expected(254, u'A');
+        expected += u"\U0001F601"; // surrogate pair occupies indices 254..255
+        expected += MakeLargeText<char16_t>(1024);
+        stmt.Prepare(stmt.Query("LongUnicode").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(expected);
+        stmt.Prepare(stmt.Query("LongUnicode").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        REQUIRE(reader.FetchRow());
+        CHECK(reader.GetColumn<std::u16string>(1) == expected);
+    }
+
+    SECTION("4 KiB std::u8string round-trip via GetColumnUtf16")
+    {
+        // SqlDataBinder<Utf8StringType>::GetColumn fetches into a u16 scratch via
+        // GetColumnUtf16, then converts to UTF-8 — so the same fix must hold for
+        // u8 callers reading large columns.
+        auto const expected = MakeLargeText<char8_t>(4 * 1024);
+        stmt.Prepare(stmt.Query("LongUnicode").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(expected);
+        stmt.Prepare(stmt.Query("LongUnicode").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        REQUIRE(reader.FetchRow());
+        CHECK(reader.GetColumn<std::u8string>(1) == expected);
+    }
+
+    SECTION("4 KiB std::wstring round-trip")
+    {
+        auto const expected = MakeLargeText<wchar_t>(4 * 1024);
+        stmt.Prepare(stmt.Query("LongUnicode").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(expected);
+        stmt.Prepare(stmt.Query("LongUnicode").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        REQUIRE(reader.FetchRow());
+        CHECK(reader.GetColumn<std::wstring>(1) == expected);
+    }
+
+    SECTION("empty std::u16string hits the SQL_SUCCESS path with zero indicator")
+    {
+        std::u16string const expected;
+        stmt.Prepare(stmt.Query("LongUnicode").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(expected);
+        stmt.Prepare(stmt.Query("LongUnicode").Select().Field("value").All());
+        auto reader = stmt.Execute();
+        REQUIRE(reader.FetchRow());
+        CHECK(reader.GetColumn<std::u16string>(1) == expected);
+    }
+}
+
 // NOLINTEND(readability-container-size-empty, bugprone-throwing-static-initialization, bugprone-unchecked-optional-access)
