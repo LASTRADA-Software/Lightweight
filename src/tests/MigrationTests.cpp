@@ -1977,10 +1977,14 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: preserves user tables", "[
     REQUIRE(result.preservedTables.size() == 1);
     CHECK(result.preservedTables[0].table == "user_t");
 
-    // Verify user table still exists after the reset.
-    auto cursor = stmt.ExecuteDirect("SELECT name FROM sqlite_schema WHERE type = 'table' AND name = 'user_t'");
-    REQUIRE(cursor.FetchRow());
-    CHECK(cursor.GetColumn<std::string>(1) == "user_t");
+    // Verify user table still exists after the reset. SqlSchema::ReadAllTables is the
+    // portable way to introspect the live catalog — direct queries against
+    // `sqlite_schema` would only work on SQLite.
+    auto verifyStmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    auto const liveTables = SqlSchema::ReadAllTables(verifyStmt, std::string {}, std::string {});
+    auto const it = std::ranges::find_if(liveTables,
+                                         [](SqlSchema::Table const& t) { return t.name == "user_t"; });
+    REQUIRE(it != liveTables.end());
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: dry-run is observationally pure",
@@ -2050,11 +2054,13 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "UnicodeUpgradeTables: completes witho
     auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
     (void) result;
 
-    // After the upgrade the table must still be queryable.
+    // After the upgrade the table must still be queryable. SqlSchema::ReadAllTables is
+    // the portable way to introspect — `sqlite_schema` is SQLite-only.
     auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
-    auto cursor = stmt.ExecuteDirect("SELECT name FROM sqlite_schema WHERE type = 'table' AND name = 'idem'");
-    REQUIRE(cursor.FetchRow());
-    CHECK(cursor.GetColumn<std::string>(1) == "idem");
+    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+    auto const it =
+        std::ranges::find_if(liveTables, [](SqlSchema::Table const& t) { return t.name == "idem"; });
+    REQUIRE(it != liveTables.end());
 }
 
 // ============================================================================
