@@ -59,6 +59,19 @@ if(LUPMIGRATION_SQL_DIR AND EXISTS "${LUPMIGRATION_SQL_DIR}")
     # Build lup2dbtool synchronously, run it, and populate the directory *during*
     # configure. The build-time custom command below still owns incremental updates
     # when individual SQL files change.
+    #
+    # Two cold-start variants must work:
+    #
+    #   * **True cold-start** — the build directory is fresh; the parent configure
+    #     has not finished yet, so neither `build.ninja` nor `Makefile` exists.
+    #     `cmake --build ${CMAKE_BINARY_DIR}` would fail with
+    #     `ninja: error: loading 'build.ninja'`. Instead we configure + build
+    #     `lup2dbtool` in a scratch sub-build that has its own complete configure.
+    #
+    #   * **Warm cold-start** — a previous configure already produced build files
+    #     but the user (or `git clean`) wiped `${GENERATED_MIGRATIONS_DIR}`. We
+    #     reuse the parent build by invoking `cmake --build` against it.
+    #
     # Re-entrancy guard: when ninja runs the build, it invokes
     # `cmake --regenerate-during-build` before each build. That re-runs configure,
     # which would re-enter this branch, recursively call `cmake --build`, and
@@ -66,30 +79,142 @@ if(LUPMIGRATION_SQL_DIR AND EXISTS "${LUPMIGRATION_SQL_DIR}")
     # bootstrap a second time.
     set(_lup_bootstrap_sentinel "${GENERATED_MIGRATIONS_DIR}/.bootstrap_in_progress")
     if(NOT EXISTS "${GENERATION_STAMP_FILE}" AND NOT EXISTS "${_lup_bootstrap_sentinel}")
-        message(STATUS "LupMigrationsPlugin: Cold-start — bootstrapping lup2dbtool and generating sources")
+        # Treat the parent build as ready only when its native build script is
+        # actually present. Checking just `CMakeCache.txt` is not enough — the
+        # cache is written early in configure, well before `build.ninja` /
+        # `Makefile` is generated.
+        set(_lup_parent_build_ready FALSE)
+        foreach(_lup_build_marker IN ITEMS
+                "${CMAKE_BINARY_DIR}/build.ninja"
+                "${CMAKE_BINARY_DIR}/Makefile")
+            if(EXISTS "${_lup_build_marker}")
+                set(_lup_parent_build_ready TRUE)
+                break()
+            endif()
+        endforeach()
+        unset(_lup_build_marker)
+
         file(TOUCH "${_lup_bootstrap_sentinel}")
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target lup2dbtool
-            RESULT_VARIABLE _lup_bootstrap_build_result
-        )
-        if(NOT _lup_bootstrap_build_result EQUAL 0)
-            file(REMOVE "${_lup_bootstrap_sentinel}")
-            message(FATAL_ERROR "LupMigrationsPlugin: failed to build lup2dbtool for cold-start generation")
+
+        if(_lup_parent_build_ready)
+            message(STATUS "LupMigrationsPlugin: Cold-start (warm) — building lup2dbtool in parent build")
+            execute_process(
+                COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target lup2dbtool
+                RESULT_VARIABLE _lup_bootstrap_build_result
+            )
+            if(NOT _lup_bootstrap_build_result EQUAL 0)
+                file(REMOVE "${_lup_bootstrap_sentinel}")
+                message(FATAL_ERROR "LupMigrationsPlugin: failed to build lup2dbtool for cold-start generation")
+            endif()
+            # `$<TARGET_FILE:lup2dbtool>` cannot be used here — generator expressions are
+            # not evaluated by `execute_process`. Resolve the just-built binary by name
+            # in the build tree. Multi-config generators (Visual Studio) drop the binary
+            # under `<config>/`, single-config (Ninja, Makefiles) directly in the target dir.
+            find_program(LUP2DBTOOL_BIN
+                NAMES lup2dbtool
+                PATHS
+                    "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+                    "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${CMAKE_BUILD_TYPE}"
+                    "${CMAKE_BINARY_DIR}/src/tools/lup2dbtool"
+                    "${CMAKE_BINARY_DIR}/src/tools/lup2dbtool/${CMAKE_BUILD_TYPE}"
+                NO_DEFAULT_PATH
+                NO_CACHE
+            )
+            if(NOT LUP2DBTOOL_BIN)
+                file(REMOVE "${_lup_bootstrap_sentinel}")
+                message(FATAL_ERROR "LupMigrationsPlugin: lup2dbtool binary not found after build "
+                                    "(searched ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} and "
+                                    "${CMAKE_BINARY_DIR}/src/tools/lup2dbtool)")
+            endif()
+        else()
+            # True cold-start: parent build is mid-configure, so we cannot drive it.
+            # Spin up a self-contained scratch project that builds only lup2dbtool.
+            # The scratch dir persists across configures so subsequent cold-starts
+            # (after `rm -rf generated/`) are incremental and fast.
+            set(_lup_scratch_dir "${CMAKE_BINARY_DIR}/_lup_bootstrap")
+            message(STATUS "LupMigrationsPlugin: Cold-start (fresh) — building lup2dbtool in scratch dir ${_lup_scratch_dir}")
+
+            # Variables that must travel to the scratch configure verbatim. Anything
+            # the parent picked up from the toolchain / preset has to be re-asserted
+            # because the scratch dir starts from an empty cache.
+            set(_lup_scratch_args
+                "-S" "${CMAKE_SOURCE_DIR}"
+                "-B" "${_lup_scratch_dir}"
+                "-G" "${CMAKE_GENERATOR}"
+                # Disable everything except the tool we need so the scratch build is minimal.
+                "-DLIGHTWEIGHT_BUILD_TESTS=OFF"
+                "-DLIGHTWEIGHT_BUILD_EXAMPLES=OFF"
+                "-DLIGHTWEIGHT_BUILD_GUI=OFF"
+                "-DLIGHTWEIGHT_BUILD_BENCHMARK=OFF"
+                "-DLIGHTWEIGHT_BUILD_LARGEDB_TOOL=OFF"
+                "-DLIGHTWEIGHT_BUILD_DOCUMENTATION=OFF"
+                "-DLIGHTWEIGHT_BUILD_TOOLS=ON"
+                "-DENABLE_TIDY=OFF"
+                "-DPEDANTIC_COMPILER_WERROR=OFF"
+                # Critical: empty SQL dir prevents the scratch configure from
+                # re-entering this very bootstrap branch.
+                "-DLUPMIGRATION_SQL_DIR="
+            )
+            if(CMAKE_TOOLCHAIN_FILE)
+                list(APPEND _lup_scratch_args "-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
+            endif()
+            if(CMAKE_C_COMPILER)
+                list(APPEND _lup_scratch_args "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}")
+            endif()
+            if(CMAKE_CXX_COMPILER)
+                list(APPEND _lup_scratch_args "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
+            endif()
+            if(CMAKE_BUILD_TYPE)
+                list(APPEND _lup_scratch_args "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
+            endif()
+            if(VCPKG_TARGET_TRIPLET)
+                list(APPEND _lup_scratch_args "-DVCPKG_TARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}")
+            endif()
+            if(CMAKE_MAKE_PROGRAM)
+                list(APPEND _lup_scratch_args "-DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}")
+            endif()
+
+            execute_process(
+                COMMAND ${CMAKE_COMMAND} ${_lup_scratch_args}
+                RESULT_VARIABLE _lup_scratch_configure_result
+            )
+            if(NOT _lup_scratch_configure_result EQUAL 0)
+                file(REMOVE "${_lup_bootstrap_sentinel}")
+                message(FATAL_ERROR "LupMigrationsPlugin: scratch configure for lup2dbtool failed "
+                                    "(see ${_lup_scratch_dir} for diagnostics)")
+            endif()
+
+            execute_process(
+                COMMAND ${CMAKE_COMMAND} --build "${_lup_scratch_dir}" --target lup2dbtool
+                                          --config "${CMAKE_BUILD_TYPE}"
+                RESULT_VARIABLE _lup_scratch_build_result
+            )
+            if(NOT _lup_scratch_build_result EQUAL 0)
+                file(REMOVE "${_lup_bootstrap_sentinel}")
+                message(FATAL_ERROR "LupMigrationsPlugin: scratch build of lup2dbtool failed")
+            endif()
+
+            find_program(LUP2DBTOOL_BIN
+                NAMES lup2dbtool
+                PATHS
+                    "${_lup_scratch_dir}/target"
+                    "${_lup_scratch_dir}/target/${CMAKE_BUILD_TYPE}"
+                    "${_lup_scratch_dir}/src/tools/lup2dbtool"
+                    "${_lup_scratch_dir}/src/tools/lup2dbtool/${CMAKE_BUILD_TYPE}"
+                NO_DEFAULT_PATH
+                NO_CACHE
+            )
+            if(NOT LUP2DBTOOL_BIN)
+                file(REMOVE "${_lup_bootstrap_sentinel}")
+                message(FATAL_ERROR "LupMigrationsPlugin: lup2dbtool binary not found in scratch build "
+                                    "(searched ${_lup_scratch_dir}/target and "
+                                    "${_lup_scratch_dir}/src/tools/lup2dbtool)")
+            endif()
+            unset(_lup_scratch_args)
+            unset(_lup_scratch_dir)
         endif()
-        # `$<TARGET_FILE:lup2dbtool>` cannot be used here — generator expressions are
-        # not evaluated by `execute_process`. Resolve the just-built binary by name
-        # in the build tree.
-        find_program(LUP2DBTOOL_BIN
-            NAMES lup2dbtool
-            PATHS "${CMAKE_BINARY_DIR}/src/tools/lup2dbtool"
-            NO_DEFAULT_PATH
-            NO_CACHE
-        )
-        if(NOT LUP2DBTOOL_BIN)
-            file(REMOVE "${_lup_bootstrap_sentinel}")
-            message(FATAL_ERROR "LupMigrationsPlugin: lup2dbtool binary not found after build "
-                                "(expected under ${CMAKE_BINARY_DIR}/src/tools/lup2dbtool)")
-        endif()
+        unset(_lup_parent_build_ready)
+
         execute_process(
             COMMAND "${LUP2DBTOOL_BIN}"
                 --input-dir "${LUPMIGRATION_SQL_DIR}"
