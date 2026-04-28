@@ -893,33 +893,44 @@ int Status(MigrationManager& manager)
     auto const status = manager.GetMigrationStatus();
     auto const mismatches = manager.VerifyChecksums();
 
+    constexpr auto labelWidth = 26;
+
     std::println("Migration Status:");
     std::println("");
-    std::println("  Registered migrations: {}", status.totalRegistered);
-    std::println("  Applied migrations:    {}", status.appliedCount);
-    std::println("  Pending migrations:    {}", status.pendingCount);
+    std::println("  {:<{}}{}", "Registered migrations:", labelWidth, status.totalRegistered);
+    std::println("  {:<{}}{}", "Applied migrations:", labelWidth, status.appliedCount);
+    std::println("  {:<{}}{}", "Pending migrations:", labelWidth, status.pendingCount);
 
     if (status.unknownAppliedCount > 0)
     {
-        std::println("  Unknown applied:       {} (applied but not registered)", status.unknownAppliedCount);
+        std::println("  {:<{}}{} (applied but not registered)",
+                     "Unknown applied:",
+                     labelWidth,
+                     status.unknownAppliedCount);
     }
 
-    if (!manager.GetAllReleases().empty())
+    if (auto const& releases = manager.GetAllReleases(); !releases.empty())
     {
-        auto const latest = ComputeLatestAppliedRelease(manager);
-        if (!latest.latest)
+        auto const latestApplied = ComputeLatestAppliedRelease(manager);
+        if (!latestApplied.latest)
         {
-            std::println("  Latest release:        (none applied)");
+            std::println("  {:<{}}(none applied)", "Latest applied release:", labelWidth);
         }
         else
         {
-            auto const* const label = (latest.applied == latest.total) ? "applied" : "partially applied";
-            std::println("  Latest release:        {} ({}, {}/{} migrations)",
-                         latest.latest->version,
+            auto const* const label =
+                (latestApplied.applied == latestApplied.total) ? "applied" : "partially applied";
+            std::println("  {:<{}}{} ({}, {}/{} migrations)",
+                         "Latest applied release:",
+                         labelWidth,
+                         latestApplied.latest->version,
                          label,
-                         latest.applied,
-                         latest.total);
+                         latestApplied.applied,
+                         latestApplied.total);
         }
+
+        auto const& latestAvailable = releases.back();
+        std::println("  {:<{}}{}", "Latest available release:", labelWidth, latestAvailable.version);
     }
 
     std::println("");
