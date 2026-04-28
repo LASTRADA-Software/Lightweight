@@ -9,4 +9,4 @@ ODBC_CONNECTION_STRING:
   # don't silently turn into `\r\n` on insert.
   postgres: Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test;LFConversion=0
   postgres_unicode: Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test;LFConversion=0
-  sqlite3: Driver=SQLite3;Database=test.db
+  sqlite3: Driver={SQLite3 ODBC Driver};Database=test.db
