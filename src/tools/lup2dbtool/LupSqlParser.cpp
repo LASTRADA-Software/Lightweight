@@ -7,10 +7,14 @@
 
 #include <algorithm>
 #include <array>
+#include <expected>
+#include <format>
 #include <fstream>
 #include <print>
 #include <regex>
+#include <string>
 #include <unordered_map>
+#include <utility>
 
 namespace Lup2DbTool
 {
@@ -277,28 +281,283 @@ namespace
         }
     };
 
+    /// @brief Builds the byte buffer used as the *encoding-detection signal* for a SQL file.
+    ///
+    /// LUP `.sql` files frequently carry author notes, change-logs, and TODOs in mixed
+    /// encodings inside SQL comments. Those bytes are irrelevant for choosing how to
+    /// decode the actual statements — they get carried along with whatever encoding the
+    /// payload dictates. To keep detection robust the signal excludes:
+    ///   - `/* ... */` block comments (via `StripMultiLineComments`),
+    ///   - any line whose first non-whitespace characters are `--`.
+    ///
+    /// The returned buffer is *only* used to inspect bytes; the real decoding step
+    /// always operates on the original file contents.
+    std::string StripCommentsForEncodingDetection(std::string_view content)
+    {
+        std::vector<std::string> discarded;
+        auto withoutBlockComments = StripMultiLineComments(content, discarded);
+
+        std::string result;
+        result.reserve(withoutBlockComments.size());
+
+        size_t prevPos = 0;
+        size_t pos = 0;
+        while ((pos = withoutBlockComments.find('\n', prevPos)) != std::string::npos)
+        {
+            auto line = std::string_view(withoutBlockComments).substr(prevPos, pos - prevPos);
+            if (!IsComment(line))
+                result.append(line.data(), line.size());
+            result.push_back('\n');
+            prevPos = pos + 1;
+        }
+        if (prevPos < withoutBlockComments.size())
+        {
+            auto line = std::string_view(withoutBlockComments).substr(prevPos);
+            if (!IsComment(line))
+                result.append(line.data(), line.size());
+        }
+        return result;
+    }
+
+    struct Utf8ValidationResult
+    {
+        bool valid = false;
+        bool sawNonAscii = false;
+        size_t errorOffset = 0; ///< Byte offset of the first invalid byte when !valid.
+        unsigned char errorByte = 0;
+    };
+
+    /// @brief Walks @p bytes and verifies it is a sequence of well-formed UTF-8 code units.
+    ///
+    /// Pure ASCII (every byte < 0x80) trivially validates with `sawNonAscii == false`. Any
+    /// multi-byte lead must be followed by the right number of continuation bytes
+    /// (0b10xxxxxx). Overlong encodings, surrogates, and out-of-range code points are
+    /// rejected with the byte offset of the first violation so callers can produce a
+    /// useful error message.
+    Utf8ValidationResult ValidateUtf8(std::string_view bytes) noexcept
+    {
+        Utf8ValidationResult result {};
+        size_t i = 0;
+        while (i < bytes.size())
+        {
+            auto const c = static_cast<unsigned char>(bytes[i]);
+            if (c < 0x80)
+            {
+                ++i;
+                continue;
+            }
+
+            result.sawNonAscii = true;
+
+            int extra = 0;
+            char32_t codepoint = 0;
+            unsigned char minLead = 0;
+            if ((c & 0b1110'0000) == 0b1100'0000)
+            {
+                extra = 1;
+                codepoint = c & 0b0001'1111;
+                minLead = 0xC2; // 0xC0/0xC1 would be overlong.
+            }
+            else if ((c & 0b1111'0000) == 0b1110'0000)
+            {
+                extra = 2;
+                codepoint = c & 0b0000'1111;
+                minLead = 0xE0;
+            }
+            else if ((c & 0b1111'1000) == 0b1111'0000)
+            {
+                extra = 3;
+                codepoint = c & 0b0000'0111;
+                minLead = 0xF0;
+            }
+            else
+            {
+                result.errorOffset = i;
+                result.errorByte = c;
+                return result;
+            }
+
+            if (c < minLead)
+            {
+                result.errorOffset = i;
+                result.errorByte = c;
+                return result;
+            }
+
+            if (i + static_cast<size_t>(extra) >= bytes.size())
+            {
+                result.errorOffset = i;
+                result.errorByte = c;
+                return result;
+            }
+
+            auto const extraBytes = static_cast<size_t>(extra);
+            for (size_t k = 1; k <= extraBytes; ++k)
+            {
+                auto const cont = static_cast<unsigned char>(bytes[i + k]);
+                if ((cont & 0b1100'0000) != 0b1000'0000)
+                {
+                    result.errorOffset = i + k;
+                    result.errorByte = cont;
+                    return result;
+                }
+                codepoint = (codepoint << 6) | (cont & 0b0011'1111);
+            }
+
+            // Reject overlong / surrogate / out-of-range code points.
+            bool const overlong = (extra == 2 && codepoint < 0x800) || (extra == 3 && codepoint < 0x10000);
+            bool const surrogate = (codepoint >= 0xD800 && codepoint <= 0xDFFF);
+            bool const tooLarge = codepoint > 0x10FFFF;
+            if (overlong || surrogate || tooLarge)
+            {
+                result.errorOffset = i;
+                result.errorByte = c;
+                return result;
+            }
+
+            i += static_cast<size_t>(extra) + 1;
+        }
+
+        result.valid = true;
+        return result;
+    }
+
+    /// @brief Whether @p byte is one of the bytes that Windows-1252 leaves undefined
+    /// (`0x81`, `0x8D`, `0x8F`, `0x90`, `0x9D`).
+    ///
+    /// Files containing those bytes are not actually valid Windows-1252; the
+    /// `ConvertWindows1252ToUtf8` helper maps them to U+FFFD, but the caller deserves a
+    /// warning so the source can be inspected.
+    bool IsWindows1252UndefinedByte(unsigned char byte) noexcept
+    {
+        return byte == 0x81 || byte == 0x8D || byte == 0x8F || byte == 0x90 || byte == 0x9D;
+    }
+
+    /// @brief Result of the encoding-detection step.
+    struct DecodedContent
+    {
+        std::string utf8;    ///< File contents as valid UTF-8.
+        std::string warning; ///< Optional non-fatal warning surfaced to the caller.
+    };
+
+    /// @brief Resolves the requested encoding mode against the actual bytes of @p original.
+    ///
+    /// `mode` accepts the same vocabulary as `--input-encoding`:
+    ///   - `auto`         — pick UTF-8 if the comment-stripped signal validates as UTF-8,
+    ///                      otherwise fall back to Windows-1252.
+    ///   - `utf-8`        — require the comment-stripped signal to be valid UTF-8.
+    ///   - `windows-1252` — require the comment-stripped signal to NOT be valid UTF-8 with
+    ///                      non-ASCII content (a UTF-8 file mislabeled as W-1252 is the
+    ///                      common mistake; we refuse it instead of double-encoding).
+    ///
+    /// On a mismatch the function returns `std::unexpected` with a message that names the
+    /// file, the offending byte, and its offset in the original buffer.
+    std::expected<DecodedContent, std::string> DetectAndDecode(std::string const& original,
+                                                               std::string_view mode,
+                                                               std::filesystem::path const& path)
+    {
+        // Two validation passes are needed:
+        //   - `signalValidation` answers "what encoding is the SQL payload in?" — used for
+        //     classification and (in explicit modes) for the user-facing error message.
+        //   - `fullValidation` answers "are the original bytes already valid UTF-8 end-to-end?"
+        //     — used in auto mode to decide whether *any* conversion is required, so a file
+        //     whose payload is pure ASCII but whose comments contain raw W-1252 bytes still
+        //     gets converted (otherwise the C++ compiler rejects the embedded comment text).
+        auto const signal = StripCommentsForEncodingDetection(original);
+        auto const signalValidation = ValidateUtf8(signal);
+        auto const fullValidation = ValidateUtf8(original);
+
+        auto const convertFromWindows1252 = [&](std::string warning = {}) -> DecodedContent {
+            auto const u8 = Lightweight::ConvertWindows1252ToUtf8(original);
+            DecodedContent decoded;
+            decoded.utf8.assign(u8.begin(), u8.end());
+            decoded.warning = std::move(warning);
+            return decoded;
+        };
+
+        auto const checkForUndefinedBytes = [&]() -> std::string {
+            for (size_t i = 0; i < original.size(); ++i)
+            {
+                auto const byte = static_cast<unsigned char>(original[i]);
+                if (IsWindows1252UndefinedByte(byte))
+                {
+                    return std::format("'{}': contains byte 0x{:02X} at offset {} which is undefined in "
+                                       "Windows-1252; it will be mapped to U+FFFD",
+                                       path.string(),
+                                       static_cast<unsigned>(byte),
+                                       i);
+                }
+            }
+            return {};
+        };
+
+        if (mode == "auto")
+        {
+            if (fullValidation.valid)
+                return DecodedContent { .utf8 = original, .warning = {} };
+            return convertFromWindows1252(checkForUndefinedBytes());
+        }
+
+        if (mode == "utf-8")
+        {
+            // Comments are excluded from the validation signal: legacy LUP files frequently
+            // carry author notes or change-logs in mixed encodings inside `--` / `/* … */`
+            // banners. We do not want to reject an otherwise UTF-8 file because its banner
+            // happens to contain a Latin-1 umlaut.
+            if (signalValidation.valid)
+                return DecodedContent { .utf8 = original, .warning = {} };
+            return std::unexpected(
+                std::format("'{}': declared as utf-8 but contains invalid UTF-8 byte 0x{:02X} at offset {} "
+                            "(outside comments)",
+                            path.string(),
+                            static_cast<unsigned>(signalValidation.errorByte),
+                            signalValidation.errorOffset));
+        }
+
+        if (mode == "windows-1252")
+        {
+            // A non-ASCII payload that successfully validates as UTF-8 almost certainly means
+            // the file was mislabeled — running it through the W-1252 converter would
+            // double-encode every multi-byte sequence (the original incident this work
+            // addresses). Refuse loudly so the build fails instead of silently mangling.
+            if (signalValidation.valid && signalValidation.sawNonAscii)
+            {
+                return std::unexpected(std::format("'{}': declared as windows-1252 but the SQL payload validates as UTF-8 "
+                                                   "(would double-encode); rerun with --input-encoding=auto or =utf-8",
+                                                   path.string()));
+            }
+            return convertFromWindows1252(checkForUndefinedBytes());
+        }
+
+        return std::unexpected(
+            std::format("'{}': unknown input encoding '{}' (expected auto, utf-8, or windows-1252)", path.string(), mode));
+    }
+
 } // namespace
 
-std::optional<ParsedMigration> ParseSqlFile(std::filesystem::path const& filePath, ParserConfig const& config)
+std::expected<ParsedMigration, std::string> ParseSqlFile(std::filesystem::path const& filePath, ParserConfig const& config)
 {
     // Read the file
     std::ifstream file(filePath, std::ios::binary);
     if (!file.is_open())
-        return std::nullopt;
+        return std::unexpected(std::format("'{}': failed to open file", filePath.string()));
 
-    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    std::string original((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-    // Convert encoding if needed
-    if (config.inputEncoding == "windows-1252")
-    {
-        auto const u8content = Lightweight::ConvertWindows1252ToUtf8(content);
-        content.assign(u8content.begin(), u8content.end());
-    }
+    // Resolve the encoding (auto-detect or validate the explicit declaration).
+    auto decoded = DetectAndDecode(original, config.inputEncoding, filePath);
+    if (!decoded)
+        return std::unexpected(std::move(decoded.error()));
+    if (!decoded->warning.empty())
+        std::println(stderr, "Warning: {}", decoded->warning);
+
+    auto content = std::move(decoded->utf8);
 
     // Parse filename for version
     auto versionOpt = ParseFilename(filePath.filename().string());
     if (!versionOpt)
-        return std::nullopt;
+        return std::unexpected(
+            std::format("'{}': filename does not match LUP migration pattern", filePath.filename().string()));
 
     // Inform the user when a development placeholder file is picked up under the sentinel version.
     if (*versionOpt == LupVersion { .major = 9999, .minor = 99, .patch = 99 })
@@ -393,89 +652,87 @@ std::vector<std::filesystem::path> DiscoverMigrationFiles(std::filesystem::path 
 namespace
 {
 
-using SchemaMap = std::unordered_map<std::string, std::vector<std::string>>;
+    using SchemaMap = std::unordered_map<std::string, std::vector<std::string>>;
 
-/// True iff `name` consists entirely of decimal digits — the marker
-/// `ParseInsert` uses when the source `INSERT … VALUES` had no explicit
-/// column list and positional indices were synthesized in its place.
-bool IsPositionalColumnName(std::string_view name)
-{
-    if (name.empty())
-        return false;
-    return std::ranges::all_of(name, [](char c) { return c >= '0' && c <= '9'; });
-}
-
-bool HasAnyPositionalColumn(InsertStmt const& stmt)
-{
-    return std::ranges::any_of(stmt.columnValues,
-                               [](auto const& kv) { return IsPositionalColumnName(kv.first); });
-}
-
-void RecordCreateTable(SchemaMap& schema, CreateTableStmt const& s)
-{
-    auto& cols = schema[s.tableName];
-    cols.clear();
-    cols.reserve(s.columns.size());
-    for (auto const& col: s.columns)
-        cols.push_back(col.name);
-}
-
-void RewriteInsertColumns(InsertStmt& s, std::vector<std::string> const& trackedCols,
-                          std::string_view sourceFilename)
-{
-    for (auto& [name, _]: s.columnValues)
+    /// True iff `name` consists entirely of decimal digits — the marker
+    /// `ParseInsert` uses when the source `INSERT … VALUES` had no explicit
+    /// column list and positional indices were synthesized in its place.
+    bool IsPositionalColumnName(std::string_view name)
     {
-        if (!IsPositionalColumnName(name))
-            continue;
-        auto const idx = static_cast<size_t>(std::stoul(name));
-        if (idx >= trackedCols.size())
+        if (name.empty())
+            return false;
+        return std::ranges::all_of(name, [](char c) { return c >= '0' && c <= '9'; });
+    }
+
+    bool HasAnyPositionalColumn(InsertStmt const& stmt)
+    {
+        return std::ranges::any_of(stmt.columnValues, [](auto const& kv) { return IsPositionalColumnName(kv.first); });
+    }
+
+    void RecordCreateTable(SchemaMap& schema, CreateTableStmt const& s)
+    {
+        auto& cols = schema[s.tableName];
+        cols.clear();
+        cols.reserve(s.columns.size());
+        for (auto const& col: s.columns)
+            cols.push_back(col.name);
+    }
+
+    void RewriteInsertColumns(InsertStmt& s, std::vector<std::string> const& trackedCols, std::string_view sourceFilename)
+    {
+        for (auto& [name, _]: s.columnValues)
+        {
+            if (!IsPositionalColumnName(name))
+                continue;
+            auto const idx = static_cast<size_t>(std::stoul(name));
+            if (idx >= trackedCols.size())
+            {
+                std::println(stderr,
+                             "warn: INSERT into '{}' in {}: positional index {} "
+                             "exceeds tracked schema ({} columns) — likely a "
+                             "comma-in-string parser artifact; leaving untouched",
+                             s.tableName,
+                             sourceFilename,
+                             idx,
+                             trackedCols.size());
+                continue;
+            }
+            name = trackedCols[idx];
+        }
+    }
+
+    void ResolveInsertStatement(SchemaMap const& schema, InsertStmt& s, std::string_view sourceFilename)
+    {
+        if (s.columnValues.empty() || !HasAnyPositionalColumn(s))
+            return;
+
+        auto const it = schema.find(s.tableName);
+        if (it == schema.end())
         {
             std::println(stderr,
-                         "warn: INSERT into '{}' in {}: positional index {} "
-                         "exceeds tracked schema ({} columns) — likely a "
-                         "comma-in-string parser artifact; leaving untouched",
+                         "warn: INSERT into unknown table '{}' in {} — "
+                         "cannot resolve positional columns",
                          s.tableName,
-                         sourceFilename,
-                         idx,
-                         trackedCols.size());
-            continue;
+                         sourceFilename);
+            return;
         }
-        name = trackedCols[idx];
+        RewriteInsertColumns(s, it->second, sourceFilename);
     }
-}
 
-void ResolveInsertStatement(SchemaMap const& schema, InsertStmt& s, std::string_view sourceFilename)
-{
-    if (s.columnValues.empty() || !HasAnyPositionalColumn(s))
-        return;
-
-    auto const it = schema.find(s.tableName);
-    if (it == schema.end())
+    void ApplyStatementToSchema(SchemaMap& schema, ParsedStatement& stmt, std::string_view sourceFilename)
     {
-        std::println(stderr,
-                     "warn: INSERT into unknown table '{}' in {} — "
-                     "cannot resolve positional columns",
-                     s.tableName,
-                     sourceFilename);
-        return;
+        std::visit(
+            [&](auto& s) {
+                using T = std::decay_t<decltype(s)>;
+                if constexpr (std::is_same_v<T, CreateTableStmt>)
+                    RecordCreateTable(schema, s);
+                else if constexpr (std::is_same_v<T, AlterTableAddColumnStmt>)
+                    schema[s.tableName].push_back(s.column.name);
+                else if constexpr (std::is_same_v<T, InsertStmt>)
+                    ResolveInsertStatement(schema, s, sourceFilename);
+            },
+            stmt);
     }
-    RewriteInsertColumns(s, it->second, sourceFilename);
-}
-
-void ApplyStatementToSchema(SchemaMap& schema, ParsedStatement& stmt, std::string_view sourceFilename)
-{
-    std::visit(
-        [&](auto& s) {
-            using T = std::decay_t<decltype(s)>;
-            if constexpr (std::is_same_v<T, CreateTableStmt>)
-                RecordCreateTable(schema, s);
-            else if constexpr (std::is_same_v<T, AlterTableAddColumnStmt>)
-                schema[s.tableName].push_back(s.column.name);
-            else if constexpr (std::is_same_v<T, InsertStmt>)
-                ResolveInsertStatement(schema, s, sourceFilename);
-        },
-        stmt);
-}
 
 } // namespace
 

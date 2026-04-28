@@ -11,9 +11,12 @@
 # If empty, the plugin will be built with an empty placeholder
 set(LUPMIGRATION_SQL_DIR "" CACHE PATH "Directory containing LUP SQL migration files")
 
-# Input encoding for SQL files (windows-1252 or utf-8)
-set(LUPMIGRATION_INPUT_ENCODING "windows-1252" CACHE STRING "Input encoding for LUP SQL files")
-set_property(CACHE LUPMIGRATION_INPUT_ENCODING PROPERTY STRINGS "windows-1252" "utf-8")
+# Input encoding for SQL files: auto (detect per file), windows-1252, or utf-8.
+# In auto mode every file is classified individually. The explicit modes require all
+# files to actually be in that encoding; mismatches abort the build with a clear error
+# instead of silently double-encoding the contents.
+set(LUPMIGRATION_INPUT_ENCODING "auto" CACHE STRING "Input encoding for LUP SQL files")
+set_property(CACHE LUPMIGRATION_INPUT_ENCODING PROPERTY STRINGS "auto" "windows-1252" "utf-8")
 
 # ============================================================================
 # Static library for TransitionGlue

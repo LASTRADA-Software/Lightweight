@@ -29,8 +29,12 @@ void PrintUsage(char const* programName)
     std::println(stderr, "  --output <FILE>         Output file path (required)");
     std::println(stderr, "                          Supports pattern substitution for multi-file mode:");
     std::println(stderr, "                          {{major}}, {{minor}}, {{patch}}, {{version}}");
-    std::println(stderr, "  --input-encoding <ENC>  Input file encoding: windows-1252 or utf-8");
-    std::println(stderr, "                          (default: windows-1252)");
+    std::println(stderr, "  --input-encoding <ENC>  Input file encoding: auto, windows-1252, or utf-8");
+    std::println(stderr, "                          (default: auto)");
+    std::println(stderr, "                          'auto' detects per-file by inspecting the SQL payload");
+    std::println(stderr, "                          (comments excluded). The explicit modes require every");
+    std::println(stderr, "                          input file to actually be in that encoding; mismatches");
+    std::println(stderr, "                          are reported as errors and the tool exits non-zero.");
     std::println(stderr, "  --emit-cmake            Also write CMakeLists.txt + Plugin.cpp next to");
     std::println(stderr, "                          the generated migration sources so the output");
     std::println(stderr, "                          directory is a drop-in plugin subdirectory.");
@@ -70,7 +74,7 @@ struct Arguments
 {
     std::filesystem::path inputDir;
     std::string outputPattern;
-    std::string inputEncoding = "windows-1252";
+    std::string inputEncoding = "auto";
     std::string pluginName = "LupMigrations";
     bool emitCmake = false;
     bool showHelp = false;
@@ -146,9 +150,9 @@ bool ParseSingleArg(int& i, int argc, char* argv[], Arguments& args)
             return false;
         }
         args.inputEncoding = argv[++i];
-        if (args.inputEncoding != "windows-1252" && args.inputEncoding != "utf-8")
+        if (args.inputEncoding != "auto" && args.inputEncoding != "windows-1252" && args.inputEncoding != "utf-8")
         {
-            std::println(stderr, "Error: Invalid encoding. Use 'windows-1252' or 'utf-8'");
+            std::println(stderr, "Error: Invalid encoding. Use 'auto', 'windows-1252', or 'utf-8'");
             return false;
         }
         return true;
@@ -322,9 +326,14 @@ bool ValidateInputDirectory(std::filesystem::path const& inputDir)
 }
 
 /// @brief Parses all migration files in the given list.
-/// @return The parsed migrations, or nullopt on failure.
-std::optional<std::vector<Lup2DbTool::ParsedMigration>> ParseMigrationFiles(std::vector<std::filesystem::path> const& files,
-                                                                            Lup2DbTool::ParserConfig const& config)
+///
+/// Per-file errors (file unreadable, declared-encoding mismatch, …) are appended to
+/// @p parserErrors instead of aborting the run, so the caller can report every
+/// offending file in one go and still exit non-zero. Files that fail are simply
+/// skipped — the corresponding migration will not appear in the returned vector.
+std::vector<Lup2DbTool::ParsedMigration> ParseMigrationFiles(std::vector<std::filesystem::path> const& files,
+                                                             Lup2DbTool::ParserConfig const& config,
+                                                             std::vector<std::string>& parserErrors)
 {
     std::vector<Lup2DbTool::ParsedMigration> migrations;
     for (auto const& file: files)
@@ -333,8 +342,8 @@ std::optional<std::vector<Lup2DbTool::ParsedMigration>> ParseMigrationFiles(std:
         auto migration = Lup2DbTool::ParseSqlFile(file, config);
         if (!migration)
         {
-            std::println(stderr, "Error: Failed to parse {}", file.string());
-            return std::nullopt;
+            parserErrors.push_back(migration.error());
+            continue;
         }
         migrations.push_back(std::move(*migration));
     }
@@ -362,8 +371,7 @@ std::string StripCppExtension(std::string const& path)
 /// guard against).
 std::string PartFunctionBasename(Lup2DbTool::ParsedMigration const& migration)
 {
-    return std::format("LupMigration_{}_Part",
-                       migration.targetVersion.ToMigrationTimestamp());
+    return std::format("LupMigration_{}_Part", migration.targetVersion.ToMigrationTimestamp());
 }
 
 /// Renders the main (coordinator) file for a split migration — contains the
@@ -376,15 +384,13 @@ void WriteSplitMainFile(std::ofstream& out,
 {
     generator.GenerateFileHeader(out);
     for (size_t i = 1; i <= numParts; ++i)
-        out << "void " << PartFunctionBasename(migration) << i
-            << "(SqlMigrationQueryBuilder& plan);\n";
+        out << "void " << PartFunctionBasename(migration) << i << "(SqlMigrationQueryBuilder& plan);\n";
     out << "\n";
     generator.WriteMigrationHeaderComment(migration, out);
 
     auto const timestamp = migration.targetVersion.ToMigrationTimestamp();
     out << "LIGHTWEIGHT_SQL_MIGRATION(" << timestamp << ", \""
-        << Lup2DbTool::CodeGenerator::EscapeForCppStringLiteral(migration.title)
-        << "\")\n"
+        << Lup2DbTool::CodeGenerator::EscapeForCppStringLiteral(migration.title) << "\")\n"
         << "{\n";
     for (size_t i = 1; i <= numParts; ++i)
         out << "    " << PartFunctionBasename(migration) << i << "(plan);\n";
@@ -429,8 +435,7 @@ bool WriteSplitPartFile(std::string const& partPath,
         return false;
     }
     generator.GenerateFileHeader(out);
-    out << "void " << PartFunctionBasename(migration) << partIndex
-        << "(SqlMigrationQueryBuilder& plan)\n"
+    out << "void " << PartFunctionBasename(migration) << partIndex << "(SqlMigrationQueryBuilder& plan)\n"
         << "{\n";
     for (auto const& block: blocks)
         out << block;
@@ -448,8 +453,7 @@ bool WriteSplitPartFile(std::string const& partPath,
 /// the shared `Lightweight::CodeGen::CodeBlock` format and back. The bin-packing
 /// itself lives in `Lightweight::CodeGen::GroupBlocksByLineBudget` so dbtool's
 /// fold emitter can reuse the same logic.
-std::vector<std::vector<std::string>> GroupBlocksByLineBudget(
-    std::vector<std::string> const& blocks, size_t maxLines)
+std::vector<std::vector<std::string>> GroupBlocksByLineBudget(std::vector<std::string> const& blocks, size_t maxLines)
 {
     std::vector<Lightweight::CodeGen::CodeBlock> codeBlocks;
     codeBlocks.reserve(blocks.size());
@@ -524,7 +528,10 @@ bool GenerateOneMigration(std::string const& outputPath,
 
     std::println(stderr,
                  "Generating: {} (+ {} part file(s); {} lines > {} threshold)",
-                 outputPath, chunks.size(), totalLines, maxLinesPerFile);
+                 outputPath,
+                 chunks.size(),
+                 totalLines,
+                 maxLinesPerFile);
 
     for (size_t i = 0; i < chunks.size(); ++i)
     {
@@ -652,11 +659,23 @@ int main(int argc, char* argv[])
     Lup2DbTool::ParserConfig parserConfig;
     parserConfig.inputEncoding = args.inputEncoding;
 
-    auto migrations = ParseMigrationFiles(files, parserConfig);
-    if (!migrations)
-        return 1;
+    std::vector<std::string> parserErrors;
+    auto migrations = ParseMigrationFiles(files, parserConfig, parserErrors);
 
-    if (!ValidateParsedMigrations(*migrations))
+    // Surface every parser error before we decide what to do — even when generation
+    // proceeds for the surviving files we still want a clear, non-zero exit so the
+    // build (or a CI check) catches the problem instead of silently skipping a file.
+    for (auto const& err: parserErrors)
+        std::println(stderr, "Error: {}", err);
+
+    if (migrations.empty())
+    {
+        if (parserErrors.empty())
+            std::println(stderr, "Error: No migration files could be parsed.");
+        return 1;
+    }
+
+    if (!ValidateParsedMigrations(migrations))
     {
         std::println(stderr, "Error: Some SQL statements could not be parsed.");
         std::println(stderr, "Please extend the SQL parser to handle these statement types.");
@@ -666,7 +685,7 @@ int main(int argc, char* argv[])
     // Substitute real column names for positional INSERT indices emitted by
     // ParseInsert when the source SQL was `INSERT INTO T VALUES (...)` without
     // an explicit column list. See ResolvePositionalInserts() for details.
-    Lup2DbTool::ResolvePositionalInserts(*migrations);
+    Lup2DbTool::ResolvePositionalInserts(migrations);
 
     Lup2DbTool::CodeGeneratorConfig generatorConfig;
     generatorConfig.forceUnicode = args.forceUnicode;
@@ -675,8 +694,9 @@ int main(int argc, char* argv[])
     std::vector<Lup2DbTool::CodeGeneratorDiagnostic> diagnostics;
 
     bool const multiFile = Lup2DbTool::IsMultiFilePattern(args.outputPattern);
-    bool success = multiFile ? GenerateMultiFileOutput(*migrations, args.outputPattern, args.maxLinesPerFile, generator, diagnostics)
-                             : GenerateSingleFileOutput(*migrations, args.outputPattern, generator, diagnostics);
+    bool success =
+        multiFile ? GenerateMultiFileOutput(migrations, args.outputPattern, args.maxLinesPerFile, generator, diagnostics)
+                  : GenerateSingleFileOutput(migrations, args.outputPattern, generator, diagnostics);
 
     // Report any diagnostics (warnings/errors from code generation)
     ReportDiagnostics(diagnostics);
@@ -704,12 +724,15 @@ int main(int argc, char* argv[])
 
     if (hasWarnings)
     {
-        std::println(stderr, "Generated {} migration(s) with warnings.", migrations->size());
+        std::println(stderr, "Generated {} migration(s) with warnings.", migrations.size());
     }
     else
     {
-        std::println(stderr, "Done. Generated {} migration(s).", migrations->size());
+        std::println(stderr, "Done. Generated {} migration(s).", migrations.size());
     }
 
-    return 0;
+    // Files that failed encoding validation are not in `migrations`; surface the
+    // failure in the exit code so the build aborts even if every other file
+    // generated cleanly.
+    return parserErrors.empty() ? 0 : 1;
 }

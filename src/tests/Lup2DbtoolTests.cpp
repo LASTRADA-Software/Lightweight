@@ -4,7 +4,14 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <chrono>
+#include <filesystem>
+#include <format>
+#include <fstream>
 #include <sstream>
+#include <string>
+#include <system_error>
+#include <variant>
 
 #include <CodeGenerator.hpp>
 #include <LupSqlParser.hpp>
@@ -255,9 +262,8 @@ TEST_CASE("ParseSqlStatement.Insert.CommaInsideString", "[lup2dbtool]")
 TEST_CASE("ParseSqlStatement.Insert.ParenInsideString", "[lup2dbtool]")
 {
     // Parens inside a string literal must not terminate the VALUES clause.
-    auto stmt = ParseSqlStatement(
-        "INSERT INTO t (id, code, label, status, other_id) "
-        "VALUES (16, 'AB/CD', 'primary (unit/legacy)', 'unset', 99)");
+    auto stmt = ParseSqlStatement("INSERT INTO t (id, code, label, status, other_id) "
+                                  "VALUES (16, 'AB/CD', 'primary (unit/legacy)', 'unset', 99)");
     REQUIRE(std::holds_alternative<InsertStmt>(stmt));
 
     auto const& insert = std::get<InsertStmt>(stmt);
@@ -269,8 +275,7 @@ TEST_CASE("ParseSqlStatement.Insert.ParenInsideString", "[lup2dbtool]")
 
 TEST_CASE("ParseSqlStatement.Insert.ParenInsideString.ColumnLessForm", "[lup2dbtool]")
 {
-    auto stmt = ParseSqlStatement(
-        "INSERT INTO t VALUES (1, 'a (b) c', 'd,e,f', 2)");
+    auto stmt = ParseSqlStatement("INSERT INTO t VALUES (1, 'a (b) c', 'd,e,f', 2)");
     REQUIRE(std::holds_alternative<InsertStmt>(stmt));
 
     auto const& insert = std::get<InsertStmt>(stmt);
@@ -370,8 +375,8 @@ TEST_CASE("ResolvePositionalInserts leaves out-of-bounds indices untouched", "[l
     ResolvePositionalInserts(migrations);
 
     auto const& insert = std::get<InsertStmt>(migrations[0].statements[1].statement);
-    CHECK(insert.columnValues[0].first == "id");   // resolved
-    CHECK(insert.columnValues[1].first == "1");    // left as-is (warning printed)
+    CHECK(insert.columnValues[0].first == "id"); // resolved
+    CHECK(insert.columnValues[1].first == "1");  // left as-is (warning printed)
 }
 
 TEST_CASE("MapSqlType.ForceUnicodeWidensCharAndVarchar", "[lup2dbtool]")
@@ -381,15 +386,13 @@ TEST_CASE("MapSqlType.ForceUnicodeWidensCharAndVarchar", "[lup2dbtool]")
     CHECK(CodeGenerator::MapSqlType("CHAR(3)").value_or("?") == "NChar(3)");
 
     // Explicit opt-out: stays as narrow types.
-    CHECK(CodeGenerator::MapSqlType("VARCHAR(30)", /*forceUnicode=*/false).value_or("?")
-          == "Varchar(30)");
+    CHECK(CodeGenerator::MapSqlType("VARCHAR(30)", /*forceUnicode=*/false).value_or("?") == "Varchar(30)");
     CHECK(CodeGenerator::MapSqlType("CHAR(3)", /*forceUnicode=*/false).value_or("?") == "Char(3)");
 
     // Already-unicode types are left alone either way.
     CHECK(CodeGenerator::MapSqlType("NVARCHAR(30)").value_or("?") == "NVarchar(30)");
     CHECK(CodeGenerator::MapSqlType("NCHAR(3)").value_or("?") == "NChar(3)");
-    CHECK(CodeGenerator::MapSqlType("NVARCHAR(30)", /*forceUnicode=*/false).value_or("?")
-          == "NVarchar(30)");
+    CHECK(CodeGenerator::MapSqlType("NVARCHAR(30)", /*forceUnicode=*/false).value_or("?") == "NVarchar(30)");
     CHECK(CodeGenerator::MapSqlType("NCHAR(3)", /*forceUnicode=*/false).value_or("?") == "NChar(3)");
 
     // Non-char types are unaffected.
@@ -434,13 +437,13 @@ TEST_CASE("ParseWhereClause.IsNullAndIsNotNull", "[lup2dbtool]")
     {
         auto rendered = ParseWhereClause("a.col is null");
         REQUIRE(rendered.has_value());
-    auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
+        auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
         CHECK(text == R"("A"."COL" IS NULL)");
     }
     {
         auto rendered = ParseWhereClause("col IS NOT NULL");
         REQUIRE(rendered.has_value());
-    auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
+        auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
         CHECK(text == R"("COL" IS NOT NULL)");
     }
 }
@@ -471,8 +474,7 @@ TEST_CASE("ParseWhereClause.NotInSubquery", "[lup2dbtool]")
 
 TEST_CASE("ParseWhereClause.ExistsCorrelatedSubquery", "[lup2dbtool]")
 {
-    auto rendered = ParseWhereClause(
-        "exists (select * from parent as p where p.id = child.parent_id)");
+    auto rendered = ParseWhereClause("exists (select * from parent as p where p.id = child.parent_id)");
     REQUIRE(rendered.has_value());
     auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
     CHECK(text == R"(EXISTS (SELECT * FROM "PARENT" AS "P" WHERE "P"."ID" = "CHILD"."PARENT_ID"))");
@@ -480,8 +482,8 @@ TEST_CASE("ParseWhereClause.ExistsCorrelatedSubquery", "[lup2dbtool]")
 
 TEST_CASE("ParseWhereClause.CompositeAndExistsWithIsNull", "[lup2dbtool]")
 {
-    auto rendered = ParseWhereClause(
-        "exists (select * from parent as p where p.id = child.parent_id) AND child.col is null");
+    auto rendered =
+        ParseWhereClause("exists (select * from parent as p where p.id = child.parent_id) AND child.col is null");
     REQUIRE(rendered.has_value());
     auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
     CHECK(text
@@ -501,9 +503,8 @@ TEST_CASE("ParseWhereClause.RejectsTrailingGarbage", "[lup2dbtool]")
 
 TEST_CASE("ParseSqlStatement.Update.CompositeWhereIsStructured", "[lup2dbtool]")
 {
-    auto stmt = ParseSqlStatement(
-        "UPDATE products SET archived = 1 WHERE (archived <> null) "
-        "AND NOT (parent_id IN (select id from parents))");
+    auto stmt = ParseSqlStatement("UPDATE products SET archived = 1 WHERE (archived <> null) "
+                                  "AND NOT (parent_id IN (select id from parents))");
     REQUIRE(std::holds_alternative<UpdateStmt>(stmt));
 
     auto const& u = std::get<UpdateStmt>(stmt);
@@ -513,16 +514,14 @@ TEST_CASE("ParseSqlStatement.Update.CompositeWhereIsStructured", "[lup2dbtool]")
     CHECK(u.setColumns[0].second == "1");
     // Structured parse: whereExpression filled, structured fields cleared.
     CHECK(u.whereColumn.empty());
-    CHECK(u.whereExpression
-          == R"(("ARCHIVED" <> NULL) AND NOT ("PARENT_ID" IN (SELECT "ID" FROM "PARENTS")))");
+    CHECK(u.whereExpression == R"(("ARCHIVED" <> NULL) AND NOT ("PARENT_ID" IN (SELECT "ID" FROM "PARENTS")))");
 }
 
 TEST_CASE("ParseSqlStatement.Update.ExistsSubqueryIsStructured", "[lup2dbtool]")
 {
-    auto stmt = ParseSqlStatement(
-        "UPDATE docs SET folder = NAME WHERE EXISTS "
-        "(select * from archives as a where a.id=archive_id AND not(a.root_nr is null)) "
-        "AND folder is null");
+    auto stmt = ParseSqlStatement("UPDATE docs SET folder = NAME WHERE EXISTS "
+                                  "(select * from archives as a where a.id=archive_id AND not(a.root_nr is null)) "
+                                  "AND folder is null");
     REQUIRE(std::holds_alternative<UpdateStmt>(stmt));
     auto const& u = std::get<UpdateStmt>(stmt);
     CHECK(u.tableName == "docs");
@@ -970,4 +969,137 @@ TEST_CASE("ParseFilename.NextReleaseSortsAfterRealVersions", "[lup2dbtool]")
     // Must sort strictly greater than any realistic future version.
     CHECK(LupVersion { 99, 99, 99 } < *sentinel); // NOLINT(bugprone-unchecked-optional-access)
     CHECK(LupVersion { 10, 0, 0 } < *sentinel);   // NOLINT(bugprone-unchecked-optional-access)
+}
+
+// ================================================================================================
+// ParseSqlFile encoding detection / validation
+//
+// The corpus of LUP migration files is mixed (mostly Windows-1252, but some files were
+// resaved as UTF-8). A single global `--input-encoding` flag silently double-encodes
+// whichever group disagrees with it, which the user observed in production as MSSQL
+// `lup-truncate` warnings on `TEXTBAUSTEINGRUPPEN.NAME`. The tests below lock in
+// per-file detection (auto mode) and the strict validation behaviour of the explicit
+// modes.
+
+namespace
+{
+/// Writes @p bytes to a temp file with a unique name; returns the path.
+///
+/// `ParseFilename` matches the bare stem against `upd_m_M_m_p` via `regex_match`, so
+/// the filename itself must be exactly that — the per-test uniqueness disambiguator
+/// goes into a fresh parent directory instead of being baked into the stem.
+std::filesystem::path WriteTempSqlFile(std::string_view stem, std::string_view bytes)
+{
+    auto const dir = std::filesystem::temp_directory_path()
+                     / std::format("lup2dbtool_test_{}", std::chrono::steady_clock::now().time_since_epoch().count());
+    std::filesystem::create_directories(dir);
+    auto const path = dir / std::format("upd_m_{}.sql", stem);
+    std::ofstream out(path, std::ios::binary);
+    out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+    return path;
+}
+
+void RemoveQuiet(std::filesystem::path const& p)
+{
+    std::error_code ec;
+    std::filesystem::remove_all(p.parent_path(), ec);
+}
+} // namespace
+
+TEST_CASE("ParseSqlFile.AutoMode.PassesThroughUtf8", "[lup2dbtool]")
+{
+    // 'ä' = 0xC3 0xA4 in UTF-8. Auto mode must keep the bytes as-is.
+    auto const path = WriteTempSqlFile("9_99_01",
+                                       "--print 'header'\n"
+                                       "INSERT INTO T VALUES (1, 'M\xC3\xA4ller')\n");
+    auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "auto" });
+    REQUIRE(result.has_value());
+    REQUIRE(result->statements.size() == 1); // NOLINT(bugprone-unchecked-optional-access)
+    auto const& stmt = std::get<InsertStmt>(result->statements[0].statement);
+    // The byte payload should still contain the original UTF-8 bytes, untouched.
+    bool foundUtf8 = false;
+    for (auto const& [_, value]: stmt.columnValues)
+        if (value.find("\xC3\xA4") != std::string::npos)
+            foundUtf8 = true;
+    CHECK(foundUtf8);
+    RemoveQuiet(path);
+}
+
+TEST_CASE("ParseSqlFile.AutoMode.ConvertsWindows1252", "[lup2dbtool]")
+{
+    // 'ä' encoded as 0xE4 — a Windows-1252 byte that does NOT form valid UTF-8.
+    // Auto mode must therefore convert to UTF-8 (0xC3 0xA4).
+    auto const path = WriteTempSqlFile("9_99_02",
+                                       "--print 'header'\n"
+                                       "INSERT INTO T VALUES (1, 'M\xE4ller')\n");
+    auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "auto" });
+    REQUIRE(result.has_value());
+    REQUIRE(result->statements.size() == 1); // NOLINT(bugprone-unchecked-optional-access)
+    auto const& stmt = std::get<InsertStmt>(result->statements[0].statement);
+    bool foundUtf8 = false;
+    bool foundLatin1 = false;
+    for (auto const& [_, value]: stmt.columnValues)
+    {
+        if (value.find("\xC3\xA4") != std::string::npos)
+            foundUtf8 = true;
+        if (value.find('\xE4') != std::string::npos && value.find("\xC3\xA4") == std::string::npos)
+            foundLatin1 = true;
+    }
+    CHECK(foundUtf8);
+    CHECK_FALSE(foundLatin1);
+    RemoveQuiet(path);
+}
+
+TEST_CASE("ParseSqlFile.AutoMode.PureAsciiUntouched", "[lup2dbtool]")
+{
+    auto const path = WriteTempSqlFile("9_99_03",
+                                       "--print 'header'\n"
+                                       "INSERT INTO T VALUES (1, 'plain ascii')\n");
+    auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "auto" });
+    REQUIRE(result.has_value());
+    REQUIRE(result->statements.size() == 1); // NOLINT(bugprone-unchecked-optional-access)
+    RemoveQuiet(path);
+}
+
+TEST_CASE("ParseSqlFile.ExplicitUtf8RejectsWindows1252", "[lup2dbtool]")
+{
+    // A bare 0xE4 byte in the SQL payload is not valid UTF-8. Declaring `utf-8`
+    // explicitly must surface a per-file error instead of silently mangling.
+    // The validator may flag either the lead byte itself or a missing continuation,
+    // so we only require that the message says "invalid UTF-8" and points at our
+    // payload — we don't pin the exact offset.
+    auto const path = WriteTempSqlFile("9_99_04", "INSERT INTO T VALUES (1, 'M\xE4ller')\n");
+    auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "utf-8" });
+    REQUIRE_FALSE(result.has_value());
+    INFO("Error message: " << result.error());
+    CHECK(result.error().find("invalid UTF-8") != std::string::npos);
+    CHECK(result.error().find("utf-8") != std::string::npos);
+    RemoveQuiet(path);
+}
+
+TEST_CASE("ParseSqlFile.ExplicitWindows1252RejectsUtf8", "[lup2dbtool]")
+{
+    // Regression test for the production incident: a UTF-8 file (0xC3 0xA4 = 'ä')
+    // was being treated as Windows-1252, double-encoding 'ä' as 'Ã¤'. Strict
+    // validation now refuses this combination so the build fails loudly instead.
+    auto const path = WriteTempSqlFile("9_99_05", "INSERT INTO T VALUES (1, 'M\xC3\xA4ller')\n");
+    auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "windows-1252" });
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error().find("validates as UTF-8") != std::string::npos);
+    RemoveQuiet(path);
+}
+
+TEST_CASE("ParseSqlFile.NonAsciiInsideCommentsIgnoredByDetection", "[lup2dbtool]")
+{
+    // The SQL payload is pure ASCII. The non-ASCII bytes only live inside `--` and
+    // `/* ... */` comments — those must not influence encoding detection or the
+    // declared-encoding check, otherwise legitimate UTF-8 files with W-1252 author
+    // notes in their banners (or the reverse) would be rejected.
+    auto const path = WriteTempSqlFile("9_99_06",
+                                       "/* author: J\xE4ger */\n"
+                                       "-- TODO: review by M\xE4ller\n"
+                                       "INSERT INTO T VALUES (1, 'plain ascii')\n");
+    auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "utf-8" });
+    REQUIRE(result.has_value());
+    RemoveQuiet(path);
 }
