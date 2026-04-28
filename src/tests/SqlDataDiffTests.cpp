@@ -43,7 +43,14 @@ struct ScopedTempFile
 
 [[nodiscard]] SqlConnectionString SqliteConn(std::filesystem::path const& path)
 {
-    return SqlConnectionString { std::format("DRIVER=SQLite3;Database={}", path.string()) };
+    // The Windows ODBC driver name has spaces and must be wrapped in braces; the
+    // unixODBC convention used on Linux/macOS keeps a bare identifier.
+#if defined(_WIN32) || defined(_WIN64)
+    constexpr auto driverName = "{SQLite3 ODBC Driver}";
+#else
+    constexpr auto driverName = "SQLite3";
+#endif
+    return SqlConnectionString { std::format("DRIVER={};Database={}", driverName, path.string()) };
 }
 
 /// Creates a `users(id PK, name, email)` table and inserts the given rows.
