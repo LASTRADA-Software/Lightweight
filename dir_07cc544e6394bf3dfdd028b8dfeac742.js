@@ -19,6 +19,7 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "SqlLogger.hpp", "d9/de5/SqlLogger_8hpp_source.html", null ],
     [ "SqlMigration.hpp", "d6/d35/SqlMigration_8hpp_source.html", null ],
     [ "SqlMigrationLock.hpp", "d9/dd6/SqlMigrationLock_8hpp_source.html", null ],
+    [ "SqlOdbcWide.hpp", "df/d7d/SqlOdbcWide_8hpp_source.html", null ],
     [ "SqlQuery.hpp", "dc/dcc/SqlQuery_8hpp_source.html", null ],
     [ "SqlQueryFormatter.hpp", "df/d13/SqlQueryFormatter_8hpp_source.html", null ],
     [ "SqlRealName.hpp", "d0/dd1/SqlRealName_8hpp_source.html", null ],

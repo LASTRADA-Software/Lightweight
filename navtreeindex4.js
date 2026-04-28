@@ -103,7 +103,7 @@ var NAVTREEINDEX4 =
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#a782c413681d6e9b9918c5d4643ccba09":[12,0,0,0,0,2],
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#acfb1859f3c204725710cc91d9ceb2332":[12,0,0,0,0,1],
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#afd0fb1ae392d5ddb2f6bcd9122776ffa":[12,0,0,0,0,0],
-"dc/dcc/SqlQuery_8hpp_source.html":[13,0,1,19],
+"dc/dcc/SqlQuery_8hpp_source.html":[13,0,1,20],
 "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html":[12,0,0,1,2],
 "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a2a35c526922042dcece928d84c7caac1":[12,0,0,1,2,2],
 "dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a33a69b26419eed12fa5726e3a76ea3e1":[12,0,0,1,2,3],

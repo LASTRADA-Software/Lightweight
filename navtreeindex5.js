@@ -80,7 +80,7 @@ var NAVTREEINDEX5 =
 "de/dfe/structLightweight_1_1SqlText.html#acb96ee68a3cc936ac16a50cb90d587d5":[10,0,9,0],
 "de/dfe/structLightweight_1_1SqlText.html#af5030d1caea50f2ac9251206e039201a":[10,0,9,1],
 "df/d0f/Pool_8hpp_source.html":[13,0,1,1,8],
-"df/d13/SqlQueryFormatter_8hpp_source.html":[13,0,1,20],
+"df/d13/SqlQueryFormatter_8hpp_source.html":[13,0,1,21],
 "df/d1a/structLightweight_1_1PoolConfig.html":[12,0,0,14],
 "df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c":[12,0,0,14,1],
 "df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f":[12,0,0,14,2],
@@ -149,6 +149,7 @@ var NAVTREEINDEX5 =
 "df/d7c/structLightweight_1_1SqlGuid.html#a938d38326b32d8949207090b1fca26d0":[10,0,6,3],
 "df/d7c/structLightweight_1_1SqlGuid.html#abc3fab606715de2437552cc0f585359e":[10,0,6,5],
 "df/d7c/structLightweight_1_1SqlGuid.html#ae7573accb00b48a05d2b8085f14483c5":[10,0,6,0],
+"df/d7d/SqlOdbcWide_8hpp_source.html":[13,0,1,19],
 "df/d9c/classLightweight_1_1SqlScopedTraceLogger.html":[12,0,0,61],
 "df/d9c/classLightweight_1_1SqlScopedTraceLogger.html#a4fda8ec6c7637ab7872101fbf98bc366":[12,0,0,61,2],
 "df/d9c/classLightweight_1_1SqlScopedTraceLogger.html#a9b01ab6331d7dc988f9928e0b292e2a2":[12,0,0,61,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX5 =
 "index.html#foreign-keys-relation":[0,3,1],
 "index.html#generate-example-for-the-existing-database":[0,5],
 "index.html#high-level-api":[0,3],
-"index.html#mapping-query-results-to-a-simple-struct":[0,3,2],
-"index.html#mapping-query-to-multiple-struct":[0,3,3]
+"index.html#mapping-query-results-to-a-simple-struct":[0,3,2]
 };

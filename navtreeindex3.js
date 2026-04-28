@@ -76,7 +76,7 @@ var NAVTREEINDEX3 =
 "d9/d3d/ZipError_8hpp_source.html":[13,0,1,6,2],
 "d9/d43/Employee_8hpp_source.html":[13,0,0,0,0,3],
 "d9/d6b/Migrate_8hpp_source.html":[13,0,1,4,3],
-"d9/d6e/SqlStatement_8hpp_source.html":[13,0,1,25],
+"d9/d6e/SqlStatement_8hpp_source.html":[13,0,1,26],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html":[2],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database":[2,0],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping":[2,4],
@@ -84,7 +84,7 @@ var NAVTREEINDEX3 =
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries":[2,1],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs":[2,5],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder":[2,3],
-"d9/da6/SqlTransaction_8hpp_source.html":[13,0,1,26],
+"d9/da6/SqlTransaction_8hpp_source.html":[13,0,1,27],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html":[12,0,0,27],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36":[12,0,0,27,10],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a209f52c2128670486fa0df251261bf80":[12,0,0,27,5],
@@ -249,5 +249,5 @@ var NAVTREEINDEX3 =
 "da/df4/classLightweight_1_1HasMany.html#acea92f62bbba17fef8765578507e62e4":[10,2,6,5],
 "da/df4/classLightweight_1_1HasMany.html#ad61f5d9a2f12fe8aa41569414ca4c62e":[10,2,6,13],
 "da/df4/classLightweight_1_1HasMany.html#adb89edafa7435160b169cae7a7f095a5":[10,2,6,11],
-"db/d1c/SqlSchema_8hpp_source.html":[13,0,1,22]
+"db/d1c/SqlSchema_8hpp_source.html":[13,0,1,23]
 };
