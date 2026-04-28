@@ -88,7 +88,18 @@ def load_connection_string_from_test_env(env_name):
 
 def run_command(cmd, check=True):
     print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    # dbtool emits UTF-8 (table names, progress glyphs, etc.) regardless of platform.
+    # Without an explicit encoding, Python on Windows defaults to the console code
+    # page (cp1252) and crashes the reader thread with UnicodeDecodeError as soon as
+    # any non-ASCII byte appears, masking the real exit status.
+    result = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
     if result.returncode != 0:
         print("STDOUT:", result.stdout)
         print("STDERR:", result.stderr)
