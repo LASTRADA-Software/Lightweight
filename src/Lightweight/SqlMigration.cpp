@@ -1844,9 +1844,9 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
     auto stmt = SqlStatement { dm.Connection() };
     auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
 
-    std::set<SqlSchema::FullyQualifiedTableName> intended;
+    std::set<std::string> intendedNames;
     for (auto const& key: fold.creationOrder)
-        intended.insert(key);
+        intendedNames.insert(key.table);
 
     std::set<std::string> liveNames;
     for (auto const& t: liveTables)
@@ -1862,13 +1862,17 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
     }
 
     // Live tables not declared by any migration → preserved (user-owned).
+    // Comparison is by name only because the engine resolves an unqualified plan
+    // (`schemaName=""`) into its default schema (`dbo` on MSSQL, `public` on
+    // Postgres, none on SQLite), so the live row's schema is engine-specific while
+    // the migration plan keeps its declared schema. Matching the dropped-tables
+    // half of this same function, which already uses `liveNames.contains(key.table)`.
     for (auto const& t: liveTables)
     {
         if (t.name == "schema_migrations")
             continue;
-        auto const key = MakeFqtn(t.schema, t.name);
-        if (!intended.contains(key))
-            result.preservedTables.push_back(key);
+        if (!intendedNames.contains(t.name))
+            result.preservedTables.push_back(MakeFqtn(t.schema, t.name));
     }
 
     if (dryRun)
