@@ -160,10 +160,15 @@ LightweightTest --test-env=sqlite3
 LightweightTest --test-env=mssql2022
 LightweightTest --test-env=postgres
 
-# 4. Run the dbtool integration suite per DB
-python3 src/tests/test_dbtool.py --test-env sqlite3
-python3 src/tests/test_dbtool.py --test-env mssql2022
-python3 src/tests/test_dbtool.py --test-env postgres
+# 4. Run the dbtool integration suite per DB. The script needs the dbtool
+#    binary and the directory holding the dummy_migration_plugin DLLs that
+#    its test fixtures dlopen. Adjust paths to your build dir (the example
+#    below is for the windows-clangcl-debug preset).
+DBTOOL=$PWD/out/build/windows-clangcl-debug/target/dbtool.exe
+PLUGINS=$PWD/out/build/windows-clangcl-debug/tests/plugins
+python3 src/tests/test_dbtool.py --dbtool "$DBTOOL" --plugins-dir "$PLUGINS" --test-env sqlite3
+python3 src/tests/test_dbtool.py --dbtool "$DBTOOL" --plugins-dir "$PLUGINS" --test-env mssql2022
+python3 src/tests/test_dbtool.py --dbtool "$DBTOOL" --plugins-dir "$PLUGINS" --test-env postgres
 ```
 
 If a database is **deliberately** skipped (e.g., feature genuinely doesn't apply, container can't be started in the environment), call it out in the PR summary with the reason. The `UNSUPPORTED_DATABASE(stmt, dbType)` macro in `src/tests/Utils.hpp` is the in-test escape hatch for genuinely unsupported features per DBMS — use it only when the limitation is intrinsic, not as a way to dodge a failure.
