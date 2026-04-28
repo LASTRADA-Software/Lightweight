@@ -1,5 +1,8 @@
 var NAVTREEINDEX3 =
 {
+"d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0":[10,2,16],
+"d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab":[10,2,18],
+"d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24":[10,2,17],
 "d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25":[10,2,12],
 "d7/d2f/group__DataMapper.html#ga8e59547a0c0c6f118824cab220ae43c4":[10,2,20],
 "d7/d2f/group__DataMapper.html#gac7df2f7b61cdd663f50496fe92c80a73":[10,2,14],
@@ -246,8 +249,5 @@ var NAVTREEINDEX3 =
 "d9/de1/structLightweight_1_1SqlDate.html#a2fdc23d50db21a969a5e79dab932ec51":[10,0,1,7],
 "d9/de1/structLightweight_1_1SqlDate.html#a5aede1f305a6af7ac5b89c5516b0b1e6":[10,0,1,4],
 "d9/de1/structLightweight_1_1SqlDate.html#a5f68c209fed5b439690a0846725dfcee":[10,0,1,1],
-"d9/de1/structLightweight_1_1SqlDate.html#a649f582462bd3257f353e570070ea36f":[10,0,1,8],
-"d9/de1/structLightweight_1_1SqlDate.html#abb63b8190ca89408601b6b10e58b7c9d":[10,0,1,0],
-"d9/de1/structLightweight_1_1SqlDate.html#ac22e4292f9c821d76c65c2dcd76ec3d2":[10,0,1,10],
-"d9/de1/structLightweight_1_1SqlDate.html#ac8926c16c74e11a1467098a40b13e552":[10,0,1,9]
+"d9/de1/structLightweight_1_1SqlDate.html#a649f582462bd3257f353e570070ea36f":[10,0,1,8]
 };

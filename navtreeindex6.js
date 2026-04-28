@@ -1,5 +1,8 @@
 var NAVTREEINDEX6 =
 {
+"df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c":[12,0,0,20,1],
+"df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f":[12,0,0,20,2],
+"df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4":[12,0,0,20,0],
 "df/d25/Customer_8hpp_source.html":[13,0,0,0,0,2],
 "df/d2d/SecretResolver_8hpp_source.html":[13,0,1,7,2],
 "df/d36/Playlist_8hpp_source.html":[13,0,0,0,0,8],

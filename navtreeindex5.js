@@ -1,5 +1,8 @@
 var NAVTREEINDEX5 =
 {
+"dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d":[10,4,18,0],
+"dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html":[12,0,0,66],
+"dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html#a34abfccd3b12c420297704361a2738a8":[12,0,0,66,2],
 "dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html#a72d0fccef271e1fc96affc5c22d280b3":[12,0,0,66,1],
 "dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html#a8c6e0209082d4a10bb1ace84edd67648":[12,0,0,66,0],
 "dc/d73/ZipArchive_8hpp_source.html":[13,0,1,12,0],
@@ -246,8 +249,5 @@ var NAVTREEINDEX5 =
 "de/dfe/structLightweight_1_1SqlText.html#af5030d1caea50f2ac9251206e039201a":[10,0,9,1],
 "df/d0f/Pool_8hpp_source.html":[13,0,1,3,8],
 "df/d13/SqlQueryFormatter_8hpp_source.html":[13,0,1,27],
-"df/d1a/structLightweight_1_1PoolConfig.html":[12,0,0,20],
-"df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c":[12,0,0,20,1],
-"df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f":[12,0,0,20,2],
-"df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4":[12,0,0,20,0]
+"df/d1a/structLightweight_1_1PoolConfig.html":[12,0,0,20]
 };

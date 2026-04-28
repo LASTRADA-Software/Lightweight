@@ -163,7 +163,7 @@ var searchData=
   ['sqlwidestring_160',['SqlWideString',['../d4/d7c/group__DataTypes.html#ga151c371c5f22ebb4ff0fa48cc99d1338',1,'Lightweight']]],
   ['sqlwildcardtype_161',['SqlWildcardType',['../d2/d74/structLightweight_1_1SqlWildcardType.html',1,'Lightweight']]],
   ['standardlogger_162',['StandardLogger',['../db/dfd/classLightweight_1_1SqlLogger.html#a83e0a69b24cf00dc055c667f7185f5cb',1,'Lightweight::SqlLogger']]],
-  ['state_163',['state',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a7532c06b2575869bb04450eeb733ec24',1,'Lightweight::SqlBackup::Progress::state'],['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fc',1,'Lightweight::SqlBackup::Progress::State']]],
+  ['state_163',['state',['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fc',1,'Lightweight::SqlBackup::Progress::State'],['../d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a7532c06b2575869bb04450eeb733ec24',1,'Lightweight::SqlBackup::Progress::state']]],
   ['statements_164',['statements',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statements',1,'Prepared Statements'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements',1,'Use Prepared Statements']]],
   ['status_165',['status',['../d5/dc4/dbtool.html#status',1,'']]],
   ['status_20verification_166',['Status &amp; Verification',['../d2/da6/sql-migrations.html#status--verification',1,'']]],
