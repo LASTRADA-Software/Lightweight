@@ -1401,6 +1401,59 @@ TEST_CASE_METHOD(SqlTestFixture, "Unicode round-trip across binders", "[SqlDataB
     }
 }
 
+struct UnicodeAcrossDynamicStringTypes
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlDynamicUtf16String<256>> stringUtf16 {};
+    Field<SqlDynamicUtf32String<256>> stringUtf32 {};
+    Field<SqlDynamicWideString<256>> stringWide {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Unicode round-trip across DataMapper dynamic string types",
+                 "[DataMapper][Unicode]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<UnicodeAcrossDynamicStringTypes>();
+
+    UnicodeAcrossDynamicStringTypes record {};
+    record.stringUtf16 = std::u16string { u"Hello \U0001F601 World" };
+    record.stringUtf32 = std::u32string { U"Hello \U0001F601 World" };
+    record.stringWide = std::wstring { L"Hello \U0001F601 World" };
+    dm.Create(record);
+
+    auto const result = dm.QuerySingle<UnicodeAcrossDynamicStringTypes>(record.id);
+    REQUIRE(result.has_value());
+    CHECK(result->stringUtf16.Value() == record.stringUtf16.Value());
+    CHECK(result->stringUtf32.Value() == record.stringUtf32.Value());
+    CHECK(result->stringWide.Value() == record.stringWide.Value());
+}
+
+struct UnicodeTrimmedFixedRow
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlTrimmedFixedString<32>> stringNarrow {};
+    Field<SqlTrimmedWideFixedString<32>> stringWide {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Trimmed fixed strings strip trailing padding through DataMapper",
+                 "[DataMapper][Unicode]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<UnicodeTrimmedFixedRow>();
+
+    UnicodeTrimmedFixedRow row {};
+    row.stringNarrow = "Hello";
+    row.stringWide = L"Hellö";
+    dm.Create(row);
+
+    auto const result = dm.QuerySingle<UnicodeTrimmedFixedRow>(row.id);
+    REQUIRE(result.has_value());
+    CHECK(result->stringNarrow == SqlTrimmedFixedString<32> { "Hello" });
+    CHECK(result->stringWide == SqlTrimmedWideFixedString<32> { L"Hellö" });
+}
+
 // Coverage for the SQL_C_WCHAR truncation arithmetic in
 // detail::GetRawColumnArrayData (BasicStringBinder.hpp). The function has two
 // re-fetch branches: (a) the driver reports total length up front and we re-

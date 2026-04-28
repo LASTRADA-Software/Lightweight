@@ -145,6 +145,23 @@ namespace detail
                     (CharType const*) u32String.data() + u32String.size(),
                 };
             }
+
+            // The UTF-16 binder applies StringTraits::PostProcessOutputColumn (if present) so that
+            // FIXED_SIZE_RIGHT_TRIMMED strings strip the trailing CHAR(N)/NCHAR(N) padding the server
+            // returned. The UTF-32 / UTF-8 path constructs *result above, which preserves the padding,
+            // so we have to invoke the same post-process here. The synthetic indicator is the
+            // result's own byte count: PostProcessOutputColumn divides by sizeof(CharType) to get
+            // the char count, and TrimRight then walks back over trailing whitespace/null.
+            using StringTraits = SqlBasicStringOperations<StringType>;
+            if constexpr (requires { StringTraits::PostProcessOutputColumn(result, *indicator); })
+            {
+                if (*indicator != SQL_NULL_DATA && *indicator != SQL_NO_TOTAL)
+                {
+                    auto const syntheticIndicator =
+                        static_cast<SQLLEN>(StringTraits::Size(result) * sizeof(CharType));
+                    StringTraits::PostProcessOutputColumn(result, syntheticIndicator);
+                }
+            }
         });
 
         return SQLBindCol(stmt,
@@ -416,15 +433,9 @@ struct SqlDataBinder<Utf16StringType>
                                     Utf16StringType const& value,
                                     SqlDataBinderCallback& cb) noexcept
     {
-        // Bind UTF-16 input directly via SQL_C_WCHAR for every backend, including
-        // PostgreSQL. The previous PG-specific hatch — pre-converting to UTF-8 and
-        // binding as SQL_C_CHAR / SQL_VARCHAR — was a workaround for psqlODBC running
-        // in ANSI mode on Windows, where SQL_C_CHAR is treated as the system codepage
-        // (cp1252) and re-encoded as UTF-8. With SqlConnection now opening every handle
-        // via SQLDriverConnectW the driver is in Unicode app mode, where SQL_C_WCHAR
-        // input is converted to the server's encoding by the driver itself — including
-        // correct handling of UTF-16 surrogate pairs for supplementary-plane code points
-        // (emoji, CJK extension, etc.).
+        // Bind UTF-16 input directly via SQL_C_WCHAR for every backend; the driver
+        // converts to the server's encoding, including correct handling of UTF-16
+        // surrogate pairs for supplementary-plane code points (emoji, CJK extension B+).
         using CharType = StringTraits::CharType;
         auto const* data = StringTraits::Data(&value);
         auto const sizeInBytes = StringTraits::Size(&value) * sizeof(CharType);
@@ -526,10 +537,7 @@ struct SqlDataBinder<Utf32StringType>
                                     SqlDataBinderCallback& cb) noexcept
     {
         // Always go via UTF-16 + SQL_C_WCHAR; the driver handles encoding conversion
-        // for the target server. See the matching comment on the std::u16string binder
-        // above — same rationale, the previous PostgreSQL-specific UTF-8 hatch was
-        // a workaround for ANSI-mode psqlODBC and is no longer needed now that the
-        // connection is opened via SQLDriverConnectW.
+        // for the target server.
         auto u16String =
             std::make_shared<std::u16string>(ToUtf16(detail::SqlViewHelper<Utf32StringType>::View(value)));
         cb.PlanPostExecuteCallback([u16String = u16String]() {}); // Keep the string alive
@@ -603,12 +611,7 @@ struct SqlDataBinder<Utf8StringType>
                                     SqlDataBinderCallback& cb) noexcept
     {
         // Always go via UTF-16 + SQL_C_WCHAR; the driver handles encoding conversion
-        // for the target server. Same rationale as the std::u16string / std::u32string
-        // binders above: the previous PostgreSQL-specific UTF-8 hatch (bind UTF-8 bytes
-        // as SQL_C_CHAR / SQL_VARCHAR) only worked when the connection happened to be in
-        // ANSI mode on a UTF-8 system locale (Linux). On Windows it ran the bytes through
-        // cp1252 → UTF-8 a second time, doubling each byte ≥ 0x80 — emoji and `ö`
-        // round-tripped wrong, and 200-byte UTF-8 payloads tripped VARCHAR-length checks.
+        // for the target server.
         auto u16String =
             std::make_shared<std::u16string>(ToUtf16(detail::SqlViewHelper<Utf8StringType>::View(value)));
         cb.PlanPostExecuteCallback([u16String = u16String]() {}); // Keep the string alive

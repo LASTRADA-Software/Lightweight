@@ -7,6 +7,7 @@
 #include "SqlQueryFormatter.hpp"
 #include "SqlStatement.hpp"
 
+#include <algorithm>
 #include <array>
 #include <mutex>
 
@@ -175,10 +176,22 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
     // Convert the three input strings to UTF-16 once, *outside* the scoped lock,
     // so the W-variant `SQLConnectW` call below sees properly-decoded Unicode and
     // marks this DBC handle as a Unicode application — which in turn flips the
-    // psqlODBC driver out of its ANSI / cp1252 mode.
-    auto wDataSource = detail::OdbcWideArg { info.datasource };
-    auto wUsername = detail::OdbcWideArg { info.username };
-    auto wPassword = detail::OdbcWideArg { info.password };
+    // psqlODBC driver out of its ANSI / cp1252 mode. The try/catch defends the
+    // noexcept contract: OdbcWideArg allocates a std::u16string and can throw
+    // std::bad_alloc, which would otherwise call std::terminate.
+    detail::OdbcWideArg wDataSource { std::string_view {} };
+    detail::OdbcWideArg wUsername { std::string_view {} };
+    detail::OdbcWideArg wPassword { std::string_view {} };
+    try
+    {
+        wDataSource = detail::OdbcWideArg { info.datasource };
+        wUsername = detail::OdbcWideArg { info.username };
+        wPassword = detail::OdbcWideArg { info.password };
+    }
+    catch (...)
+    {
+        return false;
+    }
 
     SQLRETURN sqlReturn {};
     {
@@ -239,8 +252,18 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
     // the W-variant `SQLDriverConnectW` call below puts this DBC handle into Unicode-app
     // mode for the rest of its lifetime. Without this, psqlODBC on Windows drops into
     // ANSI mode and runs every SQL_C_CHAR / SQL_C_WCHAR payload through the system
-    // codepage, which mangles UTF-8 bytes ≥ 0x80 and UTF-16 surrogate pairs.
-    auto wConnectionString = detail::OdbcWideArg { m_data->connectionString.value };
+    // codepage, which mangles UTF-8 bytes ≥ 0x80 and UTF-16 surrogate pairs. The
+    // try/catch defends the noexcept contract against std::bad_alloc from the UTF-16
+    // allocation.
+    detail::OdbcWideArg wConnectionString { std::string_view {} };
+    try
+    {
+        wConnectionString = detail::OdbcWideArg { m_data->connectionString.value };
+    }
+    catch (...)
+    {
+        return false;
+    }
 
     SQLRETURN sqlResult {};
     {

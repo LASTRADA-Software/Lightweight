@@ -5,6 +5,7 @@
 #include "SqlLogger.hpp"
 #include "SqlOdbcWide.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstring>
 

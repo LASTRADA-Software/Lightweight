@@ -12,6 +12,7 @@
 #include <Lightweight/SqlMigrationLock.hpp>
 #include <Lightweight/SqlSchema.hpp>
 
+#include <cstdio>
 #include <expected>
 #include <filesystem>
 #include <iostream>

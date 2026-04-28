@@ -20,9 +20,9 @@ static_assert(sizeof(SQLWCHAR) == sizeof(char16_t),
               "ODBC W variants require a 16-bit code unit; SQLWCHAR shape mismatch");
 
 /// @brief Converts a UTF-8 string view into a `std::u16string` for ODBC W variants.
-/// Distinct from `ToUtf16(std::string const&)` in `UnicodeConverter.hpp`, which on
-/// Windows interprets its input as the system ANSI codepage (CP_ACP) — the very
-/// trap this whole switch to W variants exists to side-step.
+/// Use this rather than `ToUtf16(std::string const&)` from `UnicodeConverter.hpp`:
+/// that overload treats its input as the platform narrow encoding (CP_ACP on
+/// Windows), which silently corrupts UTF-8 bytes >= 0x80.
 inline std::u16string OdbcUtf8ToUtf16(std::string_view utf8)
 {
     return ToUtf16(std::u8string_view { reinterpret_cast<char8_t const*>(utf8.data()), utf8.size() });
