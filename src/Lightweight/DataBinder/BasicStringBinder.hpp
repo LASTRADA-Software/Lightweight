@@ -83,7 +83,8 @@ namespace detail
             result->resize(result->size() * 2);
             auto* const bufferStart = result->data() + writeIndex;
             size_t const bufferCharsAvailable = result->size() - writeIndex;
-            sqlResult = SQLGetData(stmt, column, CType, bufferStart, static_cast<SQLLEN>(bufferCharsAvailable), indicator);
+            sqlResult = SQLGetData(
+                stmt, column, CType, bufferStart, static_cast<SQLLEN>(bufferCharsAvailable * sizeof(CharType)), indicator);
         }
         return sqlResult;
     }
