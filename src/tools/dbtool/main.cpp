@@ -369,6 +369,15 @@ void ApplyProfileToOptions(Options& options)
 {
     namespace Cfg = Lightweight::Config;
 
+    // An explicit `--connection-string` without `--profile` is the user's way of saying
+    // "don't auto-apply any profile defaults" — the connection string they typed pins
+    // them to a specific backend, and silently merging another profile's `schema` /
+    // `pluginsDir` / etc. is at best surprising and at worst wrong (e.g. picking up
+    // `schema: dbo` from a SQL Server profile while pointing at SQLite, which then
+    // injects `"dbo"."<table>"` into every introspection query).
+    if (options.connectionStringSet && options.profileName.empty())
+        return;
+
     std::filesystem::path configPath;
     if (!options.configFile.empty())
     {
