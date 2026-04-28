@@ -51,7 +51,63 @@ if(LUPMIGRATION_SQL_DIR AND EXISTS "${LUPMIGRATION_SQL_DIR}")
     # Stamp file to track when generation was last run
     set(GENERATION_STAMP_FILE "${GENERATED_MIGRATIONS_DIR}/.generation_stamp")
 
-    # Custom command to generate C++ migrations from SQL files (one file per migration)
+    # Cold-start bootstrap: on the very first configure (or after a clean of the
+    # generated directory) the `lup_*.cpp` files do not yet exist, so a configure-time
+    # glob would yield nothing and the plugin would link without any migrations —
+    # exactly the regression that produced "nothing to migrate" against an empty DB.
+    #
+    # Build lup2dbtool synchronously, run it, and populate the directory *during*
+    # configure. The build-time custom command below still owns incremental updates
+    # when individual SQL files change.
+    # Re-entrancy guard: when ninja runs the build, it invokes
+    # `cmake --regenerate-during-build` before each build. That re-runs configure,
+    # which would re-enter this branch, recursively call `cmake --build`, and
+    # deadlock. The sentinel file prevents the inner configure from trying to
+    # bootstrap a second time.
+    set(_lup_bootstrap_sentinel "${GENERATED_MIGRATIONS_DIR}/.bootstrap_in_progress")
+    if(NOT EXISTS "${GENERATION_STAMP_FILE}" AND NOT EXISTS "${_lup_bootstrap_sentinel}")
+        message(STATUS "LupMigrationsPlugin: Cold-start — bootstrapping lup2dbtool and generating sources")
+        file(TOUCH "${_lup_bootstrap_sentinel}")
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target lup2dbtool
+            RESULT_VARIABLE _lup_bootstrap_build_result
+        )
+        if(NOT _lup_bootstrap_build_result EQUAL 0)
+            file(REMOVE "${_lup_bootstrap_sentinel}")
+            message(FATAL_ERROR "LupMigrationsPlugin: failed to build lup2dbtool for cold-start generation")
+        endif()
+        # `$<TARGET_FILE:lup2dbtool>` cannot be used here — generator expressions are
+        # not evaluated by `execute_process`. Resolve the just-built binary by name
+        # in the build tree.
+        find_program(LUP2DBTOOL_BIN
+            NAMES lup2dbtool
+            PATHS "${CMAKE_BINARY_DIR}/src/tools/lup2dbtool"
+            NO_DEFAULT_PATH
+            NO_CACHE
+        )
+        if(NOT LUP2DBTOOL_BIN)
+            file(REMOVE "${_lup_bootstrap_sentinel}")
+            message(FATAL_ERROR "LupMigrationsPlugin: lup2dbtool binary not found after build "
+                                "(expected under ${CMAKE_BINARY_DIR}/src/tools/lup2dbtool)")
+        endif()
+        execute_process(
+            COMMAND "${LUP2DBTOOL_BIN}"
+                --input-dir "${LUPMIGRATION_SQL_DIR}"
+                --input-encoding "${LUPMIGRATION_INPUT_ENCODING}"
+                --output "${GENERATED_MIGRATIONS_DIR}/lup_{version}.cpp"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+            RESULT_VARIABLE _lup_bootstrap_gen_result
+        )
+        file(REMOVE "${_lup_bootstrap_sentinel}")
+        if(NOT _lup_bootstrap_gen_result EQUAL 0)
+            message(FATAL_ERROR "LupMigrationsPlugin: lup2dbtool failed during cold-start generation")
+        endif()
+        file(TOUCH "${GENERATION_STAMP_FILE}")
+    endif()
+
+    # Custom command to keep the generated sources fresh on incremental builds
+    # (editing or adding an SQL file re-runs lup2dbtool). The cold-start bootstrap
+    # above guarantees the outputs already exist before this is invoked the first time.
     add_custom_command(
         OUTPUT "${GENERATION_STAMP_FILE}"
         COMMAND lup2dbtool
@@ -65,27 +121,18 @@ if(LUPMIGRATION_SQL_DIR AND EXISTS "${LUPMIGRATION_SQL_DIR}")
         VERBATIM
     )
 
-    # Custom target to ensure generation happens before we try to glob for files
     add_custom_target(GenerateLupMigrations
         DEPENDS "${GENERATION_STAMP_FILE}"
     )
 
-    # We need to run configure-time glob after the files exist
-    # For the first configure, use a placeholder. After lup2dbtool runs, reconfigure will pick up all files.
-    if(EXISTS "${GENERATION_STAMP_FILE}")
-        file(GLOB GENERATED_MIGRATION_FILES "${GENERATED_MIGRATIONS_DIR}/lup_*.cpp")
-    else()
-        # First configure - files don't exist yet. Create a placeholder that will be replaced.
-        set(PLACEHOLDER_FILE "${GENERATED_MIGRATIONS_DIR}/GeneratedMigrations.cpp")
-        if(NOT EXISTS "${PLACEHOLDER_FILE}")
-            file(WRITE "${PLACEHOLDER_FILE}"
-                "// Placeholder - regenerate by running: cmake --build . --target GenerateLupMigrations\n"
-                "// Then reconfigure CMake to pick up the generated files\n"
-            )
-        endif()
-        set(GENERATED_MIGRATION_FILES "${PLACEHOLDER_FILE}")
-        message(STATUS "LupMigrationsPlugin: Run 'cmake --build . --target GenerateLupMigrations' then reconfigure")
-    endif()
+    # CONFIGURE_DEPENDS: when the build-time custom command emits new `lup_*.cpp`
+    # files (e.g. a new SQL release adds a fresh version, or the splitter changes
+    # the number of `_partNN` files), CMake automatically re-globs at the next
+    # build invocation and the new sources enter the build without a manual
+    # `cmake` reconfigure.
+    file(GLOB GENERATED_MIGRATION_FILES CONFIGURE_DEPENDS
+        "${GENERATED_MIGRATIONS_DIR}/lup_*.cpp"
+    )
 else()
     if(LUPMIGRATION_SQL_DIR)
         message(WARNING "LupMigrationsPlugin: LUPMIGRATION_SQL_DIR is set but path does not exist: ${LUPMIGRATION_SQL_DIR}")
