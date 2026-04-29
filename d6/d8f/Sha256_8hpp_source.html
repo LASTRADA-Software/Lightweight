@@ -217,7 +217,7 @@ $(document).ready(function(){initNavTree('d6/d8f/Sha256_8hpp_source.html','../..
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>        <span class="comment">// Append bit count (big-endian)</span></div>
 <div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>        std::array&lt;uint8_t, 8&gt; countBytes {};</div>
 <div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>        <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; 8; ++i)</div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>            countBytes[i] = <span class="keyword">static_cast&lt;</span>uint8_t<span class="keyword">&gt;</span>(bitCount &gt;&gt; (56 - i * 8));</div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>            countBytes[i] = <span class="keyword">static_cast&lt;</span>uint8_t<span class="keyword">&gt;</span>(bitCount &gt;&gt; (56 - (i * 8)));</div>
 <div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>        <a class="code hl_function" href="../../d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html#a77116f661b46e61b996b779f8478502a">Update</a>(countBytes.data(), 8);</div>
 <div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span> </div>
 <div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>        <span class="comment">// Output hash</span></div>

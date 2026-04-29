@@ -111,16 +111,10 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a89072cc6f0d70a556d2a16a52ab698d7"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html">SqlMigrationUpdateBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a89072cc6f0d70a556d2a16a52ab698d7">Set</a> (std::string columnName, T const &amp;value)</td></tr>
 <tr class="memdesc:a89072cc6f0d70a556d2a16a52ab698d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets a column value for the UPDATE.  <br /></td></tr>
 <tr class="separator:a89072cc6f0d70a556d2a16a52ab698d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac701438a61c7d2f150b24aa536e1779a" id="r_ac701438a61c7d2f150b24aa536e1779a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html">SqlMigrationUpdateBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#ac701438a61c7d2f150b24aa536e1779a">SetExpression</a> (std::string columnName, std::string expression)</td></tr>
-<tr class="memdesc:ac701438a61c7d2f150b24aa536e1779a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets a column to a raw SQL expression — for column-to-column copies or arithmetic that cannot be represented as a literal value.  <br /></td></tr>
-<tr class="separator:ac701438a61c7d2f150b24aa536e1779a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1ce4484daf2a224ff8f4ca1fc74793a6" id="r_a1ce4484daf2a224ff8f4ca1fc74793a6"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; </td></tr>
 <tr class="memitem:a1ce4484daf2a224ff8f4ca1fc74793a6"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html">SqlMigrationUpdateBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a1ce4484daf2a224ff8f4ca1fc74793a6">Where</a> (std::string columnName, std::string op, T const &amp;value)</td></tr>
 <tr class="memdesc:a1ce4484daf2a224ff8f4ca1fc74793a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a WHERE condition to the UPDATE.  <br /></td></tr>
 <tr class="separator:a1ce4484daf2a224ff8f4ca1fc74793a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a66b58e33428cc7a16fa1ca967e2db0a5" id="r_a66b58e33428cc7a16fa1ca967e2db0a5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html">SqlMigrationUpdateBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a66b58e33428cc7a16fa1ca967e2db0a5">WhereExpression</a> (std::string expression)</td></tr>
-<tr class="memdesc:a66b58e33428cc7a16fa1ca967e2db0a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Supplies a pre-rendered WHERE-clause body for cases that don't fit the simple <code>(column, op, value)</code> form — composite <code>AND</code>/<code>OR</code>/<code>NOT</code>, <code>IS NULL</code>, <code>IN (subquery)</code>, <code>EXISTS (subquery)</code>, etc.  <br /></td></tr>
-<tr class="separator:a66b58e33428cc7a16fa1ca967e2db0a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Query builder for building UPDATE queries in migrations. </p>
@@ -201,53 +195,6 @@ template&lt;typename T &gt; </div>
 
 </div>
 </div>
-<a id="ac701438a61c7d2f150b24aa536e1779a" name="ac701438a61c7d2f150b24aa536e1779a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac701438a61c7d2f150b24aa536e1779a">&#9670;&#160;</a></span>SetExpression()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="../../db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html">SqlMigrationUpdateBuilder</a> &amp; Lightweight::SqlMigrationUpdateBuilder::SetExpression </td>
-          <td>(</td>
-          <td class="paramtype">std::string&#160;</td>
-          <td class="paramname"><em>columnName</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">std::string&#160;</td>
-          <td class="paramname"><em>expression</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Sets a column to a raw SQL expression — for column-to-column copies or arithmetic that cannot be represented as a literal value. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">columnName</td><td>The target column. </td></tr>
-    <tr><td class="paramname">expression</td><td>The raw SQL fragment (e.g. <code>"OTHER_COL"</code>, <code>"CTR" + 1</code>) emitted verbatim after the <code>=</code>. The caller is responsible for any identifier quoting. </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00399">399</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
-
-</div>
-</div>
 <a id="a1ce4484daf2a224ff8f4ca1fc74793a6" name="a1ce4484daf2a224ff8f4ca1fc74793a6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1ce4484daf2a224ff8f4ca1fc74793a6">&#9670;&#160;</a></span>Where()</h2>
 
@@ -292,38 +239,7 @@ template&lt;typename T &gt; </div>
 
 <p>Adds a WHERE condition to the UPDATE. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00407">407</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a66b58e33428cc7a16fa1ca967e2db0a5" name="a66b58e33428cc7a16fa1ca967e2db0a5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a66b58e33428cc7a16fa1ca967e2db0a5">&#9670;&#160;</a></span>WhereExpression()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="../../db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html">SqlMigrationUpdateBuilder</a> &amp; Lightweight::SqlMigrationUpdateBuilder::WhereExpression </td>
-          <td>(</td>
-          <td class="paramtype">std::string&#160;</td>
-          <td class="paramname"><em>expression</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Supplies a pre-rendered WHERE-clause body for cases that don't fit the simple <code>(column, op, value)</code> form — composite <code>AND</code>/<code>OR</code>/<code>NOT</code>, <code>IS NULL</code>, <code>IN (subquery)</code>, <code>EXISTS (subquery)</code>, etc. </p>
-<p>The text is emitted verbatim after <code>WHERE</code> at execution time; the caller is responsible for dialect-safe quoting. Used by <code>lup2dbtool</code> when its structured condition parser produces a canonicalized clause. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00422">422</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00394">394</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>

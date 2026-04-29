@@ -111,15 +111,12 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a48e12558d7a0f123cbfce91dedf4d154"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html">SqlMigrationDeleteBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html#a48e12558d7a0f123cbfce91dedf4d154">Where</a> (std::string columnName, std::string op, T const &amp;value)</td></tr>
 <tr class="memdesc:a48e12558d7a0f123cbfce91dedf4d154"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a WHERE condition to the DELETE.  <br /></td></tr>
 <tr class="separator:a48e12558d7a0f123cbfce91dedf4d154"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaa818fb734d443b4128bb822ec0d6bf6" id="r_aaa818fb734d443b4128bb822ec0d6bf6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html">SqlMigrationDeleteBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html#aaa818fb734d443b4128bb822ec0d6bf6">WhereExpression</a> (std::string expression)</td></tr>
-<tr class="memdesc:aaa818fb734d443b4128bb822ec0d6bf6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pre-rendered WHERE-clause body. See <code><a class="el" href="../../db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a66b58e33428cc7a16fa1ca967e2db0a5" title="Supplies a pre-rendered WHERE-clause body for cases that don&#39;t fit the simple (column,...">SqlMigrationUpdateBuilder::WhereExpression</a></code>.  <br /></td></tr>
-<tr class="separator:aaa818fb734d443b4128bb822ec0d6bf6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Query builder for building DELETE queries in migrations. </p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html" title="Query builder for building SQL migration queries.">SqlMigrationQueryBuilder</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00436">436</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00410">410</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a5ec19a8c6430cf4494eaab119d5799a1" name="a5ec19a8c6430cf4494eaab119d5799a1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a5ec19a8c6430cf4494eaab119d5799a1">&#9670;&#160;</a></span>SqlMigrationDeleteBuilder()</h2>
@@ -147,7 +144,7 @@ Public Member Functions</h2></td></tr>
 
 <p>Constructs a migration DELETE builder. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00440">440</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00414">414</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>
@@ -196,37 +193,7 @@ template&lt;typename T &gt; </div>
 
 <p>Adds a WHERE condition to the DELETE. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00447">447</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
-
-</div>
-</div>
-<a id="aaa818fb734d443b4128bb822ec0d6bf6" name="aaa818fb734d443b4128bb822ec0d6bf6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aaa818fb734d443b4128bb822ec0d6bf6">&#9670;&#160;</a></span>WhereExpression()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="../../da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html">SqlMigrationDeleteBuilder</a> &amp; Lightweight::SqlMigrationDeleteBuilder::WhereExpression </td>
-          <td>(</td>
-          <td class="paramtype">std::string&#160;</td>
-          <td class="paramname"><em>expression</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Pre-rendered WHERE-clause body. See <code><a class="el" href="../../db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a66b58e33428cc7a16fa1ca967e2db0a5" title="Supplies a pre-rendered WHERE-clause body for cases that don&#39;t fit the simple (column,...">SqlMigrationUpdateBuilder::WhereExpression</a></code>. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00456">456</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00421">421</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 
 </div>
 </div>

@@ -29,14 +29,11 @@ var searchData=
   ['line_20options_20reference_26',['Command-Line Options Reference',['../d5/dc4/dbtool.html#command-line-options-reference',1,'']]],
   ['list_20applied_27',['list-applied',['../d5/dc4/dbtool.html#list-applied',1,'']]],
   ['list_20pending_28',['list-pending',['../d5/dc4/dbtool.html#list-pending',1,'']]],
-  ['livetype_29',['liveType',['../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a396642e22f36188c7ea4dce037c2204e',1,'Lightweight::SqlMigration::MigrationManager::ColumnUpgradeEntry']]],
-  ['loading_30',['Relationships with Lazy Loading',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#relationships-with-lazy-loading',1,'']]],
-  ['loading_20plugins_31',['Loading Plugins',['../d5/dc4/dbtool.html#loading-plugins',1,'']]],
-  ['loadordefault_32',['LoadOrDefault',['../d7/d36/classLightweight_1_1Config_1_1ProfileStore.html#a0a31ba962ee2c18331b1fec6d25edbf1',1,'Lightweight::Config::ProfileStore']]],
-  ['loadrelations_33',['loadrelations',['../de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702',1,'Lightweight::DataMapper::LoadRelations()'],['../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a',1,'Lightweight::DataMapperOptions::loadRelations']]],
-  ['locateentry_34',['LocateEntry',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#ad890fbbd6aadf8a5a2ceb6204a57a299',1,'Lightweight::Zip::ZipArchive']]],
-  ['lock_20acquisition_20failed_35',['Lock Acquisition Failed',['../d5/dc4/dbtool.html#lock-acquisition-failed',1,'']]],
-  ['logic_20separate_36',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]],
-  ['low_20level_20api_3a_20sqlstatement_20sqlconnection_37',['Low-Level API: SqlStatement &amp; SqlConnection',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#low-level-api-sqlstatement--sqlconnection',1,'']]],
-  ['luptruncate_38',['lupTruncate',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a2951b6980a9d504a748699de0167c8de',1,'Lightweight::MigrationRenderContext']]]
+  ['loading_29',['Relationships with Lazy Loading',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#relationships-with-lazy-loading',1,'']]],
+  ['loading_20plugins_30',['Loading Plugins',['../d5/dc4/dbtool.html#loading-plugins',1,'']]],
+  ['loadrelations_31',['loadrelations',['../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a',1,'Lightweight::DataMapperOptions::loadRelations'],['../de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702',1,'Lightweight::DataMapper::LoadRelations()']]],
+  ['locateentry_32',['LocateEntry',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#ad890fbbd6aadf8a5a2ceb6204a57a299',1,'Lightweight::Zip::ZipArchive']]],
+  ['lock_20acquisition_20failed_33',['Lock Acquisition Failed',['../d5/dc4/dbtool.html#lock-acquisition-failed',1,'']]],
+  ['logic_20separate_34',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]],
+  ['low_20level_20api_3a_20sqlstatement_20sqlconnection_35',['Low-Level API: SqlStatement &amp; SqlConnection',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#low-level-api-sqlstatement--sqlconnection',1,'']]]
 ];
