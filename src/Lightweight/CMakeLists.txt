@@ -63,6 +63,12 @@ set(HEADER_FILES
     SqlQuery/Select.hpp
     SqlQuery/Update.hpp
 
+    CodeGen/SplitFileWriter.hpp
+
+    MigrationFold/Folder.hpp
+    MigrationFold/CppEmitter.hpp
+    MigrationFold/SqlEmitter.hpp
+
     DataMapper/BelongsTo.hpp
     DataMapper/DataMapper.hpp
     DataMapper/Error.hpp
@@ -126,6 +132,12 @@ set(SOURCE_FILES
     SqlQuery/Migrate.cpp
     SqlQuery/MigrationPlan.cpp
     SqlQuery/Select.cpp
+
+    CodeGen/SplitFileWriter.cpp
+
+    MigrationFold/Folder.cpp
+    MigrationFold/CppEmitter.cpp
+    MigrationFold/SqlEmitter.cpp
     SqlQueryFormatter.cpp
     SqlSchema.cpp
     SqlStatement.cpp

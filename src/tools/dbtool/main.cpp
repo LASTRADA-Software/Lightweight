@@ -6,16 +6,24 @@
 #include "StandardProgressManager.hpp"
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
+#include <Lightweight/MigrationFold/CppEmitter.hpp>
+#include <Lightweight/MigrationFold/Folder.hpp>
+#include <Lightweight/MigrationFold/SqlEmitter.hpp>
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlMigrationLock.hpp>
+#include <Lightweight/SqlQueryFormatter.hpp>
 #include <Lightweight/SqlSchema.hpp>
+#include <Lightweight/SqlServerType.hpp>
 
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <expected>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <print>
 #include <string>
 #include <unordered_set>
@@ -128,6 +136,9 @@ void PrintUsage()
                  c.command, c.reset, c.param, c.reset);
     std::println("  {}backup{} --output FILE     Backs up the database to a file", c.command, c.reset);
     std::println("  {}restore{} --input FILE     Restores the database from a file", c.command, c.reset);
+    std::println("  {}fold{} --output FILE       Emits a baseline (.cpp plugin or .sql script) reproducing",
+                 c.command, c.reset);
+    std::println("                            the post-migration state from an empty DB");
     std::println("");
 
     // Descriptions start at column 29 (longest option is 27 chars + 2 space minimum gap)
@@ -262,6 +273,18 @@ struct Options
     bool dryRun = false;     ///< If true, show what would be done without actually doing it
     bool noLock = false;     ///< If true, skip migration locking for write operations
     bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
+
+    /// @brief `--up-to <X>` for `fold`. Empty = default to latest registered release.
+    std::string upTo;
+    /// @brief `--max-lines-per-file <N>` for `fold` (cpp output split). 0 disables splitting.
+    std::size_t foldMaxLinesPerFile = 5000;
+    /// @brief `--emit-cmake` flag for `fold` cpp output.
+    bool foldEmitCmake = false;
+    /// @brief `--plugin-name <NAME>` used by `--emit-cmake`.
+    std::string foldPluginName;
+    /// @brief `--dialect <NAME>` for `fold` sql output. Required when output is `.sql`,
+    /// rejected when output is `.cpp` (plugins defer rendering to the loading backend).
+    std::string foldDialect;
 };
 
 std::filesystem::path GetDefaultConfigPath()
@@ -405,6 +428,34 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
             if (i + 1 >= argc)
                 return std::unexpected { "Error: --input requires an argument" };
             options.inputFile = argv[++i];
+        }
+        else if (arg == "--up-to")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --up-to requires an argument" };
+            options.upTo = argv[++i];
+        }
+        else if (arg == "--max-lines-per-file")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --max-lines-per-file requires an argument" };
+            options.foldMaxLinesPerFile = static_cast<std::size_t>(std::stoull(argv[++i]));
+        }
+        else if (arg == "--emit-cmake")
+        {
+            options.foldEmitCmake = true;
+        }
+        else if (arg == "--plugin-name")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --plugin-name requires an argument" };
+            options.foldPluginName = argv[++i];
+        }
+        else if (arg == "--dialect")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --dialect requires an argument" };
+            options.foldDialect = argv[++i];
         }
         else if (arg == "--jobs")
         {
@@ -1523,6 +1574,169 @@ MigrationManager& GetMigrationManager(Options const& options)
     return manager;
 }
 
+/// @brief Connection-less variant of `GetMigrationManager` for `dbtool fold`.
+///
+/// Identical lifetime contract: the static plugins vector outlives the singleton.
+/// Differs from `GetMigrationManager` only by skipping the `CreateMigrationHistory()`
+/// call (no DB connection to write to).
+MigrationManager& GetMigrationManagerOffline(Options const& options)
+{
+    static std::vector<Tools::PluginLoader> plugins;
+    static bool initialized = false;
+
+    auto& manager = MigrationManager::GetInstance();
+    if (!initialized)
+    {
+        plugins = LoadPlugins(options.pluginsDir);
+        CollectMigrations(plugins, manager);
+        initialized = true;
+    }
+    return manager;
+}
+
+[[nodiscard]] std::expected<SqlServerType, std::string> ResolveDialect(std::string raw)
+{
+    std::ranges::transform(
+        raw, raw.begin(), [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
+    if (raw == "sqlite" || raw == "sqlite3")
+        return SqlServerType::SQLITE;
+    if (raw == "postgres" || raw == "postgresql" || raw == "pg")
+        return SqlServerType::POSTGRESQL;
+    if (raw == "mssql" || raw == "sqlserver" || raw == "ms-sql")
+        return SqlServerType::MICROSOFT_SQL;
+    if (raw == "mysql")
+        return SqlServerType::MYSQL;
+    return std::unexpected(std::format("Unknown dialect '{}'. Accepted: sqlite, postgres, mssql, mysql.", raw));
+}
+
+[[nodiscard]] std::string_view DialectLabel(SqlServerType type)
+{
+    switch (type)
+    {
+        case SqlServerType::SQLITE:
+            return "SQLite";
+        case SqlServerType::POSTGRESQL:
+            return "PostgreSQL";
+        case SqlServerType::MICROSOFT_SQL:
+            return "Microsoft SQL Server";
+        case SqlServerType::MYSQL:
+            return "MySQL";
+        case SqlServerType::UNKNOWN:
+            return "Unknown";
+    }
+    return "Unknown";
+}
+
+/// @brief `dbtool fold` command — pure offline transformation, no DB connection.
+///
+/// Output format is picked from the file extension: `.cpp` emits a baseline plugin,
+/// `.sql` emits a flat dialect-specific script. `--dialect` is required for `.sql`
+/// and rejected for `.cpp`.
+int Fold(MigrationManager& manager, Options const& options)
+{
+    if (options.outputFile.empty())
+    {
+        std::println(std::cerr, "Error: --output is required for fold.");
+        return EXIT_FAILURE;
+    }
+    auto const ext = options.outputFile.extension().string();
+    auto const isCpp = ext == ".cpp";
+    auto const isSql = ext == ".sql";
+    if (!isCpp && !isSql)
+    {
+        std::println(std::cerr, "Error: --output must end in .cpp or .sql (got '{}')", ext);
+        return EXIT_FAILURE;
+    }
+
+    SqlMigration::MigrationTimestamp upTo { std::numeric_limits<uint64_t>::max() };
+    try
+    {
+        upTo = MigrationFold::ResolveUpTo(manager, options.upTo);
+    }
+    catch (std::exception const& ex)
+    {
+        std::println(std::cerr, "Error: {}", ex.what());
+        return EXIT_FAILURE;
+    }
+
+    if (isCpp)
+    {
+        if (!options.foldDialect.empty())
+        {
+            std::println(
+                std::cerr,
+                "Error: --dialect is not allowed for .cpp output (plugins defer rendering to the loading backend).");
+            return EXIT_FAILURE;
+        }
+        // Fold uses the SQLite formatter purely for in-memory plan-walking; the
+        // emitted .cpp plugin is dialect-agnostic.
+        auto const fold = MigrationFold::Fold(manager, SqlQueryFormatter::Sqlite(), upTo);
+        MigrationFold::CppEmitOptions opts {
+            .outputPath = options.outputFile,
+            .maxLinesPerFile = options.foldMaxLinesPerFile,
+            .pluginName = options.foldPluginName,
+            .emitCmake = options.foldEmitCmake,
+        };
+        try
+        {
+            MigrationFold::EmitCppBaseline(fold, opts);
+        }
+        catch (std::exception const& ex)
+        {
+            std::println(std::cerr, "Error emitting cpp baseline: {}", ex.what());
+            return EXIT_FAILURE;
+        }
+        std::println("Folded {} migration(s) → {}", fold.foldedMigrations.size(), options.outputFile.string());
+        return EXIT_SUCCESS;
+    }
+
+    // .sql path: --dialect required, --emit-cmake/--max-lines-per-file rejected.
+    if (options.foldDialect.empty())
+    {
+        std::println(std::cerr,
+                     "Error: --dialect is required for .sql output. "
+                     "Accepted: sqlite, postgres, mssql, mysql.");
+        return EXIT_FAILURE;
+    }
+    if (options.foldEmitCmake)
+    {
+        std::println(std::cerr, "Error: --emit-cmake is only valid for .cpp output.");
+        return EXIT_FAILURE;
+    }
+
+    auto const dialectResult = ResolveDialect(options.foldDialect);
+    if (!dialectResult)
+    {
+        std::println(std::cerr, "Error: {}", dialectResult.error());
+        return EXIT_FAILURE;
+    }
+    auto const* formatter = SqlQueryFormatter::Get(*dialectResult);
+    if (!formatter)
+    {
+        std::println(std::cerr, "Error: dialect '{}' has no formatter implementation.", options.foldDialect);
+        return EXIT_FAILURE;
+    }
+
+    auto const fold = MigrationFold::Fold(manager, *formatter, upTo);
+
+    MigrationFold::SqlEmitOptions opts {
+        .outputPath = options.outputFile,
+        .formatter = formatter,
+        .dialectLabel = DialectLabel(*dialectResult),
+    };
+    try
+    {
+        MigrationFold::EmitSqlBaseline(fold, opts);
+    }
+    catch (std::exception const& ex)
+    {
+        std::println(std::cerr, "Error emitting sql baseline: {}", ex.what());
+        return EXIT_FAILURE;
+    }
+    std::println("Folded {} migration(s) → {}", fold.foldedMigrations.size(), options.outputFile.string());
+    return EXIT_SUCCESS;
+}
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -1569,6 +1783,11 @@ int main(int argc, char** argv)
             PrintUsage();
             return EXIT_SUCCESS;
         }
+
+        // `fold` is a pure offline plan-walk — never touches a DB. Dispatch before
+        // SetupConnectionString so it doesn't require a connection string at all.
+        if (options.command == "fold")
+            return Fold(GetMigrationManagerOffline(options), options);
 
         if (!SetupConnectionString(options.connectionString))
             return EXIT_FAILURE;
