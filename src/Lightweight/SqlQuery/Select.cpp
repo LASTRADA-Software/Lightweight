@@ -145,7 +145,6 @@ SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::initializer_list<std::
     return *this;
 }
 
-
 SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fields(std::initializer_list<SqlQualifiedTableColumnName const> fieldNames)
 {
     for (auto const& fieldName: fieldNames)

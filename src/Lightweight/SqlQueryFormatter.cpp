@@ -40,10 +40,7 @@ SqlQueryFormatter const& SqlQueryFormatter::PostgrSQL()
 SqlQueryFormatter const* SqlQueryFormatter::Get(SqlServerType serverType) noexcept
 {
     static std::array<SqlQueryFormatter const*, 5> const formatters = {
-        nullptr,
-        &SqlQueryFormatter::SqlServer(),
-        &SqlQueryFormatter::PostgrSQL(),
-        &SqlQueryFormatter::Sqlite(),
+        nullptr, &SqlQueryFormatter::SqlServer(), &SqlQueryFormatter::PostgrSQL(), &SqlQueryFormatter::Sqlite(),
         nullptr, // MySQL
     };
     return formatters[static_cast<size_t>(serverType)];

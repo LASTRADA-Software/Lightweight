@@ -95,12 +95,12 @@ void StandardProgressManager::Update(SqlBackup::Progress const& p)
 
     if (p.state == SqlBackup::Progress::State::Warning)
     {
-        _issuesByTable[p.tableName].push_back({ .message=p.message, .type=IssueType::Warning });
+        _issuesByTable[p.tableName].push_back({ .message = p.message, .type = IssueType::Warning });
         _tablesWithWarnings.insert(p.tableName);
     }
     if (p.state == SqlBackup::Progress::State::Error)
     {
-        _issuesByTable[p.tableName].push_back({ .message=p.message, .type=IssueType::Error });
+        _issuesByTable[p.tableName].push_back({ .message = p.message, .type = IssueType::Error });
     }
 
     bool const isPinned = IsPinnedTable(p.tableName);

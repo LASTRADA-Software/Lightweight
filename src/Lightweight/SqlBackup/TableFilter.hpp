@@ -12,8 +12,8 @@ namespace Lightweight::SqlBackup
 {
 
 #if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable: 4251) // STL types in DLL interface
+    #pragma warning(push)
+    #pragma warning(disable : 4251) // STL types in DLL interface
 #endif
 
 /// Filters tables by name patterns with glob-style wildcards.
@@ -43,10 +43,16 @@ class LIGHTWEIGHT_API TableFilter
     [[nodiscard]] bool Matches(std::string_view schema, std::string_view tableName) const;
 
     /// Returns true if the filter matches all tables (no filtering applied).
-    [[nodiscard]] bool MatchesAll() const noexcept { return _matchesAll; }
+    [[nodiscard]] bool MatchesAll() const noexcept
+    {
+        return _matchesAll;
+    }
 
     /// Returns the number of patterns in this filter.
-    [[nodiscard]] size_t PatternCount() const noexcept { return _patterns.size(); }
+    [[nodiscard]] size_t PatternCount() const noexcept
+    {
+        return _patterns.size();
+    }
 
   private:
     struct Pattern
@@ -67,7 +73,7 @@ class LIGHTWEIGHT_API TableFilter
 };
 
 #if defined(_MSC_VER)
-#pragma warning(pop)
+    #pragma warning(pop)
 #endif
 
 } // namespace Lightweight::SqlBackup

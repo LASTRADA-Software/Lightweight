@@ -123,8 +123,8 @@ bool TableFilter::GlobMatch(std::string_view pattern, std::string_view text)
     // Simple recursive glob matching with memoization would be overkill here
     // Use iterative approach with backtracking
 
-    size_t p = 0; // pattern index
-    size_t t = 0; // text index
+    size_t p = 0;                          // pattern index
+    size_t t = 0;                          // text index
     size_t starP = std::string_view::npos; // position after last '*' in pattern
     size_t starT = 0;                      // position in text when we hit the '*'
 

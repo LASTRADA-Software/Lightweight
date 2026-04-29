@@ -209,14 +209,15 @@ void MigrationLock::AcquireLockSQLite(std::chrono::milliseconds timeout)
 
     // Create lock table if it doesn't exist
     [[maybe_unused]] auto createCursor = stmt.ExecuteDirect("CREATE TABLE IF NOT EXISTS \"_migration_locks\" ("
-                       "\"lock_name\" VARCHAR(255) PRIMARY KEY, "
-                       "\"acquired_at\" TEXT DEFAULT CURRENT_TIMESTAMP"
-                       ");");
+                                                            "\"lock_name\" VARCHAR(255) PRIMARY KEY, "
+                                                            "\"acquired_at\" TEXT DEFAULT CURRENT_TIMESTAMP"
+                                                            ");");
 
     // Try to insert a lock record - this will fail if already locked
     try
     {
-        [[maybe_unused]] auto insertCursor = stmt.ExecuteDirect(std::format(R"(INSERT INTO "_migration_locks" ("lock_name") VALUES ('{}');)", _lockName));
+        [[maybe_unused]] auto insertCursor =
+            stmt.ExecuteDirect(std::format(R"(INSERT INTO "_migration_locks" ("lock_name") VALUES ('{}');)", _lockName));
         _locked = true;
     }
     catch (SqlException const&)
@@ -232,7 +233,8 @@ void MigrationLock::ReleaseLockSQLite()
     auto stmt = SqlStatement { *_connection };
     try
     {
-        [[maybe_unused]] auto deleteCursor = stmt.ExecuteDirect(std::format(R"(DELETE FROM "_migration_locks" WHERE "lock_name" = '{}';)", _lockName));
+        [[maybe_unused]] auto deleteCursor =
+            stmt.ExecuteDirect(std::format(R"(DELETE FROM "_migration_locks" WHERE "lock_name" = '{}';)", _lockName));
     }
     // NOLINTNEXTLINE(bugprone-empty-catch)
     catch (...)

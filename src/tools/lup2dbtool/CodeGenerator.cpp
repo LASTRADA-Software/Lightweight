@@ -551,8 +551,8 @@ std::string ResolveOutputPattern(std::string_view pattern, LupVersion const& ver
 
 bool IsMultiFilePattern(std::string_view pattern)
 {
-    return pattern.contains("{major}") || pattern.contains("{minor}")
-           || pattern.contains("{patch}") || pattern.contains("{version}");
+    return pattern.contains("{major}") || pattern.contains("{minor}") || pattern.contains("{patch}")
+           || pattern.contains("{version}");
 }
 
 } // namespace Lup2DbTool

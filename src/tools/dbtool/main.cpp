@@ -273,7 +273,7 @@ std::filesystem::path GetDefaultConfigPath()
     }
     return "dbtool.yml";
 #else
-    const char* xdgConfigHome = std::getenv("XDG_CONFIG_HOME");
+    char const* xdgConfigHome = std::getenv("XDG_CONFIG_HOME");
     if (xdgConfigHome)
     {
         return std::filesystem::path(xdgConfigHome) / "dbtool" / "dbtool.yml";
@@ -874,7 +874,9 @@ int Releases(MigrationManager& manager)
     appliedSet.reserve(applied.size());
     for (auto const& ts: applied)
         appliedSet.insert(ts.value);
-    auto const isApplied = [&](MigrationTimestamp ts) { return appliedSet.contains(ts.value); };
+    auto const isApplied = [&](MigrationTimestamp ts) {
+        return appliedSet.contains(ts.value);
+    };
 
     std::println("Releases:");
     std::println("");
@@ -1022,11 +1024,11 @@ class SimpleEventProgressManager: public Lightweight::SqlBackup::ErrorTrackingPr
 
         if (p.state == SqlBackup::Progress::State::Warning)
         {
-            _issuesByTable[p.tableName].push_back({ .message=p.message, .type=Tools::IssueType::Warning });
+            _issuesByTable[p.tableName].push_back({ .message = p.message, .type = Tools::IssueType::Warning });
         }
         if (p.state == SqlBackup::Progress::State::Error)
         {
-            _issuesByTable[p.tableName].push_back({ .message=p.message, .type=Tools::IssueType::Error });
+            _issuesByTable[p.tableName].push_back({ .message = p.message, .type = Tools::IssueType::Error });
         }
     }
 

@@ -92,8 +92,8 @@ std::optional<SqlGuid> SqlGuid::TryParse(std::string_view const& text) noexcept
     // Variant nibble at position 19 must be a valid hex digit
     // We accept all variants (RFC 4122: 8-B, Microsoft: C-D, etc.)
     auto const variant = text[19];
-    auto const isHexDigit = (variant >= '0' && variant <= '9') || (variant >= 'A' && variant <= 'F')
-                            || (variant >= 'a' && variant <= 'f');
+    auto const isHexDigit =
+        (variant >= '0' && variant <= '9') || (variant >= 'A' && variant <= 'F') || (variant >= 'a' && variant <= 'f');
     if (!isHexDigit)
         return std::nullopt;
 

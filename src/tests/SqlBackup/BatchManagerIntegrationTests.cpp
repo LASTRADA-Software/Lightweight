@@ -23,9 +23,8 @@ TEST_CASE("BatchManager: Integration with SQLite", "[SqlBackup][Integration]")
     (void) stmt.ExecuteDirect("DROP TABLE IF EXISTS test_batch");
     (void) stmt.ExecuteDirect("CREATE TABLE test_batch (id INTEGER PRIMARY KEY, txt VARCHAR(255))");
 
-    std::vector<SqlColumnDeclaration> cols = {
-        { .name = "id", .type = SqlColumnTypeDefinitions::Integer {} },
-        { .name = "txt", .type = SqlColumnTypeDefinitions::Text { .size = 255 } } };
+    std::vector<SqlColumnDeclaration> cols = { { .name = "id", .type = SqlColumnTypeDefinitions::Integer {} },
+                                               { .name = "txt", .type = SqlColumnTypeDefinitions::Text { .size = 255 } } };
 
     // Actual Executor
     BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t rowCount) {

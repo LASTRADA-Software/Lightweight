@@ -89,9 +89,7 @@ TEST_CASE("SqlBackup: Foreign Key Restoration", "[SqlBackup]")
             migration.DropTableIfExists("child");
             migration.DropTableIfExists("parent");
 
-            migration.CreateTable("parent")
-                .PrimaryKey("id", Integer {})
-                .RequiredColumn("name", Varchar { 100 });
+            migration.CreateTable("parent").PrimaryKey("id", Integer {}).RequiredColumn("name", Varchar { 100 });
 
             migration.CreateTable("child")
                 .PrimaryKey("id", Integer {})
@@ -188,7 +186,7 @@ TEST_CASE("SqlBackup: Robustness Types and Nulls", "[SqlBackup]")
 
             migration.CreateTable("types")
                 .PrimaryKey("id", Integer {})
-                .Column("b", Bool {})      // Formatter handles BIT vs BOOL
+                .Column("b", Bool {}) // Formatter handles BIT vs BOOL
                 .Column("i", Integer {})
                 .Column("d", Real {})      // Formatter handles FLOAT vs REAL
                 .Column("t", Text {})      // Formatter handles VARCHAR(MAX) vs TEXT (nullable for row 3)
@@ -227,9 +225,7 @@ TEST_CASE("SqlBackup: Robustness Types and Nulls", "[SqlBackup]")
         SqlConnection conn;
         conn.Connect(GetConnectionString());
         SqlStatement stmt { conn };
-        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-            migration.DropTable("types");
-        });
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTable("types"); });
     }
 
     // 4. Restore
@@ -331,9 +327,7 @@ TEST_CASE("SqlBackup: Constraints and Defaults", "[SqlBackup]")
         SqlConnection conn;
         conn.Connect(GetConnectionString());
         SqlStatement stmt { conn };
-        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
-            migration.DropTable("constraints");
-        });
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTable("constraints"); });
     }
 
     // 4. Restore

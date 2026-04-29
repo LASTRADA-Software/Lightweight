@@ -1016,17 +1016,13 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "GetMigrationsForRelease returns range
     using namespace SqlColumnTypeDefinitions;
 
     auto m1 = SqlMigration::Migration<202801010000>(
-        "m1",
-        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m1").PrimaryKey("id", Integer()); });
+        "m1", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m1").PrimaryKey("id", Integer()); });
     auto m2 = SqlMigration::Migration<202802010000>(
-        "m2",
-        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m2").PrimaryKey("id", Integer()); });
+        "m2", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m2").PrimaryKey("id", Integer()); });
     auto m3 = SqlMigration::Migration<202803010000>(
-        "m3",
-        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m3").PrimaryKey("id", Integer()); });
+        "m3", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m3").PrimaryKey("id", Integer()); });
     auto m4 = SqlMigration::Migration<202804010000>(
-        "m4",
-        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m4").PrimaryKey("id", Integer()); });
+        "m4", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("rel_m4").PrimaryKey("id", Integer()); });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     // Release A covers m1+m2; release B covers m3 only. m4 is post-all-releases.

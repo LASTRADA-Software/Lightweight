@@ -152,7 +152,8 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                 if (hasIdentity)
                 {
                     identityTable = FormatTableName(ctx.schema, tableName);
-                    (void) SqlStatement { workerConn }.ExecuteDirect(std::format("SET IDENTITY_INSERT {} ON", identityTable));
+                    (void) SqlStatement { workerConn }.ExecuteDirect(
+                        std::format("SET IDENTITY_INSERT {} ON", identityTable));
                 }
             }
 
@@ -228,7 +229,8 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
             {
                 try
                 {
-                    (void) SqlStatement { workerConn }.ExecuteDirect(std::format("SET IDENTITY_INSERT {} OFF", identityTable));
+                    (void) SqlStatement { workerConn }.ExecuteDirect(
+                        std::format("SET IDENTITY_INSERT {} OFF", identityTable));
                 }
                 catch (...) // NOLINT(bugprone-empty-catch)
                 {

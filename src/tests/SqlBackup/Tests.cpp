@@ -794,7 +794,8 @@ TEST_CASE("SqlBackup: Time Columns", "[SqlBackup]")
             (void) stmt.ExecuteDirect(
                 "INSERT INTO time_backup_test (id, name, event_time) VALUES (2, 'Second Record', '23:59:59')");
             (void) stmt.ExecuteDirect("INSERT INTO time_backup_test (id, name, event_time) VALUES (3, 'Null Time', NULL)");
-            (void) stmt.ExecuteDirect("INSERT INTO time_backup_test (id, name, event_time) VALUES (4, 'Midnight', '00:00:00')");
+            (void) stmt.ExecuteDirect(
+                "INSERT INTO time_backup_test (id, name, event_time) VALUES (4, 'Midnight', '00:00:00')");
         }
         else
         {
