@@ -10,7 +10,7 @@
   "devDependencies": {
     "reveal.js": "^5.1.0",
     "live-server": "^1.2.2",
-    "serve": "^14.2.0"
+    "serve": "^14.2.6"
   },
   "keywords": [
     "presentation",
