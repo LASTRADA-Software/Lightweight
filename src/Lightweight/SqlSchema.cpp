@@ -2,6 +2,7 @@
 
 #include "SqlColumnTypeDefinitions.hpp"
 #include "SqlError.hpp"
+#include "SqlOdbcWide.hpp"
 #include "SqlSchema.hpp"
 #include "SqlStatement.hpp"
 
@@ -19,6 +20,8 @@ namespace Lightweight::SqlSchema
 
 using namespace std::string_literals;
 using namespace std::string_view_literals;
+
+using ::Lightweight::detail::OdbcWideArg;
 
 namespace
 {
@@ -46,16 +49,17 @@ namespace
 
     std::vector<TableWithSchema> AllTables(SqlStatement& stmt, std::string_view database, std::string_view schema)
     {
-
-        auto sqlResult = SQLTables(stmt.NativeHandle(),
-                                   (SQLCHAR*) (!database.empty() ? database.data() : nullptr),
-                                   (SQLSMALLINT) database.size(),
-                                   (SQLCHAR*) (!schema.empty() ? schema.data() : nullptr),
-                                   (SQLSMALLINT) schema.size(),
-                                   nullptr,
-                                   0,
-                                   nullptr,
-                                   0);
+        auto wDatabase = OdbcWideArg { database };
+        auto wSchema = OdbcWideArg { schema };
+        auto sqlResult = SQLTablesW(stmt.NativeHandle(),
+                                    wDatabase.data(),
+                                    wDatabase.length(),
+                                    wSchema.data(),
+                                    wSchema.length(),
+                                    nullptr,
+                                    0,
+                                    nullptr,
+                                    0);
         SqlErrorInfo::RequireStatementSuccess(sqlResult, stmt.NativeHandle(), "SQLTables");
 
         auto result = std::vector<TableWithSchema>();
@@ -86,25 +90,25 @@ namespace
                                                      FullyQualifiedTableName const& primaryKey,
                                                      FullyQualifiedTableName const& foreignKey)
     {
-        auto* pkCatalog = (SQLCHAR*) (!primaryKey.catalog.empty() ? primaryKey.catalog.c_str() : nullptr);
-        auto* pkSchema = (SQLCHAR*) (!primaryKey.schema.empty() ? primaryKey.schema.c_str() : nullptr);
-        auto* pkTable = (SQLCHAR*) (!primaryKey.table.empty() ? primaryKey.table.c_str() : nullptr);
-        auto* fkCatalog = (SQLCHAR*) (!foreignKey.catalog.empty() ? foreignKey.catalog.c_str() : nullptr);
-        auto* fkSchema = (SQLCHAR*) (!foreignKey.schema.empty() ? foreignKey.schema.c_str() : nullptr);
-        auto* fkTable = (SQLCHAR*) (!foreignKey.table.empty() ? foreignKey.table.c_str() : nullptr);
-        auto sqlResult = SQLForeignKeys(stmt.NativeHandle(),
-                                        pkCatalog,
-                                        (SQLSMALLINT) primaryKey.catalog.size(),
-                                        pkSchema,
-                                        (SQLSMALLINT) primaryKey.schema.size(),
-                                        pkTable,
-                                        (SQLSMALLINT) primaryKey.table.size(),
-                                        fkCatalog,
-                                        (SQLSMALLINT) foreignKey.catalog.size(),
-                                        fkSchema,
-                                        (SQLSMALLINT) foreignKey.schema.size(),
-                                        fkTable,
-                                        (SQLSMALLINT) foreignKey.table.size());
+        auto wPkCatalog = OdbcWideArg { primaryKey.catalog };
+        auto wPkSchema = OdbcWideArg { primaryKey.schema };
+        auto wPkTable = OdbcWideArg { primaryKey.table };
+        auto wFkCatalog = OdbcWideArg { foreignKey.catalog };
+        auto wFkSchema = OdbcWideArg { foreignKey.schema };
+        auto wFkTable = OdbcWideArg { foreignKey.table };
+        auto sqlResult = SQLForeignKeysW(stmt.NativeHandle(),
+                                         wPkCatalog.data(),
+                                         wPkCatalog.length(),
+                                         wPkSchema.data(),
+                                         wPkSchema.length(),
+                                         wPkTable.data(),
+                                         wPkTable.length(),
+                                         wFkCatalog.data(),
+                                         wFkCatalog.length(),
+                                         wFkSchema.data(),
+                                         wFkSchema.length(),
+                                         wFkTable.data(),
+                                         wFkTable.length());
 
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLForeignKeys failed: {}", stmt.LastError()));
@@ -193,17 +197,17 @@ namespace
 
             return sortedKeys;
         }
-        auto* pkCatalog = (SQLCHAR*) (!table.catalog.empty() ? table.catalog.c_str() : nullptr);
-        auto* pkSchema = (SQLCHAR*) (!table.schema.empty() ? table.schema.c_str() : nullptr);
-        auto* pkTable = (SQLCHAR*) (!table.table.empty() ? table.table.c_str() : nullptr);
+        auto wCatalog = OdbcWideArg { table.catalog };
+        auto wSchema = OdbcWideArg { table.schema };
+        auto wTable = OdbcWideArg { table.table };
 
-        auto sqlResult = SQLPrimaryKeys(stmt.NativeHandle(),
-                                        pkCatalog,
-                                        (SQLSMALLINT) table.catalog.size(),
-                                        pkSchema,
-                                        (SQLSMALLINT) table.schema.size(),
-                                        pkTable,
-                                        (SQLSMALLINT) table.table.size());
+        auto sqlResult = SQLPrimaryKeysW(stmt.NativeHandle(),
+                                         wCatalog.data(),
+                                         wCatalog.length(),
+                                         wSchema.data(),
+                                         wSchema.length(),
+                                         wTable.data(),
+                                         wTable.length());
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLPrimaryKeys failed: {}", stmt.LastError()));
 
@@ -230,19 +234,19 @@ namespace
 
     std::vector<std::string> AllUniqueColumns(SqlStatement& stmt, FullyQualifiedTableName const& table)
     {
-        auto* pkCatalog = (SQLCHAR*) (!table.catalog.empty() ? table.catalog.c_str() : nullptr);
-        auto* pkSchema = (SQLCHAR*) (!table.schema.empty() ? table.schema.c_str() : nullptr);
-        auto* pkTable = (SQLCHAR*) (!table.table.empty() ? table.table.c_str() : nullptr);
+        auto wCatalog = OdbcWideArg { table.catalog };
+        auto wSchema = OdbcWideArg { table.schema };
+        auto wTable = OdbcWideArg { table.table };
 
-        auto sqlResult = SQLStatistics(stmt.NativeHandle(),
-                                       pkCatalog,
-                                       (SQLSMALLINT) table.catalog.size(),
-                                       pkSchema,
-                                       (SQLSMALLINT) table.schema.size(),
-                                       pkTable,
-                                       (SQLSMALLINT) table.table.size(),
-                                       SQL_INDEX_UNIQUE,
-                                       SQL_ENSURE);
+        auto sqlResult = SQLStatisticsW(stmt.NativeHandle(),
+                                        wCatalog.data(),
+                                        wCatalog.length(),
+                                        wSchema.data(),
+                                        wSchema.length(),
+                                        wTable.data(),
+                                        wTable.length(),
+                                        SQL_INDEX_UNIQUE,
+                                        SQL_ENSURE);
 
         if (!SQL_SUCCEEDED(sqlResult))
             return {}; // Ignore errors or throw? Safest to ignore for now as some drivers might not support it fully.
@@ -292,20 +296,20 @@ namespace
             // Use a separate statement to avoid issues with pending cursors from previous operations
             auto indexStmt = SqlStatement { stmt.Connection() };
 
-            auto* pkCatalog = (SQLCHAR*) (!table.catalog.empty() ? table.catalog.c_str() : nullptr);
-            auto* pkSchema = (SQLCHAR*) (!table.schema.empty() ? table.schema.c_str() : nullptr);
-            auto* pkTable = (SQLCHAR*) (!table.table.empty() ? table.table.c_str() : nullptr);
+            auto wCatalog = OdbcWideArg { table.catalog };
+            auto wSchema = OdbcWideArg { table.schema };
+            auto wTable = OdbcWideArg { table.table };
 
             // Use SQL_INDEX_ALL to retrieve all index types
-            auto sqlResult = SQLStatistics(indexStmt.NativeHandle(),
-                                           pkCatalog,
-                                           (SQLSMALLINT) table.catalog.size(),
-                                           pkSchema,
-                                           (SQLSMALLINT) table.schema.size(),
-                                           pkTable,
-                                           (SQLSMALLINT) table.table.size(),
-                                           SQL_INDEX_ALL,
-                                           SQL_ENSURE);
+            auto sqlResult = SQLStatisticsW(indexStmt.NativeHandle(),
+                                            wCatalog.data(),
+                                            wCatalog.length(),
+                                            wSchema.data(),
+                                            wSchema.length(),
+                                            wTable.data(),
+                                            wTable.length(),
+                                            SQL_INDEX_ALL,
+                                            SQL_ENSURE);
 
             if (!SQL_SUCCEEDED(sqlResult))
                 return {};
@@ -495,15 +499,18 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
         eventHandler.OnIndexes(indexes);
 
         auto columnStmt = SqlStatement { stmt.Connection() };
-        auto const sqlResult = SQLColumns(columnStmt.NativeHandle(),
-                                          (SQLCHAR*) database.data(),
-                                          (SQLSMALLINT) database.size(),
-                                          (SQLCHAR*) (!tableSchema.empty() ? tableSchema.data() : nullptr),
-                                          (SQLSMALLINT) tableSchema.size(),
-                                          (SQLCHAR*) tableName.data(),
-                                          (SQLSMALLINT) tableName.size(),
-                                          nullptr /* column name */,
-                                          0 /* column name length */);
+        auto wDatabase = OdbcWideArg { database };
+        auto wTableSchema = OdbcWideArg { tableSchema };
+        auto wTableName = OdbcWideArg { tableName };
+        auto const sqlResult = SQLColumnsW(columnStmt.NativeHandle(),
+                                           wDatabase.data(),
+                                           wDatabase.length(),
+                                           wTableSchema.data(),
+                                           wTableSchema.length(),
+                                           wTableName.data(),
+                                           wTableName.length(),
+                                           nullptr /* column name */,
+                                           0 /* column name length */);
         if (!SQL_SUCCEEDED(sqlResult))
             throw std::runtime_error(std::format("SQLColumns failed: {}", columnStmt.LastError()));
 

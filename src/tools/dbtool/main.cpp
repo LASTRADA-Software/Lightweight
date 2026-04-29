@@ -12,6 +12,7 @@
 #include <Lightweight/SqlMigrationLock.hpp>
 #include <Lightweight/SqlSchema.hpp>
 
+#include <cstdio>
 #include <expected>
 #include <filesystem>
 #include <iostream>
@@ -1524,6 +1525,14 @@ MigrationManager& GetMigrationManager(Options const& options)
 
 int main(int argc, char** argv)
 {
+    // Disable stdout buffering for the entire process. With the default fully-buffered
+    // mode (or Windows-_IOLBF, which the MSVC runtime silently treats as fully-buffered),
+    // std::println output can be silently lost when a loaded DLL — notably psqlODBC's
+    // libpq on Windows — performs atexit work that bypasses the C++ runtime's stream
+    // flush. Symptom: `dbtool status` against PostgreSQL emits nothing despite running
+    // normally and exiting 0. Switching stdout to unbuffered keeps each println visible
+    // immediately. dbtool's output volume is low enough that the perf cost is irrelevant.
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
     try
     {
         auto optionsResult = ParseArguments(argc, argv);

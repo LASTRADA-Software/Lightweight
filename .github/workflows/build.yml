@@ -370,7 +370,13 @@ jobs:
         run: sudo apt install -y unixodbc odbcinst libuuid1 valgrind libyaml-cpp-dev libzip4
       - name: "Install SQLite3 ODBC driver"
         if: matrix.database == 'SQLite3'
-        run: sudo apt install -y libsqlite3-dev libsqliteodbc sqlite3
+        # On Ubuntu, libsqliteodbc registers itself in /etc/odbcinst.ini under
+        # `[SQLite3]`; on Windows, the choco-installed driver is `SQLite3 ODBC
+        # Driver`. We rename the Linux entry so the same .test-env.yml string
+        # works on both platforms.
+        run: |
+          sudo apt install -y libsqlite3-dev libsqliteodbc sqlite3
+          sudo sed -i 's/^\[SQLite3\]$/[SQLite3 ODBC Driver]/' /etc/odbcinst.ini
       - name: "Install MS SQL ODBC driver"
         if: startsWith(matrix.database, 'MS SQL')
         run: |
@@ -427,7 +433,11 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 19
       - name: "install dependencies"
-        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev
+        # Rename the libsqliteodbc driver section to match the Windows driver
+        # name so the shared .test-env.yml works on both platforms.
+        run: |
+          sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev
+          sudo sed -i 's/^\[SQLite3\]$/[SQLite3 ODBC Driver]/' /etc/odbcinst.ini
       - name: "cmake"
         run: |
           cmake --preset linux-clang-${{ matrix.sanitizer }} \

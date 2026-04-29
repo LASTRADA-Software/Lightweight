@@ -22,8 +22,11 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
     SQLHSTMT stmt, SQLUSMALLINT column, SqlVariant* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
 {
     SQLLEN columnType {};
+    // Use the W variant — the call passes nullptr for the string buffer (we only fetch
+    // the numeric SQL_DESC_TYPE), so it's a near-pure rename, but it keeps the entire
+    // ODBC call surface on the Unicode-app path the rest of the library is using.
     SQLRETURN returnCode =
-        SQLColAttributeA(stmt, static_cast<SQLSMALLINT>(column), SQL_DESC_TYPE, nullptr, 0, nullptr, &columnType);
+        SQLColAttributeW(stmt, column, SQL_DESC_TYPE, nullptr, 0, nullptr, &columnType);
     if (!SQL_SUCCEEDED(returnCode))
         return returnCode;
 

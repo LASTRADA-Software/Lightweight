@@ -60,23 +60,7 @@ struct SqlErrorInfo
     static void RequireStatementSuccess(SQLRETURN result, SQLHSTMT hStmt, std::string_view message);
 
   private:
-    static SqlErrorInfo FromHandle(SQLSMALLINT handleType, SQLHANDLE handle)
-    {
-        SqlErrorInfo info {};
-        info.message = std::string(1024, '\0');
-
-        SQLSMALLINT msgLen {};
-        SQLGetDiagRecA(handleType,
-                       handle,
-                       1,
-                       (SQLCHAR*) info.sqlState.data(),
-                       &info.nativeErrorCode,
-                       (SQLCHAR*) info.message.data(),
-                       (SQLSMALLINT) info.message.capacity(),
-                       &msgLen);
-        info.message.resize(static_cast<size_t>(msgLen));
-        return info;
-    }
+    LIGHTWEIGHT_API static SqlErrorInfo FromHandle(SQLSMALLINT handleType, SQLHANDLE handle);
 };
 
 class SqlException: public std::runtime_error
