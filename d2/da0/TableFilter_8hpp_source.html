@@ -112,8 +112,8 @@ $(document).ready(function(){initNavTree('d2/da0/TableFilter_8hpp_source.html','
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span>{</div>
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span> </div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#if defined(_MSC_VER)</span></div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="preprocessor">#pragma warning(push)</span></div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="preprocessor">#pragma warning(disable: 4251) </span><span class="comment">// STL types in DLL interface</span></div>
+<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="preprocessor">    #pragma warning(push)</span></div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="preprocessor">    #pragma warning(disable : 4251) </span><span class="comment">// STL types in DLL interface</span></div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="preprocessor">#endif</span></div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment"></span> </div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="comment">/// Filters tables by name patterns with glob-style wildcards.</span></div>
@@ -144,39 +144,49 @@ $(document).ready(function(){initNavTree('d2/da0/TableFilter_8hpp_source.html','
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno"><a class="line" href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ae2ac5e8f6feb4b31de19ad64fce540f5">   43</a></span><span class="comment"></span>    [[nodiscard]] <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ae2ac5e8f6feb4b31de19ad64fce540f5">Matches</a>(std::string_view schema, std::string_view tableName) <span class="keyword">const</span>;</div>
 <div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span><span class="comment"></span> </div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="comment">    /// Returns true if the filter matches all tables (no filtering applied).</span></div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno"><a class="line" href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ac16512ae4852ecbf22ab84abeda29e7e">   46</a></span><span class="comment"></span>    [[nodiscard]] <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ac16512ae4852ecbf22ab84abeda29e7e">MatchesAll</a>() const noexcept { <span class="keywordflow">return</span> _matchesAll; }</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="comment"></span> </div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span><span class="comment">    /// Returns the number of patterns in this filter.</span></div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno"><a class="line" href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#adcfe1f8e73b8c0d8dc52f90db2302f97">   49</a></span><span class="comment"></span>    [[nodiscard]] <span class="keywordtype">size_t</span> <a class="code hl_function" href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#adcfe1f8e73b8c0d8dc52f90db2302f97">PatternCount</a>() const noexcept { <span class="keywordflow">return</span> _patterns.size(); }</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span> </div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>    <span class="keyword">struct </span>Pattern</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>    {</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>        std::optional&lt;std::string&gt; schema; <span class="comment">///&lt; Schema pattern (nullopt = any schema)</span></div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>        std::string table;                 <span class="comment">///&lt; Table name pattern</span></div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>    };</div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span> </div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    std::vector&lt;Pattern&gt; _patterns;</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>    <span class="keywordtype">bool</span> _matchesAll = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span><span class="comment"></span> </div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="comment">    /// Performs glob-style pattern matching.</span></div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span><span class="comment">    /// @param pattern The pattern with * and ? wildcards.</span></div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="comment">    /// @param text The text to match against.</span></div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="comment">    /// @return true if text matches the pattern.</span></div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="comment"></span>    <span class="keyword">static</span> <span class="keywordtype">bool</span> GlobMatch(std::string_view pattern, std::string_view text);</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>};</div>
+<div class="foldopen" id="foldopen00046" data-start="{" data-end="}">
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno"><a class="line" href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ac16512ae4852ecbf22ab84abeda29e7e">   46</a></span><span class="comment"></span>    [[nodiscard]] <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ac16512ae4852ecbf22ab84abeda29e7e">MatchesAll</a>() const noexcept</div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>    {</div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>        <span class="keywordflow">return</span> _matchesAll;</div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>    }</div>
 </div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span> </div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="preprocessor">#if defined(_MSC_VER)</span></div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="preprocessor">#pragma warning(pop)</span></div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span> </div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>} <span class="comment">// namespace Lightweight::SqlBackup</span></div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span><span class="comment"></span> </div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span><span class="comment">    /// Returns the number of patterns in this filter.</span></div>
+<div class="foldopen" id="foldopen00052" data-start="{" data-end="}">
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno"><a class="line" href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#adcfe1f8e73b8c0d8dc52f90db2302f97">   52</a></span><span class="comment"></span>    [[nodiscard]] <span class="keywordtype">size_t</span> <a class="code hl_function" href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#adcfe1f8e73b8c0d8dc52f90db2302f97">PatternCount</a>() const noexcept</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>    {</div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>        <span class="keywordflow">return</span> _patterns.size();</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>    }</div>
+</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span> </div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    <span class="keyword">struct </span>Pattern</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>    {</div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>        std::optional&lt;std::string&gt; schema; <span class="comment">///&lt; Schema pattern (nullopt = any schema)</span></div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>        std::string table;                 <span class="comment">///&lt; Table name pattern</span></div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>    };</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span> </div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>    std::vector&lt;Pattern&gt; _patterns;</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>    <span class="keywordtype">bool</span> _matchesAll = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="comment"></span> </div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="comment">    /// Performs glob-style pattern matching.</span></div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="comment">    ///</span></div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="comment">    /// @param pattern The pattern with * and ? wildcards.</span></div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="comment">    /// @param text The text to match against.</span></div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="comment">    /// @return true if text matches the pattern.</span></div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="comment"></span>    <span class="keyword">static</span> <span class="keywordtype">bool</span> GlobMatch(std::string_view pattern, std::string_view text);</div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>};</div>
+</div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span> </div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="preprocessor">#if defined(_MSC_VER)</span></div>
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span><span class="preprocessor">    #pragma warning(pop)</span></div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span> </div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>} <span class="comment">// namespace Lightweight::SqlBackup</span></div>
 <div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1TableFilter_html"><div class="ttname"><a href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html">Lightweight::SqlBackup::TableFilter</a></div><div class="ttdef"><b>Definition</b> <a href="../../d2/da0/TableFilter_8hpp_source.html#l00029">TableFilter.hpp:30</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1TableFilter_html_ab326c477a2829655f68d334d1c6c00c0"><div class="ttname"><a href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ab326c477a2829655f68d334d1c6c00c0">Lightweight::SqlBackup::TableFilter::Parse</a></div><div class="ttdeci">static TableFilter Parse(std::string_view filterSpec)</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1TableFilter_html_ac16512ae4852ecbf22ab84abeda29e7e"><div class="ttname"><a href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ac16512ae4852ecbf22ab84abeda29e7e">Lightweight::SqlBackup::TableFilter::MatchesAll</a></div><div class="ttdeci">bool MatchesAll() const noexcept</div><div class="ttdoc">Returns true if the filter matches all tables (no filtering applied).</div><div class="ttdef"><b>Definition</b> <a href="../../d2/da0/TableFilter_8hpp_source.html#l00046">TableFilter.hpp:46</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1TableFilter_html_adcfe1f8e73b8c0d8dc52f90db2302f97"><div class="ttname"><a href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#adcfe1f8e73b8c0d8dc52f90db2302f97">Lightweight::SqlBackup::TableFilter::PatternCount</a></div><div class="ttdeci">size_t PatternCount() const noexcept</div><div class="ttdoc">Returns the number of patterns in this filter.</div><div class="ttdef"><b>Definition</b> <a href="../../d2/da0/TableFilter_8hpp_source.html#l00049">TableFilter.hpp:49</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1TableFilter_html_adcfe1f8e73b8c0d8dc52f90db2302f97"><div class="ttname"><a href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#adcfe1f8e73b8c0d8dc52f90db2302f97">Lightweight::SqlBackup::TableFilter::PatternCount</a></div><div class="ttdeci">size_t PatternCount() const noexcept</div><div class="ttdoc">Returns the number of patterns in this filter.</div><div class="ttdef"><b>Definition</b> <a href="../../d2/da0/TableFilter_8hpp_source.html#l00052">TableFilter.hpp:52</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlBackup_1_1TableFilter_html_ae2ac5e8f6feb4b31de19ad64fce540f5"><div class="ttname"><a href="../../d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ae2ac5e8f6feb4b31de19ad64fce540f5">Lightweight::SqlBackup::TableFilter::Matches</a></div><div class="ttdeci">bool Matches(std::string_view schema, std::string_view tableName) const</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
