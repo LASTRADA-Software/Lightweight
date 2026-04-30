@@ -1,22 +1,30 @@
 // SPDX-License-Identifier: Apache-2.0
 // Force recompile after header change
 
+#include "DiffRenderer.hpp"
 #include "Lightweight/SqlConnectInfo.hpp"
 #include "PluginLoader.hpp"
 #include "StandardProgressManager.hpp"
 
+#include <Lightweight/Config/ProfileStore.hpp>
 #include <Lightweight/DataMapper/DataMapper.hpp>
+#include <Lightweight/Secrets/SecretResolver.hpp>
 #include <Lightweight/SqlBackup.hpp>
+#include <Lightweight/SqlDataDiff.hpp>
 #include <Lightweight/SqlError.hpp>
+#include <Lightweight/SqlLogger.hpp>
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlMigrationLock.hpp>
 #include <Lightweight/SqlSchema.hpp>
+#include <Lightweight/SqlSchemaDiff.hpp>
 
+#include <algorithm>
 #include <cstdio>
 #include <expected>
 #include <filesystem>
 #include <iostream>
 #include <print>
+#include <ranges>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -30,16 +38,10 @@
     #pragma clang diagnostic pop
 #endif
 
-#include <yaml-cpp/yaml.h>
-
 #ifdef _WIN32
     #include <io.h>
-    #include <shlobj.h>
     #include <windows.h>
 #else
-    #include <sys/types.h>
-
-    #include <pwd.h>
     #include <unistd.h>
 #endif
 
@@ -126,8 +128,15 @@ void PrintUsage()
                  c.command, c.reset);
     std::println("  {}mark-applied{} {}<TIMESTAMP>{} Marks a migration as applied without executing",
                  c.command, c.reset, c.param, c.reset);
+    std::println("  {}diff{} {}<A>{} {}<B>{}            Compares two databases (schema + data) and prints a colored",
+                 c.command, c.reset, c.param, c.reset, c.param, c.reset);
+    std::println("                            report. Each <SOURCE> is either a profile name or a raw");
+    std::println("                            ODBC connection string starting with DRIVER=...");
+    std::println("                            Read-only on both sides. Exit code: 0 = equivalent, 1 = differs.");
     std::println("  {}backup{} --output FILE     Backs up the database to a file", c.command, c.reset);
     std::println("  {}restore{} --input FILE     Restores the database from a file", c.command, c.reset);
+    std::println("  {}resolve-secret{} {}<REF>{}   Prints a resolved secret to stdout (env:, file:, stdin:)",
+                 c.command, c.reset, c.param, c.reset);
     std::println("");
 
     // Descriptions start at column 29 (longest option is 27 chars + 2 space minimum gap)
@@ -140,6 +149,8 @@ void PrintUsage()
     std::println("  {}--schema{} {}<NAME>{}           Database schema to use",
                  c.option, c.reset, c.param, c.reset);
     std::println("  {}--config{} {}<FILE>{}           Path to configuration file",
+                 c.option, c.reset, c.param, c.reset);
+    std::println("  {}--profile{} {}<NAME>{}          Named profile from the config file (default: the file's defaultProfile)",
                  c.option, c.reset, c.param, c.reset);
     std::println("  {}--output{} {}<FILE>{}           Output file for backup",
                  c.option, c.reset, c.param, c.reset);
@@ -172,8 +183,12 @@ void PrintUsage()
                  c.option, c.reset, c.option, c.reset);
     std::println("  {}--no-lock{}                 Skip migration locking for write operations",
                  c.option, c.reset);
-    std::println("  {}--schema-only{}             Backup/restore schema only, skip data",
+    std::println("  {}--schema-only{}             Backup/restore schema only, skip data; for `diff` skips the data diff",
                  c.option, c.reset);
+    std::println("  {}--no-color{}                Disable ANSI colors in `diff` output (auto-disabled when not at a tty)",
+                 c.option, c.reset);
+    std::println("  {}--max-rows{} {}<N>{}            Cap rows scanned per table for `diff --data` (default: unlimited)",
+                 c.option, c.reset, c.param, c.reset);
     std::println("  {}--quiet{}                   Suppress progress output", c.option, c.reset);
     std::println("  {}--help{}                    Show this help message", c.option, c.reset);
     std::println("");
@@ -227,6 +242,17 @@ void PrintUsage()
 
     std::println("  {}# Restore schema only (create empty tables):{}", c.example, c.reset);
     std::println("  {}dbtool restore --input backup.zip --schema-only{}", c.code, c.reset);
+    std::println("");
+
+    std::println("  {}# Diff two databases (schema + data) using profile names:{}", c.example, c.reset);
+    std::println("  {}dbtool diff prod staging{}", c.code, c.reset);
+    std::println("");
+
+    std::println("  {}# Diff using raw connection strings (schema only, no color):{}", c.example, c.reset);
+    std::println("  {}{}{}",
+                 c.code,
+                 R"(dbtool diff "DRIVER=SQLite3;Database=a.db" "DRIVER=SQLite3;Database=b.db" --schema-only --no-color)",
+                 c.reset);
     // clang-format on
 }
 
@@ -242,9 +268,11 @@ struct Options
 {
     std::string command;
     std::string argument;
+    std::string secondArgument; ///< Second positional argument (currently used by `diff` for source-B).
     std::filesystem::path pluginsDir;
     SqlConnectionString connectionString;
     std::string configFile;
+    std::string profileName; ///< Named profile selected via --profile (empty = ProfileStore default)
     std::filesystem::path outputFile;
     std::filesystem::path inputFile;
     ProgressType progressType = ProgressType::Unicode;
@@ -262,45 +290,49 @@ struct Options
     bool dryRun = false;     ///< If true, show what would be done without actually doing it
     bool noLock = false;     ///< If true, skip migration locking for write operations
     bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
+    /// @brief `--no-color` for `diff` (and other text-rendering commands). When true,
+    /// ANSI colors are suppressed.
+    bool noColor = false;
+
+    /// @brief `--max-rows <N>` for `diff --data` mode. 0 means unlimited.
+    std::size_t diffMaxRows = 0;
 };
 
-std::filesystem::path GetDefaultConfigPath()
+/// Flattens a parsed profile into an ODBC connection string, mirroring the legacy
+/// behaviour of `ApplyProfileToOptions`: prefer an explicit connection string, fall
+/// back to a DSN-flavoured profile (which is converted via `SqlConnectionDataSource`).
+///
+/// Returns an empty connection string when the profile carries neither — callers should
+/// fail with a meaningful error in that case.
+[[nodiscard]] SqlConnectionString ProfileToConnectionString(Lightweight::Config::Profile const& profile)
 {
-#ifdef _WIN32
-    char path[MAX_PATH];
-    if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, path)))
+    if (!profile.connectionString.empty())
+        return SqlConnectionString { profile.connectionString };
+    if (!profile.dsn.empty())
     {
-        return std::filesystem::path(path) / "dbtool" / "dbtool.yml";
+        SqlConnectionDataSource ds {
+            .datasource = profile.dsn,
+            .username = profile.uid,
+            .password = {},
+        };
+        return ds.ToConnectionString();
     }
-    return "dbtool.yml";
-#else
-    char const* xdgConfigHome = std::getenv("XDG_CONFIG_HOME");
-    if (xdgConfigHome)
-    {
-        return std::filesystem::path(xdgConfigHome) / "dbtool" / "dbtool.yml";
-    }
-
-    char const* home = std::getenv("HOME");
-    if (!home)
-    {
-        struct passwd* pwd = getpwuid(getuid());
-        if (pwd)
-            home = pwd->pw_dir;
-    }
-
-    if (home)
-    {
-        return std::filesystem::path(home) / ".config" / "dbtool" / "dbtool.yml";
-    }
-
-    return "dbtool.yml";
-#endif
+    return SqlConnectionString {};
 }
 
-void LoadConfig(Options& options)
+/// Loads a profile from a `ProfileStore` and fills `options` fields that were not
+/// already set on the CLI. Supports both the legacy single-profile YAML shape
+/// (top-level `PluginsDir` / `ConnectionString` / `Schema`) and the multi-profile
+/// shape (`profiles: {name: {...}}`) via `ProfileStore::LoadOrDefault`.
+///
+/// When `--config` is given but points to a missing file we treat that as a hard
+/// error, matching the old loader's behaviour. A missing *default* config is not
+/// an error — callers may rely entirely on CLI flags / environment variables.
+void ApplyProfileToOptions(Options& options)
 {
-    std::filesystem::path configPath;
+    namespace Cfg = Lightweight::Config;
 
+    std::filesystem::path configPath;
     if (!options.configFile.empty())
     {
         configPath = options.configFile;
@@ -312,36 +344,53 @@ void LoadConfig(Options& options)
     }
     else
     {
-        configPath = GetDefaultConfigPath();
+        configPath = Cfg::ProfileStore::DefaultPath();
         if (!std::filesystem::exists(configPath))
-        {
-            return; // No default config, just return
-        }
+            return; // No config at all — pure CLI / env mode.
     }
 
-    try
+    auto storeResult = Cfg::ProfileStore::LoadOrDefault(configPath);
+    if (!storeResult)
     {
-        YAML::Node config = YAML::LoadFile(configPath.string());
-
-        if (config["PluginsDir"] && !options.pluginsDirSet)
-        {
-            options.pluginsDir = config["PluginsDir"].as<std::string>();
-        }
-
-        if (config["ConnectionString"] && !options.connectionStringSet)
-        {
-            options.connectionString = SqlConnectionString { config["ConnectionString"].as<std::string>() };
-        }
-
-        if (config["Schema"] && options.schema.empty())
-        {
-            options.schema = config["Schema"].as<std::string>();
-        }
-    }
-    catch (std::exception const& e)
-    {
-        std::println(std::cerr, "Error loading config file: {}", e.what());
+        std::println(std::cerr, "Error loading config file: {}", storeResult.error());
         std::exit(EXIT_FAILURE);
+    }
+    auto const& store = *storeResult;
+
+    Cfg::Profile const* profile = nullptr;
+    if (!options.profileName.empty())
+    {
+        profile = store.Find(options.profileName);
+        if (!profile)
+        {
+            std::println(std::cerr, "Error: profile '{}' not found in {}.", options.profileName, configPath.string());
+            std::exit(EXIT_FAILURE);
+        }
+    }
+    else
+    {
+        profile = store.Default(); // legacy files synthesise a "default" profile
+    }
+
+    if (!profile)
+        return; // empty store, nothing to apply
+
+    if (!profile->pluginsDir.empty() && !options.pluginsDirSet)
+        options.pluginsDir = profile->pluginsDir;
+
+    if (!profile->schema.empty() && options.schema.empty())
+        options.schema = profile->schema;
+
+    if (!options.connectionStringSet)
+    {
+        // Profiles keyed by DSN are flattened into an ODBC connection string so the
+        // rest of dbtool (which speaks `SqlConnectionString` everywhere) sees a
+        // uniform shape. Secret resolution lands in a follow-up; for now the profile's
+        // `secretRef` is ignored and the driver is expected to prompt or fall back to
+        // integrated auth.
+        auto const cs = ProfileToConnectionString(*profile);
+        if (!cs.value.empty())
+            options.connectionString = cs;
     }
 }
 
@@ -389,6 +438,12 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
             if (i + 1 >= argc)
                 return std::unexpected { "Error: --schema requires an argument" };
             options.schema = argv[++i];
+        }
+        else if (arg == "--profile")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --profile requires an argument" };
+            options.profileName = argv[++i];
         }
         else if (arg == "--config")
         {
@@ -509,6 +564,16 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         {
             options.schemaOnly = true;
         }
+        else if (arg == "--no-color")
+        {
+            options.noColor = true;
+        }
+        else if (arg == "--max-rows")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --max-rows requires an argument" };
+            options.diffMaxRows = static_cast<std::size_t>(std::stoull(argv[++i]));
+        }
         else if (options.command.empty())
         {
             options.command = arg;
@@ -516,6 +581,10 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         else if (options.argument.empty())
         {
             options.argument = arg;
+        }
+        else if (options.secondArgument.empty())
+        {
+            options.secondArgument = arg;
         }
         else
         {
@@ -635,6 +704,9 @@ bool SetupConnectionString(SqlConnectionString const& connectionString)
                      "environment variable, or configure it in ~/.config/dbtool/dbtool.yml.\n");
         return false;
     }
+    auto const& defaultString = SqlConnection::DefaultConnectionString();
+    if (!EnsureSqliteDatabaseFileExists(defaultString))
+        std::println(std::cerr, "Warning: could not ensure SQLite database file exists for {}", defaultString.Sanitized());
     return true;
 }
 
@@ -727,6 +799,48 @@ int RollbackMigration(MigrationManager& manager, std::string_view argument)
 ///
 /// @param manager The migration manager instance.
 /// @return EXIT_SUCCESS on success, EXIT_FAILURE on error.
+/// Latest release whose migrations have at least one applied entry, plus how many
+/// of that release's registered migrations are applied (`applied` ≤ `total`). When
+/// no release has any applied migration, `latest == nullptr`.
+struct LatestReleaseStatus
+{
+    MigrationRelease const* latest;
+    size_t applied;
+    size_t total;
+};
+
+/// Walks registered releases in ascending order, looking up applied state per release,
+/// and returns the *latest* release that has any applied migration in it (fully or
+/// partially). Releases after that point (with zero applied migrations) are ignored
+/// — they're pending work, not "applied-but-later".
+LatestReleaseStatus ComputeLatestAppliedRelease(MigrationManager& manager)
+{
+    auto const& releases = manager.GetAllReleases();
+    LatestReleaseStatus result { .latest = nullptr, .applied = 0, .total = 0 };
+    if (releases.empty())
+        return result;
+
+    std::unordered_set<uint64_t> appliedSet;
+    for (auto const& id: manager.GetAppliedMigrationIds())
+        appliedSet.insert(id.value);
+
+    for (auto const& release: releases)
+    {
+        auto const migs = manager.GetMigrationsForRelease(release.version);
+        size_t appliedHere = 0;
+        for (auto const* m: migs)
+            if (appliedSet.contains(m->GetTimestamp().value))
+                ++appliedHere;
+        if (appliedHere > 0)
+        {
+            result.latest = &release;
+            result.applied = appliedHere;
+            result.total = migs.size();
+        }
+    }
+    return result;
+}
+
 int Status(MigrationManager& manager)
 {
     auto const status = manager.GetMigrationStatus();
@@ -741,6 +855,24 @@ int Status(MigrationManager& manager)
     if (status.unknownAppliedCount > 0)
     {
         std::println("  Unknown applied:       {} (applied but not registered)", status.unknownAppliedCount);
+    }
+
+    if (!manager.GetAllReleases().empty())
+    {
+        auto const latest = ComputeLatestAppliedRelease(manager);
+        if (!latest.latest)
+        {
+            std::println("  Latest release:        (none applied)");
+        }
+        else
+        {
+            auto const* const label = (latest.applied == latest.total) ? "applied" : "partially applied";
+            std::println("  Latest release:        {} ({}, {}/{} migrations)",
+                         latest.latest->version,
+                         label,
+                         latest.applied,
+                         latest.total);
+        }
     }
 
     std::println("");
@@ -841,7 +973,22 @@ int RollbackTo(MigrationManager& manager, std::string_view argument)
     if (result.failedAt.has_value())
     {
         std::println(std::cerr, "");
-        std::println(std::cerr, "Error: Failed to rollback migration {}: {}", result.failedAt->value, result.errorMessage);
+        std::println(std::cerr, "Error: failed to rollback migration.");
+        std::println(std::cerr, "  Migration:    {} - {}", result.failedAt->value, result.failedTitle);
+        if (!result.failedSql.empty())
+        {
+            std::println(std::cerr, "  Step:         {}", result.failedStepIndex);
+            if (!result.sqlState.empty() && result.sqlState != "     ")
+                std::println(std::cerr, "  SQL State:    {}, Native error: {}", result.sqlState, result.nativeErrorCode);
+            std::println(std::cerr, "  Driver message:");
+            std::println(std::cerr, "    {}", result.errorMessage);
+            std::println(std::cerr, "  Failed SQL:");
+            std::println(std::cerr, "    {}", result.failedSql);
+        }
+        else
+        {
+            std::println(std::cerr, "  Message:      {}", result.errorMessage);
+        }
         std::println(std::cerr,
                      "Rollback stopped. {} migration(s) were rolled back before the failure.",
                      result.revertedTimestamps.size());
@@ -953,7 +1100,22 @@ int RollbackToRelease(MigrationManager& manager, std::string_view argument)
     if (result.failedAt.has_value())
     {
         std::println(std::cerr, "");
-        std::println(std::cerr, "Error: Failed to rollback migration {}: {}", result.failedAt->value, result.errorMessage);
+        std::println(std::cerr, "Error: failed to rollback migration.");
+        std::println(std::cerr, "  Migration:    {} - {}", result.failedAt->value, result.failedTitle);
+        if (!result.failedSql.empty())
+        {
+            std::println(std::cerr, "  Step:         {}", result.failedStepIndex);
+            if (!result.sqlState.empty() && result.sqlState != "     ")
+                std::println(std::cerr, "  SQL State:    {}, Native error: {}", result.sqlState, result.nativeErrorCode);
+            std::println(std::cerr, "  Driver message:");
+            std::println(std::cerr, "    {}", result.errorMessage);
+            std::println(std::cerr, "  Failed SQL:");
+            std::println(std::cerr, "    {}", result.failedSql);
+        }
+        else
+        {
+            std::println(std::cerr, "  Message:      {}", result.errorMessage);
+        }
         std::println(std::cerr,
                      "Rollback stopped. {} migration(s) were rolled back before the failure.",
                      result.revertedTimestamps.size());
@@ -1504,6 +1666,202 @@ int Restore(Options const& options)
     return pm->ErrorCount() > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
+/// Builds a single InProgress event for the schema-read or data-diff phases. Centralised
+/// here so the field-set (which clang's designated-init warning is picky about) lives in
+/// one place.
+[[nodiscard]] SqlBackup::Progress MakeProgressEvent(
+    std::string tableName,
+    std::size_t current,
+    std::optional<std::size_t> total = std::nullopt,
+    SqlBackup::Progress::State state = SqlBackup::Progress::State::InProgress)
+{
+    auto p = SqlBackup::Progress {};
+    p.state = state;
+    p.tableName = std::move(tableName);
+    p.currentRows = current;
+    p.totalRows = total;
+    return p;
+}
+
+/// Walks every table on side A whose name is also present on side B and runs
+/// `SqlSchema::DiffTableData`, accumulating non-empty results. Live progress events are
+/// fed into @p progress so the user sees current row counts and an ETA.
+[[nodiscard]] std::vector<SqlSchema::TableDataDiff> DiffSharedTables(SqlConnection& connA,
+                                                                     SqlConnection& connB,
+                                                                     SqlSchema::TableList const& tablesA,
+                                                                     SqlSchema::TableList const& tablesB,
+                                                                     std::size_t maxRows,
+                                                                     SqlBackup::ProgressManager* progress)
+{
+    auto tablesByNameB = std::map<std::string, SqlSchema::Table const*> {};
+    for (auto const& t: tablesB)
+        tablesByNameB.emplace(t.name, &t);
+
+    auto onProgress = [&](SqlSchema::DiffProgressEvent const& ev) {
+        if (!progress)
+            return;
+        progress->Update(MakeProgressEvent(std::format("data: {}", ev.tableName), ev.rowsScannedA + ev.rowsScannedB));
+    };
+
+    auto diffs = std::vector<SqlSchema::TableDataDiff> {};
+    for (auto const& tA: tablesA)
+    {
+        auto const itB = tablesByNameB.find(tA.name);
+        if (itB == tablesByNameB.end())
+            continue; // Schema diff already reports "only in A" — skip.
+        auto const& tB = *itB->second;
+
+        // Catch per-table errors so one un-diffable table doesn't abort the whole run.
+        // Driver-side coercion failures (e.g. "Numeric value out of range" on wide numeric
+        // columns) get reported as a per-table `skipReason` and the diff continues.
+        auto diff = SqlSchema::TableDataDiff { .tableName = tA.name };
+        try
+        {
+            diff = SqlSchema::DiffTableData(connA, connB, tA, tB, maxRows, onProgress);
+        }
+        catch (Lightweight::SqlException const& ex)
+        {
+            diff.skipReason = std::format("error: {}", ex.info().message);
+        }
+
+        if (progress)
+            progress->Update(MakeProgressEvent(std::format("data: {}", tA.name),
+                                               diff.aRowCount + diff.bRowCount,
+                                               std::nullopt,
+                                               SqlBackup::Progress::State::Finished));
+        if (!diff.rows.empty() || diff.skipReason.has_value())
+            diffs.push_back(std::move(diff));
+    }
+    return diffs;
+}
+
+/// Decides whether @p token is a raw ODBC connection string (`DRIVER=...`) or a
+/// profile name to look up via `Cfg::ProfileStore`. Returns the resolved connection
+/// string, or an error string suitable for printing to stderr.
+[[nodiscard]] std::expected<SqlConnectionString, std::string> ResolveDiffSource(std::string_view token,
+                                                                                Options const& options)
+{
+    namespace Cfg = Lightweight::Config;
+
+    // Heuristic: ODBC connection strings start with `DRIVER=` (case-insensitive).
+    auto looksLikeOdbcCs = [](std::string_view t) {
+        constexpr auto kExpected = std::string_view { "DRIVER=" };
+        if (t.size() < kExpected.size())
+            return false;
+        return std::ranges::equal(t.substr(0, kExpected.size()), kExpected, [](char a, char b) {
+            return std::tolower(static_cast<unsigned char>(a)) == std::tolower(static_cast<unsigned char>(b));
+        });
+    };
+
+    if (looksLikeOdbcCs(token))
+        return SqlConnectionString { std::string { token } };
+
+    // Treat as profile name. Resolve through the same `ProfileStore` as the rest of dbtool,
+    // honoring `--config` if the user passed one.
+    auto configPath =
+        !options.configFile.empty() ? std::filesystem::path { options.configFile } : Cfg::ProfileStore::DefaultPath();
+    if (!std::filesystem::exists(configPath))
+        return std::unexpected { std::format(
+            "Error: profile '{}' requested but no config file at {}", token, configPath.string()) };
+
+    auto storeResult = Cfg::ProfileStore::LoadOrDefault(configPath);
+    if (!storeResult)
+        return std::unexpected { std::format("Error loading config file: {}", storeResult.error()) };
+
+    auto const* profile = storeResult->Find(std::string { token });
+    if (!profile)
+        return std::unexpected { std::format("Error: profile '{}' not found in {}", token, configPath.string()) };
+
+    auto cs = ProfileToConnectionString(*profile);
+    if (cs.value.empty())
+        return std::unexpected { std::format("Error: profile '{}' has no connectionString or dsn", token) };
+    return cs;
+}
+
+/// Implements `dbtool diff <SOURCE-A> <SOURCE-B>`. Read-only; opens two independent
+/// connections (no global default), runs the schema diff and (unless --schema-only)
+/// the data diff, prints a colored report to stdout, and returns a non-zero exit code
+/// when any differences were found.
+int DiffDatabases(Options const& options)
+{
+    if (options.argument.empty() || options.secondArgument.empty())
+    {
+        std::println(std::cerr, "Error: diff requires two source arguments (profile name or DRIVER=... connection string).");
+        std::println(std::cerr, "Usage: dbtool diff <SOURCE-A> <SOURCE-B> [--schema-only] [--no-color] [--max-rows N]");
+        return EXIT_FAILURE;
+    }
+
+    auto const csA = ResolveDiffSource(options.argument, options);
+    if (!csA)
+    {
+        std::println(std::cerr, "{}", csA.error());
+        return EXIT_FAILURE;
+    }
+    auto const csB = ResolveDiffSource(options.secondArgument, options);
+    if (!csB)
+    {
+        std::println(std::cerr, "{}", csB.error());
+        return EXIT_FAILURE;
+    }
+
+    try
+    {
+        auto connA = SqlConnection { *csA };
+        auto connB = SqlConnection { *csB };
+        if (!connA.IsAlive())
+        {
+            std::println(std::cerr, "Error: failed to connect to source A.");
+            return EXIT_FAILURE;
+        }
+        if (!connB.IsAlive())
+        {
+            std::println(std::cerr, "Error: failed to connect to source B.");
+            return EXIT_FAILURE;
+        }
+
+        auto progress = CreateProgressManager(options);
+
+        // Schema phase — feed the per-table callbacks of `ReadAllTables` into the
+        // progress manager so the user sees "n/total" while introspection runs.
+        auto stmtA = SqlStatement { connA };
+        auto stmtB = SqlStatement { connB };
+
+        auto schemaProgressFor = [&](std::string const& side) {
+            return [&, side](std::string_view tableName, std::size_t current, std::size_t total) {
+                if (progress)
+                    progress->Update(MakeProgressEvent(std::format("{}: {}", side, tableName), current, total));
+            };
+        };
+
+        auto const tablesA =
+            SqlSchema::ReadAllTables(stmtA, connA.DatabaseName(), options.schema, schemaProgressFor("schema A"));
+        auto const tablesB =
+            SqlSchema::ReadAllTables(stmtB, connB.DatabaseName(), options.schema, schemaProgressFor("schema B"));
+
+        auto const schemaDiff = SqlSchema::DiffSchemas(tablesA, tablesB);
+
+        auto dataDiffs = options.schemaOnly
+                             ? std::vector<SqlSchema::TableDataDiff> {}
+                             : DiffSharedTables(connA, connB, tablesA, tablesB, options.diffMaxRows, progress.get());
+
+        if (progress)
+            progress->AllDone();
+
+        auto const useColor = !options.noColor && (isatty(fileno(stdout)) != 0);
+        auto const renderOpts = Lightweight::Tools::DiffRenderOptions { .useColor = useColor };
+        Lightweight::Tools::RenderDiff(std::cout, schemaDiff, dataDiffs, renderOpts);
+
+        auto const anyDataDiff =
+            std::ranges::any_of(dataDiffs, [](SqlSchema::TableDataDiff const& d) { return !d.rows.empty(); });
+        return (schemaDiff.Empty() && !anyDataDiff) ? EXIT_SUCCESS : 1;
+    }
+    catch (SqlException const& ex)
+    {
+        std::println(std::cerr, "SQL error: {}", ex.info().message);
+        return EXIT_FAILURE;
+    }
+}
+
 MigrationManager& GetMigrationManager(Options const& options)
 {
     // Keep plugins loaded for the lifetime of the program.
@@ -1523,6 +1881,99 @@ MigrationManager& GetMigrationManager(Options const& options)
     return manager;
 }
 
+/// Dispatches a DB-connected command to its handler. Assumes the caller has
+/// already established the ODBC connection via `SetupConnectionString`.
+int DispatchDbCommand(Options const& options)
+{
+    if (options.command == "list-pending")
+        return ListPendingMigrations(GetMigrationManager(options));
+    if (options.command == "list-applied")
+        return ListAppliedMigrations(GetMigrationManager(options));
+    if (options.command == "status")
+        return Status(GetMigrationManager(options));
+    if (options.command == "releases")
+        return Releases(GetMigrationManager(options));
+
+    if (options.command == "migrate")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        return Migrate(manager, options.dryRun);
+    }
+    if (options.command == "apply")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock);
+        return ApplyMigration(manager, options.argument);
+    }
+    if (options.command == "rollback")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock);
+        return RollbackMigration(manager, options.argument);
+    }
+    if (options.command == "rollback-to")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock);
+        return RollbackTo(manager, options.argument);
+    }
+    if (options.command == "rollback-to-release")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock);
+        return RollbackToRelease(manager, options.argument);
+    }
+    if (options.command == "mark-applied")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock);
+        return MarkApplied(manager, options.argument);
+    }
+    if (options.command == "backup")
+        return Backup(options);
+    if (options.command == "restore")
+        return Restore(options);
+
+    std::println(std::cerr, "Unknown command: {}", options.command);
+    return EXIT_FAILURE;
+}
+
+/// Handles the `resolve-secret` command, which short-circuits before any DB
+/// connection is established so scripts can use dbtool as a thin secret
+/// lookup CLI.
+int ResolveSecretCommand(Options const& options)
+{
+    if (options.argument.empty())
+    {
+        std::println(std::cerr, "Error: resolve-secret requires a <REF> argument (e.g. env:MY_PWD).");
+        return EXIT_FAILURE;
+    }
+    auto const resolver = Lightweight::Secrets::MakeDefaultResolver();
+    auto const result = resolver.Resolve(options.argument, options.profileName);
+    if (!result)
+    {
+        std::println(std::cerr, "Error: {}", result.error().message);
+        return EXIT_FAILURE;
+    }
+    std::println("{}", *result);
+    return EXIT_SUCCESS;
+}
+
+#if defined(_WIN32)
+/// Enables VT sequence processing and UTF-8 output on the Windows console.
+void ConfigureWindowsConsole()
+{
+    if (const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE); hOut != INVALID_HANDLE_VALUE)
+        if (DWORD dwMode = 0; GetConsoleMode(hOut, &dwMode) != 0)
+            SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
+    if (const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE); hOut != INVALID_HANDLE_VALUE)
+        if (DWORD dwMode = 0; GetConsoleOutputCP() != CP_UTF8)
+            SetConsoleOutputCP(CP_UTF8);
+}
+#endif
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -1535,6 +1986,12 @@ int main(int argc, char** argv)
     // normally and exiting 0. Switching stdout to unbuffered keeps each println visible
     // immediately. dbtool's output volume is low enough that the perf cost is irrelevant.
     std::setvbuf(stdout, nullptr, _IONBF, 0);
+
+    // Surface Lightweight's warnings (e.g. legacy-migration truncation notices)
+    // to stderr. Without this, every `OnWarning` call is routed to the Null logger
+    // and silently dropped.
+    SqlLogger::SetLogger(SqlLogger::StandardLogger());
+
     try
     {
         auto optionsResult = ParseArguments(argc, argv);
@@ -1544,18 +2001,10 @@ int main(int argc, char** argv)
             return EXIT_FAILURE;
         }
         Options options = optionsResult.value();
-        LoadConfig(options); // Load config (and fill missing values if not set by CLI)
+        ApplyProfileToOptions(options); // Resolve a named (or default) profile and fill unset fields.
 
 #if defined(_WIN32)
-        // Enable VT support
-        if (const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE); hOut != INVALID_HANDLE_VALUE)
-            if (DWORD dwMode = 0; GetConsoleMode(hOut, &dwMode) != 0)
-                SetConsoleMode(hOut, dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
-
-        // Enable UTF-8
-        if (const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE); hOut != INVALID_HANDLE_VALUE)
-            if (DWORD dwMode = 0; GetConsoleOutputCP() != CP_UTF8)
-                SetConsoleOutputCP(CP_UTF8);
+        ConfigureWindowsConsole();
 #endif
 
         if (options.command.empty())
@@ -1570,62 +2019,38 @@ int main(int argc, char** argv)
             return EXIT_SUCCESS;
         }
 
+        if (options.command == "resolve-secret")
+            return ResolveSecretCommand(options);
+
+        // `diff` opens its own two connections from the positional args and does not
+        // use the global default connection string. Skip the SetupConnectionString
+        // gate, which would otherwise reject invocations that pass no `--connection-string`.
+        if (options.command == "diff")
+            return DiffDatabases(options);
+
         if (!SetupConnectionString(options.connectionString))
             return EXIT_FAILURE;
 
-        // Read-only commands (no lock needed)
-        if (options.command == "list-pending")
-            return ListPendingMigrations(GetMigrationManager(options));
-        else if (options.command == "list-applied")
-            return ListAppliedMigrations(GetMigrationManager(options));
-        else if (options.command == "status")
-            return Status(GetMigrationManager(options));
-        else if (options.command == "releases")
-            return Releases(GetMigrationManager(options));
-
-        // Write commands (lock recommended)
-        else if (options.command == "migrate")
-        {
-            auto& manager = GetMigrationManager(options);
-            OptionalMigrationLock lock(manager, options.noLock || options.dryRun);
-            return Migrate(manager, options.dryRun);
-        }
-        else if (options.command == "apply")
-        {
-            auto& manager = GetMigrationManager(options);
-            OptionalMigrationLock lock(manager, options.noLock);
-            return ApplyMigration(manager, options.argument);
-        }
-        else if (options.command == "rollback")
-        {
-            auto& manager = GetMigrationManager(options);
-            OptionalMigrationLock lock(manager, options.noLock);
-            return RollbackMigration(manager, options.argument);
-        }
-        else if (options.command == "rollback-to")
-        {
-            auto& manager = GetMigrationManager(options);
-            OptionalMigrationLock lock(manager, options.noLock);
-            return RollbackTo(manager, options.argument);
-        }
-        else if (options.command == "rollback-to-release")
-        {
-            auto& manager = GetMigrationManager(options);
-            OptionalMigrationLock lock(manager, options.noLock);
-            return RollbackToRelease(manager, options.argument);
-        }
-        else if (options.command == "mark-applied")
-        {
-            auto& manager = GetMigrationManager(options);
-            OptionalMigrationLock lock(manager, options.noLock);
-            return MarkApplied(manager, options.argument);
-        }
-        else if (options.command == "backup")
-            return Backup(options);
-        else if (options.command == "restore")
-            return Restore(options);
-
-        std::println(std::cerr, "Unknown command: {}", options.command);
+        return DispatchDbCommand(options);
+    }
+    catch (Lightweight::SqlMigration::MigrationException const& e)
+    {
+        // Multi-line structured report so operators immediately see *which*
+        // migration failed and *which* statement the driver rejected. The
+        // original driver message is preserved verbatim so we don't lose
+        // database-specific diagnostics (e.g. MSSQL's "Cannot insert NULL
+        // into column X of table Y").
+        auto const* const verb =
+            e.GetOperation() == Lightweight::SqlMigration::MigrationException::Operation::Apply ? "apply" : "rollback";
+        std::println(std::cerr, "Error: failed to {} migration.", verb);
+        std::println(std::cerr, "  Migration:    {} - {}", e.GetMigrationTimestamp().value, e.GetMigrationTitle());
+        std::println(std::cerr, "  Step:         {}", e.GetStepIndex());
+        if (!e.info().sqlState.empty() && e.info().sqlState != "     ")
+            std::println(std::cerr, "  SQL State:    {}, Native error: {}", e.info().sqlState, e.info().nativeErrorCode);
+        std::println(std::cerr, "  Driver message:");
+        std::println(std::cerr, "    {}", e.GetDriverMessage());
+        std::println(std::cerr, "  Failed SQL:");
+        std::println(std::cerr, "    {}", e.GetFailedSql());
         return EXIT_FAILURE;
     }
     catch (SqlException const& e)
