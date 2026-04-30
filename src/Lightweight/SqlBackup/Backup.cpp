@@ -9,6 +9,7 @@
 #include "../SqlQuery.hpp"
 #include "../SqlQueryFormatter.hpp"
 #include "../SqlStatement.hpp"
+#include "../TracyProfiler.hpp"
 #include "Backup.hpp"
 #include "Common.hpp"
 #include "MsgPackChunkFormats.hpp"
@@ -163,6 +164,8 @@ std::string BuildSelectQueryWithOffset(SqlQueryFormatter const& formatter,
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Table const& table)
 {
+    ZoneScopedN("SqlBackup::ProcessTableBackup");
+    ZoneTextObject(table.name);
     std::string const& tableName = table.name;
 
     if (table.columns.empty())

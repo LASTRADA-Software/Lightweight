@@ -1262,6 +1262,9 @@ void DataMapper::CreateTable()
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
+    ZoneScopedN("DataMapper::CreateTable");
+    ZoneTextObject(RecordTableName<Record>);
+
     auto const sqlQueryStrings = CreateTableString<Record>(_connection.ServerType());
     for (auto const& sqlQueryString: sqlQueryStrings) [[maybe_unused]]
         auto cursor = _stmt.ExecuteDirect(sqlQueryString);
@@ -1404,6 +1407,9 @@ RecordPrimaryKeyType<Record> DataMapper::Create(Record& record)
     static_assert(!std::is_const_v<Record>);
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
+    ZoneScopedN("DataMapper::Create");
+    ZoneTextObject(RecordTableName<Record>);
+
     auto generatedKey = GenerateAutoAssignPrimaryKey(record);
     if (generatedKey)
         SetId(record, *generatedKey);
@@ -1454,6 +1460,9 @@ template <typename Record>
 void DataMapper::Update(Record& record)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+
+    ZoneScopedN("DataMapper::Update");
+    ZoneTextObject(RecordTableName<Record>);
 
     auto query = _connection.Query(RecordTableName<Record>).Update();
 
@@ -1525,6 +1534,9 @@ std::size_t DataMapper::Delete(Record const& record)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
+    ZoneScopedN("DataMapper::Delete");
+    ZoneTextObject(RecordTableName<Record>);
+
     auto query = _connection.Query(RecordTableName<Record>).Delete();
 
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
@@ -1573,6 +1585,9 @@ std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
+    ZoneScopedN("DataMapper::QuerySingle(PK)");
+    ZoneTextObject(RecordTableName<Record>);
+
     auto queryBuilder = _connection.Query(RecordTableName<Record>).Select();
 
     Reflection::EnumerateMembers<Record>([&]<size_t I, typename FieldType>() {
@@ -1609,11 +1624,16 @@ std::optional<Record> DataMapper::QuerySingle(SqlSelectQueryBuilder selectQuery,
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
+    ZoneScopedN("DataMapper::QuerySingle(Builder)");
+    ZoneTextObject(RecordTableName<Record>);
+
     Reflection::EnumerateMembers<Record>([&]<size_t I, typename FieldType>() {
         if constexpr (FieldWithStorage<FieldType>)
             selectQuery.Field(SqlQualifiedTableColumnName { RecordTableName<Record>, FieldNameAt<I, Record> });
     });
-    _stmt.Prepare(selectQuery.First().ToSql());
+    auto const composedSql = selectQuery.First().ToSql();
+    ZoneTextObject(composedSql);
+    _stmt.Prepare(composedSql);
     auto reader = _stmt.Execute(std::forward<Args>(args)...);
 
     auto resultRecord = std::optional<Record> { Record {} };
@@ -1635,12 +1655,16 @@ inline LIGHTWEIGHT_FORCE_INLINE std::vector<Record> DataMapper::Query(
 {
     static_assert(DataMapperRecord<Record> || std::same_as<Record, SqlVariantRow>, "Record must satisfy DataMapperRecord");
 
+    ZoneScopedN("DataMapper::Query(ComposedQuery)");
     return Query<Record, QueryOptions>(selectQuery.ToSql(), std::forward<InputParameters>(inputParameters)...);
 }
 
 template <typename Record, DataMapperOptions QueryOptions, typename... InputParameters>
 std::vector<Record> DataMapper::Query(std::string_view sqlQueryString, InputParameters&&... inputParameters)
 {
+    ZoneScopedN("DataMapper::Query(string)");
+    ZoneTextObject(sqlQueryString);
+
     auto result = std::vector<Record> {};
     if constexpr (std::same_as<Record, SqlVariantRow>)
     {
@@ -1699,7 +1723,10 @@ std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQuery
     using value_type = std::tuple<First, Second, Rest...>;
     auto result = std::vector<value_type> {};
 
-    _stmt.Prepare(selectQuery.ToSql());
+    ZoneScopedN("DataMapper::Query(ComposedQuery -> tuple)");
+    auto const tupleSql = selectQuery.ToSql();
+    ZoneTextObject(tupleSql);
+    _stmt.Prepare(tupleSql);
     auto reader = _stmt.Execute();
 
     constexpr auto calculateOffset = []<size_t I, typename Tuple>() {
@@ -1778,7 +1805,10 @@ std::vector<Record> DataMapper::Query(SqlSelectQueryBuilder::ComposedQuery const
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
-    _stmt.Prepare(selectQuery.ToSql());
+    ZoneScopedN("DataMapper::Query(ComposedQuery, ElementMask)");
+    auto const maskedSql = selectQuery.ToSql();
+    ZoneTextObject(maskedSql);
+    _stmt.Prepare(maskedSql);
 
     auto records = std::vector<Record> {};
 
@@ -1881,6 +1911,9 @@ std::optional<typename FieldType::ReferencedRecord> DataMapper::LoadBelongsTo(Fi
 {
     using ReferencedRecord = FieldType::ReferencedRecord;
 
+    ZoneScopedN("DataMapper::LoadBelongsTo");
+    ZoneTextObject(RecordTableName<ReferencedRecord>);
+
     std::optional<ReferencedRecord> record { std::nullopt };
 
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
@@ -1958,6 +1991,9 @@ void DataMapper::LoadHasMany(Record& record, HasMany<OtherRecord>& field)
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     static_assert(DataMapperRecord<OtherRecord>, "OtherRecord must satisfy DataMapperRecord");
 
+    ZoneScopedN("DataMapper::LoadHasMany");
+    ZoneTextObject(RecordTableName<OtherRecord>);
+
     CallOnHasMany<FieldIndex, Record, OtherRecord>(record, [&](SqlSelectQueryBuilder selectQuery, auto& primaryKeyField) {
         field.Emplace(detail::ToSharedPtrList(Query<OtherRecord>(selectQuery.All(), primaryKeyField.Value())));
     });
@@ -1968,6 +2004,9 @@ void DataMapper::LoadHasOneThrough(Record& record, HasOneThrough<ReferencedRecor
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     static_assert(DataMapperRecord<ThroughRecord>, "ThroughRecord must satisfy DataMapperRecord");
+
+    ZoneScopedN("DataMapper::LoadHasOneThrough");
+    ZoneTextObject(RecordTableName<ReferencedRecord>);
 
     // Find the PK of Record
     CallOnPrimaryKey(record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
@@ -2173,6 +2212,9 @@ void DataMapper::LoadHasManyThrough(Record& record, HasManyThrough<ReferencedRec
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
+    ZoneScopedN("DataMapper::LoadHasManyThrough");
+    ZoneTextObject(RecordTableName<ReferencedRecord>);
+
     CallOnHasManyThrough<ReferencedRecord, ThroughRecord>(
         record, [&](SqlSelectQueryBuilder& selectQuery, auto& primaryKeyField) {
             field.Emplace(detail::ToSharedPtrList(Query<ReferencedRecord>(selectQuery.All(), primaryKeyField.Value())));
@@ -2184,6 +2226,9 @@ void DataMapper::LoadRelations(Record& record)
 {
     static_assert(!std::is_const_v<Record>);
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+
+    ZoneScopedN("DataMapper::LoadRelations");
+    ZoneTextObject(RecordTableName<Record>);
 
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
     constexpr auto ctx = std::meta::access_context::current();
@@ -2458,6 +2503,8 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
 template <typename T>
 std::optional<T> DataMapper::Execute(std::string_view sqlQueryString)
 {
+    ZoneScopedN("DataMapper::Execute(string)");
+    ZoneTextObject(sqlQueryString);
     return _stmt.ExecuteDirectScalar<T>(sqlQueryString);
 }
 

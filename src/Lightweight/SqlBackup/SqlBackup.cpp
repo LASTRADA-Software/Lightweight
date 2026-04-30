@@ -6,6 +6,7 @@
 #include "../SqlSchema.hpp"
 #include "../SqlStatement.hpp"
 #include "../ThreadSafeQueue.hpp"
+#include "../TracyProfiler.hpp"
 #include "Backup.hpp"
 #include "Common.hpp"
 #include "Restore.hpp"
@@ -318,6 +319,13 @@ void Backup(std::filesystem::path const& outputFile,
             RetrySettings const& retrySettings,
             BackupSettings const& backupSettings)
 {
+    ZoneScopedN("SqlBackup::Backup");
+    {
+        auto const sanitized = SqlConnectionString::SanitizePwd(connectionString.value);
+        ZoneTextObject(sanitized);
+    }
+    ZoneValue(concurrency);
+
     concurrency = std::max(1U, concurrency);
 
     SqlConnection mainConn { std::nullopt };
@@ -752,6 +760,13 @@ void Restore(std::filesystem::path const& inputFile,
              RetrySettings const& retrySettings,
              RestoreSettings const& restoreSettings)
 {
+    ZoneScopedN("SqlBackup::Restore");
+    {
+        auto const inputFileStr = inputFile.string();
+        ZoneTextObject(inputFileStr);
+    }
+    ZoneValue(concurrency);
+
     concurrency = std::max(1U, concurrency);
 
     if (!std::filesystem::exists(inputFile))

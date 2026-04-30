@@ -452,6 +452,9 @@ namespace
 // NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_view schema, EventHandler& eventHandler)
 {
+    ZoneScopedN("SqlSchema::ReadAllTables(EventHandler)");
+    if (!schema.empty())
+        ZoneTextObject(schema);
     auto const tablesWithSchema = AllTables(stmt, database, schema);
 
     // Extract just table names for the EventHandler interface
@@ -647,6 +650,9 @@ TableList ReadAllTables(SqlStatement& stmt,
                         TableReadyCallback tableReadyCallback,
                         TableFilterPredicate tableFilter)
 {
+    ZoneScopedN("SqlSchema::ReadAllTables");
+    if (!schema.empty())
+        ZoneTextObject(schema);
 
     auto ToLowerCase = [](std::string_view str) -> std::string {
         std::string result(str);
@@ -782,11 +788,15 @@ TableList ReadAllTables(SqlStatement& stmt,
 
 std::vector<ForeignKeyConstraint> AllForeignKeysTo(SqlStatement& stmt, FullyQualifiedTableName const& table)
 {
+    ZoneScopedN("SqlSchema::AllForeignKeysTo");
+    ZoneTextObject(table.table);
     return AllForeignKeys(stmt, table, FullyQualifiedTableName {});
 }
 
 std::vector<ForeignKeyConstraint> AllForeignKeysFrom(SqlStatement& stmt, FullyQualifiedTableName const& table)
 {
+    ZoneScopedN("SqlSchema::AllForeignKeysFrom");
+    ZoneTextObject(table.table);
     return AllForeignKeys(stmt, FullyQualifiedTableName {}, table);
 }
 

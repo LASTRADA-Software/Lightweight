@@ -4,6 +4,7 @@
 #include "SqlOdbcWide.hpp"
 #include "SqlQuery.hpp"
 #include "SqlStatement.hpp"
+#include "TracyProfiler.hpp"
 #include "Utils.hpp"
 
 #include <deque>
@@ -171,6 +172,8 @@ SqlStatement SqlStatement::Prepare(std::string_view query) &&
 
 void SqlStatement::Prepare(std::string_view query) &
 {
+    ZoneScopedN("SqlStatement::Prepare");
+    ZoneTextObject(query);
     SqlLogger::GetLogger().OnPrepare(query);
 
     m_preparedQuery = std::string(query);
@@ -198,6 +201,8 @@ void SqlStatement::Prepare(std::string_view query) &
 
 SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::source_location location)
 {
+    ZoneScopedN("SqlStatement::ExecuteDirect");
+    ZoneTextObject(query);
     if (query.empty())
         return SqlResultCursor { *this };
 
@@ -219,6 +224,8 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
 
 SqlResultCursor SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const& args)
 {
+    ZoneScopedN("SqlStatement::ExecuteWithVariants");
+    ZoneTextObject(m_preparedQuery);
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
     if (!(m_expectedParameterCount == (std::numeric_limits<decltype(m_expectedParameterCount)>::max)() && args.empty())
@@ -246,6 +253,9 @@ SqlResultCursor SqlStatement::ExecuteWithVariants(std::vector<SqlVariant> const&
 
 SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount)
 {
+    ZoneScopedN("SqlStatement::ExecuteBatch");
+    ZoneTextObject(m_preparedQuery);
+    ZoneValue(rowCount);
     SqlLogger::GetLogger().OnExecute(m_preparedQuery);
 
     if (m_expectedParameterCount != static_cast<SQLSMALLINT>(columns.size()))
@@ -302,6 +312,7 @@ size_t SqlStatement::LastInsertId(std::string_view tableName)
 // Fetches the next row of the result set.
 bool SqlStatement::FetchRow()
 {
+    ZoneScopedN("SqlStatement::FetchRow");
     auto result = TryFetchRow();
     if (result.has_value())
         return result.value();

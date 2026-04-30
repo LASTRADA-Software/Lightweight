@@ -6,6 +6,7 @@
 #include "SqlQuery.hpp"
 #include "SqlQueryFormatter.hpp"
 #include "SqlStatement.hpp"
+#include "TracyProfiler.hpp"
 
 #include <algorithm>
 #include <array>
@@ -27,22 +28,20 @@ static std::mutex gConnectionMutex {};
 namespace
 {
 
-/// @brief Reads a string-typed `SQLGetInfoW` value into a UTF-8 `std::string`. The
-/// W variant returns the buffer length in **bytes** (not characters) per the ODBC
-/// spec — divide by `sizeof(SQLWCHAR)` to recover the character count.
-std::string GetInfoStringW(SQLHDBC hDbc, SQLUSMALLINT infoType)
-{
-    std::array<SQLWCHAR, 256> buffer {};
-    SQLSMALLINT byteLen {};
-    auto const sqlResult = SQLGetInfoW(hDbc, infoType, buffer.data(), sizeof(buffer), &byteLen);
-    if (!SQL_SUCCEEDED(sqlResult) || byteLen <= 0)
-        return {};
-    auto const charCount =
-        std::min(static_cast<size_t>(byteLen) / sizeof(SQLWCHAR), buffer.size() - 1);
-    auto const utf8 =
-        ToUtf8(std::u16string_view { reinterpret_cast<char16_t const*>(buffer.data()), charCount });
-    return std::string { reinterpret_cast<char const*>(utf8.data()), utf8.size() };
-}
+    /// @brief Reads a string-typed `SQLGetInfoW` value into a UTF-8 `std::string`. The
+    /// W variant returns the buffer length in **bytes** (not characters) per the ODBC
+    /// spec — divide by `sizeof(SQLWCHAR)` to recover the character count.
+    std::string GetInfoStringW(SQLHDBC hDbc, SQLUSMALLINT infoType)
+    {
+        std::array<SQLWCHAR, 256> buffer {};
+        SQLSMALLINT byteLen {};
+        auto const sqlResult = SQLGetInfoW(hDbc, infoType, buffer.data(), sizeof(buffer), &byteLen);
+        if (!SQL_SUCCEEDED(sqlResult) || byteLen <= 0)
+            return {};
+        auto const charCount = std::min(static_cast<size_t>(byteLen) / sizeof(SQLWCHAR), buffer.size() - 1);
+        auto const utf8 = ToUtf8(std::u16string_view { reinterpret_cast<char16_t const*>(buffer.data()), charCount });
+        return std::string { reinterpret_cast<char const*>(utf8.data()), utf8.size() };
+    }
 
 } // namespace
 
@@ -168,6 +167,7 @@ void SqlConnection::ResetPostConnectedHook()
 
 bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
 {
+    ZoneScopedN("SqlConnection::Connect(DataSource)");
     EnsureHandlesAllocated();
 
     if (m_hDbc)
@@ -241,6 +241,7 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
 // Connects to the given database with the given connection string.
 bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
 {
+    ZoneScopedN("SqlConnection::Connect(ConnectionString)");
     EnsureHandlesAllocated();
 
     if (m_hDbc)
@@ -254,10 +255,12 @@ bool SqlConnection::Connect(SqlConnectionString sqlConnectionString) noexcept
     // ANSI mode and runs every SQL_C_CHAR / SQL_C_WCHAR payload through the system
     // codepage, which mangles UTF-8 bytes ≥ 0x80 and UTF-16 surrogate pairs. The
     // try/catch defends the noexcept contract against std::bad_alloc from the UTF-16
-    // allocation.
+    // allocation (and from the regex allocation in SanitizePwd below).
     detail::OdbcWideArg wConnectionString { std::string_view {} };
     try
     {
+        auto const sanitized = SqlConnectionString::SanitizePwd(m_data->connectionString.value);
+        ZoneTextObject(sanitized);
         wConnectionString = detail::OdbcWideArg { m_data->connectionString.value };
     }
     catch (...)

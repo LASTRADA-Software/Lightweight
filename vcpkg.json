@@ -4,5 +4,13 @@
     { "name": "yaml-cpp", "version>=": "0.8.0" },
     { "name": "catch2", "version>=": "3.5.2" },
     { "name": "libzip" }
-  ]
+  ],
+  "features": {
+    "tracy": {
+      "description": "Enable Tracy profiler instrumentation",
+      "dependencies": [
+        { "name": "tracy" }
+      ]
+    }
+  }
 }
