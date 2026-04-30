@@ -91,6 +91,7 @@ $(document).ready(function(){initNavTree('d4/d5c/classLightweight_1_1SqlMigratio
 
 <div class="header">
   <div class="summary">
+<a href="#nested-classes">Classes</a> &#124;
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-static-methods">Static Public Member Functions</a> &#124;
@@ -101,6 +102,12 @@ $(document).ready(function(){initNavTree('d4/d5c/classLightweight_1_1SqlMigratio
 
 <p><code>#include &lt;<a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>&gt;</code></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html">PlanFoldingResult</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Snapshot of the schema the registered migrations <em>intend</em> to produce.  <a href="../../df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:a259626f016bf24f265c81c1bc4446ae1" id="r_a259626f016bf24f265c81c1bc4446ae1"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1">MigrationList</a> = std::list&lt; <a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> const  * &gt;</td></tr>
@@ -175,6 +182,9 @@ LIGHTWEIGHT_API std::vector&lt; <a class="el" href="../../d1/d4f/structLightweig
 <tr class="separator:a97663a37d26d962c2c17d97706651c0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a97918619adda32f2e9f65b089221a01f" id="r_a97918619adda32f2e9f65b089221a01f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1">MigrationList</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97918619adda32f2e9f65b089221a01f">GetMigrationsForRelease</a> (std::string_view version) const</td></tr>
 <tr class="separator:a97918619adda32f2e9f65b089221a01f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a500e17dc06f73a877dc7e7a99342feaa" id="r_a500e17dc06f73a877dc7e7a99342feaa"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html">PlanFoldingResult</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a500e17dc06f73a877dc7e7a99342feaa">FoldRegisteredMigrations</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter, std::optional&lt; <a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> &gt; upToInclusive=std::nullopt) const</td></tr>
+<tr class="memdesc:a500e17dc06f73a877dc7e7a99342feaa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pure plan-walk that folds the effect of every registered migration.  <br /></td></tr>
+<tr class="separator:a500e17dc06f73a877dc7e7a99342feaa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -185,7 +195,7 @@ Static Public Member Functions</h2></td></tr>
 <div class="textblock"><p>Main API to use for managing SQL migrations</p>
 <p>This class is a singleton and can be accessed using the <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8">GetInstance()</a> method. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00105">105</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00107">107</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="a259626f016bf24f265c81c1bc4446ae1" name="a259626f016bf24f265c81c1bc4446ae1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a259626f016bf24f265c81c1bc4446ae1">&#9670;&#160;</a></span>MigrationList</h2>
@@ -201,7 +211,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Type alias for a list of migration pointers. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00109">109</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00111">111</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -219,7 +229,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Callback type invoked during migration execution to report progress. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00146">146</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00148">148</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -251,7 +261,7 @@ Static Public Member Functions</h2></td></tr>
 <dd>
 Reference to the migration manager. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00337">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00405">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -278,7 +288,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00337">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00405">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -509,7 +519,7 @@ Reference to the migration manager. </dd></dl>
 
 <p>Get the data mapper used for migrations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00177">177</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00179">179</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094">GetDataMapper()</a>.</p>
 
@@ -870,6 +880,45 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Migrations in the release, ordered by timestamp. Empty if the version is unknown. </dd></dl>
+
+</div>
+</div>
+<a id="a500e17dc06f73a877dc7e7a99342feaa" name="a500e17dc06f73a877dc7e7a99342feaa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a500e17dc06f73a877dc7e7a99342feaa">&#9670;&#160;</a></span>FoldRegisteredMigrations()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html">PlanFoldingResult</a> Lightweight::SqlMigration::MigrationManager::FoldRegisteredMigrations </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;&#160;</td>
+          <td class="paramname"><em>formatter</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::optional&lt; <a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> &gt;&#160;</td>
+          <td class="paramname"><em>upToInclusive</em> = <code>std::nullopt</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Pure plan-walk that folds the effect of every registered migration. </p>
+<p>Visits each migration's <code>Up()</code> plan in timestamp order (or up to <code>upToInclusive</code> if provided) and accumulates the cumulative end-state into a <code><a class="el" href="../../df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html" title="Snapshot of the schema the registered migrations intend to produce.">PlanFoldingResult</a></code>. <b>Never</b> executes SQL or touches a database connection — the supplied formatter is only used to build the in-memory plan elements.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">formatter</td><td>Formatter used by the migration query builder while walking each migration's <code>Up()</code>. Any standard formatter works; the walk inspects plan element shapes, not rendered SQL. </td></tr>
+    <tr><td class="paramname">upToInclusive</td><td>If set, fold only migrations with <code>timestamp &lt;= upToInclusive</code>. If unset, fold all registered migrations.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The folded snapshot. Safe to call without a <code><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html">MigrationManager</a></code>-attached data mapper. </dd></dl>
 
 </div>
 </div>

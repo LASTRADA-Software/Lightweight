@@ -113,7 +113,7 @@ Public Attributes</h2></td></tr>
 <p>Releases are declared in source (typically a migration plugin) via <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a" title="Associates a software release (version string) with the highest migration timestamp present at the ti...">LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp)</a></code>. They let tools answer questions like "which migrations belong to release 6.7.0?" or "roll back everything applied after 6.7.0".</p>
 <p>The <code>highestTimestamp</code> is an inclusive upper bound: a migration <code>M</code> belongs to the release iff <code>prev_release_ts &lt; M.timestamp &lt;= highestTimestamp</code>, where <code>prev_release_ts</code> is the previous release's timestamp (or 0 if there is none). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00092">92</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00094">94</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="ab1116d155822475c5e653b49aa5805aa" name="ab1116d155822475c5e653b49aa5805aa"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab1116d155822475c5e653b49aa5805aa">&#9670;&#160;</a></span>version</h2>
@@ -129,7 +129,7 @@ Public Attributes</h2></td></tr>
 
 <p>Human-readable version string, e.g. "6.7.0". </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00095">95</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00097">97</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -147,7 +147,7 @@ Public Attributes</h2></td></tr>
 
 <p>Highest migration timestamp contained in this release (inclusive). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00097">97</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00099">99</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
