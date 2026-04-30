@@ -1,23 +1,69 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "DataBinder/SqlVariant.hpp"
 #include "DataMapper/DataMapper.hpp"
 #include "QueryFormatter/SQLiteFormatter.hpp"
 #include "SqlBackup/Sha256.hpp"
 #include "SqlConnection.hpp"
 #include "SqlErrorDetection.hpp"
 #include "SqlMigration.hpp"
+#include "SqlSchema.hpp"
 #include "SqlTransaction.hpp"
 
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <format>
+#include <limits>
+#include <ranges>
+#include <set>
+#include <span>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 
 namespace Lightweight::SqlMigration
 {
+
+namespace
+{
+    /// Compose a single-line summary suitable for `what()`. The detailed
+    /// breakdown (title/step/sql/driver msg) lives in the structured fields;
+    /// this keeps the base `std::runtime_error::what()` short enough for
+    /// single-line terminal output while still naming the failing migration.
+    std::string FormatMigrationWhat(MigrationException::Operation op,
+                                    MigrationTimestamp timestamp,
+                                    std::string_view title,
+                                    std::size_t stepIndex,
+                                    SqlErrorInfo const& driverError)
+    {
+        auto const* const verb = op == MigrationException::Operation::Apply ? "apply" : "rollback";
+        return std::format(
+            "Failed to {} migration {} '{}' at step {}: {}", verb, timestamp.value, title, stepIndex, driverError.message);
+    }
+} // namespace
+
+MigrationException::MigrationException(Operation operation,
+                                       MigrationTimestamp timestamp,
+                                       std::string title,
+                                       std::size_t stepIndex,
+                                       std::string failedSql,
+                                       SqlErrorInfo driverError):
+    // Reconstruct the SqlException base with a message that names the migration
+    // — so every existing `catch (SqlException const&)` path still sees useful
+    // context in `info().message` and `what()` without having to know about
+    // the new type. Keep the native driver fields intact.
+    SqlException(SqlErrorInfo { .nativeErrorCode = driverError.nativeErrorCode,
+                                .sqlState = driverError.sqlState,
+                                .message = FormatMigrationWhat(operation, timestamp, title, stepIndex, driverError) }),
+    _operation { operation },
+    _timestamp { timestamp },
+    _title { std::move(title) },
+    _stepIndex { stepIndex },
+    _failedSql { std::move(failedSql) },
+    _driverMessage { std::move(driverError.message) }
+{
+}
 
 void MigrationManager::AddMigration(MigrationBase const* migration)
 {
@@ -85,6 +131,41 @@ DataMapper& MigrationManager::GetDataMapper()
 void MigrationManager::CloseDataMapper()
 {
     _dataMapper = nullptr;
+}
+
+void MigrationManager::SetCompatPolicy(CompatPolicy policy)
+{
+    _compatPolicy = std::move(policy);
+}
+
+MigrationManager::CompatPolicy const& MigrationManager::GetCompatPolicy() const noexcept
+{
+    return _compatPolicy;
+}
+
+void MigrationManager::ComposeCompatPolicy(CompatPolicy policy)
+{
+    if (!policy)
+        return;
+    if (!_compatPolicy)
+    {
+        _compatPolicy = std::move(policy);
+        return;
+    }
+    // Compose: both policies are consulted and their flag sets unioned per migration.
+    _compatPolicy = [lhs = std::move(_compatPolicy), rhs = std::move(policy)](MigrationBase const& m) {
+        auto flags = lhs(m);
+        auto extra = rhs(m);
+        flags.insert(extra.begin(), extra.end());
+        return flags;
+    };
+}
+
+std::set<std::string> MigrationManager::CompatFlagsFor(MigrationBase const& migration) const
+{
+    if (!_compatPolicy)
+        return {};
+    return _compatPolicy(migration);
 }
 
 void MigrationManager::CreateMigrationHistory()
@@ -408,6 +489,7 @@ namespace
             DropColumnIfExists,
             AddForeignKey,
             DropForeignKey,
+            AddCompositeForeignKey,
         };
 
         Kind kind;
@@ -416,7 +498,87 @@ namespace
         // Only populated for Kind::AddForeignKey. Empty otherwise.
         std::string referencedTable;
         std::string referencedColumn;
+        // Only populated for Kind::AddCompositeForeignKey. Empty otherwise.
+        std::vector<std::string> columns;
+        std::vector<std::string> referencedColumns;
     };
+
+    [[nodiscard]] std::optional<SqliteGuard::Kind> ParseSqliteGuardKind(std::string_view kindStr)
+    {
+        if (kindStr == "ADD_COLUMN_IF_NOT_EXISTS")
+            return SqliteGuard::Kind::AddColumnIfNotExists;
+        if (kindStr == "DROP_COLUMN_IF_EXISTS")
+            return SqliteGuard::Kind::DropColumnIfExists;
+        if (kindStr == "ADD_FOREIGN_KEY")
+            return SqliteGuard::Kind::AddForeignKey;
+        if (kindStr == "DROP_FOREIGN_KEY")
+            return SqliteGuard::Kind::DropForeignKey;
+        if (kindStr == "ADD_COMPOSITE_FOREIGN_KEY")
+            return SqliteGuard::Kind::AddCompositeForeignKey;
+        return std::nullopt;
+    }
+
+    [[nodiscard]] std::optional<std::vector<std::string_view>> ExtractQuotedStrings(std::string_view directive,
+                                                                                    size_t searchPos,
+                                                                                    size_t expectedStrings)
+    {
+        std::vector<std::string_view> quoted;
+        quoted.reserve(expectedStrings);
+        while (quoted.size() < expectedStrings)
+        {
+            auto const openQuote = directive.find('"', searchPos);
+            if (openQuote == std::string_view::npos)
+                return std::nullopt;
+            auto const closeQuote = directive.find('"', openQuote + 1);
+            if (closeQuote == std::string_view::npos)
+                return std::nullopt;
+            quoted.push_back(directive.substr(openQuote + 1, closeQuote - openQuote - 1));
+            searchPos = closeQuote + 1;
+        }
+        return quoted;
+    }
+
+    [[nodiscard]] std::vector<std::string> SplitCommaList(std::string_view list)
+    {
+        std::vector<std::string> result;
+        size_t begin = 0;
+        while (begin <= list.size())
+        {
+            auto const comma = list.find(',', begin);
+            auto const end = comma == std::string_view::npos ? list.size() : comma;
+            result.emplace_back(list.substr(begin, end - begin));
+            if (comma == std::string_view::npos)
+                break;
+            begin = comma + 1;
+        }
+        return result;
+    }
+
+    [[nodiscard]] SqliteGuard BuildSqliteGuard(SqliteGuard::Kind kind, std::span<std::string_view const> quoted)
+    {
+        SqliteGuard guard {
+            .kind = kind,
+            .tableName = std::string { quoted[0] },
+            .columnName = std::string { quoted[1] },
+            .referencedTable = {},
+            .referencedColumn = {},
+            .columns = {},
+            .referencedColumns = {},
+        };
+        if (kind == SqliteGuard::Kind::AddForeignKey)
+        {
+            guard.referencedTable = std::string { quoted[2] };
+            guard.referencedColumn = std::string { quoted[3] };
+        }
+        else if (kind == SqliteGuard::Kind::AddCompositeForeignKey)
+        {
+            guard.columnName.clear(); // scalar field unused for composite kind
+            guard.columns = SplitCommaList(quoted[1]);
+            guard.referencedTable = std::string { quoted[2] };
+            guard.referencedColumns = SplitCommaList(quoted[3]);
+        }
+        return guard;
+    }
 
     /// Parse the leading sentinel (if any) from a SQL script.
     ///
@@ -442,55 +604,21 @@ namespace
         if (kindEnd == std::string_view::npos)
             return std::nullopt;
 
-        auto const kindStr = directive.substr(kindStart, kindEnd - kindStart);
-        auto const kind = [&]() -> std::optional<SqliteGuard::Kind> {
-            if (kindStr == "ADD_COLUMN_IF_NOT_EXISTS")
-                return SqliteGuard::Kind::AddColumnIfNotExists;
-            if (kindStr == "DROP_COLUMN_IF_EXISTS")
-                return SqliteGuard::Kind::DropColumnIfExists;
-            if (kindStr == "ADD_FOREIGN_KEY")
-                return SqliteGuard::Kind::AddForeignKey;
-            if (kindStr == "DROP_FOREIGN_KEY")
-                return SqliteGuard::Kind::DropForeignKey;
-            return std::nullopt;
-        }();
+        auto const kind = ParseSqliteGuardKind(directive.substr(kindStart, kindEnd - kindStart));
         if (!kind)
             return std::nullopt;
 
-        // Parse N quoted identifiers after the kind keyword. All existing kinds take
+        // Parse N quoted identifiers after the kind keyword. Single-column kinds take
         // exactly 2 quoted args (table, column); AddForeignKey takes 4 (adds referenced
-        // table, referenced column).
-        size_t const expectedStrings = (*kind == SqliteGuard::Kind::AddForeignKey) ? 4 : 2;
-        std::vector<std::string_view> quoted;
-        quoted.reserve(expectedStrings);
+        // table, referenced column); AddCompositeForeignKey also takes 4 but the 2nd
+        // and 4th are comma-joined column lists split by the consumer.
+        size_t const expectedStrings =
+            (*kind == SqliteGuard::Kind::AddForeignKey || *kind == SqliteGuard::Kind::AddCompositeForeignKey) ? 4 : 2;
+        auto const quoted = ExtractQuotedStrings(directive, kindEnd, expectedStrings);
+        if (!quoted)
+            return std::nullopt;
 
-        size_t searchPos = kindEnd;
-        while (quoted.size() < expectedStrings)
-        {
-            auto const openQuote = directive.find('"', searchPos);
-            if (openQuote == std::string_view::npos)
-                return std::nullopt;
-            auto const closeQuote = directive.find('"', openQuote + 1);
-            if (closeQuote == std::string_view::npos)
-                return std::nullopt;
-            quoted.push_back(directive.substr(openQuote + 1, closeQuote - openQuote - 1));
-            searchPos = closeQuote + 1;
-        }
-
-        SqliteGuard guard {
-            .kind = *kind,
-            .tableName = std::string { quoted[0] },
-            .columnName = std::string { quoted[1] },
-            .referencedTable = {},
-            .referencedColumn = {},
-        };
-        if (*kind == SqliteGuard::Kind::AddForeignKey)
-        {
-            guard.referencedTable = std::string { quoted[2] };
-            guard.referencedColumn = std::string { quoted[3] };
-        }
-
-        return std::pair { std::move(guard), newlinePos + 1 };
+        return std::pair { BuildSqliteGuard(*kind, *quoted), newlinePos + 1 };
     }
 
     /// Check whether a column exists on a SQLite table via pragma_table_info().
@@ -619,6 +747,42 @@ namespace
         });
     }
 
+    /// Rebuild a SQLite table to add a new composite foreign key constraint.
+    ///
+    /// Mirrors `SqliteRebuildAddForeignKey` but emits a multi-column FOREIGN KEY clause.
+    /// The constraint name is shared with the CREATE TABLE path
+    /// (`SqlQueryFormatter::BuildForeignKeyConstraintName`) so DROP lookups remain consistent.
+    void SqliteRebuildAddCompositeForeignKey(SqlConnection& connection, SqliteGuard const& guard)
+    {
+        auto const joinQuoted = [](std::vector<std::string> const& v) {
+            std::string out;
+            for (size_t i = 0; i < v.size(); ++i)
+            {
+                if (i != 0)
+                    out += ", ";
+                out += '"';
+                out += v[i];
+                out += '"';
+            }
+            return out;
+        };
+        auto const fkName = SqlQueryFormatter::BuildForeignKeyConstraintName(guard.tableName, guard.columns);
+        auto const fk = std::format(R"(CONSTRAINT "{0}" FOREIGN KEY ({1}) REFERENCES "{2}"({3}))",
+                                    fkName,
+                                    joinQuoted(guard.columns),
+                                    guard.referencedTable,
+                                    joinQuoted(guard.referencedColumns));
+
+        RebuildSqliteTable(connection, guard.tableName, [&](std::string createSql) {
+            auto const closeParen = createSql.rfind(')');
+            if (closeParen == std::string::npos)
+                throw std::runtime_error(
+                    std::format("SQLite rebuild: cannot find closing ')' in CREATE TABLE for '{}'", guard.tableName));
+            createSql.insert(closeParen, ", " + fk);
+            return createSql;
+        });
+    }
+
     /// Advance past a `(...)` group starting at the first `(` at or after `from`.
     /// Returns the index just past the matching close paren, or `std::string::npos`
     /// if the text is malformed.
@@ -731,12 +895,105 @@ namespace
             case SqliteGuard::Kind::DropForeignKey:
                 SqliteRebuildDropForeignKey(connection, guard);
                 return;
+            case SqliteGuard::Kind::AddCompositeForeignKey:
+                SqliteRebuildAddCompositeForeignKey(connection, guard);
+                return;
         }
     }
 } // namespace
 
+namespace
+{
+    /// @brief Maps the SQL-Server / ANSI-style data type names emitted by
+    /// `INFORMATION_SCHEMA.COLUMNS` (`DATA_TYPE` column) to a `ColumnWidth`. Returns
+    /// `value=0` for non-character types so the caller can skip them.
+    ///
+    /// `varchar`/`char` are byte-counted (server budget is in bytes), `nvarchar`/`nchar`
+    /// are character-counted. `INFORMATION_SCHEMA.CHARACTER_MAXIMUM_LENGTH` already
+    /// reports chars for the N-prefixed types and bytes for the others, so the value
+    /// passes through unchanged — only the unit varies.
+    [[nodiscard]] MigrationRenderContext::ColumnWidth CharacterWidthFromDataType(std::string_view dataType,
+                                                                                 std::size_t maxLength) noexcept
+    {
+        using Unit = MigrationRenderContext::WidthUnit;
+        if (dataType == "nvarchar" || dataType == "nchar")
+            return { .value = maxLength, .unit = Unit::Characters };
+        if (dataType == "varchar" || dataType == "char")
+            return { .value = maxLength, .unit = Unit::Bytes };
+        return { .value = 0, .unit = Unit::Characters };
+    }
+
+    /// @brief Builds a lazy `widthLookup` callback that resolves missing widths via
+    /// `INFORMATION_SCHEMA.COLUMNS` against the supplied connection. The callback is
+    /// safe to invoke many times — every (schema, table) is queried at most once per
+    /// run thanks to `MigrationRenderContext::lookupAttempted`.
+    ///
+    /// Errors (e.g. INFORMATION_SCHEMA missing on SQLite, table not yet created) are
+    /// swallowed: the render path already treats a missing width as "don't truncate",
+    /// which is the same behaviour we want when the lookup fails for any reason.
+    auto MakeWidthLookup(SqlConnection& connection)
+    {
+        return [&connection](MigrationRenderContext& ctx, std::string_view schema, std::string_view table) {
+            auto const sql =
+                schema.empty()
+                    ? std::format("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH "
+                                  "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{}'",
+                                  table)
+                    : std::format("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH "
+                                  "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{}' AND TABLE_NAME = '{}'",
+                                  schema,
+                                  table);
+
+            auto stmt = SqlStatement { connection };
+            try
+            {
+                auto cursor = stmt.ExecuteDirect(sql);
+                while (cursor.FetchRow())
+                {
+                    auto const columnName = cursor.GetColumn<std::string>(1);
+                    auto const dataType = cursor.GetColumn<std::string>(2);
+                    // CHARACTER_MAXIMUM_LENGTH is NULL for non-character columns —
+                    // those rows are skipped silently.
+                    auto const maxLengthOpt = cursor.GetNullableColumn<long long>(3);
+                    if (!maxLengthOpt.has_value() || *maxLengthOpt <= 0)
+                        continue;
+                    auto const width = CharacterWidthFromDataType(dataType, static_cast<std::size_t>(*maxLengthOpt));
+                    if (width.value == 0)
+                        continue;
+                    ctx.columnWidths[MigrationRenderContext::ColumnKey {
+                        .schema = std::string(schema), .table = std::string(table), .column = columnName }] = width;
+                }
+            }
+            catch (SqlException const&) // NOLINT(bugprone-empty-catch) — see function comment
+            {
+                // Suppressed by design — see function-level comment.
+            }
+        };
+    }
+} // namespace
+
+MigrationRenderContext MigrationManager::MakeRenderContext()
+{
+    return MigrationRenderContext {};
+}
+
 void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
 {
+    auto ctx = MakeRenderContext();
+    ctx.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
+    ApplySingleMigration(migration, ctx);
+}
+
+void MigrationManager::ApplySingleMigration(MigrationBase const& migration, MigrationRenderContext& context)
+{
+    // Re-derive compat knobs for this specific migration. The column-width cache in
+    // `context` persists across migrations (on purpose — CREATE TABLE in migration N
+    // populates widths an INSERT in migration N+k consults); the per-migration knobs
+    // do not.
+    auto const flags = CompatFlagsFor(migration);
+    context.lupTruncate = flags.contains(std::string(CompatFlagLupTruncateName));
+    context.activeMigrationTimestamp = migration.GetTimestamp().value;
+    context.activeMigrationTitle = std::string { migration.GetTitle() };
     // Check declared dependencies: every dependency must already be applied.
     if (auto const deps = migration.GetDependencies(); !deps.empty())
     {
@@ -769,7 +1026,7 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
 
     for (SqlMigrationPlanElement const& step: plan.steps)
     {
-        auto const sqlScripts = ToSql(dm.Connection().QueryFormatter(), step);
+        auto const sqlScripts = ToSql(dm.Connection().QueryFormatter(), step, context);
         for (auto const& sqlScript: sqlScripts)
         {
             try
@@ -778,15 +1035,12 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
             }
             catch (SqlException const& ex)
             {
-                throw SqlException(
-                    SqlErrorInfo { .nativeErrorCode = ex.info().nativeErrorCode,
-                                   .sqlState = ex.info().sqlState,
-                                   .message = std::format("Migration '{}' (timestamp {}) failed at step {}: {}\nSQL: {}",
-                                                          migration.GetTitle(),
-                                                          migration.GetTimestamp().value,
-                                                          stepIndex,
-                                                          ex.info().message,
-                                                          sqlScript) });
+                throw MigrationException(MigrationException::Operation::Apply,
+                                         migration.GetTimestamp(),
+                                         std::string { migration.GetTitle() },
+                                         stepIndex,
+                                         sqlScript,
+                                         ex.info());
             }
         }
         ++stepIndex;
@@ -837,15 +1091,12 @@ void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
             }
             catch (SqlException const& ex)
             {
-                throw SqlException(SqlErrorInfo {
-                    .nativeErrorCode = ex.info().nativeErrorCode,
-                    .sqlState = ex.info().sqlState,
-                    .message = std::format("Migration rollback '{}' (timestamp {}) failed at step {}: {}\nSQL: {}",
-                                           migration.GetTitle(),
-                                           migration.GetTimestamp().value,
-                                           stepIndex,
-                                           ex.info().message,
-                                           sqlScript) });
+                throw MigrationException(MigrationException::Operation::Revert,
+                                         migration.GetTimestamp(),
+                                         std::string { migration.GetTitle() },
+                                         stepIndex,
+                                         sqlScript,
+                                         ex.info());
             }
         }
         ++stepIndex;
@@ -855,10 +1106,65 @@ void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
     transaction.Commit();
 }
 
+namespace
+{
+    /// Returns those of `pending` whose timestamp is `<= targetInclusive`, preserving the
+    /// caller's order. If any kept migration depends on an excluded (`> targetInclusive`)
+    /// pending migration that is also not in `applied`, throws — applying the kept set
+    /// would violate the dependency contract, and `ValidateDependencies` already passed
+    /// against the unfiltered set so we have to surface this here.
+    std::list<MigrationBase const*> FilterPendingUpTo(std::list<MigrationBase const*> const& pending,
+                                                      MigrationTimestamp targetInclusive,
+                                                      std::vector<MigrationTimestamp> const& applied)
+    {
+        std::unordered_set<uint64_t> appliedSet;
+        appliedSet.reserve(applied.size());
+        for (auto const& a: applied)
+            appliedSet.insert(a.value);
+
+        std::unordered_set<uint64_t> includedSet;
+        includedSet.reserve(pending.size());
+        for (auto const* m: pending)
+            if (m->GetTimestamp().value <= targetInclusive.value)
+                includedSet.insert(m->GetTimestamp().value);
+
+        for (auto const* m: pending)
+        {
+            if (m->GetTimestamp().value > targetInclusive.value)
+                continue;
+            for (auto const& dep: m->GetDependencies())
+            {
+                if (appliedSet.contains(dep.value) || includedSet.contains(dep.value))
+                    continue;
+                throw std::runtime_error(
+                    std::format("Migration {} (\"{}\") depends on migration {}, which is past the requested "
+                                "target {}. Migrating to this point would violate dependency ordering.",
+                                m->GetTimestamp().value,
+                                m->GetTitle(),
+                                dep.value,
+                                targetInclusive.value));
+            }
+        }
+
+        std::list<MigrationBase const*> result;
+        for (auto const* m: pending)
+            if (m->GetTimestamp().value <= targetInclusive.value)
+                result.push_back(m);
+        return result;
+    }
+} // namespace
+
 size_t MigrationManager::ApplyPendingMigrations(ExecuteCallback const& feedbackCallback)
 {
     ValidateDependencies();
     auto const pendingMigrations = GetPending();
+
+    // Shared render context so column-width state accumulates across the whole run —
+    // a CREATE TABLE in migration N populates widths an INSERT in migration N+k will
+    // consult when compat flags are active. The width-lookup fallback covers the case
+    // where the destination table was already present from a previous run.
+    auto context = MakeRenderContext();
+    context.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
 
 #if !defined(__cpp_lib_ranges_enumerate)
     int index { -1 };
@@ -871,7 +1177,33 @@ size_t MigrationManager::ApplyPendingMigrations(ExecuteCallback const& feedbackC
 #endif
         if (feedbackCallback)
             feedbackCallback(*migration, static_cast<size_t>(index), _migrations.size());
-        ApplySingleMigration(*migration);
+        ApplySingleMigration(*migration, context);
+    }
+
+    return pendingMigrations.size();
+}
+
+size_t MigrationManager::ApplyPendingMigrationsUpTo(MigrationTimestamp targetInclusive,
+                                                    ExecuteCallback const& feedbackCallback)
+{
+    ValidateDependencies();
+    auto const pendingMigrations = FilterPendingUpTo(GetPending(), targetInclusive, GetAppliedMigrationIds());
+
+    auto context = MakeRenderContext();
+    context.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
+
+#if !defined(__cpp_lib_ranges_enumerate)
+    int index { -1 };
+    for (auto& migration: pendingMigrations)
+    {
+        ++index;
+#else
+    for (auto&& [index, migration]: pendingMigrations | std::views::enumerate)
+    {
+#endif
+        if (feedbackCallback)
+            feedbackCallback(*migration, static_cast<size_t>(index), pendingMigrations.size());
+        ApplySingleMigration(*migration, context);
     }
 
     return pendingMigrations.size();
@@ -884,18 +1216,42 @@ SqlTransaction MigrationManager::Transaction()
 
 std::vector<std::string> MigrationManager::PreviewMigration(MigrationBase const& migration) const
 {
+    auto ctx = MakeRenderContext();
+    ctx.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
+    return PreviewMigrationWithContext(migration, ctx);
+}
+
+std::vector<std::string> MigrationManager::PreviewMigrationWithContext(MigrationBase const& migration,
+                                                                       MigrationRenderContext& context) const
+{
+    auto const flags = CompatFlagsFor(migration);
+    context.lupTruncate = flags.contains(std::string(CompatFlagLupTruncateName));
+    context.activeMigrationTimestamp = migration.GetTimestamp().value;
+    context.activeMigrationTitle = std::string { migration.GetTitle() };
+
     auto& dm = GetDataMapper();
     SqlMigrationQueryBuilder migrationBuilder = dm.Connection().Migration();
     migration.Up(migrationBuilder);
 
     SqlMigrationPlan const plan = std::move(migrationBuilder).GetPlan();
-    return plan.ToSql();
+    std::vector<std::string> out;
+    for (auto const& step: plan.steps)
+    {
+        auto sql = ToSql(plan.formatter, step, context);
+        out.insert(out.end(), sql.begin(), sql.end());
+    }
+    return out;
 }
 
 std::vector<std::string> MigrationManager::PreviewPendingMigrations(ExecuteCallback const& feedbackCallback) const
 {
     auto const pendingMigrations = GetPending();
     std::vector<std::string> allStatements;
+
+    // See `ApplyPendingMigrations` — shared context so earlier CREATE TABLE widths are
+    // visible to later INSERT/UPDATE preview rendering.
+    auto context = MakeRenderContext();
+    context.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
 
 #if !defined(__cpp_lib_ranges_enumerate)
     int index { -1 };
@@ -909,7 +1265,35 @@ std::vector<std::string> MigrationManager::PreviewPendingMigrations(ExecuteCallb
         if (feedbackCallback)
             feedbackCallback(*migration, static_cast<size_t>(index), pendingMigrations.size());
 
-        auto statements = PreviewMigration(*migration);
+        auto statements = PreviewMigrationWithContext(*migration, context);
+        allStatements.insert(allStatements.end(), statements.begin(), statements.end());
+    }
+
+    return allStatements;
+}
+
+std::vector<std::string> MigrationManager::PreviewPendingMigrationsUpTo(MigrationTimestamp targetInclusive,
+                                                                        ExecuteCallback const& feedbackCallback) const
+{
+    auto const pendingMigrations = FilterPendingUpTo(GetPending(), targetInclusive, GetAppliedMigrationIds());
+    std::vector<std::string> allStatements;
+
+    auto context = MakeRenderContext();
+    context.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
+
+#if !defined(__cpp_lib_ranges_enumerate)
+    int index { -1 };
+    for (auto const* migration: pendingMigrations)
+    {
+        ++index;
+#else
+    for (auto&& [index, migration]: pendingMigrations | std::views::enumerate)
+    {
+#endif
+        if (feedbackCallback)
+            feedbackCallback(*migration, static_cast<size_t>(index), pendingMigrations.size());
+
+        auto statements = PreviewMigrationWithContext(*migration, context);
         allStatements.insert(allStatements.end(), statements.begin(), statements.end());
     }
 
@@ -932,6 +1316,48 @@ std::string MigrationBase::ComputeChecksum(SqlQueryFormatter const& formatter) c
     }
 
     return SqlBackup::Sha256::Hash(combined);
+}
+
+MigrationManager::RewriteChecksumsResult MigrationManager::RewriteChecksums(bool dryRun)
+{
+    RewriteChecksumsResult result;
+    result.wasDryRun = dryRun;
+
+    auto& dm = GetDataMapper();
+    auto records = dm.Query<SchemaMigration>().OrderBy("version", SqlResultOrdering::ASCENDING).All();
+
+    auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
+
+    for (auto& record: records)
+    {
+        auto const timestamp = MigrationTimestamp { record.version.Value() };
+        auto const* migration = GetMigration(timestamp);
+        if (!migration)
+        {
+            result.unregisteredTimestamps.push_back(timestamp);
+            continue;
+        }
+
+        auto const& storedOpt = record.checksum.Value();
+        std::string const stored = storedOpt.has_value() ? std::string(storedOpt->str()) : std::string {};
+        auto const computed = migration->ComputeChecksum(dm.Connection().QueryFormatter());
+        if (stored == computed)
+            continue;
+
+        result.entries.push_back(ChecksumRewriteEntry {
+            .timestamp = timestamp, .title = migration->GetTitle(), .oldChecksum = stored, .newChecksum = computed });
+
+        if (!dryRun)
+        {
+            record.checksum = computed;
+            dm.Update(record);
+        }
+    }
+
+    if (!dryRun)
+        transaction.Commit();
+
+    return result;
 }
 
 std::vector<ChecksumVerificationResult> MigrationManager::VerifyChecksums() const
@@ -1059,9 +1485,28 @@ RevertResult MigrationManager::RevertToMigration(MigrationTimestamp target, Exec
             RevertSingleMigration(*migration);
             result.revertedTimestamps.push_back(timestamp);
         }
+        catch (MigrationException const& ex)
+        {
+            // Preserve the same timestamp mapping callers already rely on,
+            // but pull the *structured* diagnostic fields out of the
+            // exception — so the CLI and GUI can render a breakdown rather
+            // than parsing a single formatted message.
+            result.failedAt = timestamp;
+            result.failedTitle = ex.GetMigrationTitle();
+            result.failedStepIndex = ex.GetStepIndex();
+            result.failedSql = ex.GetFailedSql();
+            result.sqlState = ex.info().sqlState;
+            result.nativeErrorCode = ex.info().nativeErrorCode;
+            // errorMessage keeps the raw driver message (no migration prefix),
+            // so CLI/GUI callers can build their own layout around it without
+            // stripping the composed summary.
+            result.errorMessage = ex.GetDriverMessage();
+            return result;
+        }
         catch (std::exception const& ex)
         {
             result.failedAt = timestamp;
+            result.failedTitle = std::string { migration->GetTitle() };
             result.errorMessage = ex.what();
             return result;
         }
@@ -1069,6 +1514,631 @@ RevertResult MigrationManager::RevertToMigration(MigrationTimestamp target, Exec
         ++current;
     }
 
+    return result;
+}
+
+namespace
+{
+    /// @brief Builds the (catalog, schema, table) tuple used as a key in the fold result.
+    SqlSchema::FullyQualifiedTableName MakeFqtn(std::string_view schema, std::string_view table)
+    {
+        return SqlSchema::FullyQualifiedTableName {
+            .catalog = {},
+            .schema = std::string(schema),
+            .table = std::string(table),
+        };
+    }
+
+    /// @brief Drops the FK whose local column matches `columnName` from `state`'s
+    /// composite-FK list. Single-column-FK declarations carried inline on a column
+    /// declaration (`SqlColumnDeclaration::foreignKey`) are NOT touched here — the
+    /// caller is responsible for clearing those when the column itself is dropped.
+    void DropFkByColumn(MigrationManager::PlanFoldingResult::TableState& state, std::string_view columnName)
+    {
+        std::erase_if(state.compositeForeignKeys, [&](SqlCompositeForeignKeyConstraint const& fk) {
+            return fk.columns.size() == 1 && fk.columns.front() == columnName;
+        });
+    }
+
+    /// @brief Removes any column declaration whose name matches `columnName` and the
+    /// FK constraints that reference it. Returns true if a column was actually removed.
+    bool RemoveColumn(MigrationManager::PlanFoldingResult::TableState& state, std::string_view columnName)
+    {
+        auto const before = state.columns.size();
+        std::erase_if(state.columns, [&](SqlColumnDeclaration const& c) { return c.name == columnName; });
+        DropFkByColumn(state, columnName);
+        return state.columns.size() != before;
+    }
+
+    /// @brief Renames a column in `state.columns`, plus any FK declaration referencing
+    /// the old name. Inline FKs on the renamed column are preserved.
+    void RenameColumnInState(MigrationManager::PlanFoldingResult::TableState& state,
+                             std::string_view oldName,
+                             std::string_view newName)
+    {
+        for (auto& c: state.columns)
+            if (c.name == oldName)
+                c.name = std::string(newName);
+        for (auto& fk: state.compositeForeignKeys)
+            for (auto& col: fk.columns)
+                if (col == oldName)
+                    col = std::string(newName);
+    }
+
+    /// @brief Re-keys a table in `tables` and `creationOrder` from `oldName` → `newName`.
+    /// Updates inbound FK references in every other table so they continue to point at
+    /// the renamed table. Indexes hosted on the renamed table are also rewritten.
+    void RenameTableInResult(MigrationManager::PlanFoldingResult& result,
+                             std::string_view schema,
+                             std::string_view oldName,
+                             std::string_view newName)
+    {
+        auto const oldKey = MakeFqtn(schema, oldName);
+        auto const newKey = MakeFqtn(schema, newName);
+        auto it = result.tables.find(oldKey);
+        if (it == result.tables.end())
+            return;
+        auto state = std::move(it->second);
+        result.tables.erase(it);
+        result.tables.emplace(newKey, std::move(state));
+
+        for (auto& entry: result.creationOrder)
+            if (entry == oldKey)
+                entry = newKey;
+
+        // Rewrite FK references in every table that points at oldName (composite FKs).
+        for (auto& [_, otherState]: result.tables)
+        {
+            for (auto& fk: otherState.compositeForeignKeys)
+                if (fk.referencedTableName == oldName)
+                    fk.referencedTableName = std::string(newName);
+            for (auto& col: otherState.columns)
+                if (col.foreignKey && col.foreignKey->tableName == oldName)
+                    col.foreignKey->tableName = std::string(newName);
+        }
+
+        // Rewrite indexes hosted on the renamed table.
+        for (auto& idx: result.indexes)
+            if (idx.schemaName == schema && idx.tableName == oldName)
+                idx.tableName = std::string(newName);
+    }
+
+    /// @brief Drops a table from the result and any side-effect references (indexes,
+    /// inbound FKs from other tables, queued data steps targeting the dropped table).
+    void DropTableFromResult(MigrationManager::PlanFoldingResult& result,
+                             std::string_view schema,
+                             std::string_view tableName)
+    {
+        auto const key = MakeFqtn(schema, tableName);
+        result.tables.erase(key);
+        std::erase(result.creationOrder, key);
+
+        std::erase_if(result.indexes,
+                      [&](SqlCreateIndexPlan const& idx) { return idx.schemaName == schema && idx.tableName == tableName; });
+
+        // Drop inbound FKs from other tables — and inline FK declarations.
+        for (auto& [_, state]: result.tables)
+        {
+            std::erase_if(state.compositeForeignKeys,
+                          [&](SqlCompositeForeignKeyConstraint const& fk) { return fk.referencedTableName == tableName; });
+            for (auto& c: state.columns)
+                if (c.foreignKey && c.foreignKey->tableName == tableName)
+                    c.foreignKey.reset();
+        }
+
+        // Drop queued data steps targeting the dropped table.
+        std::erase_if(result.dataSteps, [&](MigrationManager::PlanFoldingResult::DataStep const& step) {
+            return std::visit(
+                ::Lightweight::detail::overloaded {
+                    [&](SqlInsertDataPlan const& s) { return s.schemaName == schema && s.tableName == tableName; },
+                    [&](SqlUpdateDataPlan const& s) { return s.schemaName == schema && s.tableName == tableName; },
+                    [&](SqlDeleteDataPlan const& s) { return s.schemaName == schema && s.tableName == tableName; },
+                    [](auto const&) { return false; },
+                },
+                step.element);
+        });
+    }
+
+    /// @brief Apply one ALTER TABLE command to the fold's `TableState`.
+    void ApplyAlterCommand(MigrationManager::PlanFoldingResult::TableState& state,
+                           MigrationManager::PlanFoldingResult& result,
+                           std::string_view schema,
+                           std::string_view tableName,
+                           SqlAlterTableCommand const& cmd)
+    {
+        std::visit(::Lightweight::detail::overloaded {
+                       [&](SqlAlterTableCommands::RenameTable const& c) {
+                           RenameTableInResult(result, schema, tableName, c.newTableName);
+                       },
+                       [&](SqlAlterTableCommands::AddColumn const& c) {
+                           state.columns.push_back(SqlColumnDeclaration {
+                               .name = c.columnName,
+                               .type = c.columnType,
+                               .required = c.nullable == SqlNullable::NotNull,
+                           });
+                       },
+                       [&](SqlAlterTableCommands::AddColumnIfNotExists const& c) {
+                           auto const exists = std::ranges::any_of(
+                               state.columns, [&](SqlColumnDeclaration const& d) { return d.name == c.columnName; });
+                           if (!exists)
+                               state.columns.push_back(SqlColumnDeclaration {
+                                   .name = c.columnName,
+                                   .type = c.columnType,
+                                   .required = c.nullable == SqlNullable::NotNull,
+                               });
+                       },
+                       [&](SqlAlterTableCommands::AlterColumn const& c) {
+                           for (auto& d: state.columns)
+                           {
+                               if (d.name == c.columnName)
+                               {
+                                   d.type = c.columnType;
+                                   d.required = c.nullable == SqlNullable::NotNull;
+                               }
+                           }
+                       },
+                       [&](SqlAlterTableCommands::RenameColumn const& c) {
+                           RenameColumnInState(state, c.oldColumnName, c.newColumnName);
+                       },
+                       [&](SqlAlterTableCommands::DropColumn const& c) { (void) RemoveColumn(state, c.columnName); },
+                       [&](SqlAlterTableCommands::DropColumnIfExists const& c) { (void) RemoveColumn(state, c.columnName); },
+                       [&](SqlAlterTableCommands::AddIndex const& c) {
+                           result.indexes.push_back(SqlCreateIndexPlan {
+                               .schemaName = std::string(schema),
+                               .indexName = std::format("idx_{}_{}", tableName, c.columnName),
+                               .tableName = std::string(tableName),
+                               .columns = { std::string(c.columnName) },
+                               .unique = c.unique,
+                           });
+                       },
+                       [&](SqlAlterTableCommands::DropIndex const& c) {
+                           std::erase_if(result.indexes, [&](SqlCreateIndexPlan const& i) {
+                               return i.schemaName == schema && i.tableName == tableName && i.columns.size() == 1
+                                      && i.columns.front() == c.columnName;
+                           });
+                       },
+                       [&](SqlAlterTableCommands::DropIndexIfExists const& c) {
+                           std::erase_if(result.indexes, [&](SqlCreateIndexPlan const& i) {
+                               return i.schemaName == schema && i.tableName == tableName && i.columns.size() == 1
+                                      && i.columns.front() == c.columnName;
+                           });
+                       },
+                       [&](SqlAlterTableCommands::AddForeignKey const& c) {
+                           // Promote single-column FK to composite list — same logical
+                           // shape, simpler to fold across renames/drops.
+                           state.compositeForeignKeys.push_back(SqlCompositeForeignKeyConstraint {
+                               .columns = { c.columnName },
+                               .referencedTableName = c.referencedColumn.tableName,
+                               .referencedColumns = { c.referencedColumn.columnName },
+                           });
+                       },
+                       [&](SqlAlterTableCommands::AddCompositeForeignKey const& c) {
+                           state.compositeForeignKeys.push_back(SqlCompositeForeignKeyConstraint {
+                               .columns = c.columns,
+                               .referencedTableName = c.referencedTableName,
+                               .referencedColumns = c.referencedColumns,
+                           });
+                       },
+                       [&](SqlAlterTableCommands::DropForeignKey const& c) { DropFkByColumn(state, c.columnName); },
+                   },
+                   cmd);
+    }
+} // namespace
+
+MigrationManager::PlanFoldingResult MigrationManager::FoldRegisteredMigrations(
+    SqlQueryFormatter const& formatter, std::optional<MigrationTimestamp> upToInclusive) const
+{
+    PlanFoldingResult result;
+
+    // Walk migrations in timestamp order (already sorted by `AddMigration`).
+    for (auto const* migration: _migrations)
+    {
+        if (upToInclusive.has_value() && migration->GetTimestamp() > *upToInclusive)
+            break;
+
+        result.foldedMigrations.emplace_back(migration->GetTimestamp(), std::string(migration->GetTitle()));
+
+        SqlMigrationQueryBuilder builder { formatter };
+        migration->Up(builder);
+        SqlMigrationPlan plan = std::move(builder).GetPlan();
+
+        for (SqlMigrationPlanElement const& step: plan.steps)
+        {
+            std::visit(::Lightweight::detail::overloaded {
+                           [&](SqlCreateTablePlan const& s) {
+                               auto const key = MakeFqtn(s.schemaName, s.tableName);
+                               auto [it, inserted] = result.tables.try_emplace(key);
+                               if (inserted)
+                                   result.creationOrder.push_back(key);
+                               it->second.columns = s.columns;
+                               it->second.compositeForeignKeys = s.foreignKeys;
+                               it->second.ifNotExists = s.ifNotExists;
+                           },
+                           [&](SqlAlterTablePlan const& s) {
+                               auto const key = MakeFqtn(s.schemaName, s.tableName);
+                               auto it = result.tables.find(key);
+                               if (it == result.tables.end())
+                                   return;
+                               for (auto const& cmd: s.commands)
+                                   ApplyAlterCommand(it->second, result, s.schemaName, s.tableName, cmd);
+                           },
+                           [&](SqlDropTablePlan const& s) { DropTableFromResult(result, s.schemaName, s.tableName); },
+                           [&](SqlCreateIndexPlan const& s) { result.indexes.push_back(s); },
+                           [&](SqlInsertDataPlan const& s) {
+                               result.dataSteps.push_back(PlanFoldingResult::DataStep {
+                                   .sourceTimestamp = migration->GetTimestamp(),
+                                   .sourceTitle = std::string(migration->GetTitle()),
+                                   .element = s,
+                               });
+                           },
+                           [&](SqlUpdateDataPlan const& s) {
+                               result.dataSteps.push_back(PlanFoldingResult::DataStep {
+                                   .sourceTimestamp = migration->GetTimestamp(),
+                                   .sourceTitle = std::string(migration->GetTitle()),
+                                   .element = s,
+                               });
+                           },
+                           [&](SqlDeleteDataPlan const& s) {
+                               result.dataSteps.push_back(PlanFoldingResult::DataStep {
+                                   .sourceTimestamp = migration->GetTimestamp(),
+                                   .sourceTitle = std::string(migration->GetTitle()),
+                                   .element = s,
+                               });
+                           },
+                           [&](SqlRawSqlPlan const& s) {
+                               result.dataSteps.push_back(PlanFoldingResult::DataStep {
+                                   .sourceTimestamp = migration->GetTimestamp(),
+                                   .sourceTitle = std::string(migration->GetTitle()),
+                                   .element = s,
+                               });
+                           },
+                       },
+                       step);
+        }
+    }
+
+    // Releases that fall within the fold range.
+    auto const cutoff = upToInclusive.value_or(MigrationTimestamp { std::numeric_limits<uint64_t>::max() });
+    for (auto const& release: _releases)
+        if (release.highestTimestamp <= cutoff)
+            result.releases.push_back(release);
+
+    return result;
+}
+
+namespace
+{
+    /// @brief Returns true when `liveType` and `intendedType` form a valid Unicode-upgrade
+    /// pair: live is byte-counted (`Char` / `Varchar`), intended is char-counted (`NChar`
+    /// / `NVarchar`), and the declared `size` matches. Same-size matching is the
+    /// conservative rule — it avoids accidentally widening a column whose declared size
+    /// the migrations changed in tandem with the type.
+    bool IsUnicodeUpgradeCandidate(SqlColumnTypeDefinition const& liveType, SqlColumnTypeDefinition const& intendedType)
+    {
+        if (auto const* lc = std::get_if<SqlColumnTypeDefinitions::Char>(&liveType))
+            if (auto const* ic = std::get_if<SqlColumnTypeDefinitions::NChar>(&intendedType))
+                return lc->size == ic->size;
+        if (auto const* lv = std::get_if<SqlColumnTypeDefinitions::Varchar>(&liveType))
+            if (auto const* iv = std::get_if<SqlColumnTypeDefinitions::NVarchar>(&intendedType))
+                return lv->size == iv->size;
+        return false;
+    }
+} // namespace
+
+MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
+{
+    HardResetResult result;
+    result.wasDryRun = dryRun;
+
+    auto& dm = GetDataMapper();
+    auto const& formatter = dm.Connection().QueryFormatter();
+    auto const fold = FoldRegisteredMigrations(formatter);
+
+    // Discover live tables. SchemaMigration handling is separate.
+    auto stmt = SqlStatement { dm.Connection() };
+    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+
+    std::set<std::string> intendedNames;
+    for (auto const& key: fold.creationOrder)
+        intendedNames.insert(key.table);
+
+    std::set<std::string> liveNames;
+    for (auto const& t: liveTables)
+        liveNames.insert(t.name);
+
+    // Walk in reverse creation order so dependent tables get dropped first.
+    for (auto const& key: std::ranges::reverse_view(fold.creationOrder))
+    {
+        if (liveNames.contains(key.table))
+            result.droppedTables.push_back(key);
+        else
+            result.absentTables.push_back(key);
+    }
+
+    // Live tables not declared by any migration → preserved (user-owned).
+    // Comparison is by name only because the engine resolves an unqualified plan
+    // (`schemaName=""`) into its default schema (`dbo` on MSSQL, `public` on
+    // Postgres, none on SQLite), so the live row's schema is engine-specific while
+    // the migration plan keeps its declared schema. Matching the dropped-tables
+    // half of this same function, which already uses `liveNames.contains(key.table)`.
+    for (auto const& t: liveTables)
+    {
+        if (t.name == "schema_migrations")
+            continue;
+        if (!intendedNames.contains(t.name))
+            result.preservedTables.push_back(MakeFqtn(t.schema, t.name));
+    }
+
+    if (dryRun)
+        return result;
+
+    // Drop in batches and commit each one. A single transaction over hundreds of tables
+    // exhausts Postgres's per-transaction lock pool (each `DROP TABLE ... CASCADE` takes
+    // an AccessExclusiveLock and any locks from CASCADE-triggered drops, capped by
+    // `max_locks_per_transaction * (max_connections + max_prepared_transactions)`).
+    // 32 keeps us well under the default 64 per-transaction limit even when CASCADE
+    // pulls in dependent objects.
+    constexpr std::size_t dropBatchSize = 32;
+
+    auto dropOne = [&](SqlSchema::FullyQualifiedTableName const& key) {
+        auto const sqls = formatter.DropTable(key.schema, key.table, /*ifExists=*/true, /*cascade=*/true);
+        for (auto const& sql: sqls)
+            (void) stmt.ExecuteDirect(sql);
+    };
+
+    for (auto&& batch: result.droppedTables | std::views::chunk(dropBatchSize))
+    {
+        auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
+        std::ranges::for_each(batch, dropOne);
+        transaction.Commit();
+    }
+
+    if (liveNames.contains("schema_migrations"))
+    {
+        auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
+        auto const sqls = formatter.DropTable(std::string_view {}, std::string_view { "schema_migrations" }, true, true);
+        for (auto const& sql: sqls)
+            (void) stmt.ExecuteDirect(sql);
+        result.schemaMigrationsDropped = true;
+        transaction.Commit();
+    }
+
+    return result;
+}
+
+namespace
+{
+    /// @brief One affected table's worth of upgrade context — gathered offline before
+    /// any DDL runs so the executor below can iterate without touching the live DB.
+    struct UnicodeUpgradePending
+    {
+        SqlSchema::FullyQualifiedTableName key;
+        std::vector<MigrationManager::ColumnUpgradeEntry> columns;
+        std::vector<SqlSchema::ForeignKeyConstraint> affectedFks;
+    };
+
+    /// @brief Walks one folded table's columns against the live schema and returns
+    /// a `UnicodeUpgradePending` if any column qualifies. Returns `nullopt` when the
+    /// table is unknown to the live DB or no columns drift.
+    std::optional<UnicodeUpgradePending> ComputeUpgradeForTable(
+        SqlSchema::FullyQualifiedTableName const& folded,
+        MigrationManager::PlanFoldingResult::TableState const& foldedState,
+        SqlSchema::Table const& live)
+    {
+        std::map<std::string, SqlSchema::Column const*> liveColumns;
+        for (auto const& c: live.columns)
+            liveColumns.emplace(c.name, &c);
+
+        UnicodeUpgradePending p;
+        p.key = folded;
+
+        std::set<std::string> upgradeColumnNames;
+        for (auto const& intendedCol: foldedState.columns)
+        {
+            auto const liveIt = liveColumns.find(intendedCol.name);
+            if (liveIt == liveColumns.end())
+                continue;
+            if (!IsUnicodeUpgradeCandidate(liveIt->second->type, intendedCol.type))
+                continue;
+            p.columns.push_back(MigrationManager::ColumnUpgradeEntry {
+                .table = folded,
+                .column = intendedCol.name,
+                .liveType = liveIt->second->type,
+                .intendedType = intendedCol.type,
+                .nullable = liveIt->second->isNullable,
+            });
+            upgradeColumnNames.insert(intendedCol.name);
+        }
+
+        if (p.columns.empty())
+            return std::nullopt;
+
+        auto const fkTouchesUpgradeCol = [&](std::vector<std::string> const& cols) {
+            return std::ranges::any_of(cols, [&](std::string const& c) { return upgradeColumnNames.contains(c); });
+        };
+        for (auto const& fk: live.foreignKeys)
+            if (fkTouchesUpgradeCol(fk.foreignKey.columns))
+                p.affectedFks.push_back(fk);
+        for (auto const& fk: live.externalForeignKeys)
+            if (fkTouchesUpgradeCol(fk.primaryKey.columns))
+                p.affectedFks.push_back(fk);
+
+        return p;
+    }
+
+    /// @brief Rewrites every flagged column's type token inside one SQLite-stored
+    /// `CREATE TABLE` body. Single-pass: types we cannot locate are left at their old
+    /// declaration — the next migration touching that column will surface the drift.
+    ///
+    /// Type tokens may carry a parenthesised size (e.g. `VARCHAR(80)`); the scanner
+    /// tracks paren nesting so the column-list close paren after the size is not
+    /// mistaken for the end of the type token.
+    std::string RewriteSqliteCreateTableTypes(std::string createSql,
+                                              std::map<std::string, std::string> const& newTypeByColumn)
+    {
+        for (auto const& [col, newType]: newTypeByColumn)
+        {
+            auto const needle = std::format(R"("{}" )", col);
+            auto const pos = createSql.find(needle);
+            if (pos == std::string::npos)
+                continue;
+            auto const start = pos + needle.size();
+            auto end = start;
+            int parenDepth = 0;
+            while (end < createSql.size())
+            {
+                char const c = createSql[end];
+                if (parenDepth == 0 && (c == ' ' || c == ',' || c == ')'))
+                    break;
+                if (c == '(')
+                    ++parenDepth;
+                else if (c == ')')
+                    --parenDepth;
+                ++end;
+            }
+            createSql.replace(start, end - start, newType);
+        }
+        return createSql;
+    }
+
+    /// @brief Apply the SQLite-specific upgrade path. Each affected table gets a
+    /// `RebuildSqliteTable` round-trip with a transformer that rewrites the stored
+    /// `CREATE TABLE` body in-place. SQLite's lack of column-type ALTER means a full
+    /// rebuild is the canonical recipe — see `RebuildSqliteTable` for the rationale.
+    void ExecuteSqliteUpgrade(SqlConnection& connection,
+                              SqlQueryFormatter const& formatter,
+                              std::vector<UnicodeUpgradePending> const& pending)
+    {
+        for (auto const& p: pending)
+        {
+            std::map<std::string, std::string> newTypeByColumn;
+            for (auto const& c: p.columns)
+                newTypeByColumn.emplace(c.column, formatter.ColumnType(c.intendedType));
+
+            RebuildSqliteTable(connection, p.key.table, [&](std::string createSql) {
+                return RewriteSqliteCreateTableTypes(std::move(createSql), newTypeByColumn);
+            });
+        }
+    }
+
+    /// @brief Build the FK-drop commands for one affected table.
+    [[nodiscard]] std::vector<SqlAlterTableCommand> BuildDropFkCommands(UnicodeUpgradePending const& p)
+    {
+        std::vector<SqlAlterTableCommand> dropCommands;
+        dropCommands.reserve(p.affectedFks.size());
+        for (auto const& fk: p.affectedFks)
+            if (fk.foreignKey.columns.size() == 1)
+                dropCommands.emplace_back(
+                    SqlAlterTableCommands::DropForeignKey { .columnName = fk.foreignKey.columns.front() });
+        return dropCommands;
+    }
+
+    /// @brief Build the ALTER-column commands for one affected table.
+    [[nodiscard]] std::vector<SqlAlterTableCommand> BuildAlterColumnCommands(UnicodeUpgradePending const& p)
+    {
+        std::vector<SqlAlterTableCommand> alterCommands;
+        alterCommands.reserve(p.columns.size());
+        for (auto const& c: p.columns)
+            alterCommands.emplace_back(SqlAlterTableCommands::AlterColumn {
+                .columnName = c.column,
+                .columnType = c.intendedType,
+                .nullable = c.nullable ? SqlNullable::Null : SqlNullable::NotNull,
+            });
+        return alterCommands;
+    }
+
+    /// @brief Build the FK-re-add commands for one affected table.
+    [[nodiscard]] std::vector<SqlAlterTableCommand> BuildAddFkCommands(UnicodeUpgradePending const& p)
+    {
+        std::vector<SqlAlterTableCommand> addCommands;
+        addCommands.reserve(p.affectedFks.size());
+        for (auto const& fk: p.affectedFks)
+        {
+            if (fk.foreignKey.columns.size() != 1)
+                continue;
+            addCommands.emplace_back(SqlAlterTableCommands::AddForeignKey {
+                .columnName = fk.foreignKey.columns.front(),
+                .referencedColumn =
+                    SqlForeignKeyReferenceDefinition {
+                        .tableName = fk.primaryKey.table.table,
+                        .columnName = fk.primaryKey.columns.empty() ? std::string {} : fk.primaryKey.columns.front(),
+                    },
+            });
+        }
+        return addCommands;
+    }
+
+    /// @brief Apply the cross-backend upgrade path (everything that isn't SQLite).
+    /// Per-table sequence: drop affected FKs → alter columns → re-add FKs. Each
+    /// step renders via the formatter so the in-tree `AlterTable` codegen is the
+    /// single source of truth for the dialect's ALTER syntax.
+    void ExecuteGenericUpgrade(SqlStatement& stmt,
+                               SqlQueryFormatter const& formatter,
+                               std::vector<UnicodeUpgradePending> const& pending)
+    {
+        auto const execAlter =
+            [&](std::string_view schema, std::string_view table, std::vector<SqlAlterTableCommand> const& commands) {
+                if (commands.empty())
+                    return;
+                auto const sqls = formatter.AlterTable(schema, table, commands);
+                for (auto const& sql: sqls)
+                    (void) stmt.ExecuteDirect(sql);
+            };
+
+        for (auto const& p: pending)
+        {
+            execAlter(p.key.schema, p.key.table, BuildDropFkCommands(p));
+            execAlter(p.key.schema, p.key.table, BuildAlterColumnCommands(p));
+            execAlter(p.key.schema, p.key.table, BuildAddFkCommands(p));
+        }
+    }
+} // namespace
+
+MigrationManager::UnicodeUpgradeResult MigrationManager::UnicodeUpgradeTables(bool dryRun)
+{
+    UnicodeUpgradeResult result;
+    result.wasDryRun = dryRun;
+
+    auto& dm = GetDataMapper();
+    auto const& formatter = dm.Connection().QueryFormatter();
+    auto const fold = FoldRegisteredMigrations(formatter);
+
+    auto stmt = SqlStatement { dm.Connection() };
+    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+
+    std::map<std::string, SqlSchema::Table const*> liveByName;
+    for (auto const& t: liveTables)
+        liveByName.emplace(t.name, &t);
+
+    std::vector<UnicodeUpgradePending> pendingPerTable;
+    for (auto const& folded: fold.creationOrder)
+    {
+        auto const it = liveByName.find(folded.table);
+        if (it == liveByName.end())
+            continue;
+        auto upgrade = ComputeUpgradeForTable(folded, fold.tables.at(folded), *it->second);
+        if (!upgrade)
+            continue;
+        for (auto const& c: upgrade->columns)
+            result.columns.push_back(c);
+        for (auto const& fk: upgrade->affectedFks)
+            result.rebuiltForeignKeys.push_back(SqlCompositeForeignKeyConstraint {
+                .columns = fk.foreignKey.columns,
+                .referencedTableName = fk.primaryKey.table.table,
+                .referencedColumns = fk.primaryKey.columns,
+            });
+        pendingPerTable.push_back(std::move(*upgrade));
+    }
+
+    if (dryRun || pendingPerTable.empty())
+        return result;
+
+    auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
+    if (dm.Connection().ServerType() == SqlServerType::SQLITE)
+        ExecuteSqliteUpgrade(dm.Connection(), formatter, pendingPerTable);
+    else
+        ExecuteGenericUpgrade(stmt, formatter, pendingPerTable);
+    transaction.Commit();
     return result;
 }
 

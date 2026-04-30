@@ -63,6 +63,8 @@ set(HEADER_FILES
     SqlQuery/Select.hpp
     SqlQuery/Update.hpp
 
+    CodeGen/SplitFileWriter.hpp
+
     DataMapper/BelongsTo.hpp
     DataMapper/DataMapper.hpp
     DataMapper/Error.hpp
@@ -83,6 +85,17 @@ set(HEADER_FILES
     Zip/ZipArchive.hpp
     Zip/ZipEntry.hpp
     Zip/ZipError.hpp
+
+    Config/ProfileStore.hpp
+
+    Odbc/DataSourceEnumerator.hpp
+
+    Secrets/ISecretBackend.hpp
+    Secrets/SecretResolver.hpp
+    Secrets/backends/EnvBackend.hpp
+    Secrets/backends/FileBackend.hpp
+    Secrets/backends/StdinBackend.hpp
+
     SqlConnectInfo.hpp
     SqlConnection.hpp
     SqlError.hpp
@@ -92,11 +105,19 @@ set(HEADER_FILES
     SqlMigrationLock.hpp
     SqlOdbcWide.hpp
     SqlQueryFormatter.hpp
+    SqlDataDiff.hpp
     SqlSchema.hpp
+    SqlSchemaDiff.hpp
     SqlScopedTraceLogger.hpp
     SqlServerType.hpp
     SqlStatement.hpp
     TracyProfiler.hpp
+
+    tui/MarkdownInline.hpp
+    tui/MarkdownTable.hpp
+    tui/SgrBuilder.hpp
+    tui/Style.hpp
+    tui/Unicode.hpp
 )
 
 set(SOURCE_FILES
@@ -115,6 +136,16 @@ set(SOURCE_FILES
     SqlBackup/Restore.cpp
     SqlBackup/SqlBackup.cpp
     SqlBackup/TableFilter.cpp
+
+    Config/ProfileStore.cpp
+
+    Odbc/DataSourceEnumerator.cpp
+
+    Secrets/SecretResolver.cpp
+    Secrets/backends/EnvBackend.cpp
+    Secrets/backends/FileBackend.cpp
+    Secrets/backends/StdinBackend.cpp
+
     SqlConnectInfo.cpp
     SqlConnection.cpp
     SqlError.cpp
@@ -126,8 +157,12 @@ set(SOURCE_FILES
     SqlQuery/Migrate.cpp
     SqlQuery/MigrationPlan.cpp
     SqlQuery/Select.cpp
+
+    CodeGen/SplitFileWriter.cpp
     SqlQueryFormatter.cpp
+    SqlDataDiff.cpp
     SqlSchema.cpp
+    SqlSchemaDiff.cpp
     SqlStatement.cpp
     SqlTransaction.cpp
     Utils.cpp
@@ -171,14 +206,45 @@ target_sources(LightweightTools PRIVATE
 )
 target_link_libraries(LightweightTools PUBLIC Lightweight)
 
+# LightweightTui — vendored terminal/markdown rendering helpers (tui/).
+# Kept as a separate static library so its symbols don't need to cross the
+# Lightweight DLL ABI on Windows. libunicode stays a private detail.
+add_library(LightweightTui STATIC
+    tui/MarkdownInline.hpp
+    tui/MarkdownTable.cpp
+    tui/MarkdownTable.hpp
+    tui/SgrBuilder.cpp
+    tui/SgrBuilder.hpp
+    tui/Style.hpp
+    tui/Unicode.cpp
+    tui/Unicode.hpp
+)
+add_library(Lightweight::Tui ALIAS LightweightTui)
+target_compile_features(LightweightTui PUBLIC cxx_std_23)
+target_include_directories(LightweightTui PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+)
+if(NOT WIN32)
+    set_target_properties(LightweightTui PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
+
+include("${CMAKE_SOURCE_DIR}/cmake/FindOrFetchLibunicode.cmake")
+if(TARGET unicode::unicode)
+    target_link_libraries(LightweightTui PRIVATE unicode::unicode)
+elseif(TARGET unicode::core)
+    target_link_libraries(LightweightTui PRIVATE unicode::core)
+endif()
+
 if(CLANG_TIDY_EXE)
     set_target_properties(Lightweight PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
     set_target_properties(LightweightTools PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+    set_target_properties(LightweightTui PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
 endif()
 
 # Enable coverage instrumentation for library targets
 enable_coverage_for_target(Lightweight)
 enable_coverage_for_target(LightweightTools)
+enable_coverage_for_target(LightweightTui)
 
 target_include_directories(Lightweight PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
@@ -186,6 +252,11 @@ target_include_directories(Lightweight PUBLIC
 
 target_link_libraries(Lightweight PUBLIC reflection-cpp::reflection-cpp)
 target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>)
+
+# yaml-cpp is used only by Config/ProfileStore.cpp; linkage is PRIVATE so it
+# does not propagate to library consumers. `find_package(yaml-cpp)` runs in
+# the top-level CMakeLists.txt.
+target_link_libraries(Lightweight PRIVATE yaml-cpp::yaml-cpp)
 
 if(LIGHTWEIGHT_ENABLE_TRACY)
     target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_TRACY_ENABLED)

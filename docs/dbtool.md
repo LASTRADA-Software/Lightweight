@@ -74,6 +74,26 @@ Use `--dry-run` to preview SQL without executing:
 dbtool migrate --dry-run --connection-string "..."
 ```
 
+### migrate-to-release \<VERSION\>
+
+Apply pending migrations up to (and including) the named release. Forward-only:
+if the database is already at or past the target release, the command is a
+no-op and prints a hint pointing at `rollback-to-release`. Pair with
+`--dry-run` (`-n`) to preview the SQL without touching the database.
+
+```bash
+dbtool migrate-to-release 1.0.0
+dbtool migrate-to-release 1.0.0 --dry-run
+```
+
+The release version must match a `LIGHTWEIGHT_SQL_RELEASE(...)` declaration
+shipped by one of the loaded plugins. Use `dbtool releases` to list them.
+
+If a pending migration whose timestamp is `<= release.highestTimestamp`
+declares a dependency on a migration whose timestamp is `>` the release
+boundary (and is not already applied), `migrate-to-release` refuses to run
+rather than applying a partial state that violates the dependency contract.
+
 ### list-pending
 
 List migrations waiting to be applied:
@@ -141,6 +161,63 @@ Useful for:
 - Baseline migrations when setting up an existing database
 - Skipping migrations that were applied manually
 
+## Diff
+
+### diff
+
+Compares two databases and prints a colored, structured report of their differences.
+Default mode reports both **schema** (tables, columns, types, primary keys, foreign
+keys, indexes) and **data** (per-row diffs paired by primary key); `--schema-only`
+suppresses the data phase.
+
+```
+dbtool diff <SOURCE-A> <SOURCE-B> [--schema-only] [--no-color] [--max-rows N]
+```
+
+Each `<SOURCE>` is either:
+
+- a **profile name** from the dbtool config file (resolved like `--profile`), or
+- a **raw ODBC connection string** starting with `DRIVER=...` (case-insensitive).
+
+Live progress lines (current table, rows scanned, smoothed-rate ETA) are emitted to
+stderr while the diff runs; the final report is printed to stdout once progress
+completes. `--quiet` and `--progress logline|ascii|unicode` apply as elsewhere.
+
+`diff` is fully **read-only** — only `SELECT` queries are issued against either side.
+
+Exit codes:
+
+- `0` — databases are equivalent under the chosen mode
+- `1` — differences were found
+- `2` — error (connection failure, profile not found, etc.)
+
+#### Examples
+
+```bash
+# Compare two profiles defined in your config:
+dbtool diff prod staging
+
+# Compare a profile against an SQLite snapshot:
+dbtool diff prod "DRIVER=SQLite3;Database=/tmp/snapshot.db"
+
+# Schema-only check (fast — useful for CI gating):
+dbtool diff prod staging --schema-only
+
+# Cap data scan to the first 10k rows per table:
+dbtool diff prod staging --max-rows 10000
+```
+
+#### Caveats
+
+- Tables without a primary key are reported under the schema diff but **skipped**
+  for the data diff (with a `(skipped: no primary key)` note). PK pairing is
+  required to distinguish a *changed* row from an *added + removed* pair.
+- Column values are compared as their ODBC string representation. This may produce
+  false positives for floating-point or binary columns whose textual encoding
+  differs across drivers; rerun with `--schema-only` to confirm if the column's
+  type matches.
+- `--max-rows` truncation is per-side; the report flags `truncated` when hit.
+
 ## Backup & Restore
 
 ### backup
@@ -205,6 +282,9 @@ dbtool restore --input backup.zip --filter-tables=Users,Products
 | `--quiet`, `-q` | Suppress progress output | |
 | `--dry-run`, `-n` | Preview without executing | |
 | `--no-lock` | Skip migration locking | |
+| `--schema-only` | For backup/restore: skip data. For `diff`: skip the data diff. | |
+| `--no-color` | Disable ANSI colors in `diff` output (auto-disabled when not at a tty) | |
+| `--max-rows <N>` | Cap rows scanned per table for `diff` data mode | `0` (unlimited) |
 | `--max-retries <N>` | Maximum retry attempts for transient errors | `3` |
 | `--help` | Show help message | |
 

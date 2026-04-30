@@ -4,12 +4,21 @@
 
 #include "Api.hpp"
 #include "DataMapper/DataMapper.hpp"
+#include "SqlError.hpp"
 #include "SqlQuery/Migrate.hpp"
+#include "SqlQuery/MigrationPlan.hpp"
+#include "SqlSchema.hpp"
 #include "SqlTransaction.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <list>
+#include <map>
 #include <optional>
+#include <set>
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace Lightweight
@@ -44,6 +53,81 @@ namespace SqlMigration
         constexpr std::weak_ordering operator<=>(MigrationTimestamp const& other) const noexcept = default;
     };
 
+    /// Exception thrown when applying or reverting a single migration fails.
+    ///
+    /// Carries structured diagnostic context so callers (CLI, GUI) can render
+    /// the *which migration*, *which step*, *which SQL statement* and the
+    /// underlying driver error as separate fields instead of parsing one
+    /// opaque message string.
+    ///
+    /// @ingroup SqlMigration
+    class LIGHTWEIGHT_API MigrationException: public SqlException
+    {
+      public:
+        /// Whether the failure happened while applying (Up) or reverting (Down).
+        enum class Operation : std::uint8_t
+        {
+            Apply,
+            Revert,
+        };
+
+        /// Constructs a migration exception that wraps a driver error with
+        /// the migration identity and the exact SQL statement that failed.
+        ///
+        /// @param operation Whether the failure happened during apply or revert.
+        /// @param timestamp The migration that failed.
+        /// @param title Human-readable migration title.
+        /// @param stepIndex Zero-based step index inside the migration plan.
+        /// @param failedSql The SQL statement that produced the driver error.
+        /// @param driverError The ODBC-level error info as received from the driver.
+        MigrationException(Operation operation,
+                           MigrationTimestamp timestamp,
+                           std::string title,
+                           std::size_t stepIndex,
+                           std::string failedSql,
+                           SqlErrorInfo driverError);
+
+        /// Whether the failure occurred while applying or reverting.
+        [[nodiscard]] Operation GetOperation() const noexcept
+        {
+            return _operation;
+        }
+        /// Timestamp of the failing migration.
+        [[nodiscard]] MigrationTimestamp GetMigrationTimestamp() const noexcept
+        {
+            return _timestamp;
+        }
+        /// Human-readable title of the failing migration.
+        [[nodiscard]] std::string const& GetMigrationTitle() const noexcept
+        {
+            return _title;
+        }
+        /// Zero-based step index inside the plan of the failing migration.
+        [[nodiscard]] std::size_t GetStepIndex() const noexcept
+        {
+            return _stepIndex;
+        }
+        /// The exact SQL statement that the driver rejected.
+        [[nodiscard]] std::string const& GetFailedSql() const noexcept
+        {
+            return _failedSql;
+        }
+        /// Raw driver error message, without the migration context prefix that
+        /// `what()` and `info().message` decorate it with.
+        [[nodiscard]] std::string const& GetDriverMessage() const noexcept
+        {
+            return _driverMessage;
+        }
+
+      private:
+        Operation _operation;
+        MigrationTimestamp _timestamp;
+        std::string _title;
+        std::size_t _stepIndex;
+        std::string _failedSql;
+        std::string _driverMessage;
+    };
+
     /// Result of verifying a migration's checksum.
     ///
     /// @ingroup SqlMigration
@@ -63,7 +147,27 @@ namespace SqlMigration
     {
         std::vector<MigrationTimestamp> revertedTimestamps; ///< Successfully reverted migrations
         std::optional<MigrationTimestamp> failedAt;         ///< Migration that failed, if any
-        std::string errorMessage;                           ///< Error message if failed
+        std::string errorMessage;                           ///< Short error message if failed (driver message only)
+
+        /// Title of the migration that failed (if any). Empty when no failure or
+        /// when the failure happened before the migration could be located.
+        std::string failedTitle;
+
+        /// Zero-based step index inside the failed migration's plan. Meaningful
+        /// only when `failedAt` is set and the failure came from a driver error
+        /// (not from e.g. a missing registered migration).
+        std::size_t failedStepIndex {};
+
+        /// The exact SQL statement that failed, if available. Empty when the
+        /// failure happened outside of SQL execution (e.g. missing Down()
+        /// implementation, unregistered migration).
+        std::string failedSql;
+
+        /// SQLSTATE diagnostic code from the driver, if available.
+        std::string sqlState;
+
+        /// Native driver error code, if available.
+        SQLINTEGER nativeErrorCode {};
     };
 
     /// Status summary of migrations.
@@ -151,6 +255,12 @@ namespace SqlMigration
         /// @param migration Pointer to the migration to apply.
         LIGHTWEIGHT_API void ApplySingleMigration(MigrationBase const& migration);
 
+        /// @brief Variant of `ApplySingleMigration` that threads a caller-owned render
+        /// context through to `ToSql`. Use this from loops over multiple migrations so
+        /// the column-width cache (and other per-run compat state) accumulates across
+        /// the sequence.
+        LIGHTWEIGHT_API void ApplySingleMigration(MigrationBase const& migration, MigrationRenderContext& context);
+
         /// Revert a single migration from a migration object.
         ///
         /// @param migration Pointer to the migration to revert.
@@ -161,6 +271,25 @@ namespace SqlMigration
         /// @param feedbackCallback Callback to be called for each migration.
         /// @return Number of applied migrations.
         LIGHTWEIGHT_API size_t ApplyPendingMigrations(ExecuteCallback const& feedbackCallback = {});
+
+        /// Apply pending migrations whose timestamp is <= `targetInclusive`.
+        ///
+        /// Honors dependency-respecting topological order, just like
+        /// `ApplyPendingMigrations`, and threads a single render context across
+        /// the run so column-width state from earlier CREATE TABLEs is visible
+        /// to later compat-aware INSERT/UPDATE rendering.
+        ///
+        /// If a pending migration with `ts <= target` declares a dependency on
+        /// a migration whose timestamp is `> target` (i.e. excluded by the
+        /// bound) and is not already applied, this throws — partial states
+        /// that violate dependencies are refused up front.
+        ///
+        /// @param targetInclusive Highest timestamp to apply (inclusive).
+        /// @param feedbackCallback Callback to be called for each migration.
+        /// @return Number of applied migrations (may be zero if already past `targetInclusive`).
+        /// @throws std::runtime_error if a dependency would cross the boundary.
+        LIGHTWEIGHT_API size_t ApplyPendingMigrationsUpTo(MigrationTimestamp targetInclusive,
+                                                          ExecuteCallback const& feedbackCallback = {});
 
         /// Create the migration history table if it does not exist.
         LIGHTWEIGHT_API void CreateMigrationHistory();
@@ -185,6 +314,34 @@ namespace SqlMigration
         /// the migration manager is destroyed.
         LIGHTWEIGHT_API void CloseDataMapper();
 
+        /// @brief Per-migration compat policy.
+        ///
+        /// Given a migration about to be applied (or previewed), returns the set of compat
+        /// flags that should be active while rendering it. Plugins that ship legacy
+        /// migrations use this to scope compat behaviour to their own timestamp range
+        /// (e.g. `LupMigrationsPlugin` enables `lup-truncate` for migrations predating
+        /// release 6.0.0). Unset means "strict for every migration".
+        using CompatPolicy = std::function<std::set<std::string>(MigrationBase const&)>;
+
+        /// @brief Installs a per-migration compat policy. Pass `{}` to clear.
+        ///
+        /// Typically called once from a plugin's static initializer. Replaces any policy
+        /// previously installed — composition is the caller's responsibility for now.
+        LIGHTWEIGHT_API void SetCompatPolicy(CompatPolicy policy);
+
+        /// @brief Returns a view of the installed policy so it can be propagated across
+        /// managers (plugin → central). Empty callable if no policy was installed.
+        [[nodiscard]] LIGHTWEIGHT_API CompatPolicy const& GetCompatPolicy() const noexcept;
+
+        /// @brief Composes an additional policy with the currently installed one. If no
+        /// policy is installed, the argument becomes the policy as-is; otherwise both
+        /// policies are consulted and their flag sets unioned per migration.
+        LIGHTWEIGHT_API void ComposeCompatPolicy(CompatPolicy policy);
+
+        /// @brief Returns the compat flags the current policy assigns to `migration`, or
+        /// an empty set if no policy is installed.
+        [[nodiscard]] LIGHTWEIGHT_API std::set<std::string> CompatFlagsFor(MigrationBase const& migration) const;
+
         /// Get a transaction for the data mapper.
         ///
         /// @return Transaction.
@@ -198,6 +355,202 @@ namespace SqlMigration
         /// @return Vector of SQL statements that would be executed.
         [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> PreviewMigration(MigrationBase const& migration) const;
 
+        /// @brief Variant of `PreviewMigration` that threads a caller-owned render
+        /// context so the column-width cache accumulates across a sequence of preview
+        /// calls. Used by `PreviewPendingMigrations` to render compat-aware dry runs.
+        [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> PreviewMigrationWithContext(
+            MigrationBase const& migration, MigrationRenderContext& context) const;
+
+        /// @brief One row in the `RewriteChecksumsResult.entries` list.
+        struct ChecksumRewriteEntry
+        {
+            MigrationTimestamp timestamp; ///< The migration whose stored checksum was rewritten.
+            std::string_view title;       ///< Title of the registered migration (or "(Unknown Migration)").
+            std::string oldChecksum;      ///< Stored checksum before the rewrite. Empty if there was none.
+            std::string newChecksum;      ///< Stored checksum after the rewrite.
+        };
+
+        /// @brief Result of a `RewriteChecksums` call.
+        struct RewriteChecksumsResult
+        {
+            std::vector<ChecksumRewriteEntry> entries; ///< One entry per rewritten or would-be-rewritten row.
+            std::vector<MigrationTimestamp>
+                unregisteredTimestamps; ///< Applied rows whose migration is no longer registered.
+            bool wasDryRun = false;     ///< True if the call ran in dry-run mode.
+        };
+
+        /// @brief Snapshot of the schema the registered migrations *intend* to produce.
+        ///
+        /// Pure plan-walk — never executes SQL, never opens a connection. Folds the
+        /// effects of every registered migration (up to an optional cut-off timestamp)
+        /// into a per-table view of "the final shape" plus a chronological list of
+        /// data steps and surviving indexes/releases. Used by:
+        ///
+        ///   - `dbtool fold` to emit a self-contained baseline (`.cpp` plugin or `.sql`)
+        ///   - `HardReset` to know which tables the migrations would have created
+        ///   - `UnicodeUpgradeTables` to know which char/varchar columns the migrations
+        ///     now declare wide
+        ///
+        /// All three are pure operations — `FoldRegisteredMigrations` itself never
+        /// executes a single statement. See `FoldRegisteredMigrations` for the API.
+        struct PlanFoldingResult
+        {
+            /// Per-table state: ordered column declarations + per-table FK list.
+            struct TableState
+            {
+                /// Ordered column declarations as they would be emitted in CREATE TABLE.
+                std::vector<SqlColumnDeclaration> columns;
+                /// Composite foreign keys declared on this table (single-column FKs are
+                /// carried inline on the corresponding `SqlColumnDeclaration::foreignKey`).
+                std::vector<SqlCompositeForeignKeyConstraint> compositeForeignKeys;
+                /// Whether the original CREATE TABLE used IF NOT EXISTS (carried through
+                /// to emitters so they can replay it verbatim).
+                bool ifNotExists = false;
+            };
+
+            /// (schema, table) → folded `TableState`. Insertion order is *not* preserved by
+            /// `std::map` — for emission order use `creationOrder` below.
+            std::map<SqlSchema::FullyQualifiedTableName, TableState> tables;
+
+            /// Tables in *creation* order (first-time-seen). Reverse for safe DROP ordering
+            /// when tearing the schema down.
+            std::vector<SqlSchema::FullyQualifiedTableName> creationOrder;
+
+            /// Indexes that survive folding (created on tables still present at end).
+            std::vector<SqlCreateIndexPlan> indexes;
+
+            /// One data step (INSERT/UPDATE/DELETE/RawSql) tagged with its source migration.
+            struct DataStep
+            {
+                /// Timestamp of the migration that contributed this data step.
+                MigrationTimestamp sourceTimestamp;
+                /// Title of the migration that contributed this data step.
+                std::string sourceTitle;
+                /// The plan element itself (INSERT, UPDATE, DELETE, or RawSql).
+                SqlMigrationPlanElement element;
+            };
+
+            /// Data steps in chronological order. **No coalescing** — the fold replays
+            /// every data step verbatim, exactly as if migrations were applied in order.
+            std::vector<DataStep> dataSteps;
+
+            /// Releases declared via `LIGHTWEIGHT_SQL_RELEASE` that fall within the fold range.
+            std::vector<MigrationRelease> releases;
+
+            /// Migrations that contributed to the fold (timestamp + title). Used by emitters
+            /// to write a header comment explaining what was collapsed.
+            std::vector<std::pair<MigrationTimestamp, std::string>> foldedMigrations;
+        };
+
+        /// @brief Pure plan-walk that folds the effect of every registered migration.
+        ///
+        /// Visits each migration's `Up()` plan in timestamp order (or up to
+        /// `upToInclusive` if provided) and accumulates the cumulative end-state into a
+        /// `PlanFoldingResult`. **Never** executes SQL or touches a database connection
+        /// — the supplied formatter is only used to build the in-memory plan elements.
+        ///
+        /// @param formatter Formatter used by the migration query builder while walking
+        ///                  each migration's `Up()`. Any standard formatter works; the
+        ///                  walk inspects plan element shapes, not rendered SQL.
+        /// @param upToInclusive If set, fold only migrations with `timestamp <= upToInclusive`.
+        ///                     If unset, fold all registered migrations.
+        ///
+        /// @return The folded snapshot. Safe to call without a `MigrationManager`-attached
+        ///         data mapper.
+        [[nodiscard]] LIGHTWEIGHT_API PlanFoldingResult FoldRegisteredMigrations(
+            SqlQueryFormatter const& formatter, std::optional<MigrationTimestamp> upToInclusive = std::nullopt) const;
+
+        /// @brief Result of a `HardReset` call.
+        struct HardResetResult
+        {
+            /// True when the populating call was a dry-run; the result describes the
+            /// would-be plan and no DDL was issued.
+            bool wasDryRun = false;
+            /// Tables the registered migrations *would* have created and were also present
+            /// in the live DB — these were dropped (or would be dropped on a real run).
+            std::vector<SqlSchema::FullyQualifiedTableName> droppedTables;
+            /// Tables registered migrations declare but that aren't in the live DB —
+            /// nothing to do for these. Reported for visibility only.
+            std::vector<SqlSchema::FullyQualifiedTableName> absentTables;
+            /// Tables in the live DB the registered migrations don't know about — left
+            /// alone (user-owned). Reported prominently so operators notice.
+            std::vector<SqlSchema::FullyQualifiedTableName> preservedTables;
+            /// Whether the `schema_migrations` table itself was dropped (always true on a
+            /// real run, false on dry-run).
+            bool schemaMigrationsDropped = false;
+        };
+
+        /// @brief Drops every table the registered migrations would create (incl.
+        /// `schema_migrations`), preserving any user-created tables.
+        ///
+        /// Folds all registered migrations to compute the migration-owned set, intersects
+        /// with the live schema (via `SqlSchema::ReadAllTables`), then drops the matching
+        /// live tables in **reverse** creation order with `cascade=true ifExists=true`. The
+        /// `schema_migrations` table is dropped explicitly because it's created outside the
+        /// registered-migrations stream.
+        ///
+        /// Tables present in the live DB but not in the migration plan are left alone and
+        /// reported under `preservedTables` so operators can spot them.
+        ///
+        /// @param dryRun When true, returns the would-be plan without writing anything.
+        [[nodiscard]] LIGHTWEIGHT_API HardResetResult HardReset(bool dryRun = false);
+
+        /// @brief One column upgrade entry in `UnicodeUpgradeResult`.
+        struct ColumnUpgradeEntry
+        {
+            /// Fully-qualified name of the table that owns the column.
+            SqlSchema::FullyQualifiedTableName table;
+            /// Name of the column being upgraded.
+            std::string column;
+            /// Live byte-counted type the column currently has.
+            SqlColumnTypeDefinition liveType;
+            /// Char-counted type the migrations now declare for this column.
+            SqlColumnTypeDefinition intendedType;
+            /// Whether the column is nullable (preserved across the type rewrite).
+            bool nullable = true;
+        };
+
+        /// @brief Result of an `UnicodeUpgradeTables` call.
+        struct UnicodeUpgradeResult
+        {
+            /// True when the populating call was a dry-run; the result describes the
+            /// would-be diff and no DDL was issued.
+            bool wasDryRun = false;
+            /// Columns whose live type drifted from the intended type and were upgraded
+            /// (or would be on a real run).
+            std::vector<ColumnUpgradeEntry> columns;
+            /// Foreign keys that had to be dropped + re-added to upgrade their
+            /// participating columns. Reported so operators see the FK churn.
+            std::vector<SqlCompositeForeignKeyConstraint> rebuiltForeignKeys;
+        };
+
+        /// @brief Rewrites legacy `VARCHAR/CHAR` columns to `NVARCHAR/NCHAR` where the
+        /// registered migrations now declare wide types.
+        ///
+        /// Compares the folded plan's intended column types against `SqlSchema::ReadAllTables`
+        /// output; an upgrade is triggered iff intended is `NVarchar`/`NChar` AND live is
+        /// `Varchar`/`Char` with the same `size`. Foreign keys that touch any upgrade column
+        /// are dropped before the alter and re-added afterwards. Cross-backend; SQLite
+        /// uses the in-tree `RebuildSqliteTable` recipe under the hood.
+        ///
+        /// @param dryRun When true, returns the would-be diff without writing anything.
+        [[nodiscard]] LIGHTWEIGHT_API UnicodeUpgradeResult UnicodeUpgradeTables(bool dryRun = false);
+
+        /// @brief Re-stamps `schema_migrations.checksum` rows that have drifted.
+        ///
+        /// Applied migrations whose stored checksum no longer matches the current
+        /// `MigrationBase::ComputeChecksum` output are updated in-place. Migrations that
+        /// match are left alone. Rows that reference a migration which is no longer
+        /// registered (e.g. removed from the codebase) are surfaced via
+        /// `RewriteChecksumsResult.unregisteredTimestamps` and *not* touched.
+        ///
+        /// This is a recovery tool used when a regen of generated migrations changes
+        /// their byte-level shape but not their logical effect — running it without
+        /// understanding *why* the checksum drifted would defeat the integrity check.
+        ///
+        /// @param dryRun When true, returns the would-be diff without writing anything.
+        [[nodiscard]] LIGHTWEIGHT_API RewriteChecksumsResult RewriteChecksums(bool dryRun = false);
+
         /// Preview SQL statements for all pending migrations without executing.
         ///
         /// This is useful for dry-run mode to see what SQL would be executed.
@@ -206,6 +559,19 @@ namespace SqlMigration
         /// @return Vector of all SQL statements that would be executed.
         [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> PreviewPendingMigrations(
             ExecuteCallback const& feedbackCallback = {}) const;
+
+        /// Preview SQL for pending migrations whose timestamp is <= `targetInclusive`.
+        ///
+        /// Bounded counterpart of `PreviewPendingMigrations`. Same dependency
+        /// rules as `ApplyPendingMigrationsUpTo`: if any included migration
+        /// depends on an excluded pending migration, this throws.
+        ///
+        /// @param targetInclusive Highest timestamp to preview (inclusive).
+        /// @param feedbackCallback Optional callback to be called for each migration.
+        /// @return Vector of all SQL statements that would be executed.
+        /// @throws std::runtime_error if a dependency would cross the boundary.
+        [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> PreviewPendingMigrationsUpTo(
+            MigrationTimestamp targetInclusive, ExecuteCallback const& feedbackCallback = {}) const;
 
         /// Verify checksums of all applied migrations.
         ///
@@ -306,9 +672,15 @@ namespace SqlMigration
         [[nodiscard]] MigrationList TopoSortPending(MigrationList pending,
                                                     std::vector<MigrationTimestamp> const& applied) const;
 
+        /// @brief Builds a fresh, policy-agnostic render context. The per-migration
+        /// compat knobs are layered on by `ApplySingleMigration` / `PreviewMigrationWithContext`
+        /// before rendering a given migration's steps.
+        [[nodiscard]] static MigrationRenderContext MakeRenderContext();
+
         MigrationList _migrations;
         std::vector<MigrationRelease> _releases;
         mutable DataMapper* _dataMapper { nullptr };
+        CompatPolicy _compatPolicy;
     };
 
 /// Requires the user to call LIGHTWEIGHT_MIGRATION_PLUGIN() in exactly one CPP file of the migration plugin.

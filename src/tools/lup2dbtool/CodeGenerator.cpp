@@ -7,6 +7,7 @@
 #include <format>
 #include <optional>
 #include <regex>
+#include <sstream>
 #include <unordered_map>
 
 namespace Lup2DbTool
@@ -93,11 +94,66 @@ namespace
         return std::string(value);
     }
 
+    /// Decide whether a SET-clause RHS captured by the parser is a literal value
+    /// (number, quoted string, NULL) or a free-form SQL expression (column ref,
+    /// arithmetic, function call). Literals go through `Set(col, value)`; everything
+    /// else needs `SetExpression(col, raw_expr)` so we don't end up emitting
+    /// `SET "X" = 'Y'` when the source said `SET X = Y`.
+    bool LooksLikeLiteralValue(std::string_view value)
+    {
+        if (value.empty())
+            return true;
+        if (ToUpper(value) == "NULL")
+            return true;
+        if (value.size() >= 2 && value.front() == '\'' && value.back() == '\'')
+            return true;
+        // Numeric literal (with optional sign).
+        size_t pos = 0;
+        if (value[0] == '+' || value[0] == '-')
+            pos = 1;
+        if (pos >= value.size())
+            return false;
+        bool seenDot = false;
+        for (; pos < value.size(); ++pos)
+        {
+            if (value[pos] == '.')
+            {
+                if (seenDot)
+                    return false;
+                seenDot = true;
+                continue;
+            }
+            if (!std::isdigit(static_cast<unsigned char>(value[pos])))
+                return false;
+        }
+        return true;
+    }
+
+    /// Canonicalize a SQL identifier (table or column name) to UPPERCASE.
+    ///
+    /// LUP source SQL is inconsistent: some CREATE TABLE statements use mixed-case
+    /// column names (e.g. `Cache_Type`) while later DML always references them in
+    /// upper case (`CACHE_TYPE`). Sybase / MSSQL collations are case-insensitive so
+    /// the mismatch is invisible there, but PostgreSQL preserves case for quoted
+    /// identifiers and SQLite stores whatever was given. Emitting every identifier
+    /// in a single canonical form (uppercase) makes the generated migrations
+    /// portable across all backends without having to parse the original case
+    /// conventions.
+    std::string Ident(std::string_view name)
+    {
+        return ToUpper(name);
+    }
+
 } // namespace
 
 CodeGenerator::CodeGenerator(CodeGeneratorConfig config):
     _config(std::move(config))
 {
+}
+
+std::string CodeGenerator::EscapeForCppStringLiteral(std::string_view str)
+{
+    return EscapeCppString(str);
 }
 
 void CodeGenerator::GenerateFileHeader(std::ostream& out) const
@@ -122,13 +178,15 @@ void CodeGenerator::GenerateFileFooter(std::ostream& out) const
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-bool CodeGenerator::GenerateMigration(ParsedMigration const& migration,
-                                      std::ostream& out,
-                                      std::vector<CodeGeneratorDiagnostic>& diagnostics) const
+void CodeGenerator::WriteReleaseMarker(ParsedMigration const& migration, std::ostream& out) const
 {
-    auto timestamp = migration.targetVersion.ToMigrationTimestamp();
-    auto title = EscapeCppString(migration.title);
+    out << "LIGHTWEIGHT_SQL_RELEASE(\"" << migration.targetVersion.ToDottedString() << "\", "
+        << migration.targetVersion.ToMigrationTimestamp() << ");\n\n";
+}
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+void CodeGenerator::WriteMigrationHeaderComment(ParsedMigration const& migration, std::ostream& out) const
+{
     out << "// " << std::string(76, '=') << "\n";
     out << "// Migration: " << migration.sourceFile.filename().string() << "\n";
     if (migration.baseVersion)
@@ -139,14 +197,17 @@ bool CodeGenerator::GenerateMigration(ParsedMigration const& migration,
     out << "// Target: LUP Version " << migration.targetVersion.major << "." << migration.targetVersion.minor << "."
         << migration.targetVersion.patch << "\n";
     out << "// " << std::string(76, '=') << "\n";
+}
 
-    out << "LIGHTWEIGHT_SQL_MIGRATION(" << timestamp << ", \"" << title << "\")\n";
-    out << "{\n";
-
-    bool success = true;
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+std::vector<std::string> CodeGenerator::GenerateStatementBlocks(ParsedMigration const& migration,
+                                                                std::vector<CodeGeneratorDiagnostic>& diagnostics) const
+{
+    std::vector<std::string> blocks;
+    blocks.reserve(migration.statements.size());
     for (auto const& stmtWithComments: migration.statements)
     {
-        // Write comments
+        std::ostringstream buf;
         for (auto const& comment: stmtWithComments.comments)
         {
             // Skip directive comments
@@ -156,16 +217,33 @@ bool CodeGenerator::GenerateMigration(ParsedMigration const& migration,
                 continue;
             if (comment.starts_with("print "))
                 continue;
-
-            out << "    // " << comment << "\n";
+            buf << "    // " << comment << "\n";
         }
-
-        if (!WriteStatementCode(stmtWithComments.statement, out, "    ", diagnostics))
-            success = false;
+        (void) WriteStatementCode(stmtWithComments.statement, buf, "    ", diagnostics);
+        blocks.push_back(std::move(buf).str());
     }
+    return blocks;
+}
+
+bool CodeGenerator::GenerateMigration(ParsedMigration const& migration,
+                                      std::ostream& out,
+                                      std::vector<CodeGeneratorDiagnostic>& diagnostics) const
+{
+    auto timestamp = migration.targetVersion.ToMigrationTimestamp();
+    auto title = EscapeCppString(migration.title);
+
+    WriteMigrationHeaderComment(migration, out);
+
+    out << "LIGHTWEIGHT_SQL_MIGRATION(" << timestamp << ", \"" << title << "\")\n";
+    out << "{\n";
+
+    auto const blocks = GenerateStatementBlocks(migration, diagnostics);
+    for (auto const& block: blocks)
+        out << block;
 
     out << "}\n\n";
-    return success;
+    WriteReleaseMarker(migration, out);
+    return true;
 }
 
 bool CodeGenerator::GenerateAllMigrations(std::vector<ParsedMigration> const& migrations,
@@ -188,7 +266,7 @@ bool CodeGenerator::GenerateAllMigrations(std::vector<ParsedMigration> const& mi
 bool CodeGenerator::WriteStatementCode(ParsedStatement const& stmt,
                                        std::ostream& out,
                                        std::string const& indent,
-                                       std::vector<CodeGeneratorDiagnostic>& diagnostics)
+                                       std::vector<CodeGeneratorDiagnostic>& diagnostics) const
 {
     return std::visit(
         [&](auto const& s) -> bool {
@@ -254,14 +332,14 @@ bool CodeGenerator::WriteStatementCode(ParsedStatement const& stmt,
 bool CodeGenerator::WriteCreateTable(CreateTableStmt const& stmt,
                                      std::ostream& out,
                                      std::string const& indent,
-                                     std::vector<CodeGeneratorDiagnostic>& diagnostics)
+                                     std::vector<CodeGeneratorDiagnostic>& diagnostics) const
 {
-    out << indent << "plan.CreateTable(\"" << stmt.tableName << "\")\n";
+    out << indent << "plan.CreateTable(\"" << Ident(stmt.tableName) << "\")\n";
 
     bool hasErrors = false;
     for (auto const& col: stmt.columns)
     {
-        auto const cppTypeResult = MapSqlType(col.type);
+        auto const cppTypeResult = MapSqlType(col.type, _config.forceUnicode, _config.varcharScale);
         if (!cppTypeResult.has_value())
         {
             diagnostics.emplace_back(CodeGeneratorDiagnostic {
@@ -276,23 +354,23 @@ bool CodeGenerator::WriteCreateTable(CreateTableStmt const& stmt,
 
         if (col.isPrimaryKey)
         {
-            out << indent << "    .PrimaryKey(\"" << col.name << "\", " << cppType << ")\n";
+            out << indent << "    .PrimaryKey(\"" << Ident(col.name) << "\", " << cppType << ")\n";
         }
         else if (col.isNullable)
         {
-            out << indent << "    .Column(\"" << col.name << "\", " << cppType << ")\n";
+            out << indent << "    .Column(\"" << Ident(col.name) << "\", " << cppType << ")\n";
         }
         else
         {
-            out << indent << "    .RequiredColumn(\"" << col.name << "\", " << cppType << ")\n";
+            out << indent << "    .RequiredColumn(\"" << Ident(col.name) << "\", " << cppType << ")\n";
         }
     }
 
     // Note: Foreign keys in CREATE TABLE are handled via ForeignKey method on SqlCreateTableQueryBuilder
     for (auto const& fk: stmt.foreignKeys)
     {
-        out << indent << "    .ForeignKey({\"" << fk.columnName << "\"}, \"" << fk.referencedTable << "\", {\""
-            << fk.referencedColumn << "\"})\n";
+        out << indent << "    .ForeignKey({\"" << Ident(fk.columnName) << "\"}, \"" << Ident(fk.referencedTable) << "\", {\""
+            << Ident(fk.referencedColumn) << "\"})\n";
     }
 
     out << indent << "    ;\n";
@@ -302,9 +380,9 @@ bool CodeGenerator::WriteCreateTable(CreateTableStmt const& stmt,
 bool CodeGenerator::WriteAlterTableAddColumn(AlterTableAddColumnStmt const& stmt,
                                              std::ostream& out,
                                              std::string const& indent,
-                                             std::vector<CodeGeneratorDiagnostic>& diagnostics)
+                                             std::vector<CodeGeneratorDiagnostic>& diagnostics) const
 {
-    auto const cppTypeResult = MapSqlType(stmt.column.type);
+    auto const cppTypeResult = MapSqlType(stmt.column.type, _config.forceUnicode, _config.varcharScale);
     bool hasErrors = false;
     if (!cppTypeResult.has_value())
     {
@@ -318,14 +396,20 @@ bool CodeGenerator::WriteAlterTableAddColumn(AlterTableAddColumnStmt const& stmt
     }
     auto const cppType = cppTypeResult.value_or(std::format("/* TODO: unknown type '{}' */ Text()", stmt.column.type));
 
-    out << indent << "plan.AlterTable(\"" << stmt.tableName << "\")\n";
+    out << indent << "plan.AlterTable(\"" << Ident(stmt.tableName) << "\")\n";
+    // Always emit IfNotExists variants. Several LUP releases (e.g. 4_7_6 vs 5_0_0)
+    // contain overlapping ALTER TABLE ADD COLUMN statements that were originally
+    // applied via mutually-exclusive package upgrade paths. Running them linearly
+    // through dbtool would otherwise fail with "duplicate column name" on the second
+    // occurrence; the IfNotExists variants make ADD COLUMN idempotent across all
+    // supported backends.
     if (stmt.column.isNullable)
     {
-        out << indent << "    .AddNotRequiredColumn(\"" << stmt.column.name << "\", " << cppType << ");\n";
+        out << indent << "    .AddNotRequiredColumnIfNotExists(\"" << Ident(stmt.column.name) << "\", " << cppType << ");\n";
     }
     else
     {
-        out << indent << "    .AddColumn(\"" << stmt.column.name << "\", " << cppType << ");\n";
+        out << indent << "    .AddColumnIfNotExists(\"" << Ident(stmt.column.name) << "\", " << cppType << ");\n";
     }
     return !hasErrors;
 }
@@ -334,29 +418,30 @@ void CodeGenerator::WriteAlterTableAddForeignKey(AlterTableAddForeignKeyStmt con
                                                  std::ostream& out,
                                                  std::string const& indent)
 {
-    out << indent << "plan.AlterTable(\"" << stmt.tableName << "\")\n";
-    out << indent << "    .AddForeignKey(\"" << stmt.foreignKey.columnName << "\", {.tableName = \""
-        << stmt.foreignKey.referencedTable << "\", .columnName = \"" << stmt.foreignKey.referencedColumn << "\"});\n";
+    out << indent << "plan.AlterTable(\"" << Ident(stmt.tableName) << "\")\n";
+    out << indent << "    .AddForeignKey(\"" << Ident(stmt.foreignKey.columnName) << "\", {.tableName = \""
+        << Ident(stmt.foreignKey.referencedTable) << "\", .columnName = \"" << Ident(stmt.foreignKey.referencedColumn)
+        << "\"});\n";
 }
 
 void CodeGenerator::WriteAlterTableAddCompositeForeignKey(AlterTableAddCompositeForeignKeyStmt const& stmt,
                                                           std::ostream& out,
                                                           std::string const& indent)
 {
-    out << indent << "plan.AlterTable(\"" << stmt.tableName << "\")\n";
+    out << indent << "plan.AlterTable(\"" << Ident(stmt.tableName) << "\")\n";
     out << indent << "    .AddCompositeForeignKey({";
     for (size_t i = 0; i < stmt.columns.size(); ++i)
     {
         if (i > 0)
             out << ", ";
-        out << "\"" << stmt.columns[i] << "\"";
+        out << "\"" << Ident(stmt.columns[i]) << "\"";
     }
-    out << "}, \"" << stmt.referencedTable << "\", {";
+    out << "}, \"" << Ident(stmt.referencedTable) << "\", {";
     for (size_t i = 0; i < stmt.referencedColumns.size(); ++i)
     {
         if (i > 0)
             out << ", ";
-        out << "\"" << stmt.referencedColumns[i] << "\"";
+        out << "\"" << Ident(stmt.referencedColumns[i]) << "\"";
     }
     out << "});\n";
 }
@@ -365,38 +450,43 @@ void CodeGenerator::WriteAlterTableDropForeignKey(AlterTableDropForeignKeyStmt c
                                                   std::ostream& out,
                                                   std::string const& indent)
 {
-    out << indent << "plan.AlterTable(\"" << stmt.tableName << "\")\n";
-    out << indent << "    .DropForeignKey(\"" << stmt.columnName << "\");\n";
+    out << indent << "plan.AlterTable(\"" << Ident(stmt.tableName) << "\")\n";
+    out << indent << "    .DropForeignKey(\"" << Ident(stmt.columnName) << "\");\n";
 }
 
 void CodeGenerator::WriteCreateIndex(CreateIndexStmt const& stmt, std::ostream& out, std::string const& indent)
 {
     char const* const methodName = stmt.unique ? "CreateUniqueIndex" : "CreateIndex";
 
-    out << indent << "plan." << methodName << "(\"" << stmt.indexName << "\", \"" << stmt.tableName << "\", {";
+    // Sybase/Oracle/MSSQL scope index names per-table, so the LUP source frequently
+    // reuses the same name (e.g. `fk_beton_zusatzstoff_nr`) across multiple tables.
+    // SQLite and PostgreSQL however treat index names as a database-global namespace,
+    // so we deterministically uniquify the emitted name by prefixing the table name.
+    out << indent << "plan." << methodName << "(\"" << Ident(stmt.tableName) << "_" << Ident(stmt.indexName) << "\", \""
+        << Ident(stmt.tableName) << "\", {";
     for (size_t i = 0; i < stmt.columns.size(); ++i)
     {
         if (i > 0)
             out << ", ";
-        out << "\"" << stmt.columns[i] << "\"";
+        out << "\"" << Ident(stmt.columns[i]) << "\"";
     }
     out << "});\n";
 }
 
 void CodeGenerator::WriteDropTable(DropTableStmt const& stmt, std::ostream& out, std::string const& indent)
 {
-    out << indent << "plan.DropTable(\"" << stmt.tableName << "\");\n";
+    out << indent << "plan.DropTable(\"" << Ident(stmt.tableName) << "\");\n";
 }
 
 void CodeGenerator::WriteInsert(InsertStmt const& stmt, std::ostream& out, std::string const& indent)
 {
-    out << indent << "plan.Insert(\"" << stmt.tableName << "\")\n";
+    out << indent << "plan.Insert(\"" << Ident(stmt.tableName) << "\")\n";
 
     for (size_t i = 0; i < stmt.columnValues.size(); ++i)
     {
         auto const& [col, val] = stmt.columnValues[i];
         auto formattedValue = FormatValueLiteral(val);
-        out << indent << "    .Set(\"" << col << "\", " << formattedValue << ")";
+        out << indent << "    .Set(\"" << Ident(col) << "\", " << formattedValue << ")";
         if (i + 1 < stmt.columnValues.size())
             out << "\n";
         else
@@ -406,19 +496,45 @@ void CodeGenerator::WriteInsert(InsertStmt const& stmt, std::ostream& out, std::
 
 void CodeGenerator::WriteUpdate(UpdateStmt const& stmt, std::ostream& out, std::string const& indent)
 {
-    out << indent << "plan.Update(\"" << stmt.tableName << "\")\n";
+    out << indent << "plan.Update(\"" << Ident(stmt.tableName) << "\")\n";
 
     for (auto const& [col, val]: stmt.setColumns)
     {
-        auto formattedValue = FormatValueLiteral(val);
-        out << indent << "    .Set(\"" << col << "\", " << formattedValue << ")\n";
+        if (LooksLikeLiteralValue(val))
+        {
+            auto formattedValue = FormatValueLiteral(val);
+            out << indent << "    .Set(\"" << Ident(col) << "\", " << formattedValue << ")\n";
+        }
+        else
+        {
+            auto canonical = CanonicalizeIdentifiersInSql(val);
+            out << indent << "    .SetExpression(\"" << Ident(col) << "\", \"" << EscapeCppString(canonical) << "\")\n";
+        }
     }
 
-    if (!stmt.whereColumn.empty())
+    if (!stmt.whereExpression.empty())
     {
-        auto formattedValue = FormatValueLiteral(stmt.whereValue);
-        out << indent << "    .Where(\"" << stmt.whereColumn << "\", \"" << stmt.whereOp << "\", " << formattedValue
-            << ");\n";
+        out << indent << "    .WhereExpression(\"" << EscapeCppString(stmt.whereExpression) << "\");\n";
+    }
+    else if (!stmt.whereColumn.empty())
+    {
+        // `SqlMigrationUpdateBuilder::Where` takes (col, op, value). For NULL comparisons
+        // we pass `SqlNullValue` as the value and rely on the MigrationPlan formatter
+        // to render it as literal `NULL` — producing `WHERE "col" IS NULL` / `IS NOT NULL`.
+        if (stmt.whereOp == "IS NULL")
+        {
+            out << indent << "    .Where(\"" << Ident(stmt.whereColumn) << "\", \"IS\", SqlNullValue);\n";
+        }
+        else if (stmt.whereOp == "IS NOT NULL")
+        {
+            out << indent << "    .Where(\"" << Ident(stmt.whereColumn) << "\", \"IS NOT\", SqlNullValue);\n";
+        }
+        else
+        {
+            auto formattedValue = FormatValueLiteral(stmt.whereValue);
+            out << indent << "    .Where(\"" << Ident(stmt.whereColumn) << "\", \"" << stmt.whereOp << "\", "
+                << formattedValue << ");\n";
+        }
     }
     else
     {
@@ -429,14 +545,31 @@ void CodeGenerator::WriteUpdate(UpdateStmt const& stmt, std::ostream& out, std::
 
 void CodeGenerator::WriteDelete(DeleteStmt const& stmt, std::ostream& out, std::string const& indent)
 {
-    out << indent << "plan.Delete(\"" << stmt.tableName << "\")";
+    out << indent << "plan.Delete(\"" << Ident(stmt.tableName) << "\")";
+
+    if (!stmt.whereExpression.empty())
+    {
+        out << "\n" << indent << "    .WhereExpression(\"" << EscapeCppString(stmt.whereExpression) << "\");\n";
+        return;
+    }
 
     if (!stmt.whereColumn.empty())
     {
-        auto formattedValue = FormatValueLiteral(stmt.whereValue);
-        out << "\n"
-            << indent << "    .Where(\"" << stmt.whereColumn << "\", \"" << stmt.whereOp << "\", " << formattedValue
-            << ");\n";
+        if (stmt.whereOp == "IS NULL")
+        {
+            out << "\n" << indent << "    .Where(\"" << Ident(stmt.whereColumn) << "\", \"IS\", SqlNullValue);\n";
+        }
+        else if (stmt.whereOp == "IS NOT NULL")
+        {
+            out << "\n" << indent << "    .Where(\"" << Ident(stmt.whereColumn) << "\", \"IS NOT\", SqlNullValue);\n";
+        }
+        else
+        {
+            auto formattedValue = FormatValueLiteral(stmt.whereValue);
+            out << "\n"
+                << indent << "    .Where(\"" << Ident(stmt.whereColumn) << "\", \"" << stmt.whereOp << "\", "
+                << formattedValue << ");\n";
+        }
     }
     else
     {
@@ -452,19 +585,38 @@ void CodeGenerator::WriteRawSql(RawSqlStmt const& stmt, std::ostream& out, std::
 
 namespace
 {
-    std::optional<std::string> MapParameterizedType(std::string_view basetype,
-                                                    std::string const& param1,
-                                                    std::string const& param2)
+    /// Scale a numeric `(N)` size by `scale`, returning the original string when
+    /// scaling is a no-op or the input isn't a positive integer literal.
+    std::string ScaleSize(std::string const& size, int scale)
+    {
+        if (scale <= 1 || size.empty())
+            return size;
+        try
+        {
+            auto const n = std::stoll(size);
+            if (n <= 0)
+                return size;
+            return std::to_string(n * scale);
+        }
+        catch (std::exception const&)
+        {
+            return size;
+        }
+    }
+
+    std::optional<std::string> MapParameterizedType(
+        std::string_view basetype, std::string const& param1, std::string const& param2, bool forceUnicode, int varcharScale)
     {
         auto upper = ToUpper(basetype);
+        auto const scaledChar = ScaleSize(param1, varcharScale);
         if (upper == "VARCHAR")
-            return std::format("Varchar({})", param1);
+            return std::format("{}Varchar({})", forceUnicode ? "N" : "", scaledChar);
         if (upper == "NVARCHAR")
-            return std::format("NVarchar({})", param1);
+            return std::format("NVarchar({})", scaledChar);
         if (upper == "CHAR")
-            return std::format("Char({})", param1);
+            return std::format("{}Char({})", forceUnicode ? "N" : "", scaledChar);
         if (upper == "NCHAR")
-            return std::format("NChar({})", param1);
+            return std::format("NChar({})", scaledChar);
         if (upper == "DECIMAL" || upper == "NUMERIC")
             return param2.empty() ? std::format("Decimal({})", param1) : std::format("Decimal({}, {})", param1, param2);
         if (upper == "VARBINARY")
@@ -475,12 +627,27 @@ namespace
     std::optional<std::string> MapSimpleType(std::string_view upper)
     {
         static std::unordered_map<std::string, std::string> const typeMap = {
-            { "INTEGER", "Integer()" },   { "INT", "Integer()" },        { "SMALLINT", "Smallint()" },
-            { "BIGINT", "Bigint()" },     { "REAL", "Real()" },          { "FLOAT", "Real()" },
-            { "DOUBLE", "Real()" },       { "TEXT", "Text()" },          { "LONG VARCHAR", "Text()" },
-            { "DATETIME", "DateTime()" }, { "TIMESTAMP", "DateTime()" }, { "DATE", "Date()" },
-            { "TIME", "Time()" },         { "BOOLEAN", "Bool()" },       { "BOOL", "Bool()" },
-            { "BIT", "Bool()" },          { "GUID", "Guid()" },          { "UNIQUEIDENTIFIER", "Guid()" },
+            { "INTEGER", "Integer()" },
+            { "INT", "Integer()" },
+            { "SMALLINT", "Smallint()" },
+            { "TINYINT", "Tinyint()" },
+            { "BIGINT", "Bigint()" },
+            { "REAL", "Real()" },
+            { "FLOAT", "Real()" },
+            { "DOUBLE", "Real()" },
+            { "MONEY", "Decimal(19, 4)" }, // SQL Server money is decimal(19,4) internally
+            { "TEXT", "Text()" },
+            { "LONG VARCHAR", "Text()" },
+            { "LONG VARBINARY", "VarBinary()" },
+            { "DATETIME", "DateTime()" },
+            { "TIMESTAMP", "DateTime()" },
+            { "DATE", "Date()" },
+            { "TIME", "Time()" },
+            { "BOOLEAN", "Bool()" },
+            { "BOOL", "Bool()" },
+            { "BIT", "Bool()" },
+            { "GUID", "Guid()" },
+            { "UNIQUEIDENTIFIER", "Guid()" },
         };
 
         auto it = typeMap.find(std::string(upper));
@@ -490,18 +657,21 @@ namespace
     }
 } // namespace
 
-std::expected<std::string, std::monostate> CodeGenerator::MapSqlType(std::string_view sqlType)
+std::expected<std::string, std::monostate> CodeGenerator::MapSqlType(std::string_view sqlType,
+                                                                     bool forceUnicode,
+                                                                     int varcharScale)
 {
-    auto upper = ToUpper(sqlType);
+    // Canonicalize whitespace so "long  varchar" and "long varchar" hash identically.
+    auto normalized = NormalizeWhitespace(sqlType);
+    auto upper = ToUpper(normalized);
 
     // Handle types with parameters (e.g., VARCHAR(255))
     std::regex typeWithParam(R"((\w+)\s*\(\s*(\d+)\s*(?:,\s*(\d+))?\s*\))", std::regex::icase);
     std::smatch match;
-    std::string typeStr(sqlType);
 
-    if (std::regex_match(typeStr, match, typeWithParam))
+    if (std::regex_match(normalized, match, typeWithParam))
     {
-        if (auto result = MapParameterizedType(match[1].str(), match[2].str(), match[3].str()))
+        if (auto result = MapParameterizedType(match[1].str(), match[2].str(), match[3].str(), forceUnicode, varcharScale))
             return *result;
     }
 
@@ -534,6 +704,54 @@ std::string CodeGenerator::FormatValueLiteral(std::string_view value)
 
     // Default - treat as string
     return std::format("\"{}\"", EscapeCppString(value));
+}
+
+void CodeGenerator::GeneratePluginCMake(std::ostream& out, std::string_view pluginName)
+{
+    out << "# SPDX-License-Identifier: Apache-2.0\n";
+    out << "# Auto-generated by lup2dbtool. DO NOT EDIT.\n";
+    out << "# Regenerate with: lup2dbtool --input-dir <dir> --output ... --emit-cmake\n";
+    out << "\n";
+    out << "cmake_minimum_required(VERSION 3.25)\n";
+    out << "\n";
+    out << "# Pick up every generated migration source. CONFIGURE_DEPENDS makes CMake re-glob\n";
+    out << "# when lup2dbtool regenerates the directory, so new lup_*.cpp files enter the build\n";
+    out << "# without a manual reconfigure.\n";
+    out << "file(GLOB " << pluginName << "_MIGRATIONS CONFIGURE_DEPENDS\n";
+    out << "    \"${CMAKE_CURRENT_SOURCE_DIR}/lup_*.cpp\"\n";
+    out << ")\n";
+    out << "\n";
+    out << "add_library(" << pluginName << " MODULE\n";
+    out << "    Plugin.cpp\n";
+    out << "    ${" << pluginName << "_MIGRATIONS}\n";
+    out << ")\n";
+    out << "\n";
+    out << "target_link_libraries(" << pluginName << " PRIVATE Lightweight::Lightweight)\n";
+    out << "\n";
+    out << "set_target_properties(" << pluginName << " PROPERTIES\n";
+    out << "    LIBRARY_OUTPUT_DIRECTORY \"${CMAKE_BINARY_DIR}/plugins\"\n";
+    out << "    RUNTIME_OUTPUT_DIRECTORY \"${CMAKE_BINARY_DIR}/plugins\"\n";
+    out << "    PREFIX \"\"\n";
+    out << ")\n";
+    out << "\n";
+    out << "# Generated migration sources are large and intentionally literal; skip clang-tidy\n";
+    out << "# so lint thresholds (function size, cognitive complexity) don't trip on them.\n";
+    out << "set_target_properties(" << pluginName << " PROPERTIES CXX_CLANG_TIDY \"\")\n";
+    out << "set_source_files_properties(${" << pluginName << "_MIGRATIONS} PROPERTIES SKIP_LINTING TRUE)\n";
+}
+
+void CodeGenerator::GeneratePluginEntryPoint(std::ostream& out)
+{
+    out << "// SPDX-License-Identifier: Apache-2.0\n";
+    out << "// Auto-generated by lup2dbtool. DO NOT EDIT.\n";
+    out << "//\n";
+    out << "// Migration plugin entry point. Individual migrations in lup_*.cpp self-register\n";
+    out << "// with the MigrationManager via static initialization; this file only exposes the\n";
+    out << "// plugin ABI that dbtool expects when dlopen'ing the shared module.\n";
+    out << "\n";
+    out << "#include <Lightweight/SqlMigration.hpp>\n";
+    out << "\n";
+    out << "LIGHTWEIGHT_MIGRATION_PLUGIN()\n";
 }
 
 std::string ResolveOutputPattern(std::string_view pattern, LupVersion const& version)

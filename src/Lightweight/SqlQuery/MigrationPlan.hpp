@@ -9,6 +9,11 @@
 
 #include <reflection-cpp/reflection.hpp>
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <map>
+#include <set>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -546,6 +551,99 @@ using SqlMigrationPlanElement = std::variant<
 
 // clang-format on
 
+/// @brief Canonical compat-flag name requesting LUpd-compatible client-side string
+/// truncation. Kept with the consumer (`MigrationRenderContext`) so there is a single
+/// source of truth; `Lightweight::Config::CompatFlagLupTruncate` aliases this value.
+inline constexpr std::string_view CompatFlagLupTruncateName = "lup-truncate";
+
+/// @brief Opt-in behavioural knobs that the `ToSql` migration-plan renderer honours.
+///
+/// When a profile declares a `compat:` flag (see `Lightweight::Config::CompatFlags`), dbtool
+/// / dbtool-gui construct one of these and pass it alongside the formatter so migration
+/// rendering can diverge from strict behaviour per-run.
+///
+/// The context is mutable across successive `ToSql` calls within the same migration run:
+/// it accumulates a column-width cache populated from `CreateTable` / `AlterTable` steps as
+/// they are rendered, so later `Insert` / `Update` steps can truncate oversize values
+/// without a server round-trip.
+///
+/// Default-constructed instances are strict (no truncation, no logging); this is the shape
+/// used by code paths that don't care about compat, so existing callers keep their
+/// behaviour.
+struct [[nodiscard]] MigrationRenderContext
+{
+    /// When true, string values in `Insert` / `Update` steps are truncated to the
+    /// destination column's declared character width and the truncation is logged via
+    /// `SqlLogger::OnWarning`. Mirrors LUpd's client-side clipping behaviour; see
+    /// `Lightweight::Config::CompatFlagLupTruncate`.
+    bool lupTruncate = false;
+
+    /// Per-(schema, table, column) cache of declared character widths. Populated lazily
+    /// from `SqlCreateTablePlan` / `SqlAlterTablePlan` as they are rendered; the key is
+    /// (`schema`, `table`, `column`). A zero/absent entry means "no known width" and the
+    /// truncation layer leaves the value alone.
+    struct ColumnKey
+    {
+        std::string schema; ///< Schema label (empty for engines without schemas, e.g. SQLite).
+        std::string table;  ///< Table name.
+        std::string column; ///< Column name.
+        /// Total ordering on (schema, table, column) — defaulted three-way comparison.
+        auto operator<=>(ColumnKey const&) const = default;
+    };
+
+    /// @brief How a column's declared width is counted. The truncation layer must match
+    /// the server's interpretation: a VARCHAR(100) on MSSQL holds 100 *bytes*, but an
+    /// NVARCHAR(100) holds 100 *characters*. Truncating to 100 characters when the
+    /// server budget is 100 bytes still overflows on multi-byte source data.
+    enum class WidthUnit : uint8_t
+    {
+        Characters,
+        Bytes,
+    };
+
+    struct ColumnWidth
+    {
+        std::size_t value { 0 };
+        WidthUnit unit { WidthUnit::Characters };
+    };
+
+    /// Cache of declared character widths, populated lazily as plan elements render.
+    std::map<ColumnKey, ColumnWidth> columnWidths;
+
+    /// @brief Optional fallback that fetches column widths for a `(schema, table)` from
+    /// the live database when the cache has no entry for it.
+    ///
+    /// The renderer calls this once per `(schema, table)` it can't satisfy from
+    /// `columnWidths`. Implementations should issue a single `INFORMATION_SCHEMA.COLUMNS`
+    /// (or equivalent) query and write every char/varchar column's declared width back
+    /// into `columnWidths`. They may also write a sentinel (e.g. an empty entry) when the
+    /// table doesn't exist, so the renderer doesn't keep retrying. Default-empty means
+    /// "no fallback" — i.e. only widths declared by the same migration plan are
+    /// considered.
+    std::function<void(MigrationRenderContext&, std::string_view /*schema*/, std::string_view /*table*/)> widthLookup;
+
+    /// @brief Tables for which the lookup has already been attempted, so we don't
+    /// re-query for every INSERT against the same table.
+    struct TableKey
+    {
+        std::string schema; ///< Schema label (empty when the engine reports none).
+        std::string table;  ///< Table name.
+        /// Total ordering on (schema, table) — defaulted three-way comparison.
+        auto operator<=>(TableKey const&) const = default;
+    };
+    /// Tables for which `widthLookup` has already been called; prevents repeat queries.
+    std::set<TableKey> lookupAttempted;
+
+    /// @brief Identity of the migration currently being rendered. Set by
+    /// `MigrationManager::ApplySingleMigration` before `ToSql` is called for each
+    /// step so warnings (e.g. `lup-truncate`) can attribute themselves to the
+    /// offending migration. Empty / zero when rendering happens outside a migration
+    /// run (e.g. unit tests calling `ToSql` directly).
+    std::string activeMigrationTitle;
+    /// Timestamp of the migration currently being rendered (0 outside a migration run).
+    std::uint64_t activeMigrationTimestamp = 0;
+};
+
 /// Formats the given SQL migration plan element as a list of SQL statements.
 ///
 /// @param formatter The SQL query formatter to use.
@@ -556,6 +654,14 @@ using SqlMigrationPlanElement = std::variant<
 /// @ingroup QueryBuilder
 [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> ToSql(SqlQueryFormatter const& formatter,
                                                              SqlMigrationPlanElement const& element);
+
+/// @overload
+/// Rendering variant that consults a `MigrationRenderContext` for compat flags
+/// and column-width tracking. Updates `context` in place when the rendered step declares
+/// new columns.
+[[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> ToSql(SqlQueryFormatter const& formatter,
+                                                             SqlMigrationPlanElement const& element,
+                                                             MigrationRenderContext& context);
 
 /// @brief Represents a SQL migration plan.
 ///

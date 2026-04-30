@@ -24,11 +24,6 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
   public:
-    [[nodiscard]] bool RequiresTableRebuildForForeignKeyChange() const noexcept override
-    {
-        return true;
-    }
-
     /// Builds the SQL query used to check whether a column exists on a SQLite table.
     ///
     /// The migration executor uses this to resolve the `-- LIGHTWEIGHT_SQLITE_GUARD:`
@@ -275,7 +270,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         // PG would fold to lowercase, breaking the matching `DROP CONSTRAINT "FK_<…>"`
         // emitted by `DropForeignKey`).
         return std::format(R"(CONSTRAINT "{}" FOREIGN KEY ("{}") REFERENCES "{}"("{}"))",
-                           BuildForeignKeyConstraintName(tableName, std::array { columnName }),
+                           std::format("FK_{}_{}", tableName, columnName),
                            columnName,
                            referencedColumn.tableName,
                            referencedColumn.columnName);
@@ -408,126 +403,165 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
         return sqlQueries;
     }
 
-    [[nodiscard]] StringList AlterTable(std::string_view /*schemaName*/,
-                                        std::string_view tableName,
-                                        std::vector<SqlAlterTableCommand> const& commands) const override
+  private:
+    [[nodiscard]] std::string FormatAlterTableCommand(std::string_view tableName, SqlAlterTableCommand const& command) const
     {
-        // SQLite doesn't support schemas - use table name only
         auto const formatTable = [tableName]() {
             return std::format(R"("{}")", tableName);
         };
 
+        using namespace SqlAlterTableCommands;
+        return std::visit(
+            detail::overloaded {
+                [&formatTable](RenameTable const& actualCommand) -> std::string {
+                    return std::format(R"(ALTER TABLE {} RENAME TO "{}";)", formatTable(), actualCommand.newTableName);
+                },
+                [&formatTable, this](AddColumn const& actualCommand) -> std::string {
+                    return std::format(R"(ALTER TABLE {} ADD COLUMN "{}" {} {};)",
+                                       formatTable(),
+                                       actualCommand.columnName,
+                                       ColumnType(actualCommand.columnType),
+                                       actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
+                },
+                [&formatTable, this](AlterColumn const& actualCommand) -> std::string {
+                    return std::format(R"(ALTER TABLE {} ALTER COLUMN "{}" {} {};)",
+                                       formatTable(),
+                                       actualCommand.columnName,
+                                       ColumnType(actualCommand.columnType),
+                                       actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
+                },
+                [&formatTable](RenameColumn const& actualCommand) -> std::string {
+                    return std::format(R"(ALTER TABLE {} RENAME COLUMN "{}" TO "{}";)",
+                                       formatTable(),
+                                       actualCommand.oldColumnName,
+                                       actualCommand.newColumnName);
+                },
+                [&formatTable](DropColumn const& actualCommand) -> std::string {
+                    return std::format(R"(ALTER TABLE {} DROP COLUMN "{}";)", formatTable(), actualCommand.columnName);
+                },
+                [tableName](AddIndex const& actualCommand) -> std::string {
+                    using namespace std::string_view_literals;
+                    auto const uniqueStr = actualCommand.unique ? "UNIQUE "sv : ""sv;
+                    return std::format(R"(CREATE {2}INDEX "{0}_{1}_index" ON "{0}" ("{1}");)",
+                                       tableName,
+                                       actualCommand.columnName,
+                                       uniqueStr);
+                },
+                [tableName](DropIndex const& actualCommand) -> std::string {
+                    return std::format(R"(DROP INDEX "{0}_{1}_index";)", tableName, actualCommand.columnName);
+                },
+                [tableName](AddForeignKey const& actualCommand) -> std::string {
+                    // SQLite cannot `ALTER TABLE … ADD CONSTRAINT`. The runtime executor
+                    // recognizes this sentinel and rebuilds the table from sqlite_schema.
+                    // All metadata the executor needs fits in the sentinel itself. We keep
+                    // a commented-out equivalent MSSQL-style ALTER below so dry-run output
+                    // stays readable.
+                    return std::format(
+                        R"(-- LIGHTWEIGHT_SQLITE_GUARD: ADD_FOREIGN_KEY "{0}" "{1}" "{2}" "{3}"
+-- ALTER TABLE "{0}" ADD {4};)",
+                        tableName,
+                        actualCommand.columnName,
+                        actualCommand.referencedColumn.tableName,
+                        actualCommand.referencedColumn.columnName,
+                        BuildForeignKeyConstraint(tableName, actualCommand.columnName, actualCommand.referencedColumn));
+                },
+                [tableName](DropForeignKey const& actualCommand) -> std::string {
+                    // SQLite has no `DROP CONSTRAINT`. Executor rebuilds the table without
+                    // the matching `CONSTRAINT FK_<tbl>_<col>` clause.
+                    return std::format(
+                        R"(-- LIGHTWEIGHT_SQLITE_GUARD: DROP_FOREIGN_KEY "{0}" "{1}"
+-- ALTER TABLE "{0}" DROP CONSTRAINT "{2}";)",
+                        tableName,
+                        actualCommand.columnName,
+                        BuildForeignKeyConstraintName(tableName,
+                                                      std::array { std::string_view { actualCommand.columnName } }));
+                },
+                [tableName](AddCompositeForeignKey const& actualCommand) -> std::string {
+                    // SQLite cannot `ALTER TABLE … ADD CONSTRAINT`. Mirror the single-column
+                    // AddForeignKey path: emit a sentinel the runtime executor recognises and
+                    // translates into a table rebuild with the composite FK clause appended.
+                    // Column tuples are encoded as comma-joined lists inside the sentinel's
+                    // quoted fields; SQL identifiers in the target corpora do not contain
+                    // commas so the split-on-',' parse on the runtime side is unambiguous.
+                    auto const joinComma = [](std::vector<std::string> const& v) {
+                        std::string out;
+                        for (size_t i = 0; i < v.size(); ++i)
+                        {
+                            if (i != 0)
+                                out += ',';
+                            out += v[i];
+                        }
+                        return out;
+                    };
+                    auto const joinQuoted = [](std::vector<std::string> const& v) {
+                        std::string out;
+                        for (size_t i = 0; i < v.size(); ++i)
+                        {
+                            if (i != 0)
+                                out += ", ";
+                            out += '"';
+                            out += v[i];
+                            out += '"';
+                        }
+                        return out;
+                    };
+                    auto const fkName = BuildForeignKeyConstraintName(tableName, actualCommand.columns);
+                    return std::format(
+                        R"(-- LIGHTWEIGHT_SQLITE_GUARD: ADD_COMPOSITE_FOREIGN_KEY "{0}" "{1}" "{2}" "{3}"
+-- ALTER TABLE "{0}" ADD CONSTRAINT "{4}" FOREIGN KEY ({5}) REFERENCES "{2}"({6});)",
+                        tableName,
+                        joinComma(actualCommand.columns),
+                        actualCommand.referencedTableName,
+                        joinComma(actualCommand.referencedColumns),
+                        fkName,
+                        joinQuoted(actualCommand.columns),
+                        joinQuoted(actualCommand.referencedColumns));
+                },
+                [&formatTable, tableName, this](AddColumnIfNotExists const& actualCommand) -> std::string {
+                    // SQLite doesn't support IF NOT EXISTS for ADD COLUMN.
+                    // Emit a sentinel comment so the migration executor can presence-check
+                    // via pragma_table_info() before running the ALTER TABLE.
+                    return std::format(
+                        R"(-- LIGHTWEIGHT_SQLITE_GUARD: ADD_COLUMN_IF_NOT_EXISTS "{0}" "{1}"
+ALTER TABLE {2} ADD COLUMN "{1}" {3} {4};)",
+                        tableName,
+                        actualCommand.columnName,
+                        formatTable(),
+                        ColumnType(actualCommand.columnType),
+                        actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
+                },
+                [&formatTable, tableName](DropColumnIfExists const& actualCommand) -> std::string {
+                    // SQLite doesn't support IF EXISTS for DROP COLUMN; guarded like above.
+                    return std::format(
+                        R"(-- LIGHTWEIGHT_SQLITE_GUARD: DROP_COLUMN_IF_EXISTS "{0}" "{1}"
+ALTER TABLE {2} DROP COLUMN "{1}";)",
+                        tableName,
+                        actualCommand.columnName,
+                        formatTable());
+                },
+                [tableName](DropIndexIfExists const& actualCommand) -> std::string {
+                    return std::format(R"(DROP INDEX IF EXISTS "{0}_{1}_index";)", tableName, actualCommand.columnName);
+                },
+            },
+            command);
+    }
+
+  public:
+    [[nodiscard]] StringList AlterTable(std::string_view /*schemaName*/,
+                                        std::string_view tableName,
+                                        std::vector<SqlAlterTableCommand> const& commands) const override
+    {
         // SQLite has no native IF NOT EXISTS / IF EXISTS for columns. We emit each command
         // as its own result entry; guarded commands are prefixed with a sentinel comment
         // that the migration executor recognizes and uses to perform a pragma_table_info
         // presence check at runtime.
         StringList result;
-
-        using namespace SqlAlterTableCommands;
         for (SqlAlterTableCommand const& command: commands)
         {
-            std::string sql = std::visit(
-                detail::overloaded {
-                    [&formatTable](RenameTable const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE {} RENAME TO "{}";)", formatTable(), actualCommand.newTableName);
-                    },
-                    [&formatTable, this](AddColumn const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE {} ADD COLUMN "{}" {} {};)",
-                                           formatTable(),
-                                           actualCommand.columnName,
-                                           ColumnType(actualCommand.columnType),
-                                           actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
-                    },
-                    [&formatTable, this](AlterColumn const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE {} ALTER COLUMN "{}" {} {};)",
-                                           formatTable(),
-                                           actualCommand.columnName,
-                                           ColumnType(actualCommand.columnType),
-                                           actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
-                    },
-                    [&formatTable](RenameColumn const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE {} RENAME COLUMN "{}" TO "{}";)",
-                                           formatTable(),
-                                           actualCommand.oldColumnName,
-                                           actualCommand.newColumnName);
-                    },
-                    [&formatTable](DropColumn const& actualCommand) -> std::string {
-                        return std::format(R"(ALTER TABLE {} DROP COLUMN "{}";)", formatTable(), actualCommand.columnName);
-                    },
-                    [tableName](AddIndex const& actualCommand) -> std::string {
-                        using namespace std::string_view_literals;
-                        auto const uniqueStr = actualCommand.unique ? "UNIQUE "sv : ""sv;
-                        return std::format(R"(CREATE {2}INDEX "{0}_{1}_index" ON "{0}" ("{1}");)",
-                                           tableName,
-                                           actualCommand.columnName,
-                                           uniqueStr);
-                    },
-                    [tableName](DropIndex const& actualCommand) -> std::string {
-                        return std::format(R"(DROP INDEX "{0}_{1}_index";)", tableName, actualCommand.columnName);
-                    },
-                    [tableName](AddForeignKey const& actualCommand) -> std::string {
-                        // SQLite cannot `ALTER TABLE … ADD CONSTRAINT`. The runtime executor
-                        // recognizes this sentinel and rebuilds the table from sqlite_schema.
-                        // All metadata the executor needs fits in the sentinel itself. We keep
-                        // a commented-out equivalent MSSQL-style ALTER below so dry-run output
-                        // stays readable.
-                        return std::format(
-                            R"(-- LIGHTWEIGHT_SQLITE_GUARD: ADD_FOREIGN_KEY "{0}" "{1}" "{2}" "{3}"
--- ALTER TABLE "{0}" ADD {4};)",
-                            tableName,
-                            actualCommand.columnName,
-                            actualCommand.referencedColumn.tableName,
-                            actualCommand.referencedColumn.columnName,
-                            BuildForeignKeyConstraint(tableName, actualCommand.columnName, actualCommand.referencedColumn));
-                    },
-                    [tableName](DropForeignKey const& actualCommand) -> std::string {
-                        // SQLite has no `DROP CONSTRAINT`. Executor rebuilds the table without
-                        // the matching `CONSTRAINT FK_<tbl>_<col>` clause.
-                        return std::format(
-                            R"(-- LIGHTWEIGHT_SQLITE_GUARD: DROP_FOREIGN_KEY "{0}" "{1}"
--- ALTER TABLE "{0}" DROP CONSTRAINT "{2}";)",
-                            tableName,
-                            actualCommand.columnName,
-                            BuildForeignKeyConstraintName(tableName,
-                                                          std::array { std::string_view { actualCommand.columnName } }));
-                    },
-                    [tableName](AddCompositeForeignKey const& /*actualCommand*/) -> std::string {
-                        // SQLite limitation: ALTER TABLE ADD CONSTRAINT not supported.
-                        // We return empty string or comment to satisfy visitor.
-                        return std::format(R"(-- AddCompositeForeignKey not supported for {};)", tableName);
-                    },
-                    [&formatTable, tableName, this](AddColumnIfNotExists const& actualCommand) -> std::string {
-                        // SQLite doesn't support IF NOT EXISTS for ADD COLUMN.
-                        // Emit a sentinel comment so the migration executor can presence-check
-                        // via pragma_table_info() before running the ALTER TABLE.
-                        return std::format(
-                            R"(-- LIGHTWEIGHT_SQLITE_GUARD: ADD_COLUMN_IF_NOT_EXISTS "{0}" "{1}"
-ALTER TABLE {2} ADD COLUMN "{1}" {3} {4};)",
-                            tableName,
-                            actualCommand.columnName,
-                            formatTable(),
-                            ColumnType(actualCommand.columnType),
-                            actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
-                    },
-                    [&formatTable, tableName](DropColumnIfExists const& actualCommand) -> std::string {
-                        // SQLite doesn't support IF EXISTS for DROP COLUMN; guarded like above.
-                        return std::format(
-                            R"(-- LIGHTWEIGHT_SQLITE_GUARD: DROP_COLUMN_IF_EXISTS "{0}" "{1}"
-ALTER TABLE {2} DROP COLUMN "{1}";)",
-                            tableName,
-                            actualCommand.columnName,
-                            formatTable());
-                    },
-                    [tableName](DropIndexIfExists const& actualCommand) -> std::string {
-                        return std::format(R"(DROP INDEX IF EXISTS "{0}_{1}_index";)", tableName, actualCommand.columnName);
-                    },
-                },
-                command);
-
+            auto sql = FormatAlterTableCommand(tableName, command);
             if (!sql.empty())
                 result.push_back(std::move(sql));
         }
-
         return result;
     }
 
