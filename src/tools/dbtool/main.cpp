@@ -661,6 +661,11 @@ void CollectMigrations(std::vector<Tools::PluginLoader> const& plugins, Migratio
                     {
                         centralManager.AddMigration(migration);
                     }
+                    // Propagate any compat policy the plugin installed on its own singleton
+                    // manager. Composition lets multiple plugins contribute policies in the
+                    // same dbtool process; see `MigrationManager::ComposeCompatPolicy`.
+                    if (auto const& policy = pluginManager->GetCompatPolicy())
+                        centralManager.ComposeCompatPolicy(policy);
                 }
             }
         }
