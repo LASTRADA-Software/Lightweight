@@ -105,17 +105,19 @@ $(document).ready(function(){initNavTree('d9/d80/structLightweight_1_1SqlMigrati
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a14c5641bee4fb83cbdff804c876ebc04" id="r_a14c5641bee4fb83cbdff804c876ebc04"><td class="memItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="../../dd/d71/structLightweight_1_1SqlColumnDeclaration.html">SqlColumnDeclaration</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#a14c5641bee4fb83cbdff804c876ebc04">columns</a></td></tr>
-<tr class="memdesc:a14c5641bee4fb83cbdff804c876ebc04"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ordered column declarations as they would be emitted in CREATE TABLE.  <br /></td></tr>
+<tr class="memdesc:a14c5641bee4fb83cbdff804c876ebc04"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ordered column declarations as they should appear in the emitted CREATE TABLE.  <br /></td></tr>
 <tr class="separator:a14c5641bee4fb83cbdff804c876ebc04"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a79de324e4b9ed5400fe3d954daa4fca1" id="r_a79de324e4b9ed5400fe3d954daa4fca1"><td class="memItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="../../d3/d18/structLightweight_1_1SqlCompositeForeignKeyConstraint.html">SqlCompositeForeignKeyConstraint</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#a79de324e4b9ed5400fe3d954daa4fca1">compositeForeignKeys</a></td></tr>
+<tr class="memdesc:a79de324e4b9ed5400fe3d954daa4fca1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Composite (multi-column) foreign keys declared on this table.  <br /></td></tr>
 <tr class="separator:a79de324e4b9ed5400fe3d954daa4fca1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd1d1fea3fc25d001846e2a4170e8fb7" id="r_acd1d1fea3fc25d001846e2a4170e8fb7"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#acd1d1fea3fc25d001846e2a4170e8fb7">ifNotExists</a> = false</td></tr>
+<tr class="memdesc:acd1d1fea3fc25d001846e2a4170e8fb7"><td class="mdescLeft">&#160;</td><td class="mdescRight">True when the original migration created the table with <code>IF NOT EXISTS</code>.  <br /></td></tr>
 <tr class="separator:acd1d1fea3fc25d001846e2a4170e8fb7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Per-table state: ordered column declarations + per-table FK list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00399">399</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00312">312</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a14c5641bee4fb83cbdff804c876ebc04" name="a14c5641bee4fb83cbdff804c876ebc04"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a14c5641bee4fb83cbdff804c876ebc04">&#9670;&#160;</a></span>columns</h2>
@@ -129,9 +131,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Ordered column declarations as they would be emitted in CREATE TABLE. </p>
+<p>Ordered column declarations as they should appear in the emitted CREATE TABLE. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00402">402</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00315">315</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -146,9 +148,10 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Composite foreign keys declared on this table (single-column FKs are carried inline on the corresponding <code><a class="el" href="../../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a59119220ab43706394b2a1f22caf183d" title="The foreign key reference definition of the column.">SqlColumnDeclaration::foreignKey</a></code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00405">405</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p>Composite (multi-column) foreign keys declared on this table. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00318">318</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -163,9 +166,10 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Whether the original CREATE TABLE used IF NOT EXISTS (carried through to emitters so they can replay it verbatim). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00408">408</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p>True when the original migration created the table with <code>IF NOT EXISTS</code>. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00321">321</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>

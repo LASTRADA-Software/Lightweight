@@ -116,56 +116,57 @@ $(document).ready(function(){initNavTree('df/d7d/SqlOdbcWide_8hpp_source.html','
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="comment">// ODBC W variants assume `SQLWCHAR` is layout-compatible with `char16_t` (true on</span></div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="comment">// Windows where it&#39;s `wchar_t`, and on Linux unixODBC where it&#39;s `unsigned short` —</span></div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment">// both 16-bit). Anything else and the reinterpret_casts below would silently corrupt.</span></div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="keyword">static_assert</span>(<span class="keyword">sizeof</span>(SQLWCHAR) == <span class="keyword">sizeof</span>(<span class="keywordtype">char16_t</span>), <span class="stringliteral">&quot;ODBC W variants require a 16-bit code unit; SQLWCHAR shape mismatch&quot;</span>);</div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="comment"></span> </div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="comment">/// @brief Converts a UTF-8 string view into a `std::u16string` for ODBC W variants.</span></div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="comment">/// Use this rather than `ToUtf16(std::string const&amp;)` from `UnicodeConverter.hpp`:</span></div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="comment">/// that overload treats its input as the platform narrow encoding (CP_ACP on</span></div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="comment">/// Windows), which silently corrupts UTF-8 bytes &gt;= 0x80.</span></div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="comment"></span><span class="keyword">inline</span> std::u16string OdbcUtf8ToUtf16(std::string_view utf8)</div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>{</div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaaf5dbfcee3e69467bc1359226a9f6b2a">ToUtf16</a>(std::u8string_view { <span class="keyword">reinterpret_cast&lt;</span><span class="keywordtype">char8_t</span> const*<span class="keyword">&gt;</span>(utf8.data()), utf8.size() });</div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>}</div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="comment"></span> </div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="comment">/// @brief Reinterprets a `char16_t*` buffer as the `SQLWCHAR*` ODBC W variants want.</span></div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="comment">/// Note: ODBC W input-string parameters are non-const (a legacy API quirk; the</span></div>
-<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span><span class="comment">/// driver does not mutate them), so callers must hold their `std::u16string` non-const.</span></div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span><span class="comment"></span><span class="keyword">inline</span> SQLWCHAR* AsSqlWChar(<span class="keywordtype">char16_t</span>* p) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>{</div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>    <span class="keywordflow">return</span> <span class="keyword">reinterpret_cast&lt;</span>SQLWCHAR*<span class="keyword">&gt;</span>(p);</div>
-<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>}</div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="comment"></span> </div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="comment">/// @brief Holds a UTF-16 buffer mapped from a UTF-8 input plus the (pointer, length)</span></div>
-<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="comment">/// pair the ODBC W introspection / connect / prepare calls expect. Empty input</span></div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="comment">/// produces a null pointer / zero length, mirroring the ODBC idiom of &quot;pass nullptr</span></div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span><span class="comment">/// when the caller does not want to filter on this field&quot;. The buffer&#39;s lifetime</span></div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="comment">/// equals the `OdbcWideArg`&#39;s, satisfying SQL_NTS for the duration of one call.</span></div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span><span class="comment"></span><span class="keyword">struct </span>OdbcWideArg</div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>{</div>
-<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>    std::u16string buffer;</div>
-<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span> </div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>    <span class="keyword">explicit</span> OdbcWideArg(std::string_view utf8):</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>        buffer(utf8.empty() ? std::u16string {} : OdbcUtf8ToUtf16(utf8))</div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>    {</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>    }</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span> </div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>    <span class="keyword">explicit</span> OdbcWideArg(std::u16string utf16) <span class="keyword">noexcept</span>:</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>        buffer(std::move(utf16))</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>    {</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>    }</div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span> </div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>    [[nodiscard]] SQLWCHAR* data() noexcept</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    {</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>        <span class="keywordflow">return</span> buffer.empty() ? nullptr : AsSqlWChar(buffer.data());</div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>    }</div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span> </div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>    [[nodiscard]] SQLSMALLINT length() const noexcept</div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>    {</div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>        <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>SQLSMALLINT<span class="keyword">&gt;</span>(buffer.size());</div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>    }</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>};</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span> </div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>} <span class="comment">// namespace Lightweight::detail</span></div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="keyword">static_assert</span>(<span class="keyword">sizeof</span>(SQLWCHAR) == <span class="keyword">sizeof</span>(<span class="keywordtype">char16_t</span>),</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>              <span class="stringliteral">&quot;ODBC W variants require a 16-bit code unit; SQLWCHAR shape mismatch&quot;</span>);</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="comment"></span> </div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="comment">/// @brief Converts a UTF-8 string view into a `std::u16string` for ODBC W variants.</span></div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="comment">/// Use this rather than `ToUtf16(std::string const&amp;)` from `UnicodeConverter.hpp`:</span></div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span><span class="comment">/// that overload treats its input as the platform narrow encoding (CP_ACP on</span></div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="comment">/// Windows), which silently corrupts UTF-8 bytes &gt;= 0x80.</span></div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span><span class="comment"></span><span class="keyword">inline</span> std::u16string OdbcUtf8ToUtf16(std::string_view utf8)</div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>{</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="../../d1/d7d/group__Unicode.html#gaaf5dbfcee3e69467bc1359226a9f6b2a">ToUtf16</a>(std::u8string_view { <span class="keyword">reinterpret_cast&lt;</span><span class="keywordtype">char8_t</span> const*<span class="keyword">&gt;</span>(utf8.data()), utf8.size() });</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>}</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="comment"></span> </div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="comment">/// @brief Reinterprets a `char16_t*` buffer as the `SQLWCHAR*` ODBC W variants want.</span></div>
+<div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span><span class="comment">/// Note: ODBC W input-string parameters are non-const (a legacy API quirk; the</span></div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span><span class="comment">/// driver does not mutate them), so callers must hold their `std::u16string` non-const.</span></div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="comment"></span><span class="keyword">inline</span> SQLWCHAR* AsSqlWChar(<span class="keywordtype">char16_t</span>* p) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>{</div>
+<div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>    <span class="keywordflow">return</span> <span class="keyword">reinterpret_cast&lt;</span>SQLWCHAR*<span class="keyword">&gt;</span>(p);</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>}</div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="comment"></span> </div>
+<div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="comment">/// @brief Holds a UTF-16 buffer mapped from a UTF-8 input plus the (pointer, length)</span></div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="comment">/// pair the ODBC W introspection / connect / prepare calls expect. Empty input</span></div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span><span class="comment">/// produces a null pointer / zero length, mirroring the ODBC idiom of &quot;pass nullptr</span></div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="comment">/// when the caller does not want to filter on this field&quot;. The buffer&#39;s lifetime</span></div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span><span class="comment">/// equals the `OdbcWideArg`&#39;s, satisfying SQL_NTS for the duration of one call.</span></div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span><span class="comment"></span><span class="keyword">struct </span>OdbcWideArg</div>
+<div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>{</div>
+<div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>    std::u16string buffer;</div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span> </div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>    <span class="keyword">explicit</span> OdbcWideArg(std::string_view utf8):</div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>        buffer(utf8.empty() ? std::u16string {} : OdbcUtf8ToUtf16(utf8))</div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>    {</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>    }</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span> </div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>    <span class="keyword">explicit</span> OdbcWideArg(std::u16string utf16) <span class="keyword">noexcept</span>:</div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>        buffer(std::move(utf16))</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>    {</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>    }</div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span> </div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    [[nodiscard]] SQLWCHAR* data() noexcept</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>    {</div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>        <span class="keywordflow">return</span> buffer.empty() ? nullptr : AsSqlWChar(buffer.data());</div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>    }</div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span> </div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>    [[nodiscard]] SQLSMALLINT length() const noexcept</div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>    {</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>        <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>SQLSMALLINT<span class="keyword">&gt;</span>(buffer.size());</div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>    }</div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>};</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span> </div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>} <span class="comment">// namespace Lightweight::detail</span></div>
 <div class="ttc" id="agroup__Unicode_html_gaaf5dbfcee3e69467bc1359226a9f6b2a"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#gaaf5dbfcee3e69467bc1359226a9f6b2a">Lightweight::ToUtf16</a></div><div class="ttdeci">std::u16string ToUtf16(std::basic_string_view&lt; T &gt; const u32InputString)</div><div class="ttdef"><b>Definition</b> <a href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00244">UnicodeConverter.hpp:244</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
