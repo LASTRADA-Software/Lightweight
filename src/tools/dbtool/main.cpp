@@ -24,6 +24,7 @@
 #include <fstream>
 #include <iostream>
 #include <print>
+#include <set>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -133,6 +134,9 @@ void PrintUsage()
     std::println("  {}hard-reset{}                Drops every migration-owned table (preserves user tables)",
                  c.command, c.reset);
     std::println("                            and the schema_migrations table; pair with `migrate`");
+    std::println("  {}unicode-upgrade-tables{}    Rewrites legacy VARCHAR/CHAR columns to NVARCHAR/NCHAR",
+                 c.command, c.reset);
+    std::println("                            where the registered migrations now declare wide types");
     std::println("  {}diff{} {}<A>{} {}<B>{}            Compares two databases (schema + data) and prints a colored",
                  c.command, c.reset, c.param, c.reset, c.param, c.reset);
     std::println("                            report. Each <SOURCE> is either a profile name or a raw");
@@ -1010,7 +1014,6 @@ int RewriteChecksums(MigrationManager& manager, bool dryRun, bool yes)
         [](auto const& r) { std::println("Rewrote {} checksum(s).", r.entries.size()); });
 }
 
-
 /// @brief Drops every migration-owned table, preserves user tables.
 int HardReset(MigrationManager& manager, bool dryRun, bool yes)
 {
@@ -1045,6 +1048,40 @@ int HardReset(MigrationManager& manager, bool dryRun, bool yes)
         [](auto const& r) {
             std::println("Dropped {} table(s){}.", r.droppedTables.size(),
                          r.schemaMigrationsDropped ? " plus schema_migrations" : "");
+        });
+}
+
+/// @brief Upgrades legacy VARCHAR/CHAR columns to NVARCHAR/NCHAR.
+int UnicodeUpgradeTables(MigrationManager& manager, bool dryRun, bool yes)
+{
+    return RunAdminCommand<MigrationManager::UnicodeUpgradeResult>(
+        "unicode-upgrade-tables",
+        dryRun,
+        yes,
+        [&](bool dr) { return manager.UnicodeUpgradeTables(dr); },
+        [](auto const& r) { return r.columns.empty(); },
+        [](auto const& r) {
+            std::println("Columns to upgrade ({}):", r.columns.size());
+            for (auto const& c: r.columns)
+                std::println("  {}.{}", c.table.table, c.column);
+            if (!r.rebuiltForeignKeys.empty())
+            {
+                std::println("");
+                std::println("Foreign keys to drop and re-add ({}):", r.rebuiltForeignKeys.size());
+                for (auto const& fk: r.rebuiltForeignKeys)
+                {
+                    std::print("  ");
+                    for (auto const& c: fk.columns)
+                        std::print("{} ", c);
+                    std::println("→ {}", fk.referencedTableName);
+                }
+            }
+        },
+        [](auto const& r) {
+            std::set<std::string> tables;
+            for (auto const& c: r.columns)
+                tables.insert(c.table.table);
+            std::println("Upgraded {} column(s) across {} table(s).", r.columns.size(), tables.size());
         });
 }
 
@@ -2094,6 +2131,12 @@ int DispatchDbCommand(Options const& options)
         auto& manager = GetMigrationManager(options);
         OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
         return HardReset(manager, options.dryRun, options.yes);
+    }
+    if (options.command == "unicode-upgrade-tables")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        return UnicodeUpgradeTables(manager, options.dryRun, options.yes);
     }
     if (options.command == "backup")
         return Backup(options);

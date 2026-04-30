@@ -466,6 +466,41 @@ namespace SqlMigration
         /// @param dryRun When true, returns the would-be plan without writing anything.
         [[nodiscard]] LIGHTWEIGHT_API HardResetResult HardReset(bool dryRun = false);
 
+        /// @brief One column upgrade entry in `UnicodeUpgradeResult`.
+        struct ColumnUpgradeEntry
+        {
+            SqlSchema::FullyQualifiedTableName table;
+            std::string column;
+            /// Live byte-counted type the column currently has.
+            SqlColumnTypeDefinition liveType;
+            /// Char-counted type the migrations now declare for this column.
+            SqlColumnTypeDefinition intendedType;
+            bool nullable = true;
+        };
+
+        /// @brief Result of an `UnicodeUpgradeTables` call.
+        struct UnicodeUpgradeResult
+        {
+            bool wasDryRun = false;
+            /// Columns whose live type drifted from the intended type and were upgraded
+            /// (or would be on a real run).
+            std::vector<ColumnUpgradeEntry> columns;
+            /// Foreign keys that had to be dropped + re-added to upgrade their
+            /// participating columns. Reported so operators see the FK churn.
+            std::vector<SqlCompositeForeignKeyConstraint> rebuiltForeignKeys;
+        };
+
+        /// @brief Rewrites legacy `VARCHAR/CHAR` columns to `NVARCHAR/NCHAR` where the
+        /// registered migrations now declare wide types.
+        ///
+        /// Compares the folded plan's intended column types against `SqlSchema::ReadAllTables`
+        /// output; an upgrade is triggered iff intended is `NVarchar`/`NChar` AND live is
+        /// `Varchar`/`Char` with the same `size`. Foreign keys that touch any upgrade column
+        /// are dropped before the alter and re-added afterwards. Cross-backend; SQLite
+        /// uses the in-tree `RebuildSqliteTable` recipe under the hood.
+        ///
+        /// @param dryRun When true, returns the would-be diff without writing anything.
+        [[nodiscard]] LIGHTWEIGHT_API UnicodeUpgradeResult UnicodeUpgradeTables(bool dryRun = false);
 
         /// @brief Re-stamps `schema_migrations.checksum` rows that have drifted.
         ///

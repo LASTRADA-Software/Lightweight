@@ -1707,6 +1707,26 @@ MigrationManager::PlanFoldingResult MigrationManager::FoldRegisteredMigrations(
     return result;
 }
 
+namespace
+{
+    /// @brief Returns true when `liveType` and `intendedType` form a valid Unicode-upgrade
+    /// pair: live is byte-counted (`Char` / `Varchar`), intended is char-counted (`NChar`
+    /// / `NVarchar`), and the declared `size` matches. Same-size matching is the
+    /// conservative rule — it avoids accidentally widening a column whose declared size
+    /// the migrations changed in tandem with the type.
+    bool IsUnicodeUpgradeCandidate(SqlColumnTypeDefinition const& liveType,
+                                    SqlColumnTypeDefinition const& intendedType)
+    {
+        if (auto const* lc = std::get_if<SqlColumnTypeDefinitions::Char>(&liveType))
+            if (auto const* ic = std::get_if<SqlColumnTypeDefinitions::NChar>(&intendedType))
+                return lc->size == ic->size;
+        if (auto const* lv = std::get_if<SqlColumnTypeDefinitions::Varchar>(&liveType))
+            if (auto const* iv = std::get_if<SqlColumnTypeDefinitions::NVarchar>(&intendedType))
+                return lv->size == iv->size;
+        return false;
+    }
+} // namespace
+
 MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
 {
     HardResetResult result;
@@ -1771,6 +1791,241 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
     return result;
 }
 
+namespace
+{
+    /// @brief One affected table's worth of upgrade context — gathered offline before
+    /// any DDL runs so the executor below can iterate without touching the live DB.
+    struct UnicodeUpgradePending
+    {
+        SqlSchema::FullyQualifiedTableName key;
+        std::vector<MigrationManager::ColumnUpgradeEntry> columns;
+        std::vector<SqlSchema::ForeignKeyConstraint> affectedFks;
+    };
+
+    /// @brief Walks one folded table's columns against the live schema and returns
+    /// a `UnicodeUpgradePending` if any column qualifies. Returns `nullopt` when the
+    /// table is unknown to the live DB or no columns drift.
+    std::optional<UnicodeUpgradePending> ComputeUpgradeForTable(
+        SqlSchema::FullyQualifiedTableName const& folded,
+        MigrationManager::PlanFoldingResult::TableState const& foldedState,
+        SqlSchema::Table const& live)
+    {
+        std::map<std::string, SqlSchema::Column const*> liveColumns;
+        for (auto const& c: live.columns)
+            liveColumns.emplace(c.name, &c);
+
+        UnicodeUpgradePending p;
+        p.key = folded;
+
+        std::set<std::string> upgradeColumnNames;
+        for (auto const& intendedCol: foldedState.columns)
+        {
+            auto const liveIt = liveColumns.find(intendedCol.name);
+            if (liveIt == liveColumns.end())
+                continue;
+            if (!IsUnicodeUpgradeCandidate(liveIt->second->type, intendedCol.type))
+                continue;
+            p.columns.push_back(MigrationManager::ColumnUpgradeEntry {
+                .table = folded,
+                .column = intendedCol.name,
+                .liveType = liveIt->second->type,
+                .intendedType = intendedCol.type,
+                .nullable = liveIt->second->isNullable,
+            });
+            upgradeColumnNames.insert(intendedCol.name);
+        }
+
+        if (p.columns.empty())
+            return std::nullopt;
+
+        auto const fkTouchesUpgradeCol = [&](std::vector<std::string> const& cols) {
+            return std::ranges::any_of(cols, [&](std::string const& c) { return upgradeColumnNames.contains(c); });
+        };
+        for (auto const& fk: live.foreignKeys)
+            if (fkTouchesUpgradeCol(fk.foreignKey.columns))
+                p.affectedFks.push_back(fk);
+        for (auto const& fk: live.externalForeignKeys)
+            if (fkTouchesUpgradeCol(fk.primaryKey.columns))
+                p.affectedFks.push_back(fk);
+
+        return p;
+    }
+
+    /// @brief Rewrites every flagged column's type token inside one SQLite-stored
+    /// `CREATE TABLE` body. Single-pass: types we cannot locate are left at their old
+    /// declaration — the next migration touching that column will surface the drift.
+    ///
+    /// Type tokens may carry a parenthesised size (e.g. `VARCHAR(80)`); the scanner
+    /// tracks paren nesting so the column-list close paren after the size is not
+    /// mistaken for the end of the type token.
+    std::string RewriteSqliteCreateTableTypes(std::string createSql,
+                                                std::map<std::string, std::string> const& newTypeByColumn)
+    {
+        for (auto const& [col, newType]: newTypeByColumn)
+        {
+            auto const needle = std::format(R"("{}" )", col);
+            auto const pos = createSql.find(needle);
+            if (pos == std::string::npos)
+                continue;
+            auto const start = pos + needle.size();
+            auto end = start;
+            int parenDepth = 0;
+            while (end < createSql.size())
+            {
+                char const c = createSql[end];
+                if (parenDepth == 0 && (c == ' ' || c == ',' || c == ')'))
+                    break;
+                if (c == '(')
+                    ++parenDepth;
+                else if (c == ')')
+                    --parenDepth;
+                ++end;
+            }
+            createSql.replace(start, end - start, newType);
+        }
+        return createSql;
+    }
+
+    /// @brief Apply the SQLite-specific upgrade path. Each affected table gets a
+    /// `RebuildSqliteTable` round-trip with a transformer that rewrites the stored
+    /// `CREATE TABLE` body in-place. SQLite's lack of column-type ALTER means a full
+    /// rebuild is the canonical recipe — see `RebuildSqliteTable` for the rationale.
+    void ExecuteSqliteUpgrade(SqlConnection& connection,
+                                SqlQueryFormatter const& formatter,
+                                std::vector<UnicodeUpgradePending> const& pending)
+    {
+        for (auto const& p: pending)
+        {
+            std::map<std::string, std::string> newTypeByColumn;
+            for (auto const& c: p.columns)
+                newTypeByColumn.emplace(c.column, formatter.ColumnType(c.intendedType));
+
+            RebuildSqliteTable(connection, p.key.table, [&](std::string createSql) {
+                return RewriteSqliteCreateTableTypes(std::move(createSql), newTypeByColumn);
+            });
+        }
+    }
+
+    /// @brief Build the FK-drop commands for one affected table.
+    [[nodiscard]] std::vector<SqlAlterTableCommand> BuildDropFkCommands(UnicodeUpgradePending const& p)
+    {
+        std::vector<SqlAlterTableCommand> dropCommands;
+        dropCommands.reserve(p.affectedFks.size());
+        for (auto const& fk: p.affectedFks)
+            if (fk.foreignKey.columns.size() == 1)
+                dropCommands.emplace_back(
+                    SqlAlterTableCommands::DropForeignKey { .columnName = fk.foreignKey.columns.front() });
+        return dropCommands;
+    }
+
+    /// @brief Build the ALTER-column commands for one affected table.
+    [[nodiscard]] std::vector<SqlAlterTableCommand> BuildAlterColumnCommands(UnicodeUpgradePending const& p)
+    {
+        std::vector<SqlAlterTableCommand> alterCommands;
+        alterCommands.reserve(p.columns.size());
+        for (auto const& c: p.columns)
+            alterCommands.emplace_back(SqlAlterTableCommands::AlterColumn {
+                .columnName = c.column,
+                .columnType = c.intendedType,
+                .nullable = c.nullable ? SqlNullable::Null : SqlNullable::NotNull,
+            });
+        return alterCommands;
+    }
+
+    /// @brief Build the FK-re-add commands for one affected table.
+    [[nodiscard]] std::vector<SqlAlterTableCommand> BuildAddFkCommands(UnicodeUpgradePending const& p)
+    {
+        std::vector<SqlAlterTableCommand> addCommands;
+        addCommands.reserve(p.affectedFks.size());
+        for (auto const& fk: p.affectedFks)
+        {
+            if (fk.foreignKey.columns.size() != 1)
+                continue;
+            addCommands.emplace_back(SqlAlterTableCommands::AddForeignKey {
+                .columnName = fk.foreignKey.columns.front(),
+                .referencedColumn = SqlForeignKeyReferenceDefinition {
+                    .tableName = fk.primaryKey.table.table,
+                    .columnName = fk.primaryKey.columns.empty() ? std::string {} : fk.primaryKey.columns.front(),
+                },
+            });
+        }
+        return addCommands;
+    }
+
+    /// @brief Apply the cross-backend upgrade path (everything that isn't SQLite).
+    /// Per-table sequence: drop affected FKs → alter columns → re-add FKs. Each
+    /// step renders via the formatter so the in-tree `AlterTable` codegen is the
+    /// single source of truth for the dialect's ALTER syntax.
+    void ExecuteGenericUpgrade(SqlStatement& stmt,
+                                 SqlQueryFormatter const& formatter,
+                                 std::vector<UnicodeUpgradePending> const& pending)
+    {
+        auto const execAlter = [&](std::string_view schema,
+                                    std::string_view table,
+                                    std::vector<SqlAlterTableCommand> const& commands) {
+            if (commands.empty())
+                return;
+            auto const sqls = formatter.AlterTable(schema, table, commands);
+            for (auto const& sql: sqls)
+                (void) stmt.ExecuteDirect(sql);
+        };
+
+        for (auto const& p: pending)
+        {
+            execAlter(p.key.schema, p.key.table, BuildDropFkCommands(p));
+            execAlter(p.key.schema, p.key.table, BuildAlterColumnCommands(p));
+            execAlter(p.key.schema, p.key.table, BuildAddFkCommands(p));
+        }
+    }
+} // namespace
+
+MigrationManager::UnicodeUpgradeResult MigrationManager::UnicodeUpgradeTables(bool dryRun)
+{
+    UnicodeUpgradeResult result;
+    result.wasDryRun = dryRun;
+
+    auto& dm = GetDataMapper();
+    auto const& formatter = dm.Connection().QueryFormatter();
+    auto const fold = FoldRegisteredMigrations(formatter);
+
+    auto stmt = SqlStatement { dm.Connection() };
+    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+
+    std::map<std::string, SqlSchema::Table const*> liveByName;
+    for (auto const& t: liveTables)
+        liveByName.emplace(t.name, &t);
+
+    std::vector<UnicodeUpgradePending> pendingPerTable;
+    for (auto const& folded: fold.creationOrder)
+    {
+        auto const it = liveByName.find(folded.table);
+        if (it == liveByName.end())
+            continue;
+        auto upgrade = ComputeUpgradeForTable(folded, fold.tables.at(folded), *it->second);
+        if (!upgrade)
+            continue;
+        for (auto const& c: upgrade->columns)
+            result.columns.push_back(c);
+        for (auto const& fk: upgrade->affectedFks)
+            result.rebuiltForeignKeys.push_back(SqlCompositeForeignKeyConstraint {
+                .columns = fk.foreignKey.columns,
+                .referencedTableName = fk.primaryKey.table.table,
+                .referencedColumns = fk.primaryKey.columns,
+            });
+        pendingPerTable.push_back(std::move(*upgrade));
+    }
+
+    if (dryRun || pendingPerTable.empty())
+        return result;
+
+    auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
+    if (dm.Connection().ServerType() == SqlServerType::SQLITE)
+        ExecuteSqliteUpgrade(dm.Connection(), formatter, pendingPerTable);
+    else
+        ExecuteGenericUpgrade(stmt, formatter, pendingPerTable);
+    transaction.Commit();
+    return result;
+}
 
 MigrationStatus MigrationManager::GetMigrationStatus() const
 {

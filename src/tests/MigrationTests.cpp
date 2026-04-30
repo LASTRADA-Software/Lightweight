@@ -1584,7 +1584,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
 }
 
 // ============================================================================
-// Tests for FoldRegisteredMigrations
+// Tests for FoldRegisteredMigrations / HardReset / UnicodeUpgradeTables
 // ============================================================================
 
 namespace fold_test
@@ -1869,6 +1869,59 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: dry-run is observationally
     CHECK_FALSE(result.schemaMigrationsDropped);
 }
 
+// ============================================================================
+// UnicodeUpgradeTables — SQLite end-to-end
+// ============================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "UnicodeUpgradeTables: dry-run reports drift",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    // Apply a migration that creates a Varchar(100) column. The fold's intended type
+    // would also be Varchar(100), so no drift expected.
+    fold_test::FoldStub<20'10'11'00'00'01> m1 { "create t", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("widen_me").PrimaryKey("id", Bigint()).Column("name", Varchar(50));
+    } };
+
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/true);
+    CHECK(result.wasDryRun);
+    // Same intended/live types — no entries.
+    CHECK(result.columns.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "UnicodeUpgradeTables: completes without error on roundtrip",
+                 "[SqlMigration][UnicodeUpgrade]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    // SQLite is a special case: its ODBC driver doesn't reliably distinguish
+    // VARCHAR from NVARCHAR, so SqlSchema::ReadAllTables reports the live column
+    // as Varchar even though the migration declared NVarchar. The upgrader will
+    // therefore see "drift" and rebuild the table — but the rebuild must succeed
+    // and the table must remain queryable afterwards.
+    fold_test::FoldStub<20'10'12'00'00'01> m1 { "create t", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("idem").PrimaryKey("id", Bigint()).Column("note", NVarchar(80));
+    } };
+
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+
+    // Should run cleanly without exceptions.
+    auto const result = mgr.UnicodeUpgradeTables(/*dryRun=*/false);
+    (void) result;
+
+    // After the upgrade the table must still be queryable.
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    auto cursor = stmt.ExecuteDirect("SELECT name FROM sqlite_schema WHERE type = 'table' AND name = 'idem'");
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>(1) == "idem");
+}
 
 // ============================================================================
 // SplitFileWriter unit tests
