@@ -12,6 +12,5 @@ var searchData=
   ['whereraw_9',['WhereRaw',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a5a857122df51ec8595876adafcaeb51d',1,'Lightweight::SqlWhereClauseBuilder']]],
   ['wheretrue_10',['wheretrue',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a1c04fd7b1f7b5354e07e5ef5e0118958',1,'Lightweight::SqlWhereClauseBuilder::WhereTrue(ColumnName const &amp;columnName)'],['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a168b834b8bb66654fcb8ca75372f4aeb',1,'Lightweight::SqlWhereClauseBuilder::WhereTrue(ColumnName const &amp;columnName)']]],
   ['withschema_11',['WithSchema',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a711667d1ef5b5b5a168aa21b2150a394',1,'Lightweight::SqlMigrationQueryBuilder']]],
-  ['write_12',['Write',['../d2/d7e/classLightweight_1_1Secrets_1_1ISecretBackend.html#a7e6b0b54496cb979edd20f5998052a0a',1,'Lightweight::Secrets::ISecretBackend']]],
-  ['writerow_13',['WriteRow',['../dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26',1,'Lightweight::SqlBackup::ChunkWriter']]]
+  ['writerow_12',['WriteRow',['../dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#ae02440293597aaf830d7ce2dc4ef6a26',1,'Lightweight::SqlBackup::ChunkWriter']]]
 ];

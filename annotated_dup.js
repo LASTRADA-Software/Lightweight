@@ -1,14 +1,13 @@
 var annotated_dup =
 [
     [ "Lightweight", null, [
-      [ "Config", null, [
-        [ "Profile", "d6/da2/structLightweight_1_1Config_1_1Profile.html", "d6/da2/structLightweight_1_1Config_1_1Profile" ],
-        [ "ProfileStore", "d7/d36/classLightweight_1_1Config_1_1ProfileStore.html", "d7/d36/classLightweight_1_1Config_1_1ProfileStore" ]
+      [ "CodeGen", null, [
+        [ "CodeBlock", "d5/d38/structLightweight_1_1CodeGen_1_1CodeBlock.html", "d5/d38/structLightweight_1_1CodeGen_1_1CodeBlock" ],
+        [ "WriteResult", "d2/d38/structLightweight_1_1CodeGen_1_1WriteResult.html", "d2/d38/structLightweight_1_1CodeGen_1_1WriteResult" ]
       ] ],
-      [ "Secrets", null, [
-        [ "ISecretBackend", "d2/d7e/classLightweight_1_1Secrets_1_1ISecretBackend.html", "d2/d7e/classLightweight_1_1Secrets_1_1ISecretBackend" ],
-        [ "ResolveError", "d1/d7b/structLightweight_1_1Secrets_1_1ResolveError.html", "d1/d7b/structLightweight_1_1Secrets_1_1ResolveError" ],
-        [ "SecretResolver", "d0/d5a/classLightweight_1_1Secrets_1_1SecretResolver.html", "d0/d5a/classLightweight_1_1Secrets_1_1SecretResolver" ]
+      [ "MigrationFold", null, [
+        [ "CppEmitOptions", "df/ddc/structLightweight_1_1MigrationFold_1_1CppEmitOptions.html", "df/ddc/structLightweight_1_1MigrationFold_1_1CppEmitOptions" ],
+        [ "SqlEmitOptions", "d2/d92/structLightweight_1_1MigrationFold_1_1SqlEmitOptions.html", "d2/d92/structLightweight_1_1MigrationFold_1_1SqlEmitOptions" ]
       ] ],
       [ "SqlAlterTableCommands", null, [
         [ "AddColumnIfNotExists", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists" ],
@@ -32,7 +31,6 @@ var annotated_dup =
       [ "SqlMigration", null, [
         [ "ChecksumVerificationResult", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult" ],
         [ "MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase" ],
-        [ "MigrationException", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException" ],
         [ "MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock" ],
         [ "MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager" ],
         [ "MigrationMetadata", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata" ],
@@ -43,15 +41,9 @@ var annotated_dup =
       ] ],
       [ "SqlSchema", null, [
         [ "Column", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html", "d2/db8/structLightweight_1_1SqlSchema_1_1Column" ],
-        [ "ColumnDiff", "de/d75/structLightweight_1_1SqlSchema_1_1ColumnDiff.html", "de/d75/structLightweight_1_1SqlSchema_1_1ColumnDiff" ],
-        [ "DiffProgressEvent", "dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html", "dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent" ],
         [ "EventHandler", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler" ],
         [ "IndexDefinition", "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html", "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition" ],
-        [ "RowDiff", "d2/d37/structLightweight_1_1SqlSchema_1_1RowDiff.html", "d2/d37/structLightweight_1_1SqlSchema_1_1RowDiff" ],
-        [ "SchemaDiff", "d0/dd0/structLightweight_1_1SqlSchema_1_1SchemaDiff.html", "d0/dd0/structLightweight_1_1SqlSchema_1_1SchemaDiff" ],
-        [ "Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", "d3/dda/structLightweight_1_1SqlSchema_1_1Table" ],
-        [ "TableDataDiff", "d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html", "d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff" ],
-        [ "TableDiff", "da/d90/structLightweight_1_1SqlSchema_1_1TableDiff.html", "da/d90/structLightweight_1_1SqlSchema_1_1TableDiff" ]
+        [ "Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", "d3/dda/structLightweight_1_1SqlSchema_1_1Table" ]
       ] ],
       [ "Zip", null, [
         [ "EntryInfo", "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html", "d7/d09/structLightweight_1_1Zip_1_1EntryInfo" ],

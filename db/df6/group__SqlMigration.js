@@ -4,19 +4,6 @@ var group__SqlMigration =
       [ "operator<=>", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html#a04e7dbdc97868e3dfe263266363c4b45", null ],
       [ "value", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html#a7ff59005141458f049508004b33e77ee", null ]
     ] ],
-    [ "Lightweight::SqlMigration::MigrationException", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html", [
-      [ "Operation", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241", [
-        [ "Apply", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241a9639e32cab248434a17ab32237cb3b71", null ],
-        [ "Revert", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241a5289bf157522a5cd34676f2777d27048", null ]
-      ] ],
-      [ "MigrationException", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a557d05f04b73dd329784c1b693959b2b", null ],
-      [ "GetOperation", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a53cfe81acb8bc98d0d67e9a45fbb5fc6", null ],
-      [ "GetMigrationTimestamp", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#add881a918e02ff27ec38f907f535b3ed", null ],
-      [ "GetMigrationTitle", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a2990194ab69fa6d1857d96007e437218", null ],
-      [ "GetStepIndex", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#ae719f328736efcdb1e98ad53a6dbe6dd", null ],
-      [ "GetFailedSql", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a61eb6d9cd5691c158ac18f705448d0cd", null ],
-      [ "GetDriverMessage", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a73858457a32cedc44586e0e63227a356", null ]
-    ] ],
     [ "Lightweight::SqlMigration::ChecksumVerificationResult", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html", [
       [ "timestamp", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#a23fd8a93e907e447544b0acf4a5453be", null ],
       [ "title", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html#ae89a23f74516602d7c4e773d768b0436", null ],
@@ -27,12 +14,7 @@ var group__SqlMigration =
     [ "Lightweight::SqlMigration::RevertResult", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html", [
       [ "revertedTimestamps", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a14223384e1e346debcb57e6c4383154f", null ],
       [ "failedAt", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a44e625e09b82ed9a3612acc9faf3eac8", null ],
-      [ "errorMessage", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#aadae093f5fac7dd9ffe41f7be93ca0e5", null ],
-      [ "failedTitle", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#ad2927aaa6795c19d19b03c9086f2e0ac", null ],
-      [ "failedStepIndex", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#aaff64552c326188435a7f8217ca3ff88", null ],
-      [ "failedSql", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a171522a1b7c4ee9d70347673a27c3d34", null ],
-      [ "sqlState", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a787dda752e27a7b9082e646894506d41", null ],
-      [ "nativeErrorCode", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#af8f720d9dd64e90ceafeb0ebfcce9108", null ]
+      [ "errorMessage", "d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#aadae093f5fac7dd9ffe41f7be93ca0e5", null ]
     ] ],
     [ "Lightweight::SqlMigration::MigrationStatus", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html", [
       [ "appliedCount", "d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#a1ac8a6b73ea294f3a7bee66b97feb2c1", null ],
@@ -46,6 +28,24 @@ var group__SqlMigration =
       [ "highestTimestamp", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#a48cc0c694f65a3ad2e43b839ab5d5088", null ]
     ] ],
     [ "Lightweight::SqlMigration::MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", [
+      [ "PlanFoldingResult", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html", [
+        [ "DataStep", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html", [
+          [ "sourceTimestamp", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#aa75da59965fb30aa059e5c01837b8515", null ],
+          [ "sourceTitle", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#a4b67dd278a63e1a8680f3a99e47141e5", null ],
+          [ "element", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#a73d0c542c119f43de28a70dd3f6af55f", null ]
+        ] ],
+        [ "TableState", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html", [
+          [ "columns", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#a14c5641bee4fb83cbdff804c876ebc04", null ],
+          [ "compositeForeignKeys", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#a79de324e4b9ed5400fe3d954daa4fca1", null ],
+          [ "ifNotExists", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#acd1d1fea3fc25d001846e2a4170e8fb7", null ]
+        ] ],
+        [ "tables", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#a8416dff5cbb6f7b62b61f5a65d076d92", null ],
+        [ "creationOrder", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ae8ebcc9ddb16471d4a17bb73ad4f9083", null ],
+        [ "indexes", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#a660ae31bbcb90397f6dae0085902cdc1", null ],
+        [ "dataSteps", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ac208ef0ccc537eb47f265169688f4313", null ],
+        [ "releases", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ab12f33230c55c35f145a9f1341d7c0d5", null ],
+        [ "foldedMigrations", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#affd0c623900ef5f568ab3ebc3a22c045", null ]
+      ] ],
       [ "MigrationList", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1", null ],
       [ "ExecuteCallback", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364", null ],
       [ "AddMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1e2638d4b642e5692df3d2ab24e199a4", null ],
@@ -74,7 +74,8 @@ var group__SqlMigration =
       [ "GetAllReleases", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad390ac8da8ac693c7357b67bc183bb60", null ],
       [ "FindReleaseByVersion", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a68b4434898a6ebceb06025065af79ec0", null ],
       [ "FindReleaseForTimestamp", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97663a37d26d962c2c17d97706651c0f", null ],
-      [ "GetMigrationsForRelease", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97918619adda32f2e9f65b089221a01f", null ]
+      [ "GetMigrationsForRelease", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97918619adda32f2e9f65b089221a01f", null ],
+      [ "FoldRegisteredMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a500e17dc06f73a877dc7e7a99342feaa", null ]
     ] ],
     [ "Lightweight::SqlMigration::MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", [
       [ "MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a8ee0594832c46d4679a3db0a139b77b9", null ],
