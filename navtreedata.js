@@ -207,12 +207,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dfe/StringInterface_8hpp_source.html",
-"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a5fc0d383bcfa36cd657ee2bb8b88fd18",
-"d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c",
-"da/df4/classLightweight_1_1HasMany.html#a666c433d8ecb4a438dc9abd68fa80832",
-"de/d73/classLightweight_1_1HasManyThrough.html#af0243a918b74bd0570627d0ce6363f06",
-"functions_i.html"
+"d3/d30/classLightweight_1_1Pool.html#a56fdfc02e3f33e88840e66dbe3491f0a",
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709",
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a3731b7ec6676cd87f087c41aa4a89ded",
+"db/d47/MigrationPlan_8hpp_source.html",
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#af144019a618b92754fdc3879e226632d",
+"index.html#mapping-query-to-multiple-struct"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
