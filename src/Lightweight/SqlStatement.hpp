@@ -224,13 +224,24 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
         std::source_location location = std::source_location::current()) noexcept;
     void CloseCursor() noexcept;
 
+    /// @brief Binds the given output column variables to the result columns of this statement.
+    /// @tparam Args ODBC-bindable output column types.
+    /// @param args Pointers to caller-owned storage for each result column, in order.
     template <SqlOutputColumnBinder... Args>
     void BindOutputColumns(Args*... args);
 
+    /// @brief Binds the members of @p records to the result columns of this statement
+    /// in declaration order, via reflection.
+    /// @tparam Records Aggregate record types whose members map to result columns.
+    /// @param records Pointers to caller-owned record instances.
     template <typename... Records>
         requires(((std::is_class_v<Records> && std::is_aggregate_v<Records>) && ...))
     void BindOutputColumnsToRecord(Records*... records);
 
+    /// @brief Binds a single output column variable to the result column at @p columnIndex.
+    /// @tparam T An ODBC-bindable output column type.
+    /// @param columnIndex 1-based result column index.
+    /// @param arg Pointer to caller-owned storage for the column value.
     template <SqlOutputColumnBinder T>
     void BindOutputColumn(SQLUSMALLINT columnIndex, T* arg);
 
@@ -637,7 +648,7 @@ inline LIGHTWEIGHT_FORCE_INLINE std::string const& SqlStatement::PreparedQuery()
     return m_preparedQuery;
 }
 
-/// @copydoc SqlStatement::BindOutputColumns
+/// @brief Out-of-line definition of `SqlStatement::BindOutputColumns`.
 template <SqlOutputColumnBinder... Args>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumns(Args*... args)
 {
@@ -663,7 +674,7 @@ void SqlStatement::BindOutputColumnsToRecord(Records*... records)
      ...);
 }
 
-/// @copydoc SqlStatement::BindOutputColumn
+/// @brief Out-of-line definition of `SqlStatement::BindOutputColumn`.
 template <SqlOutputColumnBinder T>
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::BindOutputColumn(SQLUSMALLINT columnIndex, T* arg)
 {

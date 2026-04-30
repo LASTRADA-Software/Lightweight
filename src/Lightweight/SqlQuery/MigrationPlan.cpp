@@ -386,7 +386,8 @@ namespace
 
         for (auto& [columnName, value]: columns)
         {
-            auto const it = context.columnWidths.find({ schemaName, tableName, columnName });
+            auto const it = context.columnWidths.find(
+                MigrationRenderContext::ColumnKey { .schema = schemaName, .table = tableName, .column = columnName });
             if (it == context.columnWidths.end())
                 continue;
             std::size_t originalSize = 0;

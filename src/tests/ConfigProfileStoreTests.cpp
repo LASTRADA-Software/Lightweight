@@ -178,7 +178,7 @@ TEST_CASE("ProfileStore — malformed YAML returns a readable error", "[ProfileS
     ScopedTempYaml const yaml("profiles:\n  broken: [not-a-map]\n");
     auto const result = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
     REQUIRE_FALSE(result.has_value());
-    CHECK(result.error().find("broken") != std::string::npos);
+    CHECK(result.error().contains("broken"));
 }
 
 TEST_CASE("ProfileStore — dsn and connectionString are mutually exclusive", "[ProfileStore]")
@@ -190,8 +190,8 @@ TEST_CASE("ProfileStore — dsn and connectionString are mutually exclusive", "[
 )");
     auto const result = Lightweight::Config::ProfileStore::LoadOrDefault(yaml.Path());
     REQUIRE_FALSE(result.has_value());
-    CHECK(result.error().find("dsn") != std::string::npos);
-    CHECK(result.error().find("connectionString") != std::string::npos);
+    CHECK(result.error().contains("dsn"));
+    CHECK(result.error().contains("connectionString"));
 }
 
 TEST_CASE("ProfileStore — Remove clears default when it points at the removed profile", "[ProfileStore]")

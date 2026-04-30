@@ -960,7 +960,8 @@ namespace
                     auto const width = CharacterWidthFromDataType(dataType, static_cast<std::size_t>(*maxLengthOpt));
                     if (width.value == 0)
                         continue;
-                    ctx.columnWidths[{ std::string(schema), std::string(table), columnName }] = width;
+                    ctx.columnWidths[MigrationRenderContext::ColumnKey {
+                        .schema = std::string(schema), .table = std::string(table), .column = columnName }] = width;
                 }
             }
             catch (SqlException const&) // NOLINT(bugprone-empty-catch) — see function comment

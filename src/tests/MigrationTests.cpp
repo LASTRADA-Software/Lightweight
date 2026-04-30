@@ -309,10 +309,10 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "MigrationException carries structured
         CHECK(ex.GetMigrationTimestamp().value == 202412102220);
         CHECK(ex.GetMigrationTitle() == "failing migration");
         CHECK(ex.GetStepIndex() == 1);
-        CHECK(ex.GetFailedSql().find("THIS_IS_INVALID_SQL_FOR_DIAG") != std::string::npos);
+        CHECK(ex.GetFailedSql().contains("THIS_IS_INVALID_SQL_FOR_DIAG"));
         CHECK_FALSE(ex.GetDriverMessage().empty());
         // Base-class accessors keep working for catch(SqlException) callers.
-        CHECK(ex.info().message.find("failing migration") != std::string::npos);
+        CHECK(ex.info().message.contains("failing migration"));
     }
 }
 
@@ -1373,15 +1373,15 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     // never the excluded m3's table (prev_r3).
     for (auto const& sql: previewed)
     {
-        CHECK(sql.find("prev_r3") == std::string::npos);
+        CHECK(!sql.contains("prev_r3"));
     }
     bool sawR1 = false;
     bool sawR2 = false;
     for (auto const& sql: previewed)
     {
-        if (sql.find("prev_r1") != std::string::npos)
+        if (sql.contains("prev_r1"))
             sawR1 = true;
-        if (sql.find("prev_r2") != std::string::npos)
+        if (sql.contains("prev_r2"))
             sawR2 = true;
     }
     CHECK(sawR1);
@@ -1499,7 +1499,7 @@ TEST_CASE("ToSql: lup-truncate off leaves oversize INSERT values intact", "[SqlM
 
     REQUIRE(sql.size() == 1);
     // Strict mode: the value lands in the INSERT verbatim.
-    CHECK(sql[0].find("'hellooo'") != std::string::npos);
+    CHECK(sql[0].contains("'hellooo'"));
     CHECK(capture.Warnings().empty());
 }
 
@@ -1537,19 +1537,19 @@ TEST_CASE("ToSql: lup-truncate on clips oversize INSERT values and warns", "[Sql
     auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
 
     REQUIRE(sql.size() == 1);
-    CHECK(sql[0].find("'hello'") != std::string::npos);   // truncated to 5 chars
-    CHECK(sql[0].find("'hellooo'") == std::string::npos); // original gone
+    CHECK(sql[0].contains("'hello'"));    // truncated to 5 chars
+    CHECK(!sql[0].contains("'hellooo'")); // original gone
     REQUIRE(capture.Warnings().size() == 1);
     auto const& warning = capture.Warnings()[0];
-    CHECK(warning.find("lup-truncate") != std::string::npos);
-    CHECK(warning.find("T.n") != std::string::npos);
-    CHECK(warning.find("declared width 5") != std::string::npos);
+    CHECK(warning.contains("lup-truncate"));
+    CHECK(warning.contains("T.n"));
+    CHECK(warning.contains("declared width 5"));
     // Migration identity attribution + the rendered SQL must travel with the warning so
     // operators can answer "which migration?" / "which statement?" without re-running.
-    CHECK(warning.find("20200101120000") != std::string::npos);
-    CHECK(warning.find("widen N column") != std::string::npos);
-    CHECK(warning.find("statement: ") != std::string::npos);
-    CHECK(warning.find(sql[0]) != std::string::npos);
+    CHECK(warning.contains("20200101120000"));
+    CHECK(warning.contains("widen N column"));
+    CHECK(warning.contains("statement: "));
+    CHECK(warning.contains(sql[0]));
 }
 
 TEST_CASE("ToSql: lup-truncate handles UTF-8 multi-byte by character count", "[SqlMigration][compat]")
@@ -1588,7 +1588,7 @@ TEST_CASE("ToSql: lup-truncate handles UTF-8 multi-byte by character count", "[S
 
     REQUIRE(sql.size() == 1);
     // 'ö' is U+00F6 = 246 decimal. The encoder splits the run on the non-ASCII char.
-    CHECK(sql[0].find("N'K' + NCHAR(246) + N'rn'") != std::string::npos);
+    CHECK(sql[0].contains("N'K' + NCHAR(246) + N'rn'"));
     CHECK(capture.Warnings().size() == 1);
 }
 
@@ -1625,7 +1625,7 @@ TEST_CASE("ToSql: lup-truncate truncates string_view values from char-array lite
     auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
 
     REQUIRE(sql.size() == 1);
-    CHECK(sql[0].find("'hello'") != std::string::npos);
+    CHECK(sql[0].contains("'hello'"));
 }
 
 TEST_CASE("ToSql: DROP TABLE evicts column widths from the cache", "[SqlMigration][compat]")
@@ -1667,7 +1667,7 @@ TEST_CASE("ToSql: DROP TABLE evicts column widths from the cache", "[SqlMigratio
     CapturingWarningLogger capture;
     auto const sql = Lightweight::ToSql(formatter, SqlMigrationPlanElement { insert }, context);
     REQUIRE(sql.size() == 1);
-    CHECK(sql[0].find("'hellooo'") != std::string::npos);
+    CHECK(sql[0].contains("'hellooo'"));
     CHECK(capture.Warnings().empty());
 }
 

@@ -584,9 +584,10 @@ struct [[nodiscard]] MigrationRenderContext
     /// truncation layer leaves the value alone.
     struct ColumnKey
     {
-        std::string schema;
-        std::string table;
-        std::string column;
+        std::string schema; ///< Schema label (empty for engines without schemas, e.g. SQLite).
+        std::string table;  ///< Table name.
+        std::string column; ///< Column name.
+        /// Total ordering on (schema, table, column) — defaulted three-way comparison.
         auto operator<=>(ColumnKey const&) const = default;
     };
 
@@ -606,6 +607,7 @@ struct [[nodiscard]] MigrationRenderContext
         WidthUnit unit { WidthUnit::Characters };
     };
 
+    /// Cache of declared character widths, populated lazily as plan elements render.
     std::map<ColumnKey, ColumnWidth> columnWidths;
 
     /// @brief Optional fallback that fetches column widths for a `(schema, table)` from
@@ -624,10 +626,12 @@ struct [[nodiscard]] MigrationRenderContext
     /// re-query for every INSERT against the same table.
     struct TableKey
     {
-        std::string schema;
-        std::string table;
+        std::string schema; ///< Schema label (empty when the engine reports none).
+        std::string table;  ///< Table name.
+        /// Total ordering on (schema, table) — defaulted three-way comparison.
         auto operator<=>(TableKey const&) const = default;
     };
+    /// Tables for which `widthLookup` has already been called; prevents repeat queries.
     std::set<TableKey> lookupAttempted;
 
     /// @brief Identity of the migration currently being rendered. Set by
@@ -636,6 +640,7 @@ struct [[nodiscard]] MigrationRenderContext
     /// offending migration. Empty / zero when rendering happens outside a migration
     /// run (e.g. unit tests calling `ToSql` directly).
     std::string activeMigrationTitle;
+    /// Timestamp of the migration currently being rendered (0 outside a migration run).
     std::uint64_t activeMigrationTimestamp = 0;
 };
 
@@ -650,7 +655,8 @@ struct [[nodiscard]] MigrationRenderContext
 [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> ToSql(SqlQueryFormatter const& formatter,
                                                              SqlMigrationPlanElement const& element);
 
-/// @overload Rendering variant that consults a `MigrationRenderContext` for compat flags
+/// @overload
+/// Rendering variant that consults a `MigrationRenderContext` for compat flags
 /// and column-width tracking. Updates `context` in place when the rendered step declares
 /// new columns.
 [[nodiscard]] LIGHTWEIGHT_API std::vector<std::string> ToSql(SqlQueryFormatter const& formatter,

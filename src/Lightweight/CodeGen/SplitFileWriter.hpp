@@ -22,7 +22,9 @@ namespace Lightweight::CodeGen
 /// migrations.
 struct CodeBlock
 {
+    /// Rendered text of the block, ready to be written verbatim into an output file.
     std::string content;
+    /// Cached newline count for `content`; reused across packing passes.
     std::size_t lineCount = 0;
 };
 

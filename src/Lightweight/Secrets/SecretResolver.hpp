@@ -46,8 +46,10 @@ class LIGHTWEIGHT_API SecretResolver
     SecretResolver() = default;
     ~SecretResolver() = default;
     SecretResolver(SecretResolver const&) = delete;
+    /// Move-construct from another resolver, taking ownership of its backend chain.
     SecretResolver(SecretResolver&&) = default;
     SecretResolver& operator=(SecretResolver const&) = delete;
+    /// Move-assign from another resolver, taking ownership of its backend chain.
     SecretResolver& operator=(SecretResolver&&) = default;
 
     /// Appends a backend to the chain. The backend's `Name()` is used both as

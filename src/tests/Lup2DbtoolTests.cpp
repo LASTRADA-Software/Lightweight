@@ -295,7 +295,7 @@ TEST_CASE("ResolvePositionalInserts substitutes real column names", "[lup2dbtool
         c.tableName = "cfg";
         c.columns.push_back({ .name = "nr", .type = "integer" });
         c.columns.push_back({ .name = "val", .type = "integer" });
-        m1.statements.push_back({ {}, c });
+        m1.statements.push_back({ .comments = {}, .statement = c });
     }
 
     ParsedMigration m2;
@@ -306,7 +306,7 @@ TEST_CASE("ResolvePositionalInserts substitutes real column names", "[lup2dbtool
         i.tableName = "cfg";
         i.columnValues.emplace_back("0", "4");
         i.columnValues.emplace_back("1", "215");
-        m2.statements.push_back({ {}, i });
+        m2.statements.push_back({ .comments = {}, .statement = i });
     }
 
     std::vector migrations { m1, m2 };
@@ -328,21 +328,21 @@ TEST_CASE("ResolvePositionalInserts tracks ALTER TABLE ADD COLUMN", "[lup2dbtool
         CreateTableStmt c;
         c.tableName = "t";
         c.columns.push_back({ .name = "id", .type = "integer" });
-        m.statements.push_back({ {}, c });
+        m.statements.push_back({ .comments = {}, .statement = c });
     }
     {
         AlterTableAddColumnStmt a;
         a.tableName = "t";
         a.column.name = "extra";
         a.column.type = "integer";
-        m.statements.push_back({ {}, a });
+        m.statements.push_back({ .comments = {}, .statement = a });
     }
     {
         InsertStmt i;
         i.tableName = "t";
         i.columnValues.emplace_back("0", "1");
         i.columnValues.emplace_back("1", "99");
-        m.statements.push_back({ {}, i });
+        m.statements.push_back({ .comments = {}, .statement = i });
     }
 
     std::vector migrations { m };
@@ -361,14 +361,14 @@ TEST_CASE("ResolvePositionalInserts leaves out-of-bounds indices untouched", "[l
         CreateTableStmt c;
         c.tableName = "t";
         c.columns.push_back({ .name = "id", .type = "integer" });
-        m.statements.push_back({ {}, c });
+        m.statements.push_back({ .comments = {}, .statement = c });
     }
     {
         InsertStmt i;
         i.tableName = "t";
         i.columnValues.emplace_back("0", "1");
         i.columnValues.emplace_back("1", "bogus"); // Table has only 1 column.
-        m.statements.push_back({ {}, i });
+        m.statements.push_back({ .comments = {}, .statement = i });
     }
 
     std::vector migrations { m };
@@ -525,8 +525,8 @@ TEST_CASE("ParseSqlStatement.Update.ExistsSubqueryIsStructured", "[lup2dbtool]")
     REQUIRE(std::holds_alternative<UpdateStmt>(stmt));
     auto const& u = std::get<UpdateStmt>(stmt);
     CHECK(u.tableName == "docs");
-    CHECK(u.whereExpression.find("EXISTS (") != std::string::npos);
-    CHECK(u.whereExpression.find(R"("FOLDER" IS NULL)") != std::string::npos);
+    CHECK(u.whereExpression.contains("EXISTS ("));
+    CHECK(u.whereExpression.contains(R"("FOLDER" IS NULL)"));
 }
 
 TEST_CASE("ParseSqlStatement.Update.WhereIsNull", "[lup2dbtool]")
@@ -913,16 +913,16 @@ TEST_CASE("GeneratePluginCMake.UsesPluginName", "[lup2dbtool]")
     auto const script = out.str();
 
     // Plugin name appears everywhere a target name would: add_library, GLOB variable, link, properties.
-    CHECK(script.find("add_library(MyMigrations MODULE") != std::string::npos);
-    CHECK(script.find("target_link_libraries(MyMigrations PRIVATE Lightweight::Lightweight") != std::string::npos);
-    CHECK(script.find("${MyMigrations_MIGRATIONS}") != std::string::npos);
+    CHECK(script.contains("add_library(MyMigrations MODULE"));
+    CHECK(script.contains("target_link_libraries(MyMigrations PRIVATE Lightweight::Lightweight"));
+    CHECK(script.contains("${MyMigrations_MIGRATIONS}"));
     // Plugin.cpp is the entry point the script must compile alongside the generated sources.
-    CHECK(script.find("Plugin.cpp") != std::string::npos);
+    CHECK(script.contains("Plugin.cpp"));
     // CONFIGURE_DEPENDS glob keeps lup_*.cpp additions cheap.
-    CHECK(script.find("CONFIGURE_DEPENDS") != std::string::npos);
-    CHECK(script.find("lup_*.cpp") != std::string::npos);
+    CHECK(script.contains("CONFIGURE_DEPENDS"));
+    CHECK(script.contains("lup_*.cpp"));
     // Output destination matches the existing plugin convention.
-    CHECK(script.find("${CMAKE_BINARY_DIR}/plugins") != std::string::npos);
+    CHECK(script.contains("${CMAKE_BINARY_DIR}/plugins"));
 }
 
 TEST_CASE("GeneratePluginCMake.DefaultPluginName", "[lup2dbtool]")
@@ -930,7 +930,7 @@ TEST_CASE("GeneratePluginCMake.DefaultPluginName", "[lup2dbtool]")
     std::ostringstream out;
     CodeGenerator::GeneratePluginCMake(out, "LupMigrations");
     auto const script = out.str();
-    CHECK(script.find("add_library(LupMigrations MODULE") != std::string::npos);
+    CHECK(script.contains("add_library(LupMigrations MODULE"));
 }
 
 TEST_CASE("GeneratePluginEntryPoint.DeclaresPluginMacro", "[lup2dbtool]")
@@ -939,8 +939,8 @@ TEST_CASE("GeneratePluginEntryPoint.DeclaresPluginMacro", "[lup2dbtool]")
     CodeGenerator::GeneratePluginEntryPoint(out);
     auto const src = out.str();
 
-    CHECK(src.find("#include <Lightweight/SqlMigration.hpp>") != std::string::npos);
-    CHECK(src.find("LIGHTWEIGHT_MIGRATION_PLUGIN()") != std::string::npos);
+    CHECK(src.contains("#include <Lightweight/SqlMigration.hpp>"));
+    CHECK(src.contains("LIGHTWEIGHT_MIGRATION_PLUGIN()"));
 }
 
 // ================================================================================================
@@ -1019,7 +1019,7 @@ TEST_CASE("ParseSqlFile.AutoMode.PassesThroughUtf8", "[lup2dbtool]")
     // The byte payload should still contain the original UTF-8 bytes, untouched.
     bool foundUtf8 = false;
     for (auto const& [_, value]: stmt.columnValues)
-        if (value.find("\xC3\xA4") != std::string::npos)
+        if (value.contains("\xC3\xA4"))
             foundUtf8 = true;
     CHECK(foundUtf8);
     RemoveQuiet(path);
@@ -1040,9 +1040,9 @@ TEST_CASE("ParseSqlFile.AutoMode.ConvertsWindows1252", "[lup2dbtool]")
     bool foundLatin1 = false;
     for (auto const& [_, value]: stmt.columnValues)
     {
-        if (value.find("\xC3\xA4") != std::string::npos)
+        if (value.contains("\xC3\xA4"))
             foundUtf8 = true;
-        if (value.find('\xE4') != std::string::npos && value.find("\xC3\xA4") == std::string::npos)
+        if (value.contains('\xE4') && !value.contains("\xC3\xA4"))
             foundLatin1 = true;
     }
     CHECK(foundUtf8);
@@ -1072,8 +1072,8 @@ TEST_CASE("ParseSqlFile.ExplicitUtf8RejectsWindows1252", "[lup2dbtool]")
     auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "utf-8" });
     REQUIRE_FALSE(result.has_value());
     INFO("Error message: " << result.error());
-    CHECK(result.error().find("invalid UTF-8") != std::string::npos);
-    CHECK(result.error().find("utf-8") != std::string::npos);
+    CHECK(result.error().contains("invalid UTF-8"));
+    CHECK(result.error().contains("utf-8"));
     RemoveQuiet(path);
 }
 
@@ -1085,7 +1085,7 @@ TEST_CASE("ParseSqlFile.ExplicitWindows1252RejectsUtf8", "[lup2dbtool]")
     auto const path = WriteTempSqlFile("9_99_05", "INSERT INTO T VALUES (1, 'M\xC3\xA4ller')\n");
     auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "windows-1252" });
     REQUIRE_FALSE(result.has_value());
-    CHECK(result.error().find("validates as UTF-8") != std::string::npos);
+    CHECK(result.error().contains("validates as UTF-8"));
     RemoveQuiet(path);
 }
 

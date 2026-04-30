@@ -39,8 +39,10 @@ struct DataSourceInfo
         User,
         System,
     };
+    /// Whether the DSN is user-private or registered system-wide.
     Scope scope = Scope::User;
 
+    /// Total ordering on (name, description, scope) — defaulted three-way comparison.
     auto operator<=>(DataSourceInfo const&) const noexcept = default;
 };
 
@@ -54,6 +56,7 @@ struct DriverInfo
     /// Typical keys include "FileUsage", "APILevel", "ConnectFunctions".
     std::vector<std::pair<std::string, std::string>> attributes;
 
+    /// Total ordering on (name, attributes) — defaulted three-way comparison.
     auto operator<=>(DriverInfo const&) const noexcept = default;
 };
 

@@ -398,8 +398,13 @@ namespace SqlMigration
             /// Per-table state: ordered column declarations + per-table FK list.
             struct TableState
             {
+                /// Ordered column declarations as they would be emitted in CREATE TABLE.
                 std::vector<SqlColumnDeclaration> columns;
+                /// Composite foreign keys declared on this table (single-column FKs are
+                /// carried inline on the corresponding `SqlColumnDeclaration::foreignKey`).
                 std::vector<SqlCompositeForeignKeyConstraint> compositeForeignKeys;
+                /// Whether the original CREATE TABLE used IF NOT EXISTS (carried through
+                /// to emitters so they can replay it verbatim).
                 bool ifNotExists = false;
             };
 
@@ -417,8 +422,11 @@ namespace SqlMigration
             /// One data step (INSERT/UPDATE/DELETE/RawSql) tagged with its source migration.
             struct DataStep
             {
+                /// Timestamp of the migration that contributed this data step.
                 MigrationTimestamp sourceTimestamp;
+                /// Title of the migration that contributed this data step.
                 std::string sourceTitle;
+                /// The plan element itself (INSERT, UPDATE, DELETE, or RawSql).
                 SqlMigrationPlanElement element;
             };
 
@@ -455,6 +463,8 @@ namespace SqlMigration
         /// @brief Result of a `HardReset` call.
         struct HardResetResult
         {
+            /// True when the populating call was a dry-run; the result describes the
+            /// would-be plan and no DDL was issued.
             bool wasDryRun = false;
             /// Tables the registered migrations *would* have created and were also present
             /// in the live DB — these were dropped (or would be dropped on a real run).
@@ -488,18 +498,23 @@ namespace SqlMigration
         /// @brief One column upgrade entry in `UnicodeUpgradeResult`.
         struct ColumnUpgradeEntry
         {
+            /// Fully-qualified name of the table that owns the column.
             SqlSchema::FullyQualifiedTableName table;
+            /// Name of the column being upgraded.
             std::string column;
             /// Live byte-counted type the column currently has.
             SqlColumnTypeDefinition liveType;
             /// Char-counted type the migrations now declare for this column.
             SqlColumnTypeDefinition intendedType;
+            /// Whether the column is nullable (preserved across the type rewrite).
             bool nullable = true;
         };
 
         /// @brief Result of an `UnicodeUpgradeTables` call.
         struct UnicodeUpgradeResult
         {
+            /// True when the populating call was a dry-run; the result describes the
+            /// would-be diff and no DDL was issued.
             bool wasDryRun = false;
             /// Columns whose live type drifted from the intended type and were upgraded
             /// (or would be on a real run).

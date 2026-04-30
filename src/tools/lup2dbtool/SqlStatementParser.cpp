@@ -771,7 +771,7 @@ namespace
         // Detect the common `4104 AND idc = 2529` shape: a bare `AND`/`OR` keyword
         // inside the captured value.
         auto const upperValue = ToUpper(rawValue);
-        if (upperValue.find(" AND ") != std::string::npos || upperValue.find(" OR ") != std::string::npos)
+        if (upperValue.contains(" AND ") || upperValue.contains(" OR "))
             return std::nullopt;
 
         DeleteStmt stmt;
