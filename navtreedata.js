@@ -107,7 +107,6 @@ var NAVTREE =
       ] ],
       [ "Migration Commands", "d5/dc4/dbtool.html#migration-commands", [
         [ "migrate", "d5/dc4/dbtool.html#migrate", null ],
-        [ "migrate-to-release <VERSION>", "d5/dc4/dbtool.html#migrate-to-release-version", null ],
         [ "list-pending", "d5/dc4/dbtool.html#list-pending", null ],
         [ "list-applied", "d5/dc4/dbtool.html#list-applied", null ],
         [ "status", "d5/dc4/dbtool.html#status", null ],
@@ -214,12 +213,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a0fd8a939fbdd169391d529caf940ad40",
-"d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html",
-"d7/d13/structLightweight_1_1SqlRealName.html#af23090d1ec3bacb89b9aa4510eb9d42d",
-"d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ad359ecfef33012f655714230699a4308",
-"db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750",
-"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#ae9dcfc1dd432fa11965fa0315f252bee"
+"d2/dd0/structLightweight_1_1Field.html#a5d28935f66fa335c491af43a83924200",
+"d5/df9/SqlConnection_8hpp_source.html",
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a63b86cb472007b1707c4483088e9ecd2",
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#adb6ca685968933ad2c6ed5a16ea3af4e",
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a44c828392a97cfb143e6c229555f444f",
+"df/d7c/structLightweight_1_1SqlGuid.html#abc3fab606715de2437552cc0f585359e"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
