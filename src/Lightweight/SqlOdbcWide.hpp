@@ -16,8 +16,7 @@ namespace Lightweight::detail
 // ODBC W variants assume `SQLWCHAR` is layout-compatible with `char16_t` (true on
 // Windows where it's `wchar_t`, and on Linux unixODBC where it's `unsigned short` —
 // both 16-bit). Anything else and the reinterpret_casts below would silently corrupt.
-static_assert(sizeof(SQLWCHAR) == sizeof(char16_t),
-              "ODBC W variants require a 16-bit code unit; SQLWCHAR shape mismatch");
+static_assert(sizeof(SQLWCHAR) == sizeof(char16_t), "ODBC W variants require a 16-bit code unit; SQLWCHAR shape mismatch");
 
 /// @brief Converts a UTF-8 string view into a `std::u16string` for ODBC W variants.
 /// Use this rather than `ToUtf16(std::string const&)` from `UnicodeConverter.hpp`:

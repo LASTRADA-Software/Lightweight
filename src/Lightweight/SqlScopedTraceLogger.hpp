@@ -55,8 +55,7 @@ class LIGHTWEIGHT_API SqlScopedTraceLogger
         // unnecessarily. `path::u16string()` does the platform-correct conversion (UTF-16
         // is path's native form on Windows; UTF-8 → UTF-16 on POSIX).
         auto wLogFile = logFile.u16string();
-        SQLSetConnectAttrW(
-            m_nativeConnection, SQL_ATTR_TRACEFILE, detail::AsSqlWChar(wLogFile.data()), SQL_NTS);
+        SQLSetConnectAttrW(m_nativeConnection, SQL_ATTR_TRACEFILE, detail::AsSqlWChar(wLogFile.data()), SQL_NTS);
         SQLSetConnectAttrW(m_nativeConnection, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_ON, SQL_IS_UINTEGER);
     }
 

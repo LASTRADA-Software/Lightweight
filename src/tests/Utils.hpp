@@ -3,9 +3,10 @@
 #pragma once
 
 #if defined(_WIN32) || defined(_WIN64)
+    #include <cstdlib>
+
     #include <Windows.h>
     #include <crtdbg.h>
-    #include <cstdlib>
 #endif
 
 #include <Lightweight/Lightweight.hpp>
@@ -535,8 +536,7 @@ class SqlTestFixture
             auto wTraceFile = std::u16string { u"CONOUT$" };
 #endif
             SQLHDBC handle = connection.NativeHandle();
-            SQLSetConnectAttrW(
-                handle, SQL_ATTR_TRACEFILE, Lightweight::detail::AsSqlWChar(wTraceFile.data()), SQL_NTS);
+            SQLSetConnectAttrW(handle, SQL_ATTR_TRACEFILE, Lightweight::detail::AsSqlWChar(wTraceFile.data()), SQL_NTS);
             SQLSetConnectAttrW(handle, SQL_ATTR_TRACE, (SQLPOINTER) SQL_OPT_TRACE_ON, SQL_IS_UINTEGER);
         }
 

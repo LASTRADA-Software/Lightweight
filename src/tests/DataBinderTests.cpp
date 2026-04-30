@@ -1409,9 +1409,7 @@ struct UnicodeAcrossDynamicStringTypes
     Field<SqlDynamicWideString<256>> stringWide {};
 };
 
-TEST_CASE_METHOD(SqlTestFixture,
-                 "Unicode round-trip across DataMapper dynamic string types",
-                 "[DataMapper][Unicode]")
+TEST_CASE_METHOD(SqlTestFixture, "Unicode round-trip across DataMapper dynamic string types", "[DataMapper][Unicode]")
 {
     auto dm = DataMapper {};
     dm.CreateTable<UnicodeAcrossDynamicStringTypes>();
@@ -1436,9 +1434,7 @@ struct UnicodeTrimmedFixedRow
     Field<SqlTrimmedWideFixedString<32>> stringWide {};
 };
 
-TEST_CASE_METHOD(SqlTestFixture,
-                 "Trimmed fixed strings strip trailing padding through DataMapper",
-                 "[DataMapper][Unicode]")
+TEST_CASE_METHOD(SqlTestFixture, "Trimmed fixed strings strip trailing padding through DataMapper", "[DataMapper][Unicode]")
 {
     auto dm = DataMapper {};
     dm.CreateTable<UnicodeTrimmedFixedRow>();

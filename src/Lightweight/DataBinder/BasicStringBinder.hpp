@@ -157,8 +157,7 @@ namespace detail
             {
                 if (*indicator != SQL_NULL_DATA && *indicator != SQL_NO_TOTAL)
                 {
-                    auto const syntheticIndicator =
-                        static_cast<SQLLEN>(StringTraits::Size(result) * sizeof(CharType));
+                    auto const syntheticIndicator = static_cast<SQLLEN>(StringTraits::Size(result) * sizeof(CharType));
                     StringTraits::PostProcessOutputColumn(result, syntheticIndicator);
                 }
             }
@@ -201,9 +200,8 @@ struct SqlDataBinder<AnsiStringType>
         // call path in the library produces (file readers, query formatters, etc.).
         if (cb.ServerType() == SqlServerType::POSTGRESQL)
         {
-            auto u16String = std::make_shared<std::u16string>(
-                ToUtf16(std::u8string_view { reinterpret_cast<char8_t const*>(StringTraits::Data(&value)),
-                                             StringTraits::Size(&value) }));
+            auto u16String = std::make_shared<std::u16string>(ToUtf16(std::u8string_view {
+                reinterpret_cast<char8_t const*>(StringTraits::Data(&value)), StringTraits::Size(&value) }));
             cb.PlanPostExecuteCallback([u16String = u16String]() {}); // keep buffer alive
             auto const charCount = u16String->size();
             auto const byteCount = charCount * sizeof(char16_t);
@@ -440,8 +438,7 @@ struct SqlDataBinder<Utf16StringType>
         auto const* data = StringTraits::Data(&value);
         auto const sizeInBytes = StringTraits::Size(&value) * sizeof(CharType);
         auto const charCount = StringTraits::Size(&value);
-        auto const sqlType =
-            static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
+        auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
 
         SQLLEN* indicator = cb.ProvideInputIndicator();
         *indicator = static_cast<SQLLEN>(sizeInBytes);
@@ -538,15 +535,13 @@ struct SqlDataBinder<Utf32StringType>
     {
         // Always go via UTF-16 + SQL_C_WCHAR; the driver handles encoding conversion
         // for the target server.
-        auto u16String =
-            std::make_shared<std::u16string>(ToUtf16(detail::SqlViewHelper<Utf32StringType>::View(value)));
+        auto u16String = std::make_shared<std::u16string>(ToUtf16(detail::SqlViewHelper<Utf32StringType>::View(value)));
         cb.PlanPostExecuteCallback([u16String = u16String]() {}); // Keep the string alive
         auto const* data = u16String->data();
         auto const charCount = u16String->size();
         auto const sizeInBytes = u16String->size() * sizeof(char16_t);
         auto const CType = SQLSMALLINT { SQL_C_WCHAR };
-        auto const sqlType =
-            static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
+        auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
 
         SQLLEN* indicator = cb.ProvideInputIndicator();
         *indicator = static_cast<SQLLEN>(sizeInBytes);
@@ -612,15 +607,13 @@ struct SqlDataBinder<Utf8StringType>
     {
         // Always go via UTF-16 + SQL_C_WCHAR; the driver handles encoding conversion
         // for the target server.
-        auto u16String =
-            std::make_shared<std::u16string>(ToUtf16(detail::SqlViewHelper<Utf8StringType>::View(value)));
+        auto u16String = std::make_shared<std::u16string>(ToUtf16(detail::SqlViewHelper<Utf8StringType>::View(value)));
         cb.PlanPostExecuteCallback([u16String = u16String]() {}); // Keep the string alive
 
         auto const CType = SQL_C_WCHAR;
         auto const charCount = u16String->size();
         auto const byteCount = u16String->size() * sizeof(char16_t);
-        auto const sqlType =
-            static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
+        auto const sqlType = static_cast<SQLSMALLINT>(charCount > SqlOptimalMaxColumnSize ? SQL_WLONGVARCHAR : SQL_WVARCHAR);
 
         SQLLEN* indicator = cb.ProvideInputIndicator();
         *indicator = static_cast<SQLLEN>(byteCount);
