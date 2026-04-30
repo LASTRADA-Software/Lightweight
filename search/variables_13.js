@@ -1,6 +1,8 @@
 var searchData=
 [
-  ['wherecolumn_0',['wherecolumn',['../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#aeaa5a99453909f230477cff8b907e15e',1,'Lightweight::SqlUpdateDataPlan::whereColumn'],['../d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a497f383c5c3a27a5056f21546eb14172',1,'Lightweight::SqlDeleteDataPlan::whereColumn']]],
-  ['whereop_1',['whereop',['../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#ad6ac77aebdac142a100fe41d746fca54',1,'Lightweight::SqlUpdateDataPlan::whereOp'],['../d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a12c99a15d0f64b3c5b9a1015c29cef84',1,'Lightweight::SqlDeleteDataPlan::whereOp']]],
-  ['wherevalue_2',['wherevalue',['../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a308a8fc35020d61bb42ec5733e425f4f',1,'Lightweight::SqlUpdateDataPlan::whereValue'],['../d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a8e30d14cbde38ffc82f6a713be4ed89d',1,'Lightweight::SqlDeleteDataPlan::whereValue']]]
+  ['uid_0',['uid',['../d6/da2/structLightweight_1_1Config_1_1Profile.html#a8511db6cb22a2cac92fd185e24cd402e',1,'Lightweight::Config::Profile']]],
+  ['unique_1',['unique',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#ac7edfc2036f6d77ebce95c4a17d39fd8',1,'Lightweight::SqlColumnDeclaration::unique'],['../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#ae9a36b06c089d48e25e896e2e25d0676',1,'Lightweight::SqlCreateIndexPlan::unique']]],
+  ['unknownappliedcount_2',['unknownAppliedCount',['../d8/d37/structLightweight_1_1SqlMigration_1_1MigrationStatus.html#add9ed9d433afd954d99e936d1d3e0367',1,'Lightweight::SqlMigration::MigrationStatus']]],
+  ['unregisteredtimestamps_3',['unregisteredTimestamps',['../d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html#ae327530829a97b255f081ef739871aee',1,'Lightweight::SqlMigration::MigrationManager::RewriteChecksumsResult']]],
+  ['username_4',['username',['../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37',1,'Lightweight::SqlConnectionDataSource']]]
 ];
