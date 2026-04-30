@@ -433,6 +433,40 @@ namespace SqlMigration
             SqlQueryFormatter const& formatter,
             std::optional<MigrationTimestamp> upToInclusive = std::nullopt) const;
 
+        /// @brief Result of a `HardReset` call.
+        struct HardResetResult
+        {
+            bool wasDryRun = false;
+            /// Tables the registered migrations *would* have created and were also present
+            /// in the live DB — these were dropped (or would be dropped on a real run).
+            std::vector<SqlSchema::FullyQualifiedTableName> droppedTables;
+            /// Tables registered migrations declare but that aren't in the live DB —
+            /// nothing to do for these. Reported for visibility only.
+            std::vector<SqlSchema::FullyQualifiedTableName> absentTables;
+            /// Tables in the live DB the registered migrations don't know about — left
+            /// alone (user-owned). Reported prominently so operators notice.
+            std::vector<SqlSchema::FullyQualifiedTableName> preservedTables;
+            /// Whether the `schema_migrations` table itself was dropped (always true on a
+            /// real run, false on dry-run).
+            bool schemaMigrationsDropped = false;
+        };
+
+        /// @brief Drops every table the registered migrations would create (incl.
+        /// `schema_migrations`), preserving any user-created tables.
+        ///
+        /// Folds all registered migrations to compute the migration-owned set, intersects
+        /// with the live schema (via `SqlSchema::ReadAllTables`), then drops the matching
+        /// live tables in **reverse** creation order with `cascade=true ifExists=true`. The
+        /// `schema_migrations` table is dropped explicitly because it's created outside the
+        /// registered-migrations stream.
+        ///
+        /// Tables present in the live DB but not in the migration plan are left alone and
+        /// reported under `preservedTables` so operators can spot them.
+        ///
+        /// @param dryRun When true, returns the would-be plan without writing anything.
+        [[nodiscard]] LIGHTWEIGHT_API HardResetResult HardReset(bool dryRun = false);
+
+
         /// @brief Re-stamps `schema_migrations.checksum` rows that have drifted.
         ///
         /// Applied migrations whose stored checksum no longer matches the current

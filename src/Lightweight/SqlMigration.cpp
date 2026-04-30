@@ -1707,6 +1707,71 @@ MigrationManager::PlanFoldingResult MigrationManager::FoldRegisteredMigrations(
     return result;
 }
 
+MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
+{
+    HardResetResult result;
+    result.wasDryRun = dryRun;
+
+    auto& dm = GetDataMapper();
+    auto const& formatter = dm.Connection().QueryFormatter();
+    auto const fold = FoldRegisteredMigrations(formatter);
+
+    // Discover live tables. SchemaMigration handling is separate.
+    auto stmt = SqlStatement { dm.Connection() };
+    auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
+
+    std::set<SqlSchema::FullyQualifiedTableName> intended;
+    for (auto const& key: fold.creationOrder)
+        intended.insert(key);
+
+    std::set<std::string> liveNames;
+    for (auto const& t: liveTables)
+        liveNames.insert(t.name);
+
+    // Walk in reverse creation order so dependent tables get dropped first.
+    for (auto const& key: std::ranges::reverse_view(fold.creationOrder))
+    {
+        if (liveNames.contains(key.table))
+            result.droppedTables.push_back(key);
+        else
+            result.absentTables.push_back(key);
+    }
+
+    // Live tables not declared by any migration → preserved (user-owned).
+    for (auto const& t: liveTables)
+    {
+        if (t.name == "schema_migrations")
+            continue;
+        auto const key = MakeFqtn(t.schema, t.name);
+        if (!intended.contains(key))
+            result.preservedTables.push_back(key);
+    }
+
+    if (dryRun)
+        return result;
+
+    auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
+
+    for (auto const& key: result.droppedTables)
+    {
+        auto const sqls = formatter.DropTable(key.schema, key.table, /*ifExists=*/true, /*cascade=*/true);
+        for (auto const& sql: sqls)
+            (void) stmt.ExecuteDirect(sql);
+    }
+
+    if (liveNames.contains("schema_migrations"))
+    {
+        auto const sqls = formatter.DropTable(std::string_view {}, std::string_view { "schema_migrations" }, true, true);
+        for (auto const& sql: sqls)
+            (void) stmt.ExecuteDirect(sql);
+        result.schemaMigrationsDropped = true;
+    }
+
+    transaction.Commit();
+    return result;
+}
+
+
 MigrationStatus MigrationManager::GetMigrationStatus() const
 {
     MigrationStatus status {};

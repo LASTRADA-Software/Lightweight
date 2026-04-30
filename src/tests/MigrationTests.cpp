@@ -1789,6 +1789,88 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: respects releases falling withi
 }
 
 // ============================================================================
+// SQLite end-to-end tests for HardReset
+// ============================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: drops migrated tables and schema_migrations",
+                 "[SqlMigration][HardReset]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'10'08'00'00'01> m1 { "create A", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("table_a").PrimaryKey("id", Bigint());
+    } };
+    fold_test::FoldStub<20'10'08'00'00'02> m2 { "create B", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("table_b").PrimaryKey("id", Bigint());
+    } };
+
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 2);
+
+    auto const dryRun = mgr.HardReset(/*dryRun=*/true);
+    CHECK(dryRun.wasDryRun);
+    CHECK(dryRun.droppedTables.size() == 2);
+    CHECK_FALSE(dryRun.schemaMigrationsDropped);
+
+    auto const live = mgr.HardReset(/*dryRun=*/false);
+    CHECK_FALSE(live.wasDryRun);
+    CHECK(live.droppedTables.size() == 2);
+    CHECK(live.schemaMigrationsDropped);
+
+    // Re-apply should succeed cleanly.
+    mgr.CreateMigrationHistory();
+    CHECK(mgr.ApplyPendingMigrations() == 2);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: preserves user tables", "[SqlMigration][HardReset]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'10'09'00'00'01> m1 { "create migrated", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("migrated_t").PrimaryKey("id", Bigint());
+    } };
+
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+
+    // Create a user-owned table outside the migration system.
+    auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
+    (void) stmt.ExecuteDirect("CREATE TABLE user_t (id INTEGER PRIMARY KEY)");
+
+    auto const result = mgr.HardReset(/*dryRun=*/false);
+    REQUIRE(result.preservedTables.size() == 1);
+    CHECK(result.preservedTables[0].table == "user_t");
+
+    // Verify user table still exists after the reset.
+    auto cursor = stmt.ExecuteDirect("SELECT name FROM sqlite_schema WHERE type = 'table' AND name = 'user_t'");
+    REQUIRE(cursor.FetchRow());
+    CHECK(cursor.GetColumn<std::string>(1) == "user_t");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: dry-run is observationally pure",
+                 "[SqlMigration][HardReset]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'10'10'00'00'01> m1 { "create T", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("t1").PrimaryKey("id", Bigint());
+    } };
+
+    mgr.CreateMigrationHistory();
+    REQUIRE(mgr.ApplyPendingMigrations() == 1);
+
+    auto const before = mgr.GetAppliedMigrationIds().size();
+    auto const result = mgr.HardReset(/*dryRun=*/true);
+    auto const after = mgr.GetAppliedMigrationIds().size();
+    CHECK(before == after);
+    CHECK_FALSE(result.schemaMigrationsDropped);
+}
+
+
+// ============================================================================
 // SplitFileWriter unit tests
 // ============================================================================
 

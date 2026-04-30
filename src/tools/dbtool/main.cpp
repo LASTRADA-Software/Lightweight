@@ -130,6 +130,9 @@ void PrintUsage()
     std::println("  {}rewrite-checksums{}         Rewrites schema_migrations.checksum to match current code",
                  c.command, c.reset);
     std::println("                            (use after a regen that changes only byte shape, not logic)");
+    std::println("  {}hard-reset{}                Drops every migration-owned table (preserves user tables)",
+                 c.command, c.reset);
+    std::println("                            and the schema_migrations table; pair with `migrate`");
     std::println("  {}diff{} {}<A>{} {}<B>{}            Compares two databases (schema + data) and prints a colored",
                  c.command, c.reset, c.param, c.reset, c.param, c.reset);
     std::println("                            report. Each <SOURCE> is either a profile name or a raw");
@@ -1007,6 +1010,43 @@ int RewriteChecksums(MigrationManager& manager, bool dryRun, bool yes)
         [](auto const& r) { std::println("Rewrote {} checksum(s).", r.entries.size()); });
 }
 
+
+/// @brief Drops every migration-owned table, preserves user tables.
+int HardReset(MigrationManager& manager, bool dryRun, bool yes)
+{
+    return RunAdminCommand<MigrationManager::HardResetResult>(
+        "hard-reset",
+        dryRun,
+        yes,
+        [&](bool dr) { return manager.HardReset(dr); },
+        [](auto const& r) { return r.droppedTables.empty() && r.absentTables.empty() && r.preservedTables.empty(); },
+        [](auto const& r) {
+            if (!r.droppedTables.empty())
+            {
+                std::println("Tables to drop ({}):", r.droppedTables.size());
+                for (auto const& t: r.droppedTables)
+                    std::println("  {}", t.table);
+            }
+            if (!r.absentTables.empty())
+            {
+                std::println("Migration-declared but absent ({}): no-op", r.absentTables.size());
+                for (auto const& t: r.absentTables)
+                    std::println("  {}", t.table);
+            }
+            if (!r.preservedTables.empty())
+            {
+                std::println("");
+                std::println("USER-OWNED tables (preserved, NOT dropped) ({}):", r.preservedTables.size());
+                for (auto const& t: r.preservedTables)
+                    std::println("  {}", t.table);
+                std::println("");
+            }
+        },
+        [](auto const& r) {
+            std::println("Dropped {} table(s){}.", r.droppedTables.size(),
+                         r.schemaMigrationsDropped ? " plus schema_migrations" : "");
+        });
+}
 
 /// Marks a migration as applied without executing its Up() method.
 ///
@@ -2048,6 +2088,12 @@ int DispatchDbCommand(Options const& options)
         auto& manager = GetMigrationManager(options);
         OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
         return RewriteChecksums(manager, options.dryRun, options.yes);
+    }
+    if (options.command == "hard-reset")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        return HardReset(manager, options.dryRun, options.yes);
     }
     if (options.command == "backup")
         return Backup(options);
