@@ -201,9 +201,15 @@ jobs:
         run: python -m pip install --disable-pip-version-check pyyaml
       - name: "Install SQLite3 ODBC driver"
         if: ${{ matrix.test_env == 'sqlite3' }}
+        shell: pwsh
         run: |
-          choco install sqliteodbc -y --no-progress
-          choco install sqlite -y --no-progress
+          $ErrorActionPreference = 'Stop'
+          # The chocolatey `sqliteodbc` package was delisted from the community
+          # feed, so install Christian Werner's NSIS installer directly.
+          $url = "http://www.ch-werner.de/sqliteodbc/sqliteodbc_w64.exe"
+          $installer = Join-Path $env:RUNNER_TEMP "sqliteodbc_w64.exe"
+          Invoke-WebRequest -Uri $url -OutFile $installer
+          Start-Process -FilePath $installer -ArgumentList "/S" -Wait -NoNewWindow
       - name: "Setup MS SQL Server (LocalDB)"
         if: ${{ matrix.test_env == 'mssql' }}
         shell: pwsh
@@ -216,14 +222,28 @@ jobs:
         if: ${{ matrix.test_env == 'postgres' }}
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          # The windows-2025 runner image ships PostgreSQL 17 pre-installed but
+          # the `postgresql-x64-17` service refuses to start on this image (the
+          # generic "Cannot start service" error suggests the service is
+          # disabled or its data dir is not initialized). Disable it so it
+          # cannot race with the chocolatey pg16 install for port 5432.
+          Get-Service postgresql-x64-17 -ErrorAction SilentlyContinue | ForEach-Object {
+            Stop-Service -Name $_.Name -Force -ErrorAction SilentlyContinue
+            Set-Service -Name $_.Name -StartupType Disabled
+          }
           choco install psqlodbc -y --no-progress
           choco install postgresql16 --params "/Password:Lightweight!Test42" -y --no-progress
-      - name: "Start PostgreSQL and create test database"
+      - name: "Wait for PostgreSQL and create test database"
         if: ${{ matrix.test_env == 'postgres' }}
         shell: pwsh
         run: |
-          # choco usually auto-starts the service; make it explicit and idempotent.
-          Get-Service postgresql* | Where-Object { $_.Status -ne 'Running' } | Start-Service
+          $ErrorActionPreference = 'Stop'
+          # choco's postgresql16 package starts the service after install; this
+          # is just defensive in case it didn't, and is scoped to pg16 only so
+          # it cannot try to start the broken pg17 service on this image.
+          $svc = Get-Service postgresql-x64-16 -ErrorAction SilentlyContinue
+          if ($svc -and $svc.Status -ne 'Running') { Start-Service $svc }
           $env:PGPASSWORD = "Lightweight!Test42"
           $pgBin = "C:\Program Files\PostgreSQL\16\bin"
           # Wait until the server accepts connections (max ~30s).
