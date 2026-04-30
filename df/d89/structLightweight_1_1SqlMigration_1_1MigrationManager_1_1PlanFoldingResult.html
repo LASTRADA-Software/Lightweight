@@ -131,15 +131,9 @@ Public Attributes</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Snapshot of the schema the registered migrations <em>intend</em> to produce. </p>
-<p>Pure plan-walk — never executes SQL, never opens a connection. Folds the effects of every registered migration (up to an optional cut-off timestamp) into a per-table view of "the final shape" plus a chronological list of data steps and surviving indexes/releases. Used by:</p>
-<ul>
-<li><code>dbtool fold</code> to emit a self-contained baseline (<code>.cpp</code> plugin or <code>.sql</code>)</li>
-<li><code>HardReset</code> to know which tables the migrations would have created</li>
-<li><code>UnicodeUpgradeTables</code> to know which char/varchar columns the migrations now declare wide</li>
-</ul>
-<p>All three are pure operations — <code>FoldRegisteredMigrations</code> itself never executes a single statement. See <code>FoldRegisteredMigrations</code> for the API. </p>
+<p>Pure plan-walk — never executes SQL, never opens a connection. Folds the effects of every registered migration (up to an optional cut-off timestamp) into a per-table view of "the final shape" plus a chronological list of data steps and surviving indexes/releases. Used by <code>dbtool fold</code> to emit a self-contained baseline (<code>.cpp</code> plugin or <code>.sql</code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00396">396</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00309">309</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a8416dff5cbb6f7b62b61f5a65d076d92" name="a8416dff5cbb6f7b62b61f5a65d076d92"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a8416dff5cbb6f7b62b61f5a65d076d92">&#9670;&#160;</a></span>tables</h2>
@@ -154,7 +148,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>(schema, table) → folded <code><a class="el" href="../../d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html" title="Per-table state: ordered column declarations + per-table FK list.">TableState</a></code>. Insertion order is <em>not</em> preserved by <code>std::map</code> — for emission order use <code>creationOrder</code> below. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00413">413</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00326">326</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -171,7 +165,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Tables in <em>creation</em> order (first-time-seen). Reverse for safe DROP ordering when tearing the schema down. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00417">417</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00330">330</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -189,7 +183,7 @@ Public Attributes</h2></td></tr>
 
 <p>Indexes that survive folding (created on tables still present at end). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00420">420</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00333">333</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -206,7 +200,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Data steps in chronological order. <b>No coalescing</b> — the fold replays every data step verbatim, exactly as if migrations were applied in order. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00435">435</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00350">350</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -224,7 +218,7 @@ Public Attributes</h2></td></tr>
 
 <p>Releases declared via <code>LIGHTWEIGHT_SQL_RELEASE</code> that fall within the fold range. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00438">438</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00353">353</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -241,7 +235,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Migrations that contributed to the fold (timestamp + title). Used by emitters to write a header comment explaining what was collapsed. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00442">442</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00357">357</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>

@@ -224,10 +224,6 @@ static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.ht
 static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const *&#160;</td><td class="memItemRight" valign="bottom"><b>Get</b> (SqlServerType serverType) noexcept</td></tr>
 <tr class="memdesc:ae278f613f446cd02e0fc8f038b3a7065"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the SQL query formatter for the given SqlServerType. <br /></td></tr>
 <tr class="separator:ae278f613f446cd02e0fc8f038b3a7065"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a36631dad45de6ee327dac3fb204c29e0" id="r_a36631dad45de6ee327dac3fb204c29e0"><td class="memTemplParams" colspan="2">template&lt;typename Range &gt; </td></tr>
-<tr class="memitem:a36631dad45de6ee327dac3fb204c29e0"><td class="memTemplItemLeft" align="right" valign="top">static std::string&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a36631dad45de6ee327dac3fb204c29e0">BuildForeignKeyConstraintName</a> (std::string_view tableName, Range const &amp;columns)</td></tr>
-<tr class="memdesc:a36631dad45de6ee327dac3fb204c29e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Builds the canonical foreign-key constraint name for a set of columns.  <br /></td></tr>
-<tr class="separator:a36631dad45de6ee327dac3fb204c29e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-static-methods" name="pro-static-methods"></a>
 Static Protected Member Functions</h2></td></tr>
@@ -509,50 +505,6 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <li>PostgreSQL: Returns result of SELECT version() (includes build info)</li>
 <li>SQLite: Returns result of SELECT sqlite_version() </li>
 </ul>
-
-</div>
-</div>
-<a id="a36631dad45de6ee327dac3fb204c29e0" name="a36631dad45de6ee327dac3fb204c29e0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a36631dad45de6ee327dac3fb204c29e0">&#9670;&#160;</a></span>BuildForeignKeyConstraintName()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;typename Range &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">static std::string Lightweight::SqlQueryFormatter::BuildForeignKeyConstraintName </td>
-          <td>(</td>
-          <td class="paramtype">std::string_view&#160;</td>
-          <td class="paramname"><em>tableName</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">Range const &amp;&#160;</td>
-          <td class="paramname"><em>columns</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Builds the canonical foreign-key constraint name for a set of columns. </p>
-<p>Produces <code>FK_&lt;table&gt;_&lt;col1&gt;[_&lt;col2&gt;…]</code>. A single-column FK collapses to <code>FK_&lt;table&gt;_&lt;col&gt;</code>; a composite FK includes every column so that a composite FK whose first column matches an existing single-column FK doesn't collide on the constraint name (which MSSQL enforces as globally unique per DB).</p>
-<p>Consumers include the SQL Server, PostgreSQL and SQLite formatters — centralising the convention here keeps CREATE/ALTER emission in sync with DROP CONSTRAINT lookup (e.g. <code>SQLiteRebuildDropForeignKey</code>). </p>
-
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00192">192</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
