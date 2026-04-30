@@ -364,6 +364,20 @@ def verify_external_connection(db: DatabaseConfig) -> bool:
     """
     import shutil
 
+    if sys.platform == "win32":
+        # Windows hosts (incl. the GHA windows-2025 runner running Linux
+        # containers via Docker Desktop / WSL2) do not have sqlcmd at the
+        # Linux paths checked by find_sqlcmd(), and pg_isready is only on
+        # PATH if a native Postgres install was added. A TCP probe is enough
+        # — protocol-level readiness is already covered by the Phase 1
+        # internal `docker exec` health check.
+        import socket
+        try:
+            with socket.create_connection(("localhost", db.port), timeout=5):
+                return True
+        except OSError:
+            return False
+
     if "mssql" in db.name:
         sqlcmd_path = find_sqlcmd()
         if not sqlcmd_path:
