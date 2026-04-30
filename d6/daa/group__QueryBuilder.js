@@ -139,11 +139,14 @@ var group__QueryBuilder =
     [ "Lightweight::SqlMigrationUpdateBuilder", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html", [
       [ "SqlMigrationUpdateBuilder", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#aef625c1fdddcae0cdb986548f30f2ff9", null ],
       [ "Set", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a89072cc6f0d70a556d2a16a52ab698d7", null ],
-      [ "Where", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a1ce4484daf2a224ff8f4ca1fc74793a6", null ]
+      [ "SetExpression", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#ac701438a61c7d2f150b24aa536e1779a", null ],
+      [ "Where", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a1ce4484daf2a224ff8f4ca1fc74793a6", null ],
+      [ "WhereExpression", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a66b58e33428cc7a16fa1ca967e2db0a5", null ]
     ] ],
     [ "Lightweight::SqlMigrationDeleteBuilder", "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html", [
       [ "SqlMigrationDeleteBuilder", "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html#a5ec19a8c6430cf4494eaab119d5799a1", null ],
-      [ "Where", "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html#a48e12558d7a0f123cbfce91dedf4d154", null ]
+      [ "Where", "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html#a48e12558d7a0f123cbfce91dedf4d154", null ],
+      [ "WhereExpression", "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html#aaa818fb734d443b4128bb822ec0d6bf6", null ]
     ] ],
     [ "Lightweight::SqlMigrationQueryBuilder", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html", [
       [ "SqlMigrationQueryBuilder", "d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#acf94f2759fca0c7925114b0608acfba2", null ],
@@ -214,16 +217,19 @@ var group__QueryBuilder =
       [ "schemaName", "d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a25b926fb9c37a75042b19820cf17c724", null ],
       [ "tableName", "d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a78f9661e7bf0cb5adee8cc38e65edcf0", null ],
       [ "setColumns", "d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a734df7a416583b74bfde60595b682a33", null ],
+      [ "setExpressions", "d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#ad6d48932f6f178665e80977bb244df17", null ],
       [ "whereColumn", "d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#aeaa5a99453909f230477cff8b907e15e", null ],
       [ "whereOp", "d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#ad6ac77aebdac142a100fe41d746fca54", null ],
-      [ "whereValue", "d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a308a8fc35020d61bb42ec5733e425f4f", null ]
+      [ "whereValue", "d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a308a8fc35020d61bb42ec5733e425f4f", null ],
+      [ "whereExpression", "d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a4ba3ee45a117b2883222f58f6606bbbb", null ]
     ] ],
     [ "Lightweight::SqlDeleteDataPlan", "d2/d72/structLightweight_1_1SqlDeleteDataPlan.html", [
       [ "schemaName", "d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a54a966f69099e0159e32c1a8c8be4fab", null ],
       [ "tableName", "d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a383d619c9a3064bab9cb984947bae387", null ],
       [ "whereColumn", "d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a497f383c5c3a27a5056f21546eb14172", null ],
       [ "whereOp", "d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a12c99a15d0f64b3c5b9a1015c29cef84", null ],
-      [ "whereValue", "d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a8e30d14cbde38ffc82f6a713be4ed89d", null ]
+      [ "whereValue", "d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a8e30d14cbde38ffc82f6a713be4ed89d", null ],
+      [ "whereExpression", "d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a0a13f6feba23b295778a7517bd9fc457", null ]
     ] ],
     [ "Lightweight::SqlCreateIndexPlan", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html", [
       [ "schemaName", "dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a601ee8dc6af98175063c3b6b5917aff9", null ],

@@ -107,6 +107,7 @@ var NAVTREE =
       ] ],
       [ "Migration Commands", "d5/dc4/dbtool.html#migration-commands", [
         [ "migrate", "d5/dc4/dbtool.html#migrate", null ],
+        [ "migrate-to-release <VERSION>", "d5/dc4/dbtool.html#migrate-to-release-version", null ],
         [ "list-pending", "d5/dc4/dbtool.html#list-pending", null ],
         [ "list-applied", "d5/dc4/dbtool.html#list-applied", null ],
         [ "status", "d5/dc4/dbtool.html#status", null ],
@@ -114,6 +115,12 @@ var NAVTREE =
         [ "rollback <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-timestamp", null ],
         [ "rollback-to <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-to-timestamp", null ],
         [ "mark-applied <TIMESTAMP>", "d5/dc4/dbtool.html#mark-applied-timestamp", null ]
+      ] ],
+      [ "Diff", "d5/dc4/dbtool.html#diff", [
+        [ "diff", "d5/dc4/dbtool.html#diff-1", [
+          [ "Examples", "d5/dc4/dbtool.html#examples", null ],
+          [ "Caveats", "d5/dc4/dbtool.html#caveats", null ]
+        ] ]
       ] ],
       [ "Backup & Restore", "d5/dc4/dbtool.html#backup--restore", [
         [ "backup", "d5/dc4/dbtool.html#backup", null ],
@@ -193,7 +200,7 @@ var NAVTREE =
       [ "Class Members", "functions.html", [
         [ "All", "functions.html", "functions_dup" ],
         [ "Functions", "functions_func.html", "functions_func" ],
-        [ "Variables", "functions_vars.html", null ],
+        [ "Variables", "functions_vars.html", "functions_vars" ],
         [ "Typedefs", "functions_type.html", null ],
         [ "Enumerations", "functions_enum.html", null ]
       ] ]
@@ -207,12 +214,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d3/d30/classLightweight_1_1Pool.html#a56fdfc02e3f33e88840e66dbe3491f0a",
-"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709",
-"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a3731b7ec6676cd87f087c41aa4a89ded",
-"db/d47/MigrationPlan_8hpp_source.html",
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#adeb820498dd1bc9a5c575244e1bdf853",
-"index.html#mapping-query-results-to-a-simple-struct"
+"d2/dd0/structLightweight_1_1Field.html#a4296163dab8a3ce341e2b52a18c7c7b7",
+"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca12d868c18cb29bf58f02b504be9033fd",
+"d7/d2f/group__DataMapper.html#gae0874e29a73741a5badb14bacafae06e",
+"d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#a64b56a650906d09b12d54ebf6e765559",
+"dc/d74/MarkdownTable_8hpp_source.html",
+"df/d39/SgrBuilder_8hpp_source.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
