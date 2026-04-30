@@ -73,7 +73,7 @@ class LIGHTWEIGHT_API SecretResolver
     /// registered but declines to build at runtime (e.g. `secretservice:` on
     /// a headless box), or the bare-ref chain produced no hits.
     [[nodiscard]] std::expected<std::string, ResolveError> Resolve(std::string_view secretRef,
-                                                                    std::string_view profileName) const;
+                                                                   std::string_view profileName) const;
 
     /// Returns the registered backend prefixes in registration order, for
     /// diagnostic / debugging output.
@@ -83,11 +83,11 @@ class LIGHTWEIGHT_API SecretResolver
     [[nodiscard]] ISecretBackend* Lookup(std::string_view name) const noexcept;
 
     [[nodiscard]] std::expected<std::string, ResolveError> ResolveExplicit(std::string_view prefix,
-                                                                             std::string_view key,
-                                                                             std::string_view profileName) const;
+                                                                           std::string_view key,
+                                                                           std::string_view profileName) const;
 
     [[nodiscard]] std::expected<std::string, ResolveError> ResolveBare(std::string_view secretRef,
-                                                                        std::string_view profileName) const;
+                                                                       std::string_view profileName) const;
 
     std::vector<std::shared_ptr<ISecretBackend>> _backends;
 };

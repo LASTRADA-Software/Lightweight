@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "SecretResolver.hpp"
-
 #include "backends/EnvBackend.hpp"
 #include "backends/FileBackend.hpp"
 #include "backends/StdinBackend.hpp"
@@ -10,6 +9,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <format>
+#include <ranges>
 
 namespace Lightweight::Secrets
 {
@@ -17,67 +17,67 @@ namespace Lightweight::Secrets
 namespace
 {
 
-/// Splits `secretRef` into `{prefix, key}` where the prefix is everything
-/// before the first colon. Bare references (no colon) yield an empty prefix
-/// and the whole string as the key.
-struct SecretRefParts
-{
-    std::string_view prefix;
-    std::string_view key;
-};
+    /// Splits `secretRef` into `{prefix, key}` where the prefix is everything
+    /// before the first colon. Bare references (no colon) yield an empty prefix
+    /// and the whole string as the key.
+    struct SecretRefParts
+    {
+        std::string_view prefix;
+        std::string_view key;
+    };
 
-SecretRefParts SplitSecretRef(std::string_view secretRef) noexcept
-{
-    auto const colon = secretRef.find(':');
-    if (colon == std::string_view::npos)
-        return { .prefix = {}, .key = secretRef };
-    return { .prefix = secretRef.substr(0, colon), .key = secretRef.substr(colon + 1) };
-}
+    SecretRefParts SplitSecretRef(std::string_view secretRef) noexcept
+    {
+        auto const colon = secretRef.find(':');
+        if (colon == std::string_view::npos)
+            return { .prefix = {}, .key = secretRef };
+        return { .prefix = secretRef.substr(0, colon), .key = secretRef.substr(colon + 1) };
+    }
 
-/// MSVC treats `std::getenv` as deprecated in favour of `_dupenv_s`; we wrap
-/// it once here so the suppression is centralised rather than scattered at
-/// every call site. The one-read-at-start-up use is safe enough — we never
-/// interleave reads with `putenv` on the same variable.
-char const* SafeGetenv(char const* name) noexcept
-{
+    /// MSVC treats `std::getenv` as deprecated in favour of `_dupenv_s`; we wrap
+    /// it once here so the suppression is centralised rather than scattered at
+    /// every call site. The one-read-at-start-up use is safe enough — we never
+    /// interleave reads with `putenv` on the same variable.
+    char const* SafeGetenv(char const* name) noexcept
+    {
 #ifdef _WIN32
     #pragma warning(push)
     #pragma warning(disable : 4996)
 #endif
-    return std::getenv(name);
+        return std::getenv(name);
 #ifdef _WIN32
     #pragma warning(pop)
 #endif
-}
-
-/// Resolves `~` / `$HOME` in the default credentials path, matching the
-/// behaviour users expect from shells and pg_hba.conf-style configs.
-std::filesystem::path DefaultCredentialsPath()
-{
-#ifdef _WIN32
-    if (char const* appData = SafeGetenv("APPDATA"); appData && *appData)
-        return std::filesystem::path(appData) / "dbtool" / "credentials";
-    return "dbtool-credentials";
-#else
-    if (char const* xdg = SafeGetenv("XDG_CONFIG_HOME"); xdg && *xdg)
-        return std::filesystem::path(xdg) / "Lightweight" / "credentials";
-    if (char const* home = SafeGetenv("HOME"); home && *home)
-        return std::filesystem::path(home) / ".config" / "Lightweight" / "credentials";
-    return "Lightweight-credentials";
-#endif
-}
-
-std::string JoinBackendNames(std::vector<std::string> const& names)
-{
-    std::string joined;
-    for (size_t i = 0; i < names.size(); ++i)
-    {
-        if (i != 0)
-            joined += ", ";
-        joined += names[i];
     }
-    return joined;
-}
+
+    /// Resolves `~` / `$HOME` in the default credentials path, matching the
+    /// behaviour users expect from shells and pg_hba.conf-style configs.
+    std::filesystem::path DefaultCredentialsPath()
+    {
+#ifdef _WIN32
+        if (char const* appData = SafeGetenv("APPDATA"); appData && *appData)
+            return std::filesystem::path(appData) / "dbtool" / "credentials";
+        return "dbtool-credentials";
+#else
+        if (char const* xdg = SafeGetenv("XDG_CONFIG_HOME"); xdg && *xdg)
+            return std::filesystem::path(xdg) / "Lightweight" / "credentials";
+        if (char const* home = SafeGetenv("HOME"); home && *home)
+            return std::filesystem::path(home) / ".config" / "Lightweight" / "credentials";
+        return "Lightweight-credentials";
+#endif
+    }
+
+    std::string JoinBackendNames(std::vector<std::string> const& names)
+    {
+        std::string joined;
+        for (auto const& [i, name]: std::views::enumerate(names))
+        {
+            if (i != 0)
+                joined += ", ";
+            joined += name;
+        }
+        return joined;
+    }
 
 } // namespace
 
@@ -114,7 +114,7 @@ std::expected<std::string, ResolveError> SecretResolver::ResolveExplicit(std::st
 }
 
 std::expected<std::string, ResolveError> SecretResolver::ResolveBare(std::string_view secretRef,
-                                                                      std::string_view profileName) const
+                                                                     std::string_view profileName) const
 {
     // Bare ref: walk the registered chain in order. Each backend gets a key
     // shaped to its own conventions so callers don't have to remember whether
@@ -143,7 +143,7 @@ std::expected<std::string, ResolveError> SecretResolver::ResolveBare(std::string
 }
 
 std::expected<std::string, ResolveError> SecretResolver::Resolve(std::string_view secretRef,
-                                                                  std::string_view profileName) const
+                                                                 std::string_view profileName) const
 {
     if (secretRef.empty())
         return std::unexpected(ResolveError {
