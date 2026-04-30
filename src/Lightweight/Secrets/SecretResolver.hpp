@@ -37,6 +37,11 @@ struct ResolveError
     std::string message;
 };
 
+#if defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable : 4251) // STL types in DLL interface
+#endif
+
 /// Central lookup for opaque `secretRef` strings. Owns a list of registered
 /// backends and dispatches based on either an explicit `prefix:` or
 /// registration order for bare references.
@@ -46,8 +51,10 @@ class LIGHTWEIGHT_API SecretResolver
     SecretResolver() = default;
     ~SecretResolver() = default;
     SecretResolver(SecretResolver const&) = delete;
+    /// Move-construct: defaulted; preserves backend registration order.
     SecretResolver(SecretResolver&&) = default;
     SecretResolver& operator=(SecretResolver const&) = delete;
+    /// Move-assign: defaulted; preserves backend registration order.
     SecretResolver& operator=(SecretResolver&&) = default;
 
     /// Appends a backend to the chain. The backend's `Name()` is used both as
@@ -73,7 +80,7 @@ class LIGHTWEIGHT_API SecretResolver
     /// registered but declines to build at runtime (e.g. `secretservice:` on
     /// a headless box), or the bare-ref chain produced no hits.
     [[nodiscard]] std::expected<std::string, ResolveError> Resolve(std::string_view secretRef,
-                                                                    std::string_view profileName) const;
+                                                                   std::string_view profileName) const;
 
     /// Returns the registered backend prefixes in registration order, for
     /// diagnostic / debugging output.
@@ -83,14 +90,18 @@ class LIGHTWEIGHT_API SecretResolver
     [[nodiscard]] ISecretBackend* Lookup(std::string_view name) const noexcept;
 
     [[nodiscard]] std::expected<std::string, ResolveError> ResolveExplicit(std::string_view prefix,
-                                                                             std::string_view key,
-                                                                             std::string_view profileName) const;
+                                                                           std::string_view key,
+                                                                           std::string_view profileName) const;
 
     [[nodiscard]] std::expected<std::string, ResolveError> ResolveBare(std::string_view secretRef,
-                                                                        std::string_view profileName) const;
+                                                                       std::string_view profileName) const;
 
     std::vector<std::shared_ptr<ISecretBackend>> _backends;
 };
+
+#if defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
 
 /// Convenience: builds a default resolver wired with the platform-neutral
 /// backends (`env:`, `file:`, `stdin:`) suitable for every build of

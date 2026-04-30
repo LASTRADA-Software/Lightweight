@@ -86,6 +86,11 @@ struct Profile
     [[nodiscard]] LIGHTWEIGHT_API SqlConnectInfo ToConnectInfo(std::string_view password = {}) const;
 };
 
+#if defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable : 4251) // STL types in DLL interface
+#endif
+
 /// In-memory collection of named `Profile`s plus "which is the default".
 class LIGHTWEIGHT_API ProfileStore
 {
@@ -155,5 +160,9 @@ class LIGHTWEIGHT_API ProfileStore
     std::vector<Profile> _profiles;
     std::string _defaultProfile;
 };
+
+#if defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
 
 } // namespace Lightweight::Config

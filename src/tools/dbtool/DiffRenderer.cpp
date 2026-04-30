@@ -147,15 +147,13 @@ namespace
         auto const drawRow = [&](std::vector<std::string> const& cells,
                                  std::function<tui::Style const*(std::size_t)> const& styleOfCell) {
             out << Colorize("|", palette.dim, useColor);
-            for (auto const& [col, w]: std::views::enumerate(widths))
+            for (std::size_t col = 0; col < widths.size(); ++col)
             {
-                auto const colSize = static_cast<std::size_t>(col);
-                auto const text =
-                    std::cmp_less(col, cells.size()) ? tui::truncateToDisplayWidth(cells[colSize], w) : std::string {};
-                auto const alignment =
-                    std::cmp_less(col, table.alignments.size()) ? table.alignments[colSize] : tui::TableAlignment::Left;
+                auto const w = widths[col];
+                auto const text = col < cells.size() ? tui::truncateToDisplayWidth(cells[col], w) : std::string {};
+                auto const alignment = col < table.alignments.size() ? table.alignments[col] : tui::TableAlignment::Left;
                 auto const padded = tui::alignCell(text, w, alignment);
-                auto const* st = styleOfCell(colSize);
+                auto const* st = styleOfCell(col);
                 out << ' ';
                 out << (st ? Colorize(padded, *st, useColor) : padded);
                 out << ' ';
@@ -167,8 +165,8 @@ namespace
         drawSeparator();
         drawRow(table.headers, [&](std::size_t) { return &palette.header; });
         drawSeparator();
-        for (auto const& [r, row]: std::views::enumerate(table.rows))
-            drawRow(row, [&, r = r](std::size_t c) { return cellStyle(static_cast<std::size_t>(r), c); });
+        for (std::size_t r = 0; r < table.rows.size(); ++r)
+            drawRow(table.rows[r], [&, r](std::size_t c) { return cellStyle(r, c); });
         drawSeparator();
     }
 
@@ -247,11 +245,13 @@ namespace
                 return cd.b ? std::format("only in B: {}", ColumnSummary(*cd.b)) : "only in B";
             case DiffKind::Changed: {
                 auto details = std::string { "changed: " };
-                for (auto const& [i, f]: std::views::enumerate(cd.changedFields))
+                bool first = true;
+                for (auto const& f: cd.changedFields)
                 {
-                    if (i != 0)
+                    if (!first)
                         details += ", ";
                     details += f;
+                    first = false;
                 }
                 if (cd.a && cd.b)
                     details += std::format(" ({} → {})", ColumnSummary(*cd.a), ColumnSummary(*cd.b));
@@ -276,11 +276,13 @@ namespace
         if (!td.indexDiffs.empty())
             parts.emplace_back(std::format("{} index", td.indexDiffs.size()));
         auto out = std::string {};
-        for (auto const& [i, p]: std::views::enumerate(parts))
+        bool first = true;
+        for (auto const& p: parts)
         {
-            if (i != 0)
+            if (!first)
                 out += ", ";
             out += p;
+            first = false;
         }
         return out;
     }
@@ -351,11 +353,13 @@ namespace
     [[nodiscard]] std::string JoinPk(std::vector<std::string> const& pk)
     {
         auto out = std::string {};
-        for (auto const& [i, v]: std::views::enumerate(pk))
+        bool first = true;
+        for (auto const& v: pk)
         {
-            if (i != 0)
+            if (!first)
                 out += "/";
             out += v;
+            first = false;
         }
         return out;
     }

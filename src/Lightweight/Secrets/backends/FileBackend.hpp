@@ -21,6 +21,11 @@
 namespace Lightweight::Secrets
 {
 
+#if defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable : 4251) // STL types in DLL interface
+#endif
+
 class LIGHTWEIGHT_API FileBackend final: public ISecretBackend
 {
   public:
@@ -56,5 +61,9 @@ class LIGHTWEIGHT_API FileBackend final: public ISecretBackend
   private:
     std::filesystem::path _path;
 };
+
+#if defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
 
 } // namespace Lightweight::Secrets

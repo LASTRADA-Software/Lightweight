@@ -56,6 +56,11 @@ namespace SqlMigration
     /// opaque message string.
     ///
     /// @ingroup SqlMigration
+#if defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable : 4251) // STL types in DLL interface
+    #pragma warning(disable : 4275) // non dll-interface base used by dll-interface class
+#endif
     class LIGHTWEIGHT_API MigrationException: public SqlException
     {
       public:
@@ -122,6 +127,9 @@ namespace SqlMigration
         std::string _failedSql;
         std::string _driverMessage;
     };
+#if defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
 
     /// Result of verifying a migration's checksum.
     ///

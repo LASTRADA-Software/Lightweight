@@ -717,13 +717,15 @@ namespace
     {
         auto const joinQuoted = [](std::vector<std::string> const& v) {
             std::string out;
-            for (auto const& [i, s]: std::views::enumerate(v))
+            bool first = true;
+            for (auto const& s: v)
             {
-                if (i != 0)
+                if (!first)
                     out += ", ";
                 out += '"';
                 out += s;
                 out += '"';
+                first = false;
             }
             return out;
         };

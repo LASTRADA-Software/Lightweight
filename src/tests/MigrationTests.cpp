@@ -303,10 +303,10 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "MigrationException carries structured
         CHECK(ex.GetMigrationTimestamp().value == 202412102220);
         CHECK(ex.GetMigrationTitle() == "failing migration");
         CHECK(ex.GetStepIndex() == 1);
-        CHECK(ex.GetFailedSql().find("THIS_IS_INVALID_SQL_FOR_DIAG") != std::string::npos);
+        CHECK(ex.GetFailedSql().contains("THIS_IS_INVALID_SQL_FOR_DIAG"));
         CHECK_FALSE(ex.GetDriverMessage().empty());
         // Base-class accessors keep working for catch(SqlException) callers.
-        CHECK(ex.info().message.find("failing migration") != std::string::npos);
+        CHECK(ex.info().message.contains("failing migration"));
     }
 }
 

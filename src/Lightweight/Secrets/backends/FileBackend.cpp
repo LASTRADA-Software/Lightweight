@@ -19,102 +19,102 @@ namespace Lightweight::Secrets
 namespace
 {
 
-struct Entry
-{
-    std::string profile;
-    std::string uid;
-    std::string password;
-};
-
-/// Parses a single `profileName:uid:password` line. Empty / comment lines
-/// return `std::nullopt`. Extra `:` characters inside the password are kept
-/// verbatim so passwords containing `:` survive a round-trip.
-std::optional<Entry> ParseLine(std::string_view line)
-{
-    // Trim ASCII whitespace from both ends.
-    auto const firstNonWs = line.find_first_not_of(" \t\r\n");
-    if (firstNonWs == std::string_view::npos)
-        return std::nullopt;
-    line.remove_prefix(firstNonWs);
-    auto const lastNonWs = line.find_last_not_of(" \t\r\n");
-    line = line.substr(0, lastNonWs + 1);
-
-    if (line.empty() || line.front() == '#')
-        return std::nullopt;
-
-    auto const firstColon = line.find(':');
-    if (firstColon == std::string_view::npos)
-        return std::nullopt;
-    auto const secondColon = line.find(':', firstColon + 1);
-    if (secondColon == std::string_view::npos)
-        return std::nullopt;
-
-    return Entry {
-        .profile = std::string { line.substr(0, firstColon) },
-        .uid = std::string { line.substr(firstColon + 1, secondColon - firstColon - 1) },
-        .password = std::string { line.substr(secondColon + 1) },
+    struct Entry
+    {
+        std::string profile;
+        std::string uid;
+        std::string password;
     };
-}
 
-/// Loads every entry from `path`. Missing file yields an empty vector.
-std::vector<Entry> LoadEntries(std::filesystem::path const& path)
-{
-    std::vector<Entry> entries;
-    if (!std::filesystem::exists(path))
-        return entries;
-
-#ifndef _WIN32
-    // Refuse world / group-readable credential files. This mirrors the
-    // `.pgpass` convention and catches the classic "forgot to chmod 600"
-    // mistake before a secret leaks into CI log output.
-    struct stat st {};
-    if (stat(path.string().c_str(), &st) == 0)
+    /// Parses a single `profileName:uid:password` line. Empty / comment lines
+    /// return `std::nullopt`. Extra `:` characters inside the password are kept
+    /// verbatim so passwords containing `:` survive a round-trip.
+    std::optional<Entry> ParseLine(std::string_view line)
     {
-        auto const badBits = st.st_mode & (S_IRWXG | S_IRWXO);
-        if (badBits != 0)
-            throw std::runtime_error(
-                std::format("refusing to read {}: mode {:#o} is wider than 0600", path.string(), st.st_mode & 0777));
-    }
-#endif
+        // Trim ASCII whitespace from both ends.
+        auto const firstNonWs = line.find_first_not_of(" \t\r\n");
+        if (firstNonWs == std::string_view::npos)
+            return std::nullopt;
+        line.remove_prefix(firstNonWs);
+        auto const lastNonWs = line.find_last_not_of(" \t\r\n");
+        line = line.substr(0, lastNonWs + 1);
 
-    std::ifstream in(path);
-    if (!in)
-        return entries;
+        if (line.empty() || line.front() == '#')
+            return std::nullopt;
 
-    std::string line;
-    while (std::getline(in, line))
-        if (auto entry = ParseLine(line))
-            entries.push_back(std::move(*entry));
-    return entries;
-}
+        auto const firstColon = line.find(':');
+        if (firstColon == std::string_view::npos)
+            return std::nullopt;
+        auto const secondColon = line.find(':', firstColon + 1);
+        if (secondColon == std::string_view::npos)
+            return std::nullopt;
 
-/// Writes `entries` to `path` atomically: write-then-rename on top of a
-/// `*.tmp` sibling. On POSIX the temp file gets mode 0600 so the rename
-/// preserves it.
-void WriteEntries(std::filesystem::path const& path, std::vector<Entry> const& entries)
-{
-    auto const tmp = path.string() + ".tmp";
-
-    {
-        std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
-        if (!out)
-            throw std::runtime_error(std::format("failed to open {} for writing", tmp));
-        for (auto const& e: entries)
-            out << e.profile << ':' << e.uid << ':' << e.password << '\n';
-        if (!out)
-            throw std::runtime_error(std::format("failed to write {}", tmp));
+        return Entry {
+            .profile = std::string { line.substr(0, firstColon) },
+            .uid = std::string { line.substr(firstColon + 1, secondColon - firstColon - 1) },
+            .password = std::string { line.substr(secondColon + 1) },
+        };
     }
 
+    /// Loads every entry from `path`. Missing file yields an empty vector.
+    std::vector<Entry> LoadEntries(std::filesystem::path const& path)
+    {
+        std::vector<Entry> entries;
+        if (!std::filesystem::exists(path))
+            return entries;
+
 #ifndef _WIN32
-    if (::chmod(tmp.c_str(), S_IRUSR | S_IWUSR) != 0)
-        throw std::runtime_error(std::format("failed to chmod 0600 {}", tmp));
+        // Refuse world / group-readable credential files. This mirrors the
+        // `.pgpass` convention and catches the classic "forgot to chmod 600"
+        // mistake before a secret leaks into CI log output.
+        struct stat st {};
+        if (stat(path.string().c_str(), &st) == 0)
+        {
+            auto const badBits = st.st_mode & (S_IRWXG | S_IRWXO);
+            if (badBits != 0)
+                throw std::runtime_error(
+                    std::format("refusing to read {}: mode {:#o} is wider than 0600", path.string(), st.st_mode & 0777));
+        }
 #endif
 
-    std::error_code ec;
-    std::filesystem::rename(tmp, path, ec);
-    if (ec)
-        throw std::runtime_error(std::format("failed to move {} into place: {}", tmp, ec.message()));
-}
+        std::ifstream in(path);
+        if (!in)
+            return entries;
+
+        std::string line;
+        while (std::getline(in, line))
+            if (auto entry = ParseLine(line))
+                entries.push_back(std::move(*entry));
+        return entries;
+    }
+
+    /// Writes `entries` to `path` atomically: write-then-rename on top of a
+    /// `*.tmp` sibling. On POSIX the temp file gets mode 0600 so the rename
+    /// preserves it.
+    void WriteEntries(std::filesystem::path const& path, std::vector<Entry> const& entries)
+    {
+        auto const tmp = path.string() + ".tmp";
+
+        {
+            std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
+            if (!out)
+                throw std::runtime_error(std::format("failed to open {} for writing", tmp));
+            for (auto const& e: entries)
+                out << e.profile << ':' << e.uid << ':' << e.password << '\n';
+            if (!out)
+                throw std::runtime_error(std::format("failed to write {}", tmp));
+        }
+
+#ifndef _WIN32
+        if (::chmod(tmp.c_str(), S_IRUSR | S_IWUSR) != 0)
+            throw std::runtime_error(std::format("failed to chmod 0600 {}", tmp));
+#endif
+
+        std::error_code ec;
+        std::filesystem::rename(tmp, path, ec);
+        if (ec)
+            throw std::runtime_error(std::format("failed to move {} into place: {}", tmp, ec.message()));
+    }
 
 } // namespace
 
@@ -144,8 +144,7 @@ void FileBackend::Write(std::string_view key, std::string_view value)
     std::error_code ec;
     std::filesystem::create_directories(_path.parent_path(), ec);
     if (ec)
-        throw std::runtime_error(
-            std::format("failed to create {}: {}", _path.parent_path().string(), ec.message()));
+        throw std::runtime_error(std::format("failed to create {}: {}", _path.parent_path().string(), ec.message()));
 
     WriteEntries(_path, entries);
 }

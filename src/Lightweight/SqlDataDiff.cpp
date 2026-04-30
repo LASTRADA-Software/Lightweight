@@ -138,11 +138,13 @@ namespace
                 : std::format("{}.{}", Quote(tableOnThisSide.schema, server), Quote(tableOnThisSide.name, server));
 
         auto cols = std::string {};
-        for (auto const& [i, name]: std::views::enumerate(layout.orderedColumnNames))
+        bool firstCol = true;
+        for (auto const& name: layout.orderedColumnNames)
         {
-            if (i != 0)
+            if (!firstCol)
                 cols += ", ";
             cols += Quote(name, server);
+            firstCol = false;
         }
 
         auto orderBy = std::string {};

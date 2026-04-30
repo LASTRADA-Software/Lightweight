@@ -44,8 +44,7 @@ class ScopedCredentialsFile
     explicit ScopedCredentialsFile(std::string_view body)
     {
         static int counter = 0;
-        _path = std::filesystem::temp_directory_path()
-              / ("lightweight-secrets-test-" + std::to_string(++counter) + ".pwd");
+        _path = std::filesystem::temp_directory_path() / ("lightweight-secrets-test-" + std::to_string(++counter) + ".pwd");
         {
             std::ofstream out(_path, std::ios::binary | std::ios::trunc);
             out << body;
@@ -90,8 +89,8 @@ TEST_CASE("SecretResolver — unknown prefix yields a descriptive error", "[Secr
 
     auto const result = resolver.Resolve("no-such-backend:foo", "prof");
     REQUIRE_FALSE(result.has_value());
-    CHECK(result.error().message.find("no-such-backend") != std::string::npos);
-    CHECK(result.error().message.find("available") != std::string::npos);
+    CHECK(result.error().message.contains("no-such-backend"));
+    CHECK(result.error().message.contains("available"));
 }
 
 TEST_CASE("SecretResolver — env: prefix resolves to process environment", "[SecretResolver]")
@@ -137,7 +136,7 @@ TEST_CASE("SecretResolver — file: prefix reads from a .pgpass-style file", "[S
     // Missing key is reported as an error, not a silent empty.
     auto const missing = resolver.Resolve("file:nosuch", "nosuch");
     REQUIRE_FALSE(missing.has_value());
-    CHECK(missing.error().message.find("nosuch") != std::string::npos);
+    CHECK(missing.error().message.contains("nosuch"));
 }
 
 TEST_CASE("FileBackend — Write / Erase round-trip", "[SecretResolver][FileBackend]")

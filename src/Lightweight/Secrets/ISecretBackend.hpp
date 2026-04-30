@@ -27,7 +27,7 @@ namespace Lightweight::Secrets
 /// Bare references (no prefix) walk the backend chain registered with
 /// `SecretResolver::RegisterBackend()`; the first backend that returns a
 /// non-empty result wins.
-class ISecretBackend
+class LIGHTWEIGHT_API ISecretBackend
 {
   public:
     ISecretBackend() = default;

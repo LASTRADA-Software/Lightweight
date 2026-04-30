@@ -44,7 +44,7 @@ SqlConnectInfo Profile::ToConnectInfo(std::string_view password) const
         std::ranges::transform(s, s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
         return s;
     }();
-    if (lower.find("pwd=") != std::string::npos || lower.find("password=") != std::string::npos)
+    if (lower.contains("pwd=") || lower.contains("password="))
         return SqlConnectionString { connectionString };
 
     std::string extended = connectionString;

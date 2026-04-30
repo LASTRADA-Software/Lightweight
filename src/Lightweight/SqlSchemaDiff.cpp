@@ -236,11 +236,13 @@ namespace
         // Order matters for composite PKs — report a single line with both sides.
         auto join = [](std::vector<std::string> const& v) {
             auto s = std::string {};
-            for (auto const& [i, name]: std::views::enumerate(v))
+            bool first = true;
+            for (auto const& name: v)
             {
-                if (i != 0)
+                if (!first)
                     s += ", ";
                 s += name;
+                first = false;
             }
             return s.empty() ? std::string { "(none)" } : s;
         };
@@ -256,11 +258,13 @@ namespace
     {
         auto join = [](std::vector<std::string> const& v) {
             auto s = std::string {};
-            for (auto const& [i, name]: std::views::enumerate(v))
+            bool first = true;
+            for (auto const& name: v)
             {
-                if (i != 0)
+                if (!first)
                     s += ",";
                 s += name;
+                first = false;
             }
             return s;
         };
@@ -294,11 +298,13 @@ namespace
     [[nodiscard]] std::string FormatIndex(IndexDefinition const& idx)
     {
         auto cols = std::string {};
-        for (auto const& [i, name]: std::views::enumerate(idx.columns))
+        bool first = true;
+        for (auto const& name: idx.columns)
         {
-            if (i != 0)
+            if (!first)
                 cols += ",";
             cols += name;
+            first = false;
         }
         return std::format("{}{}({})", idx.isUnique ? "UNIQUE " : "", idx.name, cols);
     }

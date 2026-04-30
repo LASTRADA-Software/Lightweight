@@ -25,6 +25,14 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
   public:
+    /// SQLite cannot express `ALTER TABLE … ADD/DROP CONSTRAINT`, so any FK change
+    /// goes through the table-rebuild path; PG and MSSQL override this back to
+    /// `false` because they inherit from SQLiteQueryFormatter but do support FK ALTER.
+    [[nodiscard]] bool RequiresTableRebuildForForeignKeyChange() const noexcept override
+    {
+        return true;
+    }
+
     /// Builds the SQL query used to check whether a column exists on a SQLite table.
     ///
     /// The migration executor uses this to resolve the `-- LIGHTWEIGHT_SQLITE_GUARD:`
@@ -486,23 +494,27 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                     // commas so the split-on-',' parse on the runtime side is unambiguous.
                     auto const joinComma = [](std::vector<std::string> const& v) {
                         std::string out;
-                        for (auto const& [i, s]: std::views::enumerate(v))
+                        bool first = true;
+                        for (auto const& s: v)
                         {
-                            if (i != 0)
+                            if (!first)
                                 out += ',';
                             out += s;
+                            first = false;
                         }
                         return out;
                     };
                     auto const joinQuoted = [](std::vector<std::string> const& v) {
                         std::string out;
-                        for (auto const& [i, s]: std::views::enumerate(v))
+                        bool first = true;
+                        for (auto const& s: v)
                         {
-                            if (i != 0)
+                            if (!first)
                                 out += ", ";
                             out += '"';
                             out += s;
                             out += '"';
+                            first = false;
                         }
                         return out;
                     };
