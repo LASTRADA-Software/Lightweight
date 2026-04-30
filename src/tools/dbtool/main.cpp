@@ -127,6 +127,9 @@ void PrintUsage()
                  c.command, c.reset);
     std::println("  {}mark-applied{} {}<TIMESTAMP>{} Marks a migration as applied without executing",
                  c.command, c.reset, c.param, c.reset);
+    std::println("  {}rewrite-checksums{}         Rewrites schema_migrations.checksum to match current code",
+                 c.command, c.reset);
+    std::println("                            (use after a regen that changes only byte shape, not logic)");
     std::println("  {}diff{} {}<A>{} {}<B>{}            Compares two databases (schema + data) and prints a colored",
                  c.command, c.reset, c.param, c.reset, c.param, c.reset);
     std::println("                            report. Each <SOURCE> is either a profile name or a raw");
@@ -289,6 +292,8 @@ struct Options
     bool dryRun = false;     ///< If true, show what would be done without actually doing it
     bool noLock = false;     ///< If true, skip migration locking for write operations
     bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
+    bool yes = false;        ///< If true, confirm destructive actions (e.g. rewrite-checksums)
+
     /// @brief `--no-color` for `diff` (and other text-rendering commands). When true,
     /// ANSI colors are suppressed.
     bool noColor = false;
@@ -562,6 +567,10 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         else if (arg == "--schema-only")
         {
             options.schemaOnly = true;
+        }
+        else if (arg == "--yes" || arg == "-y")
+        {
+            options.yes = true;
         }
         else if (arg == "--no-color")
         {
@@ -901,6 +910,63 @@ int Status(MigrationManager& manager)
         std::println("All applied migrations have valid checksums.");
     }
 
+    return EXIT_SUCCESS;
+}
+
+/// Rewrites stored checksums in `schema_migrations` to match the current code.
+///
+/// Used after a regen of generated migrations changes byte shape but not logical
+/// effect (the Unicode-default flip in `lup2dbtool` is the canonical case). The
+/// caller is expected to have verified out-of-band that the regen is logically
+/// equivalent — this command is a recovery tool, not a maintenance loop.
+///
+/// In dry-run mode the diff is printed and nothing is written. Without dry-run the
+/// caller must explicitly confirm; otherwise the command exits without writing.
+int RewriteChecksums(MigrationManager& manager, bool dryRun, bool yes)
+{
+    auto const result = manager.RewriteChecksums(/*dryRun=*/true);
+
+    if (result.entries.empty() && result.unregisteredTimestamps.empty())
+    {
+        std::println("No checksum drift detected. Nothing to rewrite.");
+        return EXIT_SUCCESS;
+    }
+
+    if (!result.entries.empty())
+    {
+        std::println("Checksum drift ({} migration(s)):", result.entries.size());
+        for (auto const& entry: result.entries)
+        {
+            std::println("  {} - {}", entry.timestamp.value, entry.title);
+            std::println("      Stored:   {}", entry.oldChecksum.empty() ? "(none)" : entry.oldChecksum);
+            std::println("      Computed: {}", entry.newChecksum);
+        }
+        std::println("");
+    }
+
+    if (!result.unregisteredTimestamps.empty())
+    {
+        std::println("Applied but unregistered ({}):", result.unregisteredTimestamps.size());
+        for (auto const& ts: result.unregisteredTimestamps)
+            std::println("  {}", ts.value);
+        std::println("  (these rows are NOT touched by rewrite-checksums)");
+        std::println("");
+    }
+
+    if (dryRun)
+    {
+        std::println("Dry run: nothing written. Re-run without --dry-run to apply.");
+        return EXIT_SUCCESS;
+    }
+
+    if (!yes)
+    {
+        std::println("Refusing to rewrite without --yes. Pass --yes to confirm.");
+        return EXIT_FAILURE;
+    }
+
+    auto const written = manager.RewriteChecksums(/*dryRun=*/false);
+    std::println("Rewrote {} checksum(s).", written.entries.size());
     return EXIT_SUCCESS;
 }
 
@@ -1938,6 +2004,12 @@ int DispatchDbCommand(Options const& options)
         auto& manager = GetMigrationManager(options);
         OptionalMigrationLock const lock(manager, options.noLock);
         return MarkApplied(manager, options.argument);
+    }
+    if (options.command == "rewrite-checksums")
+    {
+        auto& manager = GetMigrationManager(options);
+        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        return RewriteChecksums(manager, options.dryRun, options.yes);
     }
     if (options.command == "backup")
         return Backup(options);
