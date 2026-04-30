@@ -40,8 +40,7 @@ struct InlineCodeSpan
 }
 
 /// @brief Finds the end of a CommonMark inline code span starting at pos.
-[[nodiscard]] constexpr auto findInlineCodeEnd(std::string_view text, std::size_t pos)
-    -> std::optional<InlineCodeSpan>
+[[nodiscard]] constexpr auto findInlineCodeEnd(std::string_view text, std::size_t pos) -> std::optional<InlineCodeSpan>
 {
     auto const tickStart = pos;
     while (pos < text.size() && text[pos] == '`')

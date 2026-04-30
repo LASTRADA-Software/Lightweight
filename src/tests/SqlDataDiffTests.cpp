@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <format>
+#include <memory>
 #include <string>
 
 using namespace Lightweight;
@@ -51,6 +52,29 @@ struct ScopedTempFile
     return SqlConnectionString { std::format("Driver={{SQLite3 ODBC Driver}};Database={}", path.string()) };
 }
 
+/// Opens an SQLite connection, returning a null pointer when the SQLite ODBC
+/// driver is unavailable in the current environment. The data-diff tests are
+/// SQLite-only fixtures (they always create temp .sqlite files), but the CI
+/// matrix runs the suite against MSSQL/PG runners too — those images do not
+/// install the SQLite ODBC driver. Letting the test SKIP rather than FAIL
+/// keeps the matrix green without sneaking SQLite into every runner image.
+///
+/// Returned as `unique_ptr` (rather than `optional`) so clang-tidy's
+/// `bugprone-unchecked-optional-access` doesn't flag every dereference after
+/// the SKIP guard — null-pointer flow is tracked by `clang-analyzer-core`
+/// instead and respects the `[[noreturn]]` Catch2 SKIP path.
+[[nodiscard]] std::unique_ptr<SqlConnection> TryOpenSqlite(std::filesystem::path const& path)
+{
+    try
+    {
+        return std::make_unique<SqlConnection>(SqliteConn(path));
+    }
+    catch (SqlException const&)
+    {
+        return nullptr;
+    }
+}
+
 /// Creates a `users(id PK, name, email)` table and inserts the given rows.
 void SetupUsersTable(SqlConnection& conn, std::vector<std::tuple<int, std::string, std::string>> const& rows)
 {
@@ -81,8 +105,12 @@ TEST_CASE("DiffTableData: identical tables produce no row diffs", "[SqlDataDiff]
     auto const guardA = ScopedTempFile { tmp / "diff_data_identical_a.sqlite" };
     auto const guardB = ScopedTempFile { tmp / "diff_data_identical_b.sqlite" };
 
-    auto connA = SqlConnection { SqliteConn(guardA.path) };
-    auto connB = SqlConnection { SqliteConn(guardB.path) };
+    auto connAPtr = TryOpenSqlite(guardA.path);
+    auto connBPtr = TryOpenSqlite(guardB.path);
+    if (!connAPtr || !connBPtr)
+        SKIP("SQLite ODBC driver not available in this environment");
+    auto& connA = *connAPtr;
+    auto& connB = *connBPtr;
     REQUIRE(connA.IsAlive());
     REQUIRE(connB.IsAlive());
 
@@ -108,8 +136,12 @@ TEST_CASE("DiffTableData: detects added, removed, and changed rows", "[SqlDataDi
     auto const guardA = ScopedTempFile { tmp / "diff_data_drift_a.sqlite" };
     auto const guardB = ScopedTempFile { tmp / "diff_data_drift_b.sqlite" };
 
-    auto connA = SqlConnection { SqliteConn(guardA.path) };
-    auto connB = SqlConnection { SqliteConn(guardB.path) };
+    auto connAPtr = TryOpenSqlite(guardA.path);
+    auto connBPtr = TryOpenSqlite(guardB.path);
+    if (!connAPtr || !connBPtr)
+        SKIP("SQLite ODBC driver not available in this environment");
+    auto& connA = *connAPtr;
+    auto& connB = *connBPtr;
 
     SetupUsersTable(connA,
                     {
@@ -158,8 +190,12 @@ TEST_CASE("DiffTableData: tables without a primary key are skipped", "[SqlDataDi
     auto const guardA = ScopedTempFile { tmp / "diff_data_nopk_a.sqlite" };
     auto const guardB = ScopedTempFile { tmp / "diff_data_nopk_b.sqlite" };
 
-    auto connA = SqlConnection { SqliteConn(guardA.path) };
-    auto connB = SqlConnection { SqliteConn(guardB.path) };
+    auto connAPtr = TryOpenSqlite(guardA.path);
+    auto connBPtr = TryOpenSqlite(guardB.path);
+    if (!connAPtr || !connBPtr)
+        SKIP("SQLite ODBC driver not available in this environment");
+    auto& connA = *connAPtr;
+    auto& connB = *connBPtr;
 
     auto stmtA = SqlStatement { connA };
     auto stmtB = SqlStatement { connB };
@@ -194,8 +230,12 @@ TEST_CASE("DiffTableData: each side uses its own descriptor to qualify the SELEC
     auto const guardA = ScopedTempFile { tmp / "diff_data_perside_a.sqlite" };
     auto const guardB = ScopedTempFile { tmp / "diff_data_perside_b.sqlite" };
 
-    auto connA = SqlConnection { SqliteConn(guardA.path) };
-    auto connB = SqlConnection { SqliteConn(guardB.path) };
+    auto connAPtr = TryOpenSqlite(guardA.path);
+    auto connBPtr = TryOpenSqlite(guardB.path);
+    if (!connAPtr || !connBPtr)
+        SKIP("SQLite ODBC driver not available in this environment");
+    auto& connA = *connAPtr;
+    auto& connB = *connBPtr;
 
     // Side A holds the table as `users`; side B as `users_b`. Same shape, different name.
     auto const rows = std::vector<std::tuple<int, std::string, std::string>> {
@@ -228,8 +268,12 @@ TEST_CASE("DiffTableData: progress callback fires", "[SqlDataDiff]")
     auto const guardA = ScopedTempFile { tmp / "diff_data_progress_a.sqlite" };
     auto const guardB = ScopedTempFile { tmp / "diff_data_progress_b.sqlite" };
 
-    auto connA = SqlConnection { SqliteConn(guardA.path) };
-    auto connB = SqlConnection { SqliteConn(guardB.path) };
+    auto connAPtr = TryOpenSqlite(guardA.path);
+    auto connBPtr = TryOpenSqlite(guardB.path);
+    if (!connAPtr || !connBPtr)
+        SKIP("SQLite ODBC driver not available in this environment");
+    auto& connA = *connAPtr;
+    auto& connB = *connBPtr;
 
     // Empty rows on both sides — but the final "force" report at end of scan must still fire
     // exactly once (the rate-limited mid-scan reports won't trigger with no rows).

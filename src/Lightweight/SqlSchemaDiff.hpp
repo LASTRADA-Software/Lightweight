@@ -23,19 +23,21 @@ enum class DiffKind : std::uint8_t
 /// A diff entry for a single column.
 struct ColumnDiff
 {
+    /// Column name (case sensitivity follows the engines' rules — they're paired by name).
     std::string name;
+    /// Column-level classification: only-in-A, only-in-B, or changed.
     DiffKind kind {};
 
-    /// For @ref DiffKind::Changed: human-readable list of differing fields
+    /// For `DiffKind::Changed`: human-readable list of differing fields
     /// (e.g. `"type"`, `"nullable"`, `"defaultValue"`). Empty otherwise.
     std::vector<std::string> changedFields {};
 
-    /// Pointer into the input @ref TableList for the left-hand column. Null when
-    /// @ref kind is @ref DiffKind::OnlyInB.
+    /// Pointer into the input `TableList` for the left-hand column. Null when
+    /// `kind` is `DiffKind::OnlyInB`.
     Column const* a = nullptr;
 
-    /// Pointer into the input @ref TableList for the right-hand column. Null when
-    /// @ref kind is @ref DiffKind::OnlyInA.
+    /// Pointer into the input `TableList` for the right-hand column. Null when
+    /// `kind` is `DiffKind::OnlyInA`.
     Column const* b = nullptr;
 };
 
@@ -47,20 +49,20 @@ struct TableDiff
     /// for identity, so the same logical table compares as equal across SQL dialects.
     std::string name;
 
-    /// Schema name on the left-hand side. Empty when @ref kind is @ref DiffKind::OnlyInB
+    /// Schema name on the left-hand side. Empty when `kind` is `DiffKind::OnlyInB`
     /// or when the left-hand engine reports no schema (e.g. SQLite).
     std::string schemaA;
 
-    /// Schema name on the right-hand side. Empty when @ref kind is @ref DiffKind::OnlyInA
+    /// Schema name on the right-hand side. Empty when `kind` is `DiffKind::OnlyInA`
     /// or when the right-hand engine reports no schema.
     std::string schemaB;
 
-    /// Table-level classification: @ref DiffKind::OnlyInA / @ref DiffKind::OnlyInB
-    /// when one side lacks the table entirely; @ref DiffKind::Changed when both
+    /// Table-level classification: `DiffKind::OnlyInA` / `DiffKind::OnlyInB`
+    /// when one side lacks the table entirely; `DiffKind::Changed` when both
     /// sides have it but column / key / index definitions differ.
     DiffKind kind {};
 
-    /// Per-column diffs. Populated only when @ref kind is @ref DiffKind::Changed.
+    /// Per-column diffs. Populated only when `kind` is `DiffKind::Changed`.
     std::vector<ColumnDiff> columns {};
 
     /// Human-readable PK differences (e.g. `"primary key columns differ"`).
@@ -90,9 +92,9 @@ struct SchemaDiff
 ///
 /// Pairs tables by **name only** so the same logical table matches across SQL dialects
 /// even when engine-specific schema labels differ (`dbo` vs `public` vs `""`). Both
-/// schema labels are kept on @ref TableDiff for the renderer. Columns are paired by name.
+/// schema labels are kept on `TableDiff` for the renderer. Columns are paired by name.
 ///
-/// Column comparison uses the canonical @ref Column::type variant (engine-agnostic),
+/// Column comparison uses the canonical `Column::type` variant (engine-agnostic),
 /// not the dialect-dependent type string, so an `INTEGER` column compares equal whether
 /// the driver reports `int4`, `int`, or `INTEGER`. Other compared fields: nullability,
 /// size, decimal digits, default value, auto-increment, primary-key membership,

@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <format>
+#include <ranges>
 
 namespace Lightweight::Secrets
 {
@@ -69,11 +70,13 @@ namespace
     std::string JoinBackendNames(std::vector<std::string> const& names)
     {
         std::string joined;
-        for (size_t i = 0; i < names.size(); ++i)
+        bool first = true;
+        for (auto const& name: names)
         {
-            if (i != 0)
+            if (!first)
                 joined += ", ";
-            joined += names[i];
+            joined += name;
+            first = false;
         }
         return joined;
     }

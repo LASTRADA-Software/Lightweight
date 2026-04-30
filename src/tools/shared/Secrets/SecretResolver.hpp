@@ -36,6 +36,11 @@ struct ResolveError
     std::string message;
 };
 
+#if defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable : 4251) // STL types in DLL interface
+#endif
+
 /// Central lookup for opaque `secretRef` strings. Owns a list of registered
 /// backends and dispatches based on either an explicit `prefix:` or
 /// registration order for bare references.
@@ -45,10 +50,10 @@ class SecretResolver
     SecretResolver() = default;
     ~SecretResolver() = default;
     SecretResolver(SecretResolver const&) = delete;
-    /// Move-construct from another resolver, taking ownership of its backend chain.
+    /// Move-construct: defaulted; preserves backend registration order.
     SecretResolver(SecretResolver&&) = default;
     SecretResolver& operator=(SecretResolver const&) = delete;
-    /// Move-assign from another resolver, taking ownership of its backend chain.
+    /// Move-assign: defaulted; preserves backend registration order.
     SecretResolver& operator=(SecretResolver&&) = default;
 
     /// Appends a backend to the chain. The backend's `Name()` is used both as
@@ -92,6 +97,10 @@ class SecretResolver
 
     std::vector<std::shared_ptr<ISecretBackend>> _backends;
 };
+
+#if defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
 
 /// Convenience: builds a default resolver wired with the platform-neutral
 /// backends (`env:`, `file:`, `stdin:`) suitable for every build of

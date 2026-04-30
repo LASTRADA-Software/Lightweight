@@ -817,13 +817,15 @@ namespace
     {
         auto const joinQuoted = [](std::vector<std::string> const& v) {
             std::string out;
-            for (size_t i = 0; i < v.size(); ++i)
+            bool first = true;
+            for (auto const& s: v)
             {
-                if (i != 0)
+                if (!first)
                     out += ", ";
                 out += '"';
-                out += v[i];
+                out += s;
                 out += '"';
+                first = false;
             }
             return out;
         };

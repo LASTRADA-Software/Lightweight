@@ -110,13 +110,27 @@ jobs:
       - name: "install dependencies"
         run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14 libtbb-dev libzip-dev
       - name: "cmake"
+        # ENABLE_TIDY=OFF: this job invokes `run-clang-tidy` directly after
+        # configure; we don't want CMAKE_CXX_CLANG_TIDY also wired up
+        # because that runs clang-tidy on libunicode's own sources during
+        # the codegen build step below — and libunicode predates clang-tidy
+        # 22's pedantic warning set.
         run: |
           cmake --preset clang-debug \
                 -D CMAKE_CXX_COMPILER=clang++-${{ env.CLANG_TOOLS_VERSION }} \
                 -D CMAKE_C_COMPILER=clang-${{ env.CLANG_TOOLS_VERSION }} \
+                -D ENABLE_TIDY=OFF \
                 -B build
+      - name: "build libunicode codegen (UCD tables)"
+        # `unicode_ucd` is the libunicode static library whose source list
+        # includes the auto-generated `ucd_enums.h` and friends. Building it
+        # (only it) materialises those headers so that clang-tidy can parse
+        # `<libunicode/codepoint_properties.h>` transitively included from
+        # our vendored `tui/MarkdownTable.cpp`. Without this step, clang-tidy
+        # aborts with `'libunicode/ucd_enums.h' file not found`.
+        run: cmake --build build --target unicode_ucd
       - name: "run clang-tidy"
-        run: run-clang-tidy-${{ env.CLANG_TOOLS_VERSION }} -p ./build -clang-tidy-binary clang-tidy-${{ env.CLANG_TOOLS_VERSION }} -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/|(.*/)?libzip-src/).*$' -source-filter='^(?!.*_deps/).*$'
+        run: run-clang-tidy-${{ env.CLANG_TOOLS_VERSION }} -p ./build -clang-tidy-binary clang-tidy-${{ env.CLANG_TOOLS_VERSION }} -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/|(.*/)?libzip-src/|(.*/)?libunicode-src/).*$' -source-filter='^(?!.*_deps/).*$'
 
   # }}}
   # {{{ Windows

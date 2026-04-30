@@ -98,6 +98,11 @@ struct Profile
     [[nodiscard]] SqlConnectInfo ToConnectInfo(std::string_view password = {}) const;
 };
 
+#if defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable : 4251) // STL types in DLL interface
+#endif
+
 /// In-memory collection of named `Profile`s plus "which is the default".
 class ProfileStore
 {
@@ -196,5 +201,9 @@ class ProfileStore
     std::string _defaultProfile;
     std::vector<std::filesystem::path> _defaultPluginsDir;
 };
+
+#if defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
 
 } // namespace Lightweight::Config

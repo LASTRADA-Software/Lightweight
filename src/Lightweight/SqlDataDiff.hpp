@@ -24,13 +24,14 @@ namespace SqlSchema
     /// One row-level data difference between two databases.
     struct RowDiff
     {
+        /// Row-level classification: only-in-A, only-in-B, or changed.
         DiffKind kind {};
 
         /// String form of the row's primary key tuple. Empty for tables without a PK
-        /// (in which case @ref TableDataDiff::skipReason is set instead).
+        /// (in which case `TableDataDiff::skipReason` is set instead).
         std::vector<std::string> primaryKey {};
 
-        /// For @ref DiffKind::Changed: per-column tuple of (column name, value-on-A, value-on-B)
+        /// For `DiffKind::Changed`: per-column tuple of (column name, value-on-A, value-on-B)
         /// where the values differ. Empty for OnlyInA / OnlyInB.
         std::vector<std::tuple<std::string, std::string, std::string>> changedCells {};
     };
@@ -38,13 +39,15 @@ namespace SqlSchema
     /// Result of comparing the rows of one table across two databases.
     struct TableDataDiff
     {
+        /// Table name (schema-unqualified) that was compared.
         std::string tableName {};
 
         /// All row-level diffs found, in primary-key order.
         std::vector<RowDiff> rows {};
 
-        /// Total rows scanned from each side (informational; useful for headers).
+        /// Total rows scanned from the left-hand side (informational; useful for headers).
         std::size_t aRowCount = 0;
+        /// Total rows scanned from the right-hand side (informational; useful for headers).
         std::size_t bRowCount = 0;
 
         /// True when scanning was cut short by the @c maxRows cap.
@@ -58,8 +61,11 @@ namespace SqlSchema
     /// Live progress event reported during a data diff. Fired ~2 Hz at most.
     struct DiffProgressEvent
     {
+        /// Name of the table currently being scanned.
         std::string tableName;
+        /// Rows scanned so far from the left-hand side.
         std::size_t rowsScannedA = 0;
+        /// Rows scanned so far from the right-hand side.
         std::size_t rowsScannedB = 0;
         std::size_t expectedRowsA = 0; ///< 0 if unknown.
         std::size_t expectedRowsB = 0; ///< 0 if unknown.

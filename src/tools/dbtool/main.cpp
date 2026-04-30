@@ -6,9 +6,9 @@
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
 #include <Lightweight/SqlBackup.hpp>
+#include <Lightweight/SqlDataDiff.hpp>
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlLogger.hpp>
-#include <Lightweight/SqlDataDiff.hpp>
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlSchema.hpp>
 #include <Lightweight/SqlSchemaDiff.hpp>
@@ -20,9 +20,9 @@
 #include <cstdio>
 #include <expected>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <print>
+#include <ranges>
 #include <set>
 #include <string>
 #include <unordered_set>
@@ -2278,10 +2278,11 @@ int ExecQuery(Options const& options)
 /// Builds a single InProgress event for the schema-read or data-diff phases. Centralised
 /// here so the field-set (which clang's designated-init warning is picky about) lives in
 /// one place.
-[[nodiscard]] SqlBackup::Progress MakeProgressEvent(std::string tableName,
-                                                    std::size_t current,
-                                                    std::optional<std::size_t> total = std::nullopt,
-                                                    SqlBackup::Progress::State state = SqlBackup::Progress::State::InProgress)
+[[nodiscard]] SqlBackup::Progress MakeProgressEvent(
+    std::string tableName,
+    std::size_t current,
+    std::optional<std::size_t> total = std::nullopt,
+    SqlBackup::Progress::State state = SqlBackup::Progress::State::InProgress)
 {
     auto p = SqlBackup::Progress {};
     p.state = state;
@@ -2294,13 +2295,12 @@ int ExecQuery(Options const& options)
 /// Walks every table on side A whose name is also present on side B and runs
 /// `SqlSchema::DiffTableData`, accumulating non-empty results. Live progress events are
 /// fed into @p progress so the user sees current row counts and an ETA.
-[[nodiscard]] std::vector<SqlSchema::TableDataDiff> DiffSharedTables(
-    SqlConnection& connA,
-    SqlConnection& connB,
-    SqlSchema::TableList const& tablesA,
-    SqlSchema::TableList const& tablesB,
-    std::size_t maxRows,
-    SqlBackup::ProgressManager* progress)
+[[nodiscard]] std::vector<SqlSchema::TableDataDiff> DiffSharedTables(SqlConnection& connA,
+                                                                     SqlConnection& connB,
+                                                                     SqlSchema::TableList const& tablesA,
+                                                                     SqlSchema::TableList const& tablesB,
+                                                                     std::size_t maxRows,
+                                                                     SqlBackup::ProgressManager* progress)
 {
     auto tablesByNameB = std::map<std::string, SqlSchema::Table const*> {};
     for (auto const& t: tablesB)
@@ -2309,8 +2309,7 @@ int ExecQuery(Options const& options)
     auto onProgress = [&](SqlSchema::DiffProgressEvent const& ev) {
         if (!progress)
             return;
-        progress->Update(MakeProgressEvent(std::format("data: {}", ev.tableName),
-                                           ev.rowsScannedA + ev.rowsScannedB));
+        progress->Update(MakeProgressEvent(std::format("data: {}", ev.tableName), ev.rowsScannedA + ev.rowsScannedB));
     };
 
     auto diffs = std::vector<SqlSchema::TableDataDiff> {};
@@ -2358,26 +2357,20 @@ int ExecQuery(Options const& options)
         constexpr auto kExpected = std::string_view { "DRIVER=" };
         if (t.size() < kExpected.size())
             return false;
-        for (std::size_t i = 0; i < kExpected.size(); ++i)
-        {
-            auto const lhs = static_cast<char>(std::tolower(static_cast<unsigned char>(t[i])));
-            auto const rhs = static_cast<char>(std::tolower(static_cast<unsigned char>(kExpected[i])));
-            if (lhs != rhs)
-                return false;
-        }
-        return true;
+        return std::ranges::equal(t.substr(0, kExpected.size()), kExpected, [](char a, char b) {
+            return std::tolower(static_cast<unsigned char>(a)) == std::tolower(static_cast<unsigned char>(b));
+        });
     };
 
     if (looksLikeOdbcCs(token))
         return SqlConnectionString { std::string { token } };
 
     // Treat as profile name. Resolve through the same `ProfileStore` as the rest of dbtool,
-    // honoring `--config` if the user passed one.
-    auto configPath = !options.configFile.empty() ? std::filesystem::path { options.configFile }
-                                                  : Cfg::ProfileStore::DefaultPath();
-    if (!std::filesystem::exists(configPath))
-        return std::unexpected { std::format("Error: profile '{}' requested but no config file at {}", token,
-                                             configPath.string()) };
+    // honoring `--config` if the user passed one. `LoadOrDefault` returns an empty store
+    // when the file is missing, so the `profile == nullptr` branch below covers both
+    // "no config file" and "config file present but profile absent".
+    auto configPath =
+        !options.configFile.empty() ? std::filesystem::path { options.configFile } : Cfg::ProfileStore::DefaultPath();
 
     auto storeResult = Cfg::ProfileStore::LoadOrDefault(configPath);
     if (!storeResult)
@@ -2401,10 +2394,8 @@ int DiffDatabases(Options const& options)
 {
     if (options.argument.empty() || options.secondArgument.empty())
     {
-        std::println(std::cerr,
-                     "Error: diff requires two source arguments (profile name or DRIVER=... connection string).");
-        std::println(std::cerr,
-                     "Usage: dbtool diff <SOURCE-A> <SOURCE-B> [--schema-only] [--no-color] [--max-rows N]");
+        std::println(std::cerr, "Error: diff requires two source arguments (profile name or DRIVER=... connection string).");
+        std::println(std::cerr, "Usage: dbtool diff <SOURCE-A> <SOURCE-B> [--schema-only] [--no-color] [--max-rows N]");
         return EXIT_FAILURE;
     }
 
@@ -2461,8 +2452,8 @@ int DiffDatabases(Options const& options)
         auto const schemaDiff = SqlSchema::DiffSchemas(tablesA, tablesB);
 
         auto dataDiffs = options.schemaOnly
-            ? std::vector<SqlSchema::TableDataDiff> {}
-            : DiffSharedTables(connA, connB, tablesA, tablesB, options.diffMaxRows, progress.get());
+                             ? std::vector<SqlSchema::TableDataDiff> {}
+                             : DiffSharedTables(connA, connB, tablesA, tablesB, options.diffMaxRows, progress.get());
 
         if (progress)
             progress->AllDone();
@@ -2471,8 +2462,8 @@ int DiffDatabases(Options const& options)
         auto const renderOpts = Lightweight::Tools::DiffRenderOptions { .useColor = useColor };
         Lightweight::Tools::RenderDiff(std::cout, schemaDiff, dataDiffs, renderOpts);
 
-        auto const anyDataDiff = std::ranges::any_of(
-            dataDiffs, [](SqlSchema::TableDataDiff const& d) { return !d.rows.empty(); });
+        auto const anyDataDiff =
+            std::ranges::any_of(dataDiffs, [](SqlSchema::TableDataDiff const& d) { return !d.rows.empty(); });
         return (schemaDiff.Empty() && !anyDataDiff) ? EXIT_SUCCESS : 1;
     }
     catch (SqlException const& ex)
