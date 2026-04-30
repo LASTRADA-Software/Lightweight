@@ -43,14 +43,12 @@ struct ScopedTempFile
 
 [[nodiscard]] SqlConnectionString SqliteConn(std::filesystem::path const& path)
 {
-    // The Windows ODBC driver name has spaces and must be wrapped in braces; the
-    // unixODBC convention used on Linux/macOS keeps a bare identifier.
-#if defined(_WIN32) || defined(_WIN64)
-    constexpr auto driverName = "{SQLite3 ODBC Driver}";
-#else
-    constexpr auto driverName = "SQLite3";
-#endif
-    return SqlConnectionString { std::format("DRIVER={};Database={}", driverName, path.string()) };
+    // CI registers the SQLite ODBC driver under `[SQLite3 ODBC Driver]` on both
+    // Linux (after the workflow renames the libsqliteodbc default `[SQLite3]`
+    // entry) and Windows. The braces are mandatory because the driver name
+    // contains spaces. Local developers whose `/etc/odbcinst.ini` keeps the
+    // bare `[SQLite3]` entry must follow the same rename.
+    return SqlConnectionString { std::format("Driver={{SQLite3 ODBC Driver}};Database={}", path.string()) };
 }
 
 /// Creates a `users(id PK, name, email)` table and inserts the given rows.
