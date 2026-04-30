@@ -105,10 +105,13 @@ $(document).ready(function(){initNavTree('dc/d83/structLightweight_1_1SqlSchema_
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a3bd2e09536ade017430414abd89b7f8f" id="r_a3bd2e09536ade017430414abd89b7f8f"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html#a3bd2e09536ade017430414abd89b7f8f">tableName</a></td></tr>
+<tr class="memdesc:a3bd2e09536ade017430414abd89b7f8f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Name of the table currently being scanned.  <br /></td></tr>
 <tr class="separator:a3bd2e09536ade017430414abd89b7f8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa2f2c325c689672977b88c629fa34b3d" id="r_aa2f2c325c689672977b88c629fa34b3d"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html#aa2f2c325c689672977b88c629fa34b3d">rowsScannedA</a> = 0</td></tr>
+<tr class="memdesc:aa2f2c325c689672977b88c629fa34b3d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rows scanned so far from the left-hand side.  <br /></td></tr>
 <tr class="separator:aa2f2c325c689672977b88c629fa34b3d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac2bdb7293a61a955644690678165853d" id="r_ac2bdb7293a61a955644690678165853d"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html#ac2bdb7293a61a955644690678165853d">rowsScannedB</a> = 0</td></tr>
+<tr class="memdesc:ac2bdb7293a61a955644690678165853d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Rows scanned so far from the right-hand side.  <br /></td></tr>
 <tr class="separator:ac2bdb7293a61a955644690678165853d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af487c641cbfd924fab038612928ef898" id="r_af487c641cbfd924fab038612928ef898"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html#af487c641cbfd924fab038612928ef898">expectedRowsA</a> = 0</td></tr>
 <tr class="memdesc:af487c641cbfd924fab038612928ef898"><td class="mdescLeft">&#160;</td><td class="mdescRight">0 if unknown.  <br /></td></tr>
@@ -120,7 +123,7 @@ Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Live progress event reported during a data diff. Fired ~2 Hz at most. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00059">59</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00062">62</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a3bd2e09536ade017430414abd89b7f8f" name="a3bd2e09536ade017430414abd89b7f8f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3bd2e09536ade017430414abd89b7f8f">&#9670;&#160;</a></span>tableName</h2>
@@ -134,7 +137,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00061">61</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p>Name of the table currently being scanned. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00065">65</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -150,7 +155,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00062">62</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p>Rows scanned so far from the left-hand side. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00067">67</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -166,7 +173,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00063">63</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p>Rows scanned so far from the right-hand side. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00069">69</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -184,7 +193,7 @@ Public Attributes</h2></td></tr>
 
 <p>0 if unknown. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00064">64</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -202,7 +211,7 @@ Public Attributes</h2></td></tr>
 
 <p>0 if unknown. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00065">65</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00071">71</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>

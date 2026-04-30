@@ -105,6 +105,7 @@ $(document).ready(function(){initNavTree('d2/d37/structLightweight_1_1SqlSchema_
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:aa58a25f633abe50a3107863b3f1cb59e" id="r_aa58a25f633abe50a3107863b3f1cb59e"><td class="memItemLeft" align="right" valign="top">DiffKind&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d37/structLightweight_1_1SqlSchema_1_1RowDiff.html#aa58a25f633abe50a3107863b3f1cb59e">kind</a> {}</td></tr>
+<tr class="memdesc:aa58a25f633abe50a3107863b3f1cb59e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Row-level classification: only-in-A, only-in-B, or changed.  <br /></td></tr>
 <tr class="separator:aa58a25f633abe50a3107863b3f1cb59e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a16a86eddffc4381cdcfdb363d6c5ec49" id="r_a16a86eddffc4381cdcfdb363d6c5ec49"><td class="memItemLeft" align="right" valign="top">std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d37/structLightweight_1_1SqlSchema_1_1RowDiff.html#a16a86eddffc4381cdcfdb363d6c5ec49">primaryKey</a> {}</td></tr>
 <tr class="separator:a16a86eddffc4381cdcfdb363d6c5ec49"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -128,7 +129,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00027">27</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p>Row-level classification: only-in-A, only-in-B, or changed. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00028">28</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -143,9 +146,9 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>String form of the row's primary key tuple. Empty for tables without a PK (in which case <a class="el" href="../../d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html#aca2359492f4495f9763ca73ca455dcee">TableDataDiff::skipReason</a> is set instead). </p>
+<p>String form of the row's primary key tuple. Empty for tables without a PK (in which case <code><a class="el" href="../../d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html#aca2359492f4495f9763ca73ca455dcee">TableDataDiff::skipReason</a></code> is set instead). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00031">31</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00032">32</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -160,9 +163,9 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>For DiffKind::Changed: per-column tuple of (column name, value-on-A, value-on-B) where the values differ. Empty for OnlyInA / OnlyInB. </p>
+<p>For <code>DiffKind::Changed</code>: per-column tuple of (column name, value-on-A, value-on-B) where the values differ. Empty for OnlyInA / OnlyInB. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00035">35</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00036">36</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>

@@ -10,5 +10,7 @@ var searchData=
   ['required_7',['required',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a08cf8f2f35c6eec60086b7e18667bc61',1,'Lightweight::SqlColumnDeclaration']]],
   ['revertedtimestamps_8',['revertedTimestamps',['../d1/de7/structLightweight_1_1SqlMigration_1_1RevertResult.html#a14223384e1e346debcb57e6c4383154f',1,'Lightweight::SqlMigration::RevertResult']]],
   ['rowcount_9',['rowcount',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2',1,'Lightweight::SqlBackup::TableInfo::rowCount'],['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aa96489eada966b8294d4cc0e950cdbc3',1,'Lightweight::SqlBackup::ColumnBatch::rowCount']]],
-  ['rows_10',['rows',['../d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html#a823699af557a94610845c2b30eed7fad',1,'Lightweight::SqlSchema::TableDataDiff']]]
+  ['rows_10',['rows',['../d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html#a823699af557a94610845c2b30eed7fad',1,'Lightweight::SqlSchema::TableDataDiff']]],
+  ['rowsscanneda_11',['rowsScannedA',['../dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html#aa2f2c325c689672977b88c629fa34b3d',1,'Lightweight::SqlSchema::DiffProgressEvent']]],
+  ['rowsscannedb_12',['rowsScannedB',['../dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html#ac2bdb7293a61a955644690678165853d',1,'Lightweight::SqlSchema::DiffProgressEvent']]]
 ];

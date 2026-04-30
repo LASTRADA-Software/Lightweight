@@ -2,7 +2,7 @@ var annotated_dup =
 [
     [ "Lightweight", null, [
       [ "CodeGen", null, [
-        [ "CodeBlock", "d5/d38/structLightweight_1_1CodeGen_1_1CodeBlock.html", null ],
+        [ "CodeBlock", "d5/d38/structLightweight_1_1CodeGen_1_1CodeBlock.html", "d5/d38/structLightweight_1_1CodeGen_1_1CodeBlock" ],
         [ "WriteResult", "d2/d38/structLightweight_1_1CodeGen_1_1WriteResult.html", "d2/d38/structLightweight_1_1CodeGen_1_1WriteResult" ]
       ] ],
       [ "Config", null, [
@@ -137,11 +137,5 @@ var annotated_dup =
       [ "SqlWildcardType", "d2/d74/structLightweight_1_1SqlWildcardType.html", null ],
       [ "ThreadSafeQueue", "d4/d9e/classLightweight_1_1ThreadSafeQueue.html", "d4/d9e/classLightweight_1_1ThreadSafeQueue" ],
       [ "UniqueNameBuilder", "da/d15/classLightweight_1_1UniqueNameBuilder.html", "da/d15/classLightweight_1_1UniqueNameBuilder" ]
-    ] ],
-    [ "tui", null, [
-      [ "InlineCodeSpan", "d3/dd3/structtui_1_1InlineCodeSpan.html", "d3/dd3/structtui_1_1InlineCodeSpan" ],
-      [ "ParsedTable", "d2/dfc/structtui_1_1ParsedTable.html", null ],
-      [ "RgbColor", "d9/d81/structtui_1_1RgbColor.html", null ],
-      [ "Style", "d6/d18/structtui_1_1Style.html", null ]
     ] ]
 ];

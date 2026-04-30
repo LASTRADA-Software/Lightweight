@@ -53,18 +53,30 @@ var group__SqlMigration =
         [ "newChecksum", "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#ad3ce4bbad3006b22fd134916fe257dfd", null ]
       ] ],
       [ "ColumnUpgradeEntry", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html", [
+        [ "table", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a669b503366f25cd1196612aa3354864f", null ],
+        [ "column", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#ab837fe688066523d5178f48a9f459b89", null ],
         [ "liveType", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a396642e22f36188c7ea4dce037c2204e", null ],
-        [ "intendedType", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a9702abd84a89cfd34a32375d341e0b7e", null ]
+        [ "intendedType", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a9702abd84a89cfd34a32375d341e0b7e", null ],
+        [ "nullable", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#aad8cbeca3421d47c96c54ee1d43860d0", null ]
       ] ],
       [ "HardResetResult", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html", [
+        [ "wasDryRun", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#af96c4af24cdc9ce53b3a27f507fbfc1e", null ],
         [ "droppedTables", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#abfd242340ca076711738bf65659e5081", null ],
         [ "absentTables", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a374c3e5219e1b82c0fb5283d9599a41d", null ],
         [ "preservedTables", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a5da7e6fd9a84f00e8aafb68637ac0c62", null ],
         [ "schemaMigrationsDropped", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#af24b850a50a1ddf570bafe458be64f16", null ]
       ] ],
       [ "PlanFoldingResult", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html", [
-        [ "DataStep", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html", null ],
-        [ "TableState", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html", null ],
+        [ "DataStep", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html", [
+          [ "sourceTimestamp", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#aa75da59965fb30aa059e5c01837b8515", null ],
+          [ "sourceTitle", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#a4b67dd278a63e1a8680f3a99e47141e5", null ],
+          [ "element", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#a73d0c542c119f43de28a70dd3f6af55f", null ]
+        ] ],
+        [ "TableState", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html", [
+          [ "columns", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#a14c5641bee4fb83cbdff804c876ebc04", null ],
+          [ "compositeForeignKeys", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#a79de324e4b9ed5400fe3d954daa4fca1", null ],
+          [ "ifNotExists", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#acd1d1fea3fc25d001846e2a4170e8fb7", null ]
+        ] ],
         [ "tables", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#a8416dff5cbb6f7b62b61f5a65d076d92", null ],
         [ "creationOrder", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ae8ebcc9ddb16471d4a17bb73ad4f9083", null ],
         [ "indexes", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#a660ae31bbcb90397f6dae0085902cdc1", null ],
@@ -78,6 +90,7 @@ var group__SqlMigration =
         [ "wasDryRun", "d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html#a62e14af3a4f6e7049850c42c5a5e519b", null ]
       ] ],
       [ "UnicodeUpgradeResult", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html", [
+        [ "wasDryRun", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#a706afa7f5b94115ad9f9f41b51facf37", null ],
         [ "columns", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#aa7e5278c2c378b5f0c42885abb3c487d", null ],
         [ "rebuiltForeignKeys", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ae1b60503143ebed45d9317789e47a684", null ]
       ] ],

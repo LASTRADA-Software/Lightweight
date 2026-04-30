@@ -1,7 +1,7 @@
 var searchData=
 [
   ['ifexists_0',['ifExists',['../dd/d47/structLightweight_1_1SqlDropTablePlan.html#af7adb5af3a0ff6c6a366fee2ce29beff',1,'Lightweight::SqlDropTablePlan']]],
-  ['ifnotexists_1',['ifNotExists',['../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a64587008f80036f6eae8301e96b6656b',1,'Lightweight::SqlCreateIndexPlan']]],
+  ['ifnotexists_1',['ifnotexists',['../d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#acd1d1fea3fc25d001846e2a4170e8fb7',1,'Lightweight::SqlMigration::MigrationManager::PlanFoldingResult::TableState::ifNotExists'],['../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a64587008f80036f6eae8301e96b6656b',1,'Lightweight::SqlCreateIndexPlan::ifNotExists']]],
   ['index_2',['index',['../dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046',1,'Lightweight::SqlColumnDeclaration::index'],['../d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html#a0731a4941cd0e4cbdfa4a3dfc159a750',1,'Lightweight::Zip::EntryInfo::index']]],
   ['indexdiffs_3',['indexDiffs',['../da/d90/structLightweight_1_1SqlSchema_1_1TableDiff.html#a01a825a0ecbc85a34dcee7f9746ab3b6',1,'Lightweight::SqlSchema::TableDiff']]],
   ['indexes_4',['indexes',['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ac5078f37747a5a12b4d3d7e8df8b7595',1,'Lightweight::SqlBackup::TableInfo::indexes'],['../df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#a660ae31bbcb90397f6dae0085902cdc1',1,'Lightweight::SqlMigration::MigrationManager::PlanFoldingResult::indexes'],['../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html#afb92036f7695851c2246f5574d7f3bde',1,'Lightweight::SqlSchema::Table::indexes']]],

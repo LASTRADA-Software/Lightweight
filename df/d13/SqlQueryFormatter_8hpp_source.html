@@ -291,27 +291,26 @@ $(document).ready(function(){initNavTree('df/d13/SqlQueryFormatter_8hpp_source.h
 <div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span><span class="comment">    /// DROP CONSTRAINT lookup (e.g. `SQLiteRebuildDropForeignKey`).</span></div>
 <div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span><span class="comment"></span>    template &lt;typename Range&gt;</div>
 <div class="foldopen" id="foldopen00192" data-start="{" data-end="}">
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno"><a class="line" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a36631dad45de6ee327dac3fb204c29e0">  192</a></span>    [[nodiscard]] static std::<span class="keywordtype">string</span> BuildForeignKeyConstraintName(std::string_view tableName,</div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>                                                                   Range const&amp; columns)</div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>    {</div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>        std::string name { <span class="stringliteral">&quot;FK_&quot;</span> };</div>
-<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>        name.append(tableName);</div>
-<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>        <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; col: columns)</div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>        {</div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>            name.push_back(<span class="charliteral">&#39;_&#39;</span>);</div>
-<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>            name.append(col);</div>
-<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>        }</div>
-<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>        <span class="keywordflow">return</span> name;</div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>    }</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno"><a class="line" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a36631dad45de6ee327dac3fb204c29e0">  192</a></span>    [[nodiscard]] static std::<span class="keywordtype">string</span> BuildForeignKeyConstraintName(std::string_view tableName, Range const&amp; columns)</div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>    {</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>        std::string name { <span class="stringliteral">&quot;FK_&quot;</span> };</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>        name.append(tableName);</div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>        <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; col: columns)</div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>        {</div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>            name.push_back(<span class="charliteral">&#39;_&#39;</span>);</div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>            name.append(col);</div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>        }</div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>        <span class="keywordflow">return</span> name;</div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>    }</div>
 </div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span> </div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>  <span class="keyword">protected</span>:<span class="comment"></span></div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span><span class="comment">    /// Formats a table name with optional schema prefix.</span></div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno"><a class="line" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad7ec395951f5c23df2f0aae0e84bb9d6">  207</a></span><span class="comment"></span>    <span class="keyword">static</span> std::string <a class="code hl_function" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad7ec395951f5c23df2f0aae0e84bb9d6">FormatTableName</a>(std::string_view schema, std::string_view table);</div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>};</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span> </div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>  <span class="keyword">protected</span>:<span class="comment"></span></div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span><span class="comment">    /// Formats a table name with optional schema prefix.</span></div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno"><a class="line" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad7ec395951f5c23df2f0aae0e84bb9d6">  206</a></span><span class="comment"></span>    <span class="keyword">static</span> std::string <a class="code hl_function" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad7ec395951f5c23df2f0aae0e84bb9d6">FormatTableName</a>(std::string_view schema, std::string_view table);</div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>};</div>
 </div>
-<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span> </div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span> </div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1SqlQueryFormatter_html"><div class="ttname"><a href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">Lightweight::SqlQueryFormatter</a></div><div class="ttdoc">API to format SQL queries for different SQL dialects.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00019">SqlQueryFormatter.hpp:20</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlQueryFormatter_html_a1dcb7e54bfcc84b7995643cd35a43c53"><div class="ttname"><a href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1dcb7e54bfcc84b7995643cd35a43c53">Lightweight::SqlQueryFormatter::SqlQueryFormatter</a></div><div class="ttdeci">SqlQueryFormatter(SqlQueryFormatter const &amp;)=default</div><div class="ttdoc">Default copy constructor.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlQueryFormatter_html_a2a8b5bd4208f5b50cb9e4e4e8cbc3922"><div class="ttname"><a href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2a8b5bd4208f5b50cb9e4e4e8cbc3922">Lightweight::SqlQueryFormatter::SqlQueryFormatter</a></div><div class="ttdeci">SqlQueryFormatter()=default</div><div class="ttdoc">Default constructor.</div></div>

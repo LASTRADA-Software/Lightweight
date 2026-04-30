@@ -104,13 +104,16 @@ $(document).ready(function(){initNavTree('da/dcb/structLightweight_1_1MigrationR
 Public Member Functions</h2></td></tr>
 <tr class="memitem:aa76a50dedd516dac82426e22a3e24265" id="r_aa76a50dedd516dac82426e22a3e24265"><td class="memItemLeft" align="right" valign="top"><a id="aa76a50dedd516dac82426e22a3e24265" name="aa76a50dedd516dac82426e22a3e24265"></a>
 auto&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;=&gt;</b> (<a class="el" href="../../da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html">ColumnKey</a> const &amp;) const =default</td></tr>
+<tr class="memdesc:aa76a50dedd516dac82426e22a3e24265"><td class="mdescLeft">&#160;</td><td class="mdescRight">Total ordering on (schema, table, column) — defaulted three-way comparison. <br /></td></tr>
 <tr class="separator:aa76a50dedd516dac82426e22a3e24265"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a15de289fbe72a7e9ee13c7d6ede1d84b" id="r_a15de289fbe72a7e9ee13c7d6ede1d84b"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#a15de289fbe72a7e9ee13c7d6ede1d84b">schema</a></td></tr>
+<tr class="memdesc:a15de289fbe72a7e9ee13c7d6ede1d84b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Schema label (empty for engines without schemas, e.g. SQLite).  <br /></td></tr>
 <tr class="separator:a15de289fbe72a7e9ee13c7d6ede1d84b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3d25a9c6af1bb1f43efb4f526daa4471" id="r_a3d25a9c6af1bb1f43efb4f526daa4471"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#a3d25a9c6af1bb1f43efb4f526daa4471">table</a></td></tr>
+<tr class="memdesc:a3d25a9c6af1bb1f43efb4f526daa4471"><td class="mdescLeft">&#160;</td><td class="mdescRight">Table name.  <br /></td></tr>
 <tr class="separator:a3d25a9c6af1bb1f43efb4f526daa4471"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6ed0df14237cf17363e0dce25e4d16ec" id="r_a6ed0df14237cf17363e0dce25e4d16ec"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html#a6ed0df14237cf17363e0dce25e4d16ec">column</a></td></tr>
 <tr class="separator:a6ed0df14237cf17363e0dce25e4d16ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -132,6 +135,8 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
+<p>Schema label (empty for engines without schemas, e.g. SQLite). </p>
+
 <p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00587">587</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
@@ -148,6 +153,8 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
+<p>Table name. </p>
+
 <p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00588">588</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
@@ -163,6 +170,7 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Column name. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00589">589</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 

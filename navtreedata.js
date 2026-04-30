@@ -214,12 +214,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a4296163dab8a3ce341e2b52a18c7c7b7",
-"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca12d868c18cb29bf58f02b504be9033fd",
-"d7/d2f/group__DataMapper.html#gae0874e29a73741a5badb14bacafae06e",
-"d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#a64b56a650906d09b12d54ebf6e765559",
-"dc/d74/MarkdownTable_8hpp_source.html",
-"df/d39/SgrBuilder_8hpp_source.html"
+"d2/dd0/structLightweight_1_1Field.html#a0fd8a939fbdd169391d529caf940ad40",
+"d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html",
+"d7/d13/structLightweight_1_1SqlRealName.html#af23090d1ec3bacb89b9aa4510eb9d42d",
+"d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#adec7c645281b65b2f005190ed3a3e5f7",
+"db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750a93cba07454f06a4a960172bbd6e2a435",
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

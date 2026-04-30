@@ -105,8 +105,10 @@ $(document).ready(function(){initNavTree('de/d75/structLightweight_1_1SqlSchema_
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:ab78775afe75cfb14896bfd9089d6aba0" id="r_ab78775afe75cfb14896bfd9089d6aba0"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d75/structLightweight_1_1SqlSchema_1_1ColumnDiff.html#ab78775afe75cfb14896bfd9089d6aba0">name</a></td></tr>
+<tr class="memdesc:ab78775afe75cfb14896bfd9089d6aba0"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="../../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html" title="Holds the definition of a column in a SQL table as read from the database schema.">Column</a> name (case sensitivity follows the engines' rules — they're paired by name).  <br /></td></tr>
 <tr class="separator:ab78775afe75cfb14896bfd9089d6aba0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5e24af75e41c4ea2a958185ed797e3d5" id="r_a5e24af75e41c4ea2a958185ed797e3d5"><td class="memItemLeft" align="right" valign="top">DiffKind&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d75/structLightweight_1_1SqlSchema_1_1ColumnDiff.html#a5e24af75e41c4ea2a958185ed797e3d5">kind</a> {}</td></tr>
+<tr class="memdesc:a5e24af75e41c4ea2a958185ed797e3d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Column-level classification: only-in-A, only-in-B, or changed.  <br /></td></tr>
 <tr class="separator:a5e24af75e41c4ea2a958185ed797e3d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abb2ff901419a862054edf620a08415ff" id="r_abb2ff901419a862054edf620a08415ff"><td class="memItemLeft" align="right" valign="top">std::vector&lt; std::string &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d75/structLightweight_1_1SqlSchema_1_1ColumnDiff.html#abb2ff901419a862054edf620a08415ff">changedFields</a> {}</td></tr>
 <tr class="separator:abb2ff901419a862054edf620a08415ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -132,7 +134,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html#l00026">26</a> of file <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html">SqlSchemaDiff.hpp</a>.</p>
+<p><a class="el" href="../../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html" title="Holds the definition of a column in a SQL table as read from the database schema.">Column</a> name (case sensitivity follows the engines' rules — they're paired by name). </p>
+
+<p class="definition">Definition at line <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html#l00027">27</a> of file <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html">SqlSchemaDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -148,7 +152,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html#l00027">27</a> of file <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html">SqlSchemaDiff.hpp</a>.</p>
+<p>Column-level classification: only-in-A, only-in-B, or changed. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html#l00029">29</a> of file <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html">SqlSchemaDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -163,9 +169,9 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>For DiffKind::Changed: human-readable list of differing fields (e.g. <code>"type"</code>, <code>"nullable"</code>, <code>"defaultValue"</code>). Empty otherwise. </p>
+<p>For <code>DiffKind::Changed</code>: human-readable list of differing fields (e.g. <code>"type"</code>, <code>"nullable"</code>, <code>"defaultValue"</code>). Empty otherwise. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html#l00031">31</a> of file <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html">SqlSchemaDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html#l00033">33</a> of file <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html">SqlSchemaDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -180,9 +186,9 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Pointer into the input TableList for the left-hand column. Null when kind is DiffKind::OnlyInB. </p>
+<p>Pointer into the input <code>TableList</code> for the left-hand column. Null when <code>kind</code> is <code>DiffKind::OnlyInB</code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html#l00035">35</a> of file <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html">SqlSchemaDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html#l00037">37</a> of file <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html">SqlSchemaDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -197,9 +203,9 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Pointer into the input TableList for the right-hand column. Null when kind is DiffKind::OnlyInA. </p>
+<p>Pointer into the input <code>TableList</code> for the right-hand column. Null when <code>kind</code> is <code>DiffKind::OnlyInA</code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html#l00039">39</a> of file <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html">SqlSchemaDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html#l00041">41</a> of file <a class="el" href="../../da/dee/SqlSchemaDiff_8hpp_source.html">SqlSchemaDiff.hpp</a>.</p>
 
 </div>
 </div>

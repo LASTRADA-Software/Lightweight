@@ -125,16 +125,19 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a2951b6980a9d504a748699de0167c8de" id="r_a2951b6980a9d504a748699de0167c8de"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d23/structLightweight_1_1MigrationRenderContext.html#a2951b6980a9d504a748699de0167c8de">lupTruncate</a> = false</td></tr>
 <tr class="separator:a2951b6980a9d504a748699de0167c8de"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a154ed00a23db3b1d47ba38e3f81c49a6" id="r_a154ed00a23db3b1d47ba38e3f81c49a6"><td class="memItemLeft" align="right" valign="top">std::map&lt; <a class="el" href="../../da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html">ColumnKey</a>, ColumnWidth &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d23/structLightweight_1_1MigrationRenderContext.html#a154ed00a23db3b1d47ba38e3f81c49a6">columnWidths</a></td></tr>
+<tr class="memdesc:a154ed00a23db3b1d47ba38e3f81c49a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Cache of declared character widths, populated lazily as plan elements render.  <br /></td></tr>
 <tr class="separator:a154ed00a23db3b1d47ba38e3f81c49a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a72202fddb710d0fd35f5135ddcf97c7b" id="r_a72202fddb710d0fd35f5135ddcf97c7b"><td class="memItemLeft" align="right" valign="top">std::function&lt; void(<a class="el" href="../../d4/d23/structLightweight_1_1MigrationRenderContext.html">MigrationRenderContext</a> &amp;, std::string_view, std::string_view)&gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d23/structLightweight_1_1MigrationRenderContext.html#a72202fddb710d0fd35f5135ddcf97c7b">widthLookup</a></td></tr>
 <tr class="memdesc:a72202fddb710d0fd35f5135ddcf97c7b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Optional fallback that fetches column widths for a <code>(schema, table)</code> from the live database when the cache has no entry for it.  <br /></td></tr>
 <tr class="separator:a72202fddb710d0fd35f5135ddcf97c7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7d5c90cf0a765b640b1de1ed07a24f28" id="r_a7d5c90cf0a765b640b1de1ed07a24f28"><td class="memItemLeft" align="right" valign="top">std::set&lt; <a class="el" href="../../d4/d6d/structLightweight_1_1MigrationRenderContext_1_1TableKey.html">TableKey</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d23/structLightweight_1_1MigrationRenderContext.html#a7d5c90cf0a765b640b1de1ed07a24f28">lookupAttempted</a></td></tr>
+<tr class="memdesc:a7d5c90cf0a765b640b1de1ed07a24f28"><td class="mdescLeft">&#160;</td><td class="mdescRight">Tables for which <code>widthLookup</code> has already been called; prevents repeat queries.  <br /></td></tr>
 <tr class="separator:a7d5c90cf0a765b640b1de1ed07a24f28"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a11788fb09cb998464573d4a57ede7607" id="r_a11788fb09cb998464573d4a57ede7607"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d23/structLightweight_1_1MigrationRenderContext.html#a11788fb09cb998464573d4a57ede7607">activeMigrationTitle</a></td></tr>
 <tr class="memdesc:a11788fb09cb998464573d4a57ede7607"><td class="mdescLeft">&#160;</td><td class="mdescRight">Identity of the migration currently being rendered. Set by <code>MigrationManager::ApplySingleMigration</code> before <code>ToSql</code> is called for each step so warnings (e.g. <code>lup-truncate</code>) can attribute themselves to the offending migration. Empty / zero when rendering happens outside a migration run (e.g. unit tests calling <code>ToSql</code> directly).  <br /></td></tr>
 <tr class="separator:a11788fb09cb998464573d4a57ede7607"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5d4b74f5a642f65b26bab98b334783ab" id="r_a5d4b74f5a642f65b26bab98b334783ab"><td class="memItemLeft" align="right" valign="top">std::uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d23/structLightweight_1_1MigrationRenderContext.html#a5d4b74f5a642f65b26bab98b334783ab">activeMigrationTimestamp</a> = 0</td></tr>
+<tr class="memdesc:a5d4b74f5a642f65b26bab98b334783ab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Timestamp of the migration currently being rendered (0 outside a migration run).  <br /></td></tr>
 <tr class="separator:a5d4b74f5a642f65b26bab98b334783ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -167,7 +170,7 @@ Public Attributes</h2></td></tr>
 
 <p>How a column's declared width is counted. The truncation layer must match the server's interpretation: a VARCHAR(100) on MSSQL holds 100 <em>bytes</em>, but an NVARCHAR(100) holds 100 <em>characters</em>. Truncating to 100 characters when the server budget is 100 bytes still overflows on multi-byte source data. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00597">597</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00598">598</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -201,7 +204,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00609">609</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p>Cache of declared character widths, populated lazily as plan elements render. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00611">611</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -220,7 +225,7 @@ Public Attributes</h2></td></tr>
 <p>Optional fallback that fetches column widths for a <code>(schema, table)</code> from the live database when the cache has no entry for it. </p>
 <p>The renderer calls this once per <code>(schema, table)</code> it can't satisfy from <code>columnWidths</code>. Implementations should issue a single <code>INFORMATION_SCHEMA.COLUMNS</code> (or equivalent) query and write every char/varchar column's declared width back into <code>columnWidths</code>. They may also write a sentinel (e.g. an empty entry) when the table doesn't exist, so the renderer doesn't keep retrying. Default-empty means "no fallback" — i.e. only widths declared by the same migration plan are considered. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00622">622</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00623">623</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -236,7 +241,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00632">632</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p>Tables for which <code>widthLookup</code> has already been called; prevents repeat queries. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00635">635</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -254,7 +261,7 @@ Public Attributes</h2></td></tr>
 
 <p>Identity of the migration currently being rendered. Set by <code>MigrationManager::ApplySingleMigration</code> before <code>ToSql</code> is called for each step so warnings (e.g. <code>lup-truncate</code>) can attribute themselves to the offending migration. Empty / zero when rendering happens outside a migration run (e.g. unit tests calling <code>ToSql</code> directly). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00639">639</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00642">642</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -270,7 +277,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00640">640</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p>Timestamp of the migration currently being rendered (0 outside a migration run). </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00644">644</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>

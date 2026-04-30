@@ -105,14 +105,16 @@ $(document).ready(function(){initNavTree('d1/d8b/structLightweight_1_1SqlSchema_
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a3345fd8bd8f50274a9850a73a9ca2f22" id="r_a3345fd8bd8f50274a9850a73a9ca2f22"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html#a3345fd8bd8f50274a9850a73a9ca2f22">tableName</a> {}</td></tr>
+<tr class="memdesc:a3345fd8bd8f50274a9850a73a9ca2f22"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="../../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html" title="Holds the definition of a table in a SQL database as read from the database schema.">Table</a> name (schema-unqualified) that was compared.  <br /></td></tr>
 <tr class="separator:a3345fd8bd8f50274a9850a73a9ca2f22"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a823699af557a94610845c2b30eed7fad" id="r_a823699af557a94610845c2b30eed7fad"><td class="memItemLeft" align="right" valign="top">std::vector&lt; <a class="el" href="../../d2/d37/structLightweight_1_1SqlSchema_1_1RowDiff.html">RowDiff</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html#a823699af557a94610845c2b30eed7fad">rows</a> {}</td></tr>
 <tr class="memdesc:a823699af557a94610845c2b30eed7fad"><td class="mdescLeft">&#160;</td><td class="mdescRight">All row-level diffs found, in primary-key order.  <br /></td></tr>
 <tr class="separator:a823699af557a94610845c2b30eed7fad"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a52b9076529c466e2aebce7b2bf51f667" id="r_a52b9076529c466e2aebce7b2bf51f667"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html#a52b9076529c466e2aebce7b2bf51f667">aRowCount</a> = 0</td></tr>
-<tr class="memdesc:a52b9076529c466e2aebce7b2bf51f667"><td class="mdescLeft">&#160;</td><td class="mdescRight">Total rows scanned from each side (informational; useful for headers).  <br /></td></tr>
+<tr class="memdesc:a52b9076529c466e2aebce7b2bf51f667"><td class="mdescLeft">&#160;</td><td class="mdescRight">Total rows scanned from the left-hand side (informational; useful for headers).  <br /></td></tr>
 <tr class="separator:a52b9076529c466e2aebce7b2bf51f667"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0c62afaf551d50d6a37a7d43b38d0e2a" id="r_a0c62afaf551d50d6a37a7d43b38d0e2a"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html#a0c62afaf551d50d6a37a7d43b38d0e2a">bRowCount</a> = 0</td></tr>
+<tr class="memdesc:a0c62afaf551d50d6a37a7d43b38d0e2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Total rows scanned from the right-hand side (informational; useful for headers).  <br /></td></tr>
 <tr class="separator:a0c62afaf551d50d6a37a7d43b38d0e2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a349d21544cee6648f761f84ed797b02f" id="r_a349d21544cee6648f761f84ed797b02f"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html#a349d21544cee6648f761f84ed797b02f">truncated</a> = false</td></tr>
 <tr class="memdesc:a349d21544cee6648f761f84ed797b02f"><td class="mdescLeft">&#160;</td><td class="mdescRight">True when scanning was cut short by the <code>maxRows</code> cap.  <br /></td></tr>
@@ -123,7 +125,7 @@ Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Result of comparing the rows of one table across two databases. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00039">39</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a3345fd8bd8f50274a9850a73a9ca2f22" name="a3345fd8bd8f50274a9850a73a9ca2f22"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3345fd8bd8f50274a9850a73a9ca2f22">&#9670;&#160;</a></span>tableName</h2>
@@ -137,7 +139,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00041">41</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p><a class="el" href="../../d3/dda/structLightweight_1_1SqlSchema_1_1Table.html" title="Holds the definition of a table in a SQL database as read from the database schema.">Table</a> name (schema-unqualified) that was compared. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00043">43</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -155,7 +159,7 @@ Public Attributes</h2></td></tr>
 
 <p>All row-level diffs found, in primary-key order. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00044">44</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00046">46</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -171,9 +175,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Total rows scanned from each side (informational; useful for headers). </p>
+<p>Total rows scanned from the left-hand side (informational; useful for headers). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00047">47</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00049">49</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -189,7 +193,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00048">48</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p>Total rows scanned from the right-hand side (informational; useful for headers). </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00051">51</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -207,7 +213,7 @@ Public Attributes</h2></td></tr>
 
 <p>True when scanning was cut short by the <code>maxRows</code> cap. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00051">51</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00054">54</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>
@@ -224,7 +230,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>When set, the diff was not performed; the value is a human-readable reason (e.g. <code>"no primary key"</code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00055">55</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html#l00058">58</a> of file <a class="el" href="../../d6/d58/SqlDataDiff_8hpp_source.html">SqlDataDiff.hpp</a>.</p>
 
 </div>
 </div>

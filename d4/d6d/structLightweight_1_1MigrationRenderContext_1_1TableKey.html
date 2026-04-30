@@ -107,11 +107,13 @@ $(document).ready(function(){initNavTree('d4/d6d/structLightweight_1_1MigrationR
 Public Member Functions</h2></td></tr>
 <tr class="memitem:aa58a804d5d9e7a2a98da93c4ae2c8e0b" id="r_aa58a804d5d9e7a2a98da93c4ae2c8e0b"><td class="memItemLeft" align="right" valign="top"><a id="aa58a804d5d9e7a2a98da93c4ae2c8e0b" name="aa58a804d5d9e7a2a98da93c4ae2c8e0b"></a>
 auto&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;=&gt;</b> (<a class="el" href="../../d4/d6d/structLightweight_1_1MigrationRenderContext_1_1TableKey.html">TableKey</a> const &amp;) const =default</td></tr>
+<tr class="memdesc:aa58a804d5d9e7a2a98da93c4ae2c8e0b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Total ordering on (schema, table) — defaulted three-way comparison. <br /></td></tr>
 <tr class="separator:aa58a804d5d9e7a2a98da93c4ae2c8e0b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a918ea2b7a4f0849fa9708f90d91e8a91" id="r_a918ea2b7a4f0849fa9708f90d91e8a91"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d6d/structLightweight_1_1MigrationRenderContext_1_1TableKey.html#a918ea2b7a4f0849fa9708f90d91e8a91">schema</a></td></tr>
+<tr class="memdesc:a918ea2b7a4f0849fa9708f90d91e8a91"><td class="mdescLeft">&#160;</td><td class="mdescRight">Schema label (empty when the engine reports none).  <br /></td></tr>
 <tr class="separator:a918ea2b7a4f0849fa9708f90d91e8a91"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab320bbc470c57503b63a4c7cf1639694" id="r_ab320bbc470c57503b63a4c7cf1639694"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d6d/structLightweight_1_1MigrationRenderContext_1_1TableKey.html#ab320bbc470c57503b63a4c7cf1639694">table</a></td></tr>
 <tr class="separator:ab320bbc470c57503b63a4c7cf1639694"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -119,7 +121,7 @@ Public Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Tables for which the lookup has already been attempted, so we don't re-query for every INSERT against the same table. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00626">626</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00627">627</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a918ea2b7a4f0849fa9708f90d91e8a91" name="a918ea2b7a4f0849fa9708f90d91e8a91"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a918ea2b7a4f0849fa9708f90d91e8a91">&#9670;&#160;</a></span>schema</h2>
@@ -133,7 +135,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00628">628</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p>Schema label (empty when the engine reports none). </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00629">629</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -148,8 +152,9 @@ Public Attributes</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+<p>Table name. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00629">629</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00630">630</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>

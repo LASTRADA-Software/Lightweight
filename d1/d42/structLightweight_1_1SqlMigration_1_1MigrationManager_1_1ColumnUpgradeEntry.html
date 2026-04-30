@@ -105,8 +105,10 @@ $(document).ready(function(){initNavTree('d1/d42/structLightweight_1_1SqlMigrati
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a669b503366f25cd1196612aa3354864f" id="r_a669b503366f25cd1196612aa3354864f"><td class="memItemLeft" align="right" valign="top">SqlSchema::FullyQualifiedTableName&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a669b503366f25cd1196612aa3354864f">table</a></td></tr>
+<tr class="memdesc:a669b503366f25cd1196612aa3354864f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fully-qualified name of the table that owns the column.  <br /></td></tr>
 <tr class="separator:a669b503366f25cd1196612aa3354864f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab837fe688066523d5178f48a9f459b89" id="r_ab837fe688066523d5178f48a9f459b89"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#ab837fe688066523d5178f48a9f459b89">column</a></td></tr>
+<tr class="memdesc:ab837fe688066523d5178f48a9f459b89"><td class="mdescLeft">&#160;</td><td class="mdescRight">Name of the column being upgraded.  <br /></td></tr>
 <tr class="separator:ab837fe688066523d5178f48a9f459b89"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a396642e22f36188c7ea4dce037c2204e" id="r_a396642e22f36188c7ea4dce037c2204e"><td class="memItemLeft" align="right" valign="top">SqlColumnTypeDefinition&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a396642e22f36188c7ea4dce037c2204e">liveType</a></td></tr>
 <tr class="memdesc:a396642e22f36188c7ea4dce037c2204e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Live byte-counted type the column currently has.  <br /></td></tr>
@@ -115,12 +117,13 @@ Public Attributes</h2></td></tr>
 <tr class="memdesc:a9702abd84a89cfd34a32375d341e0b7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Char-counted type the migrations now declare for this column.  <br /></td></tr>
 <tr class="separator:a9702abd84a89cfd34a32375d341e0b7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aad8cbeca3421d47c96c54ee1d43860d0" id="r_aad8cbeca3421d47c96c54ee1d43860d0"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#aad8cbeca3421d47c96c54ee1d43860d0">nullable</a> = true</td></tr>
+<tr class="memdesc:aad8cbeca3421d47c96c54ee1d43860d0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the column is nullable (preserved across the type rewrite).  <br /></td></tr>
 <tr class="separator:aad8cbeca3421d47c96c54ee1d43860d0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>One column upgrade entry in <code><a class="el" href="../../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html" title="Result of an UnicodeUpgradeTables call.">UnicodeUpgradeResult</a></code>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00489">489</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00499">499</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a669b503366f25cd1196612aa3354864f" name="a669b503366f25cd1196612aa3354864f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a669b503366f25cd1196612aa3354864f">&#9670;&#160;</a></span>table</h2>
@@ -134,7 +137,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00491">491</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p>Fully-qualified name of the table that owns the column. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00502">502</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -150,7 +155,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00492">492</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p>Name of the column being upgraded. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00504">504</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -168,7 +175,7 @@ Public Attributes</h2></td></tr>
 
 <p>Live byte-counted type the column currently has. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00494">494</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00506">506</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -186,7 +193,7 @@ Public Attributes</h2></td></tr>
 
 <p>Char-counted type the migrations now declare for this column. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00496">496</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00508">508</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -202,7 +209,9 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00497">497</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p>Whether the column is nullable (preserved across the type rewrite). </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00510">510</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>

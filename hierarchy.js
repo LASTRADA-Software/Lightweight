@@ -163,10 +163,6 @@ var hierarchy =
         [ "Lightweight::SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html", null ]
       ] ]
     ] ],
-    [ "tui::InlineCodeSpan", "d3/dd3/structtui_1_1InlineCodeSpan.html", null ],
-    [ "tui::ParsedTable", "d2/dfc/structtui_1_1ParsedTable.html", null ],
-    [ "tui::RgbColor", "d9/d81/structtui_1_1RgbColor.html", null ],
-    [ "tui::Style", "d6/d18/structtui_1_1Style.html", null ],
     [ "std::vector< uint8_t >", null, [
       [ "Lightweight::SqlBinary", "db/db6/classLightweight_1_1SqlBinary.html", null ]
     ] ]

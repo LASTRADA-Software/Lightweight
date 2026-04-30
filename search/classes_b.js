@@ -65,6 +65,5 @@ var searchData=
   ['sqlwhereclausebuilder_3c_20sqlallfieldsquerybuilder_3c_20std_3a_3atuple_3c_20firstrecord_2c_20secondrecord_20_3e_2c_20queryoptions_20_3e_20_3e_62',['SqlWhereClauseBuilder&lt; SqlAllFieldsQueryBuilder&lt; std::tuple&lt; FirstRecord, SecondRecord &gt;, QueryOptions &gt; &gt;',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html',1,'Lightweight']]],
   ['sqlwhereclausebuilder_3c_20sqldeletequerybuilder_20_3e_63',['SqlWhereClauseBuilder&lt; SqlDeleteQueryBuilder &gt;',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html',1,'Lightweight']]],
   ['sqlwhereclausebuilder_3c_20sqlselectquerybuilder_20_3e_64',['SqlWhereClauseBuilder&lt; SqlSelectQueryBuilder &gt;',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html',1,'Lightweight']]],
-  ['sqlwildcardtype_65',['SqlWildcardType',['../d2/d74/structLightweight_1_1SqlWildcardType.html',1,'Lightweight']]],
-  ['style_66',['Style',['../d6/d18/structtui_1_1Style.html',1,'tui']]]
+  ['sqlwildcardtype_65',['SqlWildcardType',['../d2/d74/structLightweight_1_1SqlWildcardType.html',1,'Lightweight']]]
 ];
