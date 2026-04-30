@@ -137,7 +137,14 @@ migrate</h2>
 <div class="fragment"><div class="line">dbtool migrate --connection-string &quot;DRIVER=SQLite3;Database=test.db&quot;</div>
 </div><!-- fragment --><p>Use <code>--dry-run</code> to preview SQL without executing:</p>
 <div class="fragment"><div class="line">dbtool migrate --dry-run --connection-string &quot;...&quot;</div>
-</div><!-- fragment --><h2><a class="anchor" id="list-pending"></a>
+</div><!-- fragment --><h2><a class="anchor" id="migrate-to-release-version"></a>
+migrate-to-release &lt;VERSION&gt;</h2>
+<p>Apply pending migrations up to (and including) the named release. Forward-only: if the database is already at or past the target release, the command is a no-op and prints a hint pointing at <code>rollback-to-release</code>. Pair with <code>--dry-run</code> (<code>-n</code>) to preview the SQL without touching the database.</p>
+<div class="fragment"><div class="line">dbtool migrate-to-release 1.0.0</div>
+<div class="line">dbtool migrate-to-release 1.0.0 --dry-run</div>
+</div><!-- fragment --><p>The release version must match a <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a" title="Associates a software release (version string) with the highest migration timestamp present at the ti...">LIGHTWEIGHT_SQL_RELEASE(...)</a></code> declaration shipped by one of the loaded plugins. Use <code>dbtool releases</code> to list them.</p>
+<p>If a pending migration whose timestamp is <code>&lt;= release.highestTimestamp</code> declares a dependency on a migration whose timestamp is <code>&gt;</code> the release boundary (and is not already applied), <code>migrate-to-release</code> refuses to run rather than applying a partial state that violates the dependency contract.</p>
+<h2><a class="anchor" id="list-pending"></a>
 list-pending</h2>
 <p>List migrations waiting to be applied:</p>
 <div class="fragment"><div class="line">dbtool list-pending --plugins-dir ./plugins</div>
@@ -314,8 +321,8 @@ Creating a Migration Plugin</h2>
 <div class="line">        .RequiredColumn(<span class="stringliteral">&quot;email&quot;</span>, Varchar(255))</div>
 <div class="line">        .Timestamps();</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00705">SqlMigration.hpp:705</a></div></div>
-<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00416">SqlMigration.hpp:416</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00978">SqlMigration.hpp:978</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00689">SqlMigration.hpp:689</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="loading-plugins"></a>
 Loading Plugins</h2>
 <div class="fragment"><div class="line">dbtool migrate --plugins-dir ./build/plugins</div>

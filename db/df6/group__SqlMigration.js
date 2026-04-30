@@ -46,24 +46,85 @@ var group__SqlMigration =
       [ "highestTimestamp", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#a48cc0c694f65a3ad2e43b839ab5d5088", null ]
     ] ],
     [ "Lightweight::SqlMigration::MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", [
+      [ "ChecksumRewriteEntry", "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html", [
+        [ "timestamp", "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#a95dfbf909cd5d1144d7f3b2eb2172219", null ],
+        [ "title", "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#a64b56a650906d09b12d54ebf6e765559", null ],
+        [ "oldChecksum", "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#aa81e412a6d6b23847fae4ece37f4c27e", null ],
+        [ "newChecksum", "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#ad3ce4bbad3006b22fd134916fe257dfd", null ]
+      ] ],
+      [ "ColumnUpgradeEntry", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html", [
+        [ "table", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a669b503366f25cd1196612aa3354864f", null ],
+        [ "column", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#ab837fe688066523d5178f48a9f459b89", null ],
+        [ "liveType", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a396642e22f36188c7ea4dce037c2204e", null ],
+        [ "intendedType", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a9702abd84a89cfd34a32375d341e0b7e", null ],
+        [ "nullable", "d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#aad8cbeca3421d47c96c54ee1d43860d0", null ]
+      ] ],
+      [ "HardResetResult", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html", [
+        [ "wasDryRun", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#af96c4af24cdc9ce53b3a27f507fbfc1e", null ],
+        [ "droppedTables", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#abfd242340ca076711738bf65659e5081", null ],
+        [ "absentTables", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a374c3e5219e1b82c0fb5283d9599a41d", null ],
+        [ "preservedTables", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#a5da7e6fd9a84f00e8aafb68637ac0c62", null ],
+        [ "schemaMigrationsDropped", "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html#af24b850a50a1ddf570bafe458be64f16", null ]
+      ] ],
+      [ "PlanFoldingResult", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html", [
+        [ "DataStep", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html", [
+          [ "sourceTimestamp", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#aa75da59965fb30aa059e5c01837b8515", null ],
+          [ "sourceTitle", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#a4b67dd278a63e1a8680f3a99e47141e5", null ],
+          [ "element", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#a73d0c542c119f43de28a70dd3f6af55f", null ]
+        ] ],
+        [ "TableState", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html", [
+          [ "columns", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#a14c5641bee4fb83cbdff804c876ebc04", null ],
+          [ "compositeForeignKeys", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#a79de324e4b9ed5400fe3d954daa4fca1", null ],
+          [ "ifNotExists", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#acd1d1fea3fc25d001846e2a4170e8fb7", null ]
+        ] ],
+        [ "tables", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#a8416dff5cbb6f7b62b61f5a65d076d92", null ],
+        [ "creationOrder", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ae8ebcc9ddb16471d4a17bb73ad4f9083", null ],
+        [ "indexes", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#a660ae31bbcb90397f6dae0085902cdc1", null ],
+        [ "dataSteps", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ac208ef0ccc537eb47f265169688f4313", null ],
+        [ "releases", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ab12f33230c55c35f145a9f1341d7c0d5", null ],
+        [ "foldedMigrations", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#affd0c623900ef5f568ab3ebc3a22c045", null ]
+      ] ],
+      [ "RewriteChecksumsResult", "d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html", [
+        [ "entries", "d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html#af147dd72475b5218318698af876b3bc7", null ],
+        [ "unregisteredTimestamps", "d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html#ae327530829a97b255f081ef739871aee", null ],
+        [ "wasDryRun", "d2/d24/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1RewriteChecksumsResult.html#a62e14af3a4f6e7049850c42c5a5e519b", null ]
+      ] ],
+      [ "UnicodeUpgradeResult", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html", [
+        [ "wasDryRun", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#a706afa7f5b94115ad9f9f41b51facf37", null ],
+        [ "columns", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#aa7e5278c2c378b5f0c42885abb3c487d", null ],
+        [ "rebuiltForeignKeys", "d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ae1b60503143ebed45d9317789e47a684", null ]
+      ] ],
       [ "MigrationList", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1", null ],
       [ "ExecuteCallback", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364", null ],
+      [ "CompatPolicy", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ac1527da65bfe8360cd0da83013a30727", null ],
       [ "AddMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1e2638d4b642e5692df3d2ab24e199a4", null ],
       [ "GetAllMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a265744d717ca33feffc27bb6c024bb07", null ],
       [ "GetMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a56194b41fc9b404256d379bd51f5002d", null ],
       [ "RemoveAllMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a301e0219e6dcd600640c63e5b53839eb", null ],
       [ "GetPending", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a5f02a99faee92eb68b52a9cb49876c0e", null ],
       [ "ApplySingleMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#add42626ceb43ee64238c5a1dd0d0d27f", null ],
+      [ "ApplySingleMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a599a131dcadf355c1a79db6c29c4e6e6", null ],
       [ "RevertSingleMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a416865e209264f27605aff0e547e7d66", null ],
       [ "ApplyPendingMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a9f6136aee1902543bdb428d6890574ee", null ],
+      [ "ApplyPendingMigrationsUpTo", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a37985812c37e5292312cf113a679633e", null ],
       [ "CreateMigrationHistory", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aa670c82bec993bd89189cb4a37007572", null ],
       [ "GetAppliedMigrationIds", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae7a7e92f9a2ef9cb11402812eaac3566", null ],
       [ "GetDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094", null ],
       [ "GetDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322", null ],
       [ "CloseDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a424f1fa714b26c7b4b0a63a05dccc4b8", null ],
+      [ "SetCompatPolicy", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ab0454aa3bc9367b5e487cf36bad50a59", null ],
+      [ "GetCompatPolicy", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a7070cc2a770793a129ce2199a95e51a9", null ],
+      [ "ComposeCompatPolicy", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a0e66a725126712798e4916f9fee48cba", null ],
+      [ "CompatFlagsFor", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a5a912fc331a43ab4819ee153f73e89e4", null ],
       [ "Transaction", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a53933c029c1d92dfc61c2301f6d1aa81", null ],
       [ "PreviewMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a9b64d3bec74b85d054215a4321cbcad8", null ],
+      [ "PreviewMigrationWithContext", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#adf183eced0544b95b04e8cc85623c9cd", null ],
+      [ "FoldRegisteredMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a500e17dc06f73a877dc7e7a99342feaa", null ],
+      [ "HardReset", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a20c8c6018a3d4c75c69a57e2f63d0459", null ],
+      [ "UnicodeUpgradeTables", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ac98fe163c2161de8faf1d8e7d588bd92", null ],
+      [ "RewriteChecksums", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a70539241ba2c17c1ce40ce89ec177f55", null ],
       [ "PreviewPendingMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a3b9961110aefc26051c06c6934e26e69", null ],
+      [ "PreviewPendingMigrationsUpTo", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a36f682922ad76bec5ec7bc732092d561", null ],
       [ "VerifyChecksums", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a63ce9461c4cd37394364f25f4e9f0cc8", null ],
       [ "MarkMigrationAsApplied", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a0ddf3ef0e6d833b829509ac769d04530", null ],
       [ "RevertToMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1dece4a4dc2811ac8cd8dce1c1130b11", null ],
