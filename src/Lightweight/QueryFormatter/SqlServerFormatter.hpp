@@ -26,6 +26,11 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
     }
 
   public:
+    [[nodiscard]] bool RequiresTableRebuildForForeignKeyChange() const noexcept override
+    {
+        return false;
+    }
+
     [[nodiscard]] StringList DropTable(std::string_view schemaName,
                                        std::string_view const& tableName,
                                        bool ifExists = false,
@@ -288,7 +293,7 @@ EXEC sp_executesql @sql;)",
         {
             for (auto const& fk: foreignKeys)
             {
-                ss << ",\n    CONSTRAINT " << std::format("\"FK_{}_{}\"", tableName, fk.columns[0]) // Basic name generation
+                ss << ",\n    CONSTRAINT \"" << BuildForeignKeyConstraintName(tableName, fk.columns) << '"'
                    << " FOREIGN KEY (";
 
                 size_t i = 0;
@@ -441,20 +446,27 @@ EXEC sp_executesql @sql;)",
                                 R"(DROP INDEX "{0}_{1}_{2}_index";)", schemaName, tableName, actualCommand.columnName);
                     },
                     [schemaName, tableName](AddForeignKey const& actualCommand) -> std::string {
+                        // Idempotent ADD CONSTRAINT — re-applying a migration must be a no-op.
+                        // SQL Server has no `ADD CONSTRAINT IF NOT EXISTS`, so the guard is
+                        // expressed as `IF NOT EXISTS (SELECT … FROM sys.foreign_keys …)`.
+                        auto const fkName = BuildForeignKeyConstraintName(
+                            tableName, std::array { std::string_view { actualCommand.columnName } });
                         return std::format(
-                            R"(ALTER TABLE {} ADD {};)",
+                            R"(IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = '{0}') ALTER TABLE {1} ADD {2};)",
+                            fkName,
                             FormatTableName(schemaName, tableName),
                             BuildForeignKeyConstraint(tableName, actualCommand.columnName, actualCommand.referencedColumn));
                     },
                     [schemaName, tableName](DropForeignKey const& actualCommand) -> std::string {
                         return std::format(R"(ALTER TABLE {} DROP CONSTRAINT "{}";)",
                                            FormatTableName(schemaName, tableName),
-                                           std::format("FK_{}_{}", tableName, actualCommand.columnName));
+                                           BuildForeignKeyConstraintName(
+                                               tableName, std::array { std::string_view { actualCommand.columnName } }));
                     },
                     [schemaName, tableName](AddCompositeForeignKey const& actualCommand) -> std::string {
                         std::stringstream ss;
-                        ss << "ALTER TABLE " << FormatTableName(schemaName, tableName) << " ADD CONSTRAINT "
-                           << std::format("\"FK_{}_{}\"", tableName, actualCommand.columns[0]) << " FOREIGN KEY (";
+                        ss << "ALTER TABLE " << FormatTableName(schemaName, tableName) << " ADD CONSTRAINT \""
+                           << BuildForeignKeyConstraintName(tableName, actualCommand.columns) << "\" FOREIGN KEY (";
 
                         size_t i = 0;
                         for (auto const& col: actualCommand.columns)

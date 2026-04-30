@@ -449,6 +449,14 @@ struct SqlUpdateDataPlan
     /// The columns and their values to set.
     std::vector<std::pair<std::string, SqlVariant>> setColumns;
 
+    /// @brief Column-to-expression assignments that cannot be represented as a literal value.
+    ///
+    /// Each entry is `(column name, raw SQL expression)`. The expression is emitted verbatim
+    /// after `"col" = ` at SQL-rendering time — used for things like `set TARGET = SOURCE` or
+    /// `set CTR = CTR + 1` where the RHS references another column or contains arithmetic.
+    /// Entries here are appended to the SET clause after `setColumns`.
+    std::vector<std::pair<std::string, std::string>> setExpressions;
+
     /// The column name for the WHERE clause.
     std::string whereColumn;
 
@@ -457,6 +465,13 @@ struct SqlUpdateDataPlan
 
     /// The value for the WHERE clause.
     SqlVariant whereValue;
+
+    /// @brief Pre-rendered WHERE-clause body (the text after `WHERE`), used when the
+    /// condition cannot be expressed with the simple `(whereColumn op whereValue)`
+    /// triple — e.g. composite `AND`/`OR`/`NOT`, `IS NULL`, `IN (subquery)`, or
+    /// `EXISTS (subquery)`. When non-empty, this takes precedence over the
+    /// structured triple at SQL-emission time.
+    std::string whereExpression;
 };
 
 /// @brief Represents a SQL DELETE data plan for migrations.
@@ -480,6 +495,9 @@ struct SqlDeleteDataPlan
 
     /// The value for the WHERE clause.
     SqlVariant whereValue;
+
+    /// Pre-rendered WHERE-clause body. See `SqlUpdateDataPlan::whereExpression`.
+    std::string whereExpression;
 };
 
 /// @brief Represents a SQL CREATE INDEX plan for migrations.
