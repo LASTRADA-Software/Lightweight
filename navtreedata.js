@@ -107,6 +107,7 @@ var NAVTREE =
       ] ],
       [ "Migration Commands", "d5/dc4/dbtool.html#migration-commands", [
         [ "migrate", "d5/dc4/dbtool.html#migrate", null ],
+        [ "migrate-to-release <VERSION>", "d5/dc4/dbtool.html#migrate-to-release-version", null ],
         [ "list-pending", "d5/dc4/dbtool.html#list-pending", null ],
         [ "list-applied", "d5/dc4/dbtool.html#list-applied", null ],
         [ "status", "d5/dc4/dbtool.html#status", null ],
@@ -114,6 +115,12 @@ var NAVTREE =
         [ "rollback <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-timestamp", null ],
         [ "rollback-to <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-to-timestamp", null ],
         [ "mark-applied <TIMESTAMP>", "d5/dc4/dbtool.html#mark-applied-timestamp", null ]
+      ] ],
+      [ "Diff", "d5/dc4/dbtool.html#diff", [
+        [ "diff", "d5/dc4/dbtool.html#diff-1", [
+          [ "Examples", "d5/dc4/dbtool.html#examples", null ],
+          [ "Caveats", "d5/dc4/dbtool.html#caveats", null ]
+        ] ]
       ] ],
       [ "Backup & Restore", "d5/dc4/dbtool.html#backup--restore", [
         [ "backup", "d5/dc4/dbtool.html#backup", null ],
@@ -207,12 +214,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#af7d886a065b7d4e097c066dd00c9a16b",
-"d6/d45/BatchManager_8hpp_source.html",
-"d8/d63/classLightweight_1_1SqlResultCursor.html#a620b66e7d7ddbe332d8c824ca5a46759",
-"da/df2/classLightweight_1_1SqlRequireLoadedError.html",
-"de/d73/classLightweight_1_1HasManyThrough.html#a3136d004f0dfe3f81262ae9f3f788270",
-"functions_func_m.html"
+"d2/dd0/structLightweight_1_1Field.html#a0fd8a939fbdd169391d529caf940ad40",
+"d5/d8f/structLightweight_1_1SqlForeignKeyReferenceDefinition.html",
+"d7/d13/structLightweight_1_1SqlRealName.html#af23090d1ec3bacb89b9aa4510eb9d42d",
+"d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ad359ecfef33012f655714230699a4308",
+"db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750",
+"de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html#ae9dcfc1dd432fa11965fa0315f252bee"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
