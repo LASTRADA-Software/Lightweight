@@ -10,6 +10,7 @@
 #include <Lightweight/Secrets/SecretResolver.hpp>
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlError.hpp>
+#include <Lightweight/SqlLogger.hpp>
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlMigrationLock.hpp>
 #include <Lightweight/SqlSchema.hpp>
@@ -1729,6 +1730,12 @@ int main(int argc, char** argv)
     // normally and exiting 0. Switching stdout to unbuffered keeps each println visible
     // immediately. dbtool's output volume is low enough that the perf cost is irrelevant.
     std::setvbuf(stdout, nullptr, _IONBF, 0);
+
+    // Surface Lightweight's warnings (e.g. legacy-migration truncation notices)
+    // to stderr. Without this, every `OnWarning` call is routed to the Null logger
+    // and silently dropped.
+    SqlLogger::SetLogger(SqlLogger::StandardLogger());
+
     try
     {
         auto optionsResult = ParseArguments(argc, argv);
