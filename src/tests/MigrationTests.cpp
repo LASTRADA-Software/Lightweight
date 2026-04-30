@@ -2,8 +2,13 @@
 
 #include "Utils.hpp"
 
+#include <Lightweight/CodeGen/SplitFileWriter.hpp>
 #include <Lightweight/Lightweight.hpp>
 #include <Lightweight/QueryFormatter/SqlServerFormatter.hpp>
+
+#include <filesystem>
+#include <fstream>
+#include <streambuf>
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -1577,3 +1582,273 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
 
     mgr.SetCompatPolicy({});
 }
+
+// ============================================================================
+// Tests for FoldRegisteredMigrations
+// ============================================================================
+
+namespace fold_test
+{
+
+using namespace Lightweight::SqlColumnTypeDefinitions;
+
+/// @brief Test migration that takes a Up-builder closure and a timestamp. Used in
+/// fold-only tests to register varied migration shapes in a single test case.
+template <uint64_t Ts>
+class FoldStub: public SqlMigration::MigrationBase
+{
+  public:
+    using BuildFn = std::function<void(SqlMigrationQueryBuilder&)>;
+
+    FoldStub(std::string_view title, BuildFn build):
+        MigrationBase(SqlMigration::MigrationTimestamp { Ts }, title),
+        _build(std::move(build))
+    {
+    }
+
+    void Up(SqlMigrationQueryBuilder& builder) const override
+    {
+        _build(builder);
+    }
+
+  private:
+    BuildFn _build;
+};
+
+} // namespace fold_test
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: create + addcolumn + altercolumn", "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'10'01'00'00'01> m1 { "create users", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("users")
+            .PrimaryKey("id", Bigint())
+            .Column("name", Varchar(100));
+    } };
+    fold_test::FoldStub<20'10'01'00'00'02> m2 { "add email", [](SqlMigrationQueryBuilder& plan) {
+        plan.AlterTable("users").AddColumn("email", Varchar(255));
+    } };
+    fold_test::FoldStub<20'10'01'00'00'03> m3 { "widen name", [](SqlMigrationQueryBuilder& plan) {
+        plan.AlterTable("users").AlterColumn("name", NVarchar(200), SqlNullable::Null);
+    } };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+
+    REQUIRE(fold.foldedMigrations.size() == 3);
+    REQUIRE(fold.tables.size() == 1);
+    REQUIRE(fold.creationOrder.size() == 1);
+
+    auto const it = fold.tables.find(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "users" });
+    REQUIRE(it != fold.tables.end());
+    auto const& state = it->second;
+
+    REQUIRE(state.columns.size() == 3);
+    CHECK(state.columns[0].name == "id");
+    CHECK(state.columns[1].name == "name");
+    CHECK(state.columns[2].name == "email");
+
+    // The 'name' column was widened from Varchar(100) → NVarchar(200) by m3.
+    auto const* nv = std::get_if<NVarchar>(&state.columns[1].type);
+    REQUIRE(nv != nullptr);
+    CHECK(nv->size == 200);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: drop table cleans residual references",
+                 "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'10'02'00'00'01> m1 { "create temp", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("temp_table").PrimaryKey("id", Bigint());
+    } };
+    fold_test::FoldStub<20'10'02'00'00'02> m2 { "create idx on temp", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateIndex("idx_temp_id", "temp_table", { "id" });
+    } };
+    fold_test::FoldStub<20'10'02'00'00'03> m3 { "drop temp", [](SqlMigrationQueryBuilder& plan) {
+        plan.DropTable("temp_table");
+    } };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+
+    CHECK(fold.tables.empty());
+    CHECK(fold.creationOrder.empty());
+    CHECK(fold.indexes.empty());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: data steps preserve chronological order",
+                 "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'10'03'00'00'01> m1 { "create + first insert", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("logs").PrimaryKey("id", Bigint()).Column("msg", Varchar(255));
+        plan.Insert("logs").Set("msg", "first"sv);
+    } };
+    fold_test::FoldStub<20'10'03'00'00'02> m2 { "second insert", [](SqlMigrationQueryBuilder& plan) {
+        plan.Insert("logs").Set("msg", "second"sv);
+    } };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+
+    REQUIRE(fold.dataSteps.size() == 2);
+    CHECK(fold.dataSteps[0].sourceTimestamp.value == 20'10'03'00'00'01ULL);
+    CHECK(fold.dataSteps[1].sourceTimestamp.value == 20'10'03'00'00'02ULL);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: --up-to truncates correctly",
+                 "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'10'04'00'00'01> m1 { "v1", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("a").PrimaryKey("id", Bigint());
+    } };
+    fold_test::FoldStub<20'10'04'00'00'02> m2 { "v2", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("b").PrimaryKey("id", Bigint());
+    } };
+    fold_test::FoldStub<20'10'04'00'00'03> m3 { "v3", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("c").PrimaryKey("id", Bigint());
+    } };
+
+    auto const cutoff = SqlMigration::MigrationTimestamp { 20'10'04'00'00'02ULL };
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite(), cutoff);
+
+    CHECK(fold.foldedMigrations.size() == 2);
+    CHECK(fold.tables.size() == 2);
+    CHECK(fold.tables.contains(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "a" }));
+    CHECK(fold.tables.contains(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "b" }));
+    CHECK_FALSE(fold.tables.contains(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "c" }));
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: RawSql passes through unmodified",
+                 "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'10'05'00'00'01> m1 { "raw", [](SqlMigrationQueryBuilder& plan) {
+        plan.RawSql("PRAGMA foreign_keys = ON");
+    } };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+
+    REQUIRE(fold.dataSteps.size() == 1);
+    auto const* raw = std::get_if<SqlRawSqlPlan>(&fold.dataSteps[0].element);
+    REQUIRE(raw != nullptr);
+    CHECK(raw->sql == "PRAGMA foreign_keys = ON");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: rename column propagates to FK references",
+                 "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'10'06'00'00'01> m1 { "create base", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("users").PrimaryKey("id", Bigint());
+    } };
+    fold_test::FoldStub<20'10'06'00'00'02> m2 { "rename column", [](SqlMigrationQueryBuilder& plan) {
+        plan.AlterTable("users").RenameColumn("id", "user_id");
+    } };
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
+    auto const it = fold.tables.find(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "users" });
+    REQUIRE(it != fold.tables.end());
+    REQUIRE(it->second.columns.size() == 1);
+    CHECK(it->second.columns[0].name == "user_id");
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: respects releases falling within range",
+                 "[SqlMigration][Fold]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+
+    fold_test::FoldStub<20'10'07'00'00'01> m1 { "release-1 migration",
+                                                 [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("a").PrimaryKey("id", Bigint());
+                                                 } };
+    mgr.RegisterRelease("1.0.0", SqlMigration::MigrationTimestamp { 20'10'07'00'00'01ULL });
+
+    fold_test::FoldStub<20'10'07'00'00'02> m2 { "release-2 migration",
+                                                 [](SqlMigrationQueryBuilder& plan) {
+                                                     plan.CreateTable("b").PrimaryKey("id", Bigint());
+                                                 } };
+    mgr.RegisterRelease("2.0.0", SqlMigration::MigrationTimestamp { 20'10'07'00'00'02ULL });
+
+    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite(),
+                                                    SqlMigration::MigrationTimestamp { 20'10'07'00'00'01ULL });
+
+    REQUIRE(fold.releases.size() == 1);
+    CHECK(fold.releases[0].version == "1.0.0");
+}
+
+// ============================================================================
+// SplitFileWriter unit tests
+// ============================================================================
+
+TEST_CASE("SplitFileWriter: bin-packs blocks within budget", "[CodeGen][SplitFileWriter]")
+{
+    using namespace Lightweight::CodeGen;
+
+    std::vector<CodeBlock> blocks {
+        { .content = "A\n", .lineCount = 1 },
+        { .content = "B\nB\n", .lineCount = 2 },
+        { .content = "C\n", .lineCount = 1 },
+        { .content = "D\nD\nD\n", .lineCount = 3 },
+    };
+    auto const chunks = GroupBlocksByLineBudget(blocks, 3);
+    REQUIRE(chunks.size() >= 2);
+    for (auto const& chunk: chunks)
+        CHECK_FALSE(chunk.empty());
+}
+
+TEST_CASE("SplitFileWriter: emits single chunk when total fits", "[CodeGen][SplitFileWriter]")
+{
+    using namespace Lightweight::CodeGen;
+    std::vector<CodeBlock> blocks {
+        { .content = "A\n", .lineCount = 1 },
+        { .content = "B\n", .lineCount = 1 },
+    };
+    auto const chunks = GroupBlocksByLineBudget(blocks, 100);
+    REQUIRE(chunks.size() == 1);
+    CHECK(chunks[0].size() == 2);
+}
+
+TEST_CASE("SplitFileWriter: maxLinesPerFile=0 keeps everything in one chunk", "[CodeGen][SplitFileWriter]")
+{
+    using namespace Lightweight::CodeGen;
+    std::vector<CodeBlock> blocks {
+        { .content = "x\n", .lineCount = 1 },
+        { .content = "y\n", .lineCount = 1 },
+        { .content = "z\n", .lineCount = 1 },
+    };
+    auto const chunks = GroupBlocksByLineBudget(blocks, 0);
+    REQUIRE(chunks.size() == 1);
+    CHECK(chunks[0].size() == 3);
+}
+
+TEST_CASE("SplitFileWriter: oversize block lands wholly in its own chunk", "[CodeGen][SplitFileWriter]")
+{
+    using namespace Lightweight::CodeGen;
+    std::vector<CodeBlock> blocks {
+        { .content = "small\n", .lineCount = 1 },
+        { .content = "huge\nhuge\nhuge\nhuge\nhuge\nhuge\nhuge\nhuge\nhuge\n", .lineCount = 9 },
+        { .content = "tail\n", .lineCount = 1 },
+    };
+    auto const chunks = GroupBlocksByLineBudget(blocks, 3);
+    // Since the huge block exceeds the budget but cannot be split, it must occupy
+    // its own chunk while small/tail can be elsewhere.
+    REQUIRE(chunks.size() >= 2);
+    bool foundSoloHuge = false;
+    for (auto const& chunk: chunks)
+        if (chunk.size() == 1 && chunk[0].lineCount == 9)
+            foundSoloHuge = true;
+    CHECK(foundSoloHuge);
+}
+

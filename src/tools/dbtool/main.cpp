@@ -294,6 +294,9 @@ struct Options
     bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
     bool yes = false;        ///< If true, confirm destructive actions (e.g. rewrite-checksums)
 
+    /// @brief `--up-to <X>` for migration commands. Empty = no bound.
+    std::string upTo;
+
     /// @brief `--no-color` for `diff` (and other text-rendering commands). When true,
     /// ANSI colors are suppressed.
     bool noColor = false;
@@ -571,6 +574,12 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         else if (arg == "--yes" || arg == "-y")
         {
             options.yes = true;
+        }
+        else if (arg == "--up-to")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --up-to requires an argument" };
+            options.upTo = argv[++i];
         }
         else if (arg == "--no-color")
         {
@@ -913,6 +922,50 @@ int Status(MigrationManager& manager)
     return EXIT_SUCCESS;
 }
 
+/// @brief Generic "render plan → if empty, exit success → print diff → if dry-run,
+/// exit success → if not `--yes`, refuse → execute → print summary" loop, factored
+/// out so `rewrite-checksums`, `hard-reset`, and `unicode-upgrade-tables` share
+/// the same UX without duplicating it.
+///
+/// The caller supplies the four template hooks via lambdas — `run` is invoked
+/// twice (once with `dryRun=true`, once with `dryRun=false`) so the manager-level
+/// API doesn't have to memoize results across calls.
+template <typename Result>
+int RunAdminCommand(std::string_view name,
+                     bool dryRun,
+                     bool yes,
+                     auto&& runFn,
+                     auto&& isEmptyFn,
+                     auto&& printDiffFn,
+                     auto&& printSummaryFn)
+{
+    auto const preview = runFn(/*dryRun=*/true);
+
+    if (isEmptyFn(preview))
+    {
+        std::println("No {} changes needed. Nothing to do.", name);
+        return EXIT_SUCCESS;
+    }
+
+    printDiffFn(preview);
+
+    if (dryRun)
+    {
+        std::println("Dry run: nothing written. Re-run without --dry-run to apply.");
+        return EXIT_SUCCESS;
+    }
+
+    if (!yes)
+    {
+        std::println("Refusing to {} without --yes. Pass --yes to confirm.", name);
+        return EXIT_FAILURE;
+    }
+
+    auto const written = runFn(/*dryRun=*/false);
+    printSummaryFn(written);
+    return EXIT_SUCCESS;
+}
+
 /// Rewrites stored checksums in `schema_migrations` to match the current code.
 ///
 /// Used after a regen of generated migrations changes byte shape but not logical
@@ -924,51 +977,36 @@ int Status(MigrationManager& manager)
 /// caller must explicitly confirm; otherwise the command exits without writing.
 int RewriteChecksums(MigrationManager& manager, bool dryRun, bool yes)
 {
-    auto const result = manager.RewriteChecksums(/*dryRun=*/true);
-
-    if (result.entries.empty() && result.unregisteredTimestamps.empty())
-    {
-        std::println("No checksum drift detected. Nothing to rewrite.");
-        return EXIT_SUCCESS;
-    }
-
-    if (!result.entries.empty())
-    {
-        std::println("Checksum drift ({} migration(s)):", result.entries.size());
-        for (auto const& entry: result.entries)
-        {
-            std::println("  {} - {}", entry.timestamp.value, entry.title);
-            std::println("      Stored:   {}", entry.oldChecksum.empty() ? "(none)" : entry.oldChecksum);
-            std::println("      Computed: {}", entry.newChecksum);
-        }
-        std::println("");
-    }
-
-    if (!result.unregisteredTimestamps.empty())
-    {
-        std::println("Applied but unregistered ({}):", result.unregisteredTimestamps.size());
-        for (auto const& ts: result.unregisteredTimestamps)
-            std::println("  {}", ts.value);
-        std::println("  (these rows are NOT touched by rewrite-checksums)");
-        std::println("");
-    }
-
-    if (dryRun)
-    {
-        std::println("Dry run: nothing written. Re-run without --dry-run to apply.");
-        return EXIT_SUCCESS;
-    }
-
-    if (!yes)
-    {
-        std::println("Refusing to rewrite without --yes. Pass --yes to confirm.");
-        return EXIT_FAILURE;
-    }
-
-    auto const written = manager.RewriteChecksums(/*dryRun=*/false);
-    std::println("Rewrote {} checksum(s).", written.entries.size());
-    return EXIT_SUCCESS;
+    return RunAdminCommand<MigrationManager::RewriteChecksumsResult>(
+        "rewrite-checksums",
+        dryRun,
+        yes,
+        [&](bool dr) { return manager.RewriteChecksums(dr); },
+        [](auto const& r) { return r.entries.empty() && r.unregisteredTimestamps.empty(); },
+        [](auto const& r) {
+            if (!r.entries.empty())
+            {
+                std::println("Checksum drift ({} migration(s)):", r.entries.size());
+                for (auto const& entry: r.entries)
+                {
+                    std::println("  {} - {}", entry.timestamp.value, entry.title);
+                    std::println("      Stored:   {}", entry.oldChecksum.empty() ? "(none)" : entry.oldChecksum);
+                    std::println("      Computed: {}", entry.newChecksum);
+                }
+                std::println("");
+            }
+            if (!r.unregisteredTimestamps.empty())
+            {
+                std::println("Applied but unregistered ({}):", r.unregisteredTimestamps.size());
+                for (auto const& ts: r.unregisteredTimestamps)
+                    std::println("  {}", ts.value);
+                std::println("  (these rows are NOT touched by rewrite-checksums)");
+                std::println("");
+            }
+        },
+        [](auto const& r) { std::println("Rewrote {} checksum(s).", r.entries.size()); });
 }
+
 
 /// Marks a migration as applied without executing its Up() method.
 ///
