@@ -28,24 +28,6 @@ var group__SqlMigration =
       [ "highestTimestamp", "d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#a48cc0c694f65a3ad2e43b839ab5d5088", null ]
     ] ],
     [ "Lightweight::SqlMigration::MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", [
-      [ "PlanFoldingResult", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html", [
-        [ "DataStep", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html", [
-          [ "sourceTimestamp", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#aa75da59965fb30aa059e5c01837b8515", null ],
-          [ "sourceTitle", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#a4b67dd278a63e1a8680f3a99e47141e5", null ],
-          [ "element", "d8/d8b/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1DataStep.html#a73d0c542c119f43de28a70dd3f6af55f", null ]
-        ] ],
-        [ "TableState", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html", [
-          [ "columns", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#a14c5641bee4fb83cbdff804c876ebc04", null ],
-          [ "compositeForeignKeys", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#a79de324e4b9ed5400fe3d954daa4fca1", null ],
-          [ "ifNotExists", "d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#acd1d1fea3fc25d001846e2a4170e8fb7", null ]
-        ] ],
-        [ "tables", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#a8416dff5cbb6f7b62b61f5a65d076d92", null ],
-        [ "creationOrder", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ae8ebcc9ddb16471d4a17bb73ad4f9083", null ],
-        [ "indexes", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#a660ae31bbcb90397f6dae0085902cdc1", null ],
-        [ "dataSteps", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ac208ef0ccc537eb47f265169688f4313", null ],
-        [ "releases", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#ab12f33230c55c35f145a9f1341d7c0d5", null ],
-        [ "foldedMigrations", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html#affd0c623900ef5f568ab3ebc3a22c045", null ]
-      ] ],
       [ "MigrationList", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1", null ],
       [ "ExecuteCallback", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364", null ],
       [ "AddMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1e2638d4b642e5692df3d2ab24e199a4", null ],
@@ -74,8 +56,7 @@ var group__SqlMigration =
       [ "GetAllReleases", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad390ac8da8ac693c7357b67bc183bb60", null ],
       [ "FindReleaseByVersion", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a68b4434898a6ebceb06025065af79ec0", null ],
       [ "FindReleaseForTimestamp", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97663a37d26d962c2c17d97706651c0f", null ],
-      [ "GetMigrationsForRelease", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97918619adda32f2e9f65b089221a01f", null ],
-      [ "FoldRegisteredMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a500e17dc06f73a877dc7e7a99342feaa", null ]
+      [ "GetMigrationsForRelease", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97918619adda32f2e9f65b089221a01f", null ]
     ] ],
     [ "Lightweight::SqlMigration::MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", [
       [ "MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a8ee0594832c46d4679a3db0a139b77b9", null ],

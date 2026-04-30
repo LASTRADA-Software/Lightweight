@@ -193,7 +193,7 @@ var NAVTREE =
       [ "Class Members", "functions.html", [
         [ "All", "functions.html", "functions_dup" ],
         [ "Functions", "functions_func.html", "functions_func" ],
-        [ "Variables", "functions_vars.html", "functions_vars" ],
+        [ "Variables", "functions_vars.html", null ],
         [ "Typedefs", "functions_type.html", null ],
         [ "Enumerations", "functions_enum.html", null ]
       ] ]
@@ -207,12 +207,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dfe/StringInterface_8hpp_source.html",
-"d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a2299e18f28f3ace1f4f16512a58dcc7d",
-"d8/d63/classLightweight_1_1SqlResultCursor.html#aab902bcb47bbc052de0f6b7f73c704d6",
-"da/df4/classLightweight_1_1HasMany.html#a1b7c609252ab35ebd0201fcc45c7607c",
-"de/d73/classLightweight_1_1HasManyThrough.html#a6c541b2db604dfddcdfdce46588bf314",
-"functions_func_t.html"
+"d3/d30/classLightweight_1_1Pool.html#a1cff9d7548fefc8b80a32c15b75dfaeb",
+"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a294bef751b01e0f8e110c989afff2814",
+"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a2363ab60bde2e2467972747a5646a7e5",
+"da/df4/classLightweight_1_1HasMany.html#acea92f62bbba17fef8765578507e62e4",
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#a67b81a8873be14a5a21f798c0b5a27b5",
+"index.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

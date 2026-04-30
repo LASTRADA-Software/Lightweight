@@ -38,7 +38,8 @@ var searchData=
   ['bufferlength_35',['bufferLength',['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e',1,'Lightweight::SqlRawColumnMetadata']]],
   ['build_36',['build',['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a6a4796d8ea43ac70f86a7ba4698aab15',1,'Lightweight::SqlSelectQueryBuilder::Build(Callable const &amp;callable)'],['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a44c828392a97cfb143e6c229555f444f',1,'Lightweight::SqlSelectQueryBuilder::Build(Callable const &amp;callable)']]],
   ['builder_37',['builder',['../d6/daa/group__QueryBuilder.html',1,'Query Builder'],['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder',1,'SQL Query Builder']]],
-  ['building_20with_20c_2020_20modules_38',['Building with C++20 Modules',['../index.html#building-with-c20-modules',1,'']]],
-  ['bulk_20insertions_39',['Bulk Insertions',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#bulk-insertions',1,'']]],
-  ['business_20logic_20separate_40',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]]
+  ['buildforeignkeyconstraintname_38',['BuildForeignKeyConstraintName',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a36631dad45de6ee327dac3fb204c29e0',1,'Lightweight::SqlQueryFormatter']]],
+  ['building_20with_20c_2020_20modules_39',['Building with C++20 Modules',['../index.html#building-with-c20-modules',1,'']]],
+  ['bulk_20insertions_40',['Bulk Insertions',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#bulk-insertions',1,'']]],
+  ['business_20logic_20separate_41',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]]
 ];

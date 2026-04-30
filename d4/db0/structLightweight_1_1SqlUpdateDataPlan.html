@@ -113,6 +113,9 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a734df7a416583b74bfde60595b682a33" id="r_a734df7a416583b74bfde60595b682a33"><td class="memItemLeft" align="right" valign="top">std::vector&lt; std::pair&lt; std::string, <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a734df7a416583b74bfde60595b682a33">setColumns</a></td></tr>
 <tr class="memdesc:a734df7a416583b74bfde60595b682a33"><td class="mdescLeft">&#160;</td><td class="mdescRight">The columns and their values to set.  <br /></td></tr>
 <tr class="separator:a734df7a416583b74bfde60595b682a33"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad6d48932f6f178665e80977bb244df17" id="r_ad6d48932f6f178665e80977bb244df17"><td class="memItemLeft" align="right" valign="top">std::vector&lt; std::pair&lt; std::string, std::string &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#ad6d48932f6f178665e80977bb244df17">setExpressions</a></td></tr>
+<tr class="memdesc:ad6d48932f6f178665e80977bb244df17"><td class="mdescLeft">&#160;</td><td class="mdescRight">Column-to-expression assignments that cannot be represented as a literal value.  <br /></td></tr>
+<tr class="separator:ad6d48932f6f178665e80977bb244df17"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeaa5a99453909f230477cff8b907e15e" id="r_aeaa5a99453909f230477cff8b907e15e"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#aeaa5a99453909f230477cff8b907e15e">whereColumn</a></td></tr>
 <tr class="memdesc:aeaa5a99453909f230477cff8b907e15e"><td class="mdescLeft">&#160;</td><td class="mdescRight">The column name for the WHERE clause.  <br /></td></tr>
 <tr class="separator:aeaa5a99453909f230477cff8b907e15e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -122,6 +125,9 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a308a8fc35020d61bb42ec5733e425f4f" id="r_a308a8fc35020d61bb42ec5733e425f4f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a308a8fc35020d61bb42ec5733e425f4f">whereValue</a></td></tr>
 <tr class="memdesc:a308a8fc35020d61bb42ec5733e425f4f"><td class="mdescLeft">&#160;</td><td class="mdescRight">The value for the WHERE clause.  <br /></td></tr>
 <tr class="separator:a308a8fc35020d61bb42ec5733e425f4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4ba3ee45a117b2883222f58f6606bbbb" id="r_a4ba3ee45a117b2883222f58f6606bbbb"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a4ba3ee45a117b2883222f58f6606bbbb">whereExpression</a></td></tr>
+<tr class="memdesc:a4ba3ee45a117b2883222f58f6606bbbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pre-rendered WHERE-clause body (the text after <code>WHERE</code>), used when the condition cannot be expressed with the simple <code>(whereColumn op whereValue)</code> triple — e.g. composite <code>AND</code>/<code>OR</code>/<code>NOT</code>, <code>IS NULL</code>, <code>IN (subquery)</code>, or <code>EXISTS (subquery)</code>. When non-empty, this takes precedence over the structured triple at SQL-emission time.  <br /></td></tr>
+<tr class="separator:a4ba3ee45a117b2883222f58f6606bbbb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a SQL UPDATE data plan for migrations. </p>
@@ -183,6 +189,25 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="ad6d48932f6f178665e80977bb244df17" name="ad6d48932f6f178665e80977bb244df17"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad6d48932f6f178665e80977bb244df17">&#9670;&#160;</a></span>setExpressions</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::vector&lt;std::pair&lt;std::string, std::string&gt; &gt; Lightweight::SqlUpdateDataPlan::setExpressions</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Column-to-expression assignments that cannot be represented as a literal value. </p>
+<p>Each entry is <code>(column name, raw SQL expression)</code>. The expression is emitted verbatim after <code>"col" =</code> at SQL-rendering time — used for things like <code>set TARGET = SOURCE</code> or <code>set CTR = CTR + 1</code> where the RHS references another column or contains arithmetic. Entries here are appended to the SET clause after <code>setColumns</code>. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00458">458</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
 <a id="aeaa5a99453909f230477cff8b907e15e" name="aeaa5a99453909f230477cff8b907e15e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aeaa5a99453909f230477cff8b907e15e">&#9670;&#160;</a></span>whereColumn</h2>
 
@@ -197,7 +222,7 @@ Public Attributes</h2></td></tr>
 
 <p>The column name for the WHERE clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00453">453</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00461">461</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -215,7 +240,7 @@ Public Attributes</h2></td></tr>
 
 <p>The comparison operator for the WHERE clause (e.g., "=", "&lt;&gt;", etc.). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00456">456</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00464">464</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
@@ -233,7 +258,25 @@ Public Attributes</h2></td></tr>
 
 <p>The value for the WHERE clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00459">459</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00467">467</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a4ba3ee45a117b2883222f58f6606bbbb" name="a4ba3ee45a117b2883222f58f6606bbbb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4ba3ee45a117b2883222f58f6606bbbb">&#9670;&#160;</a></span>whereExpression</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::string Lightweight::SqlUpdateDataPlan::whereExpression</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Pre-rendered WHERE-clause body (the text after <code>WHERE</code>), used when the condition cannot be expressed with the simple <code>(whereColumn op whereValue)</code> triple — e.g. composite <code>AND</code>/<code>OR</code>/<code>NOT</code>, <code>IS NULL</code>, <code>IN (subquery)</code>, or <code>EXISTS (subquery)</code>. When non-empty, this takes precedence over the structured triple at SQL-emission time. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html#l00474">474</a> of file <a class="el" href="../../db/d47/MigrationPlan_8hpp_source.html">MigrationPlan.hpp</a>.</p>
 
 </div>
 </div>
