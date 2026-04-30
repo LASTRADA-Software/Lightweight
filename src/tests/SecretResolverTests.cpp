@@ -44,8 +44,7 @@ class ScopedCredentialsFile
     explicit ScopedCredentialsFile(std::string_view body)
     {
         static int counter = 0;
-        _path = std::filesystem::temp_directory_path()
-              / ("lightweight-secrets-test-" + std::to_string(++counter) + ".pwd");
+        _path = std::filesystem::temp_directory_path() / ("lightweight-secrets-test-" + std::to_string(++counter) + ".pwd");
         {
             std::ofstream out(_path, std::ios::binary | std::ios::trunc);
             out << body;

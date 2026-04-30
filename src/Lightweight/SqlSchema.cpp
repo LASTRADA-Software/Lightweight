@@ -11,6 +11,7 @@
 #include <cctype>
 #include <charconv>
 #include <exception>
+#include <set>
 
 #include <sql.h>
 #include <sqlext.h>
@@ -813,7 +814,7 @@ void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_vi
                           || column.dialectDependantTypeString.starts_with("decimal")
                           || column.dialectDependantTypeString.starts_with("NUMERIC")
                           || column.dialectDependantTypeString.starts_with("numeric"))
-                         && column.dialectDependantTypeString.find('(') != std::string::npos)
+                         && column.dialectDependantTypeString.contains('('))
                 {
                     auto precision = std::size_t {};
                     auto scale = std::size_t {};

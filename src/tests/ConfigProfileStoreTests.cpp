@@ -31,8 +31,8 @@ class ScopedTempYaml
     explicit ScopedTempYaml(std::string_view contents)
     {
         static int counter = 0;
-        _path = std::filesystem::temp_directory_path()
-              / ("lightweight-profilestore-test-" + std::to_string(++counter) + ".yml");
+        _path =
+            std::filesystem::temp_directory_path() / ("lightweight-profilestore-test-" + std::to_string(++counter) + ".yml");
         std::ofstream out(_path, std::ios::binary | std::ios::trunc);
         out << contents;
     }

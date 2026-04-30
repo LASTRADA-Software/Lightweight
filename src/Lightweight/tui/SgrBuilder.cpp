@@ -14,14 +14,13 @@ namespace tui
 std::string buildSgrSequence(Style const& style)
 {
     auto const underlineFromFlag = style.underline ? UnderlineStyle::Single : UnderlineStyle::None;
-    auto const effectiveUnderline =
-        style.underlineStyle != UnderlineStyle::None ? style.underlineStyle : underlineFromFlag;
+    auto const effectiveUnderline = style.underlineStyle != UnderlineStyle::None ? style.underlineStyle : underlineFromFlag;
     auto const isDefaultUlColor = std::holds_alternative<std::monostate>(style.underlineColor);
 
     auto const isDefaultFg = std::holds_alternative<std::monostate>(style.fg);
     auto const isDefaultBg = std::holds_alternative<std::monostate>(style.bg);
-    if (isDefaultFg && isDefaultBg && !style.bold && !style.italic && !style.strikethrough && !style.dim
-        && !style.inverse && effectiveUnderline == UnderlineStyle::None)
+    if (isDefaultFg && isDefaultBg && !style.bold && !style.italic && !style.strikethrough && !style.dim && !style.inverse
+        && effectiveUnderline == UnderlineStyle::None)
         return {};
 
     std::string result = "\033[";

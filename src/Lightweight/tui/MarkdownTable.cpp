@@ -288,8 +288,8 @@ auto wrapText(std::string_view text, int maxWidth) -> std::vector<std::string>
             break;
 
         auto const wordEnd = text.find(' ', wordStart);
-        auto const word = text.substr(
-            wordStart, wordEnd == std::string_view::npos ? std::string_view::npos : wordEnd - wordStart);
+        auto const word =
+            text.substr(wordStart, wordEnd == std::string_view::npos ? std::string_view::npos : wordEnd - wordStart);
         auto const wordWidth = inlineDisplayWidth(word);
 
         if (currentLine.empty() && wordWidth > maxWidth)
@@ -400,8 +400,7 @@ auto stripInlineMarkdown(std::string_view text) -> std::string
         if (text[pos] == '[')
         {
             auto const endBracket = text.find(']', pos + 1);
-            if (endBracket != std::string_view::npos && endBracket + 1 < text.size()
-                && text[endBracket + 1] == '(')
+            if (endBracket != std::string_view::npos && endBracket + 1 < text.size() && text[endBracket + 1] == '(')
             {
                 auto const endParen = text.find(')', endBracket + 2);
                 if (endParen != std::string_view::npos)
