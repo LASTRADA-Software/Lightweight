@@ -75,6 +75,11 @@ if(${PEDANTIC_COMPILER})
             try_add_compile_options(-Wno-error=c++20-extensions)
             try_add_compile_options(-Wno-c++20-extensions)
 
+            # __COUNTER__ is a long-standing vendor extension used by LIGHTWEIGHT_SQL_RELEASE;
+            # Clang 22 newly classifies it as a C2y extension.
+            try_add_compile_options(-Wno-error=c2y-extensions)
+            try_add_compile_options(-Wno-c2y-extensions)
+
             # Not sure how to work around these.
             try_add_compile_options(-Wno-error=class-memaccess)
             try_add_compile_options(-Wno-class-memaccess)

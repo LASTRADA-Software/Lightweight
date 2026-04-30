@@ -150,9 +150,9 @@ bool CodeGenerator::GenerateMigration(ParsedMigration const& migration,
         for (auto const& comment: stmtWithComments.comments)
         {
             // Skip directive comments
-            if (comment.find("Based on Lup Version") != std::string::npos)
+            if (comment.contains("Based on Lup Version"))
                 continue;
-            if (comment.find("LUP-Version:") != std::string::npos)
+            if (comment.contains("LUP-Version:"))
                 continue;
             if (comment.starts_with("print "))
                 continue;
@@ -551,8 +551,8 @@ std::string ResolveOutputPattern(std::string_view pattern, LupVersion const& ver
 
 bool IsMultiFilePattern(std::string_view pattern)
 {
-    return pattern.find("{major}") != std::string_view::npos || pattern.find("{minor}") != std::string_view::npos
-           || pattern.find("{patch}") != std::string_view::npos || pattern.find("{version}") != std::string_view::npos;
+    return pattern.contains("{major}") || pattern.contains("{minor}") || pattern.contains("{patch}")
+           || pattern.contains("{version}");
 }
 
 } // namespace Lup2DbTool

@@ -17,8 +17,8 @@ namespace Lightweight::detail
 struct BatchColumn;
 
 #if defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable: 4251) // STL types in DLL interface
+    #pragma warning(push)
+    #pragma warning(disable : 4251) // STL types in DLL interface
 #endif
 
 /// A batch manager that manages multiple batch columns for a statement.
@@ -64,7 +64,7 @@ struct LIGHTWEIGHT_API BatchManager
 };
 
 #if defined(_MSC_VER)
-#pragma warning(pop)
+    #pragma warning(pop)
 #endif
 
 } // namespace Lightweight::detail

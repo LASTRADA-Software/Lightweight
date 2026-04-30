@@ -107,20 +107,20 @@ TEST_CASE("SqlBackup: Composite Foreign Keys", "[SqlBackup][ForeignKeys]")
             // MSSQL supports TEXT but VARCHAR(MAX) is preferred. Using TEXT for compatibility with existing code if
             // possible. But let's stick to standard types.
             (void) stmt.ExecuteDirect("CREATE TABLE Parents ("
-                               "  p1 INT,"
-                               "  p2 INT,"
-                               "  info VARCHAR(100),"
-                               "  PRIMARY KEY (p1, p2)"
-                               ")");
+                                      "  p1 INT,"
+                                      "  p2 INT,"
+                                      "  info VARCHAR(100),"
+                                      "  PRIMARY KEY (p1, p2)"
+                                      ")");
 
             WARN("DEBUG: Creating Children table...");
             (void) stmt.ExecuteDirect("CREATE TABLE Children ("
-                               "  c1 INT PRIMARY KEY,"
-                               "  p1 INT,"
-                               "  p2 INT,"
-                               "  extra VARCHAR(100),"
-                               "  FOREIGN KEY (p1, p2) REFERENCES Parents (p1, p2)"
-                               ")");
+                                      "  c1 INT PRIMARY KEY,"
+                                      "  p1 INT,"
+                                      "  p2 INT,"
+                                      "  extra VARCHAR(100),"
+                                      "  FOREIGN KEY (p1, p2) REFERENCES Parents (p1, p2)"
+                                      ")");
 
             WARN("DEBUG: Inserting data...");
             (void) stmt.ExecuteDirect("INSERT INTO Parents (p1, p2, info) VALUES (1, 1, 'Mom')");

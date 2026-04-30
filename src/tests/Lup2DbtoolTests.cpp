@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include <Lightweight/DataBinder/UnicodeConverter.hpp>
+
 #include <catch2/catch_test_macros.hpp>
 
-#include <Lightweight/DataBinder/UnicodeConverter.hpp>
 #include <LupSqlParser.hpp>
 #include <LupVersionConverter.hpp>
 #include <SqlStatementParser.hpp>
@@ -103,10 +104,14 @@ TEST_CASE("ConvertWindows1252ToUtf8.MixedContent", "[lup2dbtool]")
 {
     // Mixed ASCII and German text
     // "Prüfung" with ü as 0xFC - use string concatenation to avoid hex escape ambiguity
-    CHECK(ConvertWindows1252ToUtf8("Pr\xFC" "fung") == u8"Prüfung");
+    CHECK(ConvertWindows1252ToUtf8("Pr\xFC"
+                                   "fung")
+          == u8"Prüfung");
 
     // "Größe" with ö as 0xF6 and ß as 0xDF - use string concatenation
-    CHECK(ConvertWindows1252ToUtf8("Gr\xF6\xDF" "e") == u8"Größe");
+    CHECK(ConvertWindows1252ToUtf8("Gr\xF6\xDF"
+                                   "e")
+          == u8"Größe");
 
     // "Äpfel" with Ä as 0xC4
     CHECK(ConvertWindows1252ToUtf8("\xC4pfel") == u8"Äpfel");

@@ -661,7 +661,7 @@ size_t GetExpectedDataSize(GeneratorConfig const& config)
     totalSize += config.productTagCount * (8 + 8 + 8);
 
     // ActivityLog: id + action + entity + json + ip + user_agent + dates
-    totalSize += config.activityLogCount * (8 + 50 + 100 + 8 + config.activityLogJsonSize * 2 + 45 + 500 + 16);
+    totalSize += config.activityLogCount * (8 + 50 + 100 + 8 + (config.activityLogJsonSize * 2) + 45 + 500 + 16);
 
     // SystemAuditLog: id + severity + source + event_type + message + context + stack_trace + correlation_id + dates
     totalSize += config.systemAuditLogCount

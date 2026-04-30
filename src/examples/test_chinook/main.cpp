@@ -50,7 +50,7 @@ using Lightweight::Unwrap;
 #include "entities/Playlisttrack.hpp"
 #include "entities/Track.hpp"
 
-static string GetEnvironmentVariable(const string& name)
+static string GetEnvironmentVariable(string const& name)
 {
 #if defined(_MSC_VER)
     char* envBuffer = nullptr;
@@ -63,7 +63,7 @@ static string GetEnvironmentVariable(const string& name)
         return result;
     }
 #else
-    if (const auto* s = std::getenv(name.data()); s && *s)
+    if (auto const* s = std::getenv(name.data()); s && *s)
         return string { s };
 #endif
     return {};

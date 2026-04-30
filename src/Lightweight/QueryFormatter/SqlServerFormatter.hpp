@@ -352,8 +352,11 @@ EXEC sp_executesql @sql;)",
                 else
                 {
                     if (schema.empty())
-                        result.emplace_back(std::format(
-                            R"(CREATE INDEX "{}_{}_index" ON "{}" ("{}");)", tableName, column.name, tableName, column.name));
+                        result.emplace_back(std::format(R"(CREATE INDEX "{}_{}_index" ON "{}" ("{}");)",
+                                                        tableName,
+                                                        column.name,
+                                                        tableName,
+                                                        column.name));
                     else
                         result.emplace_back(std::format(R"(CREATE INDEX "{}_{}_index" ON "{}"."{}" ("{}");)",
                                                         tableName,

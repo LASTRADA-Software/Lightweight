@@ -27,6 +27,7 @@ concurrency:
 env:
   CTEST_OUTPUT_ON_FAILURE: 1
   SCCACHE_GHA_ENABLED: "true"
+  CLANG_TOOLS_VERSION: "22"
 
 jobs:
   # {{{ Common checks
@@ -48,14 +49,17 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           ref: ${{ github.event.pull_request.head.ref }}
           # token: ${{ secrets.CLANG_FORMAT_PAT }}
-      - uses: DoozyX/clang-format-lint-action@v0.20
-        with:
-          source: "."
-          exclude: "src/examples/test_chinook/entities"
-          extensions: "h,hpp,cpp"
-          clangFormatVersion: 20
-          style: file
-          inplace: True
+      - name: "Install clang-format"
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh ${{ env.CLANG_TOOLS_VERSION }}
+          sudo apt -qy install clang-format-${{ env.CLANG_TOOLS_VERSION }}
+      - name: "Run clang-format"
+        run: |
+          git ls-files '*.h' '*.hpp' '*.cpp' \
+            | grep -v '^src/examples/test_chinook/entities/' \
+            | xargs clang-format-${{ env.CLANG_TOOLS_VERSION }} --dry-run --Werror --style=file
     # does not work for now
     # - uses: EndBug/add-and-commit@v9
     #   if: github.event.pull_request.head.repo.full_name == github.repository
@@ -99,20 +103,20 @@ jobs:
         run: |
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
-          sudo ./llvm.sh 21
-          sudo apt -qy install clang-tidy-21 clang-tools-21
-          which clang-tidy-21
-          which run-clang-tidy-21
+          sudo ./llvm.sh ${{ env.CLANG_TOOLS_VERSION }}
+          sudo apt -qy install clang-tidy-${{ env.CLANG_TOOLS_VERSION }} clang-tools-${{ env.CLANG_TOOLS_VERSION }}
+          which clang-tidy-${{ env.CLANG_TOOLS_VERSION }}
+          which run-clang-tidy-${{ env.CLANG_TOOLS_VERSION }}
       - name: "install dependencies"
         run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14 libtbb-dev libzip-dev
       - name: "cmake"
         run: |
           cmake --preset linux-clang-debug \
-                -D CMAKE_CXX_COMPILER=clang++-21 \
-                -D CMAKE_C_COMPILER=clang-21 \
+                -D CMAKE_CXX_COMPILER=clang++-${{ env.CLANG_TOOLS_VERSION }} \
+                -D CMAKE_C_COMPILER=clang-${{ env.CLANG_TOOLS_VERSION }} \
                 -B build
       - name: "run clang-tidy"
-        run: run-clang-tidy-21 -p ./build -clang-tidy-binary clang-tidy-21 -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/|(.*/)?libzip-src/).*$' -source-filter='^(?!.*_deps/).*$'
+        run: run-clang-tidy-${{ env.CLANG_TOOLS_VERSION }} -p ./build -clang-tidy-binary clang-tidy-${{ env.CLANG_TOOLS_VERSION }} -config-file .clang-tidy -header-filter='^(?!(.*/)?stdexec-src/|(.*/)?libzip-src/).*$' -source-filter='^(?!.*_deps/).*$'
 
   # }}}
   # {{{ Windows
@@ -431,7 +435,7 @@ jobs:
         run: |
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
-          sudo ./llvm.sh 19
+          sudo ./llvm.sh ${{ env.CLANG_TOOLS_VERSION }}
       - name: "install dependencies"
         # Rename the libsqliteodbc driver section to match the Windows driver
         # name so the shared .test-env.yml works on both platforms.
@@ -441,8 +445,8 @@ jobs:
       - name: "cmake"
         run: |
           cmake --preset linux-clang-${{ matrix.sanitizer }} \
-                -D CMAKE_CXX_COMPILER=clang++-19 \
-                -D CMAKE_C_COMPILER=clang-19
+                -D CMAKE_CXX_COMPILER=clang++-${{ env.CLANG_TOOLS_VERSION }} \
+                -D CMAKE_C_COMPILER=clang-${{ env.CLANG_TOOLS_VERSION }}
       - name: "build"
         run: cmake --build --preset linux-clang-${{ matrix.sanitizer }} -- -j$(nproc)
       - name: "Run tests with ${{ matrix.sanitizer }}"

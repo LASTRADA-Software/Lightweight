@@ -107,7 +107,7 @@ class Sha256
         // Append bit count (big-endian)
         std::array<uint8_t, 8> countBytes {};
         for (size_t i = 0; i < 8; ++i)
-            countBytes[i] = static_cast<uint8_t>(bitCount >> (56 - i * 8));
+            countBytes[i] = static_cast<uint8_t>(bitCount >> (56 - (i * 8)));
         Update(countBytes.data(), 8);
 
         // Output hash

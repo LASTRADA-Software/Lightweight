@@ -48,8 +48,9 @@ struct SqlDataBinder<SqlRawColumn>
         // requires the ColumnSize to be the buffer length when not using data-at-execution.
         // A size of 0 causes HY104 "Invalid precision value" error.
         SQLULEN columnSize = value.metadata.size;
-        if (columnSize == 0 && (value.metadata.sqlType == SQL_LONGVARCHAR || value.metadata.sqlType == SQL_LONGVARBINARY
-                                || value.metadata.sqlType == SQL_WLONGVARCHAR))
+        if (columnSize == 0
+            && (value.metadata.sqlType == SQL_LONGVARCHAR || value.metadata.sqlType == SQL_LONGVARBINARY
+                || value.metadata.sqlType == SQL_WLONGVARCHAR))
         {
             columnSize = value.metadata.bufferLength;
         }

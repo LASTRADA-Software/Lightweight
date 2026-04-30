@@ -557,8 +557,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into two structs", "[SqlStatement]")
 
         WHEN("inserting some data and getting it via multi struct query building")
         {
-            (void) stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
-            (void) stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple2>).Insert().Set("c1", "a").Set("c2", "c"));
+            (void) stmt.ExecuteDirect(
+                conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
+            (void) stmt.ExecuteDirect(
+                conn.Query(Lightweight::RecordTableName<Simple2>).Insert().Set("c1", "a").Set("c2", "c"));
 
             // clang-format off
             stmt.Prepare(
@@ -605,8 +607,10 @@ TEST_CASE_METHOD(SqlTestFixture, "SELECT into SqlVariantRowIterator", "[SqlState
 
         WHEN("inserting some data and getting it via multi struct query building")
         {
-            (void) stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
-            (void) stmt.ExecuteDirect(conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "A").Set("c2", "B"));
+            (void) stmt.ExecuteDirect(
+                conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "a").Set("c2", "b"));
+            (void) stmt.ExecuteDirect(
+                conn.Query(Lightweight::RecordTableName<Simple1>).Insert().Set("c1", "A").Set("c2", "B"));
 
             // clang-format off
             stmt.Prepare(

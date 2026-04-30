@@ -1283,7 +1283,7 @@ std::optional<RecordPrimaryKeyType<Record>> DataMapper::GenerateAutoAssignPrimar
             if constexpr (IsField<PrimaryKeyType> && IsPrimaryKey<PrimaryKeyType>
                           && detail::IsAutoAssignPrimaryKeyField<PrimaryKeyType>::value)
             {
-                using ValueType = typename PrimaryKeyType::ValueType;
+                using ValueType = PrimaryKeyType::ValueType;
                 if constexpr (std::same_as<ValueType, SqlGuid>)
                 {
                     if (!primaryKeyField.Value())
@@ -2346,7 +2346,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                             count = cursor.GetColumn<size_t>(1);
                         return count;
                     },
-                    .all = [pkValue]() -> typename FieldType::ReferencedRecordList {
+                    .all = [pkValue]() -> FieldType::ReferencedRecordList {
                         DataMapper& dm = DataMapper::AcquireThreadLocal();
                         auto selectQuery = dm.BuildHasManySelectQuery<FieldIndex, ReferencedRecord>();
                         return detail::ToSharedPtrList(dm.Query<ReferencedRecord>(selectQuery.All(), pkValue));
@@ -2407,7 +2407,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
                         });
                     return count;
                 },
-                .all = [pkValue]() -> typename FieldType::ReferencedRecordList {
+                .all = [pkValue]() -> FieldType::ReferencedRecordList {
                     // Load result for All()
                     DataMapper& dm = DataMapper::AcquireThreadLocal();
                     typename FieldType::ReferencedRecordList result;

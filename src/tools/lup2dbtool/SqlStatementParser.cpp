@@ -110,10 +110,10 @@ namespace
         }
 
         // Check for NOT NULL
-        column.isNullable = upperRest.find("NOT NULL") == std::string::npos;
+        column.isNullable = !upperRest.contains("NOT NULL");
 
         // Check for PRIMARY KEY
-        column.isPrimaryKey = upperRest.find("PRIMARY KEY") != std::string::npos;
+        column.isPrimaryKey = upperRest.contains("PRIMARY KEY");
 
         return column;
     }
@@ -164,7 +164,7 @@ namespace
         auto upper = ToUpper(colDef);
 
         // Check for FOREIGN KEY constraint
-        if (upper.find("FOREIGN KEY") != std::string::npos)
+        if (upper.contains("FOREIGN KEY"))
         {
             if (auto fk = ParseForeignKeyConstraint(colDef))
                 stmt.foreignKeys.push_back(*fk);
@@ -224,8 +224,8 @@ namespace
 
         std::string constraints = match[4].str();
         auto upperConstraints = ToUpper(constraints);
-        stmt.column.isNullable = upperConstraints.find("NOT NULL") == std::string::npos;
-        stmt.column.isPrimaryKey = upperConstraints.find("PRIMARY KEY") != std::string::npos;
+        stmt.column.isNullable = !upperConstraints.contains("NOT NULL");
+        stmt.column.isPrimaryKey = upperConstraints.contains("PRIMARY KEY");
 
         return stmt;
     }
@@ -473,12 +473,12 @@ ParsedStatement ParseSqlStatement(std::string_view sql)
     }
     else if (StartsWithIgnoreCase(trimmed, "ALTER TABLE"))
     {
-        if (upper.find("DROP FOREIGN KEY") != std::string::npos)
+        if (upper.contains("DROP FOREIGN KEY"))
         {
             if (auto stmt = ParseAlterTableDropForeignKey(trimmed))
                 return *stmt;
         }
-        else if (upper.find("ADD FOREIGN KEY") != std::string::npos)
+        else if (upper.contains("ADD FOREIGN KEY"))
         {
             // Try composite foreign key first (has multiple columns)
             if (auto stmt = ParseAlterTableAddCompositeForeignKey(trimmed))
@@ -496,7 +496,7 @@ ParsedStatement ParseSqlStatement(std::string_view sql)
                 return *stmt;
             }
         }
-        else if (upper.find("ADD") != std::string::npos)
+        else if (upper.contains("ADD"))
         {
             if (auto stmt = ParseAlterTableAddColumn(trimmed))
                 return *stmt;

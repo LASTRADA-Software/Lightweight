@@ -155,7 +155,7 @@ std::vector<IndexInfo> GetPostgresIndexes(SqlStatement& stmt, std::string const&
         IndexInfo info;
         info.name = cursor.GetColumn<std::string>(1);
         auto indexDef = cursor.GetColumn<std::string>(2);
-        info.isUnique = indexDef.find("UNIQUE") != std::string::npos;
+        info.isUnique = indexDef.contains("UNIQUE");
 
         // Parse columns from CREATE INDEX ... ON table (col1, col2)
         auto parenStart = indexDef.find('(');
