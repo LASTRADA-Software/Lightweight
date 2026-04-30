@@ -34,9 +34,8 @@ QVariant OdbcDataSourceListModel::data(QModelIndex const& index, int role) const
         case DescriptionRole:
             return QString::fromStdString(source.description);
         case ScopeRole:
-            return source.scope == Lightweight::Odbc::DataSourceInfo::Scope::User
-                       ? QStringLiteral("user")
-                       : QStringLiteral("system");
+            return source.scope == Lightweight::Odbc::DataSourceInfo::Scope::User ? QStringLiteral("user")
+                                                                                  : QStringLiteral("system");
         default:
             return {};
     }

@@ -404,8 +404,7 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
   private:
-    [[nodiscard]] std::string FormatAlterTableCommand(std::string_view tableName,
-                                                     SqlAlterTableCommand const& command) const
+    [[nodiscard]] std::string FormatAlterTableCommand(std::string_view tableName, SqlAlterTableCommand const& command) const
     {
         auto const formatTable = [tableName]() {
             return std::format(R"("{}")", tableName);

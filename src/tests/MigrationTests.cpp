@@ -6,13 +6,13 @@
 #include <Lightweight/Lightweight.hpp>
 #include <Lightweight/QueryFormatter/SqlServerFormatter.hpp>
 
-#include <filesystem>
-#include <fstream>
-#include <streambuf>
-
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include <filesystem>
+#include <fstream>
+#include <streambuf>
 
 using namespace std::string_view_literals;
 
@@ -1347,7 +1347,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "ApplyPendingMigrationsUpTo is a no-op
     CHECK(manager.ApplyPendingMigrationsUpTo(target) == 0);
 }
 
-TEST_CASE_METHOD(SqlMigrationTestFixture, "PreviewPendingMigrationsUpTo emits the same SQL the bounded apply would", "[SqlMigration]")
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "PreviewPendingMigrationsUpTo emits the same SQL the bounded apply would",
+                 "[SqlMigration]")
 {
     using namespace SqlColumnTypeDefinitions;
 
@@ -1400,9 +1402,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "ApplyPendingMigrationsUpTo refuses de
     auto mBelow = SqlMigration::Migration<202815010000>(
         "cross below",
         SqlMigration::MigrationMetadata { .dependencies = { SqlMigration::TimestampOf<MigrationAbove> } },
-        [](SqlMigrationQueryBuilder& plan) {
-            plan.CreateTable("cross_below").PrimaryKey("id", Integer());
-        });
+        [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("cross_below").PrimaryKey("id", Integer()); });
 
     auto& manager = SqlMigration::MigrationManager::GetInstance();
     manager.CreateMigrationHistory();
@@ -1470,11 +1470,11 @@ class StubMigration: public Lightweight::SqlMigration::MigrationBase
 TEST_CASE("ToSql: lup-truncate off leaves oversize INSERT values intact", "[SqlMigration][compat]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
-    using Lightweight::SqlInsertDataPlan;
-    using Lightweight::SqlCreateTablePlan;
-    using Lightweight::SqlColumnDeclaration;
-    using Lightweight::SqlMigrationPlanElement;
     using Lightweight::MigrationRenderContext;
+    using Lightweight::SqlColumnDeclaration;
+    using Lightweight::SqlCreateTablePlan;
+    using Lightweight::SqlInsertDataPlan;
+    using Lightweight::SqlMigrationPlanElement;
 
     Lightweight::SqlServerQueryFormatter const formatter;
     MigrationRenderContext context; // strict by default
@@ -1506,11 +1506,11 @@ TEST_CASE("ToSql: lup-truncate off leaves oversize INSERT values intact", "[SqlM
 TEST_CASE("ToSql: lup-truncate on clips oversize INSERT values and warns", "[SqlMigration][compat]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
-    using Lightweight::SqlInsertDataPlan;
-    using Lightweight::SqlCreateTablePlan;
-    using Lightweight::SqlColumnDeclaration;
-    using Lightweight::SqlMigrationPlanElement;
     using Lightweight::MigrationRenderContext;
+    using Lightweight::SqlColumnDeclaration;
+    using Lightweight::SqlCreateTablePlan;
+    using Lightweight::SqlInsertDataPlan;
+    using Lightweight::SqlMigrationPlanElement;
 
     Lightweight::SqlServerQueryFormatter const formatter;
     MigrationRenderContext context;
@@ -1555,11 +1555,11 @@ TEST_CASE("ToSql: lup-truncate on clips oversize INSERT values and warns", "[Sql
 TEST_CASE("ToSql: lup-truncate handles UTF-8 multi-byte by character count", "[SqlMigration][compat]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
-    using Lightweight::SqlInsertDataPlan;
-    using Lightweight::SqlCreateTablePlan;
-    using Lightweight::SqlColumnDeclaration;
-    using Lightweight::SqlMigrationPlanElement;
     using Lightweight::MigrationRenderContext;
+    using Lightweight::SqlColumnDeclaration;
+    using Lightweight::SqlCreateTablePlan;
+    using Lightweight::SqlInsertDataPlan;
+    using Lightweight::SqlMigrationPlanElement;
 
     Lightweight::SqlServerQueryFormatter const formatter;
     MigrationRenderContext context;
@@ -1595,11 +1595,11 @@ TEST_CASE("ToSql: lup-truncate handles UTF-8 multi-byte by character count", "[S
 TEST_CASE("ToSql: lup-truncate truncates string_view values from char-array literals", "[SqlMigration][compat]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
-    using Lightweight::SqlInsertDataPlan;
-    using Lightweight::SqlCreateTablePlan;
-    using Lightweight::SqlColumnDeclaration;
-    using Lightweight::SqlMigrationPlanElement;
     using Lightweight::MigrationRenderContext;
+    using Lightweight::SqlColumnDeclaration;
+    using Lightweight::SqlCreateTablePlan;
+    using Lightweight::SqlInsertDataPlan;
+    using Lightweight::SqlMigrationPlanElement;
 
     Lightweight::SqlServerQueryFormatter const formatter;
     MigrationRenderContext context;
@@ -1631,12 +1631,12 @@ TEST_CASE("ToSql: lup-truncate truncates string_view values from char-array lite
 TEST_CASE("ToSql: DROP TABLE evicts column widths from the cache", "[SqlMigration][compat]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
-    using Lightweight::SqlInsertDataPlan;
+    using Lightweight::MigrationRenderContext;
+    using Lightweight::SqlColumnDeclaration;
     using Lightweight::SqlCreateTablePlan;
     using Lightweight::SqlDropTablePlan;
-    using Lightweight::SqlColumnDeclaration;
+    using Lightweight::SqlInsertDataPlan;
     using Lightweight::SqlMigrationPlanElement;
-    using Lightweight::MigrationRenderContext;
 
     Lightweight::SqlServerQueryFormatter const formatter;
     MigrationRenderContext context;
@@ -1678,12 +1678,9 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     auto& mgr = Lightweight::SqlMigration::MigrationManager::GetInstance();
     REQUIRE(!mgr.GetCompatPolicy()); // fixture clears state
 
-    mgr.SetCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) {
-        return std::set<std::string> { "alpha" };
-    });
-    mgr.ComposeCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) {
-        return std::set<std::string> { "beta" };
-    });
+    mgr.SetCompatPolicy([](Lightweight::SqlMigration::MigrationBase const&) { return std::set<std::string> { "alpha" }; });
+    mgr.ComposeCompatPolicy(
+        [](Lightweight::SqlMigration::MigrationBase const&) { return std::set<std::string> { "beta" }; });
 
     StubMigration const m { 20'000'000'000'001ULL };
     auto const flags = mgr.CompatFlagsFor(m);
@@ -1756,17 +1753,19 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: create + addcolumn + altercolum
     using namespace Lightweight::SqlColumnTypeDefinitions;
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
 
-    fold_test::FoldStub<20'10'01'00'00'01> m1 { "create users", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("users")
-            .PrimaryKey("id", Bigint())
-            .Column("name", Varchar(100));
-    } };
+    fold_test::FoldStub<20'10'01'00'00'01> m1 {
+        "create users",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("users").PrimaryKey("id", Bigint()).Column("name", Varchar(100));
+        }
+    };
     fold_test::FoldStub<20'10'01'00'00'02> m2 { "add email", [](SqlMigrationQueryBuilder& plan) {
-        plan.AlterTable("users").AddColumn("email", Varchar(255));
-    } };
+                                                   plan.AlterTable("users").AddColumn("email", Varchar(255));
+                                               } };
     fold_test::FoldStub<20'10'01'00'00'03> m3 { "widen name", [](SqlMigrationQueryBuilder& plan) {
-        plan.AlterTable("users").AlterColumn("name", NVarchar(200), SqlNullable::Null);
-    } };
+                                                   plan.AlterTable("users").AlterColumn(
+                                                       "name", NVarchar(200), SqlNullable::Null);
+                                               } };
 
     auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
 
@@ -1789,21 +1788,19 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: create + addcolumn + altercolum
     CHECK(nv->size == 200);
 }
 
-TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: drop table cleans residual references",
-                 "[SqlMigration][Fold]")
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: drop table cleans residual references", "[SqlMigration][Fold]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
 
     fold_test::FoldStub<20'10'02'00'00'01> m1 { "create temp", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("temp_table").PrimaryKey("id", Bigint());
-    } };
+                                                   plan.CreateTable("temp_table").PrimaryKey("id", Bigint());
+                                               } };
     fold_test::FoldStub<20'10'02'00'00'02> m2 { "create idx on temp", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateIndex("idx_temp_id", "temp_table", { "id" });
-    } };
-    fold_test::FoldStub<20'10'02'00'00'03> m3 { "drop temp", [](SqlMigrationQueryBuilder& plan) {
-        plan.DropTable("temp_table");
-    } };
+                                                   plan.CreateIndex("idx_temp_id", "temp_table", { "id" });
+                                               } };
+    fold_test::FoldStub<20'10'02'00'00'03> m3 { "drop temp",
+                                                [](SqlMigrationQueryBuilder& plan) { plan.DropTable("temp_table"); } };
 
     auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
 
@@ -1812,19 +1809,21 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: drop table cleans residual refe
     CHECK(fold.indexes.empty());
 }
 
-TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: data steps preserve chronological order",
-                 "[SqlMigration][Fold]")
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: data steps preserve chronological order", "[SqlMigration][Fold]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
 
-    fold_test::FoldStub<20'10'03'00'00'01> m1 { "create + first insert", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("logs").PrimaryKey("id", Bigint()).Column("msg", Varchar(255));
-        plan.Insert("logs").Set("msg", "first"sv);
-    } };
+    fold_test::FoldStub<20'10'03'00'00'01> m1 {
+        "create + first insert",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("logs").PrimaryKey("id", Bigint()).Column("msg", Varchar(255));
+            plan.Insert("logs").Set("msg", "first"sv);
+        }
+    };
     fold_test::FoldStub<20'10'03'00'00'02> m2 { "second insert", [](SqlMigrationQueryBuilder& plan) {
-        plan.Insert("logs").Set("msg", "second"sv);
-    } };
+                                                   plan.Insert("logs").Set("msg", "second"sv);
+                                               } };
 
     auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
 
@@ -1833,21 +1832,20 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: data steps preserve chronologic
     CHECK(fold.dataSteps[1].sourceTimestamp.value == 20'10'03'00'00'02ULL);
 }
 
-TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: --up-to truncates correctly",
-                 "[SqlMigration][Fold]")
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: --up-to truncates correctly", "[SqlMigration][Fold]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
 
     fold_test::FoldStub<20'10'04'00'00'01> m1 { "v1", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("a").PrimaryKey("id", Bigint());
-    } };
+                                                   plan.CreateTable("a").PrimaryKey("id", Bigint());
+                                               } };
     fold_test::FoldStub<20'10'04'00'00'02> m2 { "v2", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("b").PrimaryKey("id", Bigint());
-    } };
+                                                   plan.CreateTable("b").PrimaryKey("id", Bigint());
+                                               } };
     fold_test::FoldStub<20'10'04'00'00'03> m3 { "v3", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("c").PrimaryKey("id", Bigint());
-    } };
+                                                   plan.CreateTable("c").PrimaryKey("id", Bigint());
+                                               } };
 
     auto const cutoff = SqlMigration::MigrationTimestamp { 20'10'04'00'00'02ULL };
     auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite(), cutoff);
@@ -1859,15 +1857,14 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: --up-to truncates correctly",
     CHECK_FALSE(fold.tables.contains(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "c" }));
 }
 
-TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: RawSql passes through unmodified",
-                 "[SqlMigration][Fold]")
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: RawSql passes through unmodified", "[SqlMigration][Fold]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
 
     fold_test::FoldStub<20'10'05'00'00'01> m1 { "raw", [](SqlMigrationQueryBuilder& plan) {
-        plan.RawSql("PRAGMA foreign_keys = ON");
-    } };
+                                                   plan.RawSql("PRAGMA foreign_keys = ON");
+                                               } };
 
     auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
 
@@ -1877,18 +1874,17 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: RawSql passes through unmodifie
     CHECK(raw->sql == "PRAGMA foreign_keys = ON");
 }
 
-TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: rename column propagates to FK references",
-                 "[SqlMigration][Fold]")
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: rename column propagates to FK references", "[SqlMigration][Fold]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
 
     fold_test::FoldStub<20'10'06'00'00'01> m1 { "create base", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("users").PrimaryKey("id", Bigint());
-    } };
+                                                   plan.CreateTable("users").PrimaryKey("id", Bigint());
+                                               } };
     fold_test::FoldStub<20'10'06'00'00'02> m2 { "rename column", [](SqlMigrationQueryBuilder& plan) {
-        plan.AlterTable("users").RenameColumn("id", "user_id");
-    } };
+                                                   plan.AlterTable("users").RenameColumn("id", "user_id");
+                                               } };
 
     auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
     auto const it = fold.tables.find(SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = "users" });
@@ -1897,26 +1893,23 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: rename column propagates to FK 
     CHECK(it->second.columns[0].name == "user_id");
 }
 
-TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: respects releases falling within range",
-                 "[SqlMigration][Fold]")
+TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: respects releases falling within range", "[SqlMigration][Fold]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
 
-    fold_test::FoldStub<20'10'07'00'00'01> m1 { "release-1 migration",
-                                                 [](SqlMigrationQueryBuilder& plan) {
-                                                     plan.CreateTable("a").PrimaryKey("id", Bigint());
-                                                 } };
+    fold_test::FoldStub<20'10'07'00'00'01> m1 { "release-1 migration", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("a").PrimaryKey("id", Bigint());
+                                               } };
     mgr.RegisterRelease("1.0.0", SqlMigration::MigrationTimestamp { 20'10'07'00'00'01ULL });
 
-    fold_test::FoldStub<20'10'07'00'00'02> m2 { "release-2 migration",
-                                                 [](SqlMigrationQueryBuilder& plan) {
-                                                     plan.CreateTable("b").PrimaryKey("id", Bigint());
-                                                 } };
+    fold_test::FoldStub<20'10'07'00'00'02> m2 { "release-2 migration", [](SqlMigrationQueryBuilder& plan) {
+                                                   plan.CreateTable("b").PrimaryKey("id", Bigint());
+                                               } };
     mgr.RegisterRelease("2.0.0", SqlMigration::MigrationTimestamp { 20'10'07'00'00'02ULL });
 
-    auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite(),
-                                                    SqlMigration::MigrationTimestamp { 20'10'07'00'00'01ULL });
+    auto const fold =
+        mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite(), SqlMigration::MigrationTimestamp { 20'10'07'00'00'01ULL });
 
     REQUIRE(fold.releases.size() == 1);
     CHECK(fold.releases[0].version == "1.0.0");
@@ -1926,18 +1919,19 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: respects releases falling withi
 // SQLite end-to-end tests for HardReset
 // ============================================================================
 
-TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: drops migrated tables and schema_migrations",
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "HardReset: drops migrated tables and schema_migrations",
                  "[SqlMigration][HardReset]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
 
     fold_test::FoldStub<20'10'08'00'00'01> m1 { "create A", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("table_a").PrimaryKey("id", Bigint());
-    } };
+                                                   plan.CreateTable("table_a").PrimaryKey("id", Bigint());
+                                               } };
     fold_test::FoldStub<20'10'08'00'00'02> m2 { "create B", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("table_b").PrimaryKey("id", Bigint());
-    } };
+                                                   plan.CreateTable("table_b").PrimaryKey("id", Bigint());
+                                               } };
 
     mgr.CreateMigrationHistory();
     REQUIRE(mgr.ApplyPendingMigrations() == 2);
@@ -1963,8 +1957,8 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: preserves user tables", "[
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
 
     fold_test::FoldStub<20'10'09'00'00'01> m1 { "create migrated", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("migrated_t").PrimaryKey("id", Bigint());
-    } };
+                                                   plan.CreateTable("migrated_t").PrimaryKey("id", Bigint());
+                                               } };
 
     mgr.CreateMigrationHistory();
     REQUIRE(mgr.ApplyPendingMigrations() == 1);
@@ -1982,20 +1976,18 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: preserves user tables", "[
     // `sqlite_schema` would only work on SQLite.
     auto verifyStmt = SqlStatement { mgr.GetDataMapper().Connection() };
     auto const liveTables = SqlSchema::ReadAllTables(verifyStmt, std::string {}, std::string {});
-    auto const it = std::ranges::find_if(liveTables,
-                                         [](SqlSchema::Table const& t) { return t.name == "user_t"; });
+    auto const it = std::ranges::find_if(liveTables, [](SqlSchema::Table const& t) { return t.name == "user_t"; });
     REQUIRE(it != liveTables.end());
 }
 
-TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: dry-run is observationally pure",
-                 "[SqlMigration][HardReset]")
+TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: dry-run is observationally pure", "[SqlMigration][HardReset]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
 
     fold_test::FoldStub<20'10'10'00'00'01> m1 { "create T", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("t1").PrimaryKey("id", Bigint());
-    } };
+                                                   plan.CreateTable("t1").PrimaryKey("id", Bigint());
+                                               } };
 
     mgr.CreateMigrationHistory();
     REQUIRE(mgr.ApplyPendingMigrations() == 1);
@@ -2011,17 +2003,19 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "HardReset: dry-run is observationally
 // UnicodeUpgradeTables — SQLite end-to-end
 // ============================================================================
 
-TEST_CASE_METHOD(SqlMigrationTestFixture, "UnicodeUpgradeTables: dry-run reports drift",
-                 "[SqlMigration][UnicodeUpgrade]")
+TEST_CASE_METHOD(SqlMigrationTestFixture, "UnicodeUpgradeTables: dry-run reports drift", "[SqlMigration][UnicodeUpgrade]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
     auto& mgr = SqlMigration::MigrationManager::GetInstance();
 
     // Apply a migration that creates a Varchar(100) column. The fold's intended type
     // would also be Varchar(100), so no drift expected.
-    fold_test::FoldStub<20'10'11'00'00'01> m1 { "create t", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("widen_me").PrimaryKey("id", Bigint()).Column("name", Varchar(50));
-    } };
+    fold_test::FoldStub<20'10'11'00'00'01> m1 {
+        "create t",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("widen_me").PrimaryKey("id", Bigint()).Column("name", Varchar(50));
+        }
+    };
 
     mgr.CreateMigrationHistory();
     REQUIRE(mgr.ApplyPendingMigrations() == 1);
@@ -2032,7 +2026,8 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "UnicodeUpgradeTables: dry-run reports
     CHECK(result.columns.empty());
 }
 
-TEST_CASE_METHOD(SqlMigrationTestFixture, "UnicodeUpgradeTables: completes without error on roundtrip",
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "UnicodeUpgradeTables: completes without error on roundtrip",
                  "[SqlMigration][UnicodeUpgrade]")
 {
     using namespace Lightweight::SqlColumnTypeDefinitions;
@@ -2043,9 +2038,12 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "UnicodeUpgradeTables: completes witho
     // as Varchar even though the migration declared NVarchar. The upgrader will
     // therefore see "drift" and rebuild the table — but the rebuild must succeed
     // and the table must remain queryable afterwards.
-    fold_test::FoldStub<20'10'12'00'00'01> m1 { "create t", [](SqlMigrationQueryBuilder& plan) {
-        plan.CreateTable("idem").PrimaryKey("id", Bigint()).Column("note", NVarchar(80));
-    } };
+    fold_test::FoldStub<20'10'12'00'00'01> m1 {
+        "create t",
+        [](SqlMigrationQueryBuilder& plan) {
+            plan.CreateTable("idem").PrimaryKey("id", Bigint()).Column("note", NVarchar(80));
+        }
+    };
 
     mgr.CreateMigrationHistory();
     REQUIRE(mgr.ApplyPendingMigrations() == 1);
@@ -2058,8 +2056,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "UnicodeUpgradeTables: completes witho
     // the portable way to introspect — `sqlite_schema` is SQLite-only.
     auto stmt = SqlStatement { mgr.GetDataMapper().Connection() };
     auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
-    auto const it =
-        std::ranges::find_if(liveTables, [](SqlSchema::Table const& t) { return t.name == "idem"; });
+    auto const it = std::ranges::find_if(liveTables, [](SqlSchema::Table const& t) { return t.name == "idem"; });
     REQUIRE(it != liveTables.end());
 }
 
@@ -2126,4 +2123,3 @@ TEST_CASE("SplitFileWriter: oversize block lands wholly in its own chunk", "[Cod
             foundSoloHuge = true;
     CHECK(foundSoloHuge);
 }
-

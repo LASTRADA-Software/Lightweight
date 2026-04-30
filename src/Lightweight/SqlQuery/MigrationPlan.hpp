@@ -618,8 +618,7 @@ struct [[nodiscard]] MigrationRenderContext
     /// table doesn't exist, so the renderer doesn't keep retrying. Default-empty means
     /// "no fallback" — i.e. only widths declared by the same migration plan are
     /// considered.
-    std::function<void(MigrationRenderContext&, std::string_view /*schema*/, std::string_view /*table*/)>
-        widthLookup;
+    std::function<void(MigrationRenderContext&, std::string_view /*schema*/, std::string_view /*table*/)> widthLookup;
 
     /// @brief Tables for which the lookup has already been attempted, so we don't
     /// re-query for every INSERT against the same table.

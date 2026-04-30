@@ -12,13 +12,13 @@
 
 #pragma once
 
+#include <vector>
+
 #include <QtCore/QRegularExpression>
 #include <QtGui/QSyntaxHighlighter>
 #include <QtGui/QTextCharFormat>
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickTextDocument>
-
-#include <vector>
 
 namespace DbtoolGui
 {
@@ -31,7 +31,10 @@ class SqlSyntaxHighlighter: public QSyntaxHighlighter
   public:
     explicit SqlSyntaxHighlighter(QObject* parent = nullptr);
 
-    [[nodiscard]] QQuickTextDocument* textDocument() const noexcept { return _textDocument; }
+    [[nodiscard]] QQuickTextDocument* textDocument() const noexcept
+    {
+        return _textDocument;
+    }
     void setTextDocument(QQuickTextDocument* doc);
 
   signals:

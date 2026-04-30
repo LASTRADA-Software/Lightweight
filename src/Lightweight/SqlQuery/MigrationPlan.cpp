@@ -164,27 +164,27 @@ namespace
     {
         using Unit = MigrationRenderContext::WidthUnit;
         using W = MigrationRenderContext::ColumnWidth;
-        return std::visit(detail::overloaded {
-            [](SqlColumnTypeDefinitions::Char const& t) -> W { return { .value = t.size, .unit = Unit::Bytes }; },
-            [](SqlColumnTypeDefinitions::Varchar const& t) -> W { return { .value = t.size, .unit = Unit::Bytes }; },
-            [](SqlColumnTypeDefinitions::NChar const& t) -> W { return { .value = t.size, .unit = Unit::Characters }; },
-            [](SqlColumnTypeDefinitions::NVarchar const& t) -> W {
-                return { .value = t.size, .unit = Unit::Characters };
+        return std::visit(
+            detail::overloaded {
+                [](SqlColumnTypeDefinitions::Char const& t) -> W { return { .value = t.size, .unit = Unit::Bytes }; },
+                [](SqlColumnTypeDefinitions::Varchar const& t) -> W { return { .value = t.size, .unit = Unit::Bytes }; },
+                [](SqlColumnTypeDefinitions::NChar const& t) -> W { return { .value = t.size, .unit = Unit::Characters }; },
+                [](SqlColumnTypeDefinitions::NVarchar const& t) -> W {
+                    return { .value = t.size, .unit = Unit::Characters };
+                },
+                [](auto const&) -> W { return { .value = 0, .unit = Unit::Characters }; },
             },
-            [](auto const&) -> W { return { .value = 0, .unit = Unit::Characters }; },
-        }, type);
+            type);
     }
 
     /// @brief Builds a `ColumnKey` from its parts; accepts `string_view` column names so
     /// callers can pass `SqlAlterTableCommands::DropColumn::columnName` (which is a view)
     /// without an extra copy at the call site.
-    MigrationRenderContext::ColumnKey MakeColumnKey(std::string_view schema,
-                                                     std::string_view table,
-                                                     std::string_view column)
+    MigrationRenderContext::ColumnKey MakeColumnKey(std::string_view schema, std::string_view table, std::string_view column)
     {
         return MigrationRenderContext::ColumnKey { .schema = std::string(schema),
-                                                    .table = std::string(table),
-                                                    .column = std::string(column) };
+                                                   .table = std::string(table),
+                                                   .column = std::string(column) };
     }
 
     /// @brief Populates the render context's column-width cache from a `CreateTable` step.
@@ -206,34 +206,33 @@ namespace
         for (auto const& cmd: step.commands)
         {
             std::visit(detail::overloaded {
-                [&](SqlAlterTableCommands::AddColumn const& c) {
-                    auto const width = DeclaredCharWidth(c.columnType);
-                    if (width.value > 0)
-                        context.columnWidths[MakeColumnKey(step.schemaName, step.tableName, c.columnName)] = width;
-                },
-                [&](SqlAlterTableCommands::AlterColumn const& c) {
-                    auto const width = DeclaredCharWidth(c.columnType);
-                    if (width.value > 0)
-                        context.columnWidths[MakeColumnKey(step.schemaName, step.tableName, c.columnName)] = width;
-                },
-                [&](SqlAlterTableCommands::DropColumn const& c) {
-                    context.columnWidths.erase(MakeColumnKey(step.schemaName, step.tableName, c.columnName));
-                },
-                [](auto const&) {}, // other commands don't change char widths we track
-            }, cmd);
+                           [&](SqlAlterTableCommands::AddColumn const& c) {
+                               auto const width = DeclaredCharWidth(c.columnType);
+                               if (width.value > 0)
+                                   context.columnWidths[MakeColumnKey(step.schemaName, step.tableName, c.columnName)] =
+                                       width;
+                           },
+                           [&](SqlAlterTableCommands::AlterColumn const& c) {
+                               auto const width = DeclaredCharWidth(c.columnType);
+                               if (width.value > 0)
+                                   context.columnWidths[MakeColumnKey(step.schemaName, step.tableName, c.columnName)] =
+                                       width;
+                           },
+                           [&](SqlAlterTableCommands::DropColumn const& c) {
+                               context.columnWidths.erase(MakeColumnKey(step.schemaName, step.tableName, c.columnName));
+                           },
+                           [](auto const&) {}, // other commands don't change char widths we track
+                       },
+                       cmd);
         }
     }
 
     /// @brief Forgets every cached column of `table` — used on `DROP TABLE`.
-    void ForgetTableWidths(MigrationRenderContext& context,
-                           std::string_view schemaName,
-                           std::string_view tableName)
+    void ForgetTableWidths(MigrationRenderContext& context, std::string_view schemaName, std::string_view tableName)
     {
         auto const lo = MakeColumnKey(schemaName, tableName, {});
         auto it = context.columnWidths.lower_bound(lo);
-        while (it != context.columnWidths.end()
-               && it->first.schema == schemaName
-               && it->first.table == tableName)
+        while (it != context.columnWidths.end() && it->first.schema == schemaName && it->first.table == tableName)
         {
             it = context.columnWidths.erase(it);
         }
@@ -260,9 +259,7 @@ namespace
     /// `Bytes` mode it counts UTF-8 bytes (and never splits a multi-byte sequence —
     /// we always include or exclude a codepoint whole). Returns the truncated view
     /// (zero-copy — the caller owns the backing storage).
-    std::string_view TruncateUtf8(std::string_view s,
-                                   std::size_t budget,
-                                   MigrationRenderContext::WidthUnit unit)
+    std::string_view TruncateUtf8(std::string_view s, std::size_t budget, MigrationRenderContext::WidthUnit unit)
     {
         if (unit == MigrationRenderContext::WidthUnit::Bytes && s.size() <= budget)
             return s;
@@ -296,9 +293,7 @@ namespace
     /// (`varchar`/`char` on MSSQL) so multi-byte source data stays within the server's
     /// budget. UTF-16 strings always count code units (`std::u16string::size`), which
     /// matches `nvarchar`/`nchar` semantics.
-    bool TruncateIfOversize(SqlVariant& value,
-                             MigrationRenderContext::ColumnWidth const width,
-                             std::size_t& originalSize)
+    bool TruncateIfOversize(SqlVariant& value, MigrationRenderContext::ColumnWidth const width, std::size_t& originalSize)
     {
         originalSize = 0;
 
@@ -372,11 +367,10 @@ namespace
     ///
     /// @param context Render context — mutable so the lazy `widthLookup` callback can
     /// populate cache entries on first miss for tables not declared by the current run.
-    [[nodiscard]] std::vector<LupTruncationEvent> ApplyLupTruncate(
-        MigrationRenderContext& context,
-        std::string const& schemaName,
-        std::string const& tableName,
-        std::vector<std::pair<std::string, SqlVariant>>& columns)
+    [[nodiscard]] std::vector<LupTruncationEvent> ApplyLupTruncate(MigrationRenderContext& context,
+                                                                   std::string const& schemaName,
+                                                                   std::string const& tableName,
+                                                                   std::vector<std::pair<std::string, SqlVariant>>& columns)
     {
         auto events = std::vector<LupTruncationEvent> {};
 
@@ -422,9 +416,10 @@ namespace
         if (events.empty())
             return;
 
-        auto const migrationLabel = context.activeMigrationTimestamp != 0
-            ? std::format("{} '{}'", context.activeMigrationTimestamp, context.activeMigrationTitle)
-            : std::string { "<unknown>" };
+        auto const migrationLabel =
+            context.activeMigrationTimestamp != 0
+                ? std::format("{} '{}'", context.activeMigrationTimestamp, context.activeMigrationTitle)
+                : std::string { "<unknown>" };
 
         auto joinedSql = std::string {};
         for (auto const& sql: renderedStatements)
@@ -436,25 +431,24 @@ namespace
 
         for (auto const& ev: events)
         {
-            SqlLogger::GetLogger().OnWarning(std::format(
-                "lup-truncate: migration {}: {} {}.{}.{}: value of size {} exceeded declared width {} {} "
-                "— clipped; statement: {}",
-                migrationLabel,
-                operation,
-                schemaName.empty() ? "<default>" : schemaName.c_str(),
-                tableName,
-                ev.column,
-                ev.originalSize,
-                ev.declaredWidth,
-                ev.unit,
-                joinedSql));
+            SqlLogger::GetLogger().OnWarning(
+                std::format("lup-truncate: migration {}: {} {}.{}.{}: value of size {} exceeded declared width {} {} "
+                            "— clipped; statement: {}",
+                            migrationLabel,
+                            operation,
+                            schemaName.empty() ? "<default>" : schemaName.c_str(),
+                            tableName,
+                            ev.column,
+                            ev.originalSize,
+                            ev.declaredWidth,
+                            ev.unit,
+                            joinedSql));
         }
     }
 
     /// @brief Dispatches a single plan element to the correct SQL-emitting helper. Shared
     /// between the context-less and context-aware `ToSql` overloads.
-    std::vector<std::string> RenderStep(SqlQueryFormatter const& formatter,
-                                         SqlMigrationPlanElement const& element)
+    std::vector<std::string> RenderStep(SqlQueryFormatter const& formatter, SqlMigrationPlanElement const& element)
     {
         return std::visit(
             [&](auto const& step) -> std::vector<std::string> {
@@ -501,18 +495,19 @@ std::vector<std::string> ToSql(SqlQueryFormatter const& formatter, SqlMigrationP
 }
 
 std::vector<std::string> ToSql(SqlQueryFormatter const& formatter,
-                                SqlMigrationPlanElement const& element,
-                                MigrationRenderContext& context)
+                               SqlMigrationPlanElement const& element,
+                               MigrationRenderContext& context)
 {
     // First: consume schema-affecting steps to keep the width cache current, so INSERT/
     // UPDATE steps that follow within the same migration plan see the column widths the
     // same CREATE/ALTER declared.
     std::visit(detail::overloaded {
-        [&](SqlCreateTablePlan const& step) { RememberColumnWidths(context, step); },
-        [&](SqlAlterTablePlan const& step) { RememberColumnWidths(context, step); },
-        [&](SqlDropTablePlan const& step) { ForgetTableWidths(context, step.schemaName, step.tableName); },
-        [](auto const&) {},
-    }, element);
+                   [&](SqlCreateTablePlan const& step) { RememberColumnWidths(context, step); },
+                   [&](SqlAlterTablePlan const& step) { RememberColumnWidths(context, step); },
+                   [&](SqlDropTablePlan const& step) { ForgetTableWidths(context, step.schemaName, step.tableName); },
+                   [](auto const&) {},
+               },
+               element);
 
     // Then, for value-carrying steps, apply the active compat knobs. We mutate a local
     // copy when truncation is needed so the caller's plan stays observationally const.

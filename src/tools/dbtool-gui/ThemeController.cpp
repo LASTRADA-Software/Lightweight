@@ -11,20 +11,20 @@ namespace DbtoolGui
 namespace
 {
 
-// Seed + process-wide singleton storage. `AppController` follows the same
-// pattern; see its `create()` for rationale — QML would otherwise instantiate
-// a fresh controller per engine, and we want a single authoritative mode.
-ThemeController::Mode g_seededMode = ThemeController::Mode::System;
-ThemeController* g_instance = nullptr;
+    // Seed + process-wide singleton storage. `AppController` follows the same
+    // pattern; see its `create()` for rationale — QML would otherwise instantiate
+    // a fresh controller per engine, and we want a single authoritative mode.
+    ThemeController::Mode g_seededMode = ThemeController::Mode::System;
+    ThemeController* g_instance = nullptr;
 
-/// Reads Qt's current platform colour-scheme guess. Used by `dark()` when
-/// the user is in `System` mode. We treat the `Unknown` enum value as
-/// light, matching Qt's own "fall back to light" behaviour in widgets.
-bool PlatformIsDark()
-{
-    auto const scheme = QGuiApplication::styleHints()->colorScheme();
-    return scheme == Qt::ColorScheme::Dark;
-}
+    /// Reads Qt's current platform colour-scheme guess. Used by `dark()` when
+    /// the user is in `System` mode. We treat the `Unknown` enum value as
+    /// light, matching Qt's own "fall back to light" behaviour in widgets.
+    bool PlatformIsDark()
+    {
+        auto const scheme = QGuiApplication::styleHints()->colorScheme();
+        return scheme == Qt::ColorScheme::Dark;
+    }
 
 } // namespace
 
@@ -36,10 +36,8 @@ ThemeController::ThemeController(QObject* parent):
     // `colorSchemeChanged` fires whenever the DE toggles light/dark while
     // the app is open. We always listen — cheap — and filter in
     // `Reevaluate()` so `Light` / `Dark` modes ignore it.
-    connect(QGuiApplication::styleHints(),
-            &QStyleHints::colorSchemeChanged,
-            this,
-            [this](Qt::ColorScheme) { Reevaluate(); });
+    connect(
+        QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, [this](Qt::ColorScheme) { Reevaluate(); });
 }
 
 ThemeController::~ThemeController()

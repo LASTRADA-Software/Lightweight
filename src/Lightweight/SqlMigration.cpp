@@ -153,8 +153,7 @@ void MigrationManager::ComposeCompatPolicy(CompatPolicy policy)
         return;
     }
     // Compose: both policies are consulted and their flag sets unioned per migration.
-    _compatPolicy = [lhs = std::move(_compatPolicy),
-                     rhs = std::move(policy)](MigrationBase const& m) {
+    _compatPolicy = [lhs = std::move(_compatPolicy), rhs = std::move(policy)](MigrationBase const& m) {
         auto flags = lhs(m);
         auto extra = rhs(m);
         flags.insert(extra.begin(), extra.end());
@@ -914,7 +913,7 @@ namespace
     /// reports chars for the N-prefixed types and bytes for the others, so the value
     /// passes through unchanged — only the unit varies.
     [[nodiscard]] MigrationRenderContext::ColumnWidth CharacterWidthFromDataType(std::string_view dataType,
-                                                                                  std::size_t maxLength) noexcept
+                                                                                 std::size_t maxLength) noexcept
     {
         using Unit = MigrationRenderContext::WidthUnit;
         if (dataType == "nvarchar" || dataType == "nchar")
@@ -934,16 +933,16 @@ namespace
     /// which is the same behaviour we want when the lookup fails for any reason.
     auto MakeWidthLookup(SqlConnection& connection)
     {
-        return [&connection](MigrationRenderContext& ctx,
-                              std::string_view schema,
-                              std::string_view table) {
-            auto const sql = schema.empty()
-                ? std::format("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH "
-                              "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{}'",
-                              table)
-                : std::format("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH "
-                              "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{}' AND TABLE_NAME = '{}'",
-                              schema, table);
+        return [&connection](MigrationRenderContext& ctx, std::string_view schema, std::string_view table) {
+            auto const sql =
+                schema.empty()
+                    ? std::format("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH "
+                                  "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{}'",
+                                  table)
+                    : std::format("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH "
+                                  "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{}' AND TABLE_NAME = '{}'",
+                                  schema,
+                                  table);
 
             auto stmt = SqlStatement { connection };
             try
@@ -958,8 +957,7 @@ namespace
                     auto const maxLengthOpt = cursor.GetNullableColumn<long long>(3);
                     if (!maxLengthOpt.has_value() || *maxLengthOpt <= 0)
                         continue;
-                    auto const width =
-                        CharacterWidthFromDataType(dataType, static_cast<std::size_t>(*maxLengthOpt));
+                    auto const width = CharacterWidthFromDataType(dataType, static_cast<std::size_t>(*maxLengthOpt));
                     if (width.value == 0)
                         continue;
                     ctx.columnWidths[{ std::string(schema), std::string(table), columnName }] = width;
@@ -1188,8 +1186,7 @@ size_t MigrationManager::ApplyPendingMigrationsUpTo(MigrationTimestamp targetInc
                                                     ExecuteCallback const& feedbackCallback)
 {
     ValidateDependencies();
-    auto const pendingMigrations =
-        FilterPendingUpTo(GetPending(), targetInclusive, GetAppliedMigrationIds());
+    auto const pendingMigrations = FilterPendingUpTo(GetPending(), targetInclusive, GetAppliedMigrationIds());
 
     auto context = MakeRenderContext();
     context.widthLookup = MakeWidthLookup(GetDataMapper().Connection());
@@ -1224,7 +1221,7 @@ std::vector<std::string> MigrationManager::PreviewMigration(MigrationBase const&
 }
 
 std::vector<std::string> MigrationManager::PreviewMigrationWithContext(MigrationBase const& migration,
-                                                                        MigrationRenderContext& context) const
+                                                                       MigrationRenderContext& context) const
 {
     auto const flags = CompatFlagsFor(migration);
     context.lupTruncate = flags.contains(std::string(CompatFlagLupTruncateName));
@@ -1274,11 +1271,10 @@ std::vector<std::string> MigrationManager::PreviewPendingMigrations(ExecuteCallb
     return allStatements;
 }
 
-std::vector<std::string> MigrationManager::PreviewPendingMigrationsUpTo(
-    MigrationTimestamp targetInclusive, ExecuteCallback const& feedbackCallback) const
+std::vector<std::string> MigrationManager::PreviewPendingMigrationsUpTo(MigrationTimestamp targetInclusive,
+                                                                        ExecuteCallback const& feedbackCallback) const
 {
-    auto const pendingMigrations =
-        FilterPendingUpTo(GetPending(), targetInclusive, GetAppliedMigrationIds());
+    auto const pendingMigrations = FilterPendingUpTo(GetPending(), targetInclusive, GetAppliedMigrationIds());
     std::vector<std::string> allStatements;
 
     auto context = MakeRenderContext();
@@ -1347,10 +1343,8 @@ MigrationManager::RewriteChecksumsResult MigrationManager::RewriteChecksums(bool
         if (stored == computed)
             continue;
 
-        result.entries.push_back(ChecksumRewriteEntry { .timestamp = timestamp,
-                                                        .title = migration->GetTitle(),
-                                                        .oldChecksum = stored,
-                                                        .newChecksum = computed });
+        result.entries.push_back(ChecksumRewriteEntry {
+            .timestamp = timestamp, .title = migration->GetTitle(), .oldChecksum = stored, .newChecksum = computed });
 
         if (!dryRun)
         {
@@ -1574,9 +1568,9 @@ namespace
     /// Updates inbound FK references in every other table so they continue to point at
     /// the renamed table. Indexes hosted on the renamed table are also rewritten.
     void RenameTableInResult(MigrationManager::PlanFoldingResult& result,
-                              std::string_view schema,
-                              std::string_view oldName,
-                              std::string_view newName)
+                             std::string_view schema,
+                             std::string_view oldName,
+                             std::string_view newName)
     {
         auto const oldKey = MakeFqtn(schema, oldName);
         auto const newKey = MakeFqtn(schema, newName);
@@ -1611,16 +1605,15 @@ namespace
     /// @brief Drops a table from the result and any side-effect references (indexes,
     /// inbound FKs from other tables, queued data steps targeting the dropped table).
     void DropTableFromResult(MigrationManager::PlanFoldingResult& result,
-                              std::string_view schema,
-                              std::string_view tableName)
+                             std::string_view schema,
+                             std::string_view tableName)
     {
         auto const key = MakeFqtn(schema, tableName);
         result.tables.erase(key);
         std::erase(result.creationOrder, key);
 
-        std::erase_if(result.indexes, [&](SqlCreateIndexPlan const& idx) {
-            return idx.schemaName == schema && idx.tableName == tableName;
-        });
+        std::erase_if(result.indexes,
+                      [&](SqlCreateIndexPlan const& idx) { return idx.schemaName == schema && idx.tableName == tableName; });
 
         // Drop inbound FKs from other tables — and inline FK declarations.
         for (auto& [_, state]: result.tables)
@@ -1634,22 +1627,23 @@ namespace
 
         // Drop queued data steps targeting the dropped table.
         std::erase_if(result.dataSteps, [&](MigrationManager::PlanFoldingResult::DataStep const& step) {
-            return std::visit(::Lightweight::detail::overloaded {
-                                   [&](SqlInsertDataPlan const& s) { return s.schemaName == schema && s.tableName == tableName; },
-                                   [&](SqlUpdateDataPlan const& s) { return s.schemaName == schema && s.tableName == tableName; },
-                                   [&](SqlDeleteDataPlan const& s) { return s.schemaName == schema && s.tableName == tableName; },
-                                   [](auto const&) { return false; },
-                               },
-                               step.element);
+            return std::visit(
+                ::Lightweight::detail::overloaded {
+                    [&](SqlInsertDataPlan const& s) { return s.schemaName == schema && s.tableName == tableName; },
+                    [&](SqlUpdateDataPlan const& s) { return s.schemaName == schema && s.tableName == tableName; },
+                    [&](SqlDeleteDataPlan const& s) { return s.schemaName == schema && s.tableName == tableName; },
+                    [](auto const&) { return false; },
+                },
+                step.element);
         });
     }
 
     /// @brief Apply one ALTER TABLE command to the fold's `TableState`.
     void ApplyAlterCommand(MigrationManager::PlanFoldingResult::TableState& state,
-                            MigrationManager::PlanFoldingResult& result,
-                            std::string_view schema,
-                            std::string_view tableName,
-                            SqlAlterTableCommand const& cmd)
+                           MigrationManager::PlanFoldingResult& result,
+                           std::string_view schema,
+                           std::string_view tableName,
+                           SqlAlterTableCommand const& cmd)
     {
         std::visit(::Lightweight::detail::overloaded {
                        [&](SqlAlterTableCommands::RenameTable const& c) {
@@ -1818,8 +1812,7 @@ namespace
     /// / `NVarchar`), and the declared `size` matches. Same-size matching is the
     /// conservative rule — it avoids accidentally widening a column whose declared size
     /// the migrations changed in tandem with the type.
-    bool IsUnicodeUpgradeCandidate(SqlColumnTypeDefinition const& liveType,
-                                    SqlColumnTypeDefinition const& intendedType)
+    bool IsUnicodeUpgradeCandidate(SqlColumnTypeDefinition const& liveType, SqlColumnTypeDefinition const& intendedType)
     {
         if (auto const* lc = std::get_if<SqlColumnTypeDefinitions::Char>(&liveType))
             if (auto const* ic = std::get_if<SqlColumnTypeDefinitions::NChar>(&intendedType))
@@ -1980,7 +1973,7 @@ namespace
     /// tracks paren nesting so the column-list close paren after the size is not
     /// mistaken for the end of the type token.
     std::string RewriteSqliteCreateTableTypes(std::string createSql,
-                                                std::map<std::string, std::string> const& newTypeByColumn)
+                                              std::map<std::string, std::string> const& newTypeByColumn)
     {
         for (auto const& [col, newType]: newTypeByColumn)
         {
@@ -2012,8 +2005,8 @@ namespace
     /// `CREATE TABLE` body in-place. SQLite's lack of column-type ALTER means a full
     /// rebuild is the canonical recipe — see `RebuildSqliteTable` for the rationale.
     void ExecuteSqliteUpgrade(SqlConnection& connection,
-                                SqlQueryFormatter const& formatter,
-                                std::vector<UnicodeUpgradePending> const& pending)
+                              SqlQueryFormatter const& formatter,
+                              std::vector<UnicodeUpgradePending> const& pending)
     {
         for (auto const& p: pending)
         {
@@ -2064,10 +2057,11 @@ namespace
                 continue;
             addCommands.emplace_back(SqlAlterTableCommands::AddForeignKey {
                 .columnName = fk.foreignKey.columns.front(),
-                .referencedColumn = SqlForeignKeyReferenceDefinition {
-                    .tableName = fk.primaryKey.table.table,
-                    .columnName = fk.primaryKey.columns.empty() ? std::string {} : fk.primaryKey.columns.front(),
-                },
+                .referencedColumn =
+                    SqlForeignKeyReferenceDefinition {
+                        .tableName = fk.primaryKey.table.table,
+                        .columnName = fk.primaryKey.columns.empty() ? std::string {} : fk.primaryKey.columns.front(),
+                    },
             });
         }
         return addCommands;
@@ -2078,18 +2072,17 @@ namespace
     /// step renders via the formatter so the in-tree `AlterTable` codegen is the
     /// single source of truth for the dialect's ALTER syntax.
     void ExecuteGenericUpgrade(SqlStatement& stmt,
-                                 SqlQueryFormatter const& formatter,
-                                 std::vector<UnicodeUpgradePending> const& pending)
+                               SqlQueryFormatter const& formatter,
+                               std::vector<UnicodeUpgradePending> const& pending)
     {
-        auto const execAlter = [&](std::string_view schema,
-                                    std::string_view table,
-                                    std::vector<SqlAlterTableCommand> const& commands) {
-            if (commands.empty())
-                return;
-            auto const sqls = formatter.AlterTable(schema, table, commands);
-            for (auto const& sql: sqls)
-                (void) stmt.ExecuteDirect(sql);
-        };
+        auto const execAlter =
+            [&](std::string_view schema, std::string_view table, std::vector<SqlAlterTableCommand> const& commands) {
+                if (commands.empty())
+                    return;
+                auto const sqls = formatter.AlterTable(schema, table, commands);
+                for (auto const& sql: sqls)
+                    (void) stmt.ExecuteDirect(sql);
+            };
 
         for (auto const& p: pending)
         {

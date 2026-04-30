@@ -373,9 +373,10 @@ namespace SqlMigration
         /// @brief Result of a `RewriteChecksums` call.
         struct RewriteChecksumsResult
         {
-            std::vector<ChecksumRewriteEntry> entries;       ///< One entry per rewritten or would-be-rewritten row.
-            std::vector<MigrationTimestamp> unregisteredTimestamps; ///< Applied rows whose migration is no longer registered.
-            bool wasDryRun = false; ///< True if the call ran in dry-run mode.
+            std::vector<ChecksumRewriteEntry> entries; ///< One entry per rewritten or would-be-rewritten row.
+            std::vector<MigrationTimestamp>
+                unregisteredTimestamps; ///< Applied rows whose migration is no longer registered.
+            bool wasDryRun = false;     ///< True if the call ran in dry-run mode.
         };
 
         /// @brief Snapshot of the schema the registered migrations *intend* to produce.
@@ -449,8 +450,7 @@ namespace SqlMigration
         /// @return The folded snapshot. Safe to call without a `MigrationManager`-attached
         ///         data mapper.
         [[nodiscard]] LIGHTWEIGHT_API PlanFoldingResult FoldRegisteredMigrations(
-            SqlQueryFormatter const& formatter,
-            std::optional<MigrationTimestamp> upToInclusive = std::nullopt) const;
+            SqlQueryFormatter const& formatter, std::optional<MigrationTimestamp> upToInclusive = std::nullopt) const;
 
         /// @brief Result of a `HardReset` call.
         struct HardResetResult

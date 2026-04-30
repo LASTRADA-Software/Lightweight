@@ -7,17 +7,17 @@
 
 #pragma once
 
-#include <QtCore/QAbstractListModel>
-#include <QtQmlIntegration/QtQmlIntegration>
-
 #include <cstdint>
 #include <vector>
+
+#include <QtCore/QAbstractListModel>
+#include <QtQmlIntegration/QtQmlIntegration>
 
 namespace Lightweight
 {
 namespace SqlMigration
 {
-class MigrationManager;
+    class MigrationManager;
 }
 } // namespace Lightweight
 

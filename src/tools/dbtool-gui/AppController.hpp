@@ -11,11 +11,11 @@
 #pragma once
 
 #include "BackupRunner.hpp"
+#include "MigrationRunner.hpp"
 #include "Models/MigrationListModel.hpp"
 #include "Models/OdbcDataSourceListModel.hpp"
 #include "Models/ProfileListModel.hpp"
 #include "Models/ReleaseListModel.hpp"
-#include "MigrationRunner.hpp"
 #include "SqlQueryRunner.hpp"
 
 #include <Lightweight/Config/ProfileStore.hpp>
@@ -30,7 +30,7 @@ namespace Lightweight
 {
 namespace Tools
 {
-class PluginLoader;
+    class PluginLoader;
 }
 } // namespace Lightweight
 
@@ -143,26 +143,80 @@ class AppController: public QObject
 
     static AppController* create(QQmlEngine* engine, QJSEngine* scriptEngine);
 
-    [[nodiscard]] ProfileListModel* profiles() noexcept { return &_profiles; }
-    [[nodiscard]] OdbcDataSourceListModel* odbcDataSources() noexcept { return &_odbcDataSources; }
-    [[nodiscard]] MigrationListModel* migrations() noexcept { return &_migrations; }
-    [[nodiscard]] ReleaseListModel* releases() noexcept { return &_releases; }
-    [[nodiscard]] MigrationRunner* runner() noexcept { return &_runner; }
-    [[nodiscard]] BackupRunner* backupRunner() noexcept { return &_backupRunner; }
-    [[nodiscard]] SqlQueryRunner* sqlQueryRunner() noexcept { return &_sqlQueryRunner; }
+    [[nodiscard]] ProfileListModel* profiles() noexcept
+    {
+        return &_profiles;
+    }
+    [[nodiscard]] OdbcDataSourceListModel* odbcDataSources() noexcept
+    {
+        return &_odbcDataSources;
+    }
+    [[nodiscard]] MigrationListModel* migrations() noexcept
+    {
+        return &_migrations;
+    }
+    [[nodiscard]] ReleaseListModel* releases() noexcept
+    {
+        return &_releases;
+    }
+    [[nodiscard]] MigrationRunner* runner() noexcept
+    {
+        return &_runner;
+    }
+    [[nodiscard]] BackupRunner* backupRunner() noexcept
+    {
+        return &_backupRunner;
+    }
+    [[nodiscard]] SqlQueryRunner* sqlQueryRunner() noexcept
+    {
+        return &_sqlQueryRunner;
+    }
 
-    [[nodiscard]] QString const& currentProfile() const noexcept { return _currentProfile; }
-    [[nodiscard]] QString const& connectionStringOverride() const noexcept { return _connectionStringOverride; }
-    [[nodiscard]] QString const& lastError() const noexcept { return _lastError; }
-    [[nodiscard]] QString const& lastWarning() const noexcept { return _lastWarning; }
-    [[nodiscard]] bool connected() const noexcept { return _connected; }
-    [[nodiscard]] QString const& connectionMode() const noexcept { return _connectionMode; }
-    [[nodiscard]] QString const& selectedDsn() const noexcept { return _selectedDsn; }
-    [[nodiscard]] QString const& dsnUser() const noexcept { return _dsnUser; }
-    [[nodiscard]] QString const& dsnPassword() const noexcept { return _dsnPassword; }
-    [[nodiscard]] QString const& pluginsDir() const noexcept { return _pluginsDir; }
+    [[nodiscard]] QString const& currentProfile() const noexcept
+    {
+        return _currentProfile;
+    }
+    [[nodiscard]] QString const& connectionStringOverride() const noexcept
+    {
+        return _connectionStringOverride;
+    }
+    [[nodiscard]] QString const& lastError() const noexcept
+    {
+        return _lastError;
+    }
+    [[nodiscard]] QString const& lastWarning() const noexcept
+    {
+        return _lastWarning;
+    }
+    [[nodiscard]] bool connected() const noexcept
+    {
+        return _connected;
+    }
+    [[nodiscard]] QString const& connectionMode() const noexcept
+    {
+        return _connectionMode;
+    }
+    [[nodiscard]] QString const& selectedDsn() const noexcept
+    {
+        return _selectedDsn;
+    }
+    [[nodiscard]] QString const& dsnUser() const noexcept
+    {
+        return _dsnUser;
+    }
+    [[nodiscard]] QString const& dsnPassword() const noexcept
+    {
+        return _dsnPassword;
+    }
+    [[nodiscard]] QString const& pluginsDir() const noexcept
+    {
+        return _pluginsDir;
+    }
     [[nodiscard]] QString connectionSummary() const;
-    [[nodiscard]] QString const& profilePath() const noexcept { return _profilePath; }
+    [[nodiscard]] QString const& profilePath() const noexcept
+    {
+        return _profilePath;
+    }
     [[nodiscard]] QString profilePathDisplay() const;
 
     [[nodiscard]] int migrationCount() const;
@@ -177,10 +231,16 @@ class AppController: public QObject
     [[nodiscard]] QString currentReleaseLabel() const;
     [[nodiscard]] QString targetReleaseLabel() const;
 
-    [[nodiscard]] QString const& viewMode() const noexcept { return _viewMode; }
+    [[nodiscard]] QString const& viewMode() const noexcept
+    {
+        return _viewMode;
+    }
     Q_INVOKABLE void setViewMode(QString const& mode);
 
-    [[nodiscard]] bool logVisible() const noexcept { return _logVisible; }
+    [[nodiscard]] bool logVisible() const noexcept
+    {
+        return _logVisible;
+    }
     Q_INVOKABLE void setLogVisible(bool visible);
 
     /// Assembles the multi-line diagnostic bundle surfaced on the Simple

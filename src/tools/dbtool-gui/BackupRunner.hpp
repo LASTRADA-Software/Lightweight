@@ -7,19 +7,19 @@
 
 #pragma once
 
+#include <atomic>
+#include <functional>
+
 #include <QtCore/QObject>
 #include <QtCore/QThreadPool>
 #include <QtQmlIntegration/QtQmlIntegration>
-
-#include <atomic>
-#include <functional>
 
 namespace Lightweight
 {
 struct SqlConnectionString;
 namespace SqlBackup
 {
-struct ProgressManager;
+    struct ProgressManager;
 }
 } // namespace Lightweight
 

@@ -7,6 +7,14 @@
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlStatement.hpp>
 
+#include <exception>
+#include <functional>
+#include <utility>
+#include <vector>
+
+#include <sql.h>
+#include <sqlext.h>
+
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMetaObject>
 #include <QtCore/QRunnable>
@@ -14,14 +22,6 @@
 #include <QtCore/QStringList>
 #include <QtCore/QVariant>
 #include <QtCore/QVariantList>
-
-#include <sql.h>
-#include <sqlext.h>
-
-#include <exception>
-#include <functional>
-#include <utility>
-#include <vector>
 
 namespace DbtoolGui
 {
@@ -92,18 +92,14 @@ namespace
     void PostError(SqlQueryRunner* runner, QString const& msg, QString const& state, int native)
     {
         QMetaObject::invokeMethod(
-            runner,
-            [runner, msg, state, native] { emit runner->errorOccurred(msg, state, native); },
-            Qt::QueuedConnection);
+            runner, [runner, msg, state, native] { emit runner->errorOccurred(msg, state, native); }, Qt::QueuedConnection);
     }
 
     void PostFinished(SqlQueryRunner* runner, int rowCount, qint64 elapsedMs, QString const& status)
     {
         QMetaObject::invokeMethod(
             runner,
-            [runner, rowCount, elapsedMs, status] {
-                emit runner->finished(rowCount, elapsedMs, status);
-            },
+            [runner, rowCount, elapsedMs, status] { emit runner->finished(rowCount, elapsedMs, status); },
             Qt::QueuedConnection);
     }
 
@@ -112,13 +108,11 @@ namespace
         // Wrap movable state in a shared_ptr so the lambda is copy-able as
         // `std::function` requires, while still avoiding a deep-copy of the
         // rows vector on the queued-connection trampoline.
-        auto payload = std::make_shared<std::pair<QStringList, std::vector<QVariantList>>>(
-            std::move(headers), std::move(rows));
+        auto payload =
+            std::make_shared<std::pair<QStringList, std::vector<QVariantList>>>(std::move(headers), std::move(rows));
         QMetaObject::invokeMethod(
             model,
-            [model, payload] {
-                model->resetRows(std::move(payload->first), std::move(payload->second));
-            },
+            [model, payload] { model->resetRows(std::move(payload->first), std::move(payload->second)); },
             Qt::QueuedConnection);
     }
 
@@ -174,8 +168,7 @@ void SqlQueryRunner::execute(QString const& sql)
                 // happened.
                 auto const affected = static_cast<int>(cursor.NumRowsAffected());
                 PostResetModel(model, QStringList {}, {});
-                PostFinished(runner, affected, timer.elapsed(),
-                             QStringLiteral("%1 row(s) affected").arg(affected));
+                PostFinished(runner, affected, timer.elapsed(), QStringLiteral("%1 row(s) affected").arg(affected));
                 runner->SetBusy(false);
                 return;
             }
@@ -212,9 +205,8 @@ void SqlQueryRunner::execute(QString const& sql)
             auto const rowCount = static_cast<int>(rows.size());
             auto const elapsedMs = timer.elapsed();
             PostResetModel(model, std::move(headers), std::move(rows));
-            QString const status = truncated
-                ? QStringLiteral("%1 row(s) (truncated) in %2 ms").arg(rowCount).arg(elapsedMs)
-                : QStringLiteral("%1 row(s) in %2 ms").arg(rowCount).arg(elapsedMs);
+            QString const status = truncated ? QStringLiteral("%1 row(s) (truncated) in %2 ms").arg(rowCount).arg(elapsedMs)
+                                             : QStringLiteral("%1 row(s) in %2 ms").arg(rowCount).arg(elapsedMs);
             PostFinished(runner, rowCount, elapsedMs, status);
         }
         catch (Lightweight::SqlException const& ex)

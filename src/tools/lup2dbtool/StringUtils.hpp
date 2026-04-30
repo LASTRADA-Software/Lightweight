@@ -59,13 +59,11 @@ inline bool IsSqlReservedWord(std::string_view token)
 {
     auto const upper = ToUpper(token);
     static constexpr std::string_view kKeywords[] = {
-        "AND",   "OR",     "NOT",    "NULL",   "IS",     "IN",        "BETWEEN",
-        "LIKE",  "EXISTS", "ANY",    "ALL",    "TRUE",   "FALSE",     "CASE",
-        "WHEN",  "THEN",   "ELSE",   "END",    "AS",     "DISTINCT",  "ASC",
-        "DESC",  "FROM",   "WHERE",  "JOIN",   "ON",     "USING",     "GROUP",
-        "BY",    "ORDER",  "HAVING", "LIMIT",  "OFFSET", "SELECT",    "CAST",
-        "CONVERT","COALESCE","NULLIF","DEFAULT","SOME",  "INTO",      "VALUES",
-        "INNER", "LEFT",   "RIGHT",  "OUTER",  "FULL",   "CROSS",     "UNION",
+        "AND",    "OR",     "NOT",    "NULL",   "IS",    "IN",      "BETWEEN",  "LIKE",   "EXISTS",  "ANY",
+        "ALL",    "TRUE",   "FALSE",  "CASE",   "WHEN",  "THEN",    "ELSE",     "END",    "AS",      "DISTINCT",
+        "ASC",    "DESC",   "FROM",   "WHERE",  "JOIN",  "ON",      "USING",    "GROUP",  "BY",      "ORDER",
+        "HAVING", "LIMIT",  "OFFSET", "SELECT", "CAST",  "CONVERT", "COALESCE", "NULLIF", "DEFAULT", "SOME",
+        "INTO",   "VALUES", "INNER",  "LEFT",   "RIGHT", "OUTER",   "FULL",     "CROSS",  "UNION",
     };
     return std::ranges::any_of(kKeywords, [&](auto const& kw) { return kw == upper; });
 }

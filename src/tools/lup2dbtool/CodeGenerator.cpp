@@ -200,9 +200,8 @@ void CodeGenerator::WriteMigrationHeaderComment(ParsedMigration const& migration
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-std::vector<std::string> CodeGenerator::GenerateStatementBlocks(
-    ParsedMigration const& migration,
-    std::vector<CodeGeneratorDiagnostic>& diagnostics) const
+std::vector<std::string> CodeGenerator::GenerateStatementBlocks(ParsedMigration const& migration,
+                                                                std::vector<CodeGeneratorDiagnostic>& diagnostics) const
 {
     std::vector<std::string> blocks;
     blocks.reserve(migration.statements.size());
@@ -370,8 +369,8 @@ bool CodeGenerator::WriteCreateTable(CreateTableStmt const& stmt,
     // Note: Foreign keys in CREATE TABLE are handled via ForeignKey method on SqlCreateTableQueryBuilder
     for (auto const& fk: stmt.foreignKeys)
     {
-        out << indent << "    .ForeignKey({\"" << Ident(fk.columnName) << "\"}, \"" << Ident(fk.referencedTable)
-            << "\", {\"" << Ident(fk.referencedColumn) << "\"})\n";
+        out << indent << "    .ForeignKey({\"" << Ident(fk.columnName) << "\"}, \"" << Ident(fk.referencedTable) << "\", {\""
+            << Ident(fk.referencedColumn) << "\"})\n";
     }
 
     out << indent << "    ;\n";
@@ -406,8 +405,7 @@ bool CodeGenerator::WriteAlterTableAddColumn(AlterTableAddColumnStmt const& stmt
     // supported backends.
     if (stmt.column.isNullable)
     {
-        out << indent << "    .AddNotRequiredColumnIfNotExists(\"" << Ident(stmt.column.name) << "\", " << cppType
-            << ");\n";
+        out << indent << "    .AddNotRequiredColumnIfNotExists(\"" << Ident(stmt.column.name) << "\", " << cppType << ");\n";
     }
     else
     {
@@ -464,8 +462,8 @@ void CodeGenerator::WriteCreateIndex(CreateIndexStmt const& stmt, std::ostream& 
     // reuses the same name (e.g. `fk_beton_zusatzstoff_nr`) across multiple tables.
     // SQLite and PostgreSQL however treat index names as a database-global namespace,
     // so we deterministically uniquify the emitted name by prefixing the table name.
-    out << indent << "plan." << methodName << "(\"" << Ident(stmt.tableName) << "_" << Ident(stmt.indexName)
-        << "\", \"" << Ident(stmt.tableName) << "\", {";
+    out << indent << "plan." << methodName << "(\"" << Ident(stmt.tableName) << "_" << Ident(stmt.indexName) << "\", \""
+        << Ident(stmt.tableName) << "\", {";
     for (size_t i = 0; i < stmt.columns.size(); ++i)
     {
         if (i > 0)
@@ -510,15 +508,13 @@ void CodeGenerator::WriteUpdate(UpdateStmt const& stmt, std::ostream& out, std::
         else
         {
             auto canonical = CanonicalizeIdentifiersInSql(val);
-            out << indent << "    .SetExpression(\"" << Ident(col) << "\", \""
-                << EscapeCppString(canonical) << "\")\n";
+            out << indent << "    .SetExpression(\"" << Ident(col) << "\", \"" << EscapeCppString(canonical) << "\")\n";
         }
     }
 
     if (!stmt.whereExpression.empty())
     {
-        out << indent << "    .WhereExpression(\"" << EscapeCppString(stmt.whereExpression)
-            << "\");\n";
+        out << indent << "    .WhereExpression(\"" << EscapeCppString(stmt.whereExpression) << "\");\n";
     }
     else if (!stmt.whereColumn.empty())
     {
@@ -553,9 +549,7 @@ void CodeGenerator::WriteDelete(DeleteStmt const& stmt, std::ostream& out, std::
 
     if (!stmt.whereExpression.empty())
     {
-        out << "\n"
-            << indent << "    .WhereExpression(\"" << EscapeCppString(stmt.whereExpression)
-            << "\");\n";
+        out << "\n" << indent << "    .WhereExpression(\"" << EscapeCppString(stmt.whereExpression) << "\");\n";
         return;
     }
 
@@ -563,13 +557,11 @@ void CodeGenerator::WriteDelete(DeleteStmt const& stmt, std::ostream& out, std::
     {
         if (stmt.whereOp == "IS NULL")
         {
-            out << "\n"
-                << indent << "    .Where(\"" << Ident(stmt.whereColumn) << "\", \"IS\", SqlNullValue);\n";
+            out << "\n" << indent << "    .Where(\"" << Ident(stmt.whereColumn) << "\", \"IS\", SqlNullValue);\n";
         }
         else if (stmt.whereOp == "IS NOT NULL")
         {
-            out << "\n"
-                << indent << "    .Where(\"" << Ident(stmt.whereColumn) << "\", \"IS NOT\", SqlNullValue);\n";
+            out << "\n" << indent << "    .Where(\"" << Ident(stmt.whereColumn) << "\", \"IS NOT\", SqlNullValue);\n";
         }
         else
         {
@@ -612,11 +604,8 @@ namespace
         }
     }
 
-    std::optional<std::string> MapParameterizedType(std::string_view basetype,
-                                                    std::string const& param1,
-                                                    std::string const& param2,
-                                                    bool forceUnicode,
-                                                    int varcharScale)
+    std::optional<std::string> MapParameterizedType(
+        std::string_view basetype, std::string const& param1, std::string const& param2, bool forceUnicode, int varcharScale)
     {
         auto upper = ToUpper(basetype);
         auto const scaledChar = ScaleSize(param1, varcharScale);
@@ -682,8 +671,7 @@ std::expected<std::string, std::monostate> CodeGenerator::MapSqlType(std::string
 
     if (std::regex_match(normalized, match, typeWithParam))
     {
-        if (auto result =
-                MapParameterizedType(match[1].str(), match[2].str(), match[3].str(), forceUnicode, varcharScale))
+        if (auto result = MapParameterizedType(match[1].str(), match[2].str(), match[3].str(), forceUnicode, varcharScale))
             return *result;
     }
 

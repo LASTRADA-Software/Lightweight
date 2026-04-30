@@ -8,6 +8,9 @@
 
 #include "ThemeController.hpp"
 
+#include <cstdio>
+#include <cstdlib>
+
 #include <QtCore/QCommandLineOption>
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QDebug>
@@ -17,9 +20,6 @@
 #include <QtGui/QStyleHints>
 #include <QtQml/QQmlApplicationEngine>
 #include <QtQuickControls2/QQuickStyle>
-
-#include <cstdio>
-#include <cstdlib>
 
 namespace
 {
@@ -67,9 +67,7 @@ constexpr auto kKeyTheme = "ui/theme";
 /// provided or (2) the persisted setting, falling back to `"system"`. When a
 /// CLI override is given it is also written back to settings so the next
 /// launch without flags keeps the user's last choice.
-QString ResolveThemeMode(QCommandLineParser const& parser,
-                         QCommandLineOption const& themeOpt,
-                         QSettings& settings)
+QString ResolveThemeMode(QCommandLineParser const& parser, QCommandLineOption const& themeOpt, QSettings& settings)
 {
     if (parser.isSet(themeOpt))
     {
@@ -137,10 +135,9 @@ int main(int argc, char* argv[])
     // is silently ignored by the KDE Plasma platform theme plugin.
     auto const themeModeEnum = DbtoolGui::ThemeController::ModeFromString(themeMode);
     DbtoolGui::ThemeController::SeedInitialMode(themeModeEnum);
-    auto const effectiveDark =
-        themeModeEnum == DbtoolGui::ThemeController::Mode::Dark
-        || (themeModeEnum == DbtoolGui::ThemeController::Mode::System
-            && QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
+    auto const effectiveDark = themeModeEnum == DbtoolGui::ThemeController::Mode::Dark
+                               || (themeModeEnum == DbtoolGui::ThemeController::Mode::System
+                                   && QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
     std::fprintf(stderr,
                  "[INFO] Theme: requested=%s, effective=%s\n",
                  themeMode.toLocal8Bit().constData(),
@@ -159,8 +156,7 @@ int main(int argc, char* argv[])
         &QQmlApplicationEngine::objectCreationFailed,
         &app,
         [](QUrl const& url) {
-            std::fprintf(stderr, "[ERROR] Failed to create QML root object: %s\n",
-                         url.toString().toLocal8Bit().constData());
+            std::fprintf(stderr, "[ERROR] Failed to create QML root object: %s\n", url.toString().toLocal8Bit().constData());
             std::fflush(stderr);
             QCoreApplication::exit(-1);
         },

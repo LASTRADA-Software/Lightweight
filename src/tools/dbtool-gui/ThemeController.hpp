@@ -63,7 +63,10 @@ class ThemeController: public QObject
     /// Inverse of `ModeFromString` — returns the canonical string form.
     static QString ModeToString(Mode mode);
 
-    [[nodiscard]] Mode mode() const noexcept { return _mode; }
+    [[nodiscard]] Mode mode() const noexcept
+    {
+        return _mode;
+    }
     void setMode(Mode mode);
 
     /// Effective boolean the UI should paint from. In `System` mode this

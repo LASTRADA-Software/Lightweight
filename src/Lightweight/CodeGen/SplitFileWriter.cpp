@@ -112,9 +112,7 @@ WriteResult EmitChunked(std::filesystem::path const& outputPath,
     return result;
 }
 
-void EmitPluginCmake(std::filesystem::path const& outputDir,
-                     std::string_view pluginName,
-                     std::string_view sourceGlob)
+void EmitPluginCmake(std::filesystem::path const& outputDir, std::string_view pluginName, std::string_view sourceGlob)
 {
     std::error_code ec;
     std::filesystem::create_directories(outputDir, ec);

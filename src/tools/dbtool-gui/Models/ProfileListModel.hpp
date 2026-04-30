@@ -9,10 +9,10 @@
 
 #include <Lightweight/Config/ProfileStore.hpp>
 
+#include <vector>
+
 #include <QtCore/QAbstractListModel>
 #include <QtQmlIntegration/QtQmlIntegration>
-
-#include <vector>
 
 namespace DbtoolGui
 {

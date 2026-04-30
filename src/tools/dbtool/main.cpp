@@ -922,10 +922,7 @@ int Status(MigrationManager& manager)
 
     if (status.unknownAppliedCount > 0)
     {
-        std::println("  {:<{}}{} (applied but not registered)",
-                     "Unknown applied:",
-                     labelWidth,
-                     status.unknownAppliedCount);
+        std::println("  {:<{}}{} (applied but not registered)", "Unknown applied:", labelWidth, status.unknownAppliedCount);
     }
 
     if (auto const& releases = manager.GetAllReleases(); !releases.empty())
@@ -937,8 +934,7 @@ int Status(MigrationManager& manager)
         }
         else
         {
-            auto const* const label =
-                (latestApplied.applied == latestApplied.total) ? "applied" : "partially applied";
+            auto const* const label = (latestApplied.applied == latestApplied.total) ? "applied" : "partially applied";
             std::println("  {:<{}}{} ({}, {}/{} migrations)",
                          "Latest applied release:",
                          labelWidth,
@@ -986,13 +982,8 @@ int Status(MigrationManager& manager)
 /// twice (once with `dryRun=true`, once with `dryRun=false`) so the manager-level
 /// API doesn't have to memoize results across calls.
 template <typename Result>
-int RunAdminCommand(std::string_view name,
-                     bool dryRun,
-                     bool yes,
-                     auto&& runFn,
-                     auto&& isEmptyFn,
-                     auto&& printDiffFn,
-                     auto&& printSummaryFn)
+int RunAdminCommand(
+    std::string_view name, bool dryRun, bool yes, auto&& runFn, auto&& isEmptyFn, auto&& printDiffFn, auto&& printSummaryFn)
 {
     auto const preview = runFn(/*dryRun=*/true);
 
@@ -1094,7 +1085,8 @@ int HardReset(MigrationManager& manager, bool dryRun, bool yes)
             }
         },
         [](auto const& r) {
-            std::println("Dropped {} table(s){}.", r.droppedTables.size(),
+            std::println("Dropped {} table(s){}.",
+                         r.droppedTables.size(),
                          r.schemaMigrationsDropped ? " plus schema_migrations" : "");
         });
 }
@@ -1318,8 +1310,7 @@ int MigrateToRelease(MigrationManager& manager, std::string_view argument, bool 
 
     // Forward-only: refuse to silently revert if the user is already past the target.
     auto const applied = manager.GetAppliedMigrationIds();
-    auto const highestApplied = std::ranges::max_element(
-        applied, {}, [](MigrationTimestamp ts) { return ts.value; });
+    auto const highestApplied = std::ranges::max_element(applied, {}, [](MigrationTimestamp ts) { return ts.value; });
     if (highestApplied != applied.end() && highestApplied->value >= release->highestTimestamp.value)
     {
         std::println("Database is already at or past release '{}' (highest applied: {}, release boundary: {}).",
@@ -1335,8 +1326,8 @@ int MigrateToRelease(MigrationManager& manager, std::string_view argument, bool 
         std::println("-- Dry run: SQL that would be executed up to release '{}' (timestamp {})\n",
                      release->version,
                      release->highestTimestamp.value);
-        auto statements = manager.PreviewPendingMigrationsUpTo(
-            release->highestTimestamp, [](MigrationBase const& m, size_t i, size_t n) {
+        auto statements =
+            manager.PreviewPendingMigrationsUpTo(release->highestTimestamp, [](MigrationBase const& m, size_t i, size_t n) {
                 std::println("-- [{}/{}] Migration: {} - {}", i + 1, n, m.GetTimestamp().value, m.GetTitle());
             });
 
@@ -1986,7 +1977,8 @@ int Restore(Options const& options)
     {
         source = argument;
     }
-    while (!source.empty() && (source.back() == '\n' || source.back() == '\r' || source.back() == ' ' || source.back() == '\t'))
+    while (!source.empty()
+           && (source.back() == '\n' || source.back() == '\r' || source.back() == ' ' || source.back() == '\t'))
         source.pop_back();
     return source;
 }

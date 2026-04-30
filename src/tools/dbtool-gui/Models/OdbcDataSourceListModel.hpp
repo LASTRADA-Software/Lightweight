@@ -10,10 +10,10 @@
 
 #include <Lightweight/Odbc/DataSourceEnumerator.hpp>
 
+#include <vector>
+
 #include <QtCore/QAbstractListModel>
 #include <QtQmlIntegration/QtQmlIntegration>
-
-#include <vector>
 
 namespace DbtoolGui
 {

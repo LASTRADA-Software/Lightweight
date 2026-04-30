@@ -89,9 +89,8 @@ class CodeGenerator
     /// for inclusion inside a function body (i.e. 4-space indent). Use together with
     /// `GenerateMigrationHeaderComment` and the split-emission helpers in `main.cpp` when a
     /// migration is large enough to warrant being spread across multiple `.cpp` TUs.
-    [[nodiscard]] std::vector<std::string> GenerateStatementBlocks(
-        ParsedMigration const& migration,
-        std::vector<CodeGeneratorDiagnostic>& diagnostics) const;
+    [[nodiscard]] std::vector<std::string> GenerateStatementBlocks(ParsedMigration const& migration,
+                                                                   std::vector<CodeGeneratorDiagnostic>& diagnostics) const;
 
     /// @brief Writes the per-migration banner comment (separator + source-file + versions).
     /// Used by both the single-file and split-file emitters for consistent output.
@@ -132,8 +131,9 @@ class CodeGenerator
     /// When `forceUnicode` is true, byte-char types are widened: `CHAR(n)` → `NChar(n)`,
     /// `VARCHAR(n)` → `NVarchar(n)`, `LONG VARCHAR` → `NText`-equivalent (still `Text()`
     /// in the Lightweight DSL — the dialect formatter handles the MSSQL `NTEXT` mapping).
-    [[nodiscard]] static std::expected<std::string, std::monostate> MapSqlType(
-        std::string_view sqlType, bool forceUnicode = true, int varcharScale = 1);
+    [[nodiscard]] static std::expected<std::string, std::monostate> MapSqlType(std::string_view sqlType,
+                                                                               bool forceUnicode = true,
+                                                                               int varcharScale = 1);
 
     /// @brief Writes a CMakeLists.txt for a self-contained migration plugin.
     ///

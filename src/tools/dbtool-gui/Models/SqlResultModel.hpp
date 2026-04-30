@@ -9,12 +9,12 @@
 
 #pragma once
 
+#include <vector>
+
 #include <QtCore/QAbstractTableModel>
 #include <QtCore/QStringList>
 #include <QtCore/QVariantList>
 #include <QtQmlIntegration/QtQmlIntegration>
-
-#include <vector>
 
 namespace DbtoolGui
 {

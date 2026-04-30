@@ -121,10 +121,14 @@ EXEC sp_executesql @sql;)",
     /// encoder always makes forward progress.
     static constexpr std::size_t Utf8SequenceLength(unsigned char c) noexcept
     {
-        if (c < 0x80) return 1;
-        if (c < 0xC0) return 1; // stray continuation; treat as 1 to advance
-        if (c < 0xE0) return 2;
-        if (c < 0xF0) return 3;
+        if (c < 0x80)
+            return 1;
+        if (c < 0xC0)
+            return 1; // stray continuation; treat as 1 to advance
+        if (c < 0xE0)
+            return 2;
+        if (c < 0xF0)
+            return 3;
         return 4;
     }
 
@@ -140,10 +144,18 @@ EXEC sp_executesql @sql;)",
         auto const lead = static_cast<unsigned char>(s[i]);
         switch (len)
         {
-            case 2: cp = lead & 0x1F; break;
-            case 3: cp = lead & 0x0F; break;
-            case 4: cp = lead & 0x07; break;
-            default: cp = lead; break; // unreachable given the early-return above
+            case 2:
+                cp = lead & 0x1F;
+                break;
+            case 3:
+                cp = lead & 0x0F;
+                break;
+            case 4:
+                cp = lead & 0x07;
+                break;
+            default:
+                cp = lead;
+                break; // unreachable given the early-return above
         }
         for (std::size_t k = 1; k < len; ++k)
             cp = (cp << 6) | (static_cast<unsigned char>(s[i + k]) & 0x3F);
@@ -219,7 +231,6 @@ EXEC sp_executesql @sql;)",
     }
 
   public:
-
     [[nodiscard]] std::string QualifiedTableName(std::string_view schema, std::string_view table) const override
     {
         if (schema.empty())

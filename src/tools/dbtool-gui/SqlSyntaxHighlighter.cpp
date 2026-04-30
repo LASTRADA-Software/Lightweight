@@ -17,15 +17,13 @@ namespace
     /// (e.g. SQL Server's `MERGE` extensions) are intentionally omitted to
     /// keep the highlighter dialect-neutral.
     constexpr std::array<char const*, 64> kKeywords = {
-        "SELECT", "FROM", "WHERE", "JOIN", "LEFT", "RIGHT", "INNER", "OUTER",
-        "FULL", "CROSS", "ON", "AS", "AND", "OR", "NOT", "NULL",
-        "IS", "IN", "LIKE", "BETWEEN", "EXISTS", "ALL", "ANY", "SOME",
-        "GROUP", "BY", "ORDER", "HAVING", "LIMIT", "OFFSET", "DISTINCT", "UNION",
-        "INSERT", "INTO", "VALUES", "UPDATE", "SET", "DELETE",
-        "CREATE", "TABLE", "INDEX", "VIEW", "DROP", "ALTER", "ADD", "COLUMN",
-        "PRIMARY", "KEY", "FOREIGN", "REFERENCES", "UNIQUE", "DEFAULT",
-        "CASCADE", "RESTRICT", "BEGIN", "COMMIT", "ROLLBACK", "TRANSACTION",
-        "CASE", "WHEN", "THEN", "ELSE", "END", "WITH",
+        "SELECT",   "FROM",    "WHERE",   "JOIN",     "LEFT",   "RIGHT",  "INNER",    "OUTER",       "FULL",    "CROSS",
+        "ON",       "AS",      "AND",     "OR",       "NOT",    "NULL",   "IS",       "IN",          "LIKE",    "BETWEEN",
+        "EXISTS",   "ALL",     "ANY",     "SOME",     "GROUP",  "BY",     "ORDER",    "HAVING",      "LIMIT",   "OFFSET",
+        "DISTINCT", "UNION",   "INSERT",  "INTO",     "VALUES", "UPDATE", "SET",      "DELETE",      "CREATE",  "TABLE",
+        "INDEX",    "VIEW",    "DROP",    "ALTER",    "ADD",    "COLUMN", "PRIMARY",  "KEY",         "FOREIGN", "REFERENCES",
+        "UNIQUE",   "DEFAULT", "CASCADE", "RESTRICT", "BEGIN",  "COMMIT", "ROLLBACK", "TRANSACTION", "CASE",    "WHEN",
+        "THEN",     "ELSE",    "END",     "WITH",
     };
 
 } // namespace
@@ -94,9 +92,7 @@ void SqlSyntaxHighlighter::highlightBlock(QString const& text)
         while (it.hasNext())
         {
             auto const match = it.next();
-            setFormat(static_cast<int>(match.capturedStart()),
-                      static_cast<int>(match.capturedLength()),
-                      rule.format);
+            setFormat(static_cast<int>(match.capturedStart()), static_cast<int>(match.capturedLength()), rule.format);
         }
     }
 

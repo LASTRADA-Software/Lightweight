@@ -15,12 +15,12 @@
 
 #include "Models/SqlResultModel.hpp"
 
+#include <atomic>
+
 #include <QtCore/QObject>
 #include <QtCore/QString>
 #include <QtCore/QThreadPool>
 #include <QtQmlIntegration/QtQmlIntegration>
-
-#include <atomic>
 
 namespace DbtoolGui
 {
@@ -39,8 +39,14 @@ class SqlQueryRunner: public QObject
 
     explicit SqlQueryRunner(QObject* parent = nullptr);
 
-    [[nodiscard]] bool busy() const noexcept { return _busy.load(std::memory_order_acquire); }
-    [[nodiscard]] SqlResultModel* model() noexcept { return &_model; }
+    [[nodiscard]] bool busy() const noexcept
+    {
+        return _busy.load(std::memory_order_acquire);
+    }
+    [[nodiscard]] SqlResultModel* model() noexcept
+    {
+        return &_model;
+    }
 
     /// Enqueues an `ExecuteDirect` of `sql` on the worker thread. No-op if a
     /// query is already in flight (Execute is gated by `busy` in the UI as

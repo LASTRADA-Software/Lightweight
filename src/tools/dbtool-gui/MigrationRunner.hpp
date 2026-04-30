@@ -13,13 +13,13 @@
 
 #pragma once
 
+#include <atomic>
+#include <functional>
+
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
 #include <QtCore/QThreadPool>
 #include <QtQmlIntegration/QtQmlIntegration>
-
-#include <atomic>
-#include <functional>
 
 // Forward declaration keeps the Lightweight/SqlMigration.hpp chain out of
 // this moc-processed header.
@@ -27,7 +27,7 @@ namespace Lightweight
 {
 namespace SqlMigration
 {
-class MigrationManager;
+    class MigrationManager;
 }
 } // namespace Lightweight
 

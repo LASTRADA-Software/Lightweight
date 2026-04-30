@@ -55,10 +55,10 @@ struct WriteResult
 /// @return `WriteResult` listing the paths actually written.
 /// @throws `std::runtime_error` if any output file cannot be opened.
 [[nodiscard]] LIGHTWEIGHT_API WriteResult EmitChunked(std::filesystem::path const& outputPath,
-                                                     std::vector<CodeBlock> const& blocks,
-                                                     std::size_t maxLinesPerFile,
-                                                     std::string_view fileHeader = {},
-                                                     std::string_view fileFooter = {});
+                                                      std::vector<CodeBlock> const& blocks,
+                                                      std::size_t maxLinesPerFile,
+                                                      std::string_view fileHeader = {},
+                                                      std::string_view fileFooter = {});
 
 /// @brief Writes a `CMakeLists.txt` and a `Plugin.cpp` next to the generated
 /// migration sources so the output directory becomes a drop-in plugin.

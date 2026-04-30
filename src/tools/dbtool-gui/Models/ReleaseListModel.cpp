@@ -4,11 +4,11 @@
 
 #include <Lightweight/SqlMigration.hpp>
 
-#include <QtCore/QByteArray>
-
 #include <algorithm>
 #include <ranges>
 #include <unordered_set>
+
+#include <QtCore/QByteArray>
 
 namespace DbtoolGui
 {
@@ -90,7 +90,9 @@ void ReleaseListModel::Refresh(Lightweight::SqlMigration::MigrationManager const
     for (auto const& release: releases)
     {
         auto const migrations = manager.GetMigrationsForRelease(release.version);
-        auto const isApplied = [&](auto const* m) { return appliedSet.contains(m->GetTimestamp().value); };
+        auto const isApplied = [&](auto const* m) {
+            return appliedSet.contains(m->GetTimestamp().value);
+        };
 
         QString status;
         if (migrations.empty())
@@ -115,9 +117,8 @@ void ReleaseListModel::Refresh(Lightweight::SqlMigration::MigrationManager const
     // oldest release at the top of the sidebar — the opposite of what a
     // deploy-focused UI wants. Sorting by `highestTimestamp` keeps the
     // "whatever is closest to HEAD" release where the eye lands first.
-    std::ranges::sort(staged, [](ReleaseRow const& a, ReleaseRow const& b) {
-        return a.highestTimestamp > b.highestTimestamp;
-    });
+    std::ranges::sort(staged,
+                      [](ReleaseRow const& a, ReleaseRow const& b) { return a.highestTimestamp > b.highestTimestamp; });
 
     beginResetModel();
     _rows = std::move(staged);

@@ -2,10 +2,10 @@
 
 #include "SqlResultModel.hpp"
 
+#include <utility>
+
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
-
-#include <utility>
 
 namespace DbtoolGui
 {

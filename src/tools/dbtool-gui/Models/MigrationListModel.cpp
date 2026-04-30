@@ -4,11 +4,11 @@
 
 #include <Lightweight/SqlMigration.hpp>
 
-#include <QtCore/QByteArray>
-
 #include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
+
+#include <QtCore/QByteArray>
 
 namespace DbtoolGui
 {
@@ -16,28 +16,27 @@ namespace DbtoolGui
 namespace
 {
 
-/// Returns the version of the release whose range contains `timestamp`, or
-/// an empty string if `timestamp` is beyond every registered release (the
-/// "unreleased" bucket from the mockup).
-QString ReleaseVersionFor(uint64_t timestamp,
-                          std::vector<Lightweight::SqlMigration::MigrationRelease> const& releases)
-{
-    // Releases are stored in declaration order; for a given migration we pick
-    // the release with the smallest `highestTimestamp` that is still `>=` the
-    // migration timestamp. This mirrors `MigrationManager::GetMigrationsForRelease`
-    // semantics without having to call back into the manager per-row.
-    QString best;
-    uint64_t bestTs = UINT64_MAX;
-    for (auto const& release: releases)
+    /// Returns the version of the release whose range contains `timestamp`, or
+    /// an empty string if `timestamp` is beyond every registered release (the
+    /// "unreleased" bucket from the mockup).
+    QString ReleaseVersionFor(uint64_t timestamp, std::vector<Lightweight::SqlMigration::MigrationRelease> const& releases)
     {
-        if (release.highestTimestamp.value >= timestamp && release.highestTimestamp.value < bestTs)
+        // Releases are stored in declaration order; for a given migration we pick
+        // the release with the smallest `highestTimestamp` that is still `>=` the
+        // migration timestamp. This mirrors `MigrationManager::GetMigrationsForRelease`
+        // semantics without having to call back into the manager per-row.
+        QString best;
+        uint64_t bestTs = UINT64_MAX;
+        for (auto const& release: releases)
         {
-            best = QString::fromStdString(release.version);
-            bestTs = release.highestTimestamp.value;
+            if (release.highestTimestamp.value >= timestamp && release.highestTimestamp.value < bestTs)
+            {
+                best = QString::fromStdString(release.version);
+                bestTs = release.highestTimestamp.value;
+            }
         }
+        return best;
     }
-    return best;
-}
 
 } // namespace
 
@@ -191,38 +190,35 @@ bool MigrationListModel::SetRowStatusByTimestamp(uint64_t timestamp, QString con
 namespace
 {
 
-/// Shared body for `RefreshPluginsOnly` / `RefreshAsUnknown`: enumerates the
-/// plugin-declared migrations and stages a row per entry with the caller-
-/// supplied blanket `status`. Neither mode consults the DB — they differ
-/// only in the label the UI shows while that is the case.
-std::vector<MigrationRow> StagePluginRowsWithStatus(
-    Lightweight::SqlMigration::MigrationManager const& manager,
-    QString const& status)
-{
-    using namespace Lightweight::SqlMigration;
-
-    std::vector<MigrationRow> staged;
-    auto const& registered = manager.GetAllMigrations();
-    auto const& releases = manager.GetAllReleases();
-    staged.reserve(registered.size());
-    for (auto const* migration: registered)
+    /// Shared body for `RefreshPluginsOnly` / `RefreshAsUnknown`: enumerates the
+    /// plugin-declared migrations and stages a row per entry with the caller-
+    /// supplied blanket `status`. Neither mode consults the DB — they differ
+    /// only in the label the UI shows while that is the case.
+    std::vector<MigrationRow> StagePluginRowsWithStatus(Lightweight::SqlMigration::MigrationManager const& manager,
+                                                        QString const& status)
     {
-        auto const ts = migration->GetTimestamp().value;
-        staged.push_back(MigrationRow {
-            .timestamp = ts,
-            .title = QString::fromUtf8(migration->GetTitle().data(),
-                                       static_cast<qsizetype>(migration->GetTitle().size())),
-            .status = status,
-            .releaseVersion = ReleaseVersionFor(ts, releases),
-            .checksumMismatch = false,
-            .selected = false,
-        });
+        using namespace Lightweight::SqlMigration;
+
+        std::vector<MigrationRow> staged;
+        auto const& registered = manager.GetAllMigrations();
+        auto const& releases = manager.GetAllReleases();
+        staged.reserve(registered.size());
+        for (auto const* migration: registered)
+        {
+            auto const ts = migration->GetTimestamp().value;
+            staged.push_back(MigrationRow {
+                .timestamp = ts,
+                .title =
+                    QString::fromUtf8(migration->GetTitle().data(), static_cast<qsizetype>(migration->GetTitle().size())),
+                .status = status,
+                .releaseVersion = ReleaseVersionFor(ts, releases),
+                .checksumMismatch = false,
+                .selected = false,
+            });
+        }
+        std::ranges::sort(staged, [](MigrationRow const& a, MigrationRow const& b) { return a.timestamp > b.timestamp; });
+        return staged;
     }
-    std::ranges::sort(staged, [](MigrationRow const& a, MigrationRow const& b) {
-        return a.timestamp > b.timestamp;
-    });
-    return staged;
-}
 
 } // namespace
 
@@ -284,8 +280,7 @@ void MigrationListModel::Refresh(Lightweight::SqlMigration::MigrationManager con
         registeredSet.insert(ts);
         MigrationRow row {
             .timestamp = ts,
-            .title = QString::fromUtf8(migration->GetTitle().data(),
-                                       static_cast<qsizetype>(migration->GetTitle().size())),
+            .title = QString::fromUtf8(migration->GetTitle().data(), static_cast<qsizetype>(migration->GetTitle().size())),
             .status = appliedSet.contains(ts) ? QStringLiteral("applied") : QStringLiteral("pending"),
             .releaseVersion = ReleaseVersionFor(ts, releases),
             .checksumMismatch = mismatchSet.contains(ts),
@@ -308,9 +303,7 @@ void MigrationListModel::Refresh(Lightweight::SqlMigration::MigrationManager con
         });
     }
 
-    std::ranges::sort(staged, [](MigrationRow const& a, MigrationRow const& b) {
-        return a.timestamp > b.timestamp;
-    });
+    std::ranges::sort(staged, [](MigrationRow const& a, MigrationRow const& b) { return a.timestamp > b.timestamp; });
 
     beginResetModel();
     _rows = std::move(staged);

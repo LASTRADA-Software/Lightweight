@@ -578,8 +578,7 @@ namespace
 
     /// Parse `col1 = expr1, col2 = expr2, …` into ordered (col, value) pairs.
     /// Used by both UPDATE branches; factored out for readability.
-    void ParseSetAssignments(std::string_view setStr,
-                             std::vector<std::pair<std::string, std::string>>& out)
+    void ParseSetAssignments(std::string_view setStr, std::vector<std::pair<std::string, std::string>>& out)
     {
         auto setPairs = SplitByComma(std::string(setStr));
         for (auto const& pair: setPairs)
@@ -587,8 +586,7 @@ namespace
             auto eqPos = pair.find('=');
             if (eqPos == std::string::npos)
                 continue;
-            out.emplace_back(RemoveQuotes(Trim(pair.substr(0, eqPos))),
-                             Trim(pair.substr(eqPos + 1)));
+            out.emplace_back(RemoveQuotes(Trim(pair.substr(0, eqPos))), Trim(pair.substr(eqPos + 1)));
         }
     }
 
@@ -618,13 +616,11 @@ namespace
         if (whereStart == std::string::npos)
             return std::nullopt;
 
-        std::regex setHeadPattern(R"(UPDATE\s+["\[\]]?(\w+)["\]\]]?\s+SET\s+)",
-                                  std::regex::icase);
+        std::regex setHeadPattern(R"(UPDATE\s+["\[\]]?(\w+)["\]\]]?\s+SET\s+)", std::regex::icase);
         std::smatch setHeadMatch;
         if (!std::regex_search(sqlStr, setHeadMatch, setHeadPattern))
             return std::nullopt;
-        auto const setStart =
-            static_cast<size_t>(setHeadMatch.position(0) + setHeadMatch.length(0));
+        auto const setStart = static_cast<size_t>(setHeadMatch.position(0) + setHeadMatch.length(0));
         if (whereStart <= setStart)
             return std::nullopt;
 
@@ -648,8 +644,7 @@ namespace
         if (FindUnquotedWhereKeyword(sqlStr) != std::string::npos)
             return std::nullopt;
 
-        std::regex updateNoWherePattern(R"(UPDATE\s+["\[\]]?(\w+)["\]\]]?\s+SET\s+(.+))",
-                                        std::regex::icase);
+        std::regex updateNoWherePattern(R"(UPDATE\s+["\[\]]?(\w+)["\]\]]?\s+SET\s+(.+))", std::regex::icase);
         std::smatch match;
         if (!std::regex_search(sqlStr, match, updateNoWherePattern))
             return std::nullopt;
@@ -679,9 +674,8 @@ namespace
             }
             if (c == '(')
                 return true;
-            if (MatchesKeywordAt(body, i, "and") || MatchesKeywordAt(body, i, "or")
-                || MatchesKeywordAt(body, i, "not") || MatchesKeywordAt(body, i, "exists")
-                || MatchesKeywordAt(body, i, "in"))
+            if (MatchesKeywordAt(body, i, "and") || MatchesKeywordAt(body, i, "or") || MatchesKeywordAt(body, i, "not")
+                || MatchesKeywordAt(body, i, "exists") || MatchesKeywordAt(body, i, "in"))
                 return true;
         }
         return false;
@@ -791,9 +785,8 @@ namespace
     /// DELETE … WHERE col IS [NOT] NULL
     std::optional<DeleteStmt> TryParseDeleteIsNull(std::string const& sqlStr)
     {
-        std::regex pattern(
-            R"(DELETE\s+FROM\s+["\[\]]?(\w+)["\]\]]?\s+WHERE\s+["\[\]]?(\w+)["\]\]]?\s+IS(\s+NOT)?\s+NULL)",
-            std::regex::icase);
+        std::regex pattern(R"(DELETE\s+FROM\s+["\[\]]?(\w+)["\]\]]?\s+WHERE\s+["\[\]]?(\w+)["\]\]]?\s+IS(\s+NOT)?\s+NULL)",
+                           std::regex::icase);
         std::smatch match;
         if (!std::regex_search(sqlStr, match, pattern))
             return std::nullopt;

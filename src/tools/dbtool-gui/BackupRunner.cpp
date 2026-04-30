@@ -5,12 +5,12 @@
 #include <Lightweight/SqlBackup.hpp>
 #include <Lightweight/SqlConnectInfo.hpp>
 
-#include <QtCore/QMetaObject>
-#include <QtCore/QRunnable>
-
 #include <exception>
 #include <filesystem>
 #include <utility>
+
+#include <QtCore/QMetaObject>
+#include <QtCore/QRunnable>
 
 namespace DbtoolGui
 {
@@ -18,62 +18,63 @@ namespace DbtoolGui
 namespace
 {
 
-class FunctionTask final: public QRunnable
-{
-  public:
-    explicit FunctionTask(std::function<void()> fn):
-        _fn(std::move(fn))
+    class FunctionTask final: public QRunnable
     {
-        setAutoDelete(true);
-    }
-    void run() override
-    {
-        try
+      public:
+        explicit FunctionTask(std::function<void()> fn):
+            _fn(std::move(fn))
         {
-            _fn();
+            setAutoDelete(true);
         }
-        catch (...)
+        void run() override
+        {
+            try
+            {
+                _fn();
+            }
+            catch (...)
+            {
+            }
+        }
+
+      private:
+        std::function<void()> _fn;
+    };
+
+    /// Minimal ProgressManager that forwards SqlBackup progress onto a
+    /// BackupRunner's Qt signals. Kept in the .cpp so QtKeychain / Qt headers
+    /// do not leak into the runner's public header.
+    class EmittingProgressManager: public Lightweight::SqlBackup::ProgressManager
+    {
+      public:
+        explicit EmittingProgressManager(QObject* target):
+            _target(target)
         {
         }
-    }
 
-  private:
-    std::function<void()> _fn;
-};
+        void Update(Lightweight::SqlBackup::Progress const& p) override
+        {
+            auto const msg = QStringLiteral("[%1] %2 rows: %3")
+                                 .arg(QString::fromStdString(std::string { p.tableName }))
+                                 .arg(p.currentRows)
+                                 .arg(QString::fromStdString(std::string { p.message }));
+            auto const level = static_cast<int>(p.state == Lightweight::SqlBackup::Progress::State::Error     ? 2
+                                                : p.state == Lightweight::SqlBackup::Progress::State::Warning ? 1
+                                                                                                              : 0);
+            QMetaObject::invokeMethod(
+                _target,
+                [this, msg, level] {
+                    QMetaObject::invokeMethod(
+                        _target, "logLine", Qt::DirectConnection, Q_ARG(QString, msg), Q_ARG(int, level));
+                },
+                Qt::QueuedConnection);
+        }
 
-/// Minimal ProgressManager that forwards SqlBackup progress onto a
-/// BackupRunner's Qt signals. Kept in the .cpp so QtKeychain / Qt headers
-/// do not leak into the runner's public header.
-class EmittingProgressManager: public Lightweight::SqlBackup::ProgressManager
-{
-  public:
-    explicit EmittingProgressManager(QObject* target):
-        _target(target)
-    {
-    }
+        void AllDone() override {}
 
-    void Update(Lightweight::SqlBackup::Progress const& p) override
-    {
-        auto const msg = QStringLiteral("[%1] %2 rows: %3")
-                             .arg(QString::fromStdString(std::string { p.tableName }))
-                             .arg(p.currentRows)
-                             .arg(QString::fromStdString(std::string { p.message }));
-        auto const level = static_cast<int>(p.state == Lightweight::SqlBackup::Progress::State::Error ? 2
-                                            : p.state == Lightweight::SqlBackup::Progress::State::Warning ? 1
-                                                                                                          : 0);
-        QMetaObject::invokeMethod(
-            _target, [this, msg, level] {
-                QMetaObject::invokeMethod(_target, "logLine", Qt::DirectConnection,
-                                          Q_ARG(QString, msg), Q_ARG(int, level));
-            },
-            Qt::QueuedConnection);
-    }
-
-    void AllDone() override {}
-
-  private:
-    QObject* _target;
-};
+      private:
+        QObject* _target;
+    };
 
 } // namespace
 
@@ -111,9 +112,9 @@ void BackupRunner::runBackup(QString const& outputFile)
         {
             EmittingProgressManager pm(runner);
             Lightweight::SqlBackup::Backup(std::filesystem::path(outFile),
-                                            Lightweight::SqlConnectionString { cs },
-                                            /*concurrency=*/1,
-                                            pm);
+                                           Lightweight::SqlConnectionString { cs },
+                                           /*concurrency=*/1,
+                                           pm);
             summary = QStringLiteral("Backup wrote %1").arg(QString::fromStdString(outFile));
         }
         catch (std::exception const& e)
@@ -150,9 +151,9 @@ void BackupRunner::runRestore(QString const& inputFile)
         {
             EmittingProgressManager pm(runner);
             Lightweight::SqlBackup::Restore(std::filesystem::path(inFile),
-                                             Lightweight::SqlConnectionString { cs },
-                                             /*concurrency=*/1,
-                                             pm);
+                                            Lightweight::SqlConnectionString { cs },
+                                            /*concurrency=*/1,
+                                            pm);
             summary = QStringLiteral("Restore read %1").arg(QString::fromStdString(inFile));
         }
         catch (std::exception const& e)

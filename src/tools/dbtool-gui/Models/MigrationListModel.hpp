@@ -12,12 +12,12 @@
 
 #pragma once
 
-#include <QtCore/QAbstractListModel>
-#include <QtQmlIntegration/QtQmlIntegration>
-
 #include <cstdint>
 #include <string>
 #include <vector>
+
+#include <QtCore/QAbstractListModel>
+#include <QtQmlIntegration/QtQmlIntegration>
 
 // Forward declaration: see MigrationRunner.hpp for why the full include is
 // kept out of moc-parsed headers.
@@ -25,7 +25,7 @@ namespace Lightweight
 {
 namespace SqlMigration
 {
-class MigrationManager;
+    class MigrationManager;
 }
 } // namespace Lightweight
 
