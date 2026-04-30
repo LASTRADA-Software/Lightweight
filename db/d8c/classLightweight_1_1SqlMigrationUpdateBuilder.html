@@ -321,7 +321,12 @@ template&lt;typename T &gt; </div>
 </div><div class="memdoc">
 
 <p>Supplies a pre-rendered WHERE-clause body for cases that don't fit the simple <code>(column, op, value)</code> form — composite <code>AND</code>/<code>OR</code>/<code>NOT</code>, <code>IS NULL</code>, <code>IN (subquery)</code>, <code>EXISTS (subquery)</code>, etc. </p>
-<p>The text is emitted verbatim after <code>WHERE</code> at execution time; the caller is responsible for dialect-safe quoting. Used by <code>lup2dbtool</code> when its structured condition parser produces a canonicalized clause. </p>
+<p>The text is emitted verbatim after <code>WHERE</code> at execution time; the caller is responsible for dialect-safe quoting. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">expression</td><td>Pre-rendered SQL clause body (without the leading <code>WHERE</code>). </td></tr>
+  </table>
+  </dd>
+</dl>
 
 <p class="definition">Definition at line <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html#l00422">422</a> of file <a class="el" href="../../d9/d6b/Migrate_8hpp_source.html">Migrate.hpp</a>.</p>
 

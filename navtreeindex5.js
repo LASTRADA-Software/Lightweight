@@ -1,5 +1,6 @@
 var NAVTREEINDEX5 =
 {
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#a2088cc443c26818bb7e7c6cacf379d11":[10,4,0,1],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#a67b81a8873be14a5a21f798c0b5a27b5":[10,4,0,0],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#a779ace23d8860b4c47ba61750a068065":[10,4,0,6],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#a83960533b5032f3a161070e9a6e8da5c":[10,4,0,8],
@@ -248,6 +249,5 @@ var NAVTREEINDEX5 =
 "functions_y.html":[12,2,0,23],
 "functions_z.html":[12,2,0,24],
 "functions_~.html":[12,2,0,25],
-"hierarchy.html":[12,1],
-"index.html":[]
+"hierarchy.html":[12,1]
 };

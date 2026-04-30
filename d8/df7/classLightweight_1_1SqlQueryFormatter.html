@@ -205,6 +205,9 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="separator:a9b5cc394c01daeccdafb032bd2da9003"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8513eaca58ba6015cecfd88973c18d4b" id="r_a8513eaca58ba6015cecfd88973c18d4b"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8513eaca58ba6015cecfd88973c18d4b">QueryServerVersion</a> () const =0</td></tr>
 <tr class="separator:a8513eaca58ba6015cecfd88973c18d4b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4259cbd0861534246ce81a9494caf032" id="r_a4259cbd0861534246ce81a9494caf032"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4259cbd0861534246ce81a9494caf032">RequiresTableRebuildForForeignKeyChange</a> () const noexcept</td></tr>
+<tr class="memdesc:a4259cbd0861534246ce81a9494caf032"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the dialect must rebuild a table to add or drop a foreign-key constraint (i.e. cannot express it via <code>ALTER TABLE … ADD/DROP CONSTRAINT</code>).  <br /></td></tr>
+<tr class="separator:a4259cbd0861534246ce81a9494caf032"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -512,6 +515,36 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 
 </div>
 </div>
+<a id="a4259cbd0861534246ce81a9494caf032" name="a4259cbd0861534246ce81a9494caf032"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4259cbd0861534246ce81a9494caf032">&#9670;&#160;</a></span>RequiresTableRebuildForForeignKeyChange()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual bool Lightweight::SqlQueryFormatter::RequiresTableRebuildForForeignKeyChange </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Whether the dialect must rebuild a table to add or drop a foreign-key constraint (i.e. cannot express it via <code>ALTER TABLE … ADD/DROP CONSTRAINT</code>). </p>
+<p>SQLite returns <code>true</code>; every other backend defaults to <code>false</code>. The migration executor consults this to decide whether to take the table-rebuild path on <code>AlterTable</code> steps that touch foreign keys. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00187">187</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
 <a id="a36631dad45de6ee327dac3fb204c29e0" name="a36631dad45de6ee327dac3fb204c29e0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a36631dad45de6ee327dac3fb204c29e0">&#9670;&#160;</a></span>BuildForeignKeyConstraintName()</h2>
 
@@ -552,7 +585,7 @@ template&lt;typename Range &gt; </div>
 <p>Produces <code>FK_&lt;table&gt;_&lt;col1&gt;[_&lt;col2&gt;…]</code>. A single-column FK collapses to <code>FK_&lt;table&gt;_&lt;col&gt;</code>; a composite FK includes every column so that a composite FK whose first column matches an existing single-column FK doesn't collide on the constraint name (which MSSQL enforces as globally unique per DB).</p>
 <p>Consumers include the SQL Server, PostgreSQL and SQLite formatters — centralising the convention here keeps CREATE/ALTER emission in sync with DROP CONSTRAINT lookup (e.g. <code>SQLiteRebuildDropForeignKey</code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00192">192</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00203">203</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>

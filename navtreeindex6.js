@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"index.html":[],
 "index.html":[0],
 "index.html#building-with-c20-modules":[0,7],
 "index.html#compile-using-c26-reflection-support":[0,6],
