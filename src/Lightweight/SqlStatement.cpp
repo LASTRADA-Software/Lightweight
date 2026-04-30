@@ -218,7 +218,13 @@ SqlResultCursor SqlStatement::ExecuteDirect(std::string_view const& query, std::
 
     // Execute via the W entry point — see the rationale above SQLPrepareW.
     auto wQuery = detail::OdbcWideArg { query };
-    RequireSuccess(SQLExecDirectW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size())), location);
+    auto const rc = SQLExecDirectW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size()));
+    // SQL_NO_DATA from SQLExecDirect signals "searched UPDATE/DELETE affected no rows"
+    // (per ODBC spec) — and the SQLite ODBC driver also returns it for INSERT … SELECT
+    // that copies zero rows. That is not a failure: the statement executed, it simply
+    // produced no row changes. Treat it as success.
+    if (rc != SQL_NO_DATA)
+        RequireSuccess(rc, location);
     return SqlResultCursor { *this };
 }
 
