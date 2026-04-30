@@ -150,25 +150,140 @@ jobs:
           VCPKG_ROOT: "${{ runner.workspace }}/vcpkg"
       - name: "Build"
         run: cmake --build --preset ${{ matrix.preset }}
-      - name: Setup SQL Server
-        if: ${{ endsWith(matrix.preset, 'windows-cl-debug') }}
-        shell: powershell
+      # NB: Don't run tests here; the windows_dbms_test_matrix job below runs
+      # the suite against each supported database in parallel.
+      - name: "Install (stage tests for upload)"
+        if: ${{ matrix.preset == 'windows-cl-debug' }}
+        shell: pwsh
+        run: |
+          cmake --install out/build/${{ matrix.preset }} `
+                --prefix out/install/${{ matrix.preset }} `
+                --config Debug
+          # Belt-and-braces: copy vcpkg-deployed runtime DLLs next to the
+          # binaries so the artifact is self-contained even if the install
+          # rule misses any RUNTIME_DEPENDENCIES.
+          $dllSrc = "out/build/${{ matrix.preset }}/target/Debug"
+          if (Test-Path $dllSrc) {
+            Copy-Item -Path "$dllSrc/*.dll" `
+                      -Destination "out/install/${{ matrix.preset }}/bin/" `
+                      -Force -ErrorAction SilentlyContinue
+          }
+      - name: "Upload unit tests"
+        if: ${{ matrix.preset == 'windows-cl-debug' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-cl-debug-tests
+          path: out/install/${{ matrix.preset }}/
+          retention-days: 1
+
+  windows_dbms_test_matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - database: "SQLite3"
+            test_env: "sqlite3"
+          - database: "MS SQL Server (LocalDB)"
+            test_env: "mssql"
+          - database: "PostgreSQL"
+            test_env: "postgres"
+    name: "Windows Tests (${{ matrix.database }})"
+    runs-on: windows-2025
+    needs: [windows]
+    steps:
+      - name: "Download unit test binaries"
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-cl-debug-tests
+          path: install
+      - name: "Install Python YAML"
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check pyyaml
+      - name: "Install SQLite3 ODBC driver"
+        if: ${{ matrix.test_env == 'sqlite3' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # The chocolatey `sqliteodbc` package was delisted from the community
+          # feed, so install Christian Werner's NSIS installer directly.
+          $url = "http://www.ch-werner.de/sqliteodbc/sqliteodbc_w64.exe"
+          $installer = Join-Path $env:RUNNER_TEMP "sqliteodbc_w64.exe"
+          Invoke-WebRequest -Uri $url -OutFile $installer
+          Start-Process -FilePath $installer -ArgumentList "/S" -Wait -NoNewWindow
+      - name: "Setup MS SQL Server (LocalDB)"
+        if: ${{ matrix.test_env == 'mssql' }}
+        shell: pwsh
         run: |
           sqllocaldb info
           sqllocaldb start MSSQLLocalDB
           sqlcmd -S "(LocalDB)\MSSQLLocalDB" -Q "CREATE DATABASE TestDB;"
           sqlcmd -S "(LocalDB)\MSSQLLocalDB" -Q "SELECT name FROM sys.databases WHERE name = 'TestDB';"
-      - name: Create .test-env.yml
-        if: ${{ endsWith(matrix.preset, 'windows-cl-debug') }}
-        shell: powershell
+      - name: "Install PostgreSQL ODBC driver and server"
+        if: ${{ matrix.test_env == 'postgres' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # The windows-2025 runner image ships PostgreSQL 17 pre-installed but
+          # the `postgresql-x64-17` service refuses to start on this image (the
+          # generic "Cannot start service" error suggests the service is
+          # disabled or its data dir is not initialized). Disable it so it
+          # cannot race with the chocolatey pg16 install for port 5432.
+          Get-Service postgresql-x64-17 -ErrorAction SilentlyContinue | ForEach-Object {
+            Stop-Service -Name $_.Name -Force -ErrorAction SilentlyContinue
+            Set-Service -Name $_.Name -StartupType Disabled
+          }
+          choco install psqlodbc -y --no-progress
+          choco install postgresql16 --params "/Password:Lightweight!Test42" -y --no-progress
+      - name: "Wait for PostgreSQL and create test database"
+        if: ${{ matrix.test_env == 'postgres' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # choco's postgresql16 package starts the service after install; this
+          # is just defensive in case it didn't, and is scoped to pg16 only so
+          # it cannot try to start the broken pg17 service on this image.
+          $svc = Get-Service postgresql-x64-16 -ErrorAction SilentlyContinue
+          if ($svc -and $svc.Status -ne 'Running') { Start-Service $svc }
+          $env:PGPASSWORD = "Lightweight!Test42"
+          $pgBin = "C:\Program Files\PostgreSQL\16\bin"
+          # Wait until the server accepts connections (max ~30s).
+          $deadline = (Get-Date).AddSeconds(30)
+          while ((Get-Date) -lt $deadline) {
+            & "$pgBin\pg_isready.exe" -h localhost -p 5432 -U postgres -t 3
+            if ($LASTEXITCODE -eq 0) { break }
+            Start-Sleep -Seconds 2
+          }
+          & "$pgBin\psql.exe" -U postgres -h localhost -c "CREATE DATABASE test"
+      - name: "List installed ODBC drivers"
+        shell: pwsh
+        run: Get-OdbcDriver | Format-Table -AutoSize
+      - name: "Create .test-env.yml"
+        shell: pwsh
         run: |
           @"
           ODBC_CONNECTION_STRING:
+            sqlite3: "Driver={SQLite3 ODBC Driver};Database=test.db"
             mssql: "Driver={ODBC Driver 17 for SQL Server};Server=(LocalDB)\\MSSQLLocalDB;Database=TestDB;Trusted_Connection=Yes;"
+            postgres: "Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test;LFConversion=0"
           "@ | Out-File -FilePath .test-env.yml -Encoding utf8
-      - name: "Test"
-        if: ${{ endsWith(matrix.preset, 'windows-cl-debug') }}
-        run: ./out/build/${{ matrix.preset }}/target/Debug/LightweightTest.exe --test-env=mssql --trace-sql --trace-odbc
+      - name: "Run SQL tests"
+        run: ./install/bin/LightweightTest.exe --test-env=${{ matrix.test_env }}
+      - name: "Run dbtool tests"
+        shell: bash
+        run: |
+          set -ex
+          python install/share/Lightweight/tests/test_dbtool.py \
+              --dbtool ./install/bin/dbtool.exe \
+              --plugins-dir ./install/share/Lightweight/tests/plugins \
+              --test-env ${{ matrix.test_env }}
+
+  # NOTE: A Linux-container Docker matrix on windows-2025 (matching the Linux
+  # `dbms_test_matrix`) is desired for cross-OS driver/server coverage but is
+  # not feasible on the current runner image: it ships Docker (Mirantis
+  # runtime) for Windows containers only, with no Docker Desktop and no
+  # in-WSL2 dockerd. Enabling it would require either Docker Desktop (license
+  # blocker for commercial repos) or installing a WSL2 distro + dockerd per
+  # job (3-10 min of brittle setup per matrix leg). Tracked as future work.
 
   # }}}
   # {{{ Ubuntu build CC matrix
@@ -349,10 +464,9 @@ jobs:
           - database: "MS SQL Server 2022"
             test_env: "mssql2022"
             docker_db: "mssql2022"
-          # Disabled for now, as MS SQL Server 2025 image seems to be broken
-          # - database: "MS SQL Server 2025"
-          #   test_env: "mssql2025"
-          #   docker_db: "mssql2025"
+          - database: "MS SQL Server 2025"
+            test_env: "mssql2025"
+            docker_db: "mssql2025"
           - database: "PostgreSQL"
             test_env: "postgres"
             docker_db: "postgres"
@@ -410,6 +524,22 @@ jobs:
               --dbtool /usr/local/bin/dbtool \
               --plugins-dir /usr/local/share/Lightweight/tests/plugins \
               --test-env ${{ matrix.test_env }}
+      - name: "Capture container log on failure"
+        if: failure() && matrix.docker_db != ''
+        run: |
+          case "${{ matrix.docker_db }}" in
+            mssql2017) container=sql2017 ;;
+            mssql2019) container=sql2019 ;;
+            mssql2022) container=sql2022 ;;
+            mssql2025) container=sql2025 ;;
+            postgres)  container=postgres-16.4 ;;
+            *)         container="" ;;
+          esac
+          if [ -n "$container" ]; then
+            echo "::group::docker logs $container (last 200 lines)"
+            docker logs "$container" 2>&1 | tail -n 200 || true
+            echo "::endgroup::"
+          fi
 
   # }}}
   # {{{ Sanitizers
