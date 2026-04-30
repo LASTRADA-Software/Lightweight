@@ -37,6 +37,20 @@ LIGHTWEIGHT_API SqlConnectionStringMap ParseConnectionString(SqlConnectionString
 /// Builds an ODBC connection string from a map.
 LIGHTWEIGHT_API SqlConnectionString BuildConnectionString(SqlConnectionStringMap const& map);
 
+/// If `connectionString` targets a file-based SQLite database, ensures the
+/// parent directory exists and touches an empty file when missing.
+///
+/// An empty file is a valid zero-table SQLite database, so this lets callers
+/// bootstrap a fresh SQLite deployment from scratch without requiring the
+/// user to pre-create the file. In-memory databases (`:memory:`,
+/// `file::memory:`, URIs with `mode=memory`) and non-SQLite drivers are
+/// left untouched.
+///
+/// Returns true on success or when no action was needed. Returns false only
+/// when the parent directory could not be created or the file could not be
+/// opened for writing.
+[[nodiscard]] LIGHTWEIGHT_API bool EnsureSqliteDatabaseFileExists(SqlConnectionString const& connectionString);
+
 /// Represents a connection data source as a DSN, username, password, and timeout.
 struct [[nodiscard]] SqlConnectionDataSource
 {

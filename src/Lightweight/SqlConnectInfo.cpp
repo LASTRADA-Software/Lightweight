@@ -3,10 +3,13 @@
 #include "SqlConnectInfo.hpp"
 
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
 #include <ranges>
 #include <regex>
 #include <string>
 #include <string_view>
+#include <system_error>
 
 namespace Lightweight
 {
@@ -91,6 +94,57 @@ SqlConnectionString BuildConnectionString(SqlConnectionStringMap const& map)
     }
 
     return result;
+}
+
+bool EnsureSqliteDatabaseFileExists(SqlConnectionString const& connectionString)
+{
+    auto const params = ParseConnectionString(connectionString);
+
+    auto const driverIt = params.find("DRIVER");
+    if (driverIt == params.end())
+        return true;
+
+    auto const& driver = driverIt->second;
+    auto const driverIsSqlite = std::ranges::search(driver,
+                                                    std::string_view { "sqlite" },
+                                                    [](char a, char b) {
+                                                        return std::tolower(static_cast<unsigned char>(a))
+                                                               == std::tolower(static_cast<unsigned char>(b));
+                                                    })
+                                    .begin()
+                                != driver.end();
+    if (!driverIsSqlite)
+        return true;
+
+    auto const databaseIt = params.find("DATABASE");
+    if (databaseIt == params.end() || databaseIt->second.empty())
+        return true;
+
+    auto const& database = databaseIt->second;
+
+    // Skip in-memory / URI forms — there is no file to create.
+    if (database == ":memory:" || database.starts_with("file::memory:")
+        || (database.starts_with("file:") && database.contains("mode=memory")))
+        return true;
+
+    std::filesystem::path const dbPath { database };
+    std::error_code ec;
+
+    if (auto const parent = dbPath.parent_path(); !parent.empty() && !std::filesystem::exists(parent, ec))
+    {
+        std::filesystem::create_directories(parent, ec);
+        if (ec)
+            return false;
+    }
+
+    if (!std::filesystem::exists(dbPath, ec))
+    {
+        std::ofstream create(dbPath, std::ios::binary);
+        if (!create)
+            return false;
+    }
+
+    return true;
 }
 
 SqlConnectionDataSource SqlConnectionDataSource::FromConnectionString(SqlConnectionString const& value)

@@ -389,6 +389,19 @@ class [[nodiscard]] SqlMigrationUpdateBuilder final
         return *this;
     }
 
+    /// @brief Sets a column to a raw SQL expression — for column-to-column copies
+    /// or arithmetic that cannot be represented as a literal value.
+    ///
+    /// @param columnName The target column.
+    /// @param expression The raw SQL fragment (e.g. `"OTHER_COL"`, `"CTR" + 1`) emitted
+    ///                   verbatim after the `=`. The caller is responsible for any
+    ///                   identifier quoting.
+    SqlMigrationUpdateBuilder& SetExpression(std::string columnName, std::string expression)
+    {
+        _plan.setExpressions.emplace_back(std::move(columnName), std::move(expression));
+        return *this;
+    }
+
     /// Adds a WHERE condition to the UPDATE.
     template <typename T>
     SqlMigrationUpdateBuilder& Where(std::string columnName, std::string op, T const& value)
@@ -396,6 +409,19 @@ class [[nodiscard]] SqlMigrationUpdateBuilder final
         _plan.whereColumn = std::move(columnName);
         _plan.whereOp = std::move(op);
         _plan.whereValue = SqlVariant(value);
+        return *this;
+    }
+
+    /// @brief Supplies a pre-rendered WHERE-clause body for cases that don't fit the
+    /// simple `(column, op, value)` form — composite `AND`/`OR`/`NOT`, `IS NULL`,
+    /// `IN (subquery)`, `EXISTS (subquery)`, etc.
+    ///
+    /// The text is emitted verbatim after `WHERE` at execution time; the caller is
+    /// responsible for dialect-safe quoting.
+    /// @param expression Pre-rendered SQL clause body (without the leading `WHERE`).
+    SqlMigrationUpdateBuilder& WhereExpression(std::string expression)
+    {
+        _plan.whereExpression = std::move(expression);
         return *this;
     }
 
@@ -423,6 +449,13 @@ class [[nodiscard]] SqlMigrationDeleteBuilder final
         _plan.whereColumn = std::move(columnName);
         _plan.whereOp = std::move(op);
         _plan.whereValue = SqlVariant(value);
+        return *this;
+    }
+
+    /// Pre-rendered WHERE-clause body. See `SqlMigrationUpdateBuilder::WhereExpression`.
+    SqlMigrationDeleteBuilder& WhereExpression(std::string expression)
+    {
+        _plan.whereExpression = std::move(expression);
         return *this;
     }
 

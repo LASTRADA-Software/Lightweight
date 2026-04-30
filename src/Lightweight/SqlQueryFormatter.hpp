@@ -178,6 +178,40 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// Retrieves the SQL query formatter for the given SqlServerType.
     static SqlQueryFormatter const* Get(SqlServerType serverType) noexcept;
 
+    /// @brief Whether the dialect must rebuild a table to add or drop a foreign-key
+    /// constraint (i.e. cannot express it via `ALTER TABLE … ADD/DROP CONSTRAINT`).
+    ///
+    /// SQLite returns `true`; every other backend defaults to `false`. The migration
+    /// executor consults this to decide whether to take the table-rebuild path on
+    /// `AlterTable` steps that touch foreign keys.
+    [[nodiscard]] virtual bool RequiresTableRebuildForForeignKeyChange() const noexcept
+    {
+        return false;
+    }
+
+    /// @brief Builds the canonical foreign-key constraint name for a set of columns.
+    ///
+    /// Produces `FK_<table>_<col1>[_<col2>…]`. A single-column FK collapses to
+    /// `FK_<table>_<col>`; a composite FK includes every column so that a composite
+    /// FK whose first column matches an existing single-column FK doesn't collide
+    /// on the constraint name (which MSSQL enforces as globally unique per DB).
+    ///
+    /// Consumers include the SQL Server, PostgreSQL and SQLite formatters —
+    /// centralising the convention here keeps CREATE/ALTER emission in sync with
+    /// DROP CONSTRAINT lookup (e.g. `SQLiteRebuildDropForeignKey`).
+    template <typename Range>
+    [[nodiscard]] static std::string BuildForeignKeyConstraintName(std::string_view tableName, Range const& columns)
+    {
+        std::string name { "FK_" };
+        name.append(tableName);
+        for (auto const& col: columns)
+        {
+            name.push_back('_');
+            name.append(col);
+        }
+        return name;
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);

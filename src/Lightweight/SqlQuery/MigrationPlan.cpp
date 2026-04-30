@@ -51,6 +51,25 @@ namespace
         return std::format(R"("{}"."{}")", schemaName, tableName);
     }
 
+    /// @brief Renders the trailing ` WHERE …` for an UPDATE/DELETE plan, or empty
+    /// when neither a raw expression nor a structured `(column, op, value)` triple
+    /// has been supplied.
+    ///
+    /// `whereExpression` (a pre-rendered clause body) takes precedence; the structured
+    /// form is the fallback for the simple `Where(col, op, value)` builder API.
+    std::string FormatWhereClause(SqlQueryFormatter const& formatter,
+                                  std::string_view whereExpression,
+                                  std::string_view whereColumn,
+                                  std::string_view whereOp,
+                                  SqlVariant const& whereValue)
+    {
+        if (!whereExpression.empty())
+            return std::format(" WHERE {}", whereExpression);
+        if (!whereColumn.empty())
+            return std::format(R"( WHERE "{}" {} {})", whereColumn, whereOp, FormatSqlLiteral(formatter, whereValue));
+        return {};
+    }
+
     std::vector<std::string> ToSqlInsert(SqlQueryFormatter const& formatter, SqlInsertDataPlan const& step)
     {
         auto const columns = [&] {
@@ -89,16 +108,18 @@ namespace
                     result += ", ";
                 result += std::format(R"("{}" = {})", columnName, FormatSqlLiteral(formatter, columnValue));
             }
+            for (auto const& [columnName, expression]: step.setExpressions)
+            {
+                if (!result.empty())
+                    result += ", ";
+                result += std::format(R"("{}" = {})", columnName, expression);
+            }
             return result;
         }();
 
         auto tableName = FormatTableName(step.schemaName, step.tableName);
         std::string sql = std::format("UPDATE {} SET {}", tableName, setClause);
-        if (!step.whereColumn.empty())
-        {
-            sql += std::format(
-                R"( WHERE "{}" {} {})", step.whereColumn, step.whereOp, FormatSqlLiteral(formatter, step.whereValue));
-        }
+        sql += FormatWhereClause(formatter, step.whereExpression, step.whereColumn, step.whereOp, step.whereValue);
         return { std::move(sql) };
     }
 
@@ -106,11 +127,7 @@ namespace
     {
         auto tableName = FormatTableName(step.schemaName, step.tableName);
         std::string sql = std::format("DELETE FROM {}", tableName);
-        if (!step.whereColumn.empty())
-        {
-            sql += std::format(
-                R"( WHERE "{}" {} {})", step.whereColumn, step.whereOp, FormatSqlLiteral(formatter, step.whereValue));
-        }
+        sql += FormatWhereClause(formatter, step.whereExpression, step.whereColumn, step.whereOp, step.whereValue);
         return { std::move(sql) };
     }
 

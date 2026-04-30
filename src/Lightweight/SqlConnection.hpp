@@ -48,8 +48,12 @@ class SqlConnection final
 
     /// @brief Constructs a new SQL connection to the given connect informaton.
     ///
-    /// @param connectInfo The connection information to use. If not provided,
-    ///                    no connection will be established.
+    /// @param connectInfo The connection information to use. If `std::nullopt`,
+    ///                    no connection is established and the object is left
+    ///                    in an unconnected state — use `Connect(...)` later.
+    ///                    If a value is provided and the connection fails,
+    ///                    `SqlException` is thrown carrying the ODBC diagnostic
+    ///                    read from the DBC handle.
     LIGHTWEIGHT_API explicit SqlConnection(std::optional<SqlConnectionString> connectInfo);
 
     /// Move constructor.
