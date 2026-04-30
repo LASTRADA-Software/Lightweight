@@ -150,25 +150,112 @@ jobs:
           VCPKG_ROOT: "${{ runner.workspace }}/vcpkg"
       - name: "Build"
         run: cmake --build --preset ${{ matrix.preset }}
-      - name: Setup SQL Server
-        if: ${{ endsWith(matrix.preset, 'windows-cl-debug') }}
-        shell: powershell
+      # NB: Don't run tests here; the windows_dbms_test_matrix job below runs
+      # the suite against each supported database in parallel.
+      - name: "Install (stage tests for upload)"
+        if: ${{ matrix.preset == 'windows-cl-debug' }}
+        shell: pwsh
+        run: |
+          cmake --install out/build/${{ matrix.preset }} `
+                --prefix out/install/${{ matrix.preset }} `
+                --config Debug
+          # Belt-and-braces: copy vcpkg-deployed runtime DLLs next to the
+          # binaries so the artifact is self-contained even if the install
+          # rule misses any RUNTIME_DEPENDENCIES.
+          $dllSrc = "out/build/${{ matrix.preset }}/target/Debug"
+          if (Test-Path $dllSrc) {
+            Copy-Item -Path "$dllSrc/*.dll" `
+                      -Destination "out/install/${{ matrix.preset }}/bin/" `
+                      -Force -ErrorAction SilentlyContinue
+          }
+      - name: "Upload unit tests"
+        if: ${{ matrix.preset == 'windows-cl-debug' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-cl-debug-tests
+          path: out/install/${{ matrix.preset }}/
+          retention-days: 1
+
+  windows_dbms_test_matrix:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - database: "SQLite3"
+            test_env: "sqlite3"
+          - database: "MS SQL Server (LocalDB)"
+            test_env: "mssql"
+          - database: "PostgreSQL"
+            test_env: "postgres"
+    name: "Windows Tests (${{ matrix.database }})"
+    runs-on: windows-2025
+    needs: [windows]
+    steps:
+      - name: "Download unit test binaries"
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-cl-debug-tests
+          path: install
+      - name: "Install Python YAML"
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check pyyaml
+      - name: "Install SQLite3 ODBC driver"
+        if: ${{ matrix.test_env == 'sqlite3' }}
+        run: |
+          choco install sqliteodbc -y --no-progress
+          choco install sqlite -y --no-progress
+      - name: "Setup MS SQL Server (LocalDB)"
+        if: ${{ matrix.test_env == 'mssql' }}
+        shell: pwsh
         run: |
           sqllocaldb info
           sqllocaldb start MSSQLLocalDB
           sqlcmd -S "(LocalDB)\MSSQLLocalDB" -Q "CREATE DATABASE TestDB;"
           sqlcmd -S "(LocalDB)\MSSQLLocalDB" -Q "SELECT name FROM sys.databases WHERE name = 'TestDB';"
-      - name: Create .test-env.yml
-        if: ${{ endsWith(matrix.preset, 'windows-cl-debug') }}
-        shell: powershell
+      - name: "Install PostgreSQL ODBC driver and server"
+        if: ${{ matrix.test_env == 'postgres' }}
+        shell: pwsh
+        run: |
+          choco install psqlodbc -y --no-progress
+          choco install postgresql16 --params "/Password:Lightweight!Test42" -y --no-progress
+      - name: "Start PostgreSQL and create test database"
+        if: ${{ matrix.test_env == 'postgres' }}
+        shell: pwsh
+        run: |
+          # choco usually auto-starts the service; make it explicit and idempotent.
+          Get-Service postgresql* | Where-Object { $_.Status -ne 'Running' } | Start-Service
+          $env:PGPASSWORD = "Lightweight!Test42"
+          $pgBin = "C:\Program Files\PostgreSQL\16\bin"
+          # Wait until the server accepts connections (max ~30s).
+          $deadline = (Get-Date).AddSeconds(30)
+          while ((Get-Date) -lt $deadline) {
+            & "$pgBin\pg_isready.exe" -h localhost -p 5432 -U postgres -t 3
+            if ($LASTEXITCODE -eq 0) { break }
+            Start-Sleep -Seconds 2
+          }
+          & "$pgBin\psql.exe" -U postgres -h localhost -c "CREATE DATABASE test"
+      - name: "List installed ODBC drivers"
+        shell: pwsh
+        run: Get-OdbcDriver | Format-Table -AutoSize
+      - name: "Create .test-env.yml"
+        shell: pwsh
         run: |
           @"
           ODBC_CONNECTION_STRING:
+            sqlite3: "Driver={SQLite3 ODBC Driver};Database=test.db"
             mssql: "Driver={ODBC Driver 17 for SQL Server};Server=(LocalDB)\\MSSQLLocalDB;Database=TestDB;Trusted_Connection=Yes;"
+            postgres: "Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test;LFConversion=0"
           "@ | Out-File -FilePath .test-env.yml -Encoding utf8
-      - name: "Test"
-        if: ${{ endsWith(matrix.preset, 'windows-cl-debug') }}
-        run: ./out/build/${{ matrix.preset }}/target/Debug/LightweightTest.exe --test-env=mssql --trace-sql --trace-odbc
+      - name: "Run SQL tests"
+        run: ./install/bin/LightweightTest.exe --test-env=${{ matrix.test_env }}
+      - name: "Run dbtool tests"
+        shell: bash
+        run: |
+          set -ex
+          python install/share/Lightweight/tests/test_dbtool.py \
+              --dbtool ./install/bin/dbtool.exe \
+              --plugins-dir ./install/share/Lightweight/tests/plugins \
+              --test-env ${{ matrix.test_env }}
 
   # }}}
   # {{{ Ubuntu build CC matrix
