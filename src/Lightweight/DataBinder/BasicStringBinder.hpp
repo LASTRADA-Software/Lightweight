@@ -290,19 +290,14 @@ struct SqlDataBinder<AnsiStringType>
         // null terminator. SqlFixedString<N> backs its data with _data[N+1] for
         // exactly this reason; pass Capacity+1 to let the driver write a full
         // N-char value plus null. Dynamic strings keep the current behaviour.
-        SQLLEN const bufferLength = [result]() -> SQLLEN {
+        SQLLEN const bufferLength = [&]() -> SQLLEN {
             if constexpr (requires { AnsiStringType::Capacity; })
                 return static_cast<SQLLEN>(AnsiStringType::Capacity) + 1;
             else
                 return static_cast<SQLLEN>(StringTraits::Size(result));
         }();
 
-        return SQLBindCol(stmt,
-                          column,
-                          SQL_C_CHAR,
-                          (SQLPOINTER) StringTraits::Data(result),
-                          bufferLength,
-                          indicator);
+        return SQLBindCol(stmt, column, SQL_C_CHAR, (SQLPOINTER) StringTraits::Data(result), bufferLength, indicator);
     }
 
     static void PostProcessOutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, AnsiStringType* result, SQLLEN* indicator)

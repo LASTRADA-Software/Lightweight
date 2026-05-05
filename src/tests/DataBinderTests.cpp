@@ -1453,9 +1453,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Trimmed fixed strings strip trailing padding t
 // Regression for #485: BasicStringBinder::OutputColumn passes BufferLength=N
 // (not N+1) to SQLBindCol, so ODBC truncates any value of length N to N-1
 // data chars + null. The bug only surfaces when the stored value fills the
-// full capacity with no trailing whitespace -- typical case is 3-letter
-// ISO 4217 codes in a CHAR(3) column. Surfaced downstream as LASTRADA DEV-6285
-// (empty cbc:DocumentCurrencyCode in XRechnung exports for non-Euro invoices).
+// full capacity with no trailing whitespace -- e.g. a 3-letter currency code
+// stored in a CHAR(3) column.
 struct FullCapacityFixedRow
 {
     Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
