@@ -1,6 +1,5 @@
 var classLightweight_1_1SqlMigration_1_1MigrationManager =
 [
-    [ "PlanFoldingResult", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult.html", "df/d89/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult" ],
     [ "MigrationList", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a259626f016bf24f265c81c1bc4446ae1", null ],
     [ "ExecuteCallback", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a14e9ebfa20b805d80c18d7c6a378e364", null ],
     [ "AddMigration", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1e2638d4b642e5692df3d2ab24e199a4", null ],
@@ -29,6 +28,5 @@ var classLightweight_1_1SqlMigration_1_1MigrationManager =
     [ "GetAllReleases", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad390ac8da8ac693c7357b67bc183bb60", null ],
     [ "FindReleaseByVersion", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a68b4434898a6ebceb06025065af79ec0", null ],
     [ "FindReleaseForTimestamp", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97663a37d26d962c2c17d97706651c0f", null ],
-    [ "GetMigrationsForRelease", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97918619adda32f2e9f65b089221a01f", null ],
-    [ "FoldRegisteredMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a500e17dc06f73a877dc7e7a99342feaa", null ]
+    [ "GetMigrationsForRelease", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a97918619adda32f2e9f65b089221a01f", null ]
 ];

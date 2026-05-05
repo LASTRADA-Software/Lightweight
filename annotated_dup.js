@@ -1,14 +1,6 @@
 var annotated_dup =
 [
     [ "Lightweight", null, [
-      [ "CodeGen", null, [
-        [ "CodeBlock", "d5/d38/structLightweight_1_1CodeGen_1_1CodeBlock.html", "d5/d38/structLightweight_1_1CodeGen_1_1CodeBlock" ],
-        [ "WriteResult", "d2/d38/structLightweight_1_1CodeGen_1_1WriteResult.html", "d2/d38/structLightweight_1_1CodeGen_1_1WriteResult" ]
-      ] ],
-      [ "MigrationFold", null, [
-        [ "CppEmitOptions", "df/ddc/structLightweight_1_1MigrationFold_1_1CppEmitOptions.html", "df/ddc/structLightweight_1_1MigrationFold_1_1CppEmitOptions" ],
-        [ "SqlEmitOptions", "d2/d92/structLightweight_1_1MigrationFold_1_1SqlEmitOptions.html", "d2/d92/structLightweight_1_1MigrationFold_1_1SqlEmitOptions" ]
-      ] ],
       [ "SqlAlterTableCommands", null, [
         [ "AddColumnIfNotExists", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists" ],
         [ "DropColumnIfExists", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists.html", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists" ],
