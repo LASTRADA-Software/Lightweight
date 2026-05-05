@@ -286,11 +286,22 @@ struct SqlDataBinder<AnsiStringType>
             cb.PlanPostProcessOutputColumn(
                 [stmt, column, indicator, result]() { PostProcessOutputColumn(stmt, column, result, indicator); });
 
+        // Per ODBC spec, BufferLength for SQL_C_CHAR must include space for the
+        // null terminator. SqlFixedString<N> backs its data with _data[N+1] for
+        // exactly this reason; pass Capacity+1 to let the driver write a full
+        // N-char value plus null. Dynamic strings keep the current behaviour.
+        SQLLEN const bufferLength = [result]() -> SQLLEN {
+            if constexpr (requires { AnsiStringType::Capacity; })
+                return static_cast<SQLLEN>(AnsiStringType::Capacity) + 1;
+            else
+                return static_cast<SQLLEN>(StringTraits::Size(result));
+        }();
+
         return SQLBindCol(stmt,
                           column,
                           SQL_C_CHAR,
                           (SQLPOINTER) StringTraits::Data(result),
-                          (SQLLEN) StringTraits::Size(result),
+                          bufferLength,
                           indicator);
     }
 
@@ -338,8 +349,10 @@ struct SqlDataBinder<AnsiStringType>
         if constexpr (requires { AnsiStringType::Capacity; })
         {
             StringTraits::Resize(result, AnsiStringType::Capacity);
+            // BufferLength for SQL_C_CHAR must include space for the null terminator;
+            // _data is sized N+1 to accommodate it.
             SQLRETURN const rv =
-                SQLGetData(stmt, column, SQL_C_CHAR, StringTraits::Data(result), AnsiStringType::Capacity, indicator);
+                SQLGetData(stmt, column, SQL_C_CHAR, StringTraits::Data(result), AnsiStringType::Capacity + 1, indicator);
             if (rv == SQL_SUCCESS || rv == SQL_NO_DATA)
             {
                 if (*indicator == SQL_NULL_DATA)
