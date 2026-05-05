@@ -159,7 +159,7 @@ $(document).ready(function(){initNavTree('df/d7d/SqlOdbcWide_8hpp_source.html','
 <div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>        <span class="keywordflow">return</span> buffer.empty() ? nullptr : AsSqlWChar(buffer.data());</div>
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>    }</div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span> </div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>    [[nodiscard]] SQLSMALLINT length() const noexcept</div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>    [[nodiscard]] SQLSMALLINT length() const noexcept <span class="comment">// NOLINT(readability-identifier-naming)</span></div>
 <div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>    {</div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>        <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>SQLSMALLINT<span class="keyword">&gt;</span>(buffer.size());</div>
 <div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>    }</div>

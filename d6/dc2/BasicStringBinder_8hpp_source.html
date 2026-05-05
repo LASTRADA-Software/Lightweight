@@ -390,7 +390,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>        <span class="comment">// null terminator. SqlFixedString&lt;N&gt; backs its data with _data[N+1] for</span></div>
 <div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>        <span class="comment">// exactly this reason; pass Capacity+1 to let the driver write a full</span></div>
 <div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>        <span class="comment">// N-char value plus null. Dynamic strings keep the current behaviour.</span></div>
-<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>        SQLLEN <span class="keyword">const</span> bufferLength = [result]() -&gt; SQLLEN {</div>
+<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>        SQLLEN <span class="keyword">const</span> bufferLength = [=]() -&gt; SQLLEN {</div>
 <div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>            <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (<span class="keyword">requires</span> { AnsiStringType::Capacity; })</div>
 <div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>                <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(AnsiStringType::Capacity) + 1;</div>
 <div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>            <span class="keywordflow">else</span></div>
