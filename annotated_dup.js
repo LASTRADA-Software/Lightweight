@@ -1,9 +1,17 @@
 var annotated_dup =
 [
     [ "Lightweight", null, [
+      [ "CodeGen", null, [
+        [ "CodeBlock", "d5/d38/structLightweight_1_1CodeGen_1_1CodeBlock.html", "d5/d38/structLightweight_1_1CodeGen_1_1CodeBlock" ],
+        [ "WriteResult", "d2/d38/structLightweight_1_1CodeGen_1_1WriteResult.html", "d2/d38/structLightweight_1_1CodeGen_1_1WriteResult" ]
+      ] ],
       [ "Config", null, [
         [ "Profile", "d6/da2/structLightweight_1_1Config_1_1Profile.html", "d6/da2/structLightweight_1_1Config_1_1Profile" ],
         [ "ProfileStore", "d7/d36/classLightweight_1_1Config_1_1ProfileStore.html", "d7/d36/classLightweight_1_1Config_1_1ProfileStore" ]
+      ] ],
+      [ "Odbc", null, [
+        [ "DataSourceInfo", "da/d67/structLightweight_1_1Odbc_1_1DataSourceInfo.html", "da/d67/structLightweight_1_1Odbc_1_1DataSourceInfo" ],
+        [ "DriverInfo", "da/d88/structLightweight_1_1Odbc_1_1DriverInfo.html", "da/d88/structLightweight_1_1Odbc_1_1DriverInfo" ]
       ] ],
       [ "Secrets", null, [
         [ "ISecretBackend", "d2/d7e/classLightweight_1_1Secrets_1_1ISecretBackend.html", "d2/d7e/classLightweight_1_1Secrets_1_1ISecretBackend" ],
@@ -43,15 +51,9 @@ var annotated_dup =
       ] ],
       [ "SqlSchema", null, [
         [ "Column", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html", "d2/db8/structLightweight_1_1SqlSchema_1_1Column" ],
-        [ "ColumnDiff", "de/d75/structLightweight_1_1SqlSchema_1_1ColumnDiff.html", "de/d75/structLightweight_1_1SqlSchema_1_1ColumnDiff" ],
-        [ "DiffProgressEvent", "dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html", "dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent" ],
         [ "EventHandler", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler" ],
         [ "IndexDefinition", "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html", "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition" ],
-        [ "RowDiff", "d2/d37/structLightweight_1_1SqlSchema_1_1RowDiff.html", "d2/d37/structLightweight_1_1SqlSchema_1_1RowDiff" ],
-        [ "SchemaDiff", "d0/dd0/structLightweight_1_1SqlSchema_1_1SchemaDiff.html", "d0/dd0/structLightweight_1_1SqlSchema_1_1SchemaDiff" ],
-        [ "Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", "d3/dda/structLightweight_1_1SqlSchema_1_1Table" ],
-        [ "TableDataDiff", "d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html", "d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff" ],
-        [ "TableDiff", "da/d90/structLightweight_1_1SqlSchema_1_1TableDiff.html", "da/d90/structLightweight_1_1SqlSchema_1_1TableDiff" ]
+        [ "Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", "d3/dda/structLightweight_1_1SqlSchema_1_1Table" ]
       ] ],
       [ "Zip", null, [
         [ "EntryInfo", "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html", "d7/d09/structLightweight_1_1Zip_1_1EntryInfo" ],
@@ -67,6 +69,7 @@ var annotated_dup =
       [ "HasMany", "da/df4/classLightweight_1_1HasMany.html", "da/df4/classLightweight_1_1HasMany" ],
       [ "HasManyThrough", "de/d73/classLightweight_1_1HasManyThrough.html", "de/d73/classLightweight_1_1HasManyThrough" ],
       [ "HasOneThrough", "df/d63/classLightweight_1_1HasOneThrough.html", "df/d63/classLightweight_1_1HasOneThrough" ],
+      [ "MigrationRenderContext", "d4/d23/structLightweight_1_1MigrationRenderContext.html", "d4/d23/structLightweight_1_1MigrationRenderContext" ],
       [ "Pool", "d3/d30/classLightweight_1_1Pool.html", "d3/d30/classLightweight_1_1Pool" ],
       [ "PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", "df/d1a/structLightweight_1_1PoolConfig" ],
       [ "SqlAllFieldsQueryBuilder", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ],

@@ -107,6 +107,7 @@ var NAVTREE =
       ] ],
       [ "Migration Commands", "d5/dc4/dbtool.html#migration-commands", [
         [ "migrate", "d5/dc4/dbtool.html#migrate", null ],
+        [ "migrate-to-release <VERSION>", "d5/dc4/dbtool.html#migrate-to-release-version", null ],
         [ "list-pending", "d5/dc4/dbtool.html#list-pending", null ],
         [ "list-applied", "d5/dc4/dbtool.html#list-applied", null ],
         [ "status", "d5/dc4/dbtool.html#status", null ],
@@ -114,12 +115,6 @@ var NAVTREE =
         [ "rollback <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-timestamp", null ],
         [ "rollback-to <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-to-timestamp", null ],
         [ "mark-applied <TIMESTAMP>", "d5/dc4/dbtool.html#mark-applied-timestamp", null ]
-      ] ],
-      [ "Diff", "d5/dc4/dbtool.html#diff", [
-        [ "diff", "d5/dc4/dbtool.html#diff-1", [
-          [ "Examples", "d5/dc4/dbtool.html#examples", null ],
-          [ "Caveats", "d5/dc4/dbtool.html#caveats", null ]
-        ] ]
       ] ],
       [ "Backup & Restore", "d5/dc4/dbtool.html#backup--restore", [
         [ "backup", "d5/dc4/dbtool.html#backup", null ],
@@ -213,12 +208,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a5470e03fffa3ab2c2246997ffef998b4",
-"d5/de3/SqlVariant_8hpp_source.html",
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a619e3ff26981f9e067c79b5a50166816",
-"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#ab24c10bac0898e55bad7bbed81e990a5",
-"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a1b5b3de57afedeeb0e206e7e248c809d",
-"df/d7c/structLightweight_1_1SqlGuid.html#a725a19be99e81a3c3a478777cc048422"
+"d2/dd0/structLightweight_1_1Field.html#a4841173ec398cd2e999943f645b01585",
+"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca8f3d10eb21bd36347c258679eba9e92b",
+"d7/d36/classLightweight_1_1Config_1_1ProfileStore.html#a4e33a3b6b14ef58f4c5c445df3edf7f0",
+"d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#aa81e412a6d6b23847fae4ece37f4c27e",
+"dd/d06/structLightweight_1_1SqlBackup_1_1ChunkWriter.html#a2a35c526922042dcece928d84c7caac1",
+"df/d3f/structLightweight_1_1SqlVariant.html#a2be73331793cddcd6795abfeda4ec4dd"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
