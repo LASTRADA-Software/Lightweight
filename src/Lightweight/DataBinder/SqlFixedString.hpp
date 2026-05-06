@@ -471,9 +471,9 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
     LIGHTWEIGHT_FORCE_INLINE static void TrimRight(ValueType* boundOutputString, SQLLEN indicator) noexcept
     {
 #if defined(_WIN32)
-        size_t n = (std::min) (static_cast<size_t>(indicator) / sizeof(CharType), N - 1);
+        size_t n = (std::min) (static_cast<size_t>(indicator) / sizeof(CharType), N);
 #else
-        size_t n = std::min(static_cast<size_t>(indicator), N - 1);
+        size_t n = std::min(static_cast<size_t>(indicator), N);
 #endif
         // Strip trailing whitespace and null characters
         while (n > 0 && (std::isspace((*boundOutputString)[n - 1]) || (*boundOutputString)[n - 1] == '\0'))

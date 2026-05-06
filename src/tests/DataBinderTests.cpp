@@ -1450,6 +1450,34 @@ TEST_CASE_METHOD(SqlTestFixture, "Trimmed fixed strings strip trailing padding t
     CHECK(result->stringWide == SqlTrimmedWideFixedString<32> { L"Hellö" });
 }
 
+// Regression for #485: BasicStringBinder::OutputColumn passes BufferLength=N
+// (not N+1) to SQLBindCol, so ODBC truncates any value of length N to N-1
+// data chars + null. The bug only surfaces when the stored value fills the
+// full capacity with no trailing whitespace -- e.g. a 3-letter currency code
+// stored in a CHAR(3) column.
+struct FullCapacityFixedRow
+{
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlTrimmedFixedString<3>> code {};
+};
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Trimmed fixed string preserves a value that fills its capacity",
+                 "[DataMapper][SqlFixedString][regression]")
+{
+    auto dm = DataMapper {};
+    dm.CreateTable<FullCapacityFixedRow>();
+
+    FullCapacityFixedRow row {};
+    row.code = "EUR";
+    dm.Create(row);
+
+    auto const result = dm.QuerySingle<FullCapacityFixedRow>(row.id);
+    REQUIRE(result.has_value());
+    CHECK(result->code.Value().size() == 3);
+    CHECK(result->code.Value().str() == "EUR");
+}
+
 // Coverage for the SQL_C_WCHAR truncation arithmetic in
 // detail::GetRawColumnArrayData (BasicStringBinder.hpp). The function has two
 // re-fetch branches: (a) the driver reports total length up front and we re-
