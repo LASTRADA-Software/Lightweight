@@ -1,7 +1,8 @@
 var searchData=
 [
-  ['hasconnection_0',['HasConnection',['../d6/da2/structLightweight_1_1Config_1_1Profile.html#a8953f28a3a165519a67d2a079ce92f34',1,'Lightweight::Config::Profile']]],
-  ['hasdownimplementation_1',['HasDownImplementation',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#ae34f5e169eb26bf9318270631669f8d4',1,'Lightweight::SqlMigration::MigrationBase']]],
-  ['hash_2',['hash',['../d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html#a5e2543fab7e26971e52f0e9de1d81f60',1,'Lightweight::SqlBackup::Sha256::Hash(void const *data, size_t len)'],['../d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html#a4542ef56f347a6515633e34ae48a7381',1,'Lightweight::SqlBackup::Sha256::Hash(std::string_view data)']]],
-  ['hour_3',['hour',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a6cc185c14476e3a2aad0db9a1bf52622',1,'Lightweight::SqlDateTime']]]
+  ['hardreset_0',['HardReset',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a20c8c6018a3d4c75c69a57e2f63d0459',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['hasconnection_1',['HasConnection',['../d6/da2/structLightweight_1_1Config_1_1Profile.html#a8953f28a3a165519a67d2a079ce92f34',1,'Lightweight::Config::Profile']]],
+  ['hasdownimplementation_2',['HasDownImplementation',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#ae34f5e169eb26bf9318270631669f8d4',1,'Lightweight::SqlMigration::MigrationBase']]],
+  ['hash_3',['hash',['../d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html#a5e2543fab7e26971e52f0e9de1d81f60',1,'Lightweight::SqlBackup::Sha256::Hash(void const *data, size_t len)'],['../d2/d43/classLightweight_1_1SqlBackup_1_1Sha256.html#a4542ef56f347a6515633e34ae48a7381',1,'Lightweight::SqlBackup::Sha256::Hash(std::string_view data)']]],
+  ['hour_4',['hour',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a6cc185c14476e3a2aad0db9a1bf52622',1,'Lightweight::SqlDateTime']]]
 ];
