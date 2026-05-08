@@ -35,11 +35,32 @@ dbtool requires a database connection string, which can be provided in three way
 
 ### Configuration File Format
 
+Legacy single-profile shape (still supported):
+
 ```yaml
 ConnectionString: "DRIVER=SQLite3;Database=mydb.db"
 PluginsDir: ./plugins
 Schema: myschema
 ```
+
+Multi-profile shape:
+
+```yaml
+defaultProfile: prod
+defaultPluginsDir: ./plugins        # store-wide fallback for any profile
+                                    # that omits its own `pluginsDir`
+profiles:
+  prod:
+    schema: dbo
+    connectionString: "DRIVER={ODBC Driver 18 for SQL Server};Server=...;Database=prod"
+  dev:
+    pluginsDir: ./dev-plugins       # per-profile override
+    connectionString: "DRIVER=SQLite3;Database=dev.db"
+```
+
+The effective plugin directory for a given run resolves as: `--plugins-dir`
+CLI option → profile's own `pluginsDir` → top-level `defaultPluginsDir` →
+current working directory.
 
 ### Database-Specific Connection Strings
 
@@ -73,6 +94,51 @@ Use `--dry-run` to preview SQL without executing:
 ```bash
 dbtool migrate --dry-run --connection-string "..."
 ```
+
+#### Custom default schema (`--schema`)
+
+The `--schema <NAME>` flag pins the connection's default schema for the
+migration runner — useful when the target database expects unqualified DDL/DML
+to land in a non-default schema (e.g. `lasa` instead of `dbo` / `public`):
+
+```bash
+dbtool migrate --schema lasa --connection-string "..."
+```
+
+Per-backend behaviour:
+
+| Backend     | What `--schema` does for migrations                                                                                              |
+|-------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| PostgreSQL  | Emits `SET search_path TO "<schema>", public` on every new connection. The `schema_migrations` history table is created here and unqualified DDL inside migrations lands here too. |
+| SQL Server  | **No session-level switch is portable.** Use the login's server-side `DEFAULT_SCHEMA` (`ALTER USER … WITH DEFAULT_SCHEMA = lasa`). `--schema` is still accepted (it qualifies table names in backup/restore archives) but does *not* relocate `schema_migrations`. |
+| SQLite      | No-op — SQLite has no schema concept beyond attached databases.                                                                  |
+
+Schema names are validated against `[A-Za-z0-9_]` to keep them safe to
+interpolate into `SET search_path`. Anything else is rejected.
+
+The same flag also applies to `apply`, `rollback`, `migrate-to-release`,
+`rollback-to-release`, `status`, and the backup/restore commands (where the
+schema additionally qualifies table names inside the archive).
+
+### migrate-to-release \<VERSION\>
+
+Apply pending migrations up to (and including) the named release. Forward-only:
+if the database is already at or past the target release, the command is a
+no-op and prints a hint pointing at `rollback-to-release`. Pair with
+`--dry-run` (`-n`) to preview the SQL without touching the database.
+
+```bash
+dbtool migrate-to-release 1.0.0
+dbtool migrate-to-release 1.0.0 --dry-run
+```
+
+The release version must match a `LIGHTWEIGHT_SQL_RELEASE(...)` declaration
+shipped by one of the loaded plugins. Use `dbtool releases` to list them.
+
+If a pending migration whose timestamp is `<= release.highestTimestamp`
+declares a dependency on a migration whose timestamp is `>` the release
+boundary (and is not already applied), `migrate-to-release` refuses to run
+rather than applying a partial state that violates the dependency contract.
 
 ### list-pending
 
@@ -205,6 +271,9 @@ dbtool restore --input backup.zip --filter-tables=Users,Products
 | `--quiet`, `-q` | Suppress progress output | |
 | `--dry-run`, `-n` | Preview without executing | |
 | `--no-lock` | Skip migration locking | |
+| `--schema-only` | For backup/restore: skip data. For `diff`: skip the data diff. | |
+| `--no-color` | Disable ANSI colors in `diff` output (auto-disabled when not at a tty) | |
+| `--max-rows <N>` | Cap rows scanned per table for `diff` data mode | `0` (unlimited) |
 | `--max-retries <N>` | Maximum retry attempts for transient errors | `3` |
 | `--help` | Show help message | |
 

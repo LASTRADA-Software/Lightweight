@@ -212,6 +212,21 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return name;
     }
 
+    /// @brief Returns the SQL statement to execute after connect to make
+    /// `schema` the connection-level default for unqualified DDL/DML.
+    ///
+    /// Returns an empty string when the DBMS has no session-level concept of a
+    /// default schema (SQL Server, SQLite). Callers must skip emission for
+    /// empty results. PostgreSQL implements this via `SET search_path TO ...`.
+    ///
+    /// The `schema` value is interpolated into the statement; callers must
+    /// validate it (e.g. whitelist `[A-Za-z0-9_]`) before invoking.
+    [[nodiscard]] virtual std::string SetDefaultSchemaStatement(std::string_view schema) const
+    {
+        (void) schema;
+        return {};
+    }
+
   protected:
     /// Formats a table name with optional schema prefix.
     static std::string FormatTableName(std::string_view schema, std::string_view table);

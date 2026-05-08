@@ -279,6 +279,38 @@ plan.CreateTable("example")
 
 ## Migration Manager API
 
+### Custom Default Schema
+
+When the target database expects unqualified DDL to land in a non-default
+schema (e.g. `lasa` instead of `dbo` / `public`), tell the manager about it
+*before* opening the first connection:
+
+```cpp
+auto& manager = MigrationManager::GetInstance();
+manager.SetDefaultSchema("lasa"); // empty disables
+manager.CreateMigrationHistory();
+manager.ApplyPendingMigrations();
+```
+
+`SetDefaultSchema` installs a post-connect hook that emits the dialect-
+specific "make this the session default" statement for every new connection:
+
+- **PostgreSQL** — `SET search_path TO "lasa", public`. Both
+  `schema_migrations` and unqualified DDL inside migrations land in `lasa`.
+- **SQL Server** — no portable session-level switch exists; the hook is a
+  no-op. Configure the connecting login's `DEFAULT_SCHEMA` server-side
+  (`ALTER USER … WITH DEFAULT_SCHEMA = lasa`). Migrations that need to write
+  to a specific schema regardless of the login default should use the
+  `WithSchema(...)` builder.
+- **SQLite** — no schema concept; the hook is a no-op.
+
+Schema names are validated against `[A-Za-z0-9_]` and rejected via
+`std::invalid_argument` otherwise. Passing `""` clears any previously
+installed hook.
+
+`dbtool` exposes this via the `--schema` flag and `dbtool-gui` exposes it as
+a "Schema" input on both the Profile and the direct-ODBC connection tabs.
+
 ### Applying Migrations Programmatically
 
 ```cpp

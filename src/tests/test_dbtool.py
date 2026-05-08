@@ -105,6 +105,13 @@ def run_command(cmd, check=True):
         print("STDERR:", result.stderr)
         if check:
             sys.exit(result.returncode)
+    # Plugin loading is silent on success. Any stderr line about plugin migration
+    # retrieval indicates a regression (e.g. duplicate release registration).
+    if "Error retrieving migrations from plugin" in result.stderr:
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
+        print("Plugin reported a migration-retrieval error — see stderr above")
+        sys.exit(1)
     return result
 
 
@@ -198,6 +205,42 @@ def main():
         print(f"rollback-to-release 1.0.0 incorrectly reverted a migration inside the release:\n{output}")
         sys.exit(1)
 
+    print("--- 7b1. migrate-to-release dry-run ---")
+    dry_result = run_command(base_cmd + ["migrate-to-release", "2.0.0", "--dry-run"])
+    if "Second Plugin Migration" not in dry_result.stdout:
+        print(f"migrate-to-release --dry-run did not preview the plugin 2 migration:\n{dry_result.stdout}")
+        sys.exit(1)
+    output = run_command(base_cmd + ["list-applied"]).stdout
+    if "Second Plugin Migration" in output:
+        print(f"migrate-to-release --dry-run unexpectedly applied the plugin 2 migration:\n{output}")
+        sys.exit(1)
+
+    print("--- 7b2. migrate-to-release with unknown release ---")
+    bad_result = run_command(base_cmd + ["migrate-to-release", "does-not-exist"], check=False)
+    if bad_result.returncode == 0:
+        print("migrate-to-release with unknown version unexpectedly succeeded")
+        sys.exit(1)
+    if "not declared" not in bad_result.stderr:
+        print(f"migrate-to-release error message did not mention 'not declared':\n{bad_result.stderr}")
+        sys.exit(1)
+
+    print("--- 7b3. migrate-to-release when already at release ---")
+    same_result = run_command(base_cmd + ["migrate-to-release", "1.0.0"])
+    if "already at or past" not in same_result.stdout:
+        print(f"migrate-to-release at boundary did not report already-at-target:\n{same_result.stdout}")
+        sys.exit(1)
+    output = run_command(base_cmd + ["list-applied"]).stdout
+    if "Second Plugin Migration" in output:
+        print(f"migrate-to-release at boundary should not advance state:\n{output}")
+        sys.exit(1)
+
+    print("--- 7b4. migrate-to-release happy path ---")
+    run_command(base_cmd + ["migrate-to-release", "2.0.0"])
+    output = run_command(base_cmd + ["list-applied"]).stdout
+    if "Second Plugin Migration" not in output:
+        print(f"migrate-to-release 2.0.0 did not advance to plugin 2 migration:\n{output}")
+        sys.exit(1)
+
     print("--- 7c. Re-apply after release rollback ---")
     run_command(base_cmd + ["migrate"])
     output = run_command(base_cmd + ["list-applied"]).stdout
@@ -232,6 +275,56 @@ def main():
                                              "--output", os.path.join(tmpdir, "discard.zip")]).stdout
         if "schema only" not in dry_output.lower():
             print(f"Dry-run output did not mention schema-only backup:\n{dry_output}")
+            sys.exit(1)
+
+    # `--schema <NAME>` is honored by migrate on PostgreSQL via post-connect
+    # `SET search_path`. On SQL Server / SQLite the flag is parsed but the
+    # migration runner relies on the login's server-side DEFAULT_SCHEMA (or
+    # there's no schema concept at all), so we only assert the live effect on
+    # Postgres. The flag must still parse cleanly on every backend.
+    print("--- 11. --schema flag parses on every backend ---")
+    schema_help = run_command([args.dbtool, "--help"]).stdout
+    if "--schema" not in schema_help:
+        print(f"--schema flag missing from --help:\n{schema_help}")
+        sys.exit(1)
+
+    is_postgres = "postgres" in connection_string.lower() or "postgresql" in connection_string.lower()
+    if is_postgres:
+        print("--- 12. --schema lasa lands schema_migrations in lasa (Postgres) ---")
+        # Tear down, then create a fresh `lasa_test` schema and migrate into it.
+        # We use a dedicated schema name so this test does not stomp on any
+        # `lasa` the operator may already have.
+        run_command(base_cmd + ["exec", 'DROP SCHEMA IF EXISTS "lasa_test" CASCADE'])
+        run_command(base_cmd + ["exec", 'CREATE SCHEMA "lasa_test"'])
+
+        schema_cmd = base_cmd + ["--schema", "lasa_test"]
+        run_command(schema_cmd + ["migrate"])
+
+        # Confirm the migration history table lives in lasa_test, not public.
+        in_lasa = run_command(base_cmd + [
+            "exec",
+            "SELECT 1 FROM information_schema.tables "
+            "WHERE table_schema='lasa_test' AND table_name='schema_migrations'"
+        ]).stdout
+        if "1" not in in_lasa:
+            print(f"schema_migrations did not land in lasa_test schema:\n{in_lasa}")
+            sys.exit(1)
+
+        # And clean up after ourselves.
+        run_command(base_cmd + ["exec", 'DROP SCHEMA IF EXISTS "lasa_test" CASCADE'])
+    else:
+        print("--- 12. --schema effect check skipped: only Postgres has session-level default schema ---")
+
+    print("--- 13. status fails fast when no migration plugin is loaded ---")
+    with tempfile.TemporaryDirectory() as empty_plugins_dir:
+        empty_cmd = [args.dbtool, "--plugins-dir", empty_plugins_dir,
+                     "--connection-string", connection_string, "status"]
+        no_plugin_result = run_command(empty_cmd, check=False)
+        if no_plugin_result.returncode == 0:
+            print("status with empty plugins dir unexpectedly succeeded")
+            sys.exit(1)
+        if "No migrations registered" not in no_plugin_result.stderr:
+            print(f"status error message did not mention 'No migrations registered':\n{no_plugin_result.stderr}")
             sys.exit(1)
 
     print("SUCCESS")

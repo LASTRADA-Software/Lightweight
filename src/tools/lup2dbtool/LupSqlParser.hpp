@@ -5,6 +5,7 @@
 #include "LupVersionConverter.hpp"
 #include "SqlStatementParser.hpp"
 
+#include <expected>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -46,22 +47,32 @@ struct ParsedMigration
 /// @brief Configuration for the SQL parser.
 struct ParserConfig
 {
-    /// Input encoding: "windows-1252" or "utf-8"
-    std::string inputEncoding = "windows-1252";
+    /// Input encoding: "auto" (detect per file), "windows-1252", or "utf-8".
+    ///
+    /// In `auto` mode each file is classified individually by inspecting the SQL payload
+    /// (with comments stripped from the detection signal): files that validate as UTF-8
+    /// are kept as-is, the rest are converted from Windows-1252.
+    ///
+    /// In the explicit modes the file MUST match the declared encoding; mismatches are
+    /// reported as errors so a stale `--input-encoding` flag cannot silently double-encode
+    /// a UTF-8 file or the reverse.
+    std::string inputEncoding = "auto";
 };
 
 /// @brief Parses a LUP SQL migration file.
 ///
 /// This parser handles:
-/// - Encoding conversion from Windows-1252 to UTF-8
+/// - Per-file encoding detection / conversion to UTF-8
 /// - Directive parsing (--[Based on Lup Version X.X.X], --/* LUP-Version: X_X_X */, --print 'message')
 /// - SQL statement extraction (newline-delimited, no semicolons)
 /// - Comment preservation for transfer to C++ output
 ///
 /// @param filePath Path to the SQL file
 /// @param config Parser configuration
-/// @return Parsed migration structure or nullopt on error
-[[nodiscard]] std::optional<ParsedMigration> ParseSqlFile(std::filesystem::path const& filePath, ParserConfig const& config);
+/// @return Parsed migration on success, or an error string describing why parsing failed
+///         (file unreadable, declared-encoding mismatch, etc.).
+[[nodiscard]] std::expected<ParsedMigration, std::string> ParseSqlFile(std::filesystem::path const& filePath,
+                                                                       ParserConfig const& config);
 
 /// @brief Discovers all LUP migration files in a directory.
 ///
@@ -70,5 +81,27 @@ struct ParserConfig
 /// @param directory Path to the directory containing SQL files
 /// @return Vector of paths to discovered migration files, sorted by version
 [[nodiscard]] std::vector<std::filesystem::path> DiscoverMigrationFiles(std::filesystem::path const& directory);
+
+/// @brief Resolves positional column names in INSERT statements against the
+/// cumulative schema observed across all migrations.
+///
+/// The LUP SQL dialect permits columnless `INSERT INTO T VALUES (...)`, in
+/// which case `ParseInsert` stores synthetic numeric column names ("0", "1",
+/// ...) because it has no schema context at parse time. This pass walks the
+/// migrations in order, maintains a `tableName -> ordered column list` map
+/// built from `CreateTableStmt` + `AlterTableAddColumnStmt`, and substitutes
+/// real column names for those positional indices.
+///
+/// Any insert whose positional index exceeds the tracked column count is
+/// replaced with a `RawSqlStmt` carrying a commented-out original — this
+/// typically indicates malformed input (e.g. unbalanced string literals) and
+/// would otherwise produce broken SQL.
+///
+/// Idempotent: running it twice is a no-op because numeric-only column names
+/// are replaced on the first pass.
+///
+/// @param migrations Migrations to rewrite in place (must be in version order
+///                   so later ALTER TABLE calls observe earlier CREATE TABLE).
+void ResolvePositionalInserts(std::vector<ParsedMigration>& migrations);
 
 } // namespace Lup2DbTool

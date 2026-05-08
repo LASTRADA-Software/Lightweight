@@ -4,9 +4,20 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <chrono>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <system_error>
+#include <variant>
+
+#include <CodeGenerator.hpp>
 #include <LupSqlParser.hpp>
 #include <LupVersionConverter.hpp>
 #include <SqlStatementParser.hpp>
+#include <WhereClauseParser.hpp>
 
 using namespace Lup2DbTool;
 using Lightweight::ConvertWindows1252ToUtf8;
@@ -19,6 +30,15 @@ TEST_CASE("LupVersion.ToString", "[lup2dbtool]")
     CHECK(LupVersion { 6, 8, 8 }.ToString() == "6_08_08");
     CHECK(LupVersion { 2, 1, 5 }.ToString() == "2_01_05");
     CHECK(LupVersion { 10, 0, 0 }.ToString() == "10_00_00");
+}
+
+TEST_CASE("LupVersion.ToDottedString", "[lup2dbtool]")
+{
+    // The dotted form matches the convention used by release markers surfaced
+    // through dbtool / dbtool-gui: no zero-padding, dot-separated segments.
+    CHECK(LupVersion { 6, 8, 8 }.ToDottedString() == "6.8.8");
+    CHECK(LupVersion { 2, 1, 5 }.ToDottedString() == "2.1.5");
+    CHECK(LupVersion { 10, 0, 0 }.ToDottedString() == "10.0.0");
 }
 
 TEST_CASE("LupVersion.ToInteger", "[lup2dbtool]")
@@ -225,6 +245,314 @@ TEST_CASE("ParseSqlStatement.Insert", "[lup2dbtool]")
     CHECK(insert.columnValues[1].second == "30");
 }
 
+TEST_CASE("ParseSqlStatement.Insert.CommaInsideString", "[lup2dbtool]")
+{
+    // German decimal notation inside string literal must not split the values.
+    auto stmt = ParseSqlStatement("INSERT INTO recipe VALUES (1, '32,5 L', 'x 12,0 32,5 52,5 75')");
+    REQUIRE(std::holds_alternative<InsertStmt>(stmt));
+
+    auto const& insert = std::get<InsertStmt>(stmt);
+    CHECK(insert.tableName == "recipe");
+    REQUIRE(insert.columnValues.size() == 3);
+    CHECK(insert.columnValues[0].second == "1");
+    CHECK(insert.columnValues[1].second == "'32,5 L'");
+    CHECK(insert.columnValues[2].second == "'x 12,0 32,5 52,5 75'");
+}
+
+TEST_CASE("ParseSqlStatement.Insert.ParenInsideString", "[lup2dbtool]")
+{
+    // Parens inside a string literal must not terminate the VALUES clause.
+    auto stmt = ParseSqlStatement("INSERT INTO t (id, code, label, status, other_id) "
+                                  "VALUES (16, 'AB/CD', 'primary (unit/legacy)', 'unset', 99)");
+    REQUIRE(std::holds_alternative<InsertStmt>(stmt));
+
+    auto const& insert = std::get<InsertStmt>(stmt);
+    REQUIRE(insert.columnValues.size() == 5);
+    CHECK(insert.columnValues[2].first == "label");
+    CHECK(insert.columnValues[2].second == "'primary (unit/legacy)'");
+    CHECK(insert.columnValues[4].second == "99");
+}
+
+TEST_CASE("ParseSqlStatement.Insert.ParenInsideString.ColumnLessForm", "[lup2dbtool]")
+{
+    auto stmt = ParseSqlStatement("INSERT INTO t VALUES (1, 'a (b) c', 'd,e,f', 2)");
+    REQUIRE(std::holds_alternative<InsertStmt>(stmt));
+
+    auto const& insert = std::get<InsertStmt>(stmt);
+    REQUIRE(insert.columnValues.size() == 4);
+    CHECK(insert.columnValues[1].second == "'a (b) c'");
+    CHECK(insert.columnValues[2].second == "'d,e,f'");
+}
+
+TEST_CASE("ResolvePositionalInserts substitutes real column names", "[lup2dbtool]")
+{
+    // Build two migrations: one creates `cfg(nr, val)`, the other inserts into it
+    // without an explicit column list — ParseInsert stores "0", "1".
+    ParsedMigration m1;
+    m1.sourceFile = "m1.sql";
+    {
+        CreateTableStmt c;
+        c.tableName = "cfg";
+        c.columns.push_back({ .name = "nr", .type = "integer" });
+        c.columns.push_back({ .name = "val", .type = "integer" });
+        m1.statements.push_back({ .comments = {}, .statement = c });
+    }
+
+    ParsedMigration m2;
+    m2.sourceFile = "m2.sql";
+    {
+        // Mimic what ParseInsert produces for `INSERT INTO cfg VALUES (4, 215)`
+        InsertStmt i;
+        i.tableName = "cfg";
+        i.columnValues.emplace_back("0", "4");
+        i.columnValues.emplace_back("1", "215");
+        m2.statements.push_back({ .comments = {}, .statement = i });
+    }
+
+    std::vector migrations { m1, m2 };
+    ResolvePositionalInserts(migrations);
+
+    auto const& insert = std::get<InsertStmt>(migrations[1].statements[0].statement);
+    REQUIRE(insert.columnValues.size() == 2);
+    CHECK(insert.columnValues[0].first == "nr");
+    CHECK(insert.columnValues[0].second == "4");
+    CHECK(insert.columnValues[1].first == "val");
+    CHECK(insert.columnValues[1].second == "215");
+}
+
+TEST_CASE("ResolvePositionalInserts tracks ALTER TABLE ADD COLUMN", "[lup2dbtool]")
+{
+    ParsedMigration m;
+    m.sourceFile = "m.sql";
+    {
+        CreateTableStmt c;
+        c.tableName = "t";
+        c.columns.push_back({ .name = "id", .type = "integer" });
+        m.statements.push_back({ .comments = {}, .statement = c });
+    }
+    {
+        AlterTableAddColumnStmt a;
+        a.tableName = "t";
+        a.column.name = "extra";
+        a.column.type = "integer";
+        m.statements.push_back({ .comments = {}, .statement = a });
+    }
+    {
+        InsertStmt i;
+        i.tableName = "t";
+        i.columnValues.emplace_back("0", "1");
+        i.columnValues.emplace_back("1", "99");
+        m.statements.push_back({ .comments = {}, .statement = i });
+    }
+
+    std::vector migrations { m };
+    ResolvePositionalInserts(migrations);
+
+    auto const& insert = std::get<InsertStmt>(migrations[0].statements[2].statement);
+    CHECK(insert.columnValues[0].first == "id");
+    CHECK(insert.columnValues[1].first == "extra");
+}
+
+TEST_CASE("ResolvePositionalInserts leaves out-of-bounds indices untouched", "[lup2dbtool]")
+{
+    ParsedMigration m;
+    m.sourceFile = "m.sql";
+    {
+        CreateTableStmt c;
+        c.tableName = "t";
+        c.columns.push_back({ .name = "id", .type = "integer" });
+        m.statements.push_back({ .comments = {}, .statement = c });
+    }
+    {
+        InsertStmt i;
+        i.tableName = "t";
+        i.columnValues.emplace_back("0", "1");
+        i.columnValues.emplace_back("1", "bogus"); // Table has only 1 column.
+        m.statements.push_back({ .comments = {}, .statement = i });
+    }
+
+    std::vector migrations { m };
+    ResolvePositionalInserts(migrations);
+
+    auto const& insert = std::get<InsertStmt>(migrations[0].statements[1].statement);
+    CHECK(insert.columnValues[0].first == "id"); // resolved
+    CHECK(insert.columnValues[1].first == "1");  // left as-is (warning printed)
+}
+
+TEST_CASE("MapSqlType.ForceUnicodeWidensCharAndVarchar", "[lup2dbtool]")
+{
+    // Default (forceUnicode=true): CHAR/VARCHAR widen to N-prefixed Unicode variants.
+    CHECK(CodeGenerator::MapSqlType("VARCHAR(30)").value_or("?") == "NVarchar(30)");
+    CHECK(CodeGenerator::MapSqlType("CHAR(3)").value_or("?") == "NChar(3)");
+
+    // Explicit opt-out: stays as narrow types.
+    CHECK(CodeGenerator::MapSqlType("VARCHAR(30)", /*forceUnicode=*/false).value_or("?") == "Varchar(30)");
+    CHECK(CodeGenerator::MapSqlType("CHAR(3)", /*forceUnicode=*/false).value_or("?") == "Char(3)");
+
+    // Already-unicode types are left alone either way.
+    CHECK(CodeGenerator::MapSqlType("NVARCHAR(30)").value_or("?") == "NVarchar(30)");
+    CHECK(CodeGenerator::MapSqlType("NCHAR(3)").value_or("?") == "NChar(3)");
+    CHECK(CodeGenerator::MapSqlType("NVARCHAR(30)", /*forceUnicode=*/false).value_or("?") == "NVarchar(30)");
+    CHECK(CodeGenerator::MapSqlType("NCHAR(3)", /*forceUnicode=*/false).value_or("?") == "NChar(3)");
+
+    // Non-char types are unaffected.
+    CHECK(CodeGenerator::MapSqlType("INTEGER").value_or("?") == "Integer()");
+    CHECK(CodeGenerator::MapSqlType("DECIMAL(10,2)").value_or("?") == "Decimal(10, 2)");
+}
+
+TEST_CASE("ParseWhereClause rejects empty input", "[lup2dbtool]")
+{
+    CHECK(!ParseWhereClause("").has_value());
+    CHECK(!ParseWhereClause("   ").has_value());
+}
+
+TEST_CASE("ParseWhereClause.SimpleComparison", "[lup2dbtool]")
+{
+    auto rendered = ParseWhereClause("x = 1");
+    REQUIRE(rendered.has_value());
+    auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
+    CHECK(text == R"("X" = 1)");
+}
+
+TEST_CASE("ParseWhereClause.QualifiedIdentifier", "[lup2dbtool]")
+{
+    auto rendered = ParseWhereClause("a.col = outer.col");
+    REQUIRE(rendered.has_value());
+    auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
+    CHECK(text == R"("A"."COL" = "OUTER"."COL")");
+}
+
+TEST_CASE("ParseWhereClause.NotEqualNullIsPreservedAsLiteralRhs", "[lup2dbtool]")
+{
+    // `x <> null` is legal SQL text (though semantically never true); the LUP
+    // source uses it as a guard. The parser accepts it and passes it through.
+    auto rendered = ParseWhereClause("x <> null");
+    REQUIRE(rendered.has_value());
+    auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
+    CHECK(text == R"("X" <> NULL)");
+}
+
+TEST_CASE("ParseWhereClause.IsNullAndIsNotNull", "[lup2dbtool]")
+{
+    {
+        auto rendered = ParseWhereClause("a.col is null");
+        REQUIRE(rendered.has_value());
+        auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
+        CHECK(text == R"("A"."COL" IS NULL)");
+    }
+    {
+        auto rendered = ParseWhereClause("col IS NOT NULL");
+        REQUIRE(rendered.has_value());
+        auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
+        CHECK(text == R"("COL" IS NOT NULL)");
+    }
+}
+
+TEST_CASE("ParseWhereClause.NotAndParens", "[lup2dbtool]")
+{
+    auto rendered = ParseWhereClause("NOT (col is null) AND other = 1");
+    REQUIRE(rendered.has_value());
+    auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
+    CHECK(text == R"(NOT ("COL" IS NULL) AND "OTHER" = 1)");
+}
+
+TEST_CASE("ParseWhereClause.InSubquery", "[lup2dbtool]")
+{
+    auto rendered = ParseWhereClause("fk IN (select id from parent)");
+    REQUIRE(rendered.has_value());
+    auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
+    CHECK(text == R"("FK" IN (SELECT "ID" FROM "PARENT"))");
+}
+
+TEST_CASE("ParseWhereClause.NotInSubquery", "[lup2dbtool]")
+{
+    auto rendered = ParseWhereClause("fk not in (select id from parent)");
+    REQUIRE(rendered.has_value());
+    auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
+    CHECK(text == R"("FK" NOT IN (SELECT "ID" FROM "PARENT"))");
+}
+
+TEST_CASE("ParseWhereClause.ExistsCorrelatedSubquery", "[lup2dbtool]")
+{
+    auto rendered = ParseWhereClause("exists (select * from parent as p where p.id = child.parent_id)");
+    REQUIRE(rendered.has_value());
+    auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
+    CHECK(text == R"(EXISTS (SELECT * FROM "PARENT" AS "P" WHERE "P"."ID" = "CHILD"."PARENT_ID"))");
+}
+
+TEST_CASE("ParseWhereClause.CompositeAndExistsWithIsNull", "[lup2dbtool]")
+{
+    auto rendered =
+        ParseWhereClause("exists (select * from parent as p where p.id = child.parent_id) AND child.col is null");
+    REQUIRE(rendered.has_value());
+    auto const& text = rendered.value(); // NOLINT(bugprone-unchecked-optional-access)
+    CHECK(text
+          == R"(EXISTS (SELECT * FROM "PARENT" AS "P" WHERE "P"."ID" = "CHILD"."PARENT_ID") AND "CHILD"."COL" IS NULL)");
+}
+
+TEST_CASE("ParseWhereClause.RejectsUnknownPredicate", "[lup2dbtool]")
+{
+    CHECK(!ParseWhereClause("col LIKE 'pattern'").has_value());
+    CHECK(!ParseWhereClause("col BETWEEN 1 AND 5").has_value());
+}
+
+TEST_CASE("ParseWhereClause.RejectsTrailingGarbage", "[lup2dbtool]")
+{
+    CHECK(!ParseWhereClause("col = 1 BOGUS").has_value());
+}
+
+TEST_CASE("ParseSqlStatement.Update.CompositeWhereIsStructured", "[lup2dbtool]")
+{
+    auto stmt = ParseSqlStatement("UPDATE products SET archived = 1 WHERE (archived <> null) "
+                                  "AND NOT (parent_id IN (select id from parents))");
+    REQUIRE(std::holds_alternative<UpdateStmt>(stmt));
+
+    auto const& u = std::get<UpdateStmt>(stmt);
+    CHECK(u.tableName == "products");
+    REQUIRE(u.setColumns.size() == 1);
+    CHECK(u.setColumns[0].first == "archived");
+    CHECK(u.setColumns[0].second == "1");
+    // Structured parse: whereExpression filled, structured fields cleared.
+    CHECK(u.whereColumn.empty());
+    CHECK(u.whereExpression == R"(("ARCHIVED" <> NULL) AND NOT ("PARENT_ID" IN (SELECT "ID" FROM "PARENTS")))");
+}
+
+TEST_CASE("ParseSqlStatement.Update.ExistsSubqueryIsStructured", "[lup2dbtool]")
+{
+    auto stmt = ParseSqlStatement("UPDATE docs SET folder = NAME WHERE EXISTS "
+                                  "(select * from archives as a where a.id=archive_id AND not(a.root_nr is null)) "
+                                  "AND folder is null");
+    REQUIRE(std::holds_alternative<UpdateStmt>(stmt));
+    auto const& u = std::get<UpdateStmt>(stmt);
+    CHECK(u.tableName == "docs");
+    CHECK(u.whereExpression.contains("EXISTS ("));
+    CHECK(u.whereExpression.contains(R"("FOLDER" IS NULL)"));
+}
+
+TEST_CASE("ParseSqlStatement.Update.WhereIsNull", "[lup2dbtool]")
+{
+    auto stmt = ParseSqlStatement("UPDATE measurements SET duration = 3 where duration is null");
+    REQUIRE(std::holds_alternative<UpdateStmt>(stmt));
+
+    auto const& update = std::get<UpdateStmt>(stmt);
+    CHECK(update.tableName == "measurements");
+    REQUIRE(update.setColumns.size() == 1);
+    CHECK(update.setColumns[0].first == "duration");
+    CHECK(update.setColumns[0].second == "3");
+    CHECK(update.whereColumn == "duration");
+    CHECK(update.whereOp == "IS NULL");
+    CHECK(update.whereValue.empty());
+}
+
+TEST_CASE("ParseSqlStatement.Update.WhereIsNotNull", "[lup2dbtool]")
+{
+    auto stmt = ParseSqlStatement("UPDATE t SET x = 1 WHERE x IS NOT NULL");
+    REQUIRE(std::holds_alternative<UpdateStmt>(stmt));
+    auto const& u = std::get<UpdateStmt>(stmt);
+    CHECK(u.whereColumn == "x");
+    CHECK(u.whereOp == "IS NOT NULL");
+}
+
 TEST_CASE("ParseSqlStatement.Update", "[lup2dbtool]")
 {
     auto stmt = ParseSqlStatement("UPDATE config SET value = 100 WHERE key = 'test'");
@@ -250,6 +578,29 @@ TEST_CASE("ParseSqlStatement.Delete", "[lup2dbtool]")
     CHECK(del.whereColumn == "id");
     CHECK(del.whereOp == "=");
     CHECK(del.whereValue == "5");
+}
+
+TEST_CASE("ParseSqlStatement.Delete.CompositeAndIsStructured", "[lup2dbtool]")
+{
+    // The naive `.+` value capture used to slurp `4104 AND idc = 2529` into a
+    // single string value. The structured parser now handles composite WHEREs.
+    auto stmt = ParseSqlStatement("DELETE FROM dlg_ctrl_prop WHERE idd = 4104 AND idc = 2529");
+    REQUIRE(std::holds_alternative<DeleteStmt>(stmt));
+
+    auto const& del = std::get<DeleteStmt>(stmt);
+    CHECK(del.tableName == "dlg_ctrl_prop");
+    CHECK(del.whereColumn.empty());
+    CHECK(del.whereExpression == R"("IDD" = 4104 AND "IDC" = 2529)");
+}
+
+TEST_CASE("ParseSqlStatement.Delete.IsNull", "[lup2dbtool]")
+{
+    auto stmt = ParseSqlStatement("DELETE FROM cfg WHERE value IS NULL");
+    REQUIRE(std::holds_alternative<DeleteStmt>(stmt));
+    auto const& del = std::get<DeleteStmt>(stmt);
+    CHECK(del.whereColumn == "value");
+    CHECK(del.whereOp == "IS NULL");
+    CHECK(del.whereExpression.empty());
 }
 
 TEST_CASE("ParseSqlStatement.CreateIndex", "[lup2dbtool]")
@@ -402,4 +753,353 @@ TEST_CASE("ParseSqlStatement.RawSql", "[lup2dbtool]")
 
     auto const& raw = std::get<RawSqlStmt>(stmt);
     CHECK(raw.sql == "TRUNCATE TABLE test");
+}
+
+// ================================================================================================
+// Multi-word column type parsing (parser must capture the full type phrase)
+
+TEST_CASE("ParseSqlStatement.CreateTable.LongVarcharColumn", "[lup2dbtool]")
+{
+    auto stmt = ParseSqlStatement("CREATE TABLE t (id INTEGER NOT NULL, body long varchar)");
+    REQUIRE(std::holds_alternative<CreateTableStmt>(stmt));
+
+    auto const& create = std::get<CreateTableStmt>(stmt);
+    REQUIRE(create.columns.size() == 2);
+    CHECK(create.columns[1].name == "body");
+    CHECK(create.columns[1].type == "long varchar");
+    CHECK(create.columns[1].isNullable);
+}
+
+TEST_CASE("ParseSqlStatement.CreateTable.LongVarcharNotNull", "[lup2dbtool]")
+{
+    auto stmt = ParseSqlStatement("CREATE TABLE t (body long varchar not null)");
+    REQUIRE(std::holds_alternative<CreateTableStmt>(stmt));
+
+    auto const& create = std::get<CreateTableStmt>(stmt);
+    REQUIRE(create.columns.size() == 1);
+    CHECK(create.columns[0].type == "long varchar");
+    CHECK_FALSE(create.columns[0].isNullable);
+}
+
+TEST_CASE("ParseSqlStatement.CreateTable.CollapsesInnerWhitespace", "[lup2dbtool]")
+{
+    // Inner whitespace in a multi-word type normalizes to single spaces.
+    auto stmt = ParseSqlStatement("CREATE TABLE t (body long   varchar)");
+    REQUIRE(std::holds_alternative<CreateTableStmt>(stmt));
+
+    auto const& create = std::get<CreateTableStmt>(stmt);
+    REQUIRE(create.columns.size() == 1);
+    CHECK(create.columns[0].type == "long varchar");
+}
+
+TEST_CASE("ParseSqlStatement.CreateTable.DecimalKeepsParenContents", "[lup2dbtool]")
+{
+    // Paren contents must stay atomic — the comma inside decimal(10,2) must NOT be
+    // treated as a column separator, and the type phrase must include the full parens.
+    auto stmt = ParseSqlStatement("CREATE TABLE t (amount decimal(10,2) not null)");
+    REQUIRE(std::holds_alternative<CreateTableStmt>(stmt));
+
+    auto const& create = std::get<CreateTableStmt>(stmt);
+    REQUIRE(create.columns.size() == 1);
+    CHECK(create.columns[0].type == "decimal(10,2)");
+    CHECK_FALSE(create.columns[0].isNullable);
+}
+
+TEST_CASE("ParseSqlStatement.CreateTable.TinyintMoney", "[lup2dbtool]")
+{
+    auto stmt = ParseSqlStatement("CREATE TABLE t (flag tinyint null, price money not null)");
+    REQUIRE(std::holds_alternative<CreateTableStmt>(stmt));
+
+    auto const& create = std::get<CreateTableStmt>(stmt);
+    REQUIRE(create.columns.size() == 2);
+    CHECK(create.columns[0].type == "tinyint");
+    CHECK(create.columns[0].isNullable);
+    CHECK(create.columns[1].type == "money");
+    CHECK_FALSE(create.columns[1].isNullable);
+}
+
+TEST_CASE("ParseSqlStatement.AlterTableAddColumn.LongVarchar", "[lup2dbtool]")
+{
+    auto stmt = ParseSqlStatement("alter table T add column NOTES long varchar");
+    REQUIRE(std::holds_alternative<AlterTableAddColumnStmt>(stmt));
+
+    auto const& alter = std::get<AlterTableAddColumnStmt>(stmt);
+    CHECK(alter.tableName == "T");
+    CHECK(alter.column.name == "NOTES");
+    CHECK(alter.column.type == "long varchar");
+    CHECK(alter.column.isNullable);
+}
+
+TEST_CASE("ParseSqlStatement.AlterTableAddColumn.MoneyNotNull", "[lup2dbtool]")
+{
+    auto stmt = ParseSqlStatement("alter table T add column PRICE money not null");
+    REQUIRE(std::holds_alternative<AlterTableAddColumnStmt>(stmt));
+
+    auto const& alter = std::get<AlterTableAddColumnStmt>(stmt);
+    CHECK(alter.column.name == "PRICE");
+    CHECK(alter.column.type == "money");
+    CHECK_FALSE(alter.column.isNullable);
+}
+
+// ================================================================================================
+// CodeGenerator::MapSqlType — SQL type to Lightweight DSL mapping
+
+TEST_CASE("MapSqlType.SingleWordTypes", "[lup2dbtool]")
+{
+    CHECK(*CodeGenerator::MapSqlType("integer") == "Integer()");
+    CHECK(*CodeGenerator::MapSqlType("INTEGER") == "Integer()");
+    CHECK(*CodeGenerator::MapSqlType("smallint") == "Smallint()");
+    CHECK(*CodeGenerator::MapSqlType("bigint") == "Bigint()");
+    CHECK(*CodeGenerator::MapSqlType("text") == "Text()");
+}
+
+TEST_CASE("MapSqlType.Tinyint", "[lup2dbtool]")
+{
+    CHECK(*CodeGenerator::MapSqlType("tinyint") == "Tinyint()");
+    CHECK(*CodeGenerator::MapSqlType("TINYINT") == "Tinyint()");
+}
+
+TEST_CASE("MapSqlType.Money", "[lup2dbtool]")
+{
+    // SQL Server `money` is internally decimal(19,4). Matches LUpd's Oracle/DB2/PostgreSQL mapping.
+    CHECK(*CodeGenerator::MapSqlType("money") == "Decimal(19, 4)");
+    CHECK(*CodeGenerator::MapSqlType("MONEY") == "Decimal(19, 4)");
+}
+
+TEST_CASE("MapSqlType.LongVarchar", "[lup2dbtool]")
+{
+    CHECK(*CodeGenerator::MapSqlType("long varchar") == "Text()");
+    CHECK(*CodeGenerator::MapSqlType("LONG VARCHAR") == "Text()");
+    CHECK(*CodeGenerator::MapSqlType("Long VarChar") == "Text()");
+}
+
+TEST_CASE("MapSqlType.LongVarcharWithExtraWhitespace", "[lup2dbtool]")
+{
+    // Internal whitespace runs should canonicalize to the single-space form.
+    CHECK(*CodeGenerator::MapSqlType("long  varchar") == "Text()");
+    CHECK(*CodeGenerator::MapSqlType("long\tvarchar") == "Text()");
+    CHECK(*CodeGenerator::MapSqlType("  long varchar  ") == "Text()");
+}
+
+TEST_CASE("MapSqlType.LongVarbinary", "[lup2dbtool]")
+{
+    CHECK(*CodeGenerator::MapSqlType("long varbinary") == "VarBinary()");
+    CHECK(*CodeGenerator::MapSqlType("LONG VARBINARY") == "VarBinary()");
+}
+
+TEST_CASE("MapSqlType.ParameterizedTypesStillWork", "[lup2dbtool]")
+{
+    // Default forceUnicode=true widens char/varchar; pass false to check the narrow path.
+    CHECK(*CodeGenerator::MapSqlType("varchar(50)", /*forceUnicode=*/false) == "Varchar(50)");
+    CHECK(*CodeGenerator::MapSqlType("char(30)", /*forceUnicode=*/false) == "Char(30)");
+    CHECK(*CodeGenerator::MapSqlType("decimal(10,2)") == "Decimal(10, 2)");
+    CHECK(*CodeGenerator::MapSqlType("decimal(10)") == "Decimal(10)");
+}
+
+TEST_CASE("MapSqlType.UnknownTypeFails", "[lup2dbtool]")
+{
+    // Types we don't know about return an error rather than silently mapping.
+    CHECK_FALSE(CodeGenerator::MapSqlType("someweirdthing").has_value());
+    CHECK_FALSE(CodeGenerator::MapSqlType("enum('a','b')").has_value());
+}
+
+// ================================================================================================
+// Plugin CMakeLists.txt / Plugin.cpp emission
+
+TEST_CASE("GeneratePluginCMake.UsesPluginName", "[lup2dbtool]")
+{
+    std::ostringstream out;
+    CodeGenerator::GeneratePluginCMake(out, "MyMigrations");
+    auto const script = out.str();
+
+    // Plugin name appears everywhere a target name would: add_library, GLOB variable, link, properties.
+    CHECK(script.contains("add_library(MyMigrations MODULE"));
+    CHECK(script.contains("target_link_libraries(MyMigrations PRIVATE Lightweight::Lightweight"));
+    CHECK(script.contains("${MyMigrations_MIGRATIONS}"));
+    // Plugin.cpp is the entry point the script must compile alongside the generated sources.
+    CHECK(script.contains("Plugin.cpp"));
+    // CONFIGURE_DEPENDS glob keeps lup_*.cpp additions cheap.
+    CHECK(script.contains("CONFIGURE_DEPENDS"));
+    CHECK(script.contains("lup_*.cpp"));
+    // Output destination matches the existing plugin convention.
+    CHECK(script.contains("${CMAKE_BINARY_DIR}/plugins"));
+}
+
+TEST_CASE("GeneratePluginCMake.DefaultPluginName", "[lup2dbtool]")
+{
+    std::ostringstream out;
+    CodeGenerator::GeneratePluginCMake(out, "LupMigrations");
+    auto const script = out.str();
+    CHECK(script.contains("add_library(LupMigrations MODULE"));
+}
+
+TEST_CASE("GeneratePluginEntryPoint.DeclaresPluginMacro", "[lup2dbtool]")
+{
+    std::ostringstream out;
+    CodeGenerator::GeneratePluginEntryPoint(out);
+    auto const src = out.str();
+
+    CHECK(src.contains("#include <Lightweight/SqlMigration.hpp>"));
+    CHECK(src.contains("LIGHTWEIGHT_MIGRATION_PLUGIN()"));
+}
+
+// ================================================================================================
+// ParseFilename — development sentinel for upd_m_next_release
+
+TEST_CASE("ParseFilename.NextReleaseSentinel", "[lup2dbtool]")
+{
+    auto const v = ParseFilename("upd_m_next_release.sql");
+    REQUIRE(v.has_value());
+    CHECK(v->major == 9999); // NOLINT(bugprone-unchecked-optional-access)
+    CHECK(v->minor == 99);   // NOLINT(bugprone-unchecked-optional-access)
+    CHECK(v->patch == 99);   // NOLINT(bugprone-unchecked-optional-access)
+}
+
+TEST_CASE("ParseFilename.NextReleaseSentinelWithoutExtension", "[lup2dbtool]")
+{
+    auto const v = ParseFilename("upd_m_next_release");
+    REQUIRE(v.has_value());
+    CHECK(v->major == 9999); // NOLINT(bugprone-unchecked-optional-access)
+}
+
+TEST_CASE("ParseFilename.NextReleaseSortsAfterRealVersions", "[lup2dbtool]")
+{
+    auto const sentinel = ParseFilename("upd_m_next_release.sql");
+    REQUIRE(sentinel.has_value());
+    // Must sort strictly greater than any realistic future version.
+    CHECK(LupVersion { 99, 99, 99 } < *sentinel); // NOLINT(bugprone-unchecked-optional-access)
+    CHECK(LupVersion { 10, 0, 0 } < *sentinel);   // NOLINT(bugprone-unchecked-optional-access)
+}
+
+// ================================================================================================
+// ParseSqlFile encoding detection / validation
+//
+// The corpus of LUP migration files is mixed (mostly Windows-1252, but some files were
+// resaved as UTF-8). A single global `--input-encoding` flag silently double-encodes
+// whichever group disagrees with it, which the user observed in production as MSSQL
+// `lup-truncate` warnings on `TEXTBAUSTEINGRUPPEN.NAME`. The tests below lock in
+// per-file detection (auto mode) and the strict validation behaviour of the explicit
+// modes.
+
+namespace
+{
+/// Writes @p bytes to a temp file with a unique name; returns the path.
+///
+/// `ParseFilename` matches the bare stem against `upd_m_M_m_p` via `regex_match`, so
+/// the filename itself must be exactly that — the per-test uniqueness disambiguator
+/// goes into a fresh parent directory instead of being baked into the stem.
+std::filesystem::path WriteTempSqlFile(std::string_view stem, std::string_view bytes)
+{
+    auto const dir = std::filesystem::temp_directory_path()
+                     / std::format("lup2dbtool_test_{}", std::chrono::steady_clock::now().time_since_epoch().count());
+    std::filesystem::create_directories(dir);
+    auto const path = dir / std::format("upd_m_{}.sql", stem);
+    std::ofstream out(path, std::ios::binary);
+    out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+    return path;
+}
+
+void RemoveQuiet(std::filesystem::path const& p)
+{
+    std::error_code ec;
+    std::filesystem::remove_all(p.parent_path(), ec);
+}
+} // namespace
+
+TEST_CASE("ParseSqlFile.AutoMode.PassesThroughUtf8", "[lup2dbtool]")
+{
+    // 'ä' = 0xC3 0xA4 in UTF-8. Auto mode must keep the bytes as-is.
+    auto const path = WriteTempSqlFile("9_99_01",
+                                       "--print 'header'\n"
+                                       "INSERT INTO T VALUES (1, 'M\xC3\xA4ller')\n");
+    auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "auto" });
+    REQUIRE(result.has_value());
+    REQUIRE(result->statements.size() == 1); // NOLINT(bugprone-unchecked-optional-access)
+    auto const& stmt = std::get<InsertStmt>(result->statements[0].statement);
+    // The byte payload should still contain the original UTF-8 bytes, untouched.
+    bool foundUtf8 = false;
+    for (auto const& [_, value]: stmt.columnValues)
+        if (value.contains("\xC3\xA4"))
+            foundUtf8 = true;
+    CHECK(foundUtf8);
+    RemoveQuiet(path);
+}
+
+TEST_CASE("ParseSqlFile.AutoMode.ConvertsWindows1252", "[lup2dbtool]")
+{
+    // 'ä' encoded as 0xE4 — a Windows-1252 byte that does NOT form valid UTF-8.
+    // Auto mode must therefore convert to UTF-8 (0xC3 0xA4).
+    auto const path = WriteTempSqlFile("9_99_02",
+                                       "--print 'header'\n"
+                                       "INSERT INTO T VALUES (1, 'M\xE4ller')\n");
+    auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "auto" });
+    REQUIRE(result.has_value());
+    REQUIRE(result->statements.size() == 1); // NOLINT(bugprone-unchecked-optional-access)
+    auto const& stmt = std::get<InsertStmt>(result->statements[0].statement);
+    bool foundUtf8 = false;
+    bool foundLatin1 = false;
+    for (auto const& [_, value]: stmt.columnValues)
+    {
+        if (value.contains("\xC3\xA4"))
+            foundUtf8 = true;
+        if (value.contains('\xE4') && !value.contains("\xC3\xA4"))
+            foundLatin1 = true;
+    }
+    CHECK(foundUtf8);
+    CHECK_FALSE(foundLatin1);
+    RemoveQuiet(path);
+}
+
+TEST_CASE("ParseSqlFile.AutoMode.PureAsciiUntouched", "[lup2dbtool]")
+{
+    auto const path = WriteTempSqlFile("9_99_03",
+                                       "--print 'header'\n"
+                                       "INSERT INTO T VALUES (1, 'plain ascii')\n");
+    auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "auto" });
+    REQUIRE(result.has_value());
+    REQUIRE(result->statements.size() == 1); // NOLINT(bugprone-unchecked-optional-access)
+    RemoveQuiet(path);
+}
+
+TEST_CASE("ParseSqlFile.ExplicitUtf8RejectsWindows1252", "[lup2dbtool]")
+{
+    // A bare 0xE4 byte in the SQL payload is not valid UTF-8. Declaring `utf-8`
+    // explicitly must surface a per-file error instead of silently mangling.
+    // The validator may flag either the lead byte itself or a missing continuation,
+    // so we only require that the message says "invalid UTF-8" and points at our
+    // payload — we don't pin the exact offset.
+    auto const path = WriteTempSqlFile("9_99_04", "INSERT INTO T VALUES (1, 'M\xE4ller')\n");
+    auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "utf-8" });
+    REQUIRE_FALSE(result.has_value());
+    INFO("Error message: " << result.error());
+    CHECK(result.error().contains("invalid UTF-8"));
+    CHECK(result.error().contains("utf-8"));
+    RemoveQuiet(path);
+}
+
+TEST_CASE("ParseSqlFile.ExplicitWindows1252RejectsUtf8", "[lup2dbtool]")
+{
+    // Regression test for the production incident: a UTF-8 file (0xC3 0xA4 = 'ä')
+    // was being treated as Windows-1252, double-encoding 'ä' as 'Ã¤'. Strict
+    // validation now refuses this combination so the build fails loudly instead.
+    auto const path = WriteTempSqlFile("9_99_05", "INSERT INTO T VALUES (1, 'M\xC3\xA4ller')\n");
+    auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "windows-1252" });
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error().contains("validates as UTF-8"));
+    RemoveQuiet(path);
+}
+
+TEST_CASE("ParseSqlFile.NonAsciiInsideCommentsIgnoredByDetection", "[lup2dbtool]")
+{
+    // The SQL payload is pure ASCII. The non-ASCII bytes only live inside `--` and
+    // `/* ... */` comments — those must not influence encoding detection or the
+    // declared-encoding check, otherwise legitimate UTF-8 files with W-1252 author
+    // notes in their banners (or the reverse) would be rejected.
+    auto const path = WriteTempSqlFile("9_99_06",
+                                       "/* author: J\xE4ger */\n"
+                                       "-- TODO: review by M\xE4ller\n"
+                                       "INSERT INTO T VALUES (1, 'plain ascii')\n");
+    auto const result = ParseSqlFile(path, ParserConfig { .inputEncoding = "utf-8" });
+    REQUIRE(result.has_value());
+    RemoveQuiet(path);
 }
