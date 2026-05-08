@@ -10,6 +10,9 @@ add_library(tools_shared STATIC
     Config/ProfileStore.cpp
     Config/ProfileStore.hpp
 
+    Odbc/DataSourceEnumerator.cpp
+    Odbc/DataSourceEnumerator.hpp
+
     Secrets/ISecretBackend.hpp
     Secrets/SecretResolver.cpp
     Secrets/SecretResolver.hpp
@@ -31,8 +34,8 @@ target_compile_features(tools_shared PUBLIC cxx_std_23)
 # include path.
 target_include_directories(tools_shared PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-# PUBLIC: ProfileStore returns SqlConnectInfo, so consumers need the
-# Lightweight headers in their include path.
+# PUBLIC: ProfileStore returns SqlConnectInfo; DataSourceEnumerator uses ODBC
+# headers that come from the Lightweight target.
 target_link_libraries(tools_shared PUBLIC Lightweight::Lightweight)
 
 # yaml-cpp is used only by Config/ProfileStore.cpp. Linking PRIVATE keeps it
