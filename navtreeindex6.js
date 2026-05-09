@@ -1,5 +1,8 @@
 var NAVTREEINDEX6 =
 {
+"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html#a4fda8ec6c7637ab7872101fbf98bc366":[12,0,0,62,2],
+"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html#a9b01ab6331d7dc988f9928e0b292e2a2":[12,0,0,62,1],
+"df/d9c/classLightweight_1_1SqlScopedTraceLogger.html#aa7263f43e0c0664b773e8d569a20b324":[12,0,0,62,0],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html":[12,0,0,3,1],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a11394d602f3ebb20d53a20cf1f853d8a":[12,0,0,3,1,9],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a229b2e055772d6ec35827a8aefc5c6b4":[12,0,0,3,1,1],

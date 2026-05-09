@@ -166,5 +166,8 @@ var group__SqlMigration =
     ] ],
     [ "LIGHTWEIGHT_MIGRATION_PLUGIN", "db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73", null ],
     [ "LIGHTWEIGHT_MIGRATION_INSTANCE", "db/df6/group__SqlMigration.html#ga32d47d81e5b99a703e522a33a54fdc74", null ],
-    [ "LIGHTWEIGHT_SQL_MIGRATION", "db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e", null ]
+    [ "LIGHTWEIGHT_SQL_MIGRATION", "db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e", null ],
+    [ "LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE", "db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164", null ],
+    [ "LIGHTWEIGHT_SQL_MIGRATION_DOWN", "db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c", null ],
+    [ "LIGHTWEIGHT_SQL_RELEASE", "db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a", null ]
 ];

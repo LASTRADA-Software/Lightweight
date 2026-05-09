@@ -1088,7 +1088,7 @@ Reference to the migration manager. </dd></dl>
       </table>
 </div><div class="memdoc">
 <p>Register a release marker for a software version.</p>
-<p>Typically called from <code>LIGHTWEIGHT_SQL_RELEASE(version, timestamp)</code> at static init time. Releases are ordered by <code>highestTimestamp</code>; two releases may not share the same <code>highestTimestamp</code>, and the same version string may not be registered twice.</p>
+<p>Typically called from <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a" title="Associates a software release (version string) with the highest migration timestamp present at the ti...">LIGHTWEIGHT_SQL_RELEASE(version, timestamp)</a></code> at static init time. Releases are ordered by <code>highestTimestamp</code>; two releases may not share the same <code>highestTimestamp</code>, and the same version string may not be registered twice.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">version</td><td>Human-readable version, e.g. "6.7.0". </td></tr>
