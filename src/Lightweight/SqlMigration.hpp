@@ -5,10 +5,12 @@
 #include "Api.hpp"
 #include "DataMapper/DataMapper.hpp"
 #include "SqlQuery/Migrate.hpp"
+#include "SqlSchema.hpp"
 #include "SqlTransaction.hpp"
 
 #include <functional>
 #include <list>
+#include <map>
 #include <optional>
 #include <vector>
 
@@ -296,6 +298,82 @@ namespace SqlMigration
         /// @param version The version string to look up.
         /// @return Migrations in the release, ordered by timestamp. Empty if the version is unknown.
         [[nodiscard]] LIGHTWEIGHT_API MigrationList GetMigrationsForRelease(std::string_view version) const;
+
+        /// @brief Snapshot of the schema the registered migrations *intend* to produce.
+        ///
+        /// Pure plan-walk — never executes SQL, never opens a connection. Folds the
+        /// effects of every registered migration (up to an optional cut-off timestamp)
+        /// into a per-table view of "the final shape" plus a chronological list of
+        /// data steps and surviving indexes/releases. Used by `dbtool fold` to emit a
+        /// self-contained baseline (`.cpp` plugin or `.sql`).
+        struct PlanFoldingResult
+        {
+            /// Per-table state: ordered column declarations + per-table FK list.
+            struct TableState
+            {
+                /// Ordered column declarations as they should appear in the emitted CREATE TABLE.
+                std::vector<SqlColumnDeclaration> columns;
+
+                /// Composite (multi-column) foreign keys declared on this table.
+                std::vector<SqlCompositeForeignKeyConstraint> compositeForeignKeys;
+
+                /// True when the original migration created the table with `IF NOT EXISTS`.
+                bool ifNotExists = false;
+            };
+
+            /// (schema, table) → folded `TableState`. Insertion order is *not* preserved by
+            /// `std::map` — for emission order use `creationOrder` below.
+            std::map<SqlSchema::FullyQualifiedTableName, TableState> tables;
+
+            /// Tables in *creation* order (first-time-seen). Reverse for safe DROP ordering
+            /// when tearing the schema down.
+            std::vector<SqlSchema::FullyQualifiedTableName> creationOrder;
+
+            /// Indexes that survive folding (created on tables still present at end).
+            std::vector<SqlCreateIndexPlan> indexes;
+
+            /// One data step (INSERT/UPDATE/DELETE/RawSql) tagged with its source migration.
+            struct DataStep
+            {
+                /// Timestamp of the migration that contributed this data step.
+                MigrationTimestamp sourceTimestamp;
+
+                /// Title of the migration that contributed this data step.
+                std::string sourceTitle;
+
+                /// The plan element to replay (INSERT/UPDATE/DELETE/RawSql).
+                SqlMigrationPlanElement element;
+            };
+
+            /// Data steps in chronological order. **No coalescing** — the fold replays
+            /// every data step verbatim, exactly as if migrations were applied in order.
+            std::vector<DataStep> dataSteps;
+
+            /// Releases declared via `LIGHTWEIGHT_SQL_RELEASE` that fall within the fold range.
+            std::vector<MigrationRelease> releases;
+
+            /// Migrations that contributed to the fold (timestamp + title). Used by emitters
+            /// to write a header comment explaining what was collapsed.
+            std::vector<std::pair<MigrationTimestamp, std::string>> foldedMigrations;
+        };
+
+        /// @brief Pure plan-walk that folds the effect of every registered migration.
+        ///
+        /// Visits each migration's `Up()` plan in timestamp order (or up to
+        /// `upToInclusive` if provided) and accumulates the cumulative end-state into a
+        /// `PlanFoldingResult`. **Never** executes SQL or touches a database connection
+        /// — the supplied formatter is only used to build the in-memory plan elements.
+        ///
+        /// @param formatter Formatter used by the migration query builder while walking
+        ///                  each migration's `Up()`. Any standard formatter works; the
+        ///                  walk inspects plan element shapes, not rendered SQL.
+        /// @param upToInclusive If set, fold only migrations with `timestamp <= upToInclusive`.
+        ///                     If unset, fold all registered migrations.
+        ///
+        /// @return The folded snapshot. Safe to call without a `MigrationManager`-attached
+        ///         data mapper.
+        [[nodiscard]] LIGHTWEIGHT_API PlanFoldingResult FoldRegisteredMigrations(
+            SqlQueryFormatter const& formatter, std::optional<MigrationTimestamp> upToInclusive = std::nullopt) const;
 
       private:
         /// Return the pending list in dependency-respecting order.

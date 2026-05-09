@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "DataBinder/SqlVariant.hpp"
 #include "DataMapper/DataMapper.hpp"
 #include "QueryFormatter/SQLiteFormatter.hpp"
 #include "SqlBackup/Sha256.hpp"
@@ -12,6 +13,8 @@
 #include <array>
 #include <chrono>
 #include <format>
+#include <limits>
+#include <ranges>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
@@ -1095,6 +1098,295 @@ MigrationStatus MigrationManager::GetMigrationStatus() const
     }
 
     return status;
+}
+
+namespace
+{
+    /// @brief Builds the (catalog, schema, table) tuple used as a key in the fold result.
+    SqlSchema::FullyQualifiedTableName MakeFqtn(std::string_view schema, std::string_view table)
+    {
+        return SqlSchema::FullyQualifiedTableName {
+            .catalog = {},
+            .schema = std::string(schema),
+            .table = std::string(table),
+        };
+    }
+
+    /// @brief Drops the FK whose local column matches `columnName` from `state`'s
+    /// composite-FK list. Single-column-FK declarations carried inline on a column
+    /// declaration (`SqlColumnDeclaration::foreignKey`) are NOT touched here — the
+    /// caller is responsible for clearing those when the column itself is dropped.
+    void DropFkByColumn(MigrationManager::PlanFoldingResult::TableState& state, std::string_view columnName)
+    {
+        std::erase_if(state.compositeForeignKeys, [&](SqlCompositeForeignKeyConstraint const& fk) {
+            return fk.columns.size() == 1 && fk.columns.front() == columnName;
+        });
+    }
+
+    /// @brief Removes any column declaration whose name matches `columnName` and the
+    /// FK constraints that reference it. Returns true if a column was actually removed.
+    bool RemoveColumn(MigrationManager::PlanFoldingResult::TableState& state, std::string_view columnName)
+    {
+        auto const before = state.columns.size();
+        std::erase_if(state.columns, [&](SqlColumnDeclaration const& c) { return c.name == columnName; });
+        DropFkByColumn(state, columnName);
+        return state.columns.size() != before;
+    }
+
+    /// @brief Renames a column in `state.columns`, plus any FK declaration referencing
+    /// the old name. Inline FKs on the renamed column are preserved.
+    void RenameColumnInState(MigrationManager::PlanFoldingResult::TableState& state,
+                             std::string_view oldName,
+                             std::string_view newName)
+    {
+        for (auto& c: state.columns)
+            if (c.name == oldName)
+                c.name = std::string(newName);
+        for (auto& fk: state.compositeForeignKeys)
+            for (auto& col: fk.columns)
+                if (col == oldName)
+                    col = std::string(newName);
+    }
+
+    /// @brief Re-keys a table in `tables` and `creationOrder` from `oldName` → `newName`.
+    /// Updates inbound FK references in every other table so they continue to point at
+    /// the renamed table. Indexes hosted on the renamed table are also rewritten.
+    void RenameTableInResult(MigrationManager::PlanFoldingResult& result,
+                             std::string_view schema,
+                             std::string_view oldName,
+                             std::string_view newName)
+    {
+        auto const oldKey = MakeFqtn(schema, oldName);
+        auto const newKey = MakeFqtn(schema, newName);
+        auto it = result.tables.find(oldKey);
+        if (it == result.tables.end())
+            return;
+        auto state = std::move(it->second);
+        result.tables.erase(it);
+        result.tables.emplace(newKey, std::move(state));
+
+        for (auto& entry: result.creationOrder)
+            if (entry == oldKey)
+                entry = newKey;
+
+        // Rewrite FK references in every table that points at oldName (composite FKs).
+        for (auto& [_, otherState]: result.tables)
+        {
+            for (auto& fk: otherState.compositeForeignKeys)
+                if (fk.referencedTableName == oldName)
+                    fk.referencedTableName = std::string(newName);
+            for (auto& col: otherState.columns)
+                if (col.foreignKey && col.foreignKey->tableName == oldName)
+                    col.foreignKey->tableName = std::string(newName);
+        }
+
+        // Rewrite indexes hosted on the renamed table.
+        for (auto& idx: result.indexes)
+            if (idx.schemaName == schema && idx.tableName == oldName)
+                idx.tableName = std::string(newName);
+    }
+
+    /// @brief Drops a table from the result and any side-effect references (indexes,
+    /// inbound FKs from other tables, queued data steps targeting the dropped table).
+    void DropTableFromResult(MigrationManager::PlanFoldingResult& result,
+                             std::string_view schema,
+                             std::string_view tableName)
+    {
+        auto const key = MakeFqtn(schema, tableName);
+        result.tables.erase(key);
+        std::erase(result.creationOrder, key);
+
+        std::erase_if(result.indexes,
+                      [&](SqlCreateIndexPlan const& idx) { return idx.schemaName == schema && idx.tableName == tableName; });
+
+        // Drop inbound FKs from other tables — and inline FK declarations.
+        for (auto& [_, state]: result.tables)
+        {
+            std::erase_if(state.compositeForeignKeys,
+                          [&](SqlCompositeForeignKeyConstraint const& fk) { return fk.referencedTableName == tableName; });
+            for (auto& c: state.columns)
+                if (c.foreignKey && c.foreignKey->tableName == tableName)
+                    c.foreignKey.reset();
+        }
+
+        // Drop queued data steps targeting the dropped table.
+        std::erase_if(result.dataSteps, [&](MigrationManager::PlanFoldingResult::DataStep const& step) {
+            return std::visit(
+                ::Lightweight::detail::overloaded {
+                    [&](SqlInsertDataPlan const& s) { return s.schemaName == schema && s.tableName == tableName; },
+                    [&](SqlUpdateDataPlan const& s) { return s.schemaName == schema && s.tableName == tableName; },
+                    [&](SqlDeleteDataPlan const& s) { return s.schemaName == schema && s.tableName == tableName; },
+                    [](auto const&) { return false; },
+                },
+                step.element);
+        });
+    }
+
+    /// @brief Apply one ALTER TABLE command to the fold's `TableState`.
+    void ApplyAlterCommand(MigrationManager::PlanFoldingResult::TableState& state,
+                           MigrationManager::PlanFoldingResult& result,
+                           std::string_view schema,
+                           std::string_view tableName,
+                           SqlAlterTableCommand const& cmd)
+    {
+        std::visit(::Lightweight::detail::overloaded {
+                       [&](SqlAlterTableCommands::RenameTable const& c) {
+                           RenameTableInResult(result, schema, tableName, c.newTableName);
+                       },
+                       [&](SqlAlterTableCommands::AddColumn const& c) {
+                           state.columns.push_back(SqlColumnDeclaration {
+                               .name = c.columnName,
+                               .type = c.columnType,
+                               .required = c.nullable == SqlNullable::NotNull,
+                           });
+                       },
+                       [&](SqlAlterTableCommands::AddColumnIfNotExists const& c) {
+                           auto const exists = std::ranges::any_of(
+                               state.columns, [&](SqlColumnDeclaration const& d) { return d.name == c.columnName; });
+                           if (!exists)
+                               state.columns.push_back(SqlColumnDeclaration {
+                                   .name = c.columnName,
+                                   .type = c.columnType,
+                                   .required = c.nullable == SqlNullable::NotNull,
+                               });
+                       },
+                       [&](SqlAlterTableCommands::AlterColumn const& c) {
+                           for (auto& d: state.columns)
+                           {
+                               if (d.name == c.columnName)
+                               {
+                                   d.type = c.columnType;
+                                   d.required = c.nullable == SqlNullable::NotNull;
+                               }
+                           }
+                       },
+                       [&](SqlAlterTableCommands::RenameColumn const& c) {
+                           RenameColumnInState(state, c.oldColumnName, c.newColumnName);
+                       },
+                       [&](SqlAlterTableCommands::DropColumn const& c) { (void) RemoveColumn(state, c.columnName); },
+                       [&](SqlAlterTableCommands::DropColumnIfExists const& c) { (void) RemoveColumn(state, c.columnName); },
+                       [&](SqlAlterTableCommands::AddIndex const& c) {
+                           result.indexes.push_back(SqlCreateIndexPlan {
+                               .schemaName = std::string(schema),
+                               .indexName = std::format("idx_{}_{}", tableName, c.columnName),
+                               .tableName = std::string(tableName),
+                               .columns = { std::string(c.columnName) },
+                               .unique = c.unique,
+                           });
+                       },
+                       [&](SqlAlterTableCommands::DropIndex const& c) {
+                           std::erase_if(result.indexes, [&](SqlCreateIndexPlan const& i) {
+                               return i.schemaName == schema && i.tableName == tableName && i.columns.size() == 1
+                                      && i.columns.front() == c.columnName;
+                           });
+                       },
+                       [&](SqlAlterTableCommands::DropIndexIfExists const& c) {
+                           std::erase_if(result.indexes, [&](SqlCreateIndexPlan const& i) {
+                               return i.schemaName == schema && i.tableName == tableName && i.columns.size() == 1
+                                      && i.columns.front() == c.columnName;
+                           });
+                       },
+                       [&](SqlAlterTableCommands::AddForeignKey const& c) {
+                           // Promote single-column FK to composite list — same logical
+                           // shape, simpler to fold across renames/drops.
+                           state.compositeForeignKeys.push_back(SqlCompositeForeignKeyConstraint {
+                               .columns = { c.columnName },
+                               .referencedTableName = c.referencedColumn.tableName,
+                               .referencedColumns = { c.referencedColumn.columnName },
+                           });
+                       },
+                       [&](SqlAlterTableCommands::AddCompositeForeignKey const& c) {
+                           state.compositeForeignKeys.push_back(SqlCompositeForeignKeyConstraint {
+                               .columns = c.columns,
+                               .referencedTableName = c.referencedTableName,
+                               .referencedColumns = c.referencedColumns,
+                           });
+                       },
+                       [&](SqlAlterTableCommands::DropForeignKey const& c) { DropFkByColumn(state, c.columnName); },
+                   },
+                   cmd);
+    }
+} // namespace
+
+MigrationManager::PlanFoldingResult MigrationManager::FoldRegisteredMigrations(
+    SqlQueryFormatter const& formatter, std::optional<MigrationTimestamp> upToInclusive) const
+{
+    PlanFoldingResult result;
+
+    // Walk migrations in timestamp order (already sorted by `AddMigration`).
+    for (auto const* migration: _migrations)
+    {
+        if (upToInclusive.has_value() && migration->GetTimestamp() > *upToInclusive)
+            break;
+
+        result.foldedMigrations.emplace_back(migration->GetTimestamp(), std::string(migration->GetTitle()));
+
+        SqlMigrationQueryBuilder builder { formatter };
+        migration->Up(builder);
+        SqlMigrationPlan plan = std::move(builder).GetPlan();
+
+        for (SqlMigrationPlanElement const& step: plan.steps)
+        {
+            std::visit(::Lightweight::detail::overloaded {
+                           [&](SqlCreateTablePlan const& s) {
+                               auto const key = MakeFqtn(s.schemaName, s.tableName);
+                               auto [it, inserted] = result.tables.try_emplace(key);
+                               if (inserted)
+                                   result.creationOrder.push_back(key);
+                               it->second.columns = s.columns;
+                               it->second.compositeForeignKeys = s.foreignKeys;
+                               it->second.ifNotExists = s.ifNotExists;
+                           },
+                           [&](SqlAlterTablePlan const& s) {
+                               auto const key = MakeFqtn(s.schemaName, s.tableName);
+                               auto it = result.tables.find(key);
+                               if (it == result.tables.end())
+                                   return;
+                               for (auto const& cmd: s.commands)
+                                   ApplyAlterCommand(it->second, result, s.schemaName, s.tableName, cmd);
+                           },
+                           [&](SqlDropTablePlan const& s) { DropTableFromResult(result, s.schemaName, s.tableName); },
+                           [&](SqlCreateIndexPlan const& s) { result.indexes.push_back(s); },
+                           [&](SqlInsertDataPlan const& s) {
+                               result.dataSteps.push_back(PlanFoldingResult::DataStep {
+                                   .sourceTimestamp = migration->GetTimestamp(),
+                                   .sourceTitle = std::string(migration->GetTitle()),
+                                   .element = s,
+                               });
+                           },
+                           [&](SqlUpdateDataPlan const& s) {
+                               result.dataSteps.push_back(PlanFoldingResult::DataStep {
+                                   .sourceTimestamp = migration->GetTimestamp(),
+                                   .sourceTitle = std::string(migration->GetTitle()),
+                                   .element = s,
+                               });
+                           },
+                           [&](SqlDeleteDataPlan const& s) {
+                               result.dataSteps.push_back(PlanFoldingResult::DataStep {
+                                   .sourceTimestamp = migration->GetTimestamp(),
+                                   .sourceTitle = std::string(migration->GetTitle()),
+                                   .element = s,
+                               });
+                           },
+                           [&](SqlRawSqlPlan const& s) {
+                               result.dataSteps.push_back(PlanFoldingResult::DataStep {
+                                   .sourceTimestamp = migration->GetTimestamp(),
+                                   .sourceTitle = std::string(migration->GetTitle()),
+                                   .element = s,
+                               });
+                           },
+                       },
+                       step);
+        }
+    }
+
+    // Releases that fall within the fold range.
+    auto const cutoff = upToInclusive.value_or(MigrationTimestamp { std::numeric_limits<uint64_t>::max() });
+    for (auto const& release: _releases)
+        if (release.highestTimestamp <= cutoff)
+            result.releases.push_back(release);
+
+    return result;
 }
 
 } // namespace Lightweight::SqlMigration
