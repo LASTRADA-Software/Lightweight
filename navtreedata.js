@@ -107,6 +107,7 @@ var NAVTREE =
       ] ],
       [ "Migration Commands", "d5/dc4/dbtool.html#migration-commands", [
         [ "migrate", "d5/dc4/dbtool.html#migrate", null ],
+        [ "migrate-to-release <VERSION>", "d5/dc4/dbtool.html#migrate-to-release-version", null ],
         [ "list-pending", "d5/dc4/dbtool.html#list-pending", null ],
         [ "list-applied", "d5/dc4/dbtool.html#list-applied", null ],
         [ "status", "d5/dc4/dbtool.html#status", null ],
@@ -193,7 +194,7 @@ var NAVTREE =
       [ "Class Members", "functions.html", [
         [ "All", "functions.html", "functions_dup" ],
         [ "Functions", "functions_func.html", "functions_func" ],
-        [ "Variables", "functions_vars.html", null ],
+        [ "Variables", "functions_vars.html", "functions_vars" ],
         [ "Typedefs", "functions_type.html", null ],
         [ "Enumerations", "functions_enum.html", null ]
       ] ]
@@ -207,12 +208,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d3/d30/classLightweight_1_1Pool.html#a1cff9d7548fefc8b80a32c15b75dfaeb",
-"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a294bef751b01e0f8e110c989afff2814",
-"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a2363ab60bde2e2467972747a5646a7e5",
-"da/df4/classLightweight_1_1HasMany.html#abb98fe47a6104b8952edc629b7918328",
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#a2088cc443c26818bb7e7c6cacf379d11",
-"index.html"
+"d2/dd0/structLightweight_1_1Field.html#ab971b90ecf62bcd13df1d3e7649fca3c",
+"d5/dc4/dbtool.html#mark-applied-timestamp",
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a7db96fc59793669ec4105485f165b2fe",
+"da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#a5010f642210297358fe1e66ea1a37c86",
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a83dd64bd4edb7a61b8b28103c8a80837",
+"df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
