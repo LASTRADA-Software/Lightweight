@@ -23,7 +23,6 @@ var annotated_dup =
       [ "SqlMigration", null, [
         [ "ChecksumVerificationResult", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult.html", "da/d49/structLightweight_1_1SqlMigration_1_1ChecksumVerificationResult" ],
         [ "MigrationBase", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html", "de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase" ],
-        [ "MigrationException", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException" ],
         [ "MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock" ],
         [ "MigrationManager", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager" ],
         [ "MigrationMetadata", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata" ],
@@ -52,7 +51,6 @@ var annotated_dup =
       [ "HasMany", "da/df4/classLightweight_1_1HasMany.html", "da/df4/classLightweight_1_1HasMany" ],
       [ "HasManyThrough", "de/d73/classLightweight_1_1HasManyThrough.html", "de/d73/classLightweight_1_1HasManyThrough" ],
       [ "HasOneThrough", "df/d63/classLightweight_1_1HasOneThrough.html", "df/d63/classLightweight_1_1HasOneThrough" ],
-      [ "MigrationRenderContext", "d4/d23/structLightweight_1_1MigrationRenderContext.html", "d4/d23/structLightweight_1_1MigrationRenderContext" ],
       [ "Pool", "d3/d30/classLightweight_1_1Pool.html", "d3/d30/classLightweight_1_1Pool" ],
       [ "PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", "df/d1a/structLightweight_1_1PoolConfig" ],
       [ "SqlAllFieldsQueryBuilder", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ],
