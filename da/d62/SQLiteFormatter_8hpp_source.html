@@ -101,8 +101,8 @@ $(document).ready(function(){initNavTree('da/d62/SQLiteFormatter_8hpp_source.htm
 <div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span><span class="comment">// SPDX-License-Identifier: Apache-2.0</span></div>
 <div class="line"><a id="l00002" name="l00002"></a><span class="lineno">    2</span><span class="preprocessor">#pragma once</span></div>
 <div class="line"><a id="l00003" name="l00003"></a><span class="lineno">    3</span> </div>
-<div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span><span class="preprocessor">#include &quot;../SqlQueryFormatter.hpp&quot;</span></div>
-<div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="preprocessor">#include &quot;MigrationLockHandler.hpp&quot;</span></div>
+<div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span><span class="preprocessor">#include &quot;../SqlAdvisoryLock.hpp&quot;</span></div>
+<div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="preprocessor">#include &quot;../SqlQueryFormatter.hpp&quot;</span></div>
 <div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span> </div>
 <div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="preprocessor">#include &lt;reflection-cpp/reflection.hpp&gt;</span></div>
 <div class="line"><a id="l00008" name="l00008"></a><span class="lineno">    8</span> </div>
@@ -727,17 +727,17 @@ $(document).ready(function(){initNavTree('da/d62/SQLiteFormatter_8hpp_source.htm
 <div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span>        <span class="keywordflow">return</span> <span class="stringliteral">&quot;SELECT sqlite_version()&quot;</span>;</div>
 <div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span>    }</div>
 <div class="line"><a id="l00629" name="l00629"></a><span class="lineno">  629</span><span class="comment"></span> </div>
-<div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span><span class="comment">    /// SQLite has no advisory-lock primitive, so the handler maintains a</span></div>
-<div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span><span class="comment">    /// `_migration_locks` table guarded by a unique constraint. The override</span></div>
-<div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span><span class="comment">    /// is intentionally inline-delegating: putting the body in</span></div>
+<div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span><span class="comment">    /// SQLite has no native advisory-lock primitive, so the handler maintains</span></div>
+<div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span><span class="comment">    /// a `_lightweight_locks` table guarded by a unique constraint. The</span></div>
+<div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span><span class="comment">    /// override is intentionally inline-delegating: putting the body in</span></div>
 <div class="line"><a id="l00633" name="l00633"></a><span class="lineno">  633</span><span class="comment">    /// `SqlQueryFormatter.cpp` would have made it the class&#39;s *key function*</span></div>
 <div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span><span class="comment">    /// and forced the vtable into a single TU — fine on Windows, but on</span></div>
 <div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span><span class="comment">    /// Linux with `CXX_VISIBILITY_PRESET=hidden` + `LIGHTWEIGHT_BUILD_SHARED=ON`</span></div>
 <div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span><span class="comment">    /// the hidden vtable would fail to link from consumers of `Lightweight`.</span></div>
 <div class="line"><a id="l00637" name="l00637"></a><span class="lineno">  637</span><span class="comment">    /// Inline + free-function delegation keeps the vtable weak.</span></div>
-<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span><span class="comment"></span>    [[nodiscard]] MigrationLockHandler <span class="keyword">const</span>&amp; MigrationLockOps()<span class="keyword"> const override</span></div>
+<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span><span class="comment"></span>    [[nodiscard]] SqlAdvisoryLockHandler <span class="keyword">const</span>&amp; AdvisoryLockOps()<span class="keyword"> const override</span></div>
 <div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span>        <span class="keywordflow">return</span> SqliteMigrationLockOps();</div>
+<div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span>        <span class="keywordflow">return</span> SqliteAdvisoryLockOps();</div>
 <div class="line"><a id="l00641" name="l00641"></a><span class="lineno">  641</span>    }</div>
 <div class="line"><a id="l00642" name="l00642"></a><span class="lineno">  642</span>};</div>
 <div class="line"><a id="l00643" name="l00643"></a><span class="lineno">  643</span> </div>

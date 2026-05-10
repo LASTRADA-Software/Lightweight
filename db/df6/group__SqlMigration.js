@@ -1,17 +1,5 @@
 var group__SqlMigration =
 [
-    [ "Lightweight::MigrationLockError", "d9/d01/structLightweight_1_1MigrationLockError.html", [
-      [ "reason", "d9/d01/structLightweight_1_1MigrationLockError.html#a84d6740b9d5a785304cb95644acb573c", null ],
-      [ "lockName", "d9/d01/structLightweight_1_1MigrationLockError.html#a75e58d9729b787b797d847a5db1be323", null ],
-      [ "timeout", "d9/d01/structLightweight_1_1MigrationLockError.html#ada51774dfea1990dee7c4567c9e8e294", null ],
-      [ "message", "d9/d01/structLightweight_1_1MigrationLockError.html#a42538caa7a77e7c05cfe7c1995ada79f", null ],
-      [ "info", "d9/d01/structLightweight_1_1MigrationLockError.html#ae1a6405a420f3540a04a77d893e9c2f7", null ]
-    ] ],
-    [ "Lightweight::MigrationLockHandler", "d9/d57/classLightweight_1_1MigrationLockHandler.html", [
-      [ "~MigrationLockHandler", "d9/d57/classLightweight_1_1MigrationLockHandler.html#aedbd830544563eeaa25252e75e922a60", null ],
-      [ "TryAcquire", "d9/d57/classLightweight_1_1MigrationLockHandler.html#ac8f28991c54a54886551d926ab6e19c4", null ],
-      [ "Release", "d9/d57/classLightweight_1_1MigrationLockHandler.html#a900a84a0258b6c2ce1c6ab785e277d3c", null ]
-    ] ],
     [ "Lightweight::SqlMigration::MigrationTimestamp", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html", [
       [ "operator<=>", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html#a04e7dbdc97868e3dfe263266363c4b45", null ],
       [ "value", "d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html#a7ff59005141458f049508004b33e77ee", null ]
@@ -168,25 +156,10 @@ var group__SqlMigration =
       [ "author", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#ab52a61034e07facd43a641d9c40f9b62", null ],
       [ "description", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aede084084d8c094a9f4e08d86b8f13f8", null ]
     ] ],
-    [ "Lightweight::SqlMigration::MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html", [
-      [ "MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#ad96abad387505fd1f962993f60d91913", null ],
-      [ "~MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#a2ac5fc5f8d975982e9f079eae1d2ad80", null ],
-      [ "MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#a2af15418d7767a004d11f61094a6ba96", null ],
-      [ "operator=", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#ab39b5e9a688a9f1b7ddd23a4c5fbe1c4", null ],
-      [ "IsLocked", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#a097efefa7b59595476424596436760d8", null ],
-      [ "Release", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#af182d80c21994db84a68d0aaed1b642f", null ]
-    ] ],
     [ "LIGHTWEIGHT_MIGRATION_PLUGIN", "db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73", null ],
     [ "LIGHTWEIGHT_MIGRATION_INSTANCE", "db/df6/group__SqlMigration.html#ga32d47d81e5b99a703e522a33a54fdc74", null ],
     [ "LIGHTWEIGHT_SQL_MIGRATION", "db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e", null ],
     [ "LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE", "db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164", null ],
     [ "LIGHTWEIGHT_SQL_MIGRATION_DOWN", "db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c", null ],
-    [ "LIGHTWEIGHT_SQL_RELEASE", "db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a", null ],
-    [ "Lightweight::MigrationLockFailureReason", "db/df6/group__SqlMigration.html#gae8b2e1b8b0d4e8aac1316b216d30de5c", [
-      [ "Lightweight::MigrationLockFailureReason::Timeout", "db/df6/group__SqlMigration.html#ggae8b2e1b8b0d4e8aac1316b216d30de5cac85a251cc457840f1e032f1b733e9398", null ],
-      [ "Lightweight::MigrationLockFailureReason::Deadlock", "db/df6/group__SqlMigration.html#ggae8b2e1b8b0d4e8aac1316b216d30de5cab5b078c00f1f60fe13c379ba56a7eb79", null ],
-      [ "Lightweight::MigrationLockFailureReason::Cancelled", "db/df6/group__SqlMigration.html#ggae8b2e1b8b0d4e8aac1316b216d30de5caa149e85a44aeec9140e92733d9ed694e", null ],
-      [ "Lightweight::MigrationLockFailureReason::ParameterError", "db/df6/group__SqlMigration.html#ggae8b2e1b8b0d4e8aac1316b216d30de5ca189976b733e988a6903e4d19d8cd2fea", null ],
-      [ "Lightweight::MigrationLockFailureReason::DriverError", "db/df6/group__SqlMigration.html#ggae8b2e1b8b0d4e8aac1316b216d30de5cabac1f6f75d93a625283f2ef3da9f3942", null ]
-    ] ]
+    [ "LIGHTWEIGHT_SQL_RELEASE", "db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a", null ]
 ];

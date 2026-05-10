@@ -380,11 +380,11 @@ $(document).ready(function(){initNavTree('d7/d12/PostgreSqlFormatter_8hpp_source
 <div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>    }</div>
 <div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span><span class="comment"></span> </div>
 <div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span><span class="comment">    /// PostgreSQL uses `pg_advisory_lock` / `pg_advisory_unlock`. Inline delegation</span></div>
-<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span><span class="comment">    /// keeps the vtable weak — see `SQLiteQueryFormatter::MigrationLockOps()` for</span></div>
+<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span><span class="comment">    /// keeps the vtable weak — see `SQLiteQueryFormatter::AdvisoryLockOps()` for</span></div>
 <div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span><span class="comment">    /// the rationale.</span></div>
-<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span><span class="comment"></span>    [[nodiscard]] MigrationLockHandler <span class="keyword">const</span>&amp; MigrationLockOps()<span class="keyword"> const override</span></div>
+<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span><span class="comment"></span>    [[nodiscard]] SqlAdvisoryLockHandler <span class="keyword">const</span>&amp; AdvisoryLockOps()<span class="keyword"> const override</span></div>
 <div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>        <span class="keywordflow">return</span> PostgreSqlMigrationLockOps();</div>
+<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>        <span class="keywordflow">return</span> PostgreSqlAdvisoryLockOps();</div>
 <div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>    }</div>
 <div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>};</div>
 <div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span> </div>

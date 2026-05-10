@@ -208,9 +208,9 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="memitem:a4259cbd0861534246ce81a9494caf032" id="r_a4259cbd0861534246ce81a9494caf032"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4259cbd0861534246ce81a9494caf032">RequiresTableRebuildForForeignKeyChange</a> () const noexcept</td></tr>
 <tr class="memdesc:a4259cbd0861534246ce81a9494caf032"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the dialect must rebuild a table to add or drop a foreign-key constraint (i.e. cannot express it via <code>ALTER TABLE … ADD/DROP CONSTRAINT</code>).  <br /></td></tr>
 <tr class="separator:a4259cbd0861534246ce81a9494caf032"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4644f0cd25d4882b820073836d7c3ae5" id="r_a4644f0cd25d4882b820073836d7c3ae5"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="../../d9/d57/classLightweight_1_1MigrationLockHandler.html">MigrationLockHandler</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4644f0cd25d4882b820073836d7c3ae5">MigrationLockOps</a> () const =0</td></tr>
-<tr class="memdesc:a4644f0cd25d4882b820073836d7c3ae5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the dialect-specific handler used by <code>MigrationLock</code> to acquire and release the cross-process migration lock.  <br /></td></tr>
-<tr class="separator:a4644f0cd25d4882b820073836d7c3ae5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2f3e6e88b1fb6af51bf4d0d65c5a52e6" id="r_a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="../../d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html">SqlAdvisoryLockHandler</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6">AdvisoryLockOps</a> () const =0</td></tr>
+<tr class="memdesc:a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the dialect-specific handler used by <code><a class="el" href="../../d3/de6/classLightweight_1_1SqlScopedLock.html">SqlScopedLock</a></code> to acquire and release named cross-process advisory locks.  <br /></td></tr>
+<tr class="separator:a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -592,8 +592,8 @@ template&lt;typename Range &gt; </div>
 
 </div>
 </div>
-<a id="a4644f0cd25d4882b820073836d7c3ae5" name="a4644f0cd25d4882b820073836d7c3ae5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4644f0cd25d4882b820073836d7c3ae5">&#9670;&#160;</a></span>MigrationLockOps()</h2>
+<a id="a2f3e6e88b1fb6af51bf4d0d65c5a52e6" name="a2f3e6e88b1fb6af51bf4d0d65c5a52e6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2f3e6e88b1fb6af51bf4d0d65c5a52e6">&#9670;&#160;</a></span>AdvisoryLockOps()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -602,7 +602,7 @@ template&lt;typename Range &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual <a class="el" href="../../d9/d57/classLightweight_1_1MigrationLockHandler.html">MigrationLockHandler</a> const  &amp; Lightweight::SqlQueryFormatter::MigrationLockOps </td>
+          <td class="memname">virtual <a class="el" href="../../d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html">SqlAdvisoryLockHandler</a> const  &amp; Lightweight::SqlQueryFormatter::AdvisoryLockOps </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -615,8 +615,8 @@ template&lt;typename Range &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Returns the dialect-specific handler used by <code>MigrationLock</code> to acquire and release the cross-process migration lock. </p>
-<p>The returned reference is to a process-singleton, valid for the lifetime of the program. Each backend implements its own primitive — SQL Server uses <code>sp_getapplock</code>, PostgreSQL uses <code>pg_advisory_lock</code>, SQLite uses a lock table — and the implementation lives in the backend's formatter translation unit, so adding a new dialect only touches that unit and <code>MigrationLock</code> itself stays dialect-agnostic. </p>
+<p>Returns the dialect-specific handler used by <code><a class="el" href="../../d3/de6/classLightweight_1_1SqlScopedLock.html">SqlScopedLock</a></code> to acquire and release named cross-process advisory locks. </p>
+<p>The returned reference is to a process-singleton, valid for the lifetime of the program. Each backend implements its own primitive — SQL Server uses <code>sp_getapplock</code>, PostgreSQL uses <code>pg_advisory_lock</code>, SQLite uses a lock table — and the implementation lives in the backend's formatter translation unit, so adding a new dialect only touches that unit and <code><a class="el" href="../../d3/de6/classLightweight_1_1SqlScopedLock.html">SqlScopedLock</a></code> itself stays dialect-agnostic. </p>
 
 </div>
 </div>

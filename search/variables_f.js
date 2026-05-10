@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['reason_0',['reason',['../d9/d01/structLightweight_1_1MigrationLockError.html#a84d6740b9d5a785304cb95644acb573c',1,'Lightweight::MigrationLockError']]],
+  ['reason_0',['reason',['../d6/d3b/structLightweight_1_1SqlLockError.html#a042768d16ff0fe8d8e52e4a03b465680',1,'Lightweight::SqlLockError']]],
   ['rebuiltforeignkeys_1',['rebuiltForeignKeys',['../d2/d18/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1UnicodeUpgradeResult.html#ae1b60503143ebed45d9317789e47a684',1,'Lightweight::SqlMigration::MigrationManager::UnicodeUpgradeResult']]],
   ['recordstoragefieldcount_2',['RecordStorageFieldCount',['../d7/d2f/group__DataMapper.html#gac7df2f7b61cdd663f50496fe92c80a73',1,'Lightweight']]],
   ['recordtablename_3',['RecordTableName',['../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab',1,'Lightweight']]],

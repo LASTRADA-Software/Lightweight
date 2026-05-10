@@ -796,11 +796,11 @@ $(document).ready(function(){initNavTree('d5/d3e/SqlServerFormatter_8hpp_source.
 <div class="line"><a id="l00696" name="l00696"></a><span class="lineno">  696</span>    }</div>
 <div class="line"><a id="l00697" name="l00697"></a><span class="lineno">  697</span><span class="comment"></span> </div>
 <div class="line"><a id="l00698" name="l00698"></a><span class="lineno">  698</span><span class="comment">    /// Microsoft SQL Server uses `sp_getapplock` / `sp_releaseapplock`. Inline</span></div>
-<div class="line"><a id="l00699" name="l00699"></a><span class="lineno">  699</span><span class="comment">    /// delegation keeps the vtable weak — see `SQLiteQueryFormatter::MigrationLockOps()`</span></div>
+<div class="line"><a id="l00699" name="l00699"></a><span class="lineno">  699</span><span class="comment">    /// delegation keeps the vtable weak — see `SQLiteQueryFormatter::AdvisoryLockOps()`</span></div>
 <div class="line"><a id="l00700" name="l00700"></a><span class="lineno">  700</span><span class="comment">    /// for the rationale.</span></div>
-<div class="line"><a id="l00701" name="l00701"></a><span class="lineno">  701</span><span class="comment"></span>    [[nodiscard]] MigrationLockHandler <span class="keyword">const</span>&amp; MigrationLockOps()<span class="keyword"> const override</span></div>
+<div class="line"><a id="l00701" name="l00701"></a><span class="lineno">  701</span><span class="comment"></span>    [[nodiscard]] SqlAdvisoryLockHandler <span class="keyword">const</span>&amp; AdvisoryLockOps()<span class="keyword"> const override</span></div>
 <div class="line"><a id="l00702" name="l00702"></a><span class="lineno">  702</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00703" name="l00703"></a><span class="lineno">  703</span>        <span class="keywordflow">return</span> SqlServerMigrationLockOps();</div>
+<div class="line"><a id="l00703" name="l00703"></a><span class="lineno">  703</span>        <span class="keywordflow">return</span> SqlServerAdvisoryLockOps();</div>
 <div class="line"><a id="l00704" name="l00704"></a><span class="lineno">  704</span>    }</div>
 <div class="line"><a id="l00705" name="l00705"></a><span class="lineno">  705</span>};</div>
 <div class="line"><a id="l00706" name="l00706"></a><span class="lineno">  706</span> </div>

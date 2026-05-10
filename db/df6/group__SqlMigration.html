@@ -92,8 +92,7 @@ $(document).ready(function(){initNavTree('db/df6/group__SqlMigration.html','../.
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Classes</a> &#124;
-<a href="#define-members">Macros</a> &#124;
-<a href="#enum-members">Enumerations</a>  </div>
+<a href="#define-members">Macros</a>  </div>
   <div class="headertitle"><div class="title">SQL Migration</div></div>
 </div><!--header-->
 <div class="contents">
@@ -103,10 +102,6 @@ $(document).ready(function(){initNavTree('db/df6/group__SqlMigration.html','../.
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Classes</h2></td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d01/structLightweight_1_1MigrationLockError.html">Lightweight::MigrationLockError</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d57/classLightweight_1_1MigrationLockHandler.html">Lightweight::MigrationLockHandler</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">Lightweight::SqlMigration::MigrationTimestamp</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html">Lightweight::SqlMigration::MigrationException</a></td></tr>
@@ -124,8 +119,6 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">Lightweight::SqlMigration::MigrationBase</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html">Lightweight::SqlMigration::MigrationMetadata</a></td></tr>
-<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html">Lightweight::SqlMigration::MigrationLock</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="define-members" name="define-members"></a>
@@ -147,19 +140,6 @@ Macros</h2></td></tr>
 <tr class="memitem:ga91ef871053a7180297054840ef21a41a" id="r_ga91ef871053a7180297054840ef21a41a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a">LIGHTWEIGHT_SQL_RELEASE</a>(version,  highestTimestamp)</td></tr>
 <tr class="memdesc:ga91ef871053a7180297054840ef21a41a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Associates a software release (version string) with the highest migration timestamp present at the time of that release.  <br /></td></tr>
 <tr class="separator:ga91ef871053a7180297054840ef21a41a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
-Enumerations</h2></td></tr>
-<tr class="memitem:gae8b2e1b8b0d4e8aac1316b216d30de5c" id="r_gae8b2e1b8b0d4e8aac1316b216d30de5c"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/df6/group__SqlMigration.html#gae8b2e1b8b0d4e8aac1316b216d30de5c">Lightweight::MigrationLockFailureReason</a> : uint8_t { <br />
-&#160;&#160;<a class="el" href="../../db/df6/group__SqlMigration.html#ggae8b2e1b8b0d4e8aac1316b216d30de5cac85a251cc457840f1e032f1b733e9398">MigrationLockFailureReason::Timeout</a>
-, <a class="el" href="../../db/df6/group__SqlMigration.html#ggae8b2e1b8b0d4e8aac1316b216d30de5cab5b078c00f1f60fe13c379ba56a7eb79">MigrationLockFailureReason::Deadlock</a>
-, <a class="el" href="../../db/df6/group__SqlMigration.html#ggae8b2e1b8b0d4e8aac1316b216d30de5caa149e85a44aeec9140e92733d9ed694e">MigrationLockFailureReason::Cancelled</a>
-, <a class="el" href="../../db/df6/group__SqlMigration.html#ggae8b2e1b8b0d4e8aac1316b216d30de5ca189976b733e988a6903e4d19d8cd2fea">MigrationLockFailureReason::ParameterError</a>
-, <br />
-&#160;&#160;<a class="el" href="../../db/df6/group__SqlMigration.html#ggae8b2e1b8b0d4e8aac1316b216d30de5cabac1f6f75d93a625283f2ef3da9f3942">MigrationLockFailureReason::DriverError</a>
-<br />
- }</td></tr>
-<tr class="separator:gae8b2e1b8b0d4e8aac1316b216d30de5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Classes and functions for SQL schema migrations. </p>
@@ -436,45 +416,6 @@ Enumerations</h2></td></tr>
 <div class="ttc" id="agroup__SqlMigration_html_ga91ef871053a7180297054840ef21a41a"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a">LIGHTWEIGHT_SQL_RELEASE</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp)</div><div class="ttdoc">Associates a software release (version string) with the highest migration timestamp present at the ti...</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01071">SqlMigration.hpp:1071</a></div></div>
 </div><!-- fragment --> 
 <p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01071">1071</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
-
-</div>
-</div>
-<h2 class="groupheader">Enumeration Type Documentation</h2>
-<a id="gae8b2e1b8b0d4e8aac1316b216d30de5c" name="gae8b2e1b8b0d4e8aac1316b216d30de5c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gae8b2e1b8b0d4e8aac1316b216d30de5c">&#9670;&#160;</a></span>MigrationLockFailureReason</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum class <a class="el" href="../../db/df6/group__SqlMigration.html#gae8b2e1b8b0d4e8aac1316b216d30de5c">Lightweight::MigrationLockFailureReason</a> : uint8_t</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Reason a migration-lock operation failed.</p>
-<p>Carried inside <code><a class="el" href="../../d9/d01/structLightweight_1_1MigrationLockError.html">MigrationLockError</a></code> so the caller can decide whether to retry, escalate, or surface the cause to a human — without resorting to <code>what()</code>-string text matching. </p>
-<table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ggae8b2e1b8b0d4e8aac1316b216d30de5cac85a251cc457840f1e032f1b733e9398" name="ggae8b2e1b8b0d4e8aac1316b216d30de5cac85a251cc457840f1e032f1b733e9398"></a>Timeout&#160;</td><td class="fielddoc"><p>Lock wasn't acquired within the requested timeout. </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ggae8b2e1b8b0d4e8aac1316b216d30de5cab5b078c00f1f60fe13c379ba56a7eb79" name="ggae8b2e1b8b0d4e8aac1316b216d30de5cab5b078c00f1f60fe13c379ba56a7eb79"></a>Deadlock&#160;</td><td class="fielddoc"><p>Server picked us as the deadlock victim (e.g. SQL Server <code>sp_getapplock</code> = -3). </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ggae8b2e1b8b0d4e8aac1316b216d30de5caa149e85a44aeec9140e92733d9ed694e" name="ggae8b2e1b8b0d4e8aac1316b216d30de5caa149e85a44aeec9140e92733d9ed694e"></a>Cancelled&#160;</td><td class="fielddoc"><p>Lock request cancelled by the server (e.g. SQL Server <code>sp_getapplock</code> = -2). </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ggae8b2e1b8b0d4e8aac1316b216d30de5ca189976b733e988a6903e4d19d8cd2fea" name="ggae8b2e1b8b0d4e8aac1316b216d30de5ca189976b733e988a6903e4d19d8cd2fea"></a>ParameterError&#160;</td><td class="fielddoc"><p>Backend reported a parameter or validation error (e.g. SQL Server <code>sp_getapplock</code> = -999). </p>
-</td></tr>
-<tr><td class="fieldname"><a id="ggae8b2e1b8b0d4e8aac1316b216d30de5cabac1f6f75d93a625283f2ef3da9f3942" name="ggae8b2e1b8b0d4e8aac1316b216d30de5cabac1f6f75d93a625283f2ef3da9f3942"></a>DriverError&#160;</td><td class="fielddoc"><p>Any other driver/server-level failure; <code><a class="el" href="../../d9/d01/structLightweight_1_1MigrationLockError.html#ae1a6405a420f3540a04a77d893e9c2f7" title="Set on DriverError; carries SQLSTATE / native error / driver text.">MigrationLockError::info</a></code> carries the SQLSTATE detail. </p>
-</td></tr>
-</table>
-
-<p class="definition">Definition at line <a class="el" href="../../de/d53/MigrationLockHandler_8hpp_source.html#l00027">27</a> of file <a class="el" href="../../de/d53/MigrationLockHandler_8hpp_source.html">MigrationLockHandler.hpp</a>.</p>
 
 </div>
 </div>
