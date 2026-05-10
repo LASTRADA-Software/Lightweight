@@ -3,6 +3,7 @@
 #include "DataBinder/SqlVariant.hpp"
 #include "DataMapper/DataMapper.hpp"
 #include "QueryFormatter/SQLiteFormatter.hpp"
+#include "SqlAdvisoryLock.hpp"
 #include "SqlBackup/Sha256.hpp"
 #include "SqlConnection.hpp"
 #include "SqlErrorDetection.hpp"
@@ -1898,6 +1899,14 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
     auto stmt = SqlStatement { dm.Connection() };
     auto const liveTables = SqlSchema::ReadAllTables(stmt, std::string {}, std::string {});
 
+    // Bookkeeping tables owned by the active advisory-lock handler
+    // (`_lightweight_locks` on SQLite; empty on SQL Server / PostgreSQL
+    // since they use server-native advisory locks). These belong to
+    // Lightweight infrastructure, not user data, so they're dropped
+    // alongside `schema_migrations` and never reported as preserved.
+    auto const bookkeepingTableNames = formatter.AdvisoryLockOps().BookkeepingTableNames();
+    std::set<std::string_view> const bookkeepingNamesSet { bookkeepingTableNames.begin(), bookkeepingTableNames.end() };
+
     std::set<std::string> intendedNames;
     for (auto const& key: fold.creationOrder)
         intendedNames.insert(key.table);
@@ -1924,6 +1933,8 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
     for (auto const& t: liveTables)
     {
         if (t.name == "schema_migrations")
+            continue;
+        if (bookkeepingNamesSet.contains(t.name))
             continue;
         if (!intendedNames.contains(t.name))
             result.preservedTables.push_back(MakeFqtn(t.schema, t.name));
@@ -1972,6 +1983,23 @@ MigrationManager::HardResetResult MigrationManager::HardReset(bool dryRun)
         for (auto const& sql: sqls)
             (void) stmt.ExecuteDirect(sql);
         result.schemaMigrationsDropped = true;
+        transaction.Commit();
+    }
+
+    // Drop any advisory-lock bookkeeping tables (`_lightweight_locks` on
+    // SQLite). On engines with server-native advisory locks the list is
+    // empty and this loop is a no-op. We drop these *after*
+    // `schema_migrations` so a partial failure during the migration drop
+    // pass doesn't strand the lock table; the same `IF EXISTS` semantics
+    // make the operation idempotent when tooling reruns hard-reset.
+    for (auto const& tableName: bookkeepingTableNames)
+    {
+        if (!liveNames.contains(std::string { tableName }))
+            continue;
+        auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
+        auto const sqls = formatter.DropTable(std::string_view {}, tableName, /*ifExists=*/true, /*cascade=*/true);
+        for (auto const& sql: sqls)
+            (void) stmt.ExecuteDirect(sql);
         transaction.Commit();
     }
 

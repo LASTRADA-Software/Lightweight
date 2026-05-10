@@ -417,25 +417,37 @@ Lightweight automatically creates a `schema_migrations` table to track applied m
 
 ### Concurrency Control
 
-Use `MigrationLock` to prevent concurrent migrations:
+Use `SqlScopedLock` (the generic distributed-lock RAII type) to prevent
+concurrent migrations:
 
 ```cpp
-#include <Lightweight/SqlMigrationLock.hpp>
-
-using namespace Lightweight::SqlMigration;
+#include <Lightweight/SqlScopedLock.hpp>
 
 auto& connection = manager.GetDataMapper().Connection();
-MigrationLock lock(connection, "my_migration_lock", std::chrono::seconds(30));
-
-if (lock.IsLocked()) {
-    manager.ApplyPendingMigrations();
-}
+SqlScopedLock lock { connection, "lightweight_migration", std::chrono::seconds(30) };
+manager.ApplyPendingMigrations();
+// Lock released automatically at scope exit.
 ```
 
-The lock implementation uses database-specific mechanisms:
+`SqlScopedLock` is **not migration-specific** — any caller that needs a
+named cross-process token can use it (cron leadership, "only one worker
+processes batch X", queue ownership, …). Pick any string for the lock
+name; two processes that pass the same string will serialise on it.
+
+For structured error handling — distinguishing timeout from deadlock
+from driver error programmatically — use the non-throwing
+`SqlScopedLock::TryConstruct(connection, name, timeout)` factory, which
+returns `std::expected<SqlScopedLock, SqlLockError>`.
+
+The dialect-specific primitive is selected automatically by the active
+`SqlQueryFormatter`:
 - **SQL Server**: `sp_getapplock` / `sp_releaseapplock`
 - **PostgreSQL**: `pg_advisory_lock` / `pg_advisory_unlock`
-- **SQLite**: `BEGIN IMMEDIATE` with `PRAGMA busy_timeout`
+- **SQLite**: `_lightweight_locks` table guarded by a unique constraint
+
+On SQLite the bookkeeping table `_lightweight_locks` is treated as
+infrastructure — `dbtool hard-reset` drops it alongside
+`schema_migrations` rather than mistaking it for user data.
 
 ## Best Practices
 

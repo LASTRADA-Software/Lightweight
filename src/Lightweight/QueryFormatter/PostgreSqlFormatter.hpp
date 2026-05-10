@@ -290,6 +290,14 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
     {
         return "SELECT version()";
     }
+
+    /// PostgreSQL uses `pg_advisory_lock` / `pg_advisory_unlock`. Inline delegation
+    /// keeps the vtable weak — see `SQLiteQueryFormatter::AdvisoryLockOps()` for
+    /// the rationale.
+    [[nodiscard]] SqlAdvisoryLockHandler const& AdvisoryLockOps() const override
+    {
+        return PostgreSqlAdvisoryLockOps();
+    }
 };
 
 } // namespace Lightweight

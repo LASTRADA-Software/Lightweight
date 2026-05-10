@@ -4,6 +4,7 @@
 
 #include <Lightweight/Lightweight.hpp>
 #include <Lightweight/QueryFormatter/SqlServerFormatter.hpp>
+#include <Lightweight/SqlScopedLock.hpp>
 
 #include <catch2/catch_session.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -2123,6 +2124,87 @@ TEST_CASE("SplitFileWriter: oversize block lands wholly in its own chunk", "[Cod
         if (chunk.size() == 1 && chunk[0].lineCount == 9)
             foundSoloHuge = true;
     CHECK(foundSoloHuge);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "AdvisoryLockOps: returns the dialect-correct handler", "[SqlScopedLock]")
+{
+    auto& dm = SqlMigration::MigrationManager::GetInstance().GetDataMapper();
+    auto const& formatter = dm.Connection().QueryFormatter();
+
+    // Process-singleton handler: same reference every time, so callers can
+    // safely cache the pointer.
+    auto const& a = formatter.AdvisoryLockOps();
+    auto const& b = formatter.AdvisoryLockOps();
+    CHECK(&a == &b);
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "SqlScopedLock acquire/release happy path", "[SqlScopedLock]")
+{
+    auto& dm = SqlMigration::MigrationManager::GetInstance().GetDataMapper();
+
+    // Throwing constructor for ergonomic use.
+    {
+        SqlScopedLock lock { dm.Connection(), "lightweight_test_lock" };
+        CHECK(lock.IsLocked());
+        CHECK(lock.Name() == "lightweight_test_lock");
+    }
+
+    // The non-throwing factory returns a fully-typed expected so callers
+    // can inspect SqlLockError directly.
+    auto maybe = SqlScopedLock::TryConstruct(dm.Connection(), "lightweight_test_lock_2", std::chrono::seconds(5));
+    REQUIRE(maybe.has_value());
+    CHECK(maybe->IsLocked());
+
+    // Explicit release returns void on success and yields the held lock.
+    auto release = maybe->Release();
+    CHECK(release.has_value());
+    CHECK_FALSE(maybe->IsLocked());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "SqlScopedLock release is idempotent", "[SqlScopedLock]")
+{
+    auto& dm = SqlMigration::MigrationManager::GetInstance().GetDataMapper();
+    SqlScopedLock lock { dm.Connection(), "lightweight_idempotent_release" };
+
+    // First release succeeds; second release on an already-released lock
+    // is a no-op success — the contract is "idempotent" so the destructor
+    // doesn't have to special-case explicit Release().
+    CHECK(lock.Release().has_value());
+    CHECK(lock.Release().has_value());
+    CHECK_FALSE(lock.IsLocked());
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "HardReset drops bookkeeping tables (lock table) without preserving them",
+                 "[SqlMigration][HardReset]")
+{
+    auto& dm = SqlMigration::MigrationManager::GetInstance().GetDataMapper();
+    auto const& formatter = dm.Connection().QueryFormatter();
+
+    // Touch the lock so any backend with a lock-table primitive (SQLite)
+    // creates `_lightweight_locks` in the live schema. Server-native
+    // backends (SQL Server / PostgreSQL) keep the bookkeeping list empty
+    // and the test still validates the not-preserved contract trivially.
+    {
+        SqlScopedLock lock { dm.Connection(), "lightweight_test_hardreset" };
+        CHECK(lock.IsLocked());
+    }
+
+    auto& mgr = SqlMigration::MigrationManager::GetInstance();
+    mgr.CreateMigrationHistory();
+
+    auto const result = mgr.HardReset(/*dryRun=*/false);
+
+    auto const bookkeeping = formatter.AdvisoryLockOps().BookkeepingTableNames();
+    for (auto const& name: bookkeeping)
+    {
+        // Bookkeeping table must NOT appear in `preservedTables` — the
+        // user-data list — even though it has no migration backing it.
+        bool wasPreserved =
+            std::ranges::any_of(result.preservedTables, [&](auto const& fqtn) { return fqtn.table == name; });
+        CAPTURE(name);
+        CHECK_FALSE(wasPreserved);
+    }
 }
 
 TEST_CASE_METHOD(SqlMigrationTestFixture, "SetDefaultSchema rejects unsafe identifiers", "[SqlMigration]")

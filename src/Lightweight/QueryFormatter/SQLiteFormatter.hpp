@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "../SqlAdvisoryLock.hpp"
 #include "../SqlQueryFormatter.hpp"
 
 #include <reflection-cpp/reflection.hpp>
@@ -624,6 +625,19 @@ ALTER TABLE {2} DROP COLUMN "{1}";)",
     [[nodiscard]] std::string QueryServerVersion() const override
     {
         return "SELECT sqlite_version()";
+    }
+
+    /// SQLite has no native advisory-lock primitive, so the handler maintains
+    /// a `_lightweight_locks` table guarded by a unique constraint. The
+    /// override is intentionally inline-delegating: putting the body in
+    /// `SqlQueryFormatter.cpp` would have made it the class's *key function*
+    /// and forced the vtable into a single TU — fine on Windows, but on
+    /// Linux with `CXX_VISIBILITY_PRESET=hidden` + `LIGHTWEIGHT_BUILD_SHARED=ON`
+    /// the hidden vtable would fail to link from consumers of `Lightweight`.
+    /// Inline + free-function delegation keeps the vtable weak.
+    [[nodiscard]] SqlAdvisoryLockHandler const& AdvisoryLockOps() const override
+    {
+        return SqliteAdvisoryLockOps();
     }
 };
 

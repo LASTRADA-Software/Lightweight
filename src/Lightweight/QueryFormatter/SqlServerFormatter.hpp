@@ -694,6 +694,14 @@ DROP INDEX "{0}_{1}_{2}_index" ON "{0}"."{1}";)",
     {
         return "SELECT @@VERSION";
     }
+
+    /// Microsoft SQL Server uses `sp_getapplock` / `sp_releaseapplock`. Inline
+    /// delegation keeps the vtable weak — see `SQLiteQueryFormatter::AdvisoryLockOps()`
+    /// for the rationale.
+    [[nodiscard]] SqlAdvisoryLockHandler const& AdvisoryLockOps() const override
+    {
+        return SqlServerAdvisoryLockOps();
+    }
 };
 
 } // namespace Lightweight

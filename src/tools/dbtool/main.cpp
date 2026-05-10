@@ -9,8 +9,8 @@
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlLogger.hpp>
 #include <Lightweight/SqlMigration.hpp>
-#include <Lightweight/SqlMigrationLock.hpp>
 #include <Lightweight/SqlSchema.hpp>
+#include <Lightweight/SqlScopedLock.hpp>
 
 #include <cstdio>
 #include <expected>
@@ -48,6 +48,25 @@ using namespace std::string_view_literals;
 
 namespace
 {
+
+/// @brief Emits a startup-trace breadcrumb to stderr when `DBTOOL_TRACE=1` is set.
+///
+/// Used to diagnose hangs that aren't visible from outside (e.g. the dbtool
+/// process simply not exiting after `list-pending` against LocalDB on
+/// Windows-2025 CI runners). Off by default — never appears in normal usage —
+/// but invaluable when correlated with `sys.dm_exec_requests` and
+/// `tasklist` snapshots from the on-timeout diagnostics in `test_dbtool.py`.
+void TraceBreadcrumb(std::string_view label)
+{
+    static bool const enabled = []() {
+        char const* const v = std::getenv("DBTOOL_TRACE");
+        return v != nullptr && *v != '\0' && *v != '0';
+    }();
+    if (!enabled)
+        return;
+    std::println(std::cerr, "[dbtool-trace] {}", label);
+    std::fflush(stderr);
+}
 
 bool IsStdoutTerminal()
 {
@@ -719,12 +738,22 @@ std::expected<MigrationBase const*, std::string> GetMigration(MigrationManager& 
 
 bool SetupConnectionString(SqlConnectionString const& connectionString)
 {
+    TraceBreadcrumb("SetupConnectionString: entered");
     if (!connectionString.value.empty())
+    {
+        TraceBreadcrumb("SetupConnectionString: setting from CLI value");
         SqlConnection::SetDefaultConnectionString(connectionString);
+    }
     else if (auto const* env = std::getenv("SQL_CONNECTION_STRING"))
+    {
+        TraceBreadcrumb("SetupConnectionString: setting from SQL_CONNECTION_STRING env");
         SqlConnection::SetDefaultConnectionString(SqlConnectionString { env });
+    }
     else if (auto const* env = std::getenv("ODBC_CONNECTION_STRING"))
+    {
+        TraceBreadcrumb("SetupConnectionString: setting from ODBC_CONNECTION_STRING env");
         SqlConnection::SetDefaultConnectionString(SqlConnectionString { env });
+    }
     else
     {
         std::println(std::cerr,
@@ -732,15 +761,20 @@ bool SetupConnectionString(SqlConnectionString const& connectionString)
                      "environment variable, or configure it in ~/.config/dbtool/dbtool.yml.\n");
         return false;
     }
+    TraceBreadcrumb("SetupConnectionString: looking up default connection string");
     auto const& defaultString = SqlConnection::DefaultConnectionString();
+    TraceBreadcrumb("SetupConnectionString: ensuring sqlite database file exists");
     if (!EnsureSqliteDatabaseFileExists(defaultString))
         std::println(std::cerr, "Warning: could not ensure SQLite database file exists for {}", defaultString.Sanitized());
+    TraceBreadcrumb("SetupConnectionString: returning true");
     return true;
 }
 
 int ListPendingMigrations(MigrationManager& manager)
 {
+    TraceBreadcrumb("ListPendingMigrations: calling GetPending");
     auto const pending = manager.GetPending();
+    TraceBreadcrumb("ListPendingMigrations: GetPending returned");
     std::println("Pending Migrations:");
     for (auto const* m: pending)
         std::println("  {} - {}", m->GetTimestamp().value, m->GetTitle());
@@ -1399,15 +1433,23 @@ int RollbackToRelease(MigrationManager& manager, std::string_view argument)
     return EXIT_SUCCESS;
 }
 
-/// RAII wrapper for optional migration locking.
+/// Stable name for the migration-system advisory lock. Defined here so all
+/// dbtool callers acquire the same token; users of the public `SqlScopedLock`
+/// API choose their own names for their own resources.
+constexpr std::string_view kMigrationLockName = "lightweight_migration";
+
+/// RAII wrapper for optional advisory locking around migration commands.
 ///
-/// Acquires a migration lock if locking is enabled, otherwise does nothing.
-/// The lock is automatically released when the wrapper goes out of scope.
-class OptionalMigrationLock
+/// Acquires the migration-system advisory lock if locking is enabled,
+/// otherwise does nothing. The lock is automatically released when the
+/// wrapper goes out of scope. Wraps `Lightweight::SqlScopedLock` —
+/// callers outside dbtool should use `SqlScopedLock` directly.
+class OptionalScopedLock
 {
   public:
-    OptionalMigrationLock(MigrationManager& manager, bool noLock):
-        _lock(noLock ? std::nullopt : std::make_optional<MigrationLock>(manager.GetDataMapper().Connection()))
+    OptionalScopedLock(MigrationManager& manager, bool noLock):
+        _lock(noLock ? std::nullopt
+                     : std::make_optional<SqlScopedLock>(manager.GetDataMapper().Connection(), kMigrationLockName))
     {
         if (_lock && !_lock->IsLocked())
         {
@@ -1416,7 +1458,7 @@ class OptionalMigrationLock
     }
 
   private:
-    std::optional<MigrationLock> _lock;
+    std::optional<SqlScopedLock> _lock;
 };
 
 class SimpleEventProgressManager: public Lightweight::SqlBackup::ErrorTrackingProgressManager
@@ -2028,12 +2070,15 @@ MigrationManager& GetMigrationManager(Options const& options)
     auto& manager = MigrationManager::GetInstance();
     if (!initialized)
     {
+        TraceBreadcrumb("GetMigrationManager: loading plugins");
         plugins = LoadPlugins(options.pluginsDir);
+        TraceBreadcrumb("GetMigrationManager: collecting migrations");
         CollectMigrations(plugins, manager);
         // Apply --schema before opening the connection so the post-connect
         // hook is installed prior to CreateMigrationHistory()'s first connect.
         if (!options.schema.empty())
         {
+            TraceBreadcrumb("GetMigrationManager: setting default schema");
             try
             {
                 manager.SetDefaultSchema(options.schema);
@@ -2044,7 +2089,9 @@ MigrationManager& GetMigrationManager(Options const& options)
                 std::exit(EXIT_FAILURE);
             }
         }
+        TraceBreadcrumb("GetMigrationManager: creating migration history table");
         manager.CreateMigrationHistory();
+        TraceBreadcrumb("GetMigrationManager: ready");
         initialized = true;
     }
     return manager;
@@ -2066,61 +2113,61 @@ int DispatchDbCommand(Options const& options)
     if (options.command == "migrate")
     {
         auto& manager = GetMigrationManager(options);
-        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
         return Migrate(manager, options.dryRun);
     }
     if (options.command == "apply")
     {
         auto& manager = GetMigrationManager(options);
-        OptionalMigrationLock const lock(manager, options.noLock);
+        OptionalScopedLock const lock(manager, options.noLock);
         return ApplyMigration(manager, options.argument);
     }
     if (options.command == "rollback")
     {
         auto& manager = GetMigrationManager(options);
-        OptionalMigrationLock const lock(manager, options.noLock);
+        OptionalScopedLock const lock(manager, options.noLock);
         return RollbackMigration(manager, options.argument);
     }
     if (options.command == "rollback-to")
     {
         auto& manager = GetMigrationManager(options);
-        OptionalMigrationLock const lock(manager, options.noLock);
+        OptionalScopedLock const lock(manager, options.noLock);
         return RollbackTo(manager, options.argument);
     }
     if (options.command == "rollback-to-release")
     {
         auto& manager = GetMigrationManager(options);
-        OptionalMigrationLock const lock(manager, options.noLock);
+        OptionalScopedLock const lock(manager, options.noLock);
         return RollbackToRelease(manager, options.argument);
     }
     if (options.command == "migrate-to-release")
     {
         auto& manager = GetMigrationManager(options);
-        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
         return MigrateToRelease(manager, options.argument, options.dryRun);
     }
     if (options.command == "mark-applied")
     {
         auto& manager = GetMigrationManager(options);
-        OptionalMigrationLock const lock(manager, options.noLock);
+        OptionalScopedLock const lock(manager, options.noLock);
         return MarkApplied(manager, options.argument);
     }
     if (options.command == "rewrite-checksums")
     {
         auto& manager = GetMigrationManager(options);
-        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
         return RewriteChecksums(manager, options.dryRun, options.yes);
     }
     if (options.command == "hard-reset")
     {
         auto& manager = GetMigrationManager(options);
-        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
         return HardReset(manager, options.dryRun, options.yes);
     }
     if (options.command == "unicode-upgrade-tables")
     {
         auto& manager = GetMigrationManager(options);
-        OptionalMigrationLock const lock(manager, options.noLock || options.dryRun);
+        OptionalScopedLock const lock(manager, options.noLock || options.dryRun);
         return UnicodeUpgradeTables(manager, options.dryRun, options.yes);
     }
     if (options.command == "backup")
@@ -2187,8 +2234,11 @@ int main(int argc, char** argv)
     // and silently dropped.
     SqlLogger::SetLogger(SqlLogger::StandardLogger());
 
+    TraceBreadcrumb("main: entered");
+
     try
     {
+        TraceBreadcrumb("main: parsing arguments");
         auto optionsResult = ParseArguments(argc, argv);
         if (!optionsResult)
         {
@@ -2196,9 +2246,12 @@ int main(int argc, char** argv)
             return EXIT_FAILURE;
         }
         Options options = optionsResult.value();
+
+        TraceBreadcrumb("main: applying profile");
         ApplyProfileToOptions(options); // Resolve a named (or default) profile and fill unset fields.
 
 #if defined(_WIN32)
+        TraceBreadcrumb("main: configuring Windows console");
         ConfigureWindowsConsole();
 #endif
 
@@ -2223,10 +2276,14 @@ int main(int argc, char** argv)
         if (options.command == "resolve-secret")
             return ResolveSecretCommand(options);
 
+        TraceBreadcrumb("main: setting up connection string");
         if (!SetupConnectionString(options.connectionString))
             return EXIT_FAILURE;
 
-        return DispatchDbCommand(options);
+        TraceBreadcrumb("main: dispatching command");
+        auto const rc = DispatchDbCommand(options);
+        TraceBreadcrumb("main: dispatch returned, returning to OS");
+        return rc;
     }
     catch (Lightweight::SqlMigration::MigrationException const& e)
     {

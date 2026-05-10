@@ -84,16 +84,17 @@ set(HEADER_FILES
     Zip/ZipEntry.hpp
     Zip/ZipError.hpp
 
+    SqlAdvisoryLock.hpp
     SqlConnectInfo.hpp
     SqlConnection.hpp
     SqlError.hpp
     SqlErrorDetection.hpp
     SqlLogger.hpp
     SqlMigration.hpp
-    SqlMigrationLock.hpp
     SqlOdbcWide.hpp
     SqlQueryFormatter.hpp
     SqlSchema.hpp
+    SqlScopedLock.hpp
     SqlScopedTraceLogger.hpp
     SqlServerType.hpp
     SqlStatement.hpp
@@ -122,7 +123,6 @@ set(SOURCE_FILES
     SqlError.cpp
     SqlLogger.cpp
     SqlMigration.cpp
-    SqlMigrationLock.cpp
     SqlQuery.cpp
     SqlQuery/Core.cpp
     SqlQuery/Migrate.cpp
@@ -130,6 +130,7 @@ set(SOURCE_FILES
     SqlQuery/Select.cpp
 
     SqlQueryFormatter.cpp
+    SqlScopedLock.cpp
     SqlSchema.cpp
     SqlStatement.cpp
     SqlTransaction.cpp

@@ -13,6 +13,7 @@
 namespace Lightweight
 {
 
+class SqlAdvisoryLockHandler;
 struct SqlQualifiedTableColumnName;
 
 /// API to format SQL queries for different SQL dialects.
@@ -226,6 +227,17 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         (void) schema;
         return {};
     }
+
+    /// @brief Returns the dialect-specific handler used by `SqlScopedLock` to
+    /// acquire and release named cross-process advisory locks.
+    ///
+    /// The returned reference is to a process-singleton, valid for the lifetime
+    /// of the program. Each backend implements its own primitive — SQL Server
+    /// uses `sp_getapplock`, PostgreSQL uses `pg_advisory_lock`, SQLite uses
+    /// a lock table — and the implementation lives in the backend's formatter
+    /// translation unit, so adding a new dialect only touches that unit and
+    /// `SqlScopedLock` itself stays dialect-agnostic.
+    [[nodiscard]] virtual SqlAdvisoryLockHandler const& AdvisoryLockOps() const = 0;
 
   protected:
     /// Formats a table name with optional schema prefix.

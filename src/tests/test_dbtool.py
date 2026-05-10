@@ -86,20 +86,99 @@ def load_connection_string_from_test_env(env_name):
         sys.exit(1)
 
 
+# Upper bound for a single dbtool invocation. Real successful runs are well under
+# 10 s — even the slowest (Windows + LocalDB on master) finishes the whole suite in
+# ~2 min for ~25 invocations. 180 s gives plenty of slack and surfaces a hang in
+# minutes instead of letting it consume the runner-level timeout.
+PER_COMMAND_TIMEOUT_SECONDS = 180
+
+
+def _capture_diagnostics_on_hang(cmd, partial_stdout, partial_stderr):
+    """Emit best-effort diagnostics when a dbtool invocation hits the per-command
+    timeout. Output goes straight to stderr so the GitHub Actions log captures it
+    even if `cmd` is still mid-flight."""
+    print(f"\n!!! dbtool invocation exceeded {PER_COMMAND_TIMEOUT_SECONDS}s — "
+          "capturing diagnostics", file=sys.stderr, flush=True)
+    print(f"Hung command: {' '.join(cmd)}", file=sys.stderr, flush=True)
+    if partial_stdout:
+        print("--- partial STDOUT ---", file=sys.stderr, flush=True)
+        print(partial_stdout, file=sys.stderr, flush=True)
+    if partial_stderr:
+        print("--- partial STDERR ---", file=sys.stderr, flush=True)
+        print(partial_stderr, file=sys.stderr, flush=True)
+
+    if os.name == "nt":
+        try:
+            print("--- tasklist (dbtool.exe) ---", file=sys.stderr, flush=True)
+            tl = subprocess.run(
+                ["tasklist", "/v", "/fi", "imagename eq dbtool.exe"],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, encoding="utf-8", errors="replace", timeout=10,
+            )
+            print(tl.stdout, file=sys.stderr, flush=True)
+        except Exception as e:  # noqa: BLE001 — diagnostics path, swallow
+            print(f"(tasklist failed: {e})", file=sys.stderr, flush=True)
+
+    # Best-effort SQL Server side: if the connection string targets LocalDB,
+    # dump active requests + locks via sqlcmd. We deliberately don't fail if
+    # sqlcmd is missing — this is diagnostic-only.
+    conn_str = next((c for c in cmd if "Driver=" in c or "DRIVER=" in c), "")
+    if "Server=(LocalDB)" in conn_str or "SERVER=(LOCALDB)" in conn_str.upper():
+        try:
+            print("--- sys.dm_exec_requests / locks (LocalDB) ---",
+                  file=sys.stderr, flush=True)
+            diag_sql = (
+                "SET NOCOUNT ON; "
+                "SELECT session_id, blocking_session_id, wait_type, wait_resource, "
+                "       command, status, last_wait_type, "
+                "       CAST(text AS nvarchar(2000)) AS sql_text "
+                "FROM sys.dm_exec_requests r "
+                "OUTER APPLY sys.dm_exec_sql_text(r.sql_handle); "
+                "SELECT request_session_id, resource_type, resource_associated_entity_id, "
+                "       request_mode, request_status FROM sys.dm_tran_locks; "
+                "EXEC sp_who2;"
+            )
+            sc = subprocess.run(
+                ["sqlcmd", "-S", "(LocalDB)\\MSSQLLocalDB", "-Q", diag_sql],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, encoding="utf-8", errors="replace", timeout=20,
+            )
+            print(sc.stdout, file=sys.stderr, flush=True)
+        except Exception as e:  # noqa: BLE001 — diagnostics path, swallow
+            print(f"(sqlcmd diag failed: {e})", file=sys.stderr, flush=True)
+
+
 def run_command(cmd, check=True):
-    print(f"Running: {' '.join(cmd)}")
+    print(f"Running: {' '.join(cmd)}", flush=True)
     # dbtool emits UTF-8 (table names, progress glyphs, etc.) regardless of platform.
     # Without an explicit encoding, Python on Windows defaults to the console code
     # page (cp1252) and crashes the reader thread with UnicodeDecodeError as soon as
     # any non-ASCII byte appears, masking the real exit status.
-    result = subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    #
+    # `stdin=DEVNULL`: nothing this test runs should read stdin. Inheriting the
+    #   parent's stdin (in CI, bash's stdin) means a future code path that
+    #   accidentally calls `getline(std::cin, …)` would hang the whole CI step
+    #   for hours instead of failing fast. Cheap defense in depth.
+    # `timeout=…`: bound a single invocation. On hang we capture LocalDB
+    #   `sys.dm_exec_requests` + `tasklist` so the next CI failure has actionable
+    #   data instead of "step ran for 6 hours".
+    try:
+        result = subprocess.run(
+            cmd,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=PER_COMMAND_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as e:
+        _capture_diagnostics_on_hang(cmd, e.stdout or "", e.stderr or "")
+        print(f"dbtool invocation timed out after {PER_COMMAND_TIMEOUT_SECONDS}s",
+              file=sys.stderr, flush=True)
+        sys.exit(1)
+
     if result.returncode != 0:
         print("STDOUT:", result.stdout)
         print("STDERR:", result.stderr)
@@ -277,6 +356,24 @@ def main():
             print(f"Dry-run output did not mention schema-only backup:\n{dry_output}")
             sys.exit(1)
 
+    # Hard-reset must drop the advisory-lock bookkeeping table on backends that
+    # use one (SQLite). Regression guard against the lock table being mistaken
+    # for user data and ending up in the preserved-tables list. The acquire that
+    # hard-reset itself performs proves the table can be (re)created cleanly
+    # afterwards — and that releasing a lock whose table got dropped under the
+    # holder doesn't error out (idempotent-Release contract).
+    print("--- 10. Hard-reset clears bookkeeping tables ---")
+    hard_reset_output = run_command(base_cmd + ["hard-reset", "--yes"]).stdout
+    if "preserved" in hard_reset_output.lower() and "lightweight_locks" in hard_reset_output.lower():
+        print(f"hard-reset reported _lightweight_locks as preserved (should be dropped):\n{hard_reset_output}")
+        sys.exit(1)
+    # Re-running migrate after hard-reset must work (the lock table can be recreated).
+    run_command(base_cmd + ["migrate"])
+    output = run_command(base_cmd + ["list-applied"]).stdout
+    if "Initial Migration" not in output:
+        print(f"Re-migrate after hard-reset did not re-apply migrations:\n{output}")
+        sys.exit(1)
+
     # `--schema <NAME>` is honored by migrate on PostgreSQL via post-connect
     # `SET search_path`. On SQL Server / SQLite the flag is parsed but the
     # migration runner relies on the login's server-side DEFAULT_SCHEMA (or
@@ -294,6 +391,7 @@ def main():
         # Tear down, then create a fresh `lasa_test` schema and migrate into it.
         # We use a dedicated schema name so this test does not stomp on any
         # `lasa` the operator may already have.
+        run_command(base_cmd + ["hard-reset", "--yes"])
         run_command(base_cmd + ["exec", 'DROP SCHEMA IF EXISTS "lasa_test" CASCADE'])
         run_command(base_cmd + ["exec", 'CREATE SCHEMA "lasa_test"'])
 
