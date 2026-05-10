@@ -92,6 +92,7 @@ $(document).ready(function(){initNavTree('d0/d8d/classLightweight_1_1SqlMigratio
 <div class="header">
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pub-static-methods">Static Public Member Functions</a> &#124;
 <a href="../../dc/d9e/classLightweight_1_1SqlMigration_1_1MigrationLock-members.html">List of all members</a>  </div>
   <div class="headertitle"><div class="title">Lightweight::SqlMigration::MigrationLock Class Reference<div class="ingroups"><a class="el" href="../../db/df6/group__SqlMigration.html">SQL Migration</a></div></div></div>
 </div><!--header-->
@@ -103,9 +104,7 @@ $(document).ready(function(){initNavTree('d0/d8d/classLightweight_1_1SqlMigratio
 Public Member Functions</h2></td></tr>
 <tr class="memitem:ad96abad387505fd1f962993f60d91913" id="r_ad96abad387505fd1f962993f60d91913"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#ad96abad387505fd1f962993f60d91913">MigrationLock</a> (<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> &amp;connection, std::string_view lockName=&quot;lightweight_migration&quot;, std::chrono::milliseconds timeout=std::chrono::seconds(30))</td></tr>
 <tr class="separator:ad96abad387505fd1f962993f60d91913"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2ac5fc5f8d975982e9f079eae1d2ad80" id="r_a2ac5fc5f8d975982e9f079eae1d2ad80"><td class="memItemLeft" align="right" valign="top"><a id="a2ac5fc5f8d975982e9f079eae1d2ad80" name="a2ac5fc5f8d975982e9f079eae1d2ad80"></a>
-LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><b>~MigrationLock</b> ()</td></tr>
-<tr class="memdesc:a2ac5fc5f8d975982e9f079eae1d2ad80"><td class="mdescLeft">&#160;</td><td class="mdescRight">Releases the lock on destruction. <br /></td></tr>
+<tr class="memitem:a2ac5fc5f8d975982e9f079eae1d2ad80" id="r_a2ac5fc5f8d975982e9f079eae1d2ad80"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#a2ac5fc5f8d975982e9f079eae1d2ad80">~MigrationLock</a> ()</td></tr>
 <tr class="separator:a2ac5fc5f8d975982e9f079eae1d2ad80"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5a8f42e9cb3b4e671fb1c5ba93bf44d2" id="r_a5a8f42e9cb3b4e671fb1c5ba93bf44d2"><td class="memItemLeft" align="right" valign="top"><a id="a5a8f42e9cb3b4e671fb1c5ba93bf44d2" name="a5a8f42e9cb3b4e671fb1c5ba93bf44d2"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>MigrationLock</b> (<a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html">MigrationLock</a> const &amp;)=delete</td></tr>
@@ -123,25 +122,35 @@ LIGHTWEIGHT_API <a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigratio
 <tr class="separator:ab39b5e9a688a9f1b7ddd23a4c5fbe1c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a097efefa7b59595476424596436760d8" id="r_a097efefa7b59595476424596436760d8"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#a097efefa7b59595476424596436760d8">IsLocked</a> () const noexcept</td></tr>
 <tr class="separator:a097efefa7b59595476424596436760d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a23b43a71bb926aa5ef5e802576060a10" id="r_a23b43a71bb926aa5ef5e802576060a10"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#a23b43a71bb926aa5ef5e802576060a10">Release</a> ()</td></tr>
-<tr class="separator:a23b43a71bb926aa5ef5e802576060a10"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af182d80c21994db84a68d0aaed1b642f" id="r_af182d80c21994db84a68d0aaed1b642f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::expected&lt; void, <a class="el" href="../../d9/d01/structLightweight_1_1MigrationLockError.html">MigrationLockError</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#af182d80c21994db84a68d0aaed1b642f">Release</a> ()</td></tr>
+<tr class="separator:af182d80c21994db84a68d0aaed1b642f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
+Static Public Member Functions</h2></td></tr>
+<tr class="memitem:aa598d564cb0a863deeb534fbd4c601f0" id="r_aa598d564cb0a863deeb534fbd4c601f0"><td class="memItemLeft" align="right" valign="top">static LIGHTWEIGHT_API std::expected&lt; <a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html">MigrationLock</a>, <a class="el" href="../../d9/d01/structLightweight_1_1MigrationLockError.html">MigrationLockError</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#aa598d564cb0a863deeb534fbd4c601f0">TryConstruct</a> (<a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> &amp;connection, std::string_view lockName=&quot;lightweight_migration&quot;, std::chrono::milliseconds timeout=std::chrono::seconds(30))</td></tr>
+<tr class="separator:aa598d564cb0a863deeb534fbd4c601f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>RAII-style migration lock to prevent concurrent migrations.</p>
-<p>This class provides a distributed locking mechanism to ensure that only one process can run migrations at a time. The implementation uses database-specific advisory locks:</p><ul>
-<li>SQL Server: sp_getapplock / sp_releaseapplock</li>
-<li>PostgreSQL: pg_advisory_lock / pg_advisory_unlock</li>
-<li>SQLite: BEGIN IMMEDIATE transaction with PRAGMA busy_timeout</li>
+<p>This class provides a distributed locking mechanism to ensure that only one process can run migrations at a time. The dialect-specific primitive is selected by the active <code><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html" title="API to format SQL queries for different SQL dialects.">SqlQueryFormatter</a></code>'s <code>MigrationLockOps()</code> handler:</p><ul>
+<li>SQL Server: <code>sp_getapplock</code> / <code>sp_releaseapplock</code></li>
+<li>PostgreSQL: <code>pg_advisory_lock</code> / <code>pg_advisory_unlock</code></li>
+<li>SQLite: <code>_migration_locks</code> table guarded by a unique constraint</li>
 </ul>
+<p>The class itself contains zero per-DBMS branching — adding a new dialect only requires implementing a <code><a class="el" href="../../d9/d57/classLightweight_1_1MigrationLockHandler.html">MigrationLockHandler</a></code> and wiring it to the new formatter's <code>MigrationLockOps()</code>.</p>
 <div class="fragment"><div class="line"><span class="keyword">auto</span>&amp; connection = migrationManager.GetDataMapper().Connection();</div>
-<div class="line"><a class="code hl_class" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html">MigrationLock</a> lock(connection);</div>
-<div class="line"><span class="keywordflow">if</span> (lock.IsLocked())</div>
-<div class="line">{</div>
-<div class="line">    migrationManager.ApplyPendingMigrations();</div>
-<div class="line">}</div>
-<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationLock_html"><div class="ttname"><a href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html">Lightweight::SqlMigration::MigrationLock</a></div><div class="ttdef"><b>Definition</b> <a href="../../d9/dd6/SqlMigrationLock_8hpp_source.html#l00033">SqlMigrationLock.hpp:34</a></div></div>
+<div class="line"><a class="code hl_class" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html">MigrationLock</a> lock(connection); <span class="comment">// throws on failure</span></div>
+<div class="line">migrationManager.ApplyPendingMigrations();</div>
+<div class="line"><span class="comment">// lock released on scope exit.</span></div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Or, with structured error handling:</span></div>
+<div class="line"><span class="keyword">auto</span> maybeLock = <a class="code hl_function" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#aa598d564cb0a863deeb534fbd4c601f0">MigrationLock::TryConstruct</a>(connection);</div>
+<div class="line"><span class="keywordflow">if</span> (!maybeLock)</div>
+<div class="line">    std::println(stderr, <span class="stringliteral">&quot;{}&quot;</span>, maybeLock.error().message);</div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationLock_html"><div class="ttname"><a href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html">Lightweight::SqlMigration::MigrationLock</a></div><div class="ttdef"><b>Definition</b> <a href="../../d9/dd6/SqlMigrationLock_8hpp_source.html#l00043">SqlMigrationLock.hpp:44</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationLock_html_aa598d564cb0a863deeb534fbd4c601f0"><div class="ttname"><a href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#aa598d564cb0a863deeb534fbd4c601f0">Lightweight::SqlMigration::MigrationLock::TryConstruct</a></div><div class="ttdeci">static LIGHTWEIGHT_API std::expected&lt; MigrationLock, MigrationLockError &gt; TryConstruct(SqlConnection &amp;connection, std::string_view lockName=&quot;lightweight_migration&quot;, std::chrono::milliseconds timeout=std::chrono::seconds(30))</div></div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../d9/dd6/SqlMigrationLock_8hpp_source.html#l00033">33</a> of file <a class="el" href="../../d9/dd6/SqlMigrationLock_8hpp_source.html">SqlMigrationLock.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/dd6/SqlMigrationLock_8hpp_source.html#l00043">43</a> of file <a class="el" href="../../d9/dd6/SqlMigrationLock_8hpp_source.html">SqlMigrationLock.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="ad96abad387505fd1f962993f60d91913" name="ad96abad387505fd1f962993f60d91913"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ad96abad387505fd1f962993f60d91913">&#9670;&#160;</a></span>MigrationLock()</h2>
@@ -185,22 +194,83 @@ LIGHTWEIGHT_API <a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigratio
 <p>Acquire a migration lock.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">connection</td><td>Database connection to use for locking </td></tr>
-    <tr><td class="paramname">lockName</td><td>Name of the lock (default: "lightweight_migration") </td></tr>
-    <tr><td class="paramname">timeout</td><td>Maximum time to wait for lock acquisition </td></tr>
+    <tr><td class="paramname">connection</td><td>Database connection to use for locking. </td></tr>
+    <tr><td class="paramname">lockName</td><td>Name of the lock (default: "lightweight_migration"). </td></tr>
+    <tr><td class="paramname">timeout</td><td>Maximum time to wait for lock acquisition. </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
-    <tr><td class="paramname">SqlException</td><td>if lock cannot be acquired within timeout </td></tr>
+    <tr><td class="paramname">std::runtime_error</td><td>if the lock cannot be acquired (timeout, deadlock, or driver error). The thrown exception's <code>what()</code> contains a human-readable explanation. For programmatic access to the failure reason, use the non-throwing <code>TryConstruct</code> factory. </td></tr>
   </table>
   </dd>
 </dl>
 
 </div>
 </div>
+<a id="a2ac5fc5f8d975982e9f079eae1d2ad80" name="a2ac5fc5f8d975982e9f079eae1d2ad80"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2ac5fc5f8d975982e9f079eae1d2ad80">&#9670;&#160;</a></span>~MigrationLock()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API Lightweight::SqlMigration::MigrationLock::~MigrationLock </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Releases the lock on destruction. Release-time errors are routed to <code><a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#adbb17b889781323b66f79f99e1108776" title="Invoked on a warning.">SqlLogger::OnWarning</a></code> rather than being silently swallowed. </p>
+
+</div>
+</div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="aa598d564cb0a863deeb534fbd4c601f0" name="aa598d564cb0a863deeb534fbd4c601f0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa598d564cb0a863deeb534fbd4c601f0">&#9670;&#160;</a></span>TryConstruct()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static LIGHTWEIGHT_API std::expected&lt; <a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html">MigrationLock</a>, <a class="el" href="../../d9/d01/structLightweight_1_1MigrationLockError.html">MigrationLockError</a> &gt; Lightweight::SqlMigration::MigrationLock::TryConstruct </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html">SqlConnection</a> &amp;&#160;</td>
+          <td class="paramname"><em>connection</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>lockName</em> = <code>&quot;lightweight_migration&quot;</code>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">std::chrono::milliseconds&#160;</td>
+          <td class="paramname"><em>timeout</em> = <code>std::chrono::seconds(30)</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Non-throwing factory that returns either a held lock or a structured <code><a class="el" href="../../d9/d01/structLightweight_1_1MigrationLockError.html">MigrationLockError</a></code> describing why the acquire failed. Prefer this when the caller wants to react programmatically to the failure reason (timeout vs deadlock vs driver error) — for example, to retry with backoff or to show a tailored UI message. </p>
+
+</div>
+</div>
 <a id="a097efefa7b59595476424596436760d8" name="a097efefa7b59595476424596436760d8"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a097efefa7b59595476424596436760d8">&#9670;&#160;</a></span>IsLocked()</h2>
 
@@ -226,18 +296,18 @@ LIGHTWEIGHT_API <a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigratio
 <p>Check if lock is held.</p>
 <dl class="section return"><dt>Returns</dt><dd>true if the lock is currently held by this instance </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/dd6/SqlMigrationLock_8hpp_source.html#l00061">61</a> of file <a class="el" href="../../d9/dd6/SqlMigrationLock_8hpp_source.html">SqlMigrationLock.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/dd6/SqlMigrationLock_8hpp_source.html#l00085">85</a> of file <a class="el" href="../../d9/dd6/SqlMigrationLock_8hpp_source.html">SqlMigrationLock.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a23b43a71bb926aa5ef5e802576060a10" name="a23b43a71bb926aa5ef5e802576060a10"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a23b43a71bb926aa5ef5e802576060a10">&#9670;&#160;</a></span>Release()</h2>
+<a id="af182d80c21994db84a68d0aaed1b642f" name="af182d80c21994db84a68d0aaed1b642f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af182d80c21994db84a68d0aaed1b642f">&#9670;&#160;</a></span>Release()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_API void Lightweight::SqlMigration::MigrationLock::Release </td>
+          <td class="memname">LIGHTWEIGHT_API std::expected&lt; void, <a class="el" href="../../d9/d01/structLightweight_1_1MigrationLockError.html">MigrationLockError</a> &gt; Lightweight::SqlMigration::MigrationLock::Release </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td></td>
@@ -245,7 +315,7 @@ LIGHTWEIGHT_API <a class="el" href="../../d0/d8d/classLightweight_1_1SqlMigratio
       </table>
 </div><div class="memdoc">
 <p>Release the lock early.</p>
-<p>This is automatically called in the destructor, but can be called manually if early release is desired. </p>
+<p>This is automatically called in the destructor, but can be called manually if early release is desired. Returns the underlying <code><a class="el" href="../../d9/d01/structLightweight_1_1MigrationLockError.html">MigrationLockError</a></code> if the release round-trip fails so callers can log or surface it. </p>
 
 </div>
 </div>

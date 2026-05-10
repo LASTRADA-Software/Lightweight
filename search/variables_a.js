@@ -5,6 +5,7 @@ var searchData=
   ['libziperror_2',['libzipError',['../da/dd4/structLightweight_1_1Zip_1_1ZipError.html#aae4162b3c01ffe80286bdf62a5561472',1,'Lightweight::Zip::ZipError']]],
   ['livetype_3',['liveType',['../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a396642e22f36188c7ea4dce037c2204e',1,'Lightweight::SqlMigration::MigrationManager::ColumnUpgradeEntry']]],
   ['loadrelations_4',['loadRelations',['../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a',1,'Lightweight::DataMapperOptions']]],
-  ['lookupattempted_5',['lookupAttempted',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a7d5c90cf0a765b640b1de1ed07a24f28',1,'Lightweight::MigrationRenderContext']]],
-  ['luptruncate_6',['lupTruncate',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a2951b6980a9d504a748699de0167c8de',1,'Lightweight::MigrationRenderContext']]]
+  ['lockname_5',['lockName',['../d9/d01/structLightweight_1_1MigrationLockError.html#a75e58d9729b787b797d847a5db1be323',1,'Lightweight::MigrationLockError']]],
+  ['lookupattempted_6',['lookupAttempted',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a7d5c90cf0a765b640b1de1ed07a24f28',1,'Lightweight::MigrationRenderContext']]],
+  ['luptruncate_7',['lupTruncate',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a2951b6980a9d504a748699de0167c8de',1,'Lightweight::MigrationRenderContext']]]
 ];

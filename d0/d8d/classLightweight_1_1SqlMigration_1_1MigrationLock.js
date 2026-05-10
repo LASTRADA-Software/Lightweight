@@ -5,5 +5,5 @@ var classLightweight_1_1SqlMigration_1_1MigrationLock =
     [ "MigrationLock", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#a2af15418d7767a004d11f61094a6ba96", null ],
     [ "operator=", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#ab39b5e9a688a9f1b7ddd23a4c5fbe1c4", null ],
     [ "IsLocked", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#a097efefa7b59595476424596436760d8", null ],
-    [ "Release", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#a23b43a71bb926aa5ef5e802576060a10", null ]
+    [ "Release", "d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html#af182d80c21994db84a68d0aaed1b642f", null ]
 ];

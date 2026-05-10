@@ -26,5 +26,6 @@ var classLightweight_1_1SqlQueryFormatter =
     [ "AlterTable", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#afe75e53c7277af2f7009a16ac827ad90", null ],
     [ "DropTable", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9b5cc394c01daeccdafb032bd2da9003", null ],
     [ "QueryServerVersion", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8513eaca58ba6015cecfd88973c18d4b", null ],
-    [ "RequiresTableRebuildForForeignKeyChange", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4259cbd0861534246ce81a9494caf032", null ]
+    [ "RequiresTableRebuildForForeignKeyChange", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4259cbd0861534246ce81a9494caf032", null ],
+    [ "MigrationLockOps", "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4644f0cd25d4882b820073836d7c3ae5", null ]
 ];

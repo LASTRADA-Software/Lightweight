@@ -37,6 +37,8 @@ var hierarchy =
     [ "Lightweight::HasMany< OtherRecord >", "da/df4/classLightweight_1_1HasMany.html", null ],
     [ "Lightweight::HasManyThrough< ReferencedRecordT, ThroughRecordT >", "de/d73/classLightweight_1_1HasManyThrough.html", null ],
     [ "Lightweight::HasOneThrough< OtherTable, ThroughTable >", "df/d63/classLightweight_1_1HasOneThrough.html", null ],
+    [ "Lightweight::MigrationLockError", "d9/d01/structLightweight_1_1MigrationLockError.html", null ],
+    [ "Lightweight::MigrationLockHandler", "d9/d57/classLightweight_1_1MigrationLockHandler.html", null ],
     [ "Lightweight::MigrationRenderContext", "d4/d23/structLightweight_1_1MigrationRenderContext.html", null ],
     [ "Lightweight::MigrationRenderContext::ColumnKey", "da/dcb/structLightweight_1_1MigrationRenderContext_1_1ColumnKey.html", null ],
     [ "Lightweight::MigrationRenderContext::TableKey", "d4/d6d/structLightweight_1_1MigrationRenderContext_1_1TableKey.html", null ],

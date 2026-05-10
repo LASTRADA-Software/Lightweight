@@ -432,7 +432,7 @@ Concurrency Control</h2>
 <div class="line"><span class="keywordflow">if</span> (lock.IsLocked()) {</div>
 <div class="line">    manager.ApplyPendingMigrations();</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationLock_html"><div class="ttname"><a href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html">Lightweight::SqlMigration::MigrationLock</a></div><div class="ttdef"><b>Definition</b> <a href="../../d9/dd6/SqlMigrationLock_8hpp_source.html#l00033">SqlMigrationLock.hpp:34</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationLock_html"><div class="ttname"><a href="../../d0/d8d/classLightweight_1_1SqlMigration_1_1MigrationLock.html">Lightweight::SqlMigration::MigrationLock</a></div><div class="ttdef"><b>Definition</b> <a href="../../d9/dd6/SqlMigrationLock_8hpp_source.html#l00043">SqlMigrationLock.hpp:44</a></div></div>
 </div><!-- fragment --><p>The lock implementation uses database-specific mechanisms:</p><ul>
 <li><b>SQL Server</b>: <code>sp_getapplock</code> / <code>sp_releaseapplock</code></li>
 <li><b>PostgreSQL</b>: <code>pg_advisory_lock</code> / <code>pg_advisory_unlock</code></li>

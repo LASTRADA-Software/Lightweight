@@ -52,6 +52,8 @@ var annotated_dup =
       [ "HasMany", "da/df4/classLightweight_1_1HasMany.html", "da/df4/classLightweight_1_1HasMany" ],
       [ "HasManyThrough", "de/d73/classLightweight_1_1HasManyThrough.html", "de/d73/classLightweight_1_1HasManyThrough" ],
       [ "HasOneThrough", "df/d63/classLightweight_1_1HasOneThrough.html", "df/d63/classLightweight_1_1HasOneThrough" ],
+      [ "MigrationLockError", "d9/d01/structLightweight_1_1MigrationLockError.html", "d9/d01/structLightweight_1_1MigrationLockError" ],
+      [ "MigrationLockHandler", "d9/d57/classLightweight_1_1MigrationLockHandler.html", "d9/d57/classLightweight_1_1MigrationLockHandler" ],
       [ "MigrationRenderContext", "d4/d23/structLightweight_1_1MigrationRenderContext.html", "d4/d23/structLightweight_1_1MigrationRenderContext" ],
       [ "Pool", "d3/d30/classLightweight_1_1Pool.html", "d3/d30/classLightweight_1_1Pool" ],
       [ "PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", "df/d1a/structLightweight_1_1PoolConfig" ],
