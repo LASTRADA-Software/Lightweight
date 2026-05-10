@@ -1422,8 +1422,12 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AddCompositeForeignKey", "[SqlQuery
             return migration.GetPlan();
         },
         QueryExpectations {
-            // SQLite doesn't support ALTER TABLE ADD CONSTRAINT for foreign keys
-            .sqlite = R"sql(-- AddCompositeForeignKey not supported for OrderItems;)sql",
+            // SQLite cannot `ALTER TABLE … ADD CONSTRAINT`; the formatter emits a
+            // sentinel that the migration executor translates into a table rebuild.
+            .sqlite = R"sql(
+                        -- LIGHTWEIGHT_SQLITE_GUARD: ADD_COMPOSITE_FOREIGN_KEY "OrderItems" "order_id,product_id" "Catalog" "oid,pid"
+                        -- ALTER TABLE "OrderItems" ADD CONSTRAINT "FK_OrderItems_order_id_product_id" FOREIGN KEY ("order_id", "product_id") REFERENCES "Catalog"("oid", "pid");
+                    )sql",
             // Constraint name now encodes every column so a composite FK whose first
             // column matches an existing single-column FK doesn't collide on name.
             .postgres =

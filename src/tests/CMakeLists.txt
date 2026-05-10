@@ -70,9 +70,11 @@ if(LIGHTWEIGHT_HAS_STDEXEC)
 endif()
 
 set(SOURCE_FILES
+    ConfigProfileStoreTests.cpp
     CoreTests.cpp
     CxxModelPrinterTests.cpp
     DataBinderTests.cpp
+    SecretResolverTests.cpp
     DataMapper/CreateTests.cpp
     DataMapper/MiscTests.cpp
     DataMapper/NamingTests.cpp
@@ -83,6 +85,8 @@ set(SOURCE_FILES
     MigrationTests.cpp
     MigrationReflectionTests.cpp
     QueryBuilderTests.cpp
+    SqlDataDiffTests.cpp
+    SqlSchemaDiffTests.cpp
     SqlBackup/BatchManagerIntegrationTests.cpp
     SqlBackup/BatchManagerTests.cpp
     SqlBackup/MsgPackChunkFormatsTests.cpp

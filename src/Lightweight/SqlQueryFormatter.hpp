@@ -181,9 +181,10 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// @brief Whether the dialect must rebuild a table to add or drop a foreign-key
     /// constraint (i.e. cannot express it via `ALTER TABLE … ADD/DROP CONSTRAINT`).
     ///
-    /// SQLite returns `true`; every other backend defaults to `false`. The migration
-    /// executor consults this to decide whether to take the table-rebuild path on
-    /// `AlterTable` steps that touch foreign keys.
+    /// Defaults to `false`; SQLiteQueryFormatter overrides to `true`. Because PG and
+    /// MSSQL formatters inherit from SQLiteQueryFormatter, they re-override back to
+    /// `false`. The migration executor consults this to decide whether to take the
+    /// table-rebuild path on `AlterTable` steps that touch foreign keys.
     [[nodiscard]] virtual bool RequiresTableRebuildForForeignKeyChange() const noexcept
     {
         return false;

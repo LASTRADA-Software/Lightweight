@@ -86,20 +86,31 @@ def load_connection_string_from_test_env(env_name):
         sys.exit(1)
 
 
-def run_command(cmd, check=True):
+def run_command(cmd, check=True, timeout=120):
     print(f"Running: {' '.join(cmd)}")
     # dbtool emits UTF-8 (table names, progress glyphs, etc.) regardless of platform.
     # Without an explicit encoding, Python on Windows defaults to the console code
     # page (cp1252) and crashes the reader thread with UnicodeDecodeError as soon as
     # any non-ASCII byte appears, masking the real exit status.
-    result = subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    # Per-call timeout (default 2 min) keeps a hung dbtool from stalling CI for
+    # the entire 6-hour job budget — surfaces the hang point as a clear failure.
+    try:
+        result = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as e:
+        print(f"TIMEOUT after {timeout}s running: {' '.join(cmd)}")
+        if e.stdout:
+            print("STDOUT:", e.stdout)
+        if e.stderr:
+            print("STDERR:", e.stderr)
+        sys.exit(124)
     if result.returncode != 0:
         print("STDOUT:", result.stdout)
         print("STDERR:", result.stderr)
