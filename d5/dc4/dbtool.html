@@ -121,23 +121,10 @@ Connection String</h2>
 </ol>
 <h2><a class="anchor" id="configuration-file-format"></a>
 Configuration File Format</h2>
-<p>Legacy single-profile shape (still supported):</p>
 <div class="fragment"><div class="line">ConnectionString: &quot;DRIVER=SQLite3;Database=mydb.db&quot;</div>
 <div class="line">PluginsDir: ./plugins</div>
 <div class="line">Schema: myschema</div>
-</div><!-- fragment --><p>Multi-profile shape:</p>
-<div class="fragment"><div class="line">defaultProfile: prod</div>
-<div class="line">defaultPluginsDir: ./plugins        # store-wide fallback for any profile</div>
-<div class="line">                                    # that omits its own `pluginsDir`</div>
-<div class="line">profiles:</div>
-<div class="line">  prod:</div>
-<div class="line">    schema: dbo</div>
-<div class="line">    connectionString: &quot;DRIVER={ODBC Driver 18 for SQL Server};Server=...;Database=prod&quot;</div>
-<div class="line">  dev:</div>
-<div class="line">    pluginsDir: ./dev-plugins       # per-profile override</div>
-<div class="line">    connectionString: &quot;DRIVER=SQLite3;Database=dev.db&quot;</div>
-</div><!-- fragment --><p>The effective plugin directory for a given run resolves as: <code>--plugins-dir</code> CLI option → profile's own <code>pluginsDir</code> → top-level <code>defaultPluginsDir</code> → current working directory.</p>
-<h2><a class="anchor" id="database-specific-connection-strings"></a>
+</div><!-- fragment --><h2><a class="anchor" id="database-specific-connection-strings"></a>
 Database-Specific Connection Strings</h2>
 <p><b>SQLite:</b> </p><div class="fragment"><div class="line">DRIVER=SQLite3;Database=/path/to/database.db</div>
 </div><!-- fragment --><p><b>SQL Server:</b> </p><div class="fragment"><div class="line">DRIVER={ODBC Driver 18 for SQL Server};Server=localhost;Database=mydb;UID=sa;PWD=password;TrustServerCertificate=yes</div>
@@ -150,32 +137,7 @@ migrate</h2>
 <div class="fragment"><div class="line">dbtool migrate --connection-string &quot;DRIVER=SQLite3;Database=test.db&quot;</div>
 </div><!-- fragment --><p>Use <code>--dry-run</code> to preview SQL without executing:</p>
 <div class="fragment"><div class="line">dbtool migrate --dry-run --connection-string &quot;...&quot;</div>
-</div><!-- fragment --><p>On success, <code>migrate</code> prints a status summary (registered, applied, pending, latest release, checksum verdict) so you can confirm the database's current state in a single command. If there are no pending migrations, it explicitly reports that the database is already up to date instead of <code>"Applied 0 migrations."</code>.</p>
-<h3><a class="anchor" id="custom-default-schema---schema"></a>
-Custom default schema (&lt;tt&gt;--schema&lt;/tt&gt;)</h3>
-<p>The <code>--schema &lt;NAME&gt;</code> flag pins the connection's default schema for the migration runner — useful when the target database expects unqualified DDL/DML to land in a non-default schema (e.g. <code>lasa</code> instead of <code>dbo</code> / <code>public</code>):</p>
-<div class="fragment"><div class="line">dbtool migrate --schema lasa --connection-string &quot;...&quot;</div>
-</div><!-- fragment --><p>Per-backend behaviour:</p>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">Backend   </th><th class="markdownTableHeadNone">What <code>--schema</code> does for migrations    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">PostgreSQL   </td><td class="markdownTableBodyNone">Emits <code>SET search_path TO "&lt;schema&gt;", public</code> on every new connection. The <code>schema_migrations</code> history table is created here and unqualified DDL inside migrations lands here too.    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone">SQL Server   </td><td class="markdownTableBodyNone"><b>No session-level switch is portable.</b> Use the login's server-side <code>DEFAULT_SCHEMA</code> (<code>ALTER USER … WITH DEFAULT_SCHEMA = lasa</code>). <code>--schema</code> is still accepted (it qualifies table names in backup/restore archives) but does <em>not</em> relocate <code>schema_migrations</code>.    </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">SQLite   </td><td class="markdownTableBodyNone">No-op — SQLite has no schema concept beyond attached databases.   </td></tr>
-</table>
-<p>Schema names are validated against <code>[A-Za-z0-9_]</code> to keep them safe to interpolate into <code>SET search_path</code>. Anything else is rejected.</p>
-<p>The same flag also applies to <code>apply</code>, <code>rollback</code>, <code>migrate-to-release</code>, <code>rollback-to-release</code>, <code>status</code>, and the backup/restore commands (where the schema additionally qualifies table names inside the archive).</p>
-<h2><a class="anchor" id="migrate-to-release-version"></a>
-migrate-to-release &lt;VERSION&gt;</h2>
-<p>Apply pending migrations up to (and including) the named release. Forward-only: if the database is already at or past the target release, the command is a no-op and prints a hint pointing at <code>rollback-to-release</code>. Pair with <code>--dry-run</code> (<code>-n</code>) to preview the SQL without touching the database.</p>
-<div class="fragment"><div class="line">dbtool migrate-to-release 1.0.0</div>
-<div class="line">dbtool migrate-to-release 1.0.0 --dry-run</div>
-</div><!-- fragment --><p>The release version must match a <code><a class="el" href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a" title="Associates a software release (version string) with the highest migration timestamp present at the ti...">LIGHTWEIGHT_SQL_RELEASE(...)</a></code> declaration shipped by one of the loaded plugins. Use <code>dbtool releases</code> to list them.</p>
-<p>If a pending migration whose timestamp is <code>&lt;= release.highestTimestamp</code> declares a dependency on a migration whose timestamp is <code>&gt;</code> the release boundary (and is not already applied), <code>migrate-to-release</code> refuses to run rather than applying a partial state that violates the dependency contract.</p>
-<h2><a class="anchor" id="list-pending"></a>
+</div><!-- fragment --><h2><a class="anchor" id="list-pending"></a>
 list-pending</h2>
 <p>List migrations waiting to be applied:</p>
 <div class="fragment"><div class="line">dbtool list-pending --plugins-dir ./plugins</div>
@@ -273,14 +235,8 @@ Command-Line Options Reference</h1>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--no-lock</code>   </td><td class="markdownTableBodyNone">Skip migration locking   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--schema-only</code>   </td><td class="markdownTableBodyNone">For backup/restore: skip data. For <code>diff</code>: skip the data diff.   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--no-color</code>   </td><td class="markdownTableBodyNone">Disable ANSI colors in <code>diff</code> output (auto-disabled when not at a tty)   </td><td class="markdownTableBodyNone"></td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--max-rows &lt;N&gt;</code>   </td><td class="markdownTableBodyNone">Cap rows scanned per table for <code>diff</code> data mode   </td><td class="markdownTableBodyNone"><code>0</code> (unlimited)    </td></tr>
-<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--max-retries &lt;N&gt;</code>   </td><td class="markdownTableBodyNone">Maximum retry attempts for transient errors   </td><td class="markdownTableBodyNone"><code>3</code>    </td></tr>
-<tr class="markdownTableRowEven">
+<tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--help</code>   </td><td class="markdownTableBodyNone">Show help message   </td><td class="markdownTableBodyNone"></td></tr>
 </table>
 <h2><a class="anchor" id="size-suffixes"></a>
@@ -313,28 +269,12 @@ Creating a Migration Plugin</h2>
 <div class="line">        .RequiredColumn(<span class="stringliteral">&quot;email&quot;</span>, Varchar(255))</div>
 <div class="line">        .Timestamps();</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01026">SqlMigration.hpp:1026</a></div></div>
-<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00716">SqlMigration.hpp:716</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00606">SqlMigration.hpp:606</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00317">SqlMigration.hpp:317</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="loading-plugins"></a>
 Loading Plugins</h2>
 <div class="fragment"><div class="line">dbtool migrate --plugins-dir ./build/plugins</div>
-</div><!-- fragment --><h2><a class="anchor" id="optional-post-init-hook"></a>
-Optional Post-Init Hook</h2>
-<p>A plugin may export an optional <code>LightweightMigrationPluginPostInit</code> symbol that <code>dbtool</code> calls <b>once per invocation</b>, after <code>schema_migrations</code> has been created and a live connection is available. Use this for one-shot bridging work that needs both a <code>SqlConnection</code> and the merged <code>MigrationManager</code> — the canonical example is importing a legacy version-tracking table into <code>schema_migrations</code> (see <code>LupMigrationsPlugin</code> and its <code>TransitionGlue</code>).</p>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/SqlMigration.hpp&gt;</span></div>
-<div class="line"> </div>
-<div class="line"><a class="code hl_define" href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a>()</div>
-<div class="line"> </div>
-<div class="line"><a class="code hl_define" href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT</a>(connection, manager)</div>
-<div class="line">{</div>
-<div class="line">    <span class="comment">// Runs after CreateMigrationHistory(). Make it idempotent: dbtool invokes</span></div>
-<div class="line">    <span class="comment">// this on every run, including `status`. Return early when there is nothing</span></div>
-<div class="line">    <span class="comment">// to do.</span></div>
-<div class="line">    MyPlugin::BridgeLegacyState(manager, connection);</div>
-<div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga8292c8bc098a73ae82344c31693bb4ff"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00739">SqlMigration.hpp:739</a></div></div>
-</div><!-- fragment --><p>The hook is <b>optional</b> — plugins that don't export the symbol behave exactly as before. Per-plugin exceptions are logged to stderr but do not abort <code>dbtool</code>.</p>
-<h1><a class="anchor" id="workflow-examples"></a>
+</div><!-- fragment --><h1><a class="anchor" id="workflow-examples"></a>
 Workflow Examples</h1>
 <h2><a class="anchor" id="full-migration-workflow"></a>
 Full Migration Workflow</h2>

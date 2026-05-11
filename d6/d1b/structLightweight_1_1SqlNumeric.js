@@ -17,7 +17,7 @@ var structLightweight_1_1SqlNumeric =
     [ "operator double", "d6/d1b/structLightweight_1_1SqlNumeric.html#a72d087231e593ecb08e0c19ae0f1ef28", null ],
     [ "operator long double", "d6/d1b/structLightweight_1_1SqlNumeric.html#a6032527351ee7e528430e5aefd242dab", null ],
     [ "ToString", "d6/d1b/structLightweight_1_1SqlNumeric.html#a3f58e8cd8937cd26664f72ecd5ff07e2", null ],
-    [ "operator<=>", "d6/d1b/structLightweight_1_1SqlNumeric.html#a69ff90cbcfc6a3f3c36efe1341cd8bdf", null ],
+    [ "operator<=>", "d6/d1b/structLightweight_1_1SqlNumeric.html#a8e2884a9805790b251cd70e203063fd1", null ],
     [ "operator==", "d6/d1b/structLightweight_1_1SqlNumeric.html#a1aea263acd9929ecb90bb1db1f3ce4d1", null ],
     [ "sqlValue", "d6/d1b/structLightweight_1_1SqlNumeric.html#a4e8b73d5a632b2c7decc4968015a8d0d", null ],
     [ "nativeValue", "d6/d1b/structLightweight_1_1SqlNumeric.html#a1489e18d40ebc20db512bf285719d864", null ]
