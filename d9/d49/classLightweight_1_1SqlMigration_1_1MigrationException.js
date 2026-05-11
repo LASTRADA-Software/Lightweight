@@ -4,7 +4,7 @@ var classLightweight_1_1SqlMigration_1_1MigrationException =
       [ "Apply", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241a9639e32cab248434a17ab32237cb3b71", null ],
       [ "Revert", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241a5289bf157522a5cd34676f2777d27048", null ]
     ] ],
-    [ "MigrationException", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a557d05f04b73dd329784c1b693959b2b", null ],
+    [ "MigrationException", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#adda47749398b0516fc00f9b23aee086f", null ],
     [ "GetOperation", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a53cfe81acb8bc98d0d67e9a45fbb5fc6", null ],
     [ "GetMigrationTimestamp", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#add881a918e02ff27ec38f907f535b3ed", null ],
     [ "GetMigrationTitle", "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a2990194ab69fa6d1857d96007e437218", null ],
