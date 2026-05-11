@@ -2091,6 +2091,34 @@ MigrationManager& GetMigrationManager(Options const& options)
         }
         TraceBreadcrumb("GetMigrationManager: creating migration history table");
         manager.CreateMigrationHistory();
+
+        // Run optional plugin post-init hooks. Each plugin may export a
+        // `LightweightMigrationPluginPostInit(SqlConnection&, MigrationManager&)`
+        // symbol (via `LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(...)`) for one-shot
+        // bridging work that needs both a live connection and the merged
+        // migration manager. Per-plugin failures are reported but do not abort
+        // dbtool startup — a misbehaving plugin must not be able to brick
+        // unrelated commands like `status` or `backup`.
+        TraceBreadcrumb("GetMigrationManager: running plugin post-init hooks");
+        {
+            auto& conn = manager.GetDataMapper().Connection();
+            for (auto const& plugin: plugins)
+            {
+                auto const postInit =
+                    plugin.TryGetFunction<void(SqlConnection&, MigrationManager&)>("LightweightMigrationPluginPostInit");
+                if (!postInit)
+                    continue; // Optional symbol — not all plugins implement it.
+                try
+                {
+                    postInit(conn, manager);
+                }
+                catch (std::exception const& e)
+                {
+                    std::println(std::cerr, "Plugin post-init failed: {}", e.what());
+                }
+            }
+        }
+
         TraceBreadcrumb("GetMigrationManager: ready");
         initialized = true;
     }

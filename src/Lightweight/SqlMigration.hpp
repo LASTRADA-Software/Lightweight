@@ -720,6 +720,27 @@ namespace SqlMigration
         return &Lightweight::SqlMigration::MigrationManager::GetInstance();                              \
     }
 
+/// Optional hook executed once per plugin by dbtool, after migration history has been
+/// created and an active connection is available on the central manager. Plugins use
+/// this to perform one-shot bridging work that needs both a live `SqlConnection` and
+/// the merged `MigrationManager` — for example, importing legacy version tracking
+/// (`LASTRADA_PROPERTIES`) into `schema_migrations`.
+///
+/// Use as:
+///
+/// @code
+/// LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)
+/// {
+///     Lup::TransitionGlue::Initialize(manager, connection);
+/// }
+/// @endcode
+///
+/// @ingroup SqlMigration
+#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)             \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */                       \
+    extern "C" LIGHTWEIGHT_EXPORT void LightweightMigrationPluginPostInit( \
+        Lightweight::SqlConnection& connArg, Lightweight::SqlMigration::MigrationManager& mgrArg)
+
     /// Represents a single unique SQL migration.
     ///
     /// @ingroup SqlMigration

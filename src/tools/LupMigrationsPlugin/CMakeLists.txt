@@ -27,6 +27,9 @@ add_library(LupTransitionGlue STATIC
 )
 target_include_directories(LupTransitionGlue PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(LupTransitionGlue PUBLIC Lightweight::Lightweight)
+# Compile with -fPIC so the archive can be linked into the shared module
+# `LupMigrationsPlugin.so` (and used directly by the test binary).
+set_target_properties(LupTransitionGlue PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # ============================================================================
 # Generated migrations

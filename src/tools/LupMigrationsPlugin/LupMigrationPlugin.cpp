@@ -16,6 +16,8 @@
 // from LASTRADA_PROPERTIES to schema_migrations before running migrations
 // for the first time on an existing database.
 
+#include "TransitionGlue.hpp"
+
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlQuery/MigrationPlan.hpp>
 
@@ -79,3 +81,12 @@ struct PolicyInstaller
 
 // Export the migration manager for dbtool plugin loading
 LIGHTWEIGHT_MIGRATION_PLUGIN()
+
+// Once per dbtool invocation, after the central manager has created
+// `schema_migrations`, bridge legacy LUpd version tracking (`LASTRADA_PROPERTIES`)
+// into `schema_migrations`. Idempotent: subsequent runs short-circuit inside
+// `TransitionGlue::Initialize` once the history table has any applied rows.
+LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)
+{
+    Lup::TransitionGlue::Initialize(manager, connection);
+}

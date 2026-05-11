@@ -88,4 +88,25 @@ PluginLoader::GenericFunctionPointer PluginLoader::GetSymbol(std::string const& 
 #endif
 }
 
+PluginLoader::GenericFunctionPointer PluginLoader::TryGetSymbol(std::string const& symbolName) const noexcept
+{
+#if defined(_WIN32)
+    // GetProcAddress simply returns NULL when the export is absent. There is no
+    // "soft miss vs hard error" distinction to recover, so a null return is the
+    // signal: symbol not present.
+    auto const symbol = GetProcAddress(static_cast<HMODULE>(_handle), symbolName.c_str());
+    return reinterpret_cast<GenericFunctionPointer>(symbol);
+#else
+    // Per POSIX, dlsym() can legitimately return NULL for symbols whose value is
+    // zero, so dlerror() is the authoritative way to distinguish "not found" from
+    // "found-but-NULL". Clearing dlerror() first lets us read a clean status.
+    dlerror();
+    auto* symbol = dlsym(_handle, symbolName.c_str());
+    auto const* err = dlerror();
+    if (err != nullptr)
+        return nullptr; // symbol not exported
+    return reinterpret_cast<GenericFunctionPointer>(symbol);
+#endif
+}
+
 } // namespace Lightweight::Tools

@@ -321,6 +321,32 @@ LIGHTWEIGHT_SQL_MIGRATION(20260126120000, "Create users table")
 dbtool migrate --plugins-dir ./build/plugins
 ```
 
+### Optional Post-Init Hook
+
+A plugin may export an optional `LightweightMigrationPluginPostInit` symbol that
+`dbtool` calls **once per invocation**, after `schema_migrations` has been created
+and a live connection is available. Use this for one-shot bridging work that needs
+both a `SqlConnection` and the merged `MigrationManager` — the canonical example is
+importing a legacy version-tracking table into `schema_migrations` (see
+`LupMigrationsPlugin` and its `TransitionGlue`).
+
+```cpp
+#include <Lightweight/SqlMigration.hpp>
+
+LIGHTWEIGHT_MIGRATION_PLUGIN()
+
+LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)
+{
+    // Runs after CreateMigrationHistory(). Make it idempotent: dbtool invokes
+    // this on every run, including `status`. Return early when there is nothing
+    // to do.
+    MyPlugin::BridgeLegacyState(manager, connection);
+}
+```
+
+The hook is **optional** — plugins that don't export the symbol behave exactly as
+before. Per-plugin exceptions are logged to stderr but do not abort `dbtool`.
+
 ## Workflow Examples
 
 ### Full Migration Workflow
