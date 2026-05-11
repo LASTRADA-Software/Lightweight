@@ -95,6 +95,11 @@ Use `--dry-run` to preview SQL without executing:
 dbtool migrate --dry-run --connection-string "..."
 ```
 
+On success, `migrate` prints a status summary (registered, applied, pending,
+latest release, checksum verdict) so you can confirm the database's current
+state in a single command. If there are no pending migrations, it explicitly
+reports that the database is already up to date instead of `"Applied 0 migrations."`.
+
 #### Custom default schema (`--schema`)
 
 The `--schema <NAME>` flag pins the connection's default schema for the

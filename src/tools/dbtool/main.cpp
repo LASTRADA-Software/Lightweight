@@ -763,6 +763,8 @@ int ListAppliedMigrations(MigrationManager& manager)
     return EXIT_SUCCESS;
 }
 
+int Status(MigrationManager& manager);
+
 int Migrate(MigrationManager& manager, bool dryRun)
 {
     if (dryRun)
@@ -789,8 +791,12 @@ int Migrate(MigrationManager& manager, bool dryRun)
     size_t count = manager.ApplyPendingMigrations([](MigrationBase const& m, size_t i, size_t n) {
         std::println("[{}/{}] Applying {} {}", i + 1, n, m.GetTimestamp().value, m.GetTitle());
     });
-    std::println("Applied {} migrations.", count);
-    return EXIT_SUCCESS;
+    if (count == 0)
+        std::println("Database is already up to date. No migrations to apply.");
+    else
+        std::println("Successfully applied {} migration(s).", count);
+    std::println("");
+    return Status(manager);
 }
 
 int ApplyMigration(MigrationManager& manager, std::string_view argument)
