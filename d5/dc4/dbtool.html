@@ -121,10 +121,23 @@ Connection String</h2>
 </ol>
 <h2><a class="anchor" id="configuration-file-format"></a>
 Configuration File Format</h2>
+<p>Legacy single-profile shape (still supported):</p>
 <div class="fragment"><div class="line">ConnectionString: &quot;DRIVER=SQLite3;Database=mydb.db&quot;</div>
 <div class="line">PluginsDir: ./plugins</div>
 <div class="line">Schema: myschema</div>
-</div><!-- fragment --><h2><a class="anchor" id="database-specific-connection-strings"></a>
+</div><!-- fragment --><p>Multi-profile shape:</p>
+<div class="fragment"><div class="line">defaultProfile: prod</div>
+<div class="line">defaultPluginsDir: ./plugins        # store-wide fallback for any profile</div>
+<div class="line">                                    # that omits its own `pluginsDir`</div>
+<div class="line">profiles:</div>
+<div class="line">  prod:</div>
+<div class="line">    schema: dbo</div>
+<div class="line">    connectionString: &quot;DRIVER={ODBC Driver 18 for SQL Server};Server=...;Database=prod&quot;</div>
+<div class="line">  dev:</div>
+<div class="line">    pluginsDir: ./dev-plugins       # per-profile override</div>
+<div class="line">    connectionString: &quot;DRIVER=SQLite3;Database=dev.db&quot;</div>
+</div><!-- fragment --><p>The effective plugin directory for a given run resolves as: <code>--plugins-dir</code> CLI option → profile's own <code>pluginsDir</code> → top-level <code>defaultPluginsDir</code> → current working directory.</p>
+<h2><a class="anchor" id="database-specific-connection-strings"></a>
 Database-Specific Connection Strings</h2>
 <p><b>SQLite:</b> </p><div class="fragment"><div class="line">DRIVER=SQLite3;Database=/path/to/database.db</div>
 </div><!-- fragment --><p><b>SQL Server:</b> </p><div class="fragment"><div class="line">DRIVER={ODBC Driver 18 for SQL Server};Server=localhost;Database=mydb;UID=sa;PWD=password;TrustServerCertificate=yes</div>
