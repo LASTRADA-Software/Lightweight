@@ -16,6 +16,7 @@ var NAVTREEINDEX2 =
 "d5/dc4/dbtool.html#migrate":[7,3,0],
 "d5/dc4/dbtool.html#migrate-to-release-version":[7,3,1],
 "d5/dc4/dbtool.html#migration-commands":[7,3],
+"d5/dc4/dbtool.html#optional-post-init-hook":[7,6,2],
 "d5/dc4/dbtool.html#overview":[7,0],
 "d5/dc4/dbtool.html#parallel-backup-and-restore":[7,7,2],
 "d5/dc4/dbtool.html#plugin-system":[7,6],
@@ -248,6 +249,5 @@ var NAVTREEINDEX2 =
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a02be3f28ff302516bb8a6690464820f7":[10,0,4,29],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a10dd315378c94f97d7a3c7431ba66a63":[10,0,4,36],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a19e5bb98b44338dc3c316fd057a213c2":[10,0,4,0],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a1e03f8cab91fedfdd8cf11c5c5e57adf":[10,0,4,15],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a1fc1b3ec6aaa8d6a43f91185ad2370ab":[10,0,4,23]
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a1e03f8cab91fedfdd8cf11c5c5e57adf":[10,0,4,15]
 };

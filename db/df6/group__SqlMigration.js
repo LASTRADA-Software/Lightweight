@@ -159,6 +159,7 @@ var group__SqlMigration =
       [ "description", "dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aede084084d8c094a9f4e08d86b8f13f8", null ]
     ] ],
     [ "LIGHTWEIGHT_MIGRATION_PLUGIN", "db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73", null ],
+    [ "LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT", "db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff", null ],
     [ "LIGHTWEIGHT_MIGRATION_INSTANCE", "db/df6/group__SqlMigration.html#ga32d47d81e5b99a703e522a33a54fdc74", null ],
     [ "LIGHTWEIGHT_SQL_MIGRATION", "db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e", null ],
     [ "LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE", "db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164", null ],

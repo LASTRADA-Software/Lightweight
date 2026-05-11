@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5":[12,0,0,1,7,1],
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#af43bd7f7afe738d0d1b0cd4b0e6601ba":[12,0,0,1,7,4],
 "da/d15/classLightweight_1_1UniqueNameBuilder.html":[12,0,0,77],
 "da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26":[12,0,0,77,2],
@@ -162,11 +163,12 @@ var NAVTREEINDEX4 =
 "db/db6/classLightweight_1_1SqlBinary.html#aa4461c55aaa8ed2cf16191006ed578a4":[10,0,0,0],
 "db/dd1/SqlBackup_8hpp_source.html":[13,0,1,10],
 "db/df6/group__SqlMigration.html":[10,3],
-"db/df6/group__SqlMigration.html#ga32d47d81e5b99a703e522a33a54fdc74":[10,3,10],
-"db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e":[10,3,11],
-"db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164":[10,3,12],
-"db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c":[10,3,13],
-"db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a":[10,3,14],
+"db/df6/group__SqlMigration.html#ga32d47d81e5b99a703e522a33a54fdc74":[10,3,11],
+"db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e":[10,3,12],
+"db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164":[10,3,13],
+"db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff":[10,3,10],
+"db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c":[10,3,14],
+"db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a":[10,3,15],
 "db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73":[10,3,9],
 "db/dfd/classLightweight_1_1SqlLogger.html":[12,0,0,45],
 "db/dfd/classLightweight_1_1SqlLogger.html#a02804ba49a0fb98fe967aae9ae089fac":[12,0,0,45,25],
@@ -247,7 +249,5 @@ var NAVTREEINDEX4 =
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a303553e0c2089a553fd561f196cc039e":[10,4,16,0],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07":[10,4,16,1],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970":[10,4,16,2],
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html":[10,4,19],
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327":[10,4,19,2],
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec":[10,4,19,0]
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html":[10,4,19]
 };

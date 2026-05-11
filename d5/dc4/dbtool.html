@@ -313,12 +313,28 @@ Creating a Migration Plugin</h2>
 <div class="line">        .RequiredColumn(<span class="stringliteral">&quot;email&quot;</span>, Varchar(255))</div>
 <div class="line">        .Timestamps();</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01005">SqlMigration.hpp:1005</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01025">SqlMigration.hpp:1025</a></div></div>
 <div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00716">SqlMigration.hpp:716</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="loading-plugins"></a>
 Loading Plugins</h2>
 <div class="fragment"><div class="line">dbtool migrate --plugins-dir ./build/plugins</div>
-</div><!-- fragment --><h1><a class="anchor" id="workflow-examples"></a>
+</div><!-- fragment --><h2><a class="anchor" id="optional-post-init-hook"></a>
+Optional Post-Init Hook</h2>
+<p>A plugin may export an optional <code>LightweightMigrationPluginPostInit</code> symbol that <code>dbtool</code> calls <b>once per invocation</b>, after <code>schema_migrations</code> has been created and a live connection is available. Use this for one-shot bridging work that needs both a <code>SqlConnection</code> and the merged <code>MigrationManager</code> — the canonical example is importing a legacy version-tracking table into <code>schema_migrations</code> (see <code>LupMigrationsPlugin</code> and its <code>TransitionGlue</code>).</p>
+<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/SqlMigration.hpp&gt;</span></div>
+<div class="line"> </div>
+<div class="line"><a class="code hl_define" href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a>()</div>
+<div class="line"> </div>
+<div class="line"><a class="code hl_define" href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT</a>(connection, manager)</div>
+<div class="line">{</div>
+<div class="line">    <span class="comment">// Runs after CreateMigrationHistory(). Make it idempotent: dbtool invokes</span></div>
+<div class="line">    <span class="comment">// this on every run, including `status`. Return early when there is nothing</span></div>
+<div class="line">    <span class="comment">// to do.</span></div>
+<div class="line">    MyPlugin::BridgeLegacyState(manager, connection);</div>
+<div class="line">}</div>
+<div class="ttc" id="agroup__SqlMigration_html_ga8292c8bc098a73ae82344c31693bb4ff"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00739">SqlMigration.hpp:739</a></div></div>
+</div><!-- fragment --><p>The hook is <b>optional</b> — plugins that don't export the symbol behave exactly as before. Per-plugin exceptions are logged to stderr but do not abort <code>dbtool</code>.</p>
+<h1><a class="anchor" id="workflow-examples"></a>
 Workflow Examples</h1>
 <h2><a class="anchor" id="full-migration-workflow"></a>
 Full Migration Workflow</h2>

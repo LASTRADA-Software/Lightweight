@@ -15,6 +15,7 @@ var searchData=
   ['high_20level_20data_20mapping_12',['High level Data Mapping',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping',1,'']]],
   ['high_20level_20orm_13',['DataMapper: High-Level ORM',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#datamapper-high-level-orm',1,'']]],
   ['highesttimestamp_14',['highestTimestamp',['../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#a48cc0c694f65a3ad2e43b839ab5d5088',1,'Lightweight::SqlMigration::MigrationRelease']]],
-  ['hour_15',['hour',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a6cc185c14476e3a2aad0db9a1bf52622',1,'Lightweight::SqlDateTime']]],
-  ['how_20to_16',['How to',['../d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html',1,'']]]
+  ['hook_15',['Optional Post-Init Hook',['../d5/dc4/dbtool.html#optional-post-init-hook',1,'']]],
+  ['hour_16',['hour',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a6cc185c14476e3a2aad0db9a1bf52622',1,'Lightweight::SqlDateTime']]],
+  ['how_20to_17',['How to',['../d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html',1,'']]]
 ];

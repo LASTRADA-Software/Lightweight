@@ -127,7 +127,8 @@ var NAVTREE =
       ] ],
       [ "Plugin System", "d5/dc4/dbtool.html#plugin-system", [
         [ "Creating a Migration Plugin", "d5/dc4/dbtool.html#creating-a-migration-plugin", null ],
-        [ "Loading Plugins", "d5/dc4/dbtool.html#loading-plugins", null ]
+        [ "Loading Plugins", "d5/dc4/dbtool.html#loading-plugins", null ],
+        [ "Optional Post-Init Hook", "d5/dc4/dbtool.html#optional-post-init-hook", null ]
       ] ],
       [ "Workflow Examples", "d5/dc4/dbtool.html#workflow-examples", [
         [ "Full Migration Workflow", "d5/dc4/dbtool.html#full-migration-workflow", null ],
@@ -213,10 +214,10 @@ var NAVTREEINDEX =
 "annotated.html",
 "d2/dd0/structLightweight_1_1Field.html#adb44c1c3efd47294593bc757a7c1734c",
 "d5/dc4/dbtool.html#configuration-file-format",
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a26b2eef637621818b9a40a44bc545390",
-"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#af43bd7f7afe738d0d1b0cd4b0e6601ba",
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#afd21e23e3c24884cba9ef3b76d174e82",
-"df/d63/classLightweight_1_1HasOneThrough.html#addf0d59cd5a9403b6fac56a00c340ad9"
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a1fc1b3ec6aaa8d6a43f91185ad2370ab",
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327",
+"df/d63/classLightweight_1_1HasOneThrough.html#a88e0758eca25880d871ce71459df1684"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
