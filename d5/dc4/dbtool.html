@@ -150,7 +150,8 @@ migrate</h2>
 <div class="fragment"><div class="line">dbtool migrate --connection-string &quot;DRIVER=SQLite3;Database=test.db&quot;</div>
 </div><!-- fragment --><p>Use <code>--dry-run</code> to preview SQL without executing:</p>
 <div class="fragment"><div class="line">dbtool migrate --dry-run --connection-string &quot;...&quot;</div>
-</div><!-- fragment --><h3><a class="anchor" id="custom-default-schema---schema"></a>
+</div><!-- fragment --><p>On success, <code>migrate</code> prints a status summary (registered, applied, pending, latest release, checksum verdict) so you can confirm the database's current state in a single command. If there are no pending migrations, it explicitly reports that the database is already up to date instead of <code>"Applied 0 migrations."</code>.</p>
+<h3><a class="anchor" id="custom-default-schema---schema"></a>
 Custom default schema (&lt;tt&gt;--schema&lt;/tt&gt;)</h3>
 <p>The <code>--schema &lt;NAME&gt;</code> flag pins the connection's default schema for the migration runner — useful when the target database expects unqualified DDL/DML to land in a non-default schema (e.g. <code>lasa</code> instead of <code>dbo</code> / <code>public</code>):</p>
 <div class="fragment"><div class="line">dbtool migrate --schema lasa --connection-string &quot;...&quot;</div>
