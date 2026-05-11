@@ -1,5 +1,10 @@
 var NAVTREEINDEX4 =
 {
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#af43bd7f7afe738d0d1b0cd4b0e6601ba":[12,0,0,1,7,4],
+"da/d15/classLightweight_1_1UniqueNameBuilder.html":[12,0,0,77],
+"da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26":[12,0,0,77,2],
+"da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3":[12,0,0,77,0],
+"da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44":[12,0,0,77,1],
 "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html":[10,4,11],
 "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html#a48e12558d7a0f123cbfce91dedf4d154":[10,4,11,1],
 "da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html#a5ec19a8c6430cf4494eaab119d5799a1":[10,4,11,0],
@@ -244,10 +249,5 @@ var NAVTREEINDEX4 =
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970":[10,4,16,2],
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html":[10,4,19],
 "dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327":[10,4,19,2],
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec":[10,4,19,0],
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#afd21e23e3c24884cba9ef3b76d174e82":[10,4,19,1],
-"dd/d94/SqlBinary_8hpp_source.html":[13,0,1,0,3],
-"dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html":[10,4,3],
-"dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a07b8c6e89aa7cbfd31eed3997d5dbf4f":[10,4,3,1],
-"dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a20d79f682c02518bae99131795adb28b":[10,4,3,0]
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a71fa23f7cd74e66242eb2042fb019dec":[10,4,19,0]
 };

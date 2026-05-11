@@ -106,7 +106,9 @@ var NAVTREE =
         [ "Database-Specific Connection Strings", "d5/dc4/dbtool.html#database-specific-connection-strings", null ]
       ] ],
       [ "Migration Commands", "d5/dc4/dbtool.html#migration-commands", [
-        [ "migrate", "d5/dc4/dbtool.html#migrate", null ],
+        [ "migrate", "d5/dc4/dbtool.html#migrate", [
+          [ "Custom default schema (<tt>--schema</tt>)", "d5/dc4/dbtool.html#custom-default-schema---schema", null ]
+        ] ],
         [ "migrate-to-release <VERSION>", "d5/dc4/dbtool.html#migrate-to-release-version", null ],
         [ "list-pending", "d5/dc4/dbtool.html#list-pending", null ],
         [ "list-applied", "d5/dc4/dbtool.html#list-applied", null ],
@@ -161,6 +163,7 @@ var NAVTREE =
       [ "Raw SQL", "d2/da6/sql-migrations.html#raw-sql", null ],
       [ "SQL Column Types", "d2/da6/sql-migrations.html#sql-column-types", null ],
       [ "Migration Manager API", "d2/da6/sql-migrations.html#migration-manager-api", [
+        [ "Custom Default Schema", "d2/da6/sql-migrations.html#custom-default-schema", null ],
         [ "Applying Migrations Programmatically", "d2/da6/sql-migrations.html#applying-migrations-programmatically", null ],
         [ "Status & Verification", "d2/da6/sql-migrations.html#status--verification", null ],
         [ "Preview (Dry-Run)", "d2/da6/sql-migrations.html#preview-dry-run", null ],
@@ -208,12 +211,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#ae23217fb5f64fff58f792b3cf18fba8c",
-"d5/dc4/dbtool.html#creating-a-migration-plugin",
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a32c22e3f7b369e1a45c63166b2e3f915",
-"da/d17/classLightweight_1_1SqlMigrationDeleteBuilder.html",
-"dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#ae323751c667fa84bef366866e65ea0e3",
-"df/d7c/structLightweight_1_1SqlGuid.html#a3cf0cf7460e1bf1ac7e36b6153941544"
+"d2/dd0/structLightweight_1_1Field.html#adb44c1c3efd47294593bc757a7c1734c",
+"d5/dc4/dbtool.html#configuration-file-format",
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a26b2eef637621818b9a40a44bc545390",
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#af43bd7f7afe738d0d1b0cd4b0e6601ba",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#afd21e23e3c24884cba9ef3b76d174e82",
+"df/d63/classLightweight_1_1HasOneThrough.html#addf0d59cd5a9403b6fac56a00c340ad9"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

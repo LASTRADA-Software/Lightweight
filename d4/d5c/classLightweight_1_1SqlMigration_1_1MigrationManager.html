@@ -163,6 +163,13 @@ LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>Apply
 LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>CreateMigrationHistory</b> ()</td></tr>
 <tr class="memdesc:aa670c82bec993bd89189cb4a37007572"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create the migration history table if it does not exist. <br /></td></tr>
 <tr class="separator:aa670c82bec993bd89189cb4a37007572"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a290e1b7f3f0892af882330fbc59314d2" id="r_a290e1b7f3f0892af882330fbc59314d2"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a290e1b7f3f0892af882330fbc59314d2">SetDefaultSchema</a> (std::string schema)</td></tr>
+<tr class="memdesc:a290e1b7f3f0892af882330fbc59314d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the default schema applied to migration connections.  <br /></td></tr>
+<tr class="separator:a290e1b7f3f0892af882330fbc59314d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a437a43b5ea953c5b3dce72f8f5aefa07" id="r_a437a43b5ea953c5b3dce72f8f5aefa07"><td class="memItemLeft" align="right" valign="top"><a id="a437a43b5ea953c5b3dce72f8f5aefa07" name="a437a43b5ea953c5b3dce72f8f5aefa07"></a>
+LIGHTWEIGHT_API std::string_view&#160;</td><td class="memItemRight" valign="bottom"><b>DefaultSchema</b> () const noexcept</td></tr>
+<tr class="memdesc:a437a43b5ea953c5b3dce72f8f5aefa07"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the default schema currently installed on the manager (empty when unset). <br /></td></tr>
+<tr class="separator:a437a43b5ea953c5b3dce72f8f5aefa07"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae7a7e92f9a2ef9cb11402812eaac3566" id="r_ae7a7e92f9a2ef9cb11402812eaac3566"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::vector&lt; <a class="el" href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">MigrationTimestamp</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae7a7e92f9a2ef9cb11402812eaac3566">GetAppliedMigrationIds</a> () const</td></tr>
 <tr class="separator:ae7a7e92f9a2ef9cb11402812eaac3566"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1869bb06cd3794f327182136cccff094" id="r_a1869bb06cd3794f327182136cccff094"><td class="memItemLeft" align="right" valign="top"><a id="a1869bb06cd3794f327182136cccff094" name="a1869bb06cd3794f327182136cccff094"></a>
@@ -302,7 +309,7 @@ Static Public Member Functions</h2></td></tr>
 <p>Per-migration compat policy. </p>
 <p>Given a migration about to be applied (or previewed), returns the set of compat flags that should be active while rendering it. Plugins that ship legacy migrations use this to scope compat behaviour to their own timestamp range (e.g. <code>LupMigrationsPlugin</code> enables <code>lup-truncate</code> for migrations predating release 6.0.0). Unset means "strict for every migration". </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00324">324</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00350">350</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -334,7 +341,7 @@ Static Public Member Functions</h2></td></tr>
 <dd>
 Reference to the migration manager. </dd></dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00709">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00736">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -361,7 +368,7 @@ Reference to the migration manager. </dd></dl>
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00709">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00736">Lightweight::SqlMigration::MigrationBase::MigrationBase()</a>.</p>
 
 </div>
 </div>
@@ -593,6 +600,35 @@ Reference to the migration manager. </dd></dl>
 
 </div>
 </div>
+<a id="a290e1b7f3f0892af882330fbc59314d2" name="a290e1b7f3f0892af882330fbc59314d2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a290e1b7f3f0892af882330fbc59314d2">&#9670;&#160;</a></span>SetDefaultSchema()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API void Lightweight::SqlMigration::MigrationManager::SetDefaultSchema </td>
+          <td>(</td>
+          <td class="paramtype">std::string&#160;</td>
+          <td class="paramname"><em>schema</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Sets the default schema applied to migration connections. </p>
+<p>When non-empty, installs a chained <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#afcb9fb85486b720ba570ac72d3ddf5be" title="Sets a callback to be called after each connection being established.">SqlConnection::SetPostConnectedHook</a></code> that executes the formatter's <code>SetDefaultSchemaStatement(schema)</code> (e.g. <code>SET search_path TO "&lt;schema&gt;", public</code> on PostgreSQL) for every new connection. SQL Server and SQLite have no portable session-level "default schema" command — for SQL Server, the connecting login's server-side <code>DEFAULT_SCHEMA</code> is what determines where unqualified DDL/DML lands.</p>
+<p><code>schema</code> is validated against a <code>[A-Za-z0-9_]</code> whitelist; rejecting invalid input by throwing a <code>std::invalid_argument</code>. Passing an empty string clears any previously installed schema hook.</p>
+<p>Calling this <b>after</b> a connection has already been opened on the current thread does not retroactively apply the schema — the hook fires on subsequent <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#aff53cd88345bf8822f5fd34e676c48d0">SqlConnection::Connect</a></code> calls. For dbtool and the GUI this is invoked before the first connection.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">schema</td><td>The default schema to use. Empty disables. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="ae7a7e92f9a2ef9cb11402812eaac3566" name="ae7a7e92f9a2ef9cb11402812eaac3566"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae7a7e92f9a2ef9cb11402812eaac3566">&#9670;&#160;</a></span>GetAppliedMigrationIds()</h2>
 
@@ -637,7 +673,7 @@ Reference to the migration manager. </dd></dl>
 
 <p>Get the data mapper used for migrations. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00306">306</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00332">332</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094">GetDataMapper()</a>.</p>
 

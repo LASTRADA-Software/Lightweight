@@ -1,5 +1,9 @@
 var NAVTREEINDEX3 =
 {
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a26b2eef637621818b9a40a44bc545390":[10,0,4,12],
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a2cb6d15ecc5ffab7435ad2229677924d":[10,0,4,22],
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a2d5b427a3ab0ee2c77a0808ee35ffe5e":[10,0,4,44],
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a2f0ec7781bb7e98ff167ecbfb7068044":[10,0,4,2],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a32c22e3f7b369e1a45c63166b2e3f915":[10,0,4,3],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a38001424dd549f20ba1d64251cddee2c":[10,0,4,35],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a40775e524224b9b394f86362de537c17":[10,0,4,21],
@@ -121,11 +125,12 @@ var NAVTREEINDEX3 =
 "d8/dec/Delete_8hpp_source.html":[13,0,1,4,1],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html":[12,0,0,55],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a150a177da7cc5510ebd3f5461b555b4e":[12,0,0,55,8],
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595":[12,0,0,55,27],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1dcb7e54bfcc84b7995643cd35a43c53":[12,0,0,55,3],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a28d630a4ecd3bb5946d20de498d95176":[12,0,0,55,11],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2a8b5bd4208f5b50cb9e4e4e8cbc3922":[12,0,0,55,1],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2ec073a60fd4242445ce990a1840ccfe":[12,0,0,55,4],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6":[12,0,0,55,27],
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6":[12,0,0,55,28],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4259cbd0861534246ce81a9494caf032":[12,0,0,55,26],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a6cdc65b4e3d20ca7105abe72ecfdd5b9":[12,0,0,55,16],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a725b026c92dcdf60b1a0ed60dc5b9a81":[12,0,0,55,19],
@@ -244,10 +249,5 @@ var NAVTREEINDEX3 =
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a066abf8c9d7c35374587d6fe850d8d2d":[12,0,0,1,7,3],
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a537031b2f22d3a8b8372965543208aee":[12,0,0,1,7,0],
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#adf28af73f0aa2dd90a6691179f11e6d5":[12,0,0,1,7,2],
-"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5":[12,0,0,1,7,1],
-"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#af43bd7f7afe738d0d1b0cd4b0e6601ba":[12,0,0,1,7,4],
-"da/d15/classLightweight_1_1UniqueNameBuilder.html":[12,0,0,77],
-"da/d15/classLightweight_1_1UniqueNameBuilder.html#ab97998627c36c8d0bce204db1f8f4d26":[12,0,0,77,2],
-"da/d15/classLightweight_1_1UniqueNameBuilder.html#acfe934b57fa65da4863c45e150bcc1e3":[12,0,0,77,0],
-"da/d15/classLightweight_1_1UniqueNameBuilder.html#ae617f589c4e2314b8ca94c3113cd3f44":[12,0,0,77,1]
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5":[12,0,0,1,7,1]
 };

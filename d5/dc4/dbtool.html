@@ -150,7 +150,24 @@ migrate</h2>
 <div class="fragment"><div class="line">dbtool migrate --connection-string &quot;DRIVER=SQLite3;Database=test.db&quot;</div>
 </div><!-- fragment --><p>Use <code>--dry-run</code> to preview SQL without executing:</p>
 <div class="fragment"><div class="line">dbtool migrate --dry-run --connection-string &quot;...&quot;</div>
-</div><!-- fragment --><h2><a class="anchor" id="migrate-to-release-version"></a>
+</div><!-- fragment --><h3><a class="anchor" id="custom-default-schema---schema"></a>
+Custom default schema (&lt;tt&gt;--schema&lt;/tt&gt;)</h3>
+<p>The <code>--schema &lt;NAME&gt;</code> flag pins the connection's default schema for the migration runner — useful when the target database expects unqualified DDL/DML to land in a non-default schema (e.g. <code>lasa</code> instead of <code>dbo</code> / <code>public</code>):</p>
+<div class="fragment"><div class="line">dbtool migrate --schema lasa --connection-string &quot;...&quot;</div>
+</div><!-- fragment --><p>Per-backend behaviour:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Backend   </th><th class="markdownTableHeadNone">What <code>--schema</code> does for migrations    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">PostgreSQL   </td><td class="markdownTableBodyNone">Emits <code>SET search_path TO "&lt;schema&gt;", public</code> on every new connection. The <code>schema_migrations</code> history table is created here and unqualified DDL inside migrations lands here too.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">SQL Server   </td><td class="markdownTableBodyNone"><b>No session-level switch is portable.</b> Use the login's server-side <code>DEFAULT_SCHEMA</code> (<code>ALTER USER … WITH DEFAULT_SCHEMA = lasa</code>). <code>--schema</code> is still accepted (it qualifies table names in backup/restore archives) but does <em>not</em> relocate <code>schema_migrations</code>.    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">SQLite   </td><td class="markdownTableBodyNone">No-op — SQLite has no schema concept beyond attached databases.   </td></tr>
+</table>
+<p>Schema names are validated against <code>[A-Za-z0-9_]</code> to keep them safe to interpolate into <code>SET search_path</code>. Anything else is rejected.</p>
+<p>The same flag also applies to <code>apply</code>, <code>rollback</code>, <code>migrate-to-release</code>, <code>rollback-to-release</code>, <code>status</code>, and the backup/restore commands (where the schema additionally qualifies table names inside the archive).</p>
+<h2><a class="anchor" id="migrate-to-release-version"></a>
 migrate-to-release &lt;VERSION&gt;</h2>
 <p>Apply pending migrations up to (and including) the named release. Forward-only: if the database is already at or past the target release, the command is a no-op and prints a hint pointing at <code>rollback-to-release</code>. Pair with <code>--dry-run</code> (<code>-n</code>) to preview the SQL without touching the database.</p>
 <div class="fragment"><div class="line">dbtool migrate-to-release 1.0.0</div>
@@ -295,8 +312,8 @@ Creating a Migration Plugin</h2>
 <div class="line">        .RequiredColumn(<span class="stringliteral">&quot;email&quot;</span>, Varchar(255))</div>
 <div class="line">        .Timestamps();</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00978">SqlMigration.hpp:978</a></div></div>
-<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00689">SqlMigration.hpp:689</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01005">SqlMigration.hpp:1005</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_gaef227c1f2230d962d19572a234ceaa73"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN()</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00716">SqlMigration.hpp:716</a></div></div>
 </div><!-- fragment --><h2><a class="anchor" id="loading-plugins"></a>
 Loading Plugins</h2>
 <div class="fragment"><div class="line">dbtool migrate --plugins-dir ./build/plugins</div>

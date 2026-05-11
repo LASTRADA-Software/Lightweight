@@ -20,6 +20,8 @@ var classLightweight_1_1SqlMigration_1_1MigrationManager =
     [ "ApplyPendingMigrations", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a9f6136aee1902543bdb428d6890574ee", null ],
     [ "ApplyPendingMigrationsUpTo", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a37985812c37e5292312cf113a679633e", null ],
     [ "CreateMigrationHistory", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#aa670c82bec993bd89189cb4a37007572", null ],
+    [ "SetDefaultSchema", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a290e1b7f3f0892af882330fbc59314d2", null ],
+    [ "DefaultSchema", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a437a43b5ea953c5b3dce72f8f5aefa07", null ],
     [ "GetAppliedMigrationIds", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae7a7e92f9a2ef9cb11402812eaac3566", null ],
     [ "GetDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a1869bb06cd3794f327182136cccff094", null ],
     [ "GetDataMapper", "d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a48ed86737153cbf627f517f3b0d11322", null ],
