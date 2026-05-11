@@ -28,10 +28,13 @@ namespace
 
     constexpr std::string_view Trim(std::string_view value) noexcept
     {
-        while (!value.empty() && std::isspace(value.front()))
+        // Cast to unsigned char before calling std::isspace — passing a signed `char`
+        // whose value is not representable as unsigned char (i.e. high bit set on
+        // platforms where char is signed) is undefined behaviour.
+        while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())))
             value.remove_prefix(1);
 
-        while (!value.empty() && std::isspace(value.back()))
+        while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())))
             value.remove_suffix(1);
 
         return value;
@@ -40,7 +43,8 @@ namespace
     std::string ToUpperCaseString(std::string_view input)
     {
         std::string result { input };
-        std::ranges::transform(result, result.begin(), [](char c) { return (char) std::toupper(c); });
+        std::ranges::transform(
+            result, result.begin(), [](char c) { return static_cast<char>(std::toupper(static_cast<unsigned char>(c))); });
         return result;
     }
 

@@ -161,8 +161,9 @@ struct std::formatter<Lightweight::SqlError>: formatter<std::string>
 {
     auto format(Lightweight::SqlError value, format_context& ctx) const -> format_context::iterator
     {
-        return formatter<std::string>::format(
-            std::format("{}", Lightweight::SqlErrorCategory().message(static_cast<int>(value))), ctx);
+        // Use the shared singleton instead of default-constructing a fresh category for every
+        // format call — the singleton is the same instance returned by `make_error_code()`.
+        return formatter<std::string>::format(Lightweight::SqlErrorCategory::get().message(static_cast<int>(value)), ctx);
     }
 };
 

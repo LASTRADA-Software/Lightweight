@@ -85,8 +85,18 @@ class SqlDynamicBinary final
     }
 #endif
 
-    /// Defaulted Three-way comparison operator.
-    constexpr auto operator<=>(SqlDynamicBinary<N> const&) const noexcept = default;
+    /// Three-way comparison operator. Compares the byte payload only — the private
+    /// `_indicator` member is ODBC bookkeeping and must not influence equality.
+    constexpr auto operator<=>(SqlDynamicBinary<N> const& other) const noexcept
+    {
+        return _base <=> other._base;
+    }
+
+    /// Equality operator derived from the spaceship comparison above.
+    constexpr bool operator==(SqlDynamicBinary<N> const& other) const noexcept
+    {
+        return _base == other._base;
+    }
 
     /// Retrieves the size of the string.
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::size_t size() const noexcept

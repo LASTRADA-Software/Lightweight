@@ -278,8 +278,13 @@ class SqlFixedString
         if ((void*) this == (void*) &other) [[unlikely]]
             return std::weak_ordering::equivalent;
 
+        // Use the public data() accessor so cross-template comparisons (different N or Mode)
+        // don't trip private-member access — `other` is a different specialization of
+        // SqlFixedString, which makes its private `_data` inaccessible from this scope.
+        auto const* const lhs = data();
+        auto const* const rhs = other.data();
         for (auto const i: std::views::iota(0U, (std::min) (size(), other.size())))
-            if (auto const cmp = _data[i] <=> other._data[i]; cmp != std::weak_ordering::equivalent) [[unlikely]]
+            if (auto const cmp = lhs[i] <=> rhs[i]; cmp != std::weak_ordering::equivalent) [[unlikely]]
                 return cmp;
         return size() <=> other.size();
     }
@@ -475,8 +480,15 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
 #else
         size_t n = std::min(static_cast<size_t>(indicator), N);
 #endif
-        // Strip trailing whitespace and null characters
-        while (n > 0 && (std::isspace((*boundOutputString)[n - 1]) || (*boundOutputString)[n - 1] == '\0'))
+        // Strip trailing whitespace and null characters. We only consider ASCII whitespace
+        // here: ODBC CHAR(N) columns are padded with ASCII spaces, and feeding a non-ASCII
+        // char/wchar_t/char16_t value to std::isspace is undefined behaviour because the
+        // standard requires the argument to be representable as an unsigned char (or EOF).
+        auto const isAsciiWhitespace = [](CharType c) noexcept {
+            return c == CharType(' ') || c == CharType('\t') || c == CharType('\n') || c == CharType('\r')
+                   || c == CharType('\v') || c == CharType('\f');
+        };
+        while (n > 0 && (isAsciiWhitespace((*boundOutputString)[n - 1]) || (*boundOutputString)[n - 1] == CharType('\0')))
             --n;
         boundOutputString->setsize(n);
     }

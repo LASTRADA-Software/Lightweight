@@ -24,7 +24,8 @@ namespace SqlSchema
         // NOLINTNEXTLINE(readability-identifier-naming)
         constexpr std::string_view rtrim(std::string_view value) noexcept
         {
-            while (!value.empty() && (std::isspace(value.back()) || value.back() == '\0'))
+            // Cast to unsigned char before std::isspace — see SqlConnectInfo.cpp for rationale.
+            while (!value.empty() && (std::isspace(static_cast<unsigned char>(value.back())) || value.back() == '\0'))
                 value.remove_suffix(1);
             return value;
         }

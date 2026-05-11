@@ -129,8 +129,16 @@ struct Field
     /// Indicates if this is a primary key, it also is auto-incremented by the database.
     static constexpr auto IsAutoIncrementPrimaryKey = IsPrimaryKeyValue == PrimaryKey::ServerSideAutoIncrement;
 
-    /// Compares two fields for equality.
-    constexpr std::weak_ordering operator<=>(Field const& other) const noexcept;
+    /// Three-way comparison operator. The strength of the ordering comes from the underlying
+    /// type `T` — e.g. `Field<int>` is `std::strong_ordering`, `Field<double>` is
+    /// `std::partial_ordering` (because of NaN), `Field<std::string>` is `std::strong_ordering`.
+    /// Defined inline so the deduced return type is available at every call site, and so
+    /// `Field<T>` instantiation does not require `T` to have `operator<=>`.
+    constexpr auto operator<=>(Field const& other) const noexcept
+        requires requires(T const& a, T const& b) { a <=> b; }
+    {
+        return _value <=> other._value;
+    }
 
     /// Compares the field value with the given value for equality.
     constexpr bool operator==(Field const& other) const noexcept;
@@ -241,12 +249,6 @@ constexpr LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>& Field<T, P1, P2>::operator=
 }
 
 template <detail::FieldElementType T, auto P1, auto P2>
-constexpr std::weak_ordering LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::operator<=>(Field const& other) const noexcept
-{
-    return _value <=> other._value;
-}
-
-template <detail::FieldElementType T, auto P1, auto P2>
 constexpr bool LIGHTWEIGHT_FORCE_INLINE Field<T, P1, P2>::operator==(Field const& other) const noexcept
 {
     return _value == other._value;
@@ -292,9 +294,9 @@ inline LIGHTWEIGHT_FORCE_INLINE std::string Field<T, P1, P2>::InspectValue() con
         return result.str();
     }
     else if constexpr (std::is_same_v<T, SqlDate>)
-        return std::format("\'{}\'", _value.value);
+        return std::format("\'{}\'", _value.value());
     else if constexpr (std::is_same_v<T, SqlTime>)
-        return std::format("\'{}\'", _value.value);
+        return std::format("\'{}\'", _value.value());
     else if constexpr (std::is_same_v<T, SqlDateTime>)
         return std::format("\'{}\'", _value.value());
     else if constexpr (SqlNumericType<T>)
@@ -399,8 +401,27 @@ struct std::formatter<Lightweight::Field<T, P1, P2>>: std::formatter<T>
 {
     template <typename FormatContext>
     // NOLINTNEXTLINE(readability-identifier-naming)
-    auto format(Lightweight::Field<T, P1, P2> const& field, FormatContext& ctx)
+    auto format(Lightweight::Field<T, P1, P2> const& field, FormatContext& ctx) const
     {
-        return formatter<T>::format(field.InspectValue(), ctx);
+        return formatter<T>::format(field.Value(), ctx);
+    }
+};
+
+/// Specialization for `Field<std::optional<T>, ...>`: `std::optional` has no
+/// `std::formatter` specialization in the standard library, so we inherit from
+/// the inner `std::formatter<T>` and render `"NULL"` for the empty case.
+template <Lightweight::detail::FieldElementType T, auto P1, auto P2>
+struct std::formatter<Lightweight::Field<std::optional<T>, P1, P2>>: std::formatter<T>
+{
+    template <typename FormatContext>
+    // NOLINTNEXTLINE(readability-identifier-naming)
+    auto format(Lightweight::Field<std::optional<T>, P1, P2> const& field, FormatContext& ctx) const
+    {
+        if (field.Value().has_value())
+            return formatter<T>::format(field.Value().value(), ctx);
+
+        // Fallback for the NULL case — write "NULL" verbatim through the format context.
+        constexpr std::string_view nullText { "NULL" };
+        return std::ranges::copy(nullText, ctx.out()).out;
     }
 };

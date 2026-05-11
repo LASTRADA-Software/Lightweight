@@ -250,6 +250,19 @@ std::u16string ToUtf16(std::basic_string_view<T> const u32InputString)
     return u16OutputString;
 }
 
+/// Converts a wchar_t-based wide string view to UTF-16.
+///
+/// When `sizeof(wchar_t) == 2` (typically Windows), the wide string is already UTF-16,
+/// so this is a reinterpreting copy.
+///
+/// @ingroup Unicode
+template <typename T>
+    requires(std::same_as<T, wchar_t> && sizeof(wchar_t) == 2)
+inline LIGHTWEIGHT_FORCE_INLINE std::u16string ToUtf16(std::basic_string_view<T> u16InputString)
+{
+    return { reinterpret_cast<char16_t const*>(u16InputString.data()), u16InputString.size() };
+}
+
 /// Converts from UTF-8 to UTF-16.
 ///
 /// @ingroup Unicode

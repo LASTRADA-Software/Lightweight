@@ -5,6 +5,8 @@
 #include "../SqlColumnTypeDefinitions.hpp"
 #include "Core.hpp"
 
+#include <string>
+
 namespace Lightweight
 {
 

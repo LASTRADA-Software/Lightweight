@@ -173,7 +173,12 @@ struct SqlNumeric
     }
 
     /// Three-way comparison operator.
-    [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE std::weak_ordering operator<=>(SqlNumeric const& other) const noexcept
+    ///
+    /// Comparing two `SqlNumeric` values yields `std::partial_ordering` because the
+    /// underlying conversion to `double` admits NaN inputs. In practice every value
+    /// produced by this type is finite, so the result is totally ordered.
+    [[nodiscard]] constexpr LIGHTWEIGHT_FORCE_INLINE std::partial_ordering operator<=>(
+        SqlNumeric const& other) const noexcept
     {
         return ToDouble() <=> other.ToDouble();
     }
@@ -294,7 +299,7 @@ template <Lightweight::SqlNumericType Type>
 struct std::formatter<Type>: std::formatter<std::string>
 {
     template <typename FormatContext>
-    auto format(Type const& value, FormatContext& ctx)
+    auto format(Type const& value, FormatContext& ctx) const
     {
         return formatter<std::string>::format(value.ToString(), ctx);
     }

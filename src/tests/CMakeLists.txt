@@ -81,12 +81,36 @@ set(SOURCE_FILES
     DataMapper/NamingTests.cpp
     DataMapper/ReadTests.cpp
     DataMapper/RelationTests.cpp
+    DataMapper/BelongsToStateTests.cpp
+    DataMapper/StateTests.cpp
+    FieldTests.cpp
     LargeTestDatabase/DataGenerator.cpp
     LargeTestDatabase/LargeTestDatabaseTests.cpp
     MigrationTests.cpp
     MigrationReflectionTests.cpp
     QueryBuilderTests.cpp
+    QueryFormatterTests.cpp
+    SqlErrorDetectionTests.cpp
+    SqlGuidTests.cpp
+    SqlLoggerTests.cpp
+    MigrationLockTests.cpp
+    SqlConnectionDbTests.cpp
+    SqlBinaryAndTextDbTests.cpp
+    SqlConnectInfoEdgeTests.cpp
+    SqlDateTimeArithmeticTests.cpp
+    SqlDateTimeDbTests.cpp
+    SqlNumericTests.cpp
+    SqlRealNameTests.cpp
+    SqlSchemaDbTests.cpp
+    SqlStatementDbTests.cpp
+    SqlTransactionTests.cpp
+    ThreadSafeQueueTests.cpp
+    SqlVariantAccessorTests.cpp
+    SqlVariantDbTests.cpp
+    SqlBackup/AllColumnTypesTests.cpp
     SqlBackup/BatchManagerIntegrationTests.cpp
+    SqlBackup/CommonHelpersTests.cpp
+    SqlBackup/ProgressManagerTests.cpp
     SqlBackup/BatchManagerTests.cpp
     SqlBackup/MsgPackChunkFormatsTests.cpp
     SqlBackup/BatchManagerIntegrationTests.cpp
@@ -94,7 +118,9 @@ set(SOURCE_FILES
     SqlBackup/MsgPackChunkFormatsTests.cpp
     SqlBackup/MultiPkTests.cpp
     SqlBackup/Benchmarks.cpp
+    SqlBackup/ParseSchemaTests.cpp
     SqlBackup/RobustnessTests.cpp
+    SqlBackup/Sha256Tests.cpp
     SqlBackup/TableFilterTests.cpp
     SqlBackup/Tests.cpp
     SqlBackup/SqlBackupCompositeFKTests.cpp

@@ -66,6 +66,92 @@ TEST_CASE("LupVersion.Comparison", "[lup2dbtool]")
     CHECK(LupVersion { 6, 8, 8 } == LupVersion { 6, 8, 8 });
 }
 
+TEST_CASE("LupVersion.Parse: dot-separated format", "[lup2dbtool]")
+{
+    auto const v = LupVersion::Parse("6.8.8");
+    REQUIRE(v.has_value());
+    if (v.has_value())
+    {
+        CHECK(v->major == 6);
+        CHECK(v->minor == 8);
+        CHECK(v->patch == 8);
+    }
+}
+
+TEST_CASE("LupVersion.Parse: underscore-separated format normalises to dot", "[lup2dbtool]")
+{
+    // The Parse() pre-processor swaps `_` for `.`, so both forms accept the same input.
+    auto const v = LupVersion::Parse("6_08_08");
+    REQUIRE(v.has_value());
+    if (v.has_value())
+    {
+        CHECK(v->major == 6);
+        CHECK(v->minor == 8);
+        CHECK(v->patch == 8);
+    }
+}
+
+TEST_CASE("LupVersion.Parse: mixed separators (`6.08_08`) are accepted", "[lup2dbtool]")
+{
+    auto const v = LupVersion::Parse("6.08_08");
+    REQUIRE(v.has_value());
+    if (v.has_value())
+    {
+        CHECK(v->major == 6);
+        CHECK(v->minor == 8);
+        CHECK(v->patch == 8);
+    }
+}
+
+TEST_CASE("LupVersion.Parse: leading zeros are tolerated", "[lup2dbtool]")
+{
+    auto const v = LupVersion::Parse("2.01.05");
+    REQUIRE(v.has_value());
+    if (v.has_value())
+    {
+        CHECK(v->major == 2);
+        CHECK(v->minor == 1);
+        CHECK(v->patch == 5);
+    }
+}
+
+TEST_CASE("LupVersion.Parse: rejects single segment", "[lup2dbtool]")
+{
+    CHECK_FALSE(LupVersion::Parse("6").has_value());
+}
+
+TEST_CASE("LupVersion.Parse: rejects two segments", "[lup2dbtool]")
+{
+    CHECK_FALSE(LupVersion::Parse("6.8").has_value());
+}
+
+TEST_CASE("LupVersion.Parse: rejects non-numeric input", "[lup2dbtool]")
+{
+    CHECK_FALSE(LupVersion::Parse("a.b.c").has_value());
+    CHECK_FALSE(LupVersion::Parse("6.x.8").has_value());
+    CHECK_FALSE(LupVersion::Parse("6..8").has_value()); // empty middle segment
+}
+
+TEST_CASE("LupVersion.Parse: rejects trailing garbage in a segment", "[lup2dbtool]")
+{
+    // std::from_chars must consume the entire segment — partial parses are rejected.
+    CHECK_FALSE(LupVersion::Parse("6.8.8x").has_value());
+}
+
+TEST_CASE("LupVersion.Parse: empty input is rejected", "[lup2dbtool]")
+{
+    CHECK_FALSE(LupVersion::Parse("").has_value());
+}
+
+TEST_CASE("LupVersion.Parse: ToString round-trips through Parse", "[lup2dbtool]")
+{
+    LupVersion const original { .major = 6, .minor = 8, .patch = 8 };
+    auto const reparsed = LupVersion::Parse(original.ToString());
+    REQUIRE(reparsed.has_value());
+    if (reparsed.has_value())
+        CHECK(*reparsed == original);
+}
+
 // ================================================================================================
 // ConvertWindows1252ToUtf8 Tests
 

@@ -24,8 +24,18 @@ class SqlBinary final: public std::vector<uint8_t>
   public:
     using std::vector<uint8_t>::vector;
 
-    /// Three-way comparison operator.
-    constexpr auto operator<=>(SqlBinary const&) const noexcept = default;
+    /// Three-way comparison operator. Compares the byte payload only — the private
+    /// `_indicator` member is ODBC bookkeeping and must not influence equality.
+    constexpr auto operator<=>(SqlBinary const& other) const noexcept
+    {
+        return static_cast<std::vector<uint8_t> const&>(*this) <=> static_cast<std::vector<uint8_t> const&>(other);
+    }
+
+    /// Equality operator derived from the spaceship comparison above.
+    constexpr bool operator==(SqlBinary const& other) const noexcept
+    {
+        return static_cast<std::vector<uint8_t> const&>(*this) == static_cast<std::vector<uint8_t> const&>(other);
+    }
 
   private:
     friend struct SqlDataBinder<SqlBinary>;
@@ -44,14 +54,22 @@ struct SqlDataBinder<SqlBinary>
                                                              SqlDataBinderCallback& /*cb*/) noexcept
     {
         value._indicator = static_cast<SQLLEN>(value.size());
+        // An empty payload binds a 1-byte sentinel buffer and `ColumnSize == 1`; the
+        // indicator still carries the real byte count (0), so the server stores an
+        // empty BLOB. Required because psqlODBC rejects a null `ParameterValuePtr`
+        // (HY000) and the MSSQL ODBC driver rejects `ColumnSize == 0` (HY104).
+        static constexpr std::uint8_t emptySentinel = 0;
+        bool const isEmpty = value.empty();
+        auto const* dataPtr = isEmpty ? &emptySentinel : value.data();
+        SQLULEN const columnSize = isEmpty ? SQLULEN { 1 } : static_cast<SQLULEN>(value.size());
         return SQLBindParameter(stmt,
                                 column,
                                 SQL_PARAM_INPUT,
                                 SQL_C_BINARY,
                                 SQL_LONGVARBINARY,
-                                value.size(),
+                                columnSize,
                                 0,
-                                (SQLPOINTER) value.data(),
+                                (SQLPOINTER) dataPtr,
                                 0,
                                 &value._indicator);
     }

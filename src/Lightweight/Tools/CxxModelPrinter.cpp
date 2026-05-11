@@ -12,7 +12,10 @@ namespace Lightweight::Tools
 
 static auto ToLower(std::string value) -> std::string
 {
-    std::ranges::transform(value, value.begin(), [](auto c) { return static_cast<char>(std::tolower(c)); });
+    // Cast to unsigned char before std::tolower — passing a signed `char` with the
+    // high bit set is undefined behaviour per the standard.
+    std::ranges::transform(
+        value, value.begin(), [](char c) { return static_cast<char>(std::tolower(static_cast<unsigned char>(c))); });
     return value;
 }
 
@@ -145,12 +148,12 @@ std::string CxxModelPrinter::FormatTableName(std::string_view name)
         }
         if (makeUpper)
         {
-            result += static_cast<char>(std::toupper(c));
+            result += static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
             makeUpper = false;
         }
         else
         {
-            result += static_cast<char>(std::tolower(c));
+            result += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
         }
     }
 

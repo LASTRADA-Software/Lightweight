@@ -12,10 +12,10 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <algorithm>
+#include <array>
 #include <cstdlib>
 #include <format>
-#include <locale>
+#include <limits>
 #include <numbers>
 #include <ranges>
 #include <type_traits>
@@ -1582,6 +1582,1837 @@ TEST_CASE_METHOD(SqlTestFixture, "GetRawColumnArrayData: long Unicode round-trip
         auto reader = stmt.Execute();
         REQUIRE(reader.FetchRow());
         CHECK(reader.GetColumn<std::u16string>(1) == expected);
+    }
+}
+
+// =============================================================================
+// SqlFixedString class-level coverage
+// =============================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: constructors", "[SqlFixedString]")
+{
+    SECTION("default constructor produces empty string")
+    {
+        SqlFixedString<8> str;
+        CHECK(str.size() == 0);
+        CHECK(str.empty());
+        CHECK(str.capacity() == 8);
+    }
+
+    SECTION("from string literal")
+    {
+        SqlFixedString<8> const str { "Hello" };
+        CHECK(str.size() == 5);
+        CHECK(str == "Hello"sv);
+    }
+
+    SECTION("from std::string")
+    {
+        std::string const source { "World" };
+        SqlFixedString<8> const str { source };
+        CHECK(str.size() == 5);
+        CHECK(str == "World"sv);
+    }
+
+    SECTION("from std::string truncates when source exceeds capacity")
+    {
+        std::string const source { "TooLongForCapacity" };
+        SqlFixedString<8> const str { source };
+        CHECK(str.size() == 8);
+        CHECK(str == "TooLongF"sv);
+    }
+
+    SECTION("from std::string_view")
+    {
+        SqlFixedString<8> const str { "Slice"sv };
+        CHECK(str.size() == 5);
+        CHECK(str == "Slice"sv);
+    }
+
+    SECTION("from pointer + length")
+    {
+        char const* source = "PointerData";
+        SqlFixedString<8> const str { source, 5 };
+        CHECK(str.size() == 5);
+        CHECK(str == "Point"sv);
+    }
+
+    SECTION("from pointer range [begin, end)")
+    {
+        char const* source = "RangeData";
+        SqlFixedString<8> const str { source, source + 5 };
+        CHECK(str.size() == 5);
+        CHECK(str == "Range"sv);
+    }
+
+    SECTION("copy constructor")
+    {
+        SqlFixedString<8> const original { "Copy" };
+        SqlFixedString<8> const copy { original };
+        CHECK(copy == original);
+        CHECK(copy.size() == original.size());
+    }
+
+    SECTION("wide character types")
+    {
+        SqlFixedString<8, char16_t> const u16 { u"u16" };
+        CHECK(u16.size() == 3);
+        SqlFixedString<8, char32_t> const u32 { U"u32" };
+        CHECK(u32.size() == 3);
+        SqlFixedString<8, wchar_t> const wide { L"wide" };
+        CHECK(wide.size() == 4);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: reserve throws on overflow", "[SqlFixedString]")
+{
+    SqlFixedString<8> str;
+    CHECK_NOTHROW(str.reserve(8));
+    CHECK_THROWS_AS(str.reserve(9), std::length_error);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: substr and str", "[SqlFixedString]")
+{
+    SqlFixedString<16> const str { "Hello, World!" };
+
+    SECTION("substr() returns full view")
+    {
+        CHECK(str.substr() == "Hello, World!"sv);
+    }
+
+    SECTION("substr(offset)")
+    {
+        CHECK(str.substr(7) == "World!"sv);
+    }
+
+    SECTION("substr(offset, count)")
+    {
+        CHECK(str.substr(7, 5) == "World"sv);
+    }
+
+    SECTION("substr(offset, count) where count exceeds remaining size")
+    {
+        CHECK(str.substr(7, 100) == "World!"sv);
+    }
+
+    SECTION("substr(offset) where offset >= size returns empty")
+    {
+        CHECK(str.substr(50).empty());
+        CHECK(str.substr(str.size()).empty());
+    }
+
+    SECTION("str() returns full view")
+    {
+        CHECK(str.str() == "Hello, World!"sv);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: iteration and operator[]", "[SqlFixedString]")
+{
+    SqlFixedString<8> str { "Hello" };
+
+    SECTION("range-based for")
+    {
+        std::string collected;
+        for (auto const ch: str)
+            collected += ch;
+        CHECK(collected == "Hello");
+    }
+
+    SECTION("const operator[]")
+    {
+        SqlFixedString<8> const& cstr = str;
+        CHECK(cstr[0] == 'H');
+        CHECK(cstr[4] == 'o');
+    }
+
+    SECTION("mutable operator[]")
+    {
+        str[0] = 'J';
+        CHECK(str == "Jello"sv);
+    }
+
+    SECTION("begin()/end() distance equals size")
+    {
+        CHECK(static_cast<std::size_t>(std::distance(str.begin(), str.end())) == str.size());
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: comparison operators", "[SqlFixedString]")
+{
+    SqlFixedString<8> const a { "Apple" };
+    SqlFixedString<8> const b { "Apple" };
+    SqlFixedString<8> const c { "Banana" };
+
+    SECTION("equality and inequality with same-size SqlFixedString")
+    {
+        CHECK(a == b);
+        CHECK_FALSE(a != b);
+        CHECK(a != c);
+        CHECK_FALSE(a == c);
+    }
+
+    SECTION("three-way comparison ordering")
+    {
+        CHECK((a <=> c) == std::weak_ordering::less);
+        CHECK((c <=> a) == std::weak_ordering::greater);
+        CHECK((a <=> b) == std::weak_ordering::equivalent);
+    }
+
+    SECTION("equality with std::string_view")
+    {
+        CHECK(a == "Apple"sv);
+        CHECK(a != "Banana"sv);
+    }
+
+    SECTION("comparison across different capacities")
+    {
+        SqlFixedString<5> const smallStr { "Apple" };
+        SqlFixedString<20> const largeStr { "Apple" };
+        CHECK(smallStr == largeStr);
+    }
+
+    SECTION("comparison across different modes")
+    {
+        SqlAnsiString<10> const variableMode { "Apple" };
+        SqlTrimmedFixedString<10> const trimmedMode { "Apple" };
+        CHECK(variableMode == trimmedMode);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: ToString and conversion operators", "[SqlFixedString]")
+{
+    SqlFixedString<8> const str { "Hello" };
+
+    SECTION("ToString()")
+    {
+        CHECK(str.ToString() == "Hello"s);
+    }
+
+    SECTION("ToStringView()")
+    {
+        CHECK(str.ToStringView() == "Hello"sv);
+    }
+
+    SECTION("explicit conversion to std::string")
+    {
+        auto const s = static_cast<std::string>(str);
+        CHECK(s == "Hello");
+    }
+
+    SECTION("explicit conversion to std::string_view")
+    {
+        auto const v = static_cast<std::string_view>(str);
+        CHECK(v == "Hello"sv);
+    }
+
+    SECTION("data() returns a writable pointer")
+    {
+        SqlFixedString<8> mutableStr { "Hello" };
+        char* ptr = mutableStr.data();
+        ptr[0] = 'J';
+        CHECK(mutableStr == "Jello"sv);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: std::format formatter", "[SqlFixedString]")
+{
+    SECTION("char")
+    {
+        SqlFixedString<10> const str { "Hello" };
+        CHECK(std::format("{}", str) == "Hello");
+    }
+
+    SECTION("wchar_t encoded as UTF-8 in formatter output")
+    {
+        SqlFixedString<10, wchar_t> const wstr { L"Hellö" };
+        // The formatter converts non-narrow strings to UTF-8 for std::format.
+        auto const formatted = std::format("{}", wstr);
+        // "Hellö" encodes to "Hell" + 0xC3 0xB6 in UTF-8 (5 chars, 6 bytes).
+        CHECK(formatted == reinterpret_cast<char const*>(u8"Hellö"));
+    }
+
+    SECTION("char16_t encoded as UTF-8 in formatter output")
+    {
+        SqlFixedString<10, char16_t> const u16 { u"abc" };
+        CHECK(std::format("{}", u16) == "abc");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: setsize null-terminates the buffer", "[SqlFixedString]")
+{
+    SqlFixedString<8> str { "Hello, !" };
+    str.setsize(5);
+    CHECK(str.size() == 5);
+    CHECK(str.c_str() == "Hello"sv);
+    CHECK(str.data()[5] == '\0');
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: SqlStringInterface concept holds for all char types", "[SqlFixedString]")
+{
+    STATIC_REQUIRE(SqlStringInterface<SqlFixedString<10, char>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlFixedString<10, char16_t>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlFixedString<10, char32_t>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlFixedString<10, wchar_t>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlAnsiString<10>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlUtf16String<10>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlUtf32String<10>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlWideString<10>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlTrimmedFixedString<10>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlTrimmedWideFixedString<10>>);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: IsSqlFixedString trait", "[SqlFixedString]")
+{
+    STATIC_REQUIRE(IsSqlFixedString<SqlFixedString<10>>);
+    STATIC_REQUIRE(IsSqlFixedString<SqlAnsiString<5>>);
+    STATIC_REQUIRE(IsSqlFixedString<SqlWideString<5>>);
+    STATIC_REQUIRE(!IsSqlFixedString<std::string>);
+    STATIC_REQUIRE(!IsSqlFixedString<SqlText>);
+}
+
+// =============================================================================
+// SqlDynamicString class-level coverage
+// =============================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: constructors", "[SqlDynamicString]")
+{
+    SECTION("default constructor produces empty string")
+    {
+        SqlDynamicString<32> str;
+        CHECK(str.size() == 0);
+        CHECK(str.empty());
+        CHECK(str.capacity() == 32);
+    }
+
+    SECTION("from string literal")
+    {
+        SqlDynamicString<32> const str { "Hello" };
+        CHECK(str.size() == 5);
+        CHECK(str == "Hello"sv);
+    }
+
+    SECTION("from std::string")
+    {
+        std::string const source { "Dynamic" };
+        SqlDynamicString<32> const str { source };
+        CHECK(str.size() == 7);
+        CHECK(str == "Dynamic"sv);
+    }
+
+    SECTION("from std::string_view")
+    {
+        SqlDynamicString<32> const str { "View"sv };
+        CHECK(str.size() == 4);
+        CHECK(str == "View"sv);
+    }
+
+    SECTION("from pointer range [begin, end)")
+    {
+        char const* source = "RangeData";
+        SqlDynamicString<32> const str { source, source + 5 };
+        CHECK(str.size() == 5);
+        CHECK(str == "Range"sv);
+    }
+
+    SECTION("wide character types")
+    {
+        SqlDynamicString<32, char16_t> const u16 { u"u16" };
+        CHECK(u16.size() == 3);
+        SqlDynamicString<32, char32_t> const u32 { U"u32" };
+        CHECK(u32.size() == 3);
+        SqlDynamicString<32, wchar_t> const wide { L"wide" };
+        CHECK(wide.size() == 4);
+    }
+
+    SECTION("copy constructor produces an independent copy")
+    {
+        SqlDynamicString<32> const original { "Copy" };
+        SqlDynamicString<32> copy { original };
+        copy.push_back('!');
+        CHECK(original == "Copy"sv);
+        CHECK(copy == "Copy!"sv);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: modifiers", "[SqlDynamicString]")
+{
+    SqlDynamicString<32> str;
+
+    SECTION("push_back / pop_back")
+    {
+        str.push_back('a');
+        str.push_back('b');
+        str.push_back('c');
+        CHECK(str == "abc"sv);
+        str.pop_back();
+        CHECK(str == "ab"sv);
+    }
+
+    SECTION("clear")
+    {
+        str = SqlDynamicString<32> { "Filled" };
+        REQUIRE(!str.empty());
+        str.clear();
+        CHECK(str.empty());
+    }
+
+    SECTION("reserve and resize")
+    {
+        str.reserve(16);
+        str.resize(5);
+        CHECK(str.size() == 5);
+    }
+
+    SECTION("setsize caps at the dynamic capacity")
+    {
+        SqlDynamicString<8> tiny;
+        tiny.setsize(20);
+        CHECK(tiny.size() == 8);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: substr / str / data / c_str", "[SqlDynamicString]")
+{
+    SqlDynamicString<32> const str { "Hello, World!" };
+    CHECK(str.substr(7, 5) == "World"sv);
+    CHECK(str.substr(7) == "World!"sv);
+    CHECK(str.str() == "Hello, World!"sv);
+    CHECK(std::string_view { str.data(), str.size() } == "Hello, World!"sv);
+    CHECK(std::string_view { str.c_str() } == "Hello, World!"sv);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: iteration and operator[]", "[SqlDynamicString]")
+{
+    SqlDynamicString<32> str { "Hello" };
+
+    SECTION("range-based for")
+    {
+        std::string collected;
+        for (auto const ch: str)
+            collected += ch;
+        CHECK(collected == "Hello");
+    }
+
+    SECTION("operator[] read and write")
+    {
+        SqlDynamicString<32> const& cstr = str;
+        CHECK(cstr[0] == 'H');
+        str[0] = 'J';
+        CHECK(str == "Jello"sv);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: comparison operators", "[SqlDynamicString]")
+{
+    SqlDynamicString<32> const a { "Apple" };
+    SqlDynamicString<32> const b { "Apple" };
+    SqlDynamicString<32> const c { "Banana" };
+
+    CHECK(a == b);
+    CHECK(a != c);
+    CHECK((a <=> c) == std::weak_ordering::less);
+    CHECK((c <=> a) == std::weak_ordering::greater);
+
+    SECTION("comparison across different capacities")
+    {
+        SqlDynamicString<8> const tiny { "Apple" };
+        SqlDynamicString<64> const large { "Apple" };
+        CHECK(tiny == large);
+        CHECK_FALSE(tiny != large);
+    }
+
+    SECTION("comparison with std::string_view")
+    {
+        CHECK(a == "Apple"sv);
+        CHECK(a != "Banana"sv);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: ToString and conversion operators", "[SqlDynamicString]")
+{
+    SqlDynamicString<32> const str { "Hello" };
+    CHECK(str.ToString() == "Hello"s);
+    CHECK(str.ToStringView() == "Hello"sv);
+    CHECK(static_cast<std::string>(str) == "Hello");
+    CHECK(static_cast<std::string_view>(str) == "Hello"sv);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: std::format formatter", "[SqlDynamicString]")
+{
+    SECTION("char")
+    {
+        SqlDynamicString<32> const str { "Hello" };
+        CHECK(std::format("{}", str) == "Hello");
+    }
+
+    SECTION("wchar_t encoded as UTF-8")
+    {
+        SqlDynamicString<32, wchar_t> const wstr { L"Hellö" };
+        auto const formatted = std::format("{}", wstr);
+        CHECK(formatted == reinterpret_cast<char const*>(u8"Hellö"));
+    }
+
+    SECTION("std::optional<SqlDynamicString>: nullopt")
+    {
+        std::optional<SqlDynamicString<32>> const opt;
+        CHECK(std::format("{}", opt) == "nullopt");
+    }
+
+    SECTION("std::optional<SqlDynamicString>: with value")
+    {
+        std::optional<SqlDynamicString<32>> const opt { SqlDynamicString<32> { "Hello" } };
+        CHECK(std::format("{}", opt) == "Hello");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: IsSqlDynamicString trait", "[SqlDynamicString]")
+{
+    STATIC_REQUIRE(IsSqlDynamicString<SqlDynamicString<10>>);
+    STATIC_REQUIRE(IsSqlDynamicString<SqlDynamicAnsiString<10>>);
+    STATIC_REQUIRE(IsSqlDynamicString<SqlDynamicUtf16String<10>>);
+    STATIC_REQUIRE(IsSqlDynamicString<SqlDynamicUtf32String<10>>);
+    STATIC_REQUIRE(IsSqlDynamicString<SqlDynamicWideString<10>>);
+    STATIC_REQUIRE(IsSqlDynamicString<std::optional<SqlDynamicString<10>>>);
+    STATIC_REQUIRE(!IsSqlDynamicString<std::string>);
+    STATIC_REQUIRE(!IsSqlDynamicString<SqlFixedString<10>>);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: SqlStringInterface concept", "[SqlDynamicString]")
+{
+    STATIC_REQUIRE(SqlStringInterface<SqlDynamicString<10>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlDynamicAnsiString<10>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlDynamicUtf16String<10>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlDynamicUtf32String<10>>);
+    STATIC_REQUIRE(SqlStringInterface<SqlDynamicWideString<10>>);
+}
+
+// =============================================================================
+// SqlText class-level coverage
+// =============================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlText: equality and ordering", "[SqlText]")
+{
+    SqlText const a { "Hello" };
+    SqlText const b { "Hello" };
+    SqlText const c { "World" };
+    CHECK(a == b);
+    CHECK(a != c);
+    CHECK((a <=> c) == std::weak_ordering::less);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlText: std::format formatter", "[SqlText]")
+{
+    SqlText const text { "Sample text content" };
+    CHECK(std::format("{}", text) == "Sample text content");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlText: empty value round-trip", "[SqlText][SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect(
+        [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Text { 255 }); });
+
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+    (void) stmt.Execute(SqlText { "" });
+
+    auto const result = stmt.ExecuteDirectScalar<SqlText>(stmt.Query("Test").Select().Field("Value").All());
+    REQUIRE(result.has_value());
+    CHECK(result->value.empty());
+}
+
+// =============================================================================
+// Database round-trip coverage for types that were missing from the matrix.
+// =============================================================================
+
+// Common fixture: create a simple Test(Value <type>) table, INSERT a value with
+// SqlWildcard, then SELECT it back and validate via GetColumn / GetNullableColumn.
+template <typename ValueT, typename ColumnTypeDefT>
+void RoundTripStringValue(ValueT const& expected, ColumnTypeDefT const& columnType)
+{
+    auto stmt = SqlStatement {};
+    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(columnType);
+    (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
+
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(expected);
+
+    auto cursor = stmt.ExecuteDirect("SELECT Value FROM Test");
+    REQUIRE(cursor.FetchRow());
+    auto const actual = cursor.GetColumn<ValueT>(1);
+    CHECK(actual == expected);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicAnsiString: round-trip (binder)", "[SqlDynamicString][SqlDataBinder]")
+{
+    SECTION("ASCII value")
+    {
+        RoundTripStringValue(SqlDynamicAnsiString<64> { "Hello" }, SqlColumnTypeDefinitions::Varchar { 64 });
+    }
+
+    SECTION("empty value")
+    {
+        // Some drivers treat empty/NULL ambiguously; verify that an explicitly-empty payload comes back empty.
+        auto stmt = SqlStatement {};
+        (void) stmt.ExecuteDirect("CREATE TABLE Test (Value VARCHAR(64) NULL)");
+        stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+        (void) stmt.Execute(SqlDynamicAnsiString<64> {});
+
+        auto cursor = stmt.ExecuteDirect("SELECT Value FROM Test");
+        REQUIRE(cursor.FetchRow());
+        auto const actual = cursor.GetColumn<SqlDynamicAnsiString<64>>(1);
+        CHECK(actual.empty());
+    }
+
+    SECTION("NULL value via GetNullableColumn")
+    {
+        auto stmt = SqlStatement {};
+        (void) stmt.ExecuteDirect("CREATE TABLE Test (Value VARCHAR(64) NULL)");
+        stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+        (void) stmt.Execute(SqlNullValue);
+
+        auto cursor = stmt.ExecuteDirect("SELECT Value FROM Test");
+        REQUIRE(cursor.FetchRow());
+        CHECK(!cursor.GetNullableColumn<SqlDynamicAnsiString<64>>(1).has_value());
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicUtf16String: round-trip (binder)", "[SqlDynamicString][SqlDataBinder][Unicode]")
+{
+    SECTION("BMP value")
+    {
+        RoundTripStringValue(SqlDynamicUtf16String<64> { u"Hello" }, SqlColumnTypeDefinitions::NVarchar { 64 });
+    }
+
+    SECTION("supplementary-plane value")
+    {
+        auto const expected = SqlDynamicUtf16String<64> { u"\U0001F601 Hello" };
+        RoundTripStringValue(expected, SqlColumnTypeDefinitions::NVarchar { 64 });
+    }
+
+    SECTION("BindOutputColumns")
+    {
+        auto stmt = SqlStatement {};
+        (void) stmt.ExecuteDirect(
+            std::format("CREATE TABLE Test (Value {} NULL)",
+                        stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 64 })));
+        stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+        std::ignore = stmt.Execute(SqlDynamicUtf16String<64> { u"OutBound" });
+
+        stmt.Prepare("SELECT Value FROM Test");
+        auto cursor = stmt.Execute();
+        SqlDynamicUtf16String<64> actual;
+        cursor.BindOutputColumns(&actual);
+        REQUIRE(cursor.FetchRow());
+        CHECK(actual == u"OutBound"sv);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicUtf32String: round-trip (binder)", "[SqlDynamicString][SqlDataBinder][Unicode]")
+{
+    RoundTripStringValue(SqlDynamicUtf32String<64> { U"Hello \U0001F601" }, SqlColumnTypeDefinitions::NVarchar { 64 });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicWideString: round-trip (binder)", "[SqlDynamicString][SqlDataBinder][Unicode]")
+{
+    RoundTripStringValue(SqlDynamicWideString<64> { L"Hello \U0001F601" }, SqlColumnTypeDefinitions::NVarchar { 64 });
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString FIXED_SIZE mode round-trip", "[SqlFixedString][SqlDataBinder]")
+{
+    // Pin the FIXED_SIZE mode through the binder. Unlike FIXED_SIZE_RIGHT_TRIMMED,
+    // this mode does not trim trailing whitespace on retrieval — but it does strip
+    // trailing nulls (see SqlBasicStringOperations<SqlFixedString>::PostProcessOutputColumn).
+    // The exact size we get back depends on whether the DBMS pads CHAR(N) columns
+    // (MSSQL does; SQLite does not), so we only assert the leading content.
+    using FixedNarrow = SqlFixedString<10, char, SqlFixedStringMode::FIXED_SIZE>;
+
+    auto stmt = SqlStatement {};
+    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::Char { 10 });
+    (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
+
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    auto const input = FixedNarrow { "Hello" };
+    (void) stmt.Execute(input);
+
+    auto cursor = stmt.ExecuteDirect("SELECT Value FROM Test");
+    REQUIRE(cursor.FetchRow());
+    auto const actual = cursor.GetColumn<FixedNarrow>(1);
+
+    // The leading content must round-trip identically regardless of CHAR(N) padding policy.
+    CHECK(actual.substr(0, 5) == "Hello"sv);
+    // The size is at least the source length and at most the declared capacity.
+    CHECK(actual.size() >= 5);
+    CHECK(actual.size() <= 10);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlString<N, T> alias round-trip", "[SqlFixedString][SqlDataBinder]")
+{
+    // SqlString<N, T> is the generic VARIABLE_SIZE alias. This pins that the alias
+    // resolves through the same binder paths as the explicit SqlAnsiString / SqlWideString aliases.
+    SECTION("char specialization")
+    {
+        RoundTripStringValue(SqlString<32, char> { "Alias" }, SqlColumnTypeDefinitions::Varchar { 32 });
+    }
+
+    SECTION("default char specialization")
+    {
+        RoundTripStringValue(SqlString<32> { "DefaultAlias" }, SqlColumnTypeDefinitions::Varchar { 32 });
+    }
+
+    SECTION("wchar_t specialization")
+    {
+        RoundTripStringValue(SqlString<32, wchar_t> { L"WideAlias" }, SqlColumnTypeDefinitions::NVarchar { 32 });
+    }
+}
+
+// =============================================================================
+// String literal / C-array input parameter binding
+// (StringLiteral.hpp covers `T[N]` overloads — they were unexercised.)
+// =============================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "C-array string literal: char[N] InputParameter", "[SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect("CREATE TABLE Test (Value VARCHAR(32) NULL)");
+
+    char const literal[] = "Literal";
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(literal);
+
+    auto const actual = stmt.ExecuteDirectScalar<std::string>("SELECT Value FROM Test");
+    REQUIRE(actual.has_value());
+    CHECK(*actual == "Literal");
+}
+
+#if defined(_WIN32) || defined(_WIN64)
+TEST_CASE_METHOD(SqlTestFixture, "C-array string literal: wchar_t[N] InputParameter", "[SqlDataBinder][Unicode]")
+{
+    // Exercises the dedicated SqlDataBinder<wchar_t[N]> overload, which is only
+    // declared on platforms where sizeof(wchar_t) == 2 (Windows). On Linux/macOS
+    // wchar_t is 4 bytes and StringLiteral.hpp does not specialize for it; the
+    // Linux equivalent is the std::wstring path covered in the binder matrix above.
+    auto stmt = SqlStatement {};
+    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 32 });
+    (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
+
+    wchar_t const literal[] = L"WideLit";
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(literal);
+
+    auto const actual = stmt.ExecuteDirectScalar<std::wstring>("SELECT Value FROM Test");
+    REQUIRE(actual.has_value());
+    CHECK(*actual == L"WideLit");
+}
+#endif
+
+TEST_CASE_METHOD(SqlTestFixture, "C-array string literal: char16_t[N] InputParameter", "[SqlDataBinder][Unicode]")
+{
+    auto stmt = SqlStatement {};
+    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 32 });
+    (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
+
+    char16_t const literal[] = u"u16Lit";
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(literal);
+
+    auto const actual = stmt.ExecuteDirectScalar<std::u16string>("SELECT Value FROM Test");
+    REQUIRE(actual.has_value());
+    CHECK(*actual == u"u16Lit");
+}
+
+// =============================================================================
+// Empty-string and edge-case round-trips
+// =============================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "Empty string round-trip across string types", "[SqlDataBinder][Unicode]")
+{
+    auto stmt = SqlStatement {};
+    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 32 });
+    (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
+
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+
+    SECTION("std::string empty")
+    {
+        (void) stmt.Execute(std::string {});
+        auto const actual = stmt.ExecuteDirectScalar<std::string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(actual->empty());
+    }
+
+    SECTION("std::u8string empty")
+    {
+        (void) stmt.Execute(std::u8string {});
+        auto const actual = stmt.ExecuteDirectScalar<std::u8string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(actual->empty());
+    }
+
+    SECTION("std::u16string empty")
+    {
+        (void) stmt.Execute(std::u16string {});
+        auto const actual = stmt.ExecuteDirectScalar<std::u16string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(actual->empty());
+    }
+
+    SECTION("std::u32string empty")
+    {
+        (void) stmt.Execute(std::u32string {});
+        auto const actual = stmt.ExecuteDirectScalar<std::u32string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(actual->empty());
+    }
+
+    SECTION("std::wstring empty")
+    {
+        (void) stmt.Execute(std::wstring {});
+        auto const actual = stmt.ExecuteDirectScalar<std::wstring>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(actual->empty());
+    }
+
+    SECTION("SqlAnsiString<N> empty")
+    {
+        (void) stmt.Execute(SqlAnsiString<32> {});
+        auto const actual = stmt.ExecuteDirectScalar<SqlAnsiString<32>>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(actual->empty());
+    }
+
+    SECTION("SqlWideString<N> empty")
+    {
+        (void) stmt.Execute(SqlWideString<32> {});
+        auto const actual = stmt.ExecuteDirectScalar<SqlWideString<32>>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(actual->empty());
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Max-capacity ASCII round-trip", "[SqlDataBinder]")
+{
+    // Pin the boundary case: a value that fills the declared column width round-trips
+    // intact via std::string (which auto-grows on retrieval) and via SqlAnsiString<N+1>
+    // (so the output buffer has room for both the data and the trailing null terminator
+    // that the ANSI driver path writes). The asymmetry is a known quirk of
+    // SqlFixedString<N>: input binders pass N bytes of payload, but GetColumn passes
+    // `AnsiStringType::Capacity` as the SQLGetData buffer length — which the driver
+    // treats as `bytes-including-null-terminator`, capping the readable payload at N-1.
+    auto stmt = SqlStatement {};
+    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::Varchar { 32 });
+    (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
+
+    auto const payload = std::string(32, 'A');
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(payload);
+
+    SECTION("via std::string GetColumn")
+    {
+        auto cursor = stmt.ExecuteDirect("SELECT Value FROM Test");
+        REQUIRE(cursor.FetchRow());
+        auto const actual = cursor.GetColumn<std::string>(1);
+        CHECK(actual.size() == 32);
+        CHECK(actual == payload);
+    }
+
+    SECTION("via SqlAnsiString with one byte of headroom")
+    {
+        auto cursor = stmt.ExecuteDirect("SELECT Value FROM Test");
+        REQUIRE(cursor.FetchRow());
+        auto const actual = cursor.GetColumn<SqlAnsiString<33>>(1);
+        CHECK(actual.size() == 32);
+        CHECK(actual == SqlAnsiString<33> { payload });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Max-capacity wide round-trip", "[SqlDataBinder][Unicode]")
+{
+    auto stmt = SqlStatement {};
+    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 32 });
+    (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
+
+    auto const payload = std::wstring(32, L'X');
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(payload);
+
+    SECTION("via std::wstring GetColumn")
+    {
+        auto cursor = stmt.ExecuteDirect("SELECT Value FROM Test");
+        REQUIRE(cursor.FetchRow());
+        auto const actual = cursor.GetColumn<std::wstring>(1);
+        CHECK(actual.size() == 32);
+        CHECK(actual == payload);
+    }
+
+    SECTION("via SqlWideString with one char of headroom")
+    {
+        auto cursor = stmt.ExecuteDirect("SELECT Value FROM Test");
+        REQUIRE(cursor.FetchRow());
+        auto const actual = cursor.GetColumn<SqlWideString<33>>(1);
+        CHECK(actual.size() == 32);
+        CHECK(actual == SqlWideString<33> { payload });
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "ASCII round-trip across all writable string types", "[SqlDataBinder]")
+{
+    // A single payload that all five storage types must round-trip through a
+    // VARCHAR-shaped column. Catches divergent encoding decisions in the
+    // ANSI vs UTF-16 vs UTF-32 vs UTF-8 binder paths for plain-ASCII input —
+    // a regression here would mean one of the encoding paths corrupted bytes
+    // that should be passthrough.
+    auto stmt = SqlStatement {};
+    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 64 });
+    (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
+
+    constexpr std::string_view payloadAscii = "ASCII Round Trip 0123456789";
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(std::string { payloadAscii });
+
+    SECTION("std::string round-trip")
+    {
+        auto const actual = stmt.ExecuteDirectScalar<std::string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(*actual == payloadAscii);
+    }
+
+    SECTION("std::u8string round-trip")
+    {
+        auto const actual = stmt.ExecuteDirectScalar<std::u8string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        auto const view = std::string_view(reinterpret_cast<char const*>(actual->data()), actual->size());
+        CHECK(view == payloadAscii);
+    }
+
+    SECTION("std::u16string round-trip")
+    {
+        auto const actual = stmt.ExecuteDirectScalar<std::u16string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(actual->size() == payloadAscii.size());
+        for (std::size_t i = 0; i < payloadAscii.size(); ++i)
+            CHECK(static_cast<char>((*actual)[i]) == payloadAscii[i]);
+    }
+
+    SECTION("std::u32string round-trip")
+    {
+        auto const actual = stmt.ExecuteDirectScalar<std::u32string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(actual->size() == payloadAscii.size());
+        for (std::size_t i = 0; i < payloadAscii.size(); ++i)
+            CHECK(static_cast<char>((*actual)[i]) == payloadAscii[i]);
+    }
+
+    SECTION("std::wstring round-trip")
+    {
+        auto const actual = stmt.ExecuteDirectScalar<std::wstring>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(actual->size() == payloadAscii.size());
+        for (std::size_t i = 0; i < payloadAscii.size(); ++i)
+            CHECK(static_cast<char>((*actual)[i]) == payloadAscii[i]);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Unicode insert via std::string_view, retrieve via wide types", "[SqlDataBinder][Unicode]")
+{
+    // Same value, multiple retrieval encodings: pins that a single non-ASCII payload
+    // arrives intact regardless of whether the caller asks for u8/u16/u32/wstring.
+    auto stmt = SqlStatement {};
+    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 32 });
+    (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
+
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(u8"Käse \U0001F9C0"sv); // 5 + 1 emoji = 6 chars
+
+    SECTION("retrieve as std::u8string")
+    {
+        auto const actual = stmt.ExecuteDirectScalar<std::u8string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(*actual == u8"Käse \U0001F9C0");
+    }
+
+    SECTION("retrieve as std::u16string")
+    {
+        auto const actual = stmt.ExecuteDirectScalar<std::u16string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(*actual == u"Käse \U0001F9C0");
+    }
+
+    SECTION("retrieve as std::u32string")
+    {
+        auto const actual = stmt.ExecuteDirectScalar<std::u32string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(*actual == U"Käse \U0001F9C0");
+    }
+
+    SECTION("retrieve as std::wstring")
+    {
+        auto const actual = stmt.ExecuteDirectScalar<std::wstring>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(*actual == L"Käse \U0001F9C0");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Whitespace and control-character round-trip", "[SqlDataBinder]")
+{
+    // Pins that whitespace and printable-control bytes survive a VARCHAR round-trip.
+    // \t and a leading/trailing space have historically been candidates for "helpful"
+    // trimming by drivers and ORMs — this test catches any such silent normalization.
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect("CREATE TABLE Test (Value VARCHAR(32) NULL)");
+
+    constexpr std::string_view payload = " a\tb c ";
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(std::string { payload });
+
+    auto const actual = stmt.ExecuteDirectScalar<std::string>("SELECT Value FROM Test");
+    REQUIRE(actual.has_value());
+    CHECK(*actual == payload);
+}
+
+// =============================================================================
+// SqlVariant: branch coverage for variant constructors, accessors, ToString.
+// =============================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: construct from each supported alternative", "[SqlVariant]")
+{
+    SECTION("from string literal (char[N])")
+    {
+        SqlVariant v { "Hello" };
+        REQUIRE(v.Is<std::string_view>());
+        CHECK(v.Get<std::string_view>() == "Hello"sv);
+    }
+
+    SECTION("from char16_t literal")
+    {
+        SqlVariant v { u"World" };
+        REQUIRE(v.Is<std::u16string_view>());
+        CHECK(v.Get<std::u16string_view>() == u"World"sv);
+    }
+
+    SECTION("from SqlFixedString")
+    {
+        SqlVariant v { SqlAnsiString<8> { "Fixed" } };
+        REQUIRE(v.Is<std::string>());
+        CHECK(v.Get<std::string>() == "Fixed"s);
+    }
+
+    SECTION("from optional<int> with value")
+    {
+        SqlVariant v { std::optional<int> { 42 } };
+        REQUIRE(v.Is<int>());
+        CHECK(v.Get<int>() == 42);
+    }
+
+    SECTION("from optional<int> nullopt produces NULL")
+    {
+        SqlVariant const v { std::optional<int> {} };
+        CHECK(v.IsNull());
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: ToString covers each alternative", "[SqlVariant]")
+{
+    CHECK(SqlVariant { SqlNullValue }.ToString() == "NULL");
+    CHECK(SqlVariant { true }.ToString() == "true");
+    CHECK(SqlVariant { false }.ToString() == "false");
+    CHECK(SqlVariant { static_cast<int8_t>(-12) }.ToString() == "-12");
+    CHECK(SqlVariant { static_cast<short>(-1234) }.ToString() == "-1234");
+    CHECK(SqlVariant { static_cast<unsigned short>(2222) }.ToString() == "2222");
+    CHECK(SqlVariant { 42 }.ToString() == "42");
+    CHECK(SqlVariant { 42U }.ToString() == "42");
+    CHECK(SqlVariant { 1234567890123LL }.ToString() == "1234567890123");
+    CHECK(SqlVariant { 1234567890123ULL }.ToString() == "1234567890123");
+    CHECK(SqlVariant { std::string { "narrow" } }.ToString() == "narrow");
+    CHECK(SqlVariant { std::string_view { "view" } }.ToString() == "view");
+    CHECK(SqlVariant { SqlText { "txt" } }.ToString() == "txt");
+    CHECK(SqlVariant { std::u16string { u"hi" } }.ToString() == "hi");
+    CHECK(SqlVariant { std::u16string_view { u"hello" } }.ToString() == "hello");
+    CHECK(SqlVariant { 3.14F }.ToString().substr(0, 4) == "3.14");
+    CHECK(SqlVariant { 2.5 }.ToString().substr(0, 3) == "2.5");
+    using namespace std::chrono;
+    CHECK(SqlVariant { SqlDate { 2025y, January, 2d } }.ToString() == "2025-1-2");
+    CHECK(SqlVariant { SqlTime { 12h, 34min, 56s } }.ToString() == "12:34:56");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: equality and inequality operators", "[SqlVariant]")
+{
+    SqlVariant const a { 42 };
+    SqlVariant const b { 42 };
+    SqlVariant const c { 43 };
+    CHECK(a == b);
+    CHECK(a != c);
+    CHECK_FALSE(a != b);
+    CHECK_FALSE(a == c);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: TryGetIntegral conversions", "[SqlVariant]")
+{
+    SqlVariant const i { 42 };
+    CHECK(i.TryGetInt().value_or(0) == 42);
+    CHECK(i.TryGetShort().value_or(0) == 42);
+    CHECK(i.TryGetUShort().value_or(0) == 42);
+    CHECK(i.TryGetUInt().value_or(0) == 42);
+    CHECK(i.TryGetLongLong().value_or(0) == 42);
+    CHECK(i.TryGetULongLong().value_or(0) == 42);
+    CHECK(i.TryGetInt8().value_or(0) == 42);
+    CHECK(i.TryGetBool().value_or(false));
+
+    SECTION("TryGetInt on NULL returns nullopt")
+    {
+        SqlVariant const nullVariant { SqlNullValue };
+        CHECK(!nullVariant.TryGetInt().has_value());
+    }
+
+    // Note: TryGetIntegral on a non-integral variant throws std::bad_variant_access,
+    // but the public TryGet* wrappers are marked noexcept — calling them on a wrong
+    // type aborts (std::terminate) rather than throwing. Catch2 cannot test that.
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: TryGetStringView paths", "[SqlVariant]")
+{
+    SECTION("from std::string")
+    {
+        SqlVariant const v { std::string { "Hello" } };
+        auto const sv = v.TryGetStringView();
+        REQUIRE(sv.has_value());
+        CHECK(*sv == "Hello"sv);
+    }
+
+    SECTION("from std::string_view")
+    {
+        SqlVariant const v { std::string_view { "ViewStr" } };
+        auto const sv = v.TryGetStringView();
+        REQUIRE(sv.has_value());
+        CHECK(*sv == "ViewStr"sv);
+    }
+
+    SECTION("from SqlText")
+    {
+        SqlVariant const v { SqlText { "Body" } };
+        auto const sv = v.TryGetStringView();
+        REQUIRE(sv.has_value());
+        CHECK(*sv == "Body"sv);
+    }
+
+    SECTION("on NULL returns nullopt")
+    {
+        SqlVariant const v { SqlNullValue };
+        CHECK(!v.TryGetStringView().has_value());
+    }
+    // Note: TryGetStringView on a non-string variant aborts (the function is noexcept
+    // and throws bad_variant_access inside std::visit, which calls std::terminate).
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: TryGetUtf16StringView paths", "[SqlVariant]")
+{
+    SECTION("from std::u16string")
+    {
+        SqlVariant const v { std::u16string { u"Hello" } };
+        auto const sv = v.TryGetUtf16StringView();
+        REQUIRE(sv.has_value());
+        CHECK(*sv == u"Hello"sv);
+    }
+
+    SECTION("from std::u16string_view")
+    {
+        SqlVariant const v { std::u16string_view { u"ViewU16" } };
+        auto const sv = v.TryGetUtf16StringView();
+        REQUIRE(sv.has_value());
+        CHECK(*sv == u"ViewU16"sv);
+    }
+
+    SECTION("on NULL returns nullopt")
+    {
+        SqlVariant const v { SqlNullValue };
+        CHECK(!v.TryGetUtf16StringView().has_value());
+    }
+    // Same caveat as TryGetStringView: noexcept + throw inside visit aborts on non-u16 variants.
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: TryGetDate / TryGetTime / TryGetDateTime", "[SqlVariant]")
+{
+    using namespace std::chrono;
+    SECTION("TryGetDate from SqlDate")
+    {
+        SqlVariant const v { SqlDate { 2026y, May, 5d } };
+        REQUIRE(v.TryGetDate().has_value());
+    }
+
+    SECTION("TryGetDate from SqlDateTime extracts the date portion")
+    {
+        SqlVariant const v { SqlDateTime { 2026y, May, 5d, 12h, 0min, 0s, 0ns } };
+        auto const date = v.TryGetDate();
+        REQUIRE(date.has_value());
+        CHECK(date->sqlValue.year == 2026);
+        CHECK(date->sqlValue.month == 5);
+        CHECK(date->sqlValue.day == 5);
+    }
+
+    SECTION("TryGetDate on NULL returns nullopt")
+    {
+        SqlVariant const v { SqlNullValue };
+        CHECK(!v.TryGetDate().has_value());
+    }
+
+    SECTION("TryGetDate on a wrong type throws")
+    {
+        SqlVariant const v { 42 };
+        CHECK_THROWS_AS(v.TryGetDate(), std::bad_variant_access);
+    }
+
+    SECTION("TryGetTime from SqlTime")
+    {
+        SqlVariant const v { SqlTime { 12h, 34min, 56s } };
+        REQUIRE(v.TryGetTime().has_value());
+    }
+
+    SECTION("TryGetTime from SqlDateTime extracts the time portion")
+    {
+        SqlVariant const v { SqlDateTime { 2026y, May, 5d, 12h, 0min, 0s, 0ns } };
+        auto const time = v.TryGetTime();
+        REQUIRE(time.has_value());
+        CHECK(time->sqlValue.hour == 12);
+    }
+
+    SECTION("TryGetTime on NULL returns nullopt")
+    {
+        SqlVariant const v { SqlNullValue };
+        CHECK(!v.TryGetTime().has_value());
+    }
+
+    SECTION("TryGetTime on wrong type throws")
+    {
+        SqlVariant const v { 42 };
+        CHECK_THROWS_AS(v.TryGetTime(), std::bad_variant_access);
+    }
+
+    SECTION("TryGetDateTime from SqlDateTime")
+    {
+        SqlVariant const v { SqlDateTime { 2026y, May, 5d, 12h, 0min, 0s, 0ns } };
+        REQUIRE(v.TryGetDateTime().has_value());
+    }
+
+    SECTION("TryGetDateTime on NULL returns nullopt")
+    {
+        SqlVariant const v { SqlNullValue };
+        CHECK(!v.TryGetDateTime().has_value());
+    }
+
+    SECTION("TryGetDateTime on wrong type throws")
+    {
+        SqlVariant const v { 42 };
+        CHECK_THROWS_AS(v.TryGetDateTime(), std::bad_variant_access);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: ValueOr returns default for NULL", "[SqlVariant]")
+{
+    SqlVariant const nullV { SqlNullValue };
+    CHECK(nullV.ValueOr(99) == 99);
+    CHECK(nullV.ValueOr(std::string { "fallback" }) == "fallback");
+
+    SqlVariant const intV { 42 };
+    CHECK(intV.ValueOr(99) == 42);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: Get<optional<T>> handles NULL", "[SqlVariant]")
+{
+    SqlVariant nullV { SqlNullValue };
+    auto const result = nullV.Get<std::optional<int>>();
+    CHECK(!result.has_value());
+
+    SqlVariant intV { 42 };
+    auto const result2 = intV.Get<std::optional<int>>();
+    REQUIRE(result2.has_value());
+    CHECK(*result2 == 42);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for INTEGER columns", "[SqlVariant][SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect("CREATE TABLE Test (Value INTEGER NULL)");
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(42);
+
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Value FROM Test");
+    REQUIRE(result.TryGetInt().has_value());
+    CHECK(result.TryGetInt().value_or(0) == 42);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for FLOAT/DOUBLE columns", "[SqlVariant][SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect("CREATE TABLE Test (Value DOUBLE PRECISION NULL)");
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(1.5);
+
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Value FROM Test");
+    REQUIRE_FALSE(result.IsNull());
+    auto const asDouble = [&]() -> double {
+        if (result.Is<double>())
+            return std::get<double>(result.value);
+        if (result.Is<float>())
+            return static_cast<double>(std::get<float>(result.value));
+        return 0.0;
+    }();
+    CHECK_THAT(asDouble, Catch::Matchers::WithinAbs(1.5, 0.001));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for VARCHAR columns", "[SqlVariant][SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect("CREATE TABLE Test (Value VARCHAR(64) NULL)");
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(std::string { "Hello" });
+
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Value FROM Test");
+    auto const sv = result.TryGetStringView();
+    REQUIRE(sv.has_value());
+    CHECK(*sv == "Hello"sv);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for NVARCHAR columns", "[SqlVariant][SqlDataBinder][Unicode]")
+{
+    auto stmt = SqlStatement {};
+    if (stmt.Connection().ServerType() == SqlServerType::SQLITE)
+        (void) stmt.ExecuteDirect("PRAGMA encoding = 'UTF-16'");
+
+    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 64 });
+    (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(std::u16string { u"Hello" });
+
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Value FROM Test");
+    // SqlVariant stores wide strings as UTF-8 std::string.
+    auto const sv = result.TryGetStringView();
+    REQUIRE(sv.has_value());
+    CHECK(*sv == "Hello"sv);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for SMALLINT columns", "[SqlVariant][SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect("CREATE TABLE Test (Value SMALLINT NULL)");
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(static_cast<short>(1234));
+
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Value FROM Test");
+    CHECK(result.ValueOr(0) == 1234);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for BIGINT columns", "[SqlVariant][SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect("CREATE TABLE Test (Value BIGINT NULL)");
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(1234567890123LL);
+
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Value FROM Test");
+    CHECK(result.TryGetLongLong().value_or(0) == 1234567890123LL);
+}
+
+// Regression test for the SQLite ODBC driver quirk: it reports `SQL_DESC_CONCISE_TYPE` as
+// `SQL_C_SBIGINT (-25)` rather than `SQL_BIGINT (-5)` for BIGINT columns. Before the binder
+// learned to accept the C-type spelling, fetching a BIGINT column into a `SqlVariant` on
+// SQLite raised `SQL_UNSUPPORTED_TYPE`. The asserts below pin both the signed-range round-trip
+// and the variant alternative the binder picks, so a future regression that misroutes the
+// type (e.g. as `int`) is also caught.
+TEST_CASE_METHOD(SqlTestFixture,
+                 "SqlVariant: BIGINT round-trips across the full signed range",
+                 "[SqlVariant][SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect("CREATE TABLE Test (Value BIGINT NULL)");
+
+    constexpr std::array<long long, 4> kSamples {
+        std::numeric_limits<long long>::min(),
+        -1234567890123LL,
+        0LL,
+        std::numeric_limits<long long>::max(),
+    };
+
+    for (auto const sample: kSamples)
+    {
+        (void) stmt.ExecuteDirect("DELETE FROM Test");
+        stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+        (void) stmt.Execute(sample);
+
+        auto const result = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Value FROM Test");
+        INFO("sample=" << sample);
+        REQUIRE_FALSE(result.IsNull());
+        // The driver must surface the value as `long long` — not `int` (which would silently
+        // truncate INT64_MIN/MAX) and not a string (which would mean the binder fell through
+        // to the SQL_VARCHAR fallback).
+        REQUIRE(result.Is<long long>());
+        CHECK(std::get<long long>(result.value) == sample);
+        CHECK(result.TryGetLongLong().value_or(0) == sample);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for REAL columns", "[SqlVariant][SqlDataBinder]")
+{
+    // SQLite's type affinity stores REAL values as DOUBLE-class internally, so the
+    // SQL_DESC_TYPE comes back as SQL_DOUBLE rather than SQL_REAL. MSSQL routes to
+    // SQL_REAL, then the binder writes a float into the variant. The test only
+    // verifies that the round-trip preserves the numeric value within tolerance,
+    // regardless of which variant alternative the driver picks.
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect("CREATE TABLE Test (Value REAL NULL)");
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(1.5F);
+
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Value FROM Test");
+    REQUIRE_FALSE(result.IsNull());
+    auto const asDouble = [&]() -> double {
+        if (result.Is<double>())
+            return std::get<double>(result.value);
+        if (result.Is<float>())
+            return static_cast<double>(std::get<float>(result.value));
+        return 0.0;
+    }();
+    CHECK_THAT(asDouble, Catch::Matchers::WithinAbs(1.5, 0.001));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for DATE columns", "[SqlVariant][SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect(
+        [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Date {}); });
+    using namespace std::chrono;
+    auto const expected = SqlDate { 2025y, January, 2d };
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+    (void) stmt.Execute(expected);
+
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>(stmt.Query("Test").Select().Field("Value").All());
+    auto const date = result.TryGetDate();
+    REQUIRE(date.has_value());
+    CHECK(date.value() == expected);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for DATETIME columns", "[SqlVariant][SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect(
+        [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::DateTime {}); });
+    using namespace std::chrono;
+    auto const expected = SqlDateTime { 2025y, January, 2d, 12h, 34min, 56s, 0ns };
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+    (void) stmt.Execute(expected);
+
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>(stmt.Query("Test").Select().Field("Value").All());
+    auto const dt = result.TryGetDateTime();
+    REQUIRE(dt.has_value());
+    // Compare individual components — fraction may not round-trip exactly across DBMSes.
+    CHECK(dt->sqlValue.year == 2025);
+    CHECK(dt->sqlValue.month == 1);
+    CHECK(dt->sqlValue.day == 2);
+    CHECK(dt->sqlValue.hour == 12);
+    CHECK(dt->sqlValue.minute == 34);
+    CHECK(dt->sqlValue.second == 56);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for NUMERIC columns", "[SqlVariant][SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Decimal { .precision = 15, .scale = 2 });
+    });
+    auto const expected = SqlNumeric<15, 2> { 12345.67 };
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+    (void) stmt.Execute(expected);
+
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>(stmt.Query("Test").Select().Field("Value").All());
+    // SQLite drivers often report DECIMAL as VARCHAR; MSSQL routes through SQL_NUMERIC.
+    // Either path stores something representable, so just verify the variant has data.
+    CHECK_FALSE(result.IsNull());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for NULL across types", "[SqlVariant][SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    (void) stmt.ExecuteDirect("CREATE TABLE Test (Value INTEGER NULL)");
+    stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+    (void) stmt.Execute(SqlNullValue);
+
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>("SELECT Value FROM Test");
+    CHECK(result.IsNull());
+}
+
+// =============================================================================
+// Inspect functions: cover the data-binder Inspect overloads that drivers call
+// when logging input parameter values for diagnostics.
+// =============================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder Inspect: char[N]", "[SqlDataBinder]")
+{
+    char const literal[] = "InspectAscii";
+    auto const inspected = SqlDataBinder<char[sizeof(literal)]>::Inspect(literal);
+    auto const view = std::string_view(inspected.data(), inspected.size());
+    CHECK(view.contains("InspectAscii"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder Inspect: char16_t[N]", "[SqlDataBinder][Unicode]")
+{
+    char16_t const literal[] = u"InspectU16";
+    auto const inspected = SqlDataBinder<char16_t[sizeof(literal) / sizeof(char16_t)]>::Inspect(literal);
+    CHECK(inspected.contains("InspectU16"));
+}
+
+#if defined(_WIN32) || defined(_WIN64)
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder Inspect: wchar_t[N]", "[SqlDataBinder][Unicode]")
+{
+    wchar_t const literal[] = L"InspectWide";
+    auto const inspected = SqlDataBinder<wchar_t[sizeof(literal) / sizeof(wchar_t)]>::Inspect(literal);
+    CHECK(inspected.contains("InspectWide"));
+}
+#endif
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder Inspect: std::string_view", "[SqlDataBinder]")
+{
+    auto const sv = std::string_view { "ViewInspect" };
+    auto const inspected = SqlDataBinder<std::string_view>::Inspect(sv);
+    CHECK(inspected == "ViewInspect"sv);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder Inspect: std::u16string_view", "[SqlDataBinder][Unicode]")
+{
+    auto const sv = std::u16string_view { u"U16ViewInspect" };
+    auto const inspected = SqlDataBinder<std::u16string_view>::Inspect(sv);
+    CHECK(inspected.contains("U16ViewInspect"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder Inspect: std::u32string_view", "[SqlDataBinder][Unicode]")
+{
+    auto const sv = std::u32string_view { U"U32ViewInspect" };
+    auto const inspected = SqlDataBinder<std::u32string_view>::Inspect(sv);
+    CHECK(inspected.contains("U32ViewInspect"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder Inspect: std::u8string_view", "[SqlDataBinder][Unicode]")
+{
+    auto const sv = std::u8string_view { u8"U8ViewInspect" };
+    auto const inspected = SqlDataBinder<std::u8string_view>::Inspect(sv);
+    CHECK(inspected == "U8ViewInspect"sv);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder Inspect: SqlVariant", "[SqlVariant]")
+{
+    auto const v = SqlVariant { 42 };
+    CHECK(SqlDataBinder<SqlVariant>::Inspect(v) == "42");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder Inspect: std::optional", "[SqlDataBinder]")
+{
+    SECTION("with value forwards to T's Inspect")
+    {
+        std::optional<int> const v { 42 };
+        CHECK(SqlDataBinder<std::optional<int>>::Inspect(v) == std::string(SqlDataBinder<int>::Inspect(42)));
+    }
+
+    SECTION("nullopt produces \"NULL\"")
+    {
+        std::optional<int> const v;
+        CHECK(SqlDataBinder<std::optional<int>>::Inspect(v) == "NULL");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder Inspect: SqlBinary", "[SqlDataBinder]")
+{
+    auto const v = SqlBinary { 0x01, 0x02, 0x03, 0x04 };
+    CHECK(SqlDataBinder<SqlBinary>::Inspect(v) == "SqlBinary(size=4)");
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDataBinder Inspect: SqlNumeric", "[SqlDataBinder]")
+{
+    auto const v = SqlNumeric<10, 2> { 123.45 };
+    auto const inspected = SqlDataBinder<SqlNumeric<10, 2>>::Inspect(v);
+    CHECK(inspected.contains("123.45"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlBinary: comparison operators", "[SqlDataBinder]")
+{
+    auto const a = SqlBinary { 0x01, 0x02 };
+    auto const b = SqlBinary { 0x01, 0x02 };
+    auto const c = SqlBinary { 0x01, 0x02, 0x03 };
+    CHECK(a == b);
+    CHECK(a != c);
+    CHECK(a < c);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric: ToString and conversions", "[SqlNumeric]")
+{
+    auto const v = SqlNumeric<10, 2> { 42.5 };
+    auto const s = v.ToString();
+    CHECK((s == "42.5" || s == "42.50")); // Trailing-zero handling depends on the formatter.
+    CHECK_THAT(v.ToFloat(), Catch::Matchers::WithinAbs(42.5F, 0.001));
+    CHECK_THAT(v.ToDouble(), Catch::Matchers::WithinAbs(42.5, 0.001));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric: assignment from floating point", "[SqlNumeric]")
+{
+    SqlNumeric<10, 2> v;
+    v = 99.99;
+    CHECK_THAT(v.ToDouble(), Catch::Matchers::WithinAbs(99.99, 0.01));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric: zero value", "[SqlNumeric]")
+{
+    auto const v = SqlNumeric<10, 2> { 0.0 };
+    CHECK_THAT(v.ToDouble(), Catch::Matchers::WithinAbs(0.0, 0.001));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlNumeric: negative value", "[SqlNumeric]")
+{
+    auto const v = SqlNumeric<10, 2> { -42.5 };
+    CHECK_THAT(v.ToDouble(), Catch::Matchers::WithinAbs(-42.5, 0.001));
+    CHECK(v.ToString().starts_with("-"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for BIT/TINYINT columns", "[SqlVariant][SqlDataBinder]")
+{
+    SECTION("BIT")
+    {
+        auto stmt = SqlStatement {};
+        stmt.MigrateDirect(
+            [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Bool {}); });
+        stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+        (void) stmt.Execute(true);
+
+        auto const result = stmt.ExecuteDirectScalar<SqlVariant>(stmt.Query("Test").Select().Field("Value").All());
+        REQUIRE_FALSE(result.IsNull());
+    }
+
+    SECTION("TINYINT")
+    {
+        auto stmt = SqlStatement {};
+        // PostgreSQL has no TINYINT — the formatter maps `Tinyint` to SMALLINT on PG and
+        // TINYINT on the others, so MigrateDirect keeps the test portable.
+        stmt.MigrateDirect(
+            [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::Tinyint {}); });
+        stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+        (void) stmt.Execute(static_cast<int8_t>(42));
+
+        auto const result = stmt.ExecuteDirectScalar<SqlVariant>(stmt.Query("Test").Select().Field("Value").All());
+        REQUIRE_FALSE(result.IsNull());
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: GetColumn for VARBINARY columns", "[SqlVariant][SqlDataBinder]")
+{
+    auto stmt = SqlStatement {};
+    // Use MigrateDirect so CREATE TABLE and the Query builder agree on identifier quoting —
+    // PostgreSQL folds unquoted `Test` to `test`, while `stmt.Query("Test")` emits quoted "Test".
+    stmt.MigrateDirect([](auto& migration) {
+        migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::VarBinary { .size = 32 });
+    });
+    stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+    (void) stmt.Execute(SqlBinary { 0x01, 0x02, 0x03 });
+
+    auto const result = stmt.ExecuteDirectScalar<SqlVariant>(stmt.Query("Test").Select().Field("Value").All());
+    REQUIRE_FALSE(result.IsNull());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "std::optional<T>::OutputColumn: nullptr result returns SQL_ERROR", "[SqlDataBinder]")
+{
+    // Pin the early-return branch when the result pointer is null. We cannot
+    // bind to a null result via the normal path, so we just call OutputColumn
+    // directly with nullptr.
+    SQLLEN indicator = 0;
+    struct DummyCallback: public SqlDataBinderCallback
+    {
+        void PlanPostExecuteCallback(std::function<void()>&& cb) override
+        {
+            // Drop the callback on the floor (this stub never executes it), but actually move
+            // it into a discarded local so clang-tidy's rvalue-not-moved check is satisfied.
+            [[maybe_unused]] auto consumed = std::move(cb);
+        }
+        void PlanPostProcessOutputColumn(std::function<void()>&& cb) override
+        {
+            [[maybe_unused]] auto consumed = std::move(cb);
+        }
+        SQLLEN* ProvideInputIndicator() override
+        {
+            return nullptr;
+        }
+        SQLLEN* ProvideInputIndicators(size_t /*rowCount*/) override
+        {
+            return nullptr;
+        }
+        [[nodiscard]] SqlServerType ServerType() const noexcept override
+        {
+            return SqlServerType::SQLITE;
+        }
+        [[nodiscard]] std::string const& DriverName() const noexcept override
+        {
+            static std::string const name = "test";
+            return name;
+        }
+    };
+    DummyCallback cb;
+    auto const rv = SqlDataBinder<std::optional<int>>::OutputColumn(nullptr, 1, nullptr, &indicator, cb);
+    CHECK(rv == SQL_ERROR);
+}
+
+// =============================================================================
+// SqlFixedString self-comparison and additional branch coverage
+// =============================================================================
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: self-comparison short-circuits", "[SqlFixedString]")
+{
+    SqlFixedString<8> const str { "Hello" };
+    // Pin the `if ((void*) this == (void*) &other)` early-return branch in
+    // SqlFixedString::operator<=> — comparing the same object against itself.
+    CHECK(str == str);
+    CHECK_FALSE(str != str);
+    CHECK((str <=> str) == std::weak_ordering::equivalent);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlDynamicString: self-comparison and edge cases", "[SqlDynamicString]")
+{
+    SqlDynamicString<32> const str { "Hello" };
+    CHECK(str == str);
+    CHECK_FALSE(str != str);
+
+    SECTION("substr with offset > size returns empty view")
+    {
+        CHECK(str.substr(100).empty());
+        CHECK(str.substr(50, 10).empty());
+    }
+
+    SECTION("substr with explicit max count")
+    {
+        CHECK(str.substr(0, 100) == "Hello"sv);
+    }
+
+    SECTION("setsize caps at dynamic capacity")
+    {
+        SqlDynamicString<8> tiny;
+        tiny.push_back('a');
+        tiny.setsize(20); // exceeds capacity, capped at 8
+        CHECK(tiny.size() == 8);
+        tiny.setsize(2);
+        CHECK(tiny.size() == 2);
+    }
+
+    SECTION("const-iteration via const reference")
+    {
+        SqlDynamicString<32> const& cref = str;
+        std::size_t count = 0;
+        for ([[maybe_unused]] auto const ch: cref)
+            ++count;
+        CHECK(count == str.size());
+    }
+
+    SECTION("inequality with different sized SqlDynamicString")
+    {
+        SqlDynamicString<8> const tiny { "Abc" };
+        SqlDynamicString<32> const large { "Xyz" };
+        CHECK(tiny != large);
+        CHECK_FALSE(tiny == large);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: TrimRight stops at non-whitespace", "[SqlFixedString]")
+{
+    // Pin a non-trivial right-trim path: trailing spaces and tabs are all stripped.
+    SqlTrimmedFixedString<32> str { "abc   \t   " };
+    SqlBasicStringOperations<SqlTrimmedFixedString<32>>::TrimRight(&str, 10);
+    CHECK(str == "abc");
+
+    SECTION("trim stops at non-whitespace even with extra padding")
+    {
+        SqlTrimmedFixedString<32> nonTrimmable { "abc def    " };
+        SqlBasicStringOperations<SqlTrimmedFixedString<32>>::TrimRight(&nonTrimmable, 11);
+        CHECK(nonTrimmable == "abc def");
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlFixedString: PostProcessOutputColumn modes", "[SqlFixedString]")
+{
+    using Variable = SqlAnsiString<10>;
+    using Trimmed = SqlTrimmedFixedString<10>;
+    using Fixed = SqlFixedString<10, char, SqlFixedStringMode::FIXED_SIZE>;
+
+    SECTION("VARIABLE_SIZE strips trailing nulls")
+    {
+        Variable str;
+        str.resize(10);
+        // Fill with "Hi" + 8 zeros simulating an insertion of "Hi" followed by trailing nulls.
+        str[0] = 'H';
+        str[1] = 'i';
+        for (std::size_t i = 2; i < 10; ++i)
+            str[i] = '\0';
+        SqlBasicStringOperations<Variable>::PostProcessOutputColumn(&str, static_cast<SQLLEN>(10));
+        CHECK(str == "Hi"sv);
+    }
+
+    SECTION("FIXED_SIZE_RIGHT_TRIMMED strips trailing whitespace and nulls")
+    {
+        Trimmed str;
+        str.resize(10);
+        str[0] = 'H';
+        str[1] = 'i';
+        for (std::size_t i = 2; i < 10; ++i)
+            str[i] = ' ';
+        SqlBasicStringOperations<Trimmed>::PostProcessOutputColumn(&str, static_cast<SQLLEN>(10));
+        CHECK(str == "Hi"sv);
+    }
+
+    SECTION("FIXED_SIZE keeps the buffer at full capacity except for trailing nulls")
+    {
+        Fixed str;
+        str.resize(10);
+        // "abcde" + 5 spaces — under FIXED_SIZE, spaces are kept, only nulls are stripped.
+        for (std::size_t i = 0; i < 5; ++i)
+            str[i] = static_cast<char>('a' + i);
+        for (std::size_t i = 5; i < 10; ++i)
+            str[i] = ' ';
+        SqlBasicStringOperations<Fixed>::PostProcessOutputColumn(&str, static_cast<SQLLEN>(10));
+        CHECK(str.size() == 10);
+        CHECK(str.substr(0, 5) == "abcde"sv);
+    }
+
+    SECTION("SQL_NULL_DATA clears the result")
+    {
+        Variable str { "Filled" };
+        SqlBasicStringOperations<Variable>::PostProcessOutputColumn(&str, SQL_NULL_DATA);
+        CHECK(str.empty());
+    }
+
+    SECTION("SQL_NO_TOTAL resizes to capacity")
+    {
+        Fixed str;
+        SqlBasicStringOperations<Fixed>::PostProcessOutputColumn(&str, SQL_NO_TOTAL);
+        CHECK(str.size() == 10);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Single-character string round-trip", "[SqlDataBinder][Unicode]")
+{
+    // Min-size boundary: one ASCII char and one non-BMP codepoint. The single-codepoint
+    // case probes the indicator-handling path where the reported length is sizeof(CharType).
+    auto stmt = SqlStatement {};
+    auto const sqlColumnType = stmt.Connection().QueryFormatter().ColumnType(SqlColumnTypeDefinitions::NVarchar { 8 });
+    (void) stmt.ExecuteDirect(std::format("CREATE TABLE Test (Value {} NULL)", sqlColumnType));
+
+    SECTION("single ASCII char")
+    {
+        stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+        (void) stmt.Execute(std::string { "X" });
+        auto const actual = stmt.ExecuteDirectScalar<std::string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(*actual == "X");
+    }
+
+    SECTION("single supplementary-plane char as u16string")
+    {
+        stmt.Prepare("INSERT INTO Test (Value) VALUES (?)");
+        (void) stmt.Execute(u"\U0001F600"s);
+        auto const actual = stmt.ExecuteDirectScalar<std::u16string>("SELECT Value FROM Test");
+        REQUIRE(actual.has_value());
+        CHECK(*actual == u"\U0001F600");
+        CHECK(actual->size() == 2); // surrogate pair
     }
 }
 

@@ -146,7 +146,7 @@ class BelongsTo
         if (!_referencedFieldValue)
             return *this;
         _loaded = false;
-        _record = std::nullopt;
+        _record.reset();
         _referencedFieldValue = {};
         _modified = true;
         return *this;

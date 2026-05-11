@@ -44,7 +44,7 @@ class HasOneThrough
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr bool IsLoaded() const noexcept { return _record.get() != nullptr; }
 
     /// Unloads the record from memory.
-    LIGHTWEIGHT_FORCE_INLINE void Unload() noexcept { _record = std::nullopt; }
+    LIGHTWEIGHT_FORCE_INLINE void Unload() noexcept { _record.reset(); }
 
     /// @brief Retrieves the record in this relationship.
     /// @note On-demand loads the record if it is not already loaded.
@@ -56,11 +56,11 @@ class HasOneThrough
 
     /// @brief Retrieves the record in this relationship.
     /// @note On-demand loads the record if it is not already loaded.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* operator->() noexcept { RequireLoaded(); return &_record.get(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord* operator->() noexcept { RequireLoaded(); return _record.get(); }
 
     /// @brief Retrieves the record in this relationship.
     /// @note On-demand loads the record if it is not already loaded.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* operator->() const noexcept { RequireLoaded(); return &_record.get(); }
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr ReferencedRecord const* operator->() const noexcept { RequireLoaded(); return _record.get(); }
     // clang-format on
 
     /// Default three-way comparison operator.

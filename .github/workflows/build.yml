@@ -268,7 +268,7 @@ jobs:
           ODBC_CONNECTION_STRING:
             sqlite3: "Driver={SQLite3 ODBC Driver};Database=test.db"
             mssql: "Driver={ODBC Driver 17 for SQL Server};Server=(LocalDB)\\MSSQLLocalDB;Database=TestDB;Trusted_Connection=Yes;"
-            postgres: "Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test;LFConversion=0"
+            postgres: "Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test;LFConversion=0;BoolsAsChar=0"
           "@ | Out-File -FilePath .test-env.yml -Encoding utf8
       - name: "Run SQL tests"
         run: ./install/bin/LightweightTest.exe --test-env=${{ matrix.test_env }}

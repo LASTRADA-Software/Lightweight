@@ -213,7 +213,10 @@ struct SqlVariant
     // clang-format on
 
   private:
-    /// @brief template that is used to get integral types
+    /// @brief template that is used to get integral types.
+    ///
+    /// Returns `std::nullopt` both when the variant is NULL and when it holds a non-integral
+    /// alternative — the function is `noexcept`, so it must not propagate `bad_variant_access`.
     template <typename ResultType>
     [[nodiscard]] std::optional<ResultType> TryGetIntegral() const noexcept
     {
@@ -222,40 +225,46 @@ struct SqlVariant
 
         // clang-format off
         return std::visit(detail::overloaded {
-            []<typename T>(T v) -> ResultType requires(std::is_integral_v<T>) { return static_cast<ResultType>(v); },
-            [](auto) -> ResultType { throw std::bad_variant_access(); } // NOLINT(performance-unnecessary-value-param)
+            []<typename T>(T v) -> std::optional<ResultType> requires(std::is_integral_v<T>) { return static_cast<ResultType>(v); },
+            [](auto) -> std::optional<ResultType> { return std::nullopt; } // NOLINT(performance-unnecessary-value-param)
         }, value);
         // clang-format on
     }
 
   public:
-    /// @brief function to get string_view from SqlVariant or std::nullopt
+    /// @brief Retrieves a string view from the variant, or `std::nullopt` if the variant is NULL
+    /// or holds a non-string alternative. The function is `noexcept`, so it must not propagate
+    /// `bad_variant_access`.
     [[nodiscard]] std::optional<std::string_view> TryGetStringView() const noexcept
     {
         if (IsNull())
             return std::nullopt;
 
+        using Result = std::optional<std::string_view>;
         // clang-format off
         return std::visit(detail::overloaded {
-            [](std::string_view v) { return v; },
-            [](std::string const& v) { return std::string_view(v.data(), v.size()); },
-            [](SqlText const& v) { return std::string_view(v.value.data(), v.value.size()); },
-            [](auto const&) -> std::string_view { throw std::bad_variant_access(); }
+            [](std::string_view v) -> Result { return v; },
+            [](std::string const& v) -> Result { return std::string_view(v.data(), v.size()); },
+            [](SqlText const& v) -> Result { return std::string_view(v.value.data(), v.value.size()); },
+            [](auto const&) -> Result { return std::nullopt; }
         }, value);
         // clang-format on
     }
 
-    /// @brief Retrieves a UTF-16 string view from the variant, or std::nullopt if not available.
+    /// @brief Retrieves a UTF-16 string view from the variant, or `std::nullopt` if the variant
+    /// is NULL or holds a non-string alternative. The function is `noexcept`, so it must not
+    /// propagate `bad_variant_access`.
     [[nodiscard]] std::optional<std::u16string_view> TryGetUtf16StringView() const noexcept
     {
         if (IsNull())
             return std::nullopt;
 
+        using Result = std::optional<std::u16string_view>;
         // clang-format off
         return std::visit(detail::overloaded {
-            [](std::u16string_view v) { return v; },
-            [](std::u16string const& v) { return std::u16string_view(v.data(), v.size()); },
-            [](auto const&) -> std::u16string_view { throw std::bad_variant_access(); }
+            [](std::u16string_view v) -> Result { return v; },
+            [](std::u16string const& v) -> Result { return std::u16string_view(v.data(), v.size()); },
+            [](auto const&) -> Result { return std::nullopt; }
         }, value);
         // clang-format on
     }
