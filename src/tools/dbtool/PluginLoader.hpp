@@ -26,10 +26,22 @@ class PluginLoader
 
     [[nodiscard]] GenericFunctionPointer GetSymbol(std::string const& symbolName) const;
 
+    /// Non-throwing variant: returns `nullptr` when the symbol is absent, throws only
+    /// when the underlying OS API surfaces a different (non-not-found) error. Use this
+    /// for optional plugin extension points (e.g. post-init hooks) where every plugin
+    /// is allowed to omit the symbol.
+    [[nodiscard]] GenericFunctionPointer TryGetSymbol(std::string const& symbolName) const noexcept;
+
     template <typename FunctionSignature>
     [[nodiscard]] FunctionSignature* GetFunction(std::string const& symbolName) const
     {
         return reinterpret_cast<FunctionSignature*>(GetSymbol(symbolName));
+    }
+
+    template <typename FunctionSignature>
+    [[nodiscard]] FunctionSignature* TryGetFunction(std::string const& symbolName) const noexcept
+    {
+        return reinterpret_cast<FunctionSignature*>(TryGetSymbol(symbolName));
     }
 
     [[nodiscard]] void* GetNativeHandle() const

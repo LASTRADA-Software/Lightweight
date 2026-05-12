@@ -83,16 +83,18 @@ set(HEADER_FILES
     Zip/ZipArchive.hpp
     Zip/ZipEntry.hpp
     Zip/ZipError.hpp
+
+    SqlAdvisoryLock.hpp
     SqlConnectInfo.hpp
     SqlConnection.hpp
     SqlError.hpp
     SqlErrorDetection.hpp
     SqlLogger.hpp
     SqlMigration.hpp
-    SqlMigrationLock.hpp
     SqlOdbcWide.hpp
     SqlQueryFormatter.hpp
     SqlSchema.hpp
+    SqlScopedLock.hpp
     SqlScopedTraceLogger.hpp
     SqlServerType.hpp
     SqlStatement.hpp
@@ -115,18 +117,20 @@ set(SOURCE_FILES
     SqlBackup/Restore.cpp
     SqlBackup/SqlBackup.cpp
     SqlBackup/TableFilter.cpp
+
     SqlConnectInfo.cpp
     SqlConnection.cpp
     SqlError.cpp
     SqlLogger.cpp
     SqlMigration.cpp
-    SqlMigrationLock.cpp
     SqlQuery.cpp
     SqlQuery/Core.cpp
     SqlQuery/Migrate.cpp
     SqlQuery/MigrationPlan.cpp
     SqlQuery/Select.cpp
+
     SqlQueryFormatter.cpp
+    SqlScopedLock.cpp
     SqlSchema.cpp
     SqlStatement.cpp
     SqlTransaction.cpp
@@ -200,6 +204,15 @@ if(MSVC)
         endif()
         target_compile_options(Lightweight PRIVATE ${_pedantic_flags})
         unset(_pedantic_flags)
+    endif()
+    # When building Lightweight as a DLL on MSVC, classes that legitimately expose
+    # STL members (`std::string`, `std::vector`, `std::filesystem::path`, …) or
+    # derive from header-only interfaces trigger C4251 / C4275. Both warnings are
+    # the standard "STL across the DLL boundary" noise — they don't indicate an
+    # ABI bug because the producer and the consumer of the DLL share the same
+    # MSVC runtime. Suppress them for both `cl` and `clang-cl`.
+    if(LIGHTWEIGHT_BUILD_SHARED)
+        target_compile_options(Lightweight PRIVATE /wd4251 /wd4275)
     endif()
     # clang-cl does not support /MP
     if(NOT CLANG_CL)

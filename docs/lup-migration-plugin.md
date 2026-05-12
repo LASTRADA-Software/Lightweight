@@ -99,34 +99,68 @@ cmake --build ./out/build/linux-clang-debug --target LupMigrationsPlugin
 
 ## TransitionGlue
 
-The `TransitionGlue` class handles the transition from the legacy `LASTRADA_PROPERTIES` version tracking to the modern `schema_migrations` table.
+The `TransitionGlue` class bridges the legacy `LASTRADA_PROPERTIES` version tracking
+(populated by the old LUpd installer) to the modern `schema_migrations` table managed
+by Lightweight. **You do not need to call it yourself**: `LupMigrationsPlugin`
+registers a dbtool post-init hook (`LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT`) that runs
+the transition automatically on the first `dbtool` invocation against a legacy
+database.
 
-### API
+### Automatic invocation flow
+
+1. `dbtool` loads `LupMigrationsPlugin` from `--plugins-dir`.
+2. `dbtool` ensures `schema_migrations` exists (`MigrationManager::CreateMigrationHistory`).
+3. The plugin's post-init hook fires with the manager's live connection.
+4. `TransitionGlue::Initialize` short-circuits if `schema_migrations` already has any
+   applied rows (idempotent — safe to re-run on every `dbtool` invocation).
+5. Otherwise it queries `SELECT VALUE FROM LASTRADA_PROPERTIES WHERE NR = 4`, converts
+   the integer (e.g. `60912` → timestamp `20000000060912`), and marks every registered
+   migration with timestamp ≤ cutoff as applied. When at least one migration is marked,
+   it prints a one-line banner to stdout so operators see the transition happen.
+6. If `LASTRADA_PROPERTIES` is absent (fresh modern database) the hook is a no-op.
+
+### Expected output on first run
+
+```
+Loading plugin: .../LupMigrationsPlugin.dll
+Transitioning from LASTRADA_PROPERTIES (LUP version 6.9.12): marked 410 migration(s) as applied in schema_migrations.
+Migration Status:
+  Registered migrations:    410
+  Applied migrations:       410
+  Pending migrations:       0
+  ...
+```
+
+Subsequent runs print only `Migration Status:` — the banner is silent because the
+early-exit fires before the legacy probe.
+
+### API (for direct use outside dbtool)
 
 ```cpp
 namespace Lup {
 
 class TransitionGlue {
 public:
-    /// Query current LUP version from LASTRADA_PROPERTIES table
+    /// Query current LUP version from LASTRADA_PROPERTIES (NR=4).
+    /// Returns nullopt iff the legacy table doesn't exist. Real driver errors
+    /// (permission denied, broken connection, …) propagate as exceptions.
     static std::optional<int64_t> GetCurrentLupVersion(SqlConnection& connection);
 
-    /// Mark all migrations up to given version as applied in schema_migrations
+    /// Mark every registered migration with timestamp ≤ maxVersionInteger as applied.
     static size_t MarkMigrationsAsApplied(MigrationManager& manager, int64_t maxVersionInteger);
 
-    /// Initialize transition - call once on first dbtool run
+    /// One-shot transition. Short-circuits if schema_migrations is non-empty,
+    /// or if LASTRADA_PROPERTIES is absent. Safe to call repeatedly.
     static bool Initialize(MigrationManager& manager, SqlConnection& connection);
 
-    /// Convert LUP version integer to migration timestamp
+    /// LUP version int → migration timestamp (e.g. 60912 → 20000000060912).
     static uint64_t VersionToTimestamp(int64_t versionInteger);
 };
 
 }
 ```
 
-### Usage
-
-Before running migrations on an existing LUP database, call `TransitionGlue::Initialize()`:
+Direct usage is only needed if you embed Lightweight without `dbtool`:
 
 ```cpp
 #include <LupMigrationsPlugin/TransitionGlue.hpp>
@@ -134,21 +168,11 @@ Before running migrations on an existing LUP database, call `TransitionGlue::Ini
 
 void MigrateExistingDatabase(SqlConnection& connection) {
     auto& manager = SqlMigration::MigrationManager::GetInstance();
-
-    // Initialize transition - marks existing migrations as applied
+    manager.CreateMigrationHistory();
     Lup::TransitionGlue::Initialize(manager, connection);
-
-    // Now run any pending migrations
     manager.ApplyPendingMigrations();
 }
 ```
-
-### How It Works
-
-1. `GetCurrentLupVersion()` queries `SELECT VALUE FROM LASTRADA_PROPERTIES WHERE NR = 4`
-2. The version integer (e.g., 60808) is converted to a migration timestamp (20000000060808)
-3. All migrations with timestamps <= that value are marked as applied in `schema_migrations`
-4. New migrations (timestamps > current version) will be applied normally
 
 ## SQL to Migration API Mapping
 
@@ -194,8 +218,9 @@ lup2dbtool --input-dir ./legacy_sql_migrations_dir --output ./generated/Migratio
 # 2. Build the plugin
 cmake --build ./build --target LupMigrationsPlugin
 
-# 3. Initialize transition (marks existing migrations as applied)
-# This is done automatically by TransitionGlue::Initialize()
+# 3. Point dbtool at the plugin and run any command (`status`, `migrate`, ...).
+#    The post-init hook performs the LASTRADA_PROPERTIES → schema_migrations
+#    transition automatically on the first run and prints a one-line banner.
 
 # 4. Run any new migrations
 dbtool --plugins-dir ./build/plugins migrate --connection-string "..."

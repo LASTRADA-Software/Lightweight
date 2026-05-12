@@ -688,4 +688,50 @@ TEST_CASE_METHOD(SqlTestFixture, "StringFormatting", "[Strings]")
     REQUIRE(std::format("{}", Lightweight::SqlWideString<30> { L"Hello" }) == "Hello");
 }
 
+// `ParseConnectionString` had latent UB on connection strings ending in `;` —
+// the trailing empty fragment from `views::split` made `&*pair_view.begin()`
+// dereference end(). On clang-cl debug builds that wedged dbtool inside
+// `EnsureSqliteDatabaseFileExists` against a LocalDB target on Windows-2025
+// CI runners. Cover the trailing-semicolon, leading-semicolon, double-
+// semicolon, and only-semicolons cases so the bug can't sneak back.
+TEST_CASE("ParseConnectionString tolerates empty fragments", "[ConnectionString]")
+{
+    using Lightweight::ParseConnectionString;
+    using Lightweight::SqlConnectionString;
+
+    SECTION("trailing semicolon")
+    {
+        auto const m =
+            ParseConnectionString(SqlConnectionString { "Driver={ODBC Driver 17 for SQL Server};Database=TestDB;" });
+        CHECK(m.at("DRIVER") == "ODBC Driver 17 for SQL Server");
+        CHECK(m.at("DATABASE") == "TestDB");
+    }
+
+    SECTION("leading semicolon")
+    {
+        auto const m = ParseConnectionString(SqlConnectionString { ";Driver=SQLite3;Database=t.db" });
+        CHECK(m.at("DRIVER") == "SQLite3");
+        CHECK(m.at("DATABASE") == "t.db");
+    }
+
+    SECTION("double semicolon mid-string")
+    {
+        auto const m = ParseConnectionString(SqlConnectionString { "Driver=SQLite3;;Database=t.db" });
+        CHECK(m.at("DRIVER") == "SQLite3");
+        CHECK(m.at("DATABASE") == "t.db");
+    }
+
+    SECTION("entirely empty")
+    {
+        auto const m = ParseConnectionString(SqlConnectionString { "" });
+        CHECK(m.empty());
+    }
+
+    SECTION("only semicolons")
+    {
+        auto const m = ParseConnectionString(SqlConnectionString { ";;;" });
+        CHECK(m.empty());
+    }
+}
+
 // NOLINTEND(readability-container-size-empty)

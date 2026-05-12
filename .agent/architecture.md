@@ -7,7 +7,7 @@
  user code ──▶  │  DataMapper (Field, BelongsTo, HasMany,…)   │  high-level
                 ├─────────────────────────────────────────────┤
                 │  SqlQuery DSL (Select/Insert/Update/Delete) │
-                │  SqlMigration / SqlMigrationLock            │
+                │  SqlMigration / SqlScopedLock               │
                 ├─────────────────────────────────────────────┤
                 │  SqlStatement / SqlConnection               │  low-level
                 │  SqlDataBinder<T> (per-type bind/fetch)     │
@@ -76,7 +76,10 @@ File: `src/Lightweight/DataMapper/Pool.{hpp,cpp}`. The pool is the canonical way
 ### Migrations
 - DSL: `src/Lightweight/SqlQuery/Migrate.{hpp,cpp}`, `MigrationPlan.{hpp,cpp}`.
 - Runner: `src/Lightweight/SqlMigration.{hpp,cpp}`.
-- Cross-process lock: `src/Lightweight/SqlMigrationLock.{hpp,cpp}`.
+- Cross-process lock: `src/Lightweight/SqlScopedLock.{hpp,cpp}` (the
+  generic distributed-lock RAII wrapper) plus
+  `src/Lightweight/SqlAdvisoryLock.hpp` (the per-dialect handler interface
+  selected via `SqlQueryFormatter::AdvisoryLockOps()`).
 - The `dbtool` subcommand and the `lup2dbtool` adapter live in `src/tools/`.
 
 ## Where reflection lives

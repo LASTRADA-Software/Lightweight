@@ -42,7 +42,7 @@ if(WIN32)
 else()
     set(ZIP_LIB zip)
 endif()
-set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib lup2dbtool_lib ${ZIP_LIB} nlohmann_json::nlohmann_json)
+set(TEST_LIBRARIES Catch2::Catch2 Lightweight::Lightweight Lightweight::Tools yaml-cpp::yaml-cpp dbtool_lib lup2dbtool_lib LupTransitionGlue ${ZIP_LIB} nlohmann_json::nlohmann_json)
 if(MSVC)
     # clang-cl does not support /MP
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -70,9 +70,12 @@ if(LIGHTWEIGHT_HAS_STDEXEC)
 endif()
 
 set(SOURCE_FILES
+    ConfigProfileStoreTests.cpp
     CoreTests.cpp
     CxxModelPrinterTests.cpp
     DataBinderTests.cpp
+    DataSourceEnumeratorTests.cpp
+    SecretResolverTests.cpp
     DataMapper/CreateTests.cpp
     DataMapper/MiscTests.cpp
     DataMapper/NamingTests.cpp
@@ -99,6 +102,7 @@ set(SOURCE_FILES
     SqlBackup/ProductionReadinessTests.cpp
     dbtool/StandardProgressManagerTests.cpp
     Lup2DbtoolTests.cpp
+    LupTransitionGlueTests.cpp
     UnicodeConverterTests.cpp
     Utils.cpp
     UtilsTests.cpp

@@ -63,9 +63,18 @@ std::string SqlConnectionString::SanitizePwd(std::string_view input)
 
 SqlConnectionStringMap ParseConnectionString(SqlConnectionString const& connectionString)
 {
-    auto pairs = connectionString.value | std::views::split(';') | std::views::transform([](auto pair_view) {
-                     return std::string_view(&*pair_view.begin(), static_cast<size_t>(std::ranges::distance(pair_view)));
-                 });
+    // Empty subranges from `std::views::split` (a ConnectionString that ends in
+    // `;` produces a trailing empty fragment, e.g.
+    // `"Driver={…};Server=…;Trusted_Connection=Yes;"`) make `&*pair_view.begin()`
+    // a dereference of `end()`, which is UB. On clang-cl debug builds with
+    // /RTC1 this happens to wedge the process — symptom: dbtool hung at
+    // `SetupConnectionString` on Windows + LocalDB CI runners. Filter the
+    // empties out before constructing the `string_view`.
+    auto pairs = connectionString.value | std::views::split(';')
+                 | std::views::filter([](auto&& fragment) { return !std::ranges::empty(fragment); })
+                 | std::views::transform([](auto pair_view) {
+                       return std::string_view(&*pair_view.begin(), static_cast<size_t>(std::ranges::distance(pair_view)));
+                   });
 
     SqlConnectionStringMap result;
 

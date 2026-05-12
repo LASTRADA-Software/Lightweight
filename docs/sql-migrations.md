@@ -279,6 +279,38 @@ plan.CreateTable("example")
 
 ## Migration Manager API
 
+### Custom Default Schema
+
+When the target database expects unqualified DDL to land in a non-default
+schema (e.g. `lasa` instead of `dbo` / `public`), tell the manager about it
+*before* opening the first connection:
+
+```cpp
+auto& manager = MigrationManager::GetInstance();
+manager.SetDefaultSchema("lasa"); // empty disables
+manager.CreateMigrationHistory();
+manager.ApplyPendingMigrations();
+```
+
+`SetDefaultSchema` installs a post-connect hook that emits the dialect-
+specific "make this the session default" statement for every new connection:
+
+- **PostgreSQL** — `SET search_path TO "lasa", public`. Both
+  `schema_migrations` and unqualified DDL inside migrations land in `lasa`.
+- **SQL Server** — no portable session-level switch exists; the hook is a
+  no-op. Configure the connecting login's `DEFAULT_SCHEMA` server-side
+  (`ALTER USER … WITH DEFAULT_SCHEMA = lasa`). Migrations that need to write
+  to a specific schema regardless of the login default should use the
+  `WithSchema(...)` builder.
+- **SQLite** — no schema concept; the hook is a no-op.
+
+Schema names are validated against `[A-Za-z0-9_]` and rejected via
+`std::invalid_argument` otherwise. Passing `""` clears any previously
+installed hook.
+
+`dbtool` exposes this via the `--schema` flag and `dbtool-gui` exposes it as
+a "Schema" input on both the Profile and the direct-ODBC connection tabs.
+
 ### Applying Migrations Programmatically
 
 ```cpp
@@ -385,25 +417,37 @@ Lightweight automatically creates a `schema_migrations` table to track applied m
 
 ### Concurrency Control
 
-Use `MigrationLock` to prevent concurrent migrations:
+Use `SqlScopedLock` (the generic distributed-lock RAII type) to prevent
+concurrent migrations:
 
 ```cpp
-#include <Lightweight/SqlMigrationLock.hpp>
-
-using namespace Lightweight::SqlMigration;
+#include <Lightweight/SqlScopedLock.hpp>
 
 auto& connection = manager.GetDataMapper().Connection();
-MigrationLock lock(connection, "my_migration_lock", std::chrono::seconds(30));
-
-if (lock.IsLocked()) {
-    manager.ApplyPendingMigrations();
-}
+SqlScopedLock lock { connection, "lightweight_migration", std::chrono::seconds(30) };
+manager.ApplyPendingMigrations();
+// Lock released automatically at scope exit.
 ```
 
-The lock implementation uses database-specific mechanisms:
+`SqlScopedLock` is **not migration-specific** — any caller that needs a
+named cross-process token can use it (cron leadership, "only one worker
+processes batch X", queue ownership, …). Pick any string for the lock
+name; two processes that pass the same string will serialise on it.
+
+For structured error handling — distinguishing timeout from deadlock
+from driver error programmatically — use the non-throwing
+`SqlScopedLock::TryConstruct(connection, name, timeout)` factory, which
+returns `std::expected<SqlScopedLock, SqlLockError>`.
+
+The dialect-specific primitive is selected automatically by the active
+`SqlQueryFormatter`:
 - **SQL Server**: `sp_getapplock` / `sp_releaseapplock`
 - **PostgreSQL**: `pg_advisory_lock` / `pg_advisory_unlock`
-- **SQLite**: `BEGIN IMMEDIATE` with `PRAGMA busy_timeout`
+- **SQLite**: `_lightweight_locks` table guarded by a unique constraint
+
+On SQLite the bookkeeping table `_lightweight_locks` is treated as
+infrastructure — `dbtool hard-reset` drops it alongside
+`schema_migrations` rather than mistaking it for user data.
 
 ## Best Practices
 

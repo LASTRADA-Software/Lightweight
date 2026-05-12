@@ -48,25 +48,25 @@ namespace SqlColumnTypeDefinitions
 {
 
     // clang-format off
-struct Bigint {};
-struct Binary { std::size_t size = 255; };
-struct Bool {};
-struct Char { std::size_t size = 1; };
-struct Date {};
-struct DateTime {};
-struct Decimal { std::size_t precision {}; std::size_t scale {}; };
-struct Guid {};
-struct Integer {};
-struct NChar { std::size_t size = 1; };
-struct NVarchar { std::size_t size = 255; };
-struct Real { std::size_t precision = {}; };
-struct Smallint {};
-struct Text { std::size_t size {}; };
-struct Time {};
-struct Timestamp {};
-struct Tinyint {};
-struct VarBinary { std::size_t size = 255; };
-struct Varchar { std::size_t size = 255; };
+struct Bigint { auto operator<=>(Bigint const&) const = default; };
+struct Binary { std::size_t size = 255; auto operator<=>(Binary const&) const = default; };
+struct Bool { auto operator<=>(Bool const&) const = default; };
+struct Char { std::size_t size = 1; auto operator<=>(Char const&) const = default; };
+struct Date { auto operator<=>(Date const&) const = default; };
+struct DateTime { auto operator<=>(DateTime const&) const = default; };
+struct Decimal { std::size_t precision {}; std::size_t scale {}; auto operator<=>(Decimal const&) const = default; };
+struct Guid { auto operator<=>(Guid const&) const = default; };
+struct Integer { auto operator<=>(Integer const&) const = default; };
+struct NChar { std::size_t size = 1; auto operator<=>(NChar const&) const = default; };
+struct NVarchar { std::size_t size = 255; auto operator<=>(NVarchar const&) const = default; };
+struct Real { std::size_t precision = {}; auto operator<=>(Real const&) const = default; };
+struct Smallint { auto operator<=>(Smallint const&) const = default; };
+struct Text { std::size_t size {}; auto operator<=>(Text const&) const = default; };
+struct Time { auto operator<=>(Time const&) const = default; };
+struct Timestamp { auto operator<=>(Timestamp const&) const = default; };
+struct Tinyint { auto operator<=>(Tinyint const&) const = default; };
+struct VarBinary { std::size_t size = 255; auto operator<=>(VarBinary const&) const = default; };
+struct Varchar { std::size_t size = 255; auto operator<=>(Varchar const&) const = default; };
     // clang-format on
 
 } // namespace SqlColumnTypeDefinitions
@@ -124,7 +124,7 @@ constexpr std::optional<SqlColumnTypeDefinition> MakeColumnTypeFromNative(int va
         case SQL_TYPE_TIME: return Time {};
         case SQL_SS_TIME2: return Time {}; // Microsoft SQL Server extension
         case SQL_TYPE_TIMESTAMP: return DateTime {};
-        case SQL_VARBINARY: return Binary { size };
+        case SQL_VARBINARY: return VarBinary { size };
         case SQL_VARCHAR: return Varchar { size };
         case SQL_WCHAR: return NChar { size };
         case SQL_WLONGVARCHAR: return NVarchar { size };

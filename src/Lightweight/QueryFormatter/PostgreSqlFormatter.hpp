@@ -58,6 +58,18 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
         return "CURRENT_DATE";
     }
 
+    /// PostgreSQL session default schema is selected via `search_path`. We
+    /// pin the migration tool's chosen schema first and fall back to `public`
+    /// so unqualified references to built-ins keep resolving. Schema names
+    /// must be pre-validated by the caller (see
+    /// `MigrationManager::SetDefaultSchema`).
+    [[nodiscard]] std::string SetDefaultSchemaStatement(std::string_view schema) const override
+    {
+        if (schema.empty())
+            return {};
+        return std::format(R"(SET search_path TO "{}", public)", schema);
+    }
+
     [[nodiscard]] std::string BuildColumnDefinition(SqlColumnDeclaration const& column) const override
     {
         std::stringstream sqlQueryString;
@@ -277,6 +289,14 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
     [[nodiscard]] std::string QueryServerVersion() const override
     {
         return "SELECT version()";
+    }
+
+    /// PostgreSQL uses `pg_advisory_lock` / `pg_advisory_unlock`. Inline delegation
+    /// keeps the vtable weak — see `SQLiteQueryFormatter::AdvisoryLockOps()` for
+    /// the rationale.
+    [[nodiscard]] SqlAdvisoryLockHandler const& AdvisoryLockOps() const override
+    {
+        return PostgreSqlAdvisoryLockOps();
     }
 };
 

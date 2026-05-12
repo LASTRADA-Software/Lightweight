@@ -1,6 +1,15 @@
 #! /usr/bin/env bash
 
 # This script is used to prepare the test run environment on Github Actions.
+#
+# For local use on Linux, macOS, or Windows, prefer the cross-platform
+# Python entry point instead:
+#
+#     python scripts/prepare-test-env.py --backend mssql2022
+#     python scripts/prepare-test-env.py --backend all
+#
+# It installs host-side ODBC drivers and orchestrates Docker containers
+# (via scripts/tests/docker-databases.py) on all three platforms.
 
 DBMS="$1" # One of: "SQLite3", "MS SQL Server 2019", "MS SQL Server 2022" "PostgreSQL", "Oracle", "MySQL"
 

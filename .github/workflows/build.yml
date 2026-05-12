@@ -190,6 +190,10 @@ jobs:
     name: "Windows Tests (${{ matrix.database }})"
     runs-on: windows-2025
     needs: [windows]
+    # Hard ceiling so a single hung dbtool invocation can't stall a runner for
+    # 6 hours. Observed runtimes: SQLite ~50s, PostgreSQL ~12 min, MSSQL
+    # LocalDB ~2 min — 30 min gives PostgreSQL ~3x headroom.
+    timeout-minutes: 30
     steps:
       - name: "Download unit test binaries"
         uses: actions/download-artifact@v4
@@ -270,12 +274,43 @@ jobs:
         run: ./install/bin/LightweightTest.exe --test-env=${{ matrix.test_env }}
       - name: "Run dbtool tests"
         shell: bash
+        # PYTHONUNBUFFERED=1 surfaces the per-step `--- N. … ---` markers in real
+        # time. Without it, Python buffers stdout under bash and CI sees nothing
+        # until the script exits — making a hung dbtool invocation look like
+        # "the whole step is silent" instead of pointing at the failing command.
+        # DBTOOL_TRACE=1 turns on cheap stderr breadcrumbs in dbtool itself,
+        # to localise where exactly a hung invocation is stuck (plugin load,
+        # connection setup, query, etc.). The trace is gated on the env var
+        # and adds nothing to normal runs.
+        env:
+          PYTHONUNBUFFERED: "1"
+          DBTOOL_TRACE: "1"
         run: |
           set -ex
           python install/share/Lightweight/tests/test_dbtool.py \
               --dbtool ./install/bin/dbtool.exe \
               --plugins-dir ./install/share/Lightweight/tests/plugins \
               --test-env ${{ matrix.test_env }}
+      - name: "Capture LocalDB diagnostics on failure"
+        if: ${{ failure() && matrix.test_env == 'mssql' }}
+        shell: pwsh
+        # Belt-and-braces: the Python-level capture in test_dbtool.py fires on
+        # per-command timeout. This step covers the other failure modes
+        # (non-zero dbtool exit, runner-level timeout, etc.) and is best-effort
+        # so it never masks the original failure.
+        run: |
+          $ErrorActionPreference = 'Continue'
+          sqlcmd -S "(LocalDB)\MSSQLLocalDB" -d TestDB -Q "
+            SET NOCOUNT ON;
+            SELECT session_id, blocking_session_id, wait_type, wait_resource,
+                   command, status, last_wait_type,
+                   CAST(text AS nvarchar(2000)) AS sql_text
+            FROM sys.dm_exec_requests r
+            OUTER APPLY sys.dm_exec_sql_text(r.sql_handle);
+            SELECT request_session_id, resource_type, resource_associated_entity_id,
+                   request_mode, request_status FROM sys.dm_tran_locks;
+            EXEC sp_who2;
+          "
 
   # NOTE: A Linux-container Docker matrix on windows-2025 (matching the Linux
   # `dbms_test_matrix`) is desired for cross-OS driver/server coverage but is
@@ -518,6 +553,8 @@ jobs:
           fi
           $CMD_PREFIX LightweightTest --test-env=${{ matrix.test_env }}
       - name: "Run dbtool tests"
+        env:
+          PYTHONUNBUFFERED: "1"
         run: |
           set -ex
           python3 /usr/local/share/Lightweight/tests/test_dbtool.py \

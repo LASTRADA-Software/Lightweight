@@ -13,6 +13,7 @@
 namespace Lightweight
 {
 
+class SqlAdvisoryLockHandler;
 struct SqlQualifiedTableColumnName;
 
 /// API to format SQL queries for different SQL dialects.
@@ -211,6 +212,32 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         }
         return name;
     }
+
+    /// @brief Returns the SQL statement to execute after connect to make
+    /// `schema` the connection-level default for unqualified DDL/DML.
+    ///
+    /// Returns an empty string when the DBMS has no session-level concept of a
+    /// default schema (SQL Server, SQLite). Callers must skip emission for
+    /// empty results. PostgreSQL implements this via `SET search_path TO ...`.
+    ///
+    /// The `schema` value is interpolated into the statement; callers must
+    /// validate it (e.g. whitelist `[A-Za-z0-9_]`) before invoking.
+    [[nodiscard]] virtual std::string SetDefaultSchemaStatement(std::string_view schema) const
+    {
+        (void) schema;
+        return {};
+    }
+
+    /// @brief Returns the dialect-specific handler used by `SqlScopedLock` to
+    /// acquire and release named cross-process advisory locks.
+    ///
+    /// The returned reference is to a process-singleton, valid for the lifetime
+    /// of the program. Each backend implements its own primitive — SQL Server
+    /// uses `sp_getapplock`, PostgreSQL uses `pg_advisory_lock`, SQLite uses
+    /// a lock table — and the implementation lives in the backend's formatter
+    /// translation unit, so adding a new dialect only touches that unit and
+    /// `SqlScopedLock` itself stays dialect-agnostic.
+    [[nodiscard]] virtual SqlAdvisoryLockHandler const& AdvisoryLockOps() const = 0;
 
   protected:
     /// Formats a table name with optional schema prefix.

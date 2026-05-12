@@ -2,41 +2,67 @@
 
 #include "TransitionGlue.hpp"
 
+#include <Lightweight/SqlError.hpp>
+#include <Lightweight/SqlErrorDetection.hpp>
 #include <Lightweight/SqlStatement.hpp>
 
 #include <algorithm>
+#include <cstdint>
+#include <format>
+#include <print>
 
 namespace Lup
 {
 
 namespace
 {
-    // Timestamp prefix for LUP migrations (20000000000000 base)
-    constexpr uint64_t kTimestampPrefix = 20000000000000ULL;
+    /// Timestamp prefix used by `lup2dbtool`-generated migrations.
+    /// Mirrors `Lup2DbTool::LupVersion::ToMigrationTimestamp` — keep in sync.
+    constexpr uint64_t kTimestampPrefix = 20'000'000'000'000ULL;
+
+    /// Decode a LUP version integer (e.g. 60912 → 6.9.12) into a dotted string
+    /// for human-readable banner output.
+    [[nodiscard]] std::string FormatLupVersion(int64_t versionInteger) noexcept
+    {
+        // Encoding mirrors `Lup2DbTool::LupVersion::ToInteger`:
+        //   pre-6.0.0:  major * 100   + minor * 10  + patch
+        //   >= 6.0.0:   major * 10000 + minor * 100 + patch
+        // Anything >= 60000 must be the post-6.0.0 encoding.
+        if (versionInteger >= 60'000)
+        {
+            auto const major = versionInteger / 10'000;
+            auto const minor = (versionInteger / 100) % 100;
+            auto const patch = versionInteger % 100;
+            return std::format("{}.{}.{}", major, minor, patch);
+        }
+        auto const major = versionInteger / 100;
+        auto const minor = (versionInteger / 10) % 10;
+        auto const patch = versionInteger % 10;
+        return std::format("{}.{}.{}", major, minor, patch);
+    }
 } // namespace
 
 std::optional<int64_t> TransitionGlue::GetCurrentLupVersion(Lightweight::SqlConnection& connection)
 {
-    // Check if LASTRADA_PROPERTIES table exists
-    // The table stores: NR (key), VALUE (value), DESCR (description)
-    // NR=4 contains the LUP version
-
+    // The legacy LUpd installer stores its version in LASTRADA_PROPERTIES (NR=4, VALUE=<encoded int>).
+    // Probe the table; if it doesn't exist this is either a fresh modern database
+    // or a non-LUpd-managed schema — both legitimately yield nullopt. Anything else
+    // (driver failure, permission denied, malformed row) should surface so the
+    // operator notices instead of silently falling back to "no transition needed".
     try
     {
         Lightweight::SqlStatement stmt(connection);
-
-        // Try to query the version - if table doesn't exist, this will throw
         auto cursor = stmt.ExecuteDirect("SELECT VALUE FROM LASTRADA_PROPERTIES WHERE NR = 4");
         if (cursor.FetchRow())
             return cursor.GetColumn<int64_t>(1);
+        return std::nullopt;
     }
-    catch (std::exception const& /*ex*/) // NOLINT(bugprone-empty-catch)
+    catch (Lightweight::SqlException const& ex)
     {
-        // Table doesn't exist or query failed - this is expected for fresh databases
-        // Returning nullopt is the correct behavior here
+        if (Lightweight::IsTableNotFoundError(ex.info(), connection.ServerType()))
+            return std::nullopt;
+        throw;
     }
-
-    return std::nullopt;
 }
 
 size_t TransitionGlue::MarkMigrationsAsApplied(Lightweight::SqlMigration::MigrationManager& manager,
@@ -44,30 +70,23 @@ size_t TransitionGlue::MarkMigrationsAsApplied(Lightweight::SqlMigration::Migrat
 {
     auto const maxTimestamp = VersionToTimestamp(maxVersionInteger);
 
-    // Ensure migration history table exists
     manager.CreateMigrationHistory();
 
-    // Get all migrations and mark those up to maxTimestamp as applied
     auto const& allMigrations = manager.GetAllMigrations();
-    size_t markedCount = 0;
-
-    // Get already applied migrations to avoid duplicates
     auto const appliedIds = manager.GetAppliedMigrationIds();
 
+    size_t markedCount = 0;
     for (auto const* migration: allMigrations)
     {
         auto const timestamp = migration->GetTimestamp();
-        if (timestamp.value <= maxTimestamp)
-        {
-            // Check if already applied
-            auto const isApplied = std::ranges::find(appliedIds, timestamp) != appliedIds.end();
+        if (timestamp.value > maxTimestamp)
+            continue;
 
-            if (!isApplied)
-            {
-                manager.MarkMigrationAsApplied(*migration);
-                ++markedCount;
-            }
-        }
+        if (std::ranges::find(appliedIds, timestamp) != appliedIds.end())
+            continue;
+
+        manager.MarkMigrationAsApplied(*migration);
+        ++markedCount;
     }
 
     return markedCount;
@@ -75,25 +94,27 @@ size_t TransitionGlue::MarkMigrationsAsApplied(Lightweight::SqlMigration::Migrat
 
 bool TransitionGlue::Initialize(Lightweight::SqlMigration::MigrationManager& manager, Lightweight::SqlConnection& connection)
 {
-    // Query current LUP version
-    auto const currentVersion = GetCurrentLupVersion(connection);
-
-    if (!currentVersion.has_value())
-    {
-        // No LASTRADA_PROPERTIES table or no version found
-        // This is either a fresh database or non-LUP database
-        // Nothing to transition
+    // One-shot: once `schema_migrations` has any applied row, this database
+    // has either already been transitioned or was bootstrapped under the
+    // modern flow. Either way, we have no business writing more rows here —
+    // bail out cheaply so repeated `dbtool status` invocations stay free of
+    // catalog probes for the LUpd legacy table.
+    if (!manager.GetAppliedMigrationIds().empty())
         return true;
-    }
 
-    // Mark all migrations up to this version as applied
+    auto const currentVersion = GetCurrentLupVersion(connection);
+    if (!currentVersion.has_value())
+        return true; // Fresh / non-LUpd database — nothing to transition.
+
     auto const markedCount = MarkMigrationsAsApplied(manager, *currentVersion);
-
-    // Log the transition (to stderr, as this is informational)
     if (markedCount > 0)
     {
-        // Note: In a real implementation, you might want to use a proper logging mechanism
-        // For now, we just mark the migrations silently
+        // Surface the transition so operators see what happened on first run.
+        // The banner goes to stdout because it is informational status, not an error.
+        std::println("Transitioning from LASTRADA_PROPERTIES (LUP version {}): "
+                     "marked {} migration(s) as applied in schema_migrations.",
+                     FormatLupVersion(*currentVersion),
+                     markedCount);
     }
 
     return true;
@@ -102,7 +123,7 @@ bool TransitionGlue::Initialize(Lightweight::SqlMigration::MigrationManager& man
 uint64_t TransitionGlue::VersionToTimestamp(int64_t versionInteger)
 {
     // LUP version integers are directly used as the lower part of the timestamp
-    // e.g., 60808 -> 20000000060808
+    // (e.g. 60808 -> 20000000060808). Mirrors `LupVersion::ToMigrationTimestamp`.
     return kTimestampPrefix + static_cast<uint64_t>(versionInteger);
 }
 
