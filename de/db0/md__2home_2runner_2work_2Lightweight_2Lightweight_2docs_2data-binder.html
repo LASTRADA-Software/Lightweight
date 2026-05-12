@@ -185,7 +185,33 @@ GetColumn()</h1>
 <h1><a class="anchor" id="inspect"></a>
 Inspect()</h1>
 <p>The <code>Inspect()</code> function is used to provide a human-readable representation of the custom type.</p>
-<p>This function should be used purely for debugging purposes. </p>
+<p>This function should be used purely for debugging purposes.</p>
+<h1><a class="anchor" id="how-sqlvariant-decides-which-alternative-to-fill"></a>
+How &lt;tt&gt;SqlVariant&lt;/tt&gt; decides which alternative to fill</h1>
+<p><code>SqlDataBinder&lt;SqlVariant&gt;::GetColumn</code> queries the driver for **<code>SQL_DESC_CONCISE_TYPE</code>** and dispatches into the matching variant alternative based on the concise ODBC SQL type code.</p>
+<p>The verbose <code>SQL_DESC_TYPE</code> collapses every datetime subtype into the single value <code>SQL_DATETIME</code> (9) and every interval subtype into <code>SQL_INTERVAL</code> (10), so it cannot distinguish DATE from TIME from TIMESTAMP. The concise type does:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Column kind   </th><th class="markdownTableHeadNone"><code>SQL_DESC_CONCISE_TYPE</code>   </th><th class="markdownTableHeadNone">Variant alternative    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">DATE   </td><td class="markdownTableBodyNone"><code>SQL_TYPE_DATE</code> (91)   </td><td class="markdownTableBodyNone"><code>SqlDate</code>    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">TIME   </td><td class="markdownTableBodyNone"><code>SQL_TYPE_TIME</code> (92)   </td><td class="markdownTableBodyNone"><code>SqlTime</code>    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">TIMESTAMP   </td><td class="markdownTableBodyNone"><code>SQL_TYPE_TIMESTAMP</code> (93)   </td><td class="markdownTableBodyNone"><code>SqlDateTime</code>   </td></tr>
+</table>
+<h1><a class="anchor" id="driver-specific-connection-string-requirements"></a>
+Driver-specific connection-string requirements</h1>
+<p>When using <code>SqlVariant</code> (or any binder that dispatches on the driver-reported column type) against PostgreSQL via psqlODBC, the following options must appear in the connection string:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Option   </th><th class="markdownTableHeadNone">Required value   </th><th class="markdownTableHeadNone">What it controls    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>BoolsAsChar</code>   </td><td class="markdownTableBodyNone"><code>0</code>   </td><td class="markdownTableBodyNone">Reports <code>BOOLEAN</code> columns as <code>SQL_BIT</code> so they dispatch into the <code>bool</code> alternative. The driver default reports them as <code>SQL_CHAR</code>.    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>LFConversion</code>   </td><td class="markdownTableBodyNone"><code>0</code>   </td><td class="markdownTableBodyNone">Disables LF↔CRLF translation. Required for byte-exact round-trips of <code>TEXT</code>/<code>VARCHAR</code> values containing <code>\n</code>.   </td></tr>
+</table>
+<p>The canonical postgres entry with these options is in <code>scripts/tests/.test-env.yml</code>. </p>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->

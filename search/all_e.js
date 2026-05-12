@@ -17,5 +17,6 @@ var searchData=
   ['highesttimestamp_14',['highestTimestamp',['../d1/d4f/structLightweight_1_1SqlMigration_1_1MigrationRelease.html#a48cc0c694f65a3ad2e43b839ab5d5088',1,'Lightweight::SqlMigration::MigrationRelease']]],
   ['hook_15',['Optional Post-Init Hook',['../d5/dc4/dbtool.html#optional-post-init-hook',1,'']]],
   ['hour_16',['hour',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a6cc185c14476e3a2aad0db9a1bf52622',1,'Lightweight::SqlDateTime']]],
-  ['how_20to_17',['How to',['../d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html',1,'']]]
+  ['how_20to_17',['How to',['../d1/dde/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2how-to.html',1,'']]],
+  ['how_20tt_20sqlvariant_20tt_20decides_20which_20alternative_20to_20fill_18',['How &lt;tt&gt;SqlVariant&lt;/tt&gt; decides which alternative to fill',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill',1,'']]]
 ];

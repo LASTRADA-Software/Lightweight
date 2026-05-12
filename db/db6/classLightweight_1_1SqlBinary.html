@@ -110,17 +110,78 @@ Inheritance diagram for Lightweight::SqlBinary:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:aa4461c55aaa8ed2cf16191006ed578a4" id="r_aa4461c55aaa8ed2cf16191006ed578a4"><td class="memItemLeft" align="right" valign="top"><a id="aa4461c55aaa8ed2cf16191006ed578a4" name="aa4461c55aaa8ed2cf16191006ed578a4"></a>
-constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;=&gt;</b> (<a class="el" href="../../db/db6/classLightweight_1_1SqlBinary.html">SqlBinary</a> const &amp;) const noexcept=default</td></tr>
-<tr class="memdesc:aa4461c55aaa8ed2cf16191006ed578a4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Three-way comparison operator. <br /></td></tr>
-<tr class="separator:aa4461c55aaa8ed2cf16191006ed578a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a85d83b4f584d4399449c1e58dfa75c76" id="r_a85d83b4f584d4399449c1e58dfa75c76"><td class="memItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/db6/classLightweight_1_1SqlBinary.html#a85d83b4f584d4399449c1e58dfa75c76">operator&lt;=&gt;</a> (<a class="el" href="../../db/db6/classLightweight_1_1SqlBinary.html">SqlBinary</a> const &amp;other) const noexcept</td></tr>
+<tr class="separator:a85d83b4f584d4399449c1e58dfa75c76"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae3e161b581dfc33b2bdfae68fc299df9" id="r_ae3e161b581dfc33b2bdfae68fc299df9"><td class="memItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/db6/classLightweight_1_1SqlBinary.html#ae3e161b581dfc33b2bdfae68fc299df9">operator==</a> (<a class="el" href="../../db/db6/classLightweight_1_1SqlBinary.html">SqlBinary</a> const &amp;other) const noexcept</td></tr>
+<tr class="memdesc:ae3e161b581dfc33b2bdfae68fc299df9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equality operator derived from the spaceship comparison above.  <br /></td></tr>
+<tr class="separator:ae3e161b581dfc33b2bdfae68fc299df9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a binary data type. </p>
 <p>This class is a thin wrapper around std::vector&lt;uint8_t&gt; to represent binary data types efficiently. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../dd/d94/SqlBinary_8hpp_source.html#l00022">22</a> of file <a class="el" href="../../dd/d94/SqlBinary_8hpp_source.html">SqlBinary.hpp</a>.</p>
-</div><hr/>The documentation for this class was generated from the following file:<ul>
+</div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="a85d83b4f584d4399449c1e58dfa75c76" name="a85d83b4f584d4399449c1e58dfa75c76"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a85d83b4f584d4399449c1e58dfa75c76">&#9670;&#160;</a></span>operator&lt;=&gt;()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr auto Lightweight::SqlBinary::operator&lt;=&gt; </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../db/db6/classLightweight_1_1SqlBinary.html">SqlBinary</a> const &amp;&#160;</td>
+          <td class="paramname"><em>other</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Three-way comparison operator. Compares the byte payload only — the private <code>_indicator</code> member is ODBC bookkeeping and must not influence equality. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../dd/d94/SqlBinary_8hpp_source.html#l00029">29</a> of file <a class="el" href="../../dd/d94/SqlBinary_8hpp_source.html">SqlBinary.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ae3e161b581dfc33b2bdfae68fc299df9" name="ae3e161b581dfc33b2bdfae68fc299df9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae3e161b581dfc33b2bdfae68fc299df9">&#9670;&#160;</a></span>operator==()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr bool Lightweight::SqlBinary::operator== </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../db/db6/classLightweight_1_1SqlBinary.html">SqlBinary</a> const &amp;&#160;</td>
+          <td class="paramname"><em>other</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Equality operator derived from the spaceship comparison above. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../dd/d94/SqlBinary_8hpp_source.html#l00035">35</a> of file <a class="el" href="../../dd/d94/SqlBinary_8hpp_source.html">SqlBinary.hpp</a>.</p>
+
+</div>
+</div>
+<hr/>The documentation for this class was generated from the following file:<ul>
 <li>Lightweight/DataBinder/<a class="el" href="../../dd/d94/SqlBinary_8hpp_source.html">SqlBinary.hpp</a></li>
 </ul>
 </div><!-- contents -->
