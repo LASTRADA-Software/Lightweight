@@ -113,6 +113,7 @@ Rectangle {
         }
         ToolButton {
             text: qsTr("Backup / Restore")
+            enabled: AppController.backupRestoreEnabled
             ToolTip.visible: hovered
             ToolTip.delay: 500
             ToolTip.timeout: 10000

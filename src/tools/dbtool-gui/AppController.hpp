@@ -52,6 +52,11 @@ class AppController: public QObject
     Q_PROPERTY(ReleaseListModel* releases READ releases CONSTANT)
     Q_PROPERTY(MigrationRunner* runner READ runner CONSTANT)
     Q_PROPERTY(BackupRunner* backupRunner READ backupRunner CONSTANT)
+    /// Whether the experimental backup/restore UI surfaces are enabled.
+    /// Driven by the `--enable-backup-restore` CLI flag in `main.cpp`;
+    /// false by default. CONSTANT because the value is fixed at startup —
+    /// toggling at runtime is not supported.
+    Q_PROPERTY(bool backupRestoreEnabled READ backupRestoreEnabled CONSTANT)
     /// Ad-hoc SQL execution helper exposed to the Expert view's SQL Query
     /// tab. Stays construction-empty until the user issues a query — picks
     /// up the global default connection string set by `connectToProfile`.
@@ -190,6 +195,16 @@ class AppController: public QObject
     {
         return &_backupRunner;
     }
+    [[nodiscard]] bool backupRestoreEnabled() const noexcept
+    {
+        return _backupRestoreEnabled;
+    }
+
+    /// Seeds the initial value of `backupRestoreEnabled` before the QML
+    /// engine instantiates the singleton. Must be called before any QML
+    /// access to `AppController`. Mirrors `ThemeController::SeedInitialMode`.
+    /// @param enabled Whether backup/restore UI surfaces should be enabled.
+    static void SeedBackupRestoreEnabled(bool enabled) noexcept;
     [[nodiscard]] SqlQueryRunner* sqlQueryRunner() noexcept
     {
         return &_sqlQueryRunner;
@@ -437,6 +452,10 @@ class AppController: public QObject
     MigrationRunner _runner;
     BackupRunner _backupRunner;
     SqlQueryRunner _sqlQueryRunner;
+
+    /// Gates the experimental backup/restore UI surfaces. Seeded from
+    /// `SeedBackupRestoreEnabled` at startup, then never changes.
+    bool _backupRestoreEnabled;
 
     Lightweight::Config::ProfileStore _store;
     QString _currentProfile;

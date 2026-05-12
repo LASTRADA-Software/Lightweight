@@ -51,6 +51,16 @@ class BackupRunner: public QObject
     Q_INVOKABLE void runBackup(QString const& outputFile);
     Q_INVOKABLE void runRestore(QString const& inputFile);
 
+    /// Gate for the experimental backup/restore code paths. When `false`
+    /// (the default), `runBackup` and `runRestore` log a warning and return
+    /// without doing any work. Set once at startup from `AppController`,
+    /// driven by the `--enable-backup-restore` CLI flag.
+    /// @param enabled Whether backup/restore is permitted to execute.
+    void setEnabled(bool enabled) noexcept
+    {
+        _enabled = enabled;
+    }
+
     [[nodiscard]] Phase phase() const noexcept
     {
         return _phase.load(std::memory_order_acquire);
@@ -67,6 +77,7 @@ class BackupRunner: public QObject
     QThreadPool _pool;
     std::atomic<Phase> _phase { Phase::Idle };
     QString _connectionString;
+    bool _enabled = false;
 };
 
 } // namespace DbtoolGui

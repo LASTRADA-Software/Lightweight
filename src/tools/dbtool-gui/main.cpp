@@ -6,6 +6,7 @@
 // dbtool CLI through a QML desktop UI. See docs/migrations-gui-plan.md for
 // the original design notes.
 
+#include "AppController.hpp"
 #include "ThemeController.hpp"
 
 #include <cstdio>
@@ -120,7 +121,14 @@ int main(int argc, char* argv[])
         QStringLiteral("Color theme: dark, light, or system (follow the OS). Persisted across runs."),
         QStringLiteral("mode"));
     parser.addOption(themeOpt);
+    QCommandLineOption const enableBackupRestoreOpt(
+        QStringLiteral("enable-backup-restore"),
+        QStringLiteral("Enable the experimental backup/restore UI. "
+                       "Disabled by default — the feature is not yet fully implemented."));
+    parser.addOption(enableBackupRestoreOpt);
     parser.process(app);
+
+    DbtoolGui::AppController::SeedBackupRestoreEnabled(parser.isSet(enableBackupRestoreOpt));
 
     // QSettings requires the organization/application names set above; the
     // stored value survives across runs and `--theme` overrides it on demand.

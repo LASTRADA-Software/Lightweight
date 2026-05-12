@@ -31,6 +31,11 @@ namespace
 
     AppController* g_instance = nullptr;
 
+    /// Initial value for `AppController::_backupRestoreEnabled`. Set by
+    /// `AppController::SeedBackupRestoreEnabled` from `main.cpp` after the
+    /// command line is parsed, and consumed by the singleton's constructor.
+    bool s_initialBackupRestoreEnabled = false;
+
     /// Settings keys — scoped to `connection/` so new preference groups can
     /// coexist (e.g. future `ui/splitSizes`) without a schema migration.
     constexpr auto kKeyMode = "connection/mode";
@@ -133,10 +138,17 @@ namespace
 
 } // namespace
 
+void AppController::SeedBackupRestoreEnabled(bool enabled) noexcept
+{
+    s_initialBackupRestoreEnabled = enabled;
+}
+
 AppController::AppController(QObject* parent):
-    QObject(parent)
+    QObject(parent),
+    _backupRestoreEnabled(s_initialBackupRestoreEnabled)
 {
     _runner.SetManager(&Lightweight::SqlMigration::MigrationManager::GetInstance());
+    _backupRunner.setEnabled(_backupRestoreEnabled);
 
     QObject::connect(&_migrations, &MigrationListModel::selectionChanged, this, &AppController::selectionChanged);
 

@@ -39,7 +39,8 @@ Dialog {
             Button {
                 text: qsTr("Backup")
                 Layout.fillWidth: true
-                enabled: pathField.text.length > 0
+                enabled: AppController.backupRestoreEnabled
+                         && pathField.text.length > 0
                          && AppController.backupRunner.phase === BackupRunner.Idle
                 ToolTip.visible: hovered
                 ToolTip.delay: 500
@@ -50,7 +51,8 @@ Dialog {
             Button {
                 text: qsTr("Restore")
                 Layout.fillWidth: true
-                enabled: pathField.text.length > 0
+                enabled: AppController.backupRestoreEnabled
+                         && pathField.text.length > 0
                          && AppController.backupRunner.phase === BackupRunner.Idle
                 ToolTip.visible: hovered
                 ToolTip.delay: 500

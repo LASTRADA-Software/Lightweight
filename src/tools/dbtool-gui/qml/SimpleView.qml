@@ -335,6 +335,7 @@ Rectangle {
                 CheckBox {
                     id: backupFirstCheckBox
                     text: qsTr("Back up database first")
+                    enabled: AppController.backupRestoreEnabled
                     checked: root.backupFirst
                     onCheckedChanged: root.backupFirst = checked
                     ToolTip.visible: hovered

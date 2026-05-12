@@ -11,6 +11,7 @@
 #include <thread>
 #include <utility>
 
+#include <QtCore/QDebug>
 #include <QtCore/QMetaObject>
 #include <QtCore/QRunnable>
 
@@ -113,6 +114,11 @@ void BackupRunner::setConnectionString(QString const& connectionString)
 
 void BackupRunner::runBackup(QString const& outputFile)
 {
+    if (!_enabled)
+    {
+        qWarning() << "BackupRunner: backup/restore is disabled in this session.";
+        return;
+    }
     if (phase() != Phase::Idle)
         return;
     _phase.store(Phase::Running, std::memory_order_release);
@@ -150,6 +156,11 @@ void BackupRunner::runBackup(QString const& outputFile)
 
 void BackupRunner::runRestore(QString const& inputFile)
 {
+    if (!_enabled)
+    {
+        qWarning() << "BackupRunner: backup/restore is disabled in this session.";
+        return;
+    }
     if (phase() != Phase::Idle)
         return;
     _phase.store(Phase::Running, std::memory_order_release);
