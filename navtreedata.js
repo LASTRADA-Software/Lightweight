@@ -106,7 +106,10 @@ var NAVTREE =
         [ "Database-Specific Connection Strings", "d5/dc4/dbtool.html#database-specific-connection-strings", null ]
       ] ],
       [ "Migration Commands", "d5/dc4/dbtool.html#migration-commands", [
-        [ "migrate", "d5/dc4/dbtool.html#migrate", null ],
+        [ "migrate", "d5/dc4/dbtool.html#migrate", [
+          [ "Custom default schema (<tt>--schema</tt>)", "d5/dc4/dbtool.html#custom-default-schema---schema", null ]
+        ] ],
+        [ "migrate-to-release <VERSION>", "d5/dc4/dbtool.html#migrate-to-release-version", null ],
         [ "list-pending", "d5/dc4/dbtool.html#list-pending", null ],
         [ "list-applied", "d5/dc4/dbtool.html#list-applied", null ],
         [ "status", "d5/dc4/dbtool.html#status", null ],
@@ -124,7 +127,8 @@ var NAVTREE =
       ] ],
       [ "Plugin System", "d5/dc4/dbtool.html#plugin-system", [
         [ "Creating a Migration Plugin", "d5/dc4/dbtool.html#creating-a-migration-plugin", null ],
-        [ "Loading Plugins", "d5/dc4/dbtool.html#loading-plugins", null ]
+        [ "Loading Plugins", "d5/dc4/dbtool.html#loading-plugins", null ],
+        [ "Optional Post-Init Hook", "d5/dc4/dbtool.html#optional-post-init-hook", null ]
       ] ],
       [ "Workflow Examples", "d5/dc4/dbtool.html#workflow-examples", [
         [ "Full Migration Workflow", "d5/dc4/dbtool.html#full-migration-workflow", null ],
@@ -160,6 +164,7 @@ var NAVTREE =
       [ "Raw SQL", "d2/da6/sql-migrations.html#raw-sql", null ],
       [ "SQL Column Types", "d2/da6/sql-migrations.html#sql-column-types", null ],
       [ "Migration Manager API", "d2/da6/sql-migrations.html#migration-manager-api", [
+        [ "Custom Default Schema", "d2/da6/sql-migrations.html#custom-default-schema", null ],
         [ "Applying Migrations Programmatically", "d2/da6/sql-migrations.html#applying-migrations-programmatically", null ],
         [ "Status & Verification", "d2/da6/sql-migrations.html#status--verification", null ],
         [ "Preview (Dry-Run)", "d2/da6/sql-migrations.html#preview-dry-run", null ],
@@ -193,7 +198,7 @@ var NAVTREE =
       [ "Class Members", "functions.html", [
         [ "All", "functions.html", "functions_dup" ],
         [ "Functions", "functions_func.html", "functions_func" ],
-        [ "Variables", "functions_vars.html", null ],
+        [ "Variables", "functions_vars.html", "functions_vars" ],
         [ "Typedefs", "functions_type.html", null ],
         [ "Enumerations", "functions_enum.html", null ]
       ] ]
@@ -207,12 +212,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d3/d30/classLightweight_1_1Pool.html#a1cff9d7548fefc8b80a32c15b75dfaeb",
-"d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a294bef751b01e0f8e110c989afff2814",
-"d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a2110a679ca1c212fac36117cecd7bdfe",
-"da/df4/classLightweight_1_1HasMany.html#aaf64250cb0af278b7ff5a6f38d8c3b43",
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#a017af051177b1185b32816e0e49e5ab8",
-"functions_~.html"
+"d2/dd0/structLightweight_1_1Field.html#adb44c1c3efd47294593bc757a7c1734c",
+"d5/dc4/dbtool.html#configuration-file-format",
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a1fc1b3ec6aaa8d6a43f91185ad2370ab",
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327",
+"df/d63/classLightweight_1_1HasOneThrough.html#a88e0758eca25880d871ce71459df1684"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

@@ -298,148 +298,143 @@ $(document).ready(function(){initNavTree('d1/d26/SqlNumeric_8hpp_source.html','.
 </div>
 <div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span><span class="comment"></span> </div>
 <div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span><span class="comment">    /// Three-way comparison operator.</span></div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span><span class="comment">    ///</span></div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span><span class="comment">    /// Comparing two `SqlNumeric` values yields `std::partial_ordering` because the</span></div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span><span class="comment">    /// underlying conversion to `double` admits NaN inputs. In practice every value</span></div>
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span><span class="comment">    /// produced by this type is finite, so the result is totally ordered.</span></div>
-<div class="foldopen" id="foldopen00180" data-start="{" data-end="}">
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno"><a class="line" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a8e2884a9805790b251cd70e203063fd1">  180</a></span><span class="comment"></span>    [[nodiscard]] <span class="keyword">constexpr</span> LIGHTWEIGHT_FORCE_INLINE std::partial_ordering <a class="code hl_function" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a8e2884a9805790b251cd70e203063fd1">operator&lt;=&gt;</a>(</div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>        <a class="code hl_struct" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>    {</div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>        <span class="keywordflow">return</span> <a class="code hl_function" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a1b17553be6ff9a490943d4a8f577cee8">ToDouble</a>() &lt;=&gt; other.ToDouble();</div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>    }</div>
+<div class="foldopen" id="foldopen00176" data-start="{" data-end="}">
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno"><a class="line" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a69ff90cbcfc6a3f3c36efe1341cd8bdf">  176</a></span><span class="comment"></span>    [[nodiscard]] <span class="keyword">constexpr</span> LIGHTWEIGHT_FORCE_INLINE std::weak_ordering <a class="code hl_function" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a69ff90cbcfc6a3f3c36efe1341cd8bdf">operator&lt;=&gt;</a>(<a class="code hl_struct" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>    {</div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>        <span class="keywordflow">return</span> <a class="code hl_function" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a1b17553be6ff9a490943d4a8f577cee8">ToDouble</a>() &lt;=&gt; other.ToDouble();</div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>    }</div>
 </div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span><span class="comment"></span> </div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span><span class="comment">    /// Equality comparison operator.</span></div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span><span class="comment"></span>    <span class="keyword">template</span> &lt;std::<span class="keywordtype">size_t</span> OtherPrecision, std::<span class="keywordtype">size_t</span> OtherScale&gt;</div>
-<div class="foldopen" id="foldopen00188" data-start="{" data-end="}">
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno"><a class="line" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a1aea263acd9929ecb90bb1db1f3ce4d1">  188</a></span>    [[nodiscard]] <span class="keyword">constexpr</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a1aea263acd9929ecb90bb1db1f3ce4d1">operator==</a>(</div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>        <a class="code hl_struct" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric&lt;OtherPrecision, OtherScale&gt;</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>    {</div>
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>        <span class="keywordflow">return</span> <a class="code hl_function" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a00f609c884ae1a3ab84575c4748d08a7">ToFloat</a>() == other.ToFloat();</div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>    }</div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span><span class="comment"></span> </div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span><span class="comment">    /// Equality comparison operator.</span></div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span><span class="comment"></span>    <span class="keyword">template</span> &lt;std::<span class="keywordtype">size_t</span> OtherPrecision, std::<span class="keywordtype">size_t</span> OtherScale&gt;</div>
+<div class="foldopen" id="foldopen00183" data-start="{" data-end="}">
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno"><a class="line" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a1aea263acd9929ecb90bb1db1f3ce4d1">  183</a></span>    [[nodiscard]] <span class="keyword">constexpr</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">bool</span> <a class="code hl_function" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a1aea263acd9929ecb90bb1db1f3ce4d1">operator==</a>(</div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>        <a class="code hl_struct" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric&lt;OtherPrecision, OtherScale&gt;</a> <span class="keyword">const</span>&amp; other) <span class="keyword">const</span> <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>    {</div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>        <span class="keywordflow">return</span> <a class="code hl_function" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a00f609c884ae1a3ab84575c4748d08a7">ToFloat</a>() == other.ToFloat();</div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>    }</div>
 </div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>};</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>};</div>
 </div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span> </div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span><span class="keyword">concept </span>SqlNumericType = <span class="keyword">requires</span>(T t) {</div>
-<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>    { T::Precision } -&gt; std::convertible_to&lt;std::size_t&gt;;</div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>    { T::Scale } -&gt; std::convertible_to&lt;std::size_t&gt;;</div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>} &amp;&amp; std::same_as&lt;T, SqlNumeric&lt;T::Precision, T::Scale&gt;&gt;;</div>
-<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span> </div>
-<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span><span class="comment">// clang-format off</span></div>
-<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span><span class="keyword">template</span> &lt;std::<span class="keywordtype">size_t</span> Precision, std::<span class="keywordtype">size_t</span> Scale&gt;</div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span><span class="keyword">struct </span>SqlDataBinder&lt;SqlNumeric&lt;Precision, Scale&gt;&gt;</div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>{</div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>    <span class="keyword">using </span>ValueType = SqlNumeric&lt;Precision, Scale&gt;;</div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span> </div>
-<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> ColumnType = SqlColumnTypeDefinitions::Decimal { .precision = Precision, .scale = Scale };</div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span> </div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span><span class="keyword">concept </span>SqlNumericType = <span class="keyword">requires</span>(T t) {</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>    { T::Precision } -&gt; std::convertible_to&lt;std::size_t&gt;;</div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>    { T::Scale } -&gt; std::convertible_to&lt;std::size_t&gt;;</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>} &amp;&amp; std::same_as&lt;T, SqlNumeric&lt;T::Precision, T::Scale&gt;&gt;;</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span> </div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span><span class="comment">// clang-format off</span></div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span><span class="keyword">template</span> &lt;std::<span class="keywordtype">size_t</span> Precision, std::<span class="keywordtype">size_t</span> Scale&gt;</div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span><span class="keyword">struct </span>SqlDataBinder&lt;SqlNumeric&lt;Precision, Scale&gt;&gt;</div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>{</div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>    <span class="keyword">using </span>ValueType = SqlNumeric&lt;Precision, Scale&gt;;</div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span> </div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keyword">auto</span> ColumnType = SqlColumnTypeDefinitions::Decimal { .precision = Precision, .scale = Scale };</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span> </div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>    <span class="keyword">static</span> <span class="keywordtype">void</span> RequireSuccess(SQLHSTMT stmt, SQLRETURN error, std::source_location sourceLocation = std::source_location::current())</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>    {</div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(error))</div>
+<div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>            <span class="keywordflow">return</span>;</div>
 <div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span> </div>
-<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>    <span class="keyword">static</span> <span class="keywordtype">void</span> RequireSuccess(SQLHSTMT stmt, SQLRETURN error, std::source_location sourceLocation = std::source_location::current())</div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>    {</div>
-<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>        <span class="keywordflow">if</span> (SQL_SUCCEEDED(error))</div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>            <span class="keywordflow">return</span>;</div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span> </div>
-<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>        <span class="keywordflow">throw</span> SqlException(<a class="code hl_function" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8c5df558d7e9cd5263d15c3b13461944">SqlErrorInfo::FromStatementHandle</a>(stmt), sourceLocation);</div>
-<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>    }</div>
-<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span> </div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> NativeNumericSupportIsBroken(SqlServerType serverType) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>    {</div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>        <span class="comment">// SQLite&#39;s ODBC driver does not support SQL_NUMERIC_STRUCT (it&#39;s all just floating point numbers).</span></div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>        <span class="comment">// Microsoft SQL Server&#39;s ODBC driver also has issues (keeps reporting out of bound, on Linux at least).</span></div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>        <span class="keywordflow">return</span> serverType == SqlServerType::SQLITE || serverType == SqlServerType::MICROSOFT_SQL;</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>    }</div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span> </div>
-<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,</div>
-<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>                                                             SQLUSMALLINT column,</div>
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>                                                             ValueType <span class="keyword">const</span>&amp; value,</div>
-<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>                                                             SqlDataBinderCallback&amp; cb) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>    {</div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>        <span class="keywordflow">if</span> (NativeNumericSupportIsBroken(cb.ServerType()))</div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>        {</div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>            <span class="keywordflow">return</span> SQLBindParameter(stmt,</div>
-<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>                                    column,</div>
-<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>                                    SQL_PARAM_INPUT,</div>
-<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>                                    SQL_C_DOUBLE,</div>
-<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>                                    SQL_DOUBLE,</div>
-<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>                                    0,</div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>                                    0,</div>
-<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>                                    (SQLPOINTER) &amp;value.nativeValue,</div>
-<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>                                    <span class="keyword">sizeof</span>(value.nativeValue),</div>
-<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>                                    <span class="keyword">nullptr</span>);</div>
-<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>        }</div>
-<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span> </div>
-<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>        <span class="keywordflow">return</span> SQLBindParameter(stmt,</div>
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>                                column,</div>
-<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>                                SQL_PARAM_INPUT,</div>
-<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>                                SQL_C_NUMERIC,</div>
-<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>                                SQL_NUMERIC,</div>
-<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>                                value.sqlValue.precision,</div>
-<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>                                value.sqlValue.scale,</div>
-<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>                                (SQLPOINTER) &amp;value,</div>
-<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>                                <span class="keyword">sizeof</span>(value),</div>
-<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>                                <span class="keyword">nullptr</span>);</div>
-<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>    }</div>
-<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span> </div>
-<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span> </div>
-<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(</div>
-<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>        SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span>    {</div>
-<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>        <span class="keywordflow">if</span> (NativeNumericSupportIsBroken(cb.ServerType()))</div>
-<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>        {</div>
-<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>            result-&gt;sqlValue = { .precision = Precision, .scale = Scale, .sign = 0, .val = {} };</div>
-<div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>            <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_DOUBLE, &amp;result-&gt;nativeValue, <span class="keyword">sizeof</span>(result-&gt;nativeValue), indicator);</div>
-<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>        }</div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>        <span class="keywordflow">throw</span> SqlException(<a class="code hl_function" href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8c5df558d7e9cd5263d15c3b13461944">SqlErrorInfo::FromStatementHandle</a>(stmt), sourceLocation);</div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>    }</div>
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span> </div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> NativeNumericSupportIsBroken(SqlServerType serverType) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>    {</div>
+<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>        <span class="comment">// SQLite&#39;s ODBC driver does not support SQL_NUMERIC_STRUCT (it&#39;s all just floating point numbers).</span></div>
+<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>        <span class="comment">// Microsoft SQL Server&#39;s ODBC driver also has issues (keeps reporting out of bound, on Linux at least).</span></div>
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>        <span class="keywordflow">return</span> serverType == SqlServerType::SQLITE || serverType == SqlServerType::MICROSOFT_SQL;</div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>    }</div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span> </div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>                                                             SQLUSMALLINT column,</div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>                                                             ValueType <span class="keyword">const</span>&amp; value,</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>                                                             SqlDataBinderCallback&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>    {</div>
+<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>        <span class="keywordflow">if</span> (NativeNumericSupportIsBroken(cb.ServerType()))</div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>        {</div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>            <span class="keywordflow">return</span> SQLBindParameter(stmt,</div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>                                    column,</div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>                                    SQL_PARAM_INPUT,</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>                                    SQL_C_DOUBLE,</div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>                                    SQL_DOUBLE,</div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>                                    0,</div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>                                    0,</div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>                                    (SQLPOINTER) &amp;value.nativeValue,</div>
+<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>                                    <span class="keyword">sizeof</span>(value.nativeValue),</div>
+<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>                                    <span class="keyword">nullptr</span>);</div>
+<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>        }</div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span> </div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>        <span class="keywordflow">return</span> SQLBindParameter(stmt,</div>
+<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>                                column,</div>
+<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>                                SQL_PARAM_INPUT,</div>
+<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>                                SQL_C_NUMERIC,</div>
+<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>                                SQL_NUMERIC,</div>
+<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>                                value.sqlValue.precision,</div>
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>                                value.sqlValue.scale,</div>
+<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>                                (SQLPOINTER) &amp;value,</div>
+<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>                                <span class="keyword">sizeof</span>(value),</div>
+<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>                                <span class="keyword">nullptr</span>);</div>
+<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>    }</div>
+<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span> </div>
+<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span> </div>
+<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(</div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>        SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>    {</div>
+<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>        <span class="keywordflow">if</span> (NativeNumericSupportIsBroken(cb.ServerType()))</div>
+<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>        {</div>
+<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>            result-&gt;sqlValue = { .precision = Precision, .scale = Scale, .sign = 0, .val = {} };</div>
+<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>            <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_DOUBLE, &amp;result-&gt;nativeValue, <span class="keyword">sizeof</span>(result-&gt;nativeValue), indicator);</div>
+<div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span>        }</div>
+<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span> </div>
+<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>        SQLHDESC hDesc {};</div>
+<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>        RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &amp;hDesc, 0, <span class="keyword">nullptr</span>));</div>
+<div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_PRECISION, (SQLPOINTER) Precision, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
+<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_SCALE, (SQLPOINTER) Scale, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
 <div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span> </div>
-<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>        SQLHDESC hDesc {};</div>
-<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>        RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &amp;hDesc, 0, <span class="keyword">nullptr</span>));</div>
-<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_PRECISION, (SQLPOINTER) Precision, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
-<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_SCALE, (SQLPOINTER) Scale, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
-<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span> </div>
-<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>        <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_NUMERIC, &amp;result-&gt;sqlValue, <span class="keyword">sizeof</span>(ValueType), indicator);</div>
-<div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>    }</div>
-<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span> </div>
-<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>    {</div>
-<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>        <span class="keywordflow">if</span> (NativeNumericSupportIsBroken(cb.ServerType()))</div>
-<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>        {</div>
-<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>            result-&gt;sqlValue = { .precision = Precision, .scale = Scale, .sign = 0, .val = {} };</div>
-<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>            <span class="keywordflow">return</span> SQLGetData(stmt, column, SQL_C_DOUBLE, &amp;result-&gt;nativeValue, <span class="keyword">sizeof</span>(result-&gt;nativeValue), indicator);</div>
-<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>        }</div>
+<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>        <span class="keywordflow">return</span> SQLBindCol(stmt, column, SQL_C_NUMERIC, &amp;result-&gt;sqlValue, <span class="keyword">sizeof</span>(ValueType), indicator);</div>
+<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>    }</div>
+<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span> </div>
+<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(SQLHSTMT stmt, SQLUSMALLINT column, ValueType* result, SQLLEN* indicator, SqlDataBinderCallback <span class="keyword">const</span>&amp; cb) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span>    {</div>
+<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>        <span class="keywordflow">if</span> (NativeNumericSupportIsBroken(cb.ServerType()))</div>
+<div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>        {</div>
+<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>            result-&gt;sqlValue = { .precision = Precision, .scale = Scale, .sign = 0, .val = {} };</div>
+<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>            <span class="keywordflow">return</span> SQLGetData(stmt, column, SQL_C_DOUBLE, &amp;result-&gt;nativeValue, <span class="keyword">sizeof</span>(result-&gt;nativeValue), indicator);</div>
+<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>        }</div>
+<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span> </div>
+<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>        SQLHDESC hDesc {};</div>
+<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>        RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &amp;hDesc, 0, <span class="keyword">nullptr</span>));</div>
+<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_PRECISION, (SQLPOINTER) Precision, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
+<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_SCALE, (SQLPOINTER) Scale, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
 <div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span> </div>
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>        SQLHDESC hDesc {};</div>
-<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>        RequireSuccess(stmt, SQLGetStmtAttr(stmt, SQL_ATTR_APP_ROW_DESC, (SQLPOINTER) &amp;hDesc, 0, <span class="keyword">nullptr</span>));</div>
-<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_PRECISION, (SQLPOINTER) Precision, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
-<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>        RequireSuccess(stmt, SQLSetDescField(hDesc, (SQLSMALLINT) column, SQL_DESC_SCALE, (SQLPOINTER) Scale, 0)); <span class="comment">// NOLINT(performance-no-int-to-ptr)</span></div>
-<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span> </div>
-<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>        <span class="keywordflow">return</span> SQLGetData(stmt, column, SQL_C_NUMERIC, &amp;result-&gt;sqlValue, <span class="keyword">sizeof</span>(ValueType), indicator);</div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>        <span class="keywordflow">return</span> SQLGetData(stmt, column, SQL_C_NUMERIC, &amp;result-&gt;sqlValue, <span class="keyword">sizeof</span>(ValueType), indicator);</div>
+<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>    }</div>
+<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span> </div>
+<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(ValueType <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>    {</div>
+<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>        <span class="keywordflow">return</span> value.ToString();</div>
 <div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>    }</div>
-<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span> </div>
-<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>    <span class="keyword">static</span> LIGHTWEIGHT_FORCE_INLINE std::string Inspect(ValueType <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>    {</div>
-<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>        <span class="keywordflow">return</span> value.ToString();</div>
-<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>    }</div>
-<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>};</div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span><span class="comment">// clang-format off</span></div>
-<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span> </div>
-<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>} <span class="comment">// namespace Lightweight</span></div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span> </div>
-<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span><span class="keyword">template</span> &lt;Lightweight::SqlNumericType Type&gt;</div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span><span class="keyword">struct </span>std::formatter&lt;Type&gt;: std::formatter&lt;std::string&gt;</div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>{</div>
-<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> FormatContext&gt;</div>
-<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>    <span class="keyword">auto</span> format(Type <span class="keyword">const</span>&amp; value, FormatContext&amp; ctx)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>        <span class="keywordflow">return</span> formatter&lt;std::string&gt;::format(value.ToString(), ctx);</div>
-<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>    }</div>
-<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>};</div>
+<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>};</div>
+<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span><span class="comment">// clang-format off</span></div>
+<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span> </div>
+<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span> </div>
+<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span><span class="keyword">template</span> &lt;Lightweight::SqlNumericType Type&gt;</div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span><span class="keyword">struct </span>std::formatter&lt;Type&gt;: std::formatter&lt;std::string&gt;</div>
+<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>{</div>
+<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> FormatContext&gt;</div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>    <span class="keyword">auto</span> format(Type <span class="keyword">const</span>&amp; value, FormatContext&amp; ctx)</div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>    {</div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>        <span class="keywordflow">return</span> formatter&lt;std::string&gt;::format(value.ToString(), ctx);</div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>    }</div>
+<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>};</div>
 <div class="ttc" id="astructLightweight_1_1SqlErrorInfo_html_a8c5df558d7e9cd5263d15c3b13461944"><div class="ttname"><a href="../../d8/d5b/structLightweight_1_1SqlErrorInfo.html#a8c5df558d7e9cd5263d15c3b13461944">Lightweight::SqlErrorInfo::FromStatementHandle</a></div><div class="ttdeci">static SqlErrorInfo FromStatementHandle(SQLHSTMT hStmt)</div><div class="ttdoc">Constructs an ODBC error info object from the given ODBC statement handle.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d02/SqlError_8hpp_source.html#l00048">SqlError.hpp:48</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">Lightweight::SqlNumeric</a></div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00038">SqlNumeric.hpp:39</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a00f609c884ae1a3ab84575c4748d08a7"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a00f609c884ae1a3ab84575c4748d08a7">Lightweight::SqlNumeric::ToFloat</a></div><div class="ttdeci">constexpr LIGHTWEIGHT_FORCE_INLINE float ToFloat() const noexcept</div><div class="ttdoc">Converts the numeric to a floating point value.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00134">SqlNumeric.hpp:134</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a1392e30ae9feb0ae5f7f5e42e6394734"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a1392e30ae9feb0ae5f7f5e42e6394734">Lightweight::SqlNumeric::assign</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr void assign(std::floating_point auto inputValue) noexcept</div><div class="ttdoc">Assigns a value to the numeric.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00086">SqlNumeric.hpp:86</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a1489e18d40ebc20db512bf285719d864"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a1489e18d40ebc20db512bf285719d864">Lightweight::SqlNumeric::nativeValue</a></div><div class="ttdeci">double nativeValue</div><div class="ttdoc">Cached native value for drivers without SQL_NUMERIC_STRUCT support.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00056">SqlNumeric.hpp:56</a></div></div>
-<div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a1aea263acd9929ecb90bb1db1f3ce4d1"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a1aea263acd9929ecb90bb1db1f3ce4d1">Lightweight::SqlNumeric::operator==</a></div><div class="ttdeci">constexpr LIGHTWEIGHT_FORCE_INLINE bool operator==(SqlNumeric&lt; OtherPrecision, OtherScale &gt; const &amp;other) const noexcept</div><div class="ttdoc">Equality comparison operator.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00188">SqlNumeric.hpp:188</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a1aea263acd9929ecb90bb1db1f3ce4d1"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a1aea263acd9929ecb90bb1db1f3ce4d1">Lightweight::SqlNumeric::operator==</a></div><div class="ttdeci">constexpr LIGHTWEIGHT_FORCE_INLINE bool operator==(SqlNumeric&lt; OtherPrecision, OtherScale &gt; const &amp;other) const noexcept</div><div class="ttdoc">Equality comparison operator.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00183">SqlNumeric.hpp:183</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a1b17553be6ff9a490943d4a8f577cee8"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a1b17553be6ff9a490943d4a8f577cee8">Lightweight::SqlNumeric::ToDouble</a></div><div class="ttdeci">constexpr LIGHTWEIGHT_FORCE_INLINE double ToDouble() const noexcept</div><div class="ttdoc">Converts the numeric to a double precision floating point value.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00140">SqlNumeric.hpp:140</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a3c4bc2f543aebf57da21e49680295d8a"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a3c4bc2f543aebf57da21e49680295d8a">Lightweight::SqlNumeric::SqlNumeric</a></div><div class="ttdeci">constexpr SqlNumeric(SQL_NUMERIC_STRUCT const &amp;value) noexcept</div><div class="ttdoc">Constructs a numeric from a SQL_NUMERIC_STRUCT.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00077">SqlNumeric.hpp:77</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a3f58e8cd8937cd26664f72ecd5ff07e2"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a3f58e8cd8937cd26664f72ecd5ff07e2">Lightweight::SqlNumeric::ToString</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE std::string ToString() const</div><div class="ttdoc">Converts the numeric to a string.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00170">SqlNumeric.hpp:170</a></div></div>
@@ -447,9 +442,9 @@ $(document).ready(function(){initNavTree('d1/d26/SqlNumeric_8hpp_source.html','.
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a4e05d9665aa2a5c2b089bfb7db5230a7"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a4e05d9665aa2a5c2b089bfb7db5230a7">Lightweight::SqlNumeric::SqlNumeric</a></div><div class="ttdeci">constexpr SqlNumeric() noexcept=default</div><div class="ttdoc">Default constructor.</div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a4e8b73d5a632b2c7decc4968015a8d0d"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a4e8b73d5a632b2c7decc4968015a8d0d">Lightweight::SqlNumeric::sqlValue</a></div><div class="ttdeci">SQL_NUMERIC_STRUCT sqlValue</div><div class="ttdoc">The SQL numeric struct for ODBC binding.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00053">SqlNumeric.hpp:53</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a50c31864b8f085d0a364b4d58e7fe5af"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a50c31864b8f085d0a364b4d58e7fe5af">Lightweight::SqlNumeric::ToUnscaledValue</a></div><div class="ttdeci">constexpr LIGHTWEIGHT_FORCE_INLINE auto ToUnscaledValue() const noexcept</div><div class="ttdoc">Converts the numeric to an unscaled integer value.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00113">SqlNumeric.hpp:113</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a69ff90cbcfc6a3f3c36efe1341cd8bdf"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a69ff90cbcfc6a3f3c36efe1341cd8bdf">Lightweight::SqlNumeric::operator&lt;=&gt;</a></div><div class="ttdeci">constexpr LIGHTWEIGHT_FORCE_INLINE std::weak_ordering operator&lt;=&gt;(SqlNumeric const &amp;other) const noexcept</div><div class="ttdoc">Three-way comparison operator.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00176">SqlNumeric.hpp:176</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a7a12c223c8ecd62e79c02249c3543a1e"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a7a12c223c8ecd62e79c02249c3543a1e">Lightweight::SqlNumeric::Scale</a></div><div class="ttdeci">static constexpr auto Scale</div><div class="ttdoc">Number of digits after the decimal point.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00044">SqlNumeric.hpp:44</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a8c3b31875a9b9761c4087184cfdfbac9"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a8c3b31875a9b9761c4087184cfdfbac9">Lightweight::SqlNumeric::ToLongDouble</a></div><div class="ttdeci">constexpr LIGHTWEIGHT_FORCE_INLINE long double ToLongDouble() const noexcept</div><div class="ttdoc">Converts the numeric to a long double precision floating point value.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00146">SqlNumeric.hpp:146</a></div></div>
-<div class="ttc" id="astructLightweight_1_1SqlNumeric_html_a8e2884a9805790b251cd70e203063fd1"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a8e2884a9805790b251cd70e203063fd1">Lightweight::SqlNumeric::operator&lt;=&gt;</a></div><div class="ttdeci">constexpr LIGHTWEIGHT_FORCE_INLINE std::partial_ordering operator&lt;=&gt;(SqlNumeric const &amp;other) const noexcept</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00180">SqlNumeric.hpp:180</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_ade0b09524081d34d8a2fbccfabbad5be"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#ade0b09524081d34d8a2fbccfabbad5be">Lightweight::SqlNumeric::ColumnType</a></div><div class="ttdeci">static constexpr auto ColumnType</div><div class="ttdoc">The SQL column type definition for this numeric type.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00047">SqlNumeric.hpp:47</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlNumeric_html_af319a2f3d7789fbc9c37eae95ff94dfb"><div class="ttname"><a href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#af319a2f3d7789fbc9c37eae95ff94dfb">Lightweight::SqlNumeric::operator=</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE constexpr SqlNumeric &amp; operator=(std::floating_point auto value) noexcept</div><div class="ttdoc">Assigns a floating point value to the numeric.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/d26/SqlNumeric_8hpp_source.html#l00106">SqlNumeric.hpp:106</a></div></div>
 </div><!-- fragment --></div><!-- contents -->

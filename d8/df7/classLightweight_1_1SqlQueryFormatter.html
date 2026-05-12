@@ -208,6 +208,12 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="memitem:a4259cbd0861534246ce81a9494caf032" id="r_a4259cbd0861534246ce81a9494caf032"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4259cbd0861534246ce81a9494caf032">RequiresTableRebuildForForeignKeyChange</a> () const noexcept</td></tr>
 <tr class="memdesc:a4259cbd0861534246ce81a9494caf032"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the dialect must rebuild a table to add or drop a foreign-key constraint (i.e. cannot express it via <code>ALTER TABLE … ADD/DROP CONSTRAINT</code>).  <br /></td></tr>
 <tr class="separator:a4259cbd0861534246ce81a9494caf032"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1aade87023f69d63e86f4aca06a97595" id="r_a1aade87023f69d63e86f4aca06a97595"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595">SetDefaultSchemaStatement</a> (std::string_view schema) const</td></tr>
+<tr class="memdesc:a1aade87023f69d63e86f4aca06a97595"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the SQL statement to execute after connect to make <code>schema</code> the connection-level default for unqualified DDL/DML.  <br /></td></tr>
+<tr class="separator:a1aade87023f69d63e86f4aca06a97595"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2f3e6e88b1fb6af51bf4d0d65c5a52e6" id="r_a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="../../d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html">SqlAdvisoryLockHandler</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6">AdvisoryLockOps</a> () const =0</td></tr>
+<tr class="memdesc:a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the dialect-specific handler used by <code><a class="el" href="../../d3/de6/classLightweight_1_1SqlScopedLock.html">SqlScopedLock</a></code> to acquire and release named cross-process advisory locks.  <br /></td></tr>
+<tr class="separator:a2f3e6e88b1fb6af51bf4d0d65c5a52e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -242,7 +248,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>API to format SQL queries for different SQL dialects. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00019">19</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00020">20</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="abf21ac12103c4b8224cc68fb0cc114c0" name="abf21ac12103c4b8224cc68fb0cc114c0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#abf21ac12103c4b8224cc68fb0cc114c0">&#9670;&#160;</a></span>StringList</h2>
@@ -258,7 +264,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 
 <p>Alias for a list of SQL statement strings. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00127">127</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00128">128</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -541,7 +547,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Whether the dialect must rebuild a table to add or drop a foreign-key constraint (i.e. cannot express it via <code>ALTER TABLE … ADD/DROP CONSTRAINT</code>). </p>
 <p>SQLite returns <code>true</code>; every other backend defaults to <code>false</code>. The migration executor consults this to decide whether to take the table-rebuild path on <code>AlterTable</code> steps that touch foreign keys. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00187">187</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00188">188</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -585,7 +591,67 @@ template&lt;typename Range &gt; </div>
 <p>Produces <code>FK_&lt;table&gt;_&lt;col1&gt;[_&lt;col2&gt;…]</code>. A single-column FK collapses to <code>FK_&lt;table&gt;_&lt;col&gt;</code>; a composite FK includes every column so that a composite FK whose first column matches an existing single-column FK doesn't collide on the constraint name (which MSSQL enforces as globally unique per DB).</p>
 <p>Consumers include the SQL Server, PostgreSQL and SQLite formatters — centralising the convention here keeps CREATE/ALTER emission in sync with DROP CONSTRAINT lookup (e.g. <code>SQLiteRebuildDropForeignKey</code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00203">203</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00204">204</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a1aade87023f69d63e86f4aca06a97595" name="a1aade87023f69d63e86f4aca06a97595"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1aade87023f69d63e86f4aca06a97595">&#9670;&#160;</a></span>SetDefaultSchemaStatement()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::string Lightweight::SqlQueryFormatter::SetDefaultSchemaStatement </td>
+          <td>(</td>
+          <td class="paramtype">std::string_view&#160;</td>
+          <td class="paramname"><em>schema</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the SQL statement to execute after connect to make <code>schema</code> the connection-level default for unqualified DDL/DML. </p>
+<p>Returns an empty string when the DBMS has no session-level concept of a default schema (SQL Server, SQLite). Callers must skip emission for empty results. PostgreSQL implements this via <code>SET search_path TO ...</code>.</p>
+<p>The <code>schema</code> value is interpolated into the statement; callers must validate it (e.g. whitelist <code>[A-Za-z0-9_]</code>) before invoking. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00225">225</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a2f3e6e88b1fb6af51bf4d0d65c5a52e6" name="a2f3e6e88b1fb6af51bf4d0d65c5a52e6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2f3e6e88b1fb6af51bf4d0d65c5a52e6">&#9670;&#160;</a></span>AdvisoryLockOps()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual <a class="el" href="../../d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html">SqlAdvisoryLockHandler</a> const  &amp; Lightweight::SqlQueryFormatter::AdvisoryLockOps </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the dialect-specific handler used by <code><a class="el" href="../../d3/de6/classLightweight_1_1SqlScopedLock.html">SqlScopedLock</a></code> to acquire and release named cross-process advisory locks. </p>
+<p>The returned reference is to a process-singleton, valid for the lifetime of the program. Each backend implements its own primitive — SQL Server uses <code>sp_getapplock</code>, PostgreSQL uses <code>pg_advisory_lock</code>, SQLite uses a lock table — and the implementation lives in the backend's formatter translation unit, so adding a new dialect only touches that unit and <code><a class="el" href="../../d3/de6/classLightweight_1_1SqlScopedLock.html">SqlScopedLock</a></code> itself stays dialect-agnostic. </p>
 
 </div>
 </div>

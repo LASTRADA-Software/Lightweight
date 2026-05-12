@@ -149,14 +149,14 @@ $(document).ready(function(){initNavTree('d8/ddd/Common_8hpp_source.html','../..
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span><span class="comment">///</span></div>
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span><span class="comment">/// @param error The SQL error information to check.</span></div>
 <div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span><span class="comment">/// @return true if the error is transient and the operation can be retried.</span></div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">bool</span> IsTransientError(SqlErrorInfo <span class="keyword">const</span>&amp; error);</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span><span class="comment"></span><span class="keywordtype">bool</span> IsTransientError(SqlErrorInfo <span class="keyword">const</span>&amp; error);</div>
 <div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span><span class="comment"></span> </div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span><span class="comment">/// Calculates the delay for the given retry attempt using exponential backoff.</span></div>
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="comment">///</span></div>
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span><span class="comment">/// @param attempt The current retry attempt number (0-based).</span></div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span><span class="comment">/// @param settings The retry configuration.</span></div>
 <div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="comment">/// @return The delay to wait before the next retry.</span></div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="comment"></span>LIGHTWEIGHT_API std::chrono::milliseconds CalculateRetryDelay(<span class="keywordtype">unsigned</span> attempt, RetrySettings <span class="keyword">const</span>&amp; settings) <span class="keyword">noexcept</span>;</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="comment"></span>std::chrono::milliseconds CalculateRetryDelay(<span class="keywordtype">unsigned</span> attempt, RetrySettings <span class="keyword">const</span>&amp; settings) <span class="keyword">noexcept</span>;</div>
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span><span class="comment"></span> </div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="comment">/// Connects to the database with retry logic for transient errors.</span></div>
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="comment">///</span></div>
@@ -216,7 +216,7 @@ $(document).ready(function(){initNavTree('d8/ddd/Common_8hpp_source.html','../..
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span><span class="comment">/// Returns the current date and time in ISO 8601 format.</span></div>
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span><span class="comment">///</span></div>
 <div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span><span class="comment">/// @return ISO 8601 formatted timestamp string.</span></div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span><span class="comment"></span>LIGHTWEIGHT_API std::string CurrentDateTime();</div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span><span class="comment"></span>std::string CurrentDateTime();</div>
 <div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span><span class="comment"></span> </div>
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span><span class="comment">/// Reads a ZIP entry into a container.</span></div>
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span><span class="comment">///</span></div>
@@ -249,7 +249,7 @@ $(document).ready(function(){initNavTree('d8/ddd/Common_8hpp_source.html','../..
 <div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span><span class="comment">/// @param schema The schema name (may be empty).</span></div>
 <div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span><span class="comment">/// @param table The table name.</span></div>
 <div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span><span class="comment">/// @return Quoted table name, optionally prefixed with quoted schema.</span></div>
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span><span class="comment"></span>LIGHTWEIGHT_API std::string FormatTableName(std::string_view schema, std::string_view table);</div>
+<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span><span class="comment"></span>std::string FormatTableName(std::string_view schema, std::string_view table);</div>
 <div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span><span class="comment"></span> </div>
 <div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span><span class="comment">/// Drops a table if it exists, handling FK constraints via cascade.</span></div>
 <div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span><span class="comment">///</span></div>
@@ -258,10 +258,10 @@ $(document).ready(function(){initNavTree('d8/ddd/Common_8hpp_source.html','../..
 <div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span><span class="comment">/// @param tableName The table name.</span></div>
 <div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span><span class="comment">/// @param progress Progress manager for reporting errors.</span></div>
 <div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span><span class="comment">/// @return true if table was dropped or didn&#39;t exist, false on error.</span></div>
-<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span><span class="comment"></span>LIGHTWEIGHT_API <span class="keywordtype">bool</span> DropTableIfExists(SqlConnection&amp; conn,</div>
-<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>                                       std::string <span class="keyword">const</span>&amp; schema,</div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>                                       std::string <span class="keyword">const</span>&amp; tableName,</div>
-<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>                                       ProgressManager&amp; progress);</div>
+<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span><span class="comment"></span><span class="keywordtype">bool</span> DropTableIfExists(SqlConnection&amp; conn,</div>
+<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>                       std::string <span class="keyword">const</span>&amp; schema,</div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>                       std::string <span class="keyword">const</span>&amp; tableName,</div>
+<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>                       ProgressManager&amp; progress);</div>
 <div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span> </div>
 <div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>} <span class="comment">// namespace Lightweight::SqlBackup::detail</span></div>
 </div><!-- fragment --></div><!-- contents -->
