@@ -159,7 +159,13 @@ namespace
                                                                    std::string_view lockName,
                                                                    std::chrono::milliseconds timeout) const override
         {
-            auto const sql = std::format("DECLARE @result INT; "
+            // SET NOCOUNT ON suppresses the per-statement row-count "DONE"
+            // tokens that would otherwise surface as additional result sets
+            // on top of the SELECT @result we actually consume. Combined with
+            // SqlStatement::CloseCursor draining via SQLMoreResults, this
+            // guarantees no pending token survives the lock acquire.
+            auto const sql = std::format("SET NOCOUNT ON; "
+                                         "DECLARE @result INT; "
                                          "EXEC @result = sp_getapplock @Resource = N'{}', @LockMode = N'Exclusive', "
                                          "@LockTimeout = {}, @LockOwner = N'Session'; "
                                          "SELECT @result;",
@@ -242,8 +248,12 @@ namespace
             try
             {
                 auto stmt = SqlStatement { connection };
-                [[maybe_unused]] auto releaseCursor = stmt.ExecuteDirect(
-                    std::format("EXEC sp_releaseapplock @Resource = N'{}', @LockOwner = N'Session';", lockName));
+                // SET NOCOUNT ON — see TryAcquire above. sp_releaseapplock's
+                // return-status result set is never fetched here; relying on
+                // CloseCursor's SQLMoreResults drain to keep the connection
+                // clean.
+                [[maybe_unused]] auto releaseCursor = stmt.ExecuteDirect(std::format(
+                    "SET NOCOUNT ON; EXEC sp_releaseapplock @Resource = N'{}', @LockOwner = N'Session';", lockName));
                 return {};
             }
             catch (SqlException const& ex)

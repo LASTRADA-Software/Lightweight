@@ -2284,3 +2284,130 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "SetDefaultSchema PostgreSQL search_pa
     // to switch to a now-dropped schema.
     mgr.SetDefaultSchema("");
 }
+
+// =============================================================================
+// Regression tests for the MS SQL Server "Connection is busy with results for
+// another command" failure that appeared while applying the Lastrada migration
+// sequence through dbtool / dbtool-gui.
+//
+// Root cause being pinned by these tests:
+//   - SQL Server's ODBC driver returns row-count / done-in-proc tokens after
+//     every statement in a T-SQL batch, plus a real result set for any embedded
+//     SELECT. The application must drain them with SQLMoreResults until
+//     SQL_NO_DATA before the *connection* will accept another command.
+//   - Lightweight's `SqlStatement::CloseCursor` only calls
+//     `SQLFreeStmt(SQL_CLOSE)`, which closes the current cursor but does NOT
+//     advance past pending result sets in a batch.
+//   - With MARS off (the default on every connection string we ship), this
+//     leaves the connection in the "busy" state and the next statement on a
+//     *different* `SqlStatement` handle of the same `SqlConnection` fails
+//     with HY000.
+//
+// Both tests are gated on MS SQL Server — only that driver produces the
+// pending-result-set state we need to exercise.
+// =============================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "Regression: repeated multi-statement DDL batches do not leave connection busy",
+                 "[SqlStatement][regression][mssql]")
+{
+    auto& dm = SqlMigration::MigrationManager::GetInstance().GetDataMapper();
+    auto& conn = dm.Connection();
+
+    if (conn.ServerType() != SqlServerType::MICROSOFT_SQL)
+    {
+        SUCCEED("Reproduces only on MS SQL Server (MARS off, NOCOUNT off).");
+        return;
+    }
+
+    // Mirror the migration-runner's actual pattern: each migration wraps
+    // multiple multi-statement DDL batches in a transaction, then inserts a
+    // tracking row and commits. We run many such cycles to exercise the same
+    // pending-result-set accumulation that surfaces in 356-migration LUP runs.
+    constexpr int kCycles = 60;
+    constexpr std::string_view probeTable = "_lw_busy_probe";
+
+    auto cleanup = [&] {
+        try
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS dbo.{};", probeTable));
+        }
+        catch (...)
+        {
+            // Best-effort.
+        }
+    };
+    cleanup(); // pre-clean in case a prior test crashed mid-cycle
+
+    {
+        auto stmt = SqlStatement { conn };
+        (void) stmt.ExecuteDirect(
+            std::format("CREATE TABLE dbo.{} (id INT NULL);", probeTable));
+    }
+
+    for (auto const cycle: std::views::iota(0, kCycles))
+    {
+        auto const colName = std::format("col_{}", cycle);
+        auto transaction = SqlTransaction { conn, SqlTransactionMode::ROLLBACK };
+
+        // Multi-step "migration": each step is a multi-statement T-SQL batch
+        // matching the failing real-world shape:
+        //     IF NOT EXISTS (SELECT … FROM sys.columns …) ALTER TABLE … ADD …;
+        auto stmtA = SqlStatement { conn };
+        (void) stmtA.ExecuteDirect(std::format(
+            "IF NOT EXISTS (SELECT 1 FROM sys.columns "
+            "WHERE object_id = OBJECT_ID('dbo.{}') AND name = '{}') "
+            "ALTER TABLE dbo.{} ADD {} INT NULL;",
+            probeTable,
+            colName,
+            probeTable,
+            colName));
+
+        // Second step in the same migration on the SAME statement handle —
+        // this is where the migration runner's reuse of `stmt` happens.
+        (void) stmtA.ExecuteDirect(std::format(
+            "IF EXISTS (SELECT 1 FROM sys.columns "
+            "WHERE object_id = OBJECT_ID('dbo.{}') AND name = '{}') "
+            "UPDATE dbo.{} SET {} = NULL WHERE 1 = 0;",
+            probeTable,
+            colName,
+            probeTable,
+            colName));
+
+        // Now allocate a *new* SqlStatement on the same connection — exactly
+        // what `dm.CreateExplicit(SchemaMigration{...})` does after the
+        // per-migration steps complete. Before the fix this is where the
+        // accumulated pending-result tokens surface as HY000.
+        auto stmtB = SqlStatement { conn };
+        REQUIRE_NOTHROW((void) stmtB.ExecuteDirect("SELECT 1;"));
+
+        transaction.Commit();
+    }
+
+    cleanup();
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "Regression: sp_getapplock acquire does not leave the connection busy",
+                 "[SqlScopedLock][regression][mssql]")
+{
+    auto& dm = SqlMigration::MigrationManager::GetInstance().GetDataMapper();
+    auto& conn = dm.Connection();
+
+    if (conn.ServerType() != SqlServerType::MICROSOFT_SQL)
+    {
+        SUCCEED("Reproduces only on MS SQL Server (MARS off, NOCOUNT off).");
+        return;
+    }
+
+    // Acquiring the advisory lock runs a multi-statement batch
+    //     DECLARE @result INT; EXEC @result = sp_getapplock …; SELECT @result;
+    // Before the fix, only the SELECT result is fetched; the EXEC's done
+    // token stays pending and poisons the connection for the next caller.
+    auto lock = SqlScopedLock { conn, "lightweight_busy_probe" };
+    REQUIRE(lock.IsLocked());
+
+    auto stmt = SqlStatement { conn };
+    REQUIRE_NOTHROW((void) stmt.ExecuteDirect("SELECT 1;"));
+}
