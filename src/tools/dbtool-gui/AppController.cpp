@@ -833,22 +833,26 @@ QString AppController::currentReleaseLabel() const
     // want the label to already show the right version at that point —
     // the Simple view only shows the Status card when connected anyway,
     // so a pre-connect read from this accessor never reaches the user.
-    // For the "never-connected" edge case (external caller reading the
-    // property before any connect), `GetAppliedMigrationIds` throws on
-    // an unopened DataMapper and we fall through to "(fresh database)".
+    //
+    // We deliberately do NOT call `manager.GetAppliedMigrationIds()` here:
+    // this accessor is bound from QML on the UI thread, and QML re-evaluates
+    // the binding on every `migrationsChanged()` emission — including the
+    // one fired between every migration during an `applyUpTo` run. The
+    // migration run holds the only `SqlConnection` on a worker thread; an
+    // ODBC handle is not safe for concurrent use, so a DB query from the
+    // UI thread mid-run surfaces as HY000 "Connection is busy" and aborts
+    // the run. Instead, read from `_migrations` — the in-memory model is
+    // kept in sync per row by `migrationCompleted` →
+    // `SetRowStatusByTimestamp`, so it knows which migrations are applied
+    // at any point during a run without touching the database.
+    auto const appliedRaw = _migrations.AppliedTimestamps();
+    if (appliedRaw.empty())
+        return QStringLiteral("(fresh database)");
+
     std::vector<Lightweight::SqlMigration::MigrationTimestamp> applied;
-    try
-    {
-        applied = manager.GetAppliedMigrationIds();
-    }
-    catch (std::exception const&)
-    {
-        // Unmanaged DB (no schema_migrations yet) — same messaging path as
-        // the expert view's yellow warning banner.
-        return QStringLiteral("(fresh database)");
-    }
-    if (applied.empty())
-        return QStringLiteral("(fresh database)");
+    applied.reserve(appliedRaw.size());
+    for (auto const ts: appliedRaw)
+        applied.push_back(Lightweight::SqlMigration::MigrationTimestamp { ts });
 
     auto const highest = *std::ranges::max_element(applied);
     auto const* release = manager.FindReleaseForTimestamp(highest);
@@ -1015,6 +1019,16 @@ QStringList AppController::previewMigrationSql(QString const& timestamp) const
     auto const ts = timestamp.toULongLong(&ok);
     if (!ok)
         return {};
+
+    // Belt-and-suspenders for the same race documented in
+    // `currentReleaseLabel`: `PreviewMigration` issues INFORMATION_SCHEMA
+    // queries via `MakeWidthLookup` against the shared `SqlConnection`. If
+    // QML triggers this accessor while the worker thread is mid-migration,
+    // we'd hit "Connection is busy" again. The Simple-view UI disables
+    // preview during runs, but explicit-view callers (or future ones) might
+    // not — short-circuit to a placeholder when a run is in flight.
+    if (_runner.phase() != MigrationRunner::Phase::Idle)
+        return { QStringLiteral("-- Preview unavailable during a migration run.") };
 
     auto const& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
     auto const* migration = manager.GetMigration(Lightweight::SqlMigration::MigrationTimestamp { ts });

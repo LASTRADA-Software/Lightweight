@@ -166,6 +166,16 @@ int MigrationListModel::SelectedCount() const noexcept
     return n;
 }
 
+std::vector<uint64_t> MigrationListModel::AppliedTimestamps() const
+{
+    std::vector<uint64_t> out;
+    out.reserve(_rows.size());
+    for (auto const& r: _rows)
+        if (r.status == QStringLiteral("applied") || r.status == QStringLiteral("checksum-mismatch"))
+            out.push_back(r.timestamp);
+    return out;
+}
+
 bool MigrationListModel::SetRowStatusByTimestamp(uint64_t timestamp, QString const& status)
 {
     for (size_t i = 0; i < _rows.size(); ++i)
