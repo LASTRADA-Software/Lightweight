@@ -2342,8 +2342,7 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
 
     {
         auto stmt = SqlStatement { conn };
-        (void) stmt.ExecuteDirect(
-            std::format("CREATE TABLE dbo.{} (id INT NULL);", probeTable));
+        (void) stmt.ExecuteDirect(std::format("CREATE TABLE dbo.{} (id INT NULL);", probeTable));
     }
 
     for (auto const cycle: std::views::iota(0, kCycles))
@@ -2355,25 +2354,23 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
         // matching the failing real-world shape:
         //     IF NOT EXISTS (SELECT … FROM sys.columns …) ALTER TABLE … ADD …;
         auto stmtA = SqlStatement { conn };
-        (void) stmtA.ExecuteDirect(std::format(
-            "IF NOT EXISTS (SELECT 1 FROM sys.columns "
-            "WHERE object_id = OBJECT_ID('dbo.{}') AND name = '{}') "
-            "ALTER TABLE dbo.{} ADD {} INT NULL;",
-            probeTable,
-            colName,
-            probeTable,
-            colName));
+        (void) stmtA.ExecuteDirect(std::format("IF NOT EXISTS (SELECT 1 FROM sys.columns "
+                                               "WHERE object_id = OBJECT_ID('dbo.{}') AND name = '{}') "
+                                               "ALTER TABLE dbo.{} ADD {} INT NULL;",
+                                               probeTable,
+                                               colName,
+                                               probeTable,
+                                               colName));
 
         // Second step in the same migration on the SAME statement handle —
         // this is where the migration runner's reuse of `stmt` happens.
-        (void) stmtA.ExecuteDirect(std::format(
-            "IF EXISTS (SELECT 1 FROM sys.columns "
-            "WHERE object_id = OBJECT_ID('dbo.{}') AND name = '{}') "
-            "UPDATE dbo.{} SET {} = NULL WHERE 1 = 0;",
-            probeTable,
-            colName,
-            probeTable,
-            colName));
+        (void) stmtA.ExecuteDirect(std::format("IF EXISTS (SELECT 1 FROM sys.columns "
+                                               "WHERE object_id = OBJECT_ID('dbo.{}') AND name = '{}') "
+                                               "UPDATE dbo.{} SET {} = NULL WHERE 1 = 0;",
+                                               probeTable,
+                                               colName,
+                                               probeTable,
+                                               colName));
 
         // Now allocate a *new* SqlStatement on the same connection — exactly
         // what `dm.CreateExplicit(SchemaMigration{...})` does after the
