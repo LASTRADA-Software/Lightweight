@@ -72,9 +72,7 @@ var NAVTREE =
       [ "InputParameter()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inputparameter", null ],
       [ "OutputColumn()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#outputcolumn", null ],
       [ "GetColumn()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#getcolumn", null ],
-      [ "Inspect()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect", null ],
-      [ "How <tt>SqlVariant</tt> decides which alternative to fill", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill", null ],
-      [ "Driver-specific connection-string requirements", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#driver-specific-connection-string-requirements", null ]
+      [ "Inspect()", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#inspect", null ]
     ] ],
     [ "Lightweight SQL Backup File Format", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html", [
       [ "1. Archive Structure", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md1-archive-structure", null ],
@@ -214,12 +212,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#ad1a8cbeb9c8d35dae6052c5c8068e8a5",
+"d2/dd0/structLightweight_1_1Field.html#adb44c1c3efd47294593bc757a7c1734c",
 "d5/dc4/dbtool.html#configuration-file-format",
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a1e03f8cab91fedfdd8cf11c5c5e57adf",
-"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#adf28af73f0aa2dd90a6691179f11e6d5",
-"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970",
-"df/d63/classLightweight_1_1HasOneThrough.html#a52ac9b1979bffb475fdc3844b6ef60a2"
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a1fc1b3ec6aaa8d6a43f91185ad2370ab",
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327",
+"df/d63/classLightweight_1_1HasOneThrough.html#a88e0758eca25880d871ce71459df1684"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

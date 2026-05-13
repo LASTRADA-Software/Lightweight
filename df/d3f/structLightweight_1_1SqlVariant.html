@@ -212,10 +212,10 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:a0554153abf1859d854b5ea865c53bd4e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieve the unsigned long long from the variant or std::nullopt.  <br /></td></tr>
 <tr class="separator:a0554153abf1859d854b5ea865c53bd4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a35fad0a0c13e0e56c3411d9ec848d621" id="r_a35fad0a0c13e0e56c3411d9ec848d621"><td class="memItemLeft" align="right" valign="top">std::optional&lt; std::string_view &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html#a35fad0a0c13e0e56c3411d9ec848d621">TryGetStringView</a> () const noexcept</td></tr>
-<tr class="memdesc:a35fad0a0c13e0e56c3411d9ec848d621"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a string view from the variant, or <code>std::nullopt</code> if the variant is NULL or holds a non-string alternative. The function is <code>noexcept</code>, so it must not propagate <code>bad_variant_access</code>.  <br /></td></tr>
+<tr class="memdesc:a35fad0a0c13e0e56c3411d9ec848d621"><td class="mdescLeft">&#160;</td><td class="mdescRight">function to get string_view from <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a> or std::nullopt  <br /></td></tr>
 <tr class="separator:a35fad0a0c13e0e56c3411d9ec848d621"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a47da546ef106f041ebca07e78c05dee0" id="r_a47da546ef106f041ebca07e78c05dee0"><td class="memItemLeft" align="right" valign="top">std::optional&lt; std::u16string_view &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html#a47da546ef106f041ebca07e78c05dee0">TryGetUtf16StringView</a> () const noexcept</td></tr>
-<tr class="memdesc:a47da546ef106f041ebca07e78c05dee0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a UTF-16 string view from the variant, or <code>std::nullopt</code> if the variant is NULL or holds a non-string alternative. The function is <code>noexcept</code>, so it must not propagate <code>bad_variant_access</code>.  <br /></td></tr>
+<tr class="memdesc:a47da546ef106f041ebca07e78c05dee0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a UTF-16 string view from the variant, or std::nullopt if not available.  <br /></td></tr>
 <tr class="separator:a47da546ef106f041ebca07e78c05dee0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac5c1e9628e855853ed821e1d864830fc" id="r_ac5c1e9628e855853ed821e1d864830fc"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE std::optional&lt; <a class="el" href="../../d9/de1/structLightweight_1_1SqlDate.html">SqlDate</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html#ac5c1e9628e855853ed821e1d864830fc">TryGetDate</a> () const</td></tr>
 <tr class="memdesc:ac5c1e9628e855853ed821e1d864830fc"><td class="mdescLeft">&#160;</td><td class="mdescRight">function to get <a class="el" href="../../d9/de1/structLightweight_1_1SqlDate.html">SqlDate</a> from <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a> or std::nullopt  <br /></td></tr>
@@ -620,7 +620,7 @@ template&lt;detail::HasSqlViewHelper StringViewLike&gt; </div>
 
 <p class="reference">References <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00071">value</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00170">Get()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00273">TryGetDate()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00324">TryGetDateTime()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00336">TryGetGuid()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00238">TryGetStringView()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00304">TryGetTime()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00257">TryGetUtf16StringView()</a>, and <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00185">ValueOr()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00170">Get()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00264">TryGetDate()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00315">TryGetDateTime()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00327">TryGetGuid()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00233">TryGetStringView()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00295">TryGetTime()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00249">TryGetUtf16StringView()</a>, and <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00185">ValueOr()</a>.</p>
 
 </div>
 </div>
@@ -979,9 +979,9 @@ template&lt;typename T &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Retrieves a string view from the variant, or <code>std::nullopt</code> if the variant is NULL or holds a non-string alternative. The function is <code>noexcept</code>, so it must not propagate <code>bad_variant_access</code>. </p>
+<p>function to get string_view from <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a> or std::nullopt </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00238">238</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00233">233</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00156">IsNull()</a>, and <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00071">value</a>.</p>
 
@@ -1010,9 +1010,9 @@ template&lt;typename T &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Retrieves a UTF-16 string view from the variant, or <code>std::nullopt</code> if the variant is NULL or holds a non-string alternative. The function is <code>noexcept</code>, so it must not propagate <code>bad_variant_access</code>. </p>
+<p>Retrieves a UTF-16 string view from the variant, or std::nullopt if not available. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00257">257</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00249">249</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00156">IsNull()</a>, and <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00071">value</a>.</p>
 
@@ -1043,7 +1043,7 @@ template&lt;typename T &gt; </div>
 
 <p>function to get <a class="el" href="../../d9/de1/structLightweight_1_1SqlDate.html">SqlDate</a> from <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a> or std::nullopt </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00273">273</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00264">264</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00156">IsNull()</a>, and <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00071">value</a>.</p>
 
@@ -1075,7 +1075,7 @@ template&lt;typename T &gt; </div>
 
 <p>Equality comparison operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00292">292</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00283">283</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html#a04b24b9c04888b9b4d3f550c96f8bc29">ToString()</a>.</p>
 
@@ -1107,7 +1107,7 @@ template&lt;typename T &gt; </div>
 
 <p>Inequality comparison operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00298">298</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00289">289</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
 
 </div>
 </div>
@@ -1136,7 +1136,7 @@ template&lt;typename T &gt; </div>
 
 <p>function to get <a class="el" href="../../d7/d53/structLightweight_1_1SqlTime.html">SqlTime</a> from <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a> or std::nullopt </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00304">304</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00295">295</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00156">IsNull()</a>, and <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00071">value</a>.</p>
 
@@ -1167,7 +1167,7 @@ template&lt;typename T &gt; </div>
 
 <p>function to get <a class="el" href="../../d6/dfa/structLightweight_1_1SqlDateTime.html">SqlDateTime</a> from <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html" title="Represents a value that can be any of the supported SQL data types.">SqlVariant</a> or std::nullopt </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00324">324</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00315">315</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00156">IsNull()</a>, and <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00071">value</a>.</p>
 
@@ -1198,7 +1198,7 @@ template&lt;typename T &gt; </div>
 
 <p>Retrieve the GUID from the variant or std::nullopt if the value is NULL. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00336">336</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00327">327</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00156">IsNull()</a>, and <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00071">value</a>.</p>
 
@@ -1221,7 +1221,7 @@ template&lt;typename T &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00071">71</a> of file <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html">SqlVariant.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00170">Get()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00163">Is()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00156">IsNull()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00134">operator=()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00127">operator=()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00149">operator=()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00273">TryGetDate()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00324">TryGetDateTime()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00336">TryGetGuid()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00238">TryGetStringView()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00304">TryGetTime()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00257">TryGetUtf16StringView()</a>, and <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00185">ValueOr()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00170">Get()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00163">Is()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00156">IsNull()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00134">operator=()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00127">operator=()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00149">operator=()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00264">TryGetDate()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00315">TryGetDateTime()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00327">TryGetGuid()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00233">TryGetStringView()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00295">TryGetTime()</a>, <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00249">TryGetUtf16StringView()</a>, and <a class="el" href="../../d5/de3/SqlVariant_8hpp_source.html#l00185">ValueOr()</a>.</p>
 
 </div>
 </div>
