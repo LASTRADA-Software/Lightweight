@@ -117,6 +117,17 @@ class MigrationListModel: public QAbstractListModel
     /// Number of selected pending rows.
     [[nodiscard]] int SelectedCount() const noexcept;
 
+    /// Timestamps of rows whose status reflects the migration as applied —
+    /// `"applied"` and `"checksum-mismatch"` (the latter is "applied with a
+    /// stored checksum that disagrees with the freshly-computed one", which
+    /// is still applied as far as the DB is concerned). Order matches the
+    /// row order produced by `Refresh()`. Used by UI-thread accessors that
+    /// must NOT issue SQL while a worker-thread migration run is in flight
+    /// (a re-query on the shared `SqlConnection` would race the worker and
+    /// surface as HY000 "Connection is busy"). See
+    /// `AppController::currentReleaseLabel`.
+    [[nodiscard]] std::vector<uint64_t> AppliedTimestamps() const;
+
   signals:
     /// Emitted in addition to `dataChanged` so QML consumers that only care
     /// about "how many are selected" can connect a single slot.

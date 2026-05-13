@@ -948,7 +948,22 @@ inline T SqlStatement::ExecuteDirectScalar(SqlQueryObject auto const& query, std
 
 inline LIGHTWEIGHT_FORCE_INLINE void SqlStatement::CloseCursor() noexcept
 {
-    // SQLCloseCursor(m_hStmt);
+    // SQL Server batches and DML/DDL row-count tokens produce multiple result
+    // sets per SQLExecDirect. SQLFreeStmt(SQL_CLOSE) only discards the current
+    // cursor — remaining result sets stay pending on the *connection*, and
+    // without MARS every subsequent statement on that connection fails with
+    // HY000 "Connection is busy with results for another command". Drain via
+    // SQLMoreResults until SQL_NO_DATA (or an error), then close.
+    //
+    // SQLMoreResults is standard ODBC; SQLite and PostgreSQL drivers return
+    // SQL_NO_DATA on the first call when nothing is pending, so the cost on
+    // single-statement queries is one no-op driver call.
+    while (true)
+    {
+        auto const rc = SQLMoreResults(m_hStmt);
+        if (rc == SQL_NO_DATA || !SQL_SUCCEEDED(rc))
+            break;
+    }
     SQLFreeStmt(m_hStmt, SQL_CLOSE);
     SqlLogger::GetLogger().OnFetchEnd();
 }
