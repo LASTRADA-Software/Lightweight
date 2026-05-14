@@ -413,6 +413,48 @@ def main():
     else:
         print("--- 12. --schema effect check skipped: only Postgres has session-level default schema ---")
 
+    print("--- 12a. list-profiles enumerates the config file ---")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cfg_path = os.path.join(tmpdir, "dbtool.yml")
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            f.write(
+                "defaultProfile: prod\n"
+                "profiles:\n"
+                "  prod:\n"
+                "    schema: dbo\n"
+                "    connectionString: \"DRIVER=SQLite3;Database=prod.db;PWD=secret;UID=me\"\n"
+                "  dev:\n"
+                "    connectionString: \"DRIVER=SQLite3;Database=dev.db\"\n"
+            )
+
+        # list-profiles does not open a database, so the --plugins-dir + --connection-string
+        # injected by `base_cmd` are irrelevant here. Build the invocation from scratch so
+        # the test mirrors the real "I want to see what profiles I have" UX.
+        list_result = run_command([args.dbtool, "--config", cfg_path, "list-profiles"])
+        out = list_result.stdout
+        if "prod" not in out or "dev" not in out:
+            print(f"list-profiles output missing expected profile names:\n{out}")
+            sys.exit(1)
+        # Exactly one row should carry the default marker.
+        default_lines = [line for line in out.splitlines() if line.startswith("prod") and "*" in line]
+        if len(default_lines) != 1:
+            print(f"list-profiles did not mark exactly one profile as default:\n{out}")
+            sys.exit(1)
+        if "secret" in out:
+            print(f"list-profiles leaked password value in output:\n{out}")
+            sys.exit(1)
+        if "PWD=***" not in out:
+            print(f"list-profiles did not redact PWD= value (expected PWD=***):\n{out}")
+            sys.exit(1)
+
+        # A missing --config file must be a hard error.
+        missing_cfg = os.path.join(tmpdir, "does-not-exist.yml")
+        missing_result = run_command([args.dbtool, "--config", missing_cfg, "list-profiles"],
+                                     check=False)
+        if missing_result.returncode == 0:
+            print("list-profiles with missing --config unexpectedly succeeded")
+            sys.exit(1)
+
     print("--- 13. status fails fast when no migration plugin is loaded ---")
     with tempfile.TemporaryDirectory() as empty_plugins_dir:
         empty_cmd = [args.dbtool, "--plugins-dir", empty_plugins_dir,

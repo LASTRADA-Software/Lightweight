@@ -12,6 +12,9 @@
 #include <Lightweight/SqlSchema.hpp>
 #include <Lightweight/SqlScopedLock.hpp>
 
+#include <algorithm>
+#include <array>
+#include <cctype>
 #include <cstdio>
 #include <expected>
 #include <filesystem>
@@ -162,6 +165,8 @@ void PrintUsage()
     std::println("  {}restore{} --input FILE     Restores the database from a file", c.command, c.reset);
     std::println("  {}resolve-secret{} {}<REF>{}   Prints a resolved secret to stdout (env:, file:, stdin:)",
                  c.command, c.reset, c.param, c.reset);
+    std::println("  {}list-profiles{}            Lists profiles from the configuration file (see --config)",
+                 c.command, c.reset);
     std::println("");
 
     // Descriptions start at column 29 (longest option is 27 chars + 2 space minimum gap)
@@ -285,6 +290,10 @@ void PrintExamples()
 
     std::println("  {}# Restore schema only (create empty tables):{}", c.example, c.reset);
     std::println("  {}dbtool restore --input backup.zip --schema-only{}", c.code, c.reset);
+    std::println("");
+
+    std::println("  {}# List configured connection profiles (no DB connection needed):{}", c.example, c.reset);
+    std::println("  {}dbtool list-profiles{}", c.code, c.reset);
     // clang-format on
 }
 
@@ -347,6 +356,51 @@ struct Options
         return ds.ToConnectionString();
     }
     return SqlConnectionString {};
+}
+
+/// Returns a copy of `connectionString` with the values of `PWD=` and `Password=`
+/// fields replaced by `***`. Matching is case-insensitive and stops at the next
+/// `;` or end-of-string. Used by `list-profiles` so a password the user pasted
+/// into the YAML's `connectionString` field is not echoed back to the terminal.
+[[nodiscard]] std::string RedactConnectionStringSecrets(std::string_view connectionString)
+{
+    static constexpr std::array<std::string_view, 2> SensitiveKeys { "PWD", "Password" };
+
+    std::string result;
+    result.reserve(connectionString.size());
+
+    std::size_t pos = 0;
+    while (pos < connectionString.size())
+    {
+        bool redacted = false;
+        for (auto const& key: SensitiveKeys)
+        {
+            if (pos + key.size() + 1 > connectionString.size())
+                continue;
+            auto const candidate = connectionString.substr(pos, key.size());
+            if (!std::ranges::equal(candidate, key, [](char a, char b) {
+                    return std::tolower(static_cast<unsigned char>(a)) == std::tolower(static_cast<unsigned char>(b));
+                }))
+                continue;
+            if (connectionString[pos + key.size()] != '=')
+                continue;
+            // Match must start at the beginning or after a `;`.
+            if (pos != 0 && connectionString[pos - 1] != ';')
+                continue;
+            result.append(connectionString.substr(pos, key.size() + 1));
+            result.append("***");
+            auto const valueEnd = connectionString.find(';', pos + key.size() + 1);
+            pos = (valueEnd == std::string_view::npos) ? connectionString.size() : valueEnd;
+            redacted = true;
+            break;
+        }
+        if (!redacted)
+        {
+            result.push_back(connectionString[pos]);
+            ++pos;
+        }
+    }
+    return result;
 }
 
 /// Loads a profile from a `ProfileStore` and fills `options` fields that were not
@@ -768,6 +822,143 @@ bool SetupConnectionString(SqlConnectionString const& connectionString)
         std::println(std::cerr, "Warning: could not ensure SQLite database file exists for {}", defaultString.Sanitized());
     TraceBreadcrumb("SetupConnectionString: returning true");
     return true;
+}
+
+/// Implements the `list-profiles` command: enumerates every profile parsed by
+/// `Lightweight::Config::ProfileStore` and prints a compact table with the
+/// fields that are safe to display. `PWD=`/`Password=` values inside a profile's
+/// raw `connectionString` are redacted via `RedactConnectionStringSecrets`.
+///
+/// Does not open a database connection — runs alongside `resolve-secret` /
+/// `help` / `show-examples` in the early dispatch block.
+int ListProfiles(Options const& options)
+{
+    namespace Cfg = Lightweight::Config;
+
+    struct LoadedConfig
+    {
+        Cfg::ProfileStore store;
+        std::filesystem::path path;
+        bool fileExists;
+    };
+
+    auto loadConfig = [&]() -> std::expected<LoadedConfig, std::string> {
+        std::filesystem::path path =
+            options.configFile.empty() ? Cfg::ProfileStore::DefaultPath() : std::filesystem::path { options.configFile };
+
+        if (!std::filesystem::exists(path))
+        {
+            if (!options.configFile.empty())
+                return std::unexpected(std::format("Config file not found: {}", path.string()));
+            return LoadedConfig { .store = {}, .path = std::move(path), .fileExists = false };
+        }
+
+        return Cfg::ProfileStore::LoadOrDefault(path)
+            .transform([&path](Cfg::ProfileStore s) {
+                return LoadedConfig { .store = std::move(s), .path = std::move(path), .fileExists = true };
+            })
+            .transform_error([](std::string e) { return std::format("Loading config file: {}", e); });
+    };
+
+    auto const loadedConfig = loadConfig();
+    if (!loadedConfig)
+    {
+        std::println(std::cerr, "Error: {}", loadedConfig.error());
+        return EXIT_FAILURE;
+    }
+    if (!loadedConfig->fileExists)
+    {
+        std::println("No profile configuration found (looked at {}).", loadedConfig->path.string());
+        return EXIT_SUCCESS;
+    }
+    auto const& store = loadedConfig->store;
+    auto const& configPath = loadedConfig->path;
+    if (store.Empty())
+    {
+        std::println("No profiles configured in {}.", configPath.string());
+        return EXIT_SUCCESS;
+    }
+
+    // Mirrors ProfileStore::Default(): an unset DefaultProfileName falls back to
+    // the first profile so that legacy single-profile files still show a marker.
+    auto const* defaultProfile = store.Default();
+    auto const defaultName = defaultProfile != nullptr ? defaultProfile->name : std::string {};
+
+    struct Row
+    {
+        std::string name;
+        std::string defaultMarker;
+        std::string connection;
+        std::string schema;
+        std::string pluginsDir;
+    };
+
+    constexpr std::size_t MaxConnectionWidth = 60;
+
+    std::vector<Row> rows;
+    rows.reserve(store.Profiles().size());
+    for (auto const& profile: store.Profiles())
+    {
+        std::string connection;
+        if (!profile.connectionString.empty())
+            connection = RedactConnectionStringSecrets(profile.connectionString);
+        else if (!profile.dsn.empty())
+            connection = std::format("dsn={}", profile.dsn);
+
+        if (connection.size() > MaxConnectionWidth)
+            connection = std::format("{}...", std::string_view { connection }.substr(0, MaxConnectionWidth - 3));
+
+        rows.push_back(Row {
+            .name = profile.name,
+            .defaultMarker = profile.name == defaultName ? std::string { "*" } : std::string {},
+            .connection = std::move(connection),
+            .schema = profile.schema,
+            .pluginsDir = store.EffectivePluginsDir(profile).string(),
+        });
+    }
+
+    auto const widthOf = [&](std::string Row::* member, std::string_view header) {
+        auto width = header.size();
+        for (auto const& row: rows)
+            width = std::max(width, (row.*member).size());
+        return width;
+    };
+
+    auto const nameWidth = widthOf(&Row::name, "NAME");
+    auto const defaultWidth = widthOf(&Row::defaultMarker, "DEFAULT");
+    auto const connectionWidth = widthOf(&Row::connection, "CONNECTION");
+    auto const schemaWidth = widthOf(&Row::schema, "SCHEMA");
+
+    auto const c = IsStdoutTerminal() ? HelpColors::Colored() : HelpColors::Plain();
+
+    std::println("Profiles (from {}):", configPath.string());
+    std::println("");
+    std::println("{}{:<{}}  {:<{}}  {:<{}}  {:<{}}  {}{}",
+                 c.heading,
+                 "NAME",
+                 nameWidth,
+                 "DEFAULT",
+                 defaultWidth,
+                 "CONNECTION",
+                 connectionWidth,
+                 "SCHEMA",
+                 schemaWidth,
+                 "PLUGINSDIR",
+                 c.reset);
+
+    for (auto const& row: rows)
+        std::println("{:<{}}  {:<{}}  {:<{}}  {:<{}}  {}",
+                     row.name,
+                     nameWidth,
+                     row.defaultMarker,
+                     defaultWidth,
+                     row.connection,
+                     connectionWidth,
+                     row.schema,
+                     schemaWidth,
+                     row.pluginsDir);
+
+    return EXIT_SUCCESS;
 }
 
 int ListPendingMigrations(MigrationManager& manager)
@@ -2303,6 +2494,9 @@ int main(int argc, char** argv)
 
         if (options.command == "resolve-secret")
             return ResolveSecretCommand(options);
+
+        if (options.command == "list-profiles")
+            return ListProfiles(options);
 
         TraceBreadcrumb("main: setting up connection string");
         if (!SetupConnectionString(options.connectionString))
