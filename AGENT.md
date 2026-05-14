@@ -81,7 +81,7 @@ Drive behaviour with descriptor tables, not scattered `switch (server)` ladders.
 - **`std::span`** for arrays and contiguous sequences.
 - **`auto` type deduction** for readability; **structured bindings** for tuple-like returns.
 - **`clang-format` after every change** — use the project `.clang-format`.
-- **`clang-tidy` reports must be fixed at the source.** Never silence with `NOLINT` — address the underlying issue. The `linux-clang-debug` preset enables `clang-tidy` automatically.
+- **`clang-tidy` reports must be fixed at the source.** Never silence with `NOLINT` — address the underlying issue. The `clang-debug` preset enables `clang-tidy` automatically.
 - **All changes covered by unit tests.** Aim to **increase** coverage with every PR.
 - **No raw owning pointers.** Use `std::unique_ptr` / `std::shared_ptr` for ownership; RAII for resources.
 - **No new third-party dependencies** without strong justification.
@@ -100,29 +100,29 @@ Drive behaviour with descriptor tables, not scattered `switch (server)` ladders.
 CMake presets live in `CMakePresets.json`. Common entry points:
 
 ```sh
-# Linux — Clang Debug with PEDANTIC + ASan + UBSan + clang-tidy (the default agent preset)
-cmake --preset linux-clang-debug
-cmake --build --preset linux-clang-debug
-ctest --preset linux-clang-debug
+# Clang Debug with PEDANTIC + ASan + UBSan + clang-tidy (the default agent preset; Linux + macOS)
+cmake --preset clang-debug
+cmake --build --preset clang-debug
+ctest --preset clang-debug
 
 # Linux — GCC Debug
-cmake --preset linux-gcc-debug && cmake --build --preset linux-gcc-debug
+cmake --preset gcc-debug && cmake --build --preset gcc-debug
 
-# Linux — Coverage (HTML in out/build/linux-clang-coverage/)
-cmake --preset linux-clang-coverage
-cmake --build --preset linux-clang-coverage
+# Linux — Coverage (HTML in out/build/clang-coverage/)
+cmake --preset clang-coverage
+cmake --build --preset clang-coverage
 
 # Linux — sanitizer-only presets
-cmake --preset linux-clang-asan-ubsan
-cmake --preset linux-clang-tsan
+cmake --preset clang-asan-ubsan
+cmake --preset clang-tsan
 
 # Windows — MSVC CL Debug (requires VCPKG_ROOT in env)
-cmake --preset windows-cl-debug
-cmake --build --preset windows-cl-debug
+cmake --preset cl-debug
+cmake --build --preset cl-debug
 
 # Windows — clang-cl Debug
-cmake --preset windows-clangcl-debug
-cmake --build --preset windows-clangcl-debug
+cmake --preset clangcl-debug
+cmake --build --preset clangcl-debug
 ```
 
 `PEDANTIC_COMPILER_WERROR=ON` is the default for Windows presets — warnings break the build, fix them at the source.
@@ -165,9 +165,9 @@ LightweightTest --test-env=postgres
 # 4. Run the dbtool integration suite per DB. The script needs the dbtool
 #    binary and the directory holding the dummy_migration_plugin DLLs that
 #    its test fixtures dlopen. Adjust paths to your build dir (the example
-#    below is for the windows-clangcl-debug preset).
-DBTOOL=$PWD/out/build/windows-clangcl-debug/target/dbtool.exe
-PLUGINS=$PWD/out/build/windows-clangcl-debug/tests/plugins
+#    below is for the clangcl-debug preset).
+DBTOOL=$PWD/out/build/clangcl-debug/target/dbtool.exe
+PLUGINS=$PWD/out/build/clangcl-debug/tests/plugins
 python3 src/tests/test_dbtool.py --dbtool "$DBTOOL" --plugins-dir "$PLUGINS" --test-env sqlite3
 python3 src/tests/test_dbtool.py --dbtool "$DBTOOL" --plugins-dir "$PLUGINS" --test-env mssql2022
 python3 src/tests/test_dbtool.py --dbtool "$DBTOOL" --plugins-dir "$PLUGINS" --test-env postgres
@@ -205,14 +205,14 @@ Add the capability check to `SqlQueryFormatter` (e.g., `bool SupportsX() const`)
 ## Workflow (post-implementation checklist)
 
 1. Run `clang-format` on every changed `.hpp` / `.cpp` (project `.clang-format`).
-2. Build the relevant preset (`linux-clang-debug` for full coverage of warnings + clang-tidy + ASan/UBSan; `windows-clangcl-debug` if Windows-side changes). Resolve all warnings — `PEDANTIC_COMPILER_WERROR` is on.
+2. Build the relevant preset (`clang-debug` for full coverage of warnings + clang-tidy + ASan/UBSan; `clangcl-debug` if Windows-side changes). Resolve all warnings — `PEDANTIC_COMPILER_WERROR` is on.
 3. **Run the full test suite against every supported database.** At minimum: `sqlite3`, `mssql2022`, `postgres`. Use `scripts/tests/docker-databases.py --start --wait mssql2022 postgres` to spin up the non-SQLite containers. Document any DB skipped with the reason.
-4. Run `clang-tidy` (it runs automatically under `linux-clang-debug`); fix every finding at the source — never `NOLINT`.
+4. Run `clang-tidy` (it runs automatically under `clang-debug`); fix every finding at the source — never `NOLINT`.
 5. If touching public headers or user-visible behaviour, update `docs/` (`data-binder.md`, `sql-migrations.md`, `dbtool.md`, `usage.md`, `how-to.md`, `best-practices.md`, etc.).
-6. Run the sanitizer presets when relevant (`linux-clang-asan-ubsan`, `linux-clang-tsan`) — required for changes touching pools, threading, or raw buffer arithmetic.
+6. Run the sanitizer presets when relevant (`clang-asan-ubsan`, `clang-tsan`) — required for changes touching pools, threading, or raw buffer arithmetic.
 7. Execute `/simplify` to reduce duplication and code-quality issues. If the simplify pass surfaces issues out of scope, **ask** the user whether to address them in this PR; if yes, include them; if no, ignore and move on.
 8. In the PR / commit summary include:
    - **Performance impact** — with measurements where possible (use `src/benchmark/` if applicable).
    - **Risk assessment** — what could break per DBMS, threading, ABI, ODBC version compatibility.
-   - **Code coverage** — results from `linux-clang-coverage` if coverage was a goal.
+   - **Code coverage** — results from `clang-coverage` if coverage was a goal.
    - **Databases tested** — explicit list with versions (`sqlite3`, `mssql2022 (Docker)`, `postgres (Docker 16.4)`).

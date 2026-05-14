@@ -15,9 +15,9 @@
 #   - genhtml (for HTML report generation)
 #
 # Usage:
-#   cmake --preset linux-clang-coverage
-#   cmake --build --preset linux-clang-coverage
-#   cmake --build --preset linux-clang-coverage --target coverage
+#   cmake --preset clang-coverage
+#   cmake --build --preset clang-coverage
+#   cmake --build --preset clang-coverage --target coverage
 
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
 

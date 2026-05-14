@@ -36,12 +36,12 @@ jobs:
             libstdc++-14-dev
 
       - name: Configure CMake
-        run: cmake --preset linux-gcc-debug -D CMAKE_CXX_COMPILER=g++-14
+        run: cmake --preset gcc-debug -D CMAKE_CXX_COMPILER=g++-14
 
       - name: Build project
-        run: cmake --build --preset linux-gcc-debug -- -j$(nproc)
+        run: cmake --build --preset gcc-debug -- -j$(nproc)
 
       - name: Verify build
         run: |
           echo "Build completed successfully"
-          ls -la out/build/linux-gcc-debug/src/tests/LightweightTest
+          ls -la out/build/gcc-debug/src/tests/LightweightTest

@@ -77,23 +77,23 @@ lup2dbtool guarantees:
 
 1. Generate migrations using lup2dbtool:
 ```bash
-./out/build/linux-clang-debug/src/tools/lup2dbtool/lup2dbtool \
+./out/build/clang-debug/src/tools/lup2dbtool/lup2dbtool \
     --input-dir /path/to/legacy_sql_migrations_dir \
     --output ./src/tools/LupMigrationsPlugin/generated/GeneratedMigrations.cpp
 ```
 
 2. Build the plugin:
 ```bash
-cmake --build ./out/build/linux-clang-debug --target LupMigrationsPlugin
+cmake --build ./out/build/clang-debug --target LupMigrationsPlugin
 ```
 
-3. The plugin is output to `out/build/linux-clang-debug/plugins/LupMigrationsPlugin.so`
+3. The plugin is output to `out/build/clang-debug/plugins/LupMigrationsPlugin.so`
 
 ### Using with dbtool
 
 ```bash
-./out/build/linux-clang-debug/src/tools/dbtool/dbtool migrate \
-    --plugins-dir ./out/build/linux-clang-debug/plugins \
+./out/build/clang-debug/src/tools/dbtool/dbtool migrate \
+    --plugins-dir ./out/build/clang-debug/plugins \
     --connection-string "DRIVER=SQLite3;Database=lup.db"
 ```
 

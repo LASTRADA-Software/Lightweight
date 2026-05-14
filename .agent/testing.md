@@ -67,10 +67,10 @@ python3 src/tests/test_dbtool.py --dbtool … --test-env postgres
 
 | Preset | What it gives you |
 |--------|-------------------|
-| `linux-clang-debug` | ASan + UBSan + clang-tidy + pedantic warnings |
-| `linux-clang-asan-ubsan` | ASan + UBSan, no tidy (faster build for repro) |
-| `linux-clang-tsan` | ThreadSanitizer (use for pool/migration-lock changes) |
-| `linux-clang-coverage` / `linux-gcc-coverage` | LCOV / gcov |
+| `clang-debug` | ASan + UBSan + clang-tidy + pedantic warnings |
+| `clang-asan-ubsan` | ASan + UBSan, no tidy (faster build for repro) |
+| `clang-tsan` | ThreadSanitizer (use for pool/migration-lock changes) |
+| `clang-coverage` / `gcc-coverage` | LCOV / gcov |
 
 CI runs valgrind on the SQLite3 matrix entry only:
 

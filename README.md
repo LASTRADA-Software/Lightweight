@@ -260,7 +260,7 @@ NamingConvention: CamelCase
 Now you can configure cmake to compile example
 
 ``` sh
-cmake --preset linux-clang-debug -DLIGHWEIGHT_EXAMPLE=ON -B build
+cmake --preset clang-debug -DLIGHWEIGHT_EXAMPLE=ON -B build
 ```
 
 Finally, compile and run the example

@@ -5,7 +5,7 @@
             "adapter": "vscode-cpptools",
             "configuration": {
                 "request": "launch",
-                "program": "${workspaceRoot}/out/build/linux-clang-debug/src/tests/LightweightTest",
+                "program": "${workspaceRoot}/out/build/clang-debug/src/tests/LightweightTest",
                 "args": [
                     "--trace-sql", "BelongsTo"
                 ],
@@ -25,7 +25,7 @@
             "adapter": "vscode-cpptools",
             "configuration": {
                 "request": "launch",
-                "program": "${workspaceRoot}/out/build/linux-clang-debug/src/tests/LightweightTest",
+                "program": "${workspaceRoot}/out/build/clang-debug/src/tests/LightweightTest",
                 "args": [
                 ],
                 "environment": [
@@ -50,7 +50,7 @@
             "adapter": "vscode-cpptools",
             "configuration": {
                 "request": "launch",
-                "program": "${workspaceRoot}/out/build/linux-clang-debug/src/tests/LightweightTest",
+                "program": "${workspaceRoot}/out/build/clang-debug/src/tests/LightweightTest",
                 "args": [
                 ],
                 "environment": [
@@ -75,7 +75,7 @@
             "adapter": "vscode-cpptools",
             "configuration": {
                 "request": "launch",
-                "program": "${workspaceRoot}/out/build/linux-clang-debug/src/tests/LightweightTest",
+                "program": "${workspaceRoot}/out/build/clang-debug/src/tests/LightweightTest",
                 "args": [
                 ],
                 "environment": [
