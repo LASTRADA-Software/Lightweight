@@ -119,7 +119,7 @@ enable_testing()
 
 # Optional extra arguments to pass to test executables
 # Usage: cmake -DLIGHTWEIGHT_TEST_ARGS="--test-env=sqlite3" ...
-# Or:    ctest --preset linux-clang-debug (after configuring with the above)
+# Or:    ctest --preset clang-debug (after configuring with the above)
 set(LIGHTWEIGHT_TEST_ARGS "" CACHE STRING "Extra arguments to pass to test executables")
 separate_arguments(LIGHTWEIGHT_TEST_ARGS_LIST NATIVE_COMMAND "${LIGHTWEIGHT_TEST_ARGS}")
 

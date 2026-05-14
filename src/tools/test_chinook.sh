@@ -6,7 +6,7 @@
 set -e
 
 PROJECT_ROOT="$(realpath $(dirname "$0")/../..)"
-BUILD_DIR="${PROJECT_ROOT}/out/build/linux-clang-debug"
+BUILD_DIR="${PROJECT_ROOT}/out/build/clang-debug"
 DDL2CPP="${DDL2CPP:-${BUILD_DIR}/src/tools/ddl2cpp}"
 TEST_ENV=""
 

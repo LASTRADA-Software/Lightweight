@@ -31,12 +31,12 @@ This file is the canonical, project-internal C++ ruleset. Contributors and agent
 ### Forbidden constructs
 - **C-style loops are forbidden.** Use range-based `for` and the views above.
 - **No raw owning pointers.** `std::unique_ptr` / `std::shared_ptr` for ownership, RAII for resources.
-- **No `NOLINT` suppressions** — fix the underlying issue clang-tidy reports. The `linux-clang-debug` preset enables `clang-tidy` automatically.
+- **No `NOLINT` suppressions** — fix the underlying issue clang-tidy reports. The `clang-debug` preset enables `clang-tidy` automatically.
 - **No new third-party dependencies** without strong justification — vcpkg manifest at `vcpkg.json` lists what we already accept.
 
 ### Tooling
 - Run **`clang-format`** on every changed file (project `.clang-format` is authoritative).
-- Build with the matching preset (`linux-clang-debug` / `windows-clangcl-debug`); resolve every warning — `PEDANTIC_COMPILER_WERROR=ON`.
+- Build with the matching preset (`clang-debug` / `clangcl-debug`); resolve every warning — `PEDANTIC_COMPILER_WERROR=ON`.
 - All changes must be covered by unit tests; aim to **increase** code coverage with every PR.
 
 ## 2. Lightweight-specific patterns
@@ -96,7 +96,7 @@ The library uses C++20 member pointers by default and supports a C++26 reflectio
 
 - `clang-format` clean
 - `clang-tidy` clean (no `NOLINT`s added)
-- `linux-clang-debug` builds with no warnings
+- `clang-debug` builds with no warnings
 - Tests run green against `sqlite3`, `mssql2022`, `postgres`
 - New public APIs have doxygen + `[[nodiscard]]` where relevant
 - No new `if (server == …)` outside `QueryFormatter/`

@@ -17,11 +17,11 @@ Key features:
 Build dbtool as part of the Lightweight project:
 
 ```bash
-cmake --preset linux-clang-release
-cmake --build out/build/linux-clang-release --target dbtool
+cmake --preset clang-release
+cmake --build out/build/clang-release --target dbtool
 ```
 
-The binary will be located at `out/build/linux-clang-release/src/tools/dbtool/dbtool`.
+The binary will be located at `out/build/clang-release/src/tools/dbtool/dbtool`.
 
 ## Configuration
 

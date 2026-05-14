@@ -37,8 +37,8 @@
                 "CMAKE_CXX_COMPILER": "cl"
             }
         },
-        { "name": "windows-cl-debug",   "inherits": ["windows-cl-common"], "displayName": "Windows - MSVC CL - Debug"   },
-        { "name": "windows-cl-release", "inherits": ["windows-cl-common"], "displayName": "Windows - MSVC CL - Release" },
+        { "name": "cl-debug",   "inherits": ["windows-cl-common"], "displayName": "MSVC CL Debug"   },
+        { "name": "cl-release", "inherits": ["windows-cl-common"], "displayName": "MSVC CL Release" },
         {
             "name": "windows-clangcl-common",
             "hidden": true,
@@ -48,10 +48,9 @@
                 "CMAKE_C_COMPILER": "clang-cl"
             }
         },
-        { "name": "windows-clangcl-debug",  "inherits": ["windows-clangcl-common"], "displayName": "Windows - MSVC ClangCL - Debug",   "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug"   } },
-        { "name": "windows-clangcl-release","inherits": ["windows-clangcl-common"], "displayName": "Windows - MSVC ClangCL - Release", "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" } },
+        { "name": "clangcl-debug",  "inherits": ["windows-clangcl-common"], "displayName": "MSVC ClangCL Debug",   "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug"   } },
+        { "name": "clangcl-release","inherits": ["windows-clangcl-common"], "displayName": "MSVC ClangCL Release", "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" } },
         { "name": "linux-common",           "hidden": true, "inherits": ["common"], "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" } },
-        { "name": "macos-common",           "hidden": true, "inherits": ["common"], "condition": { "lhs": "${hostSystemName}", "type": "equals", "rhs": "Darwin" } },
         { "name": "debug",                  "hidden": true, "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" } },
         { "name": "release",                "hidden": true, "cacheVariables": { "CMAKE_BUILD_TYPE": "RelWithDebInfo" } },
         { "name": "pedantic",               "hidden": true, "cacheVariables": { "PEDANTIC_COMPILER": "ON", "PEDANTIC_COMPILER_WERROR": "ON" } },
@@ -61,60 +60,86 @@
         { "name": "linux-common-release",   "hidden": true, "inherits": "release",      "cacheVariables": { "CMAKE_INSTALL_PREFIX": "/usr/local" } },
         { "name": "linux-clang",            "hidden": true, "inherits": "linux-common", "cacheVariables": { "CMAKE_CXX_COMPILER": "clang++" } },
         { "name": "linux-gcc",              "hidden": true, "inherits": "linux-common", "cacheVariables": { "CMAKE_CXX_COMPILER": "g++" } },
-        { "name": "linux-clang-release",    "displayName": "Linux (Clang) Release", "inherits": ["linux-clang", "linux-common-release"] },
-        { "name": "linux-clang-debug",      "displayName": "Linux (Clang) Debug", "inherits": ["linux-clang", "debug", "pedantic", "asan-ubsan"], "cacheVariables": { "ENABLE_TIDY": "ON" } },
-        { "name": "linux-gcc-release",      "displayName": "Linux (GCC) Release", "inherits": ["linux-gcc", "linux-common-release"] },
-        { "name": "linux-gcc-debug",        "displayName": "Linux (GCC) Debug", "inherits": ["linux-gcc", "debug", "pedantic"] },
-        { "name": "linux-clang-asan-ubsan", "displayName": "Linux (Clang) ASan+UBSan", "inherits": ["linux-clang", "debug", "asan-ubsan"] },
-        { "name": "linux-clang-tsan",       "displayName": "Linux (Clang) ThreadSanitizer", "inherits": ["linux-clang", "debug", "tsan"] },
-        { "name": "linux-clang-coverage",   "displayName": "Linux (Clang) Coverage", "inherits": ["linux-clang", "debug", "coverage"] },
-        { "name": "linux-gcc-coverage",     "displayName": "Linux (GCC) Coverage", "inherits": ["linux-gcc", "debug", "coverage"] },
-        { "name": "macos-release",          "displayName": "MacOS Release", "inherits": ["macos-common", "release"] },
-        { "name": "macos-debug",            "displayName": "MacOS Debug", "inherits": ["macos-common", "debug"] }
+        {
+            "name": "clang-release",
+            "displayName": "Clang Release",
+            "inherits": ["common", "release"],
+            "condition": {
+                "type": "anyOf",
+                "conditions": [
+                    { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+                    { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+                ]
+            },
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++",
+                "CMAKE_INSTALL_PREFIX": "/usr/local"
+            }
+        },
+        {
+            "name": "clang-debug",
+            "displayName": "Clang Debug",
+            "inherits": ["common", "debug", "pedantic", "asan-ubsan"],
+            "condition": {
+                "type": "anyOf",
+                "conditions": [
+                    { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+                    { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+                ]
+            },
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++",
+                "ENABLE_TIDY": "ON"
+            }
+        },
+        { "name": "gcc-release",      "displayName": "GCC Release", "inherits": ["linux-gcc", "linux-common-release"] },
+        { "name": "gcc-debug",        "displayName": "GCC Debug", "inherits": ["linux-gcc", "debug", "pedantic"] },
+        { "name": "clang-asan-ubsan", "displayName": "Clang ASan+UBSan", "inherits": ["linux-clang", "debug", "asan-ubsan"] },
+        { "name": "clang-tsan",       "displayName": "Clang ThreadSanitizer", "inherits": ["linux-clang", "debug", "tsan"] },
+        { "name": "clang-coverage",   "displayName": "Clang Coverage", "inherits": ["linux-clang", "debug", "coverage"] },
+        { "name": "gcc-coverage",     "displayName": "GCC Coverage", "inherits": ["linux-gcc", "debug", "coverage"] }
     ],
     "buildPresets": [
-        { "name": "windows-cl-debug",        "displayName": "Windows - MSVC CL - Debug",        "configurePreset": "windows-cl-debug",        "configuration": "Debug" },
-        { "name": "windows-cl-release",      "displayName": "Windows - MSVC CL - Release",      "configurePreset": "windows-cl-release",      "configuration": "Release" },
-        { "name": "windows-clangcl-debug",   "displayName": "Windows - MSVC ClangCL - Debug",   "configurePreset": "windows-clangcl-debug",   "configuration": "Debug" },
-        { "name": "windows-clangcl-release", "displayName": "Windows - MSVC ClangCL - Release", "configurePreset": "windows-clangcl-release", "configuration": "Release" },
-        { "name": "linux-clang-debug",       "displayName": "Linux - Clang - Debug", "configurePreset": "linux-clang-debug" },
-        { "name": "linux-clang-release",     "displayName": "Linux - Clang - RelWithDebInfo", "configurePreset": "linux-clang-release" },
-        { "name": "linux-gcc-debug",         "displayName": "Linux - GCC - Debug", "configurePreset": "linux-gcc-debug" },
-        { "name": "linux-gcc-release",       "displayName": "Linux - GCC - RelWithDebInfo", "configurePreset": "linux-gcc-release" },
-        { "name": "macos-debug",             "displayName": "MacOS - Debug", "configurePreset": "macos-debug" },
-        { "name": "macos-release",           "displayName": "MacOS - RelWithDebInfo", "configurePreset": "macos-release" },
-        { "name": "linux-clang-asan-ubsan",  "displayName": "Linux - Clang - ASan+UBSan", "configurePreset": "linux-clang-asan-ubsan" },
-        { "name": "linux-clang-tsan",        "displayName": "Linux - Clang - ThreadSanitizer", "configurePreset": "linux-clang-tsan" },
-        { "name": "linux-clang-coverage",    "displayName": "Linux - Clang - Coverage", "configurePreset": "linux-clang-coverage" },
-        { "name": "linux-gcc-coverage",      "displayName": "Linux - GCC - Coverage", "configurePreset": "linux-gcc-coverage" }
+        { "name": "cl-debug",        "displayName": "MSVC CL Debug",        "configurePreset": "cl-debug",        "configuration": "Debug" },
+        { "name": "cl-release",      "displayName": "MSVC CL Release",      "configurePreset": "cl-release",      "configuration": "Release" },
+        { "name": "clangcl-debug",   "displayName": "MSVC ClangCL Debug",   "configurePreset": "clangcl-debug",   "configuration": "Debug" },
+        { "name": "clangcl-release", "displayName": "MSVC ClangCL Release", "configurePreset": "clangcl-release", "configuration": "Release" },
+        { "name": "clang-debug",       "displayName": "Clang Debug", "configurePreset": "clang-debug" },
+        { "name": "clang-release",     "displayName": "Clang RelWithDebInfo", "configurePreset": "clang-release" },
+        { "name": "gcc-debug",         "displayName": "GCC Debug", "configurePreset": "gcc-debug" },
+        { "name": "gcc-release",       "displayName": "GCC RelWithDebInfo", "configurePreset": "gcc-release" },
+        { "name": "clang-asan-ubsan",  "displayName": "Clang ASan+UBSan", "configurePreset": "clang-asan-ubsan" },
+        { "name": "clang-tsan",        "displayName": "Clang ThreadSanitizer", "configurePreset": "clang-tsan" },
+        { "name": "clang-coverage",    "displayName": "Clang Coverage", "configurePreset": "clang-coverage" },
+        { "name": "gcc-coverage",      "displayName": "GCC Coverage", "configurePreset": "gcc-coverage" }
     ],
     "testPresets": [
-        { "name": "windows-cl-debug", "configurePreset": "windows-cl-debug", "configuration": "Debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "windows-cl-release", "configurePreset": "windows-cl-release", "configuration": "Release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "windows-clangcl-debug", "configurePreset": "windows-clangcl-debug", "configuration": "Debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "windows-clangcl-release", "configurePreset": "windows-clangcl-release", "configuration": "Release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "linux-gcc-debug", "configurePreset": "linux-gcc-debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "linux-gcc-release", "configurePreset": "linux-gcc-release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "linux-clang-release", "configurePreset": "linux-clang-release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "linux-clang-asan-ubsan", "configurePreset": "linux-clang-asan-ubsan", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "linux-clang-tsan", "configurePreset": "linux-clang-tsan", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "linux-clang-coverage", "configurePreset": "linux-clang-coverage", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
-        { "name": "linux-gcc-coverage", "configurePreset": "linux-gcc-coverage", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } }
+        { "name": "cl-debug", "configurePreset": "cl-debug", "configuration": "Debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "cl-release", "configurePreset": "cl-release", "configuration": "Release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "clangcl-debug", "configurePreset": "clangcl-debug", "configuration": "Debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "clangcl-release", "configurePreset": "clangcl-release", "configuration": "Release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "gcc-debug", "configurePreset": "gcc-debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "gcc-release", "configurePreset": "gcc-release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "clang-debug", "configurePreset": "clang-debug", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "clang-release", "configurePreset": "clang-release", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "clang-asan-ubsan", "configurePreset": "clang-asan-ubsan", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "clang-tsan", "configurePreset": "clang-tsan", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "clang-coverage", "configurePreset": "clang-coverage", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } },
+        { "name": "gcc-coverage", "configurePreset": "gcc-coverage", "output": {"outputOnFailure": true}, "execution": { "noTestsAction": "error", "stopOnFailure": true } }
     ],
     "packagePresets": [
         {
-            "name": "linux-gcc-debug",
+            "name": "gcc-debug",
             "packageName": "Lightweight",
-            "packageDirectory": "${sourceDir}/out/package/linux-gcc-debug",
-            "configurePreset": "linux-gcc-debug",
+            "packageDirectory": "${sourceDir}/out/package/gcc-debug",
+            "configurePreset": "gcc-debug",
             "generators": [ "TGZ" ]
         },
         {
-            "name": "linux-gcc-release",
+            "name": "gcc-release",
             "packageName": "Lightweight",
-            "packageDirectory": "${sourceDir}/out/package/linux-gcc-debug",
-            "configurePreset": "linux-gcc-release",
+            "packageDirectory": "${sourceDir}/out/package/gcc-debug",
+            "configurePreset": "gcc-release",
             "generators": [ "TGZ" ]
         }
     ]
