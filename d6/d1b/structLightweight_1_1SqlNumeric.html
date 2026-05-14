@@ -159,9 +159,8 @@ constexpr <a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html"
 <tr class="memitem:a3f58e8cd8937cd26664f72ecd5ff07e2" id="r_a3f58e8cd8937cd26664f72ecd5ff07e2"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a3f58e8cd8937cd26664f72ecd5ff07e2">ToString</a> () const</td></tr>
 <tr class="memdesc:a3f58e8cd8937cd26664f72ecd5ff07e2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Converts the numeric to a string.  <br /></td></tr>
 <tr class="separator:a3f58e8cd8937cd26664f72ecd5ff07e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a69ff90cbcfc6a3f3c36efe1341cd8bdf" id="r_a69ff90cbcfc6a3f3c36efe1341cd8bdf"><td class="memItemLeft" align="right" valign="top">constexpr LIGHTWEIGHT_FORCE_INLINE std::weak_ordering&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a69ff90cbcfc6a3f3c36efe1341cd8bdf">operator&lt;=&gt;</a> (<a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a> const &amp;other) const noexcept</td></tr>
-<tr class="memdesc:a69ff90cbcfc6a3f3c36efe1341cd8bdf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Three-way comparison operator.  <br /></td></tr>
-<tr class="separator:a69ff90cbcfc6a3f3c36efe1341cd8bdf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8e2884a9805790b251cd70e203063fd1" id="r_a8e2884a9805790b251cd70e203063fd1"><td class="memItemLeft" align="right" valign="top">constexpr LIGHTWEIGHT_FORCE_INLINE std::partial_ordering&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a8e2884a9805790b251cd70e203063fd1">operator&lt;=&gt;</a> (<a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a> const &amp;other) const noexcept</td></tr>
+<tr class="separator:a8e2884a9805790b251cd70e203063fd1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1aea263acd9929ecb90bb1db1f3ce4d1" id="r_a1aea263acd9929ecb90bb1db1f3ce4d1"><td class="memTemplParams" colspan="2">template&lt;std::size_t OtherPrecision, std::size_t OtherScale&gt; </td></tr>
 <tr class="memitem:a1aea263acd9929ecb90bb1db1f3ce4d1"><td class="memTemplItemLeft" align="right" valign="top">constexpr LIGHTWEIGHT_FORCE_INLINE bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html#a1aea263acd9929ecb90bb1db1f3ce4d1">operator==</a> (<a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a>&lt; OtherPrecision, OtherScale &gt; const &amp;other) const noexcept</td></tr>
 <tr class="memdesc:a1aea263acd9929ecb90bb1db1f3ce4d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equality comparison operator.  <br /></td></tr>
@@ -399,7 +398,7 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00053">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::sqlValue</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00113">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00152">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator float()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00183">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator==()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00152">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator float()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00188">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator==()</a>.</p>
 
 </div>
 </div>
@@ -434,7 +433,7 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 <p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00053">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::sqlValue</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00113">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToUnscaledValue()</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00158">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator double()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00176">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator&lt;=&gt;()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00158">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator double()</a>, and <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00180">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::operator&lt;=&gt;()</a>.</p>
 
 </div>
 </div>
@@ -605,8 +604,8 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
 
 </div>
 </div>
-<a id="a69ff90cbcfc6a3f3c36efe1341cd8bdf" name="a69ff90cbcfc6a3f3c36efe1341cd8bdf"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a69ff90cbcfc6a3f3c36efe1341cd8bdf">&#9670;&#160;</a></span>operator&lt;=&gt;()</h2>
+<a id="a8e2884a9805790b251cd70e203063fd1" name="a8e2884a9805790b251cd70e203063fd1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8e2884a9805790b251cd70e203063fd1">&#9670;&#160;</a></span>operator&lt;=&gt;()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -617,7 +616,7 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr LIGHTWEIGHT_FORCE_INLINE std::weak_ordering <a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">Lightweight::SqlNumeric</a>&lt; ThePrecision, TheScale &gt;::operator&lt;=&gt; </td>
+          <td class="memname">constexpr LIGHTWEIGHT_FORCE_INLINE std::partial_ordering <a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">Lightweight::SqlNumeric</a>&lt; ThePrecision, TheScale &gt;::operator&lt;=&gt; </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a>&lt; ThePrecision, TheScale &gt; const &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
@@ -630,10 +629,10 @@ template&lt;std::size_t ThePrecision, std::size_t TheScale&gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Three-way comparison operator.</p>
+<p>Comparing two <code><a class="el" href="../../d6/d1b/structLightweight_1_1SqlNumeric.html">SqlNumeric</a></code> values yields <code>std::partial_ordering</code> because the underlying conversion to <code>double</code> admits NaN inputs. In practice every value produced by this type is finite, so the result is totally ordered. </p>
 
-<p>Three-way comparison operator. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00176">176</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00180">180</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00140">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToDouble()</a>.</p>
 
@@ -669,7 +668,7 @@ template&lt;std::size_t OtherPrecision, std::size_t OtherScale&gt; </div>
 
 <p>Equality comparison operator. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00183">183</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00188">188</a> of file <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html">SqlNumeric.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d1/d26/SqlNumeric_8hpp_source.html#l00134">Lightweight::SqlNumeric&lt; ThePrecision, TheScale &gt;::ToFloat()</a>.</p>
 

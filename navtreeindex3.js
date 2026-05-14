@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a19e5bb98b44338dc3c316fd057a213c2":[10,0,4,0],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a1e03f8cab91fedfdd8cf11c5c5e57adf":[10,0,4,15],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a1fc1b3ec6aaa8d6a43f91185ad2370ab":[10,0,4,23],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a26b2eef637621818b9a40a44bc545390":[10,0,4,12],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10":[12,0,0,57,4],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#abccc1073f563291d8caf94685890f64d":[12,0,0,57,1],
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html":[12,0,0,1,7],
-"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a066abf8c9d7c35374587d6fe850d8d2d":[12,0,0,1,7,3],
-"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a537031b2f22d3a8b8372965543208aee":[12,0,0,1,7,0]
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a066abf8c9d7c35374587d6fe850d8d2d":[12,0,0,1,7,3]
 };
