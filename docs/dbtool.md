@@ -62,6 +62,26 @@ The effective plugin directory for a given run resolves as: `--plugins-dir`
 CLI option → profile's own `pluginsDir` → top-level `defaultPluginsDir` →
 current working directory.
 
+### Inspecting configured profiles
+
+Use `list-profiles` to enumerate every profile parsed from the configuration
+file. The command does not open a database connection, so it works against
+any platform. Values of `PWD=` / `Password=` inside a profile's raw
+`connectionString` are redacted to `***` in the output:
+
+```bash
+$ dbtool list-profiles
+Profiles (from /home/me/.config/dbtool/dbtool.yml):
+
+NAME  DEFAULT  CONNECTION                            SCHEMA  PLUGINSDIR
+prod  *        DRIVER={ODBC Driver 18 for SQL Se...  dbo     ./migrations
+dev            DRIVER=SQLite3;Database=dev.db                ./dev-plugins
+```
+
+Use `--config <FILE>` to inspect a non-default configuration file. With no
+config file present at the default location, `list-profiles` prints a
+friendly notice and exits successfully.
+
 ### Database-Specific Connection Strings
 
 **SQLite:**

@@ -737,9 +737,8 @@ namespace SqlMigration
 ///
 /// @ingroup SqlMigration
 #define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)             \
-    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */                       \
     extern "C" LIGHTWEIGHT_EXPORT void LightweightMigrationPluginPostInit( \
-        Lightweight::SqlConnection& connArg, Lightweight::SqlMigration::MigrationManager& mgrArg)
+        Lightweight::SqlConnection&(connArg), Lightweight::SqlMigration::MigrationManager&(mgrArg))
 
     /// Represents a single unique SQL migration.
     ///
