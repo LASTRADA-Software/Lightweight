@@ -2333,9 +2333,11 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
             auto stmt = SqlStatement { conn };
             (void) stmt.ExecuteDirect(std::format("DROP TABLE IF EXISTS dbo.{};", probeTable));
         }
-        catch (...)
+        catch (std::exception const& e)
         {
-            // Best-effort.
+            // Best-effort: cleanup ahead of CREATE TABLE; ignore failures (e.g., the table
+            // never existed) but surface the reason so a regression in DROP isn't silent.
+            UNSCOPED_INFO(std::format("probe cleanup ignored exception: {}", e.what()));
         }
     };
     cleanup(); // pre-clean in case a prior test crashed mid-cycle
