@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#adf28af73f0aa2dd90a6691179f11e6d5":[12,0,0,1,7,2],
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5":[12,0,0,1,7,1],
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#af43bd7f7afe738d0d1b0cd4b0e6601ba":[12,0,0,1,7,4],
 "da/d15/classLightweight_1_1UniqueNameBuilder.html":[12,0,0,77],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html":[10,4,16],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a303553e0c2089a553fd561f196cc039e":[10,4,16,0],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html#a4d5476b81f6e3efc5057c49d797a9f07":[10,4,16,1],
-"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970":[10,4,16,2],
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html":[10,4,19]
+"dd/d75/structLightweight_1_1SqlAlterTablePlan.html#ace007f34324de43ff2ab887fbe321970":[10,4,16,2]
 };

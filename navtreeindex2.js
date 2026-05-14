@@ -5,8 +5,9 @@ var NAVTREEINDEX2 =
 "d5/dc4/dbtool.html#connection-string":[7,2,0],
 "d5/dc4/dbtool.html#creating-a-migration-plugin":[7,6,0],
 "d5/dc4/dbtool.html#custom-default-schema---schema":[7,3,0,0],
-"d5/dc4/dbtool.html#database-specific-connection-strings":[7,2,2],
+"d5/dc4/dbtool.html#database-specific-connection-strings":[7,2,3],
 "d5/dc4/dbtool.html#full-migration-workflow":[7,7,0],
+"d5/dc4/dbtool.html#inspecting-configured-profiles":[7,2,2],
 "d5/dc4/dbtool.html#installation":[7,1],
 "d5/dc4/dbtool.html#list-applied":[7,3,3],
 "d5/dc4/dbtool.html#list-pending":[7,3,2],
@@ -248,6 +249,5 @@ var NAVTREEINDEX2 =
 "d7/d9a/classLightweight_1_1SqlDynamicString.html":[10,0,4],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a02be3f28ff302516bb8a6690464820f7":[10,0,4,29],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a10dd315378c94f97d7a3c7431ba66a63":[10,0,4,36],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a19e5bb98b44338dc3c316fd057a213c2":[10,0,4,0],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a1e03f8cab91fedfdd8cf11c5c5e57adf":[10,0,4,15]
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a19e5bb98b44338dc3c316fd057a213c2":[10,0,4,0]
 };

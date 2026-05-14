@@ -103,6 +103,7 @@ var NAVTREE =
       [ "Configuration", "d5/dc4/dbtool.html#configuration", [
         [ "Connection String", "d5/dc4/dbtool.html#connection-string", null ],
         [ "Configuration File Format", "d5/dc4/dbtool.html#configuration-file-format", null ],
+        [ "Inspecting configured profiles", "d5/dc4/dbtool.html#inspecting-configured-profiles", null ],
         [ "Database-Specific Connection Strings", "d5/dc4/dbtool.html#database-specific-connection-strings", null ]
       ] ],
       [ "Migration Commands", "d5/dc4/dbtool.html#migration-commands", [
@@ -214,10 +215,10 @@ var NAVTREEINDEX =
 "annotated.html",
 "d2/dd0/structLightweight_1_1Field.html#adb44c1c3efd47294593bc757a7c1734c",
 "d5/dc4/dbtool.html#configuration-file-format",
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a1fc1b3ec6aaa8d6a43f91185ad2370ab",
-"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#aeb580bb715d992f63c551846b3965ff5",
-"dd/d76/structLightweight_1_1SqlInsertDataPlan.html#a0428d0b2e06f4760a9bc3c31cff19327",
-"df/d63/classLightweight_1_1HasOneThrough.html#a88e0758eca25880d871ce71459df1684"
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a1e03f8cab91fedfdd8cf11c5c5e57adf",
+"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#adf28af73f0aa2dd90a6691179f11e6d5",
+"dd/d76/structLightweight_1_1SqlInsertDataPlan.html",
+"df/d63/classLightweight_1_1HasOneThrough.html#a85482fc436b647aeb804d59f246afb2f"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

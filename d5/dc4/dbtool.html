@@ -137,6 +137,16 @@ Configuration File Format</h2>
 <div class="line">    pluginsDir: ./dev-plugins       # per-profile override</div>
 <div class="line">    connectionString: &quot;DRIVER=SQLite3;Database=dev.db&quot;</div>
 </div><!-- fragment --><p>The effective plugin directory for a given run resolves as: <code>--plugins-dir</code> CLI option → profile's own <code>pluginsDir</code> → top-level <code>defaultPluginsDir</code> → current working directory.</p>
+<h2><a class="anchor" id="inspecting-configured-profiles"></a>
+Inspecting configured profiles</h2>
+<p>Use <code>list-profiles</code> to enumerate every profile parsed from the configuration file. The command does not open a database connection, so it works against any platform. Values of <code>PWD=</code> / <code>Password=</code> inside a profile's raw <code>connectionString</code> are redacted to <code>***</code> in the output:</p>
+<div class="fragment"><div class="line">$ dbtool list-profiles</div>
+<div class="line">Profiles (from /home/me/.config/dbtool/dbtool.yml):</div>
+<div class="line"> </div>
+<div class="line">NAME  DEFAULT  CONNECTION                            SCHEMA  PLUGINSDIR</div>
+<div class="line">prod  *        DRIVER={ODBC Driver 18 for SQL Se...  dbo     ./migrations</div>
+<div class="line">dev            DRIVER=SQLite3;Database=dev.db                ./dev-plugins</div>
+</div><!-- fragment --><p>Use <code>--config &lt;FILE&gt;</code> to inspect a non-default configuration file. With no config file present at the default location, <code>list-profiles</code> prints a friendly notice and exits successfully.</p>
 <h2><a class="anchor" id="database-specific-connection-strings"></a>
 Database-Specific Connection Strings</h2>
 <p><b>SQLite:</b> </p><div class="fragment"><div class="line">DRIVER=SQLite3;Database=/path/to/database.db</div>
