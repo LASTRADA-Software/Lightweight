@@ -117,3 +117,32 @@ an additional copy operation.
 The `Inspect()` function is used to provide a human-readable representation of the custom type.
 
 This function should be used purely for debugging purposes.
+
+## How `SqlVariant` decides which alternative to fill
+
+`SqlDataBinder<SqlVariant>::GetColumn` queries the driver for
+**`SQL_DESC_CONCISE_TYPE`** and dispatches into the matching variant alternative
+based on the concise ODBC SQL type code.
+
+The verbose `SQL_DESC_TYPE` collapses every datetime subtype into the single
+value `SQL_DATETIME` (9) and every interval subtype into `SQL_INTERVAL` (10), so
+it cannot distinguish DATE from TIME from TIMESTAMP. The concise type does:
+
+| Column kind  | `SQL_DESC_CONCISE_TYPE` | Variant alternative |
+|--------------|--------------------------|---------------------|
+| DATE         | `SQL_TYPE_DATE` (91)     | `SqlDate`           |
+| TIME         | `SQL_TYPE_TIME` (92)     | `SqlTime`           |
+| TIMESTAMP    | `SQL_TYPE_TIMESTAMP` (93)| `SqlDateTime`       |
+
+## Driver-specific connection-string requirements
+
+When using `SqlVariant` (or any binder that dispatches on the driver-reported
+column type) against PostgreSQL via psqlODBC, the following options must appear
+in the connection string:
+
+| Option         | Required value | What it controls                                                                                                              |
+|----------------|----------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `BoolsAsChar`  | `0`            | Reports `BOOLEAN` columns as `SQL_BIT` so they dispatch into the `bool` alternative. The driver default reports them as `SQL_CHAR`. |
+| `LFConversion` | `0`            | Disables LF↔CRLF translation. Required for byte-exact round-trips of `TEXT`/`VARCHAR` values containing `\n`.                  |
+
+The canonical postgres entry with these options is in `scripts/tests/.test-env.yml`.

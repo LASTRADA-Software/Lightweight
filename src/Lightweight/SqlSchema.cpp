@@ -889,7 +889,11 @@ TableList ReadAllTables(SqlStatement& stmt,
 
     auto ToLowerCase = [](std::string_view str) -> std::string {
         std::string result(str);
-        std::ranges::transform(result, result.begin(), [](char c) { return static_cast<char>(std::tolower(c)); });
+        std::ranges::transform(result, result.begin(), [](char c) {
+            // Cast to unsigned char before std::tolower — passing a signed `char` with
+            // the high bit set is undefined behaviour per the standard.
+            return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        });
         return result;
     };
 
@@ -937,7 +941,9 @@ TableList ReadAllTables(SqlStatement& stmt,
         static std::string ToLowerCaseInline(std::string_view str)
         {
             std::string result(str);
-            std::ranges::transform(result, result.begin(), [](char c) { return static_cast<char>(std::tolower(c)); });
+            std::ranges::transform(result, result.begin(), [](char c) {
+                return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            });
             return result;
         }
 

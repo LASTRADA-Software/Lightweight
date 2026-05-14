@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "BasicStringBinder.hpp"
+#include "SqlBinary.hpp"
 #include "SqlVariant.hpp"
 
 namespace Lightweight
@@ -22,10 +23,15 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
     SQLHSTMT stmt, SQLUSMALLINT column, SqlVariant* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
 {
     SQLLEN columnType {};
-    // Use the W variant — the call passes nullptr for the string buffer (we only fetch
-    // the numeric SQL_DESC_TYPE), so it's a near-pure rename, but it keeps the entire
-    // ODBC call surface on the Unicode-app path the rest of the library is using.
-    SQLRETURN returnCode = SQLColAttributeW(stmt, column, SQL_DESC_TYPE, nullptr, 0, nullptr, &columnType);
+    // `SQL_DESC_CONCISE_TYPE` returns the concise SQL type code (e.g. SQL_TYPE_DATE,
+    // SQL_TYPE_TIME, SQL_TYPE_TIMESTAMP). The verbose `SQL_DESC_TYPE` collapses every
+    // datetime subtype to the single value `SQL_DATETIME` (9) and every interval
+    // subtype to `SQL_INTERVAL` (10), so it cannot distinguish DATE from TIME.
+    //
+    // SQLColAttributeW is used (over the ANSI variant) to keep the ODBC call surface
+    // on the Unicode-app path the rest of the library uses; the string buffer is
+    // unused — only the numeric attribute is fetched.
+    SQLRETURN returnCode = SQLColAttributeW(stmt, column, SQL_DESC_CONCISE_TYPE, nullptr, 0, nullptr, &columnType);
     if (!SQL_SUCCEEDED(returnCode))
         return returnCode;
 
@@ -40,14 +46,26 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
             returnCode = SqlDataBinder<int8_t>::GetColumn(stmt, column, &variant.emplace<int8_t>(), indicator, cb);
             break;
         case SQL_SMALLINT:
-            returnCode =
-                SqlDataBinder<unsigned short>::GetColumn(stmt, column, &variant.emplace<unsigned short>(), indicator, cb);
+            // SQL_SMALLINT is a signed 16-bit integer. Fetching into `unsigned short` makes the
+            // MSSQL ODBC driver report "Numeric value out of range" the first time a negative
+            // value is fetched. Use `short` so the full signed range round-trips.
+            returnCode = SqlDataBinder<short>::GetColumn(stmt, column, &variant.emplace<short>(), indicator, cb);
             break;
         case SQL_INTEGER:
             returnCode = SqlDataBinder<int>::GetColumn(stmt, column, &variant.emplace<int>(), indicator, cb);
             break;
         case SQL_BIGINT:
+        // The SQLite ODBC driver reports `SQL_DESC_CONCISE_TYPE = SQL_C_SBIGINT (-25)` for
+        // BIGINT columns instead of `SQL_BIGINT (-5)` — the C type leaks into the SQL type
+        // slot. Treat it as the equivalent SQL type so SqlVariant round-trips BIGINT on SQLite.
+        case SQL_C_SBIGINT:
             returnCode = SqlDataBinder<long long>::GetColumn(stmt, column, &variant.emplace<long long>(), indicator, cb);
+            break;
+        // Mirror the SQLite quirk for unsigned BIGINT — `SQL_C_UBIGINT (-27)` appearing as
+        // a column type means the driver has tagged the value as unsigned 64-bit.
+        case SQL_C_UBIGINT:
+            returnCode = SqlDataBinder<unsigned long long>::GetColumn(
+                stmt, column, &variant.emplace<unsigned long long>(), indicator, cb);
             break;
         case SQL_REAL:
             returnCode = SqlDataBinder<float>::GetColumn(stmt, column, &variant.emplace<float>(), indicator, cb);
@@ -102,18 +120,28 @@ SQLRETURN SqlDataBinder<SqlVariant>::GetColumn(
         case SQL_BINARY:        // fixed-length binary
         case SQL_VARBINARY:     // variable-length binary
         case SQL_LONGVARBINARY: // long binary
-            returnCode = SqlDataBinder<std::string>::GetColumn(stmt, column, &variant.emplace<std::string>(), indicator, cb);
-
-            if (cb.ServerType() == SqlServerType::SQLITE && SQL_SUCCEEDED(returnCode))
+        {
+            // Fetch via SQL_C_BINARY so drivers (MSSQL in particular) don't auto-convert the
+            // byte payload to a hex ASCII string. The previous `SqlDataBinder<std::string>`
+            // call asked for SQL_C_CHAR and got back "01AB23…" — double the byte count and
+            // not the original bytes.
+            SqlBinary binary;
+            returnCode = SqlDataBinder<SqlBinary>::GetColumn(stmt, column, &binary, indicator, cb);
+            if (SQL_SUCCEEDED(returnCode))
             {
-                // The SQLite driver may return GUID columns as binary data.
-                // Try to parse as GUID if the string looks like one.
-                if (auto maybeGuid = SqlGuid::TryParse(std::get<std::string>(variant)); maybeGuid)
+                auto& bytes = variant.emplace<std::string>();
+                bytes.assign(reinterpret_cast<char const*>(binary.data()), binary.size());
+
+                if (cb.ServerType() == SqlServerType::SQLITE)
                 {
-                    variant = maybeGuid.value();
+                    // The SQLite driver may return GUID columns as binary data.
+                    // Try to parse as GUID if the bytes look like one.
+                    if (auto maybeGuid = SqlGuid::TryParse(bytes); maybeGuid)
+                        variant = maybeGuid.value();
                 }
             }
             break;
+        }
         case SQL_DATE:
             // Oracle ODBC driver returns SQL_DATE for DATE columns
             returnCode = SqlDataBinder<SqlDateTime>::GetColumn(stmt, column, &variant.emplace<SqlDateTime>(), indicator, cb);

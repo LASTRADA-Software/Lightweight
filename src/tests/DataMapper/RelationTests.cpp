@@ -775,4 +775,49 @@ TEST_CASE_METHOD(SqlTestFixture, "Entity const corectness", "[DataMapper]")
     REQUIRE(CheckBelongsToInEntityConstCorrectness(nullableFKUser));
 }
 
+// ================================================================================================
+// HasOneThrough state management — exercises the EmplaceRecord / Unload / operator-> paths that
+// previous regression tests never reached.
+// ================================================================================================
+
+TEST_CASE("HasOneThrough: default-constructed reports not-loaded", "[HasOneThrough]")
+{
+    HasOneThrough<AccountHistory, Account> rel {};
+    CHECK_FALSE(rel.IsLoaded());
+}
+
+TEST_CASE("HasOneThrough: EmplaceRecord makes IsLoaded true and Unload reverts it", "[HasOneThrough]")
+{
+    HasOneThrough<AccountHistory, Account> rel {};
+    rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 750 }));
+    REQUIRE(rel.IsLoaded());
+    CHECK(rel.Record().credit_rating.Value() == 750);
+
+    rel.Unload();
+    CHECK_FALSE(rel.IsLoaded());
+}
+
+TEST_CASE("HasOneThrough: operator-> forwards to the loaded record", "[HasOneThrough]")
+{
+    HasOneThrough<AccountHistory, Account> rel {};
+    rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 600 }));
+    REQUIRE(rel.IsLoaded());
+    CHECK(rel->credit_rating.Value() == 600);
+
+    AccountHistory* asPtr = rel.operator->();
+    REQUIRE(asPtr != nullptr);
+    CHECK(asPtr->credit_rating.Value() == 600);
+
+    HasOneThrough<AccountHistory, Account> const& constRel = rel;
+    CHECK(constRel->credit_rating.Value() == 600);
+}
+
+TEST_CASE("HasOneThrough: operator* returns the loaded record by reference", "[HasOneThrough]")
+{
+    HasOneThrough<AccountHistory, Account> rel {};
+    rel.EmplaceRecord(std::make_shared<AccountHistory>(AccountHistory { .credit_rating = 42 }));
+    AccountHistory& deref = *rel;
+    CHECK(deref.credit_rating.Value() == 42);
+}
+
 // NOLINTEND(bugprone-unchecked-optional-access)

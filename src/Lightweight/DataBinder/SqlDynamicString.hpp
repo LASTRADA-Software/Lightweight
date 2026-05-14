@@ -186,11 +186,14 @@ class SqlDynamicString
     [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string_view<T> substr(
         std::size_t offset = 0, std::size_t count = (std::numeric_limits<std::size_t>::max)()) const noexcept
     {
-        if (count != (std::numeric_limits<std::size_t>::max)())
-        {
-            return _value.substr(offset, count);
-        }
-        return _value.substr(offset);
+        // Build the view directly over `_value`'s buffer instead of going through
+        // std::basic_string::substr, which would return a temporary std::basic_string
+        // and silently leave us with a dangling string_view at the call site.
+        if (offset > _value.size())
+            return {};
+        auto const remaining = _value.size() - offset;
+        auto const len = (count == (std::numeric_limits<std::size_t>::max)()) ? remaining : (std::min) (count, remaining);
+        return std::basic_string_view<T> { _value.data() + offset, len };
     }
 
     /// Retrieves the string as a string_type.
@@ -233,7 +236,10 @@ class SqlDynamicString
     template <std::size_t OtherSize>
     LIGHTWEIGHT_FORCE_INLINE std::weak_ordering operator<=>(SqlDynamicString<OtherSize, T> const& other) const noexcept
     {
-        return _value <=> other._value;
+        // Use the public value() accessor so cross-capacity comparisons don't trip private-member
+        // access — SqlDynamicString<OtherSize, T> is a different specialization, so its `_value`
+        // is inaccessible from this scope.
+        return _value <=> other.value();
     }
 
     /// Equality comparison operator for comparing with another SqlDynamicString of possibly different capacity.

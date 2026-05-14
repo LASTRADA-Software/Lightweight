@@ -68,12 +68,14 @@ std::string FormatName(std::string_view name, FormatType formatType)
         }
         if (makeUpper)
         {
-            result += static_cast<char>(std::toupper(c));
+            // Cast to unsigned char before std::toupper/tolower — passing a signed `char`
+            // with the high bit set is undefined behaviour per the standard.
+            result += static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
             makeUpper = false;
         }
         else
         {
-            result += static_cast<char>(std::tolower(c));
+            result += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
         }
     }
 

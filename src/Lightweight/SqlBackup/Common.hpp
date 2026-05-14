@@ -49,14 +49,14 @@ struct ZipEntryInfo
 ///
 /// @param error The SQL error information to check.
 /// @return true if the error is transient and the operation can be retried.
-bool IsTransientError(SqlErrorInfo const& error);
+LIGHTWEIGHT_API bool IsTransientError(SqlErrorInfo const& error);
 
 /// Calculates the delay for the given retry attempt using exponential backoff.
 ///
 /// @param attempt The current retry attempt number (0-based).
 /// @param settings The retry configuration.
 /// @return The delay to wait before the next retry.
-std::chrono::milliseconds CalculateRetryDelay(unsigned attempt, RetrySettings const& settings) noexcept;
+LIGHTWEIGHT_API std::chrono::milliseconds CalculateRetryDelay(unsigned attempt, RetrySettings const& settings) noexcept;
 
 /// Connects to the database with retry logic for transient errors.
 ///
@@ -116,7 +116,7 @@ auto RetryOnTransientError(Func&& func, // NOLINT(cppcoreguidelines-missing-std-
 /// Returns the current date and time in ISO 8601 format.
 ///
 /// @return ISO 8601 formatted timestamp string.
-std::string CurrentDateTime();
+LIGHTWEIGHT_API std::string CurrentDateTime();
 
 /// Reads a ZIP entry into a container.
 ///
@@ -149,7 +149,7 @@ Container ReadZipEntry(zip_t* zip, zip_int64_t index, zip_uint64_t size)
 /// @param schema The schema name (may be empty).
 /// @param table The table name.
 /// @return Quoted table name, optionally prefixed with quoted schema.
-std::string FormatTableName(std::string_view schema, std::string_view table);
+LIGHTWEIGHT_API std::string FormatTableName(std::string_view schema, std::string_view table);
 
 /// Drops a table if it exists, handling FK constraints via cascade.
 ///
@@ -158,9 +158,9 @@ std::string FormatTableName(std::string_view schema, std::string_view table);
 /// @param tableName The table name.
 /// @param progress Progress manager for reporting errors.
 /// @return true if table was dropped or didn't exist, false on error.
-bool DropTableIfExists(SqlConnection& conn,
-                       std::string const& schema,
-                       std::string const& tableName,
-                       ProgressManager& progress);
+LIGHTWEIGHT_API bool DropTableIfExists(SqlConnection& conn,
+                                       std::string const& schema,
+                                       std::string const& tableName,
+                                       ProgressManager& progress);
 
 } // namespace Lightweight::SqlBackup::detail

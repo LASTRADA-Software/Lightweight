@@ -3,10 +3,10 @@ ODBC_CONNECTION_STRING:
   mssql2022: Driver={ODBC Driver 18 for SQL Server};SERVER=localhost,1433;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest
   mssql2019: Driver={ODBC Driver 18 for SQL Server};SERVER=localhost,1434;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest
   mssql2017: Driver={ODBC Driver 18 for SQL Server};SERVER=localhost,1432;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest
-  # LFConversion=0 disables the psqlODBC driver's LF<->CRLF translation that is on
-  # by default on Windows. We want byte-exact round-trips of TEXT/VARCHAR data so
-  # test fixtures with embedded `\n` (corner-case strings, batch-manager smoke tests)
-  # don't silently turn into `\r\n` on insert.
-  postgres: Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test;LFConversion=0
-  postgres_unicode: Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test;LFConversion=0
+  # LFConversion=0 disables psqlODBC's LF<->CRLF translation so TEXT/VARCHAR values
+  # round-trip byte-exact.
+  # BoolsAsChar=0 makes psqlODBC report BOOLEAN as SQL_BIT, which is what SqlVariant's
+  # dispatch expects. See docs/data-binder.md.
+  postgres: Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test;LFConversion=0;BoolsAsChar=0
+  postgres_unicode: Driver={PostgreSQL Unicode};Server=localhost;Port=5432;Uid=postgres;Pwd=Lightweight!Test42;Database=test;LFConversion=0;BoolsAsChar=0
   sqlite3: Driver={SQLite3 ODBC Driver};Database=test.db

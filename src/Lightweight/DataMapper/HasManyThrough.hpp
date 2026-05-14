@@ -52,7 +52,7 @@ class HasManyThrough
     [[nodiscard]] std::size_t Count() const;
 
     /// Checks if this relationship is empty.
-    [[nodiscard]] std::size_t IsEmpty() const;
+    [[nodiscard]] bool IsEmpty() const;
 
     /// @brief Retrieves the record at the given index.
     ///
@@ -196,7 +196,7 @@ std::size_t HasManyThrough<ReferencedRecordT, ThroughRecordT>::Count() const
 }
 
 template <typename ReferencedRecordT, typename ThroughRecordT>
-std::size_t HasManyThrough<ReferencedRecordT, ThroughRecordT>::IsEmpty() const
+bool HasManyThrough<ReferencedRecordT, ThroughRecordT>::IsEmpty() const
 {
     return Count() == 0;
 }

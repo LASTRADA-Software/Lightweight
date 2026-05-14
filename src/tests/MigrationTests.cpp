@@ -2410,3 +2410,86 @@ TEST_CASE_METHOD(SqlMigrationTestFixture,
     auto stmt = SqlStatement { conn };
     REQUIRE_NOTHROW((void) stmt.ExecuteDirect("SELECT 1;"));
 }
+
+// ================================================================================================
+// PreviewMigration: returns the SQL that would be executed for a single migration without running it
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "PreviewMigration returns SQL for a single pending migration", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto migration = SqlMigration::Migration<202901010001>("preview single", [](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("preview_table").PrimaryKey("id", Integer());
+    });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    auto const sqls = manager.PreviewMigration(migration);
+    REQUIRE_FALSE(sqls.empty());
+    bool foundCreate = false;
+    for (auto const& s: sqls)
+    {
+        if (s.contains("CREATE") && s.contains("preview_table"))
+        {
+            foundCreate = true;
+            break;
+        }
+    }
+    CHECK(foundCreate);
+
+    // Preview must not have actually executed the migration.
+    {
+        auto conn = SqlConnection {};
+        auto stmt = SqlStatement { conn };
+        auto const _ = ScopedSqlNullLogger {};
+        CHECK_THROWS_AS((void) stmt.ExecuteDirect("SELECT count(*) FROM preview_table"), SqlException);
+    }
+}
+
+// ================================================================================================
+// ApplyPendingMigrations: invokes the feedback callback once per pending migration
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "ApplyPendingMigrations invokes the feedback callback per migration",
+                 "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    auto m1 = SqlMigration::Migration<202901010002>(
+        "feedback 1", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("fb_one").PrimaryKey("id", Integer()); });
+    auto m2 = SqlMigration::Migration<202901010003>(
+        "feedback 2", [](SqlMigrationQueryBuilder& plan) { plan.CreateTable("fb_two").PrimaryKey("id", Integer()); });
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    size_t callbackCalls = 0;
+    size_t lastTotal = 0;
+    auto const applied = manager.ApplyPendingMigrations(
+        [&](SqlMigration::MigrationBase const& /*migration*/, size_t /*current*/, size_t total) {
+            ++callbackCalls;
+            lastTotal = total;
+        });
+
+    CHECK(applied == 2);
+    CHECK(callbackCalls == 2);
+    CHECK(lastTotal == 2);
+}
+
+// ================================================================================================
+// PreviewPendingMigrations: empty when no pending migrations
+// ================================================================================================
+
+TEST_CASE_METHOD(SqlMigrationTestFixture,
+                 "PreviewPendingMigrations returns empty when no pending migrations",
+                 "[SqlMigration]")
+{
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+    manager.CreateMigrationHistory();
+
+    auto const sqls = manager.PreviewPendingMigrations();
+    CHECK(sqls.empty());
+}
