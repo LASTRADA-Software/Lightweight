@@ -318,7 +318,146 @@ jobs:
   # runtime) for Windows containers only, with no Docker Desktop and no
   # in-WSL2 dockerd. Enabling it would require either Docker Desktop (license
   # blocker for commercial repos) or installing a WSL2 distro + dockerd per
-  # job (3-10 min of brittle setup per matrix leg). Tracked as future work.
+  # job (3-10 min of brittle setup per matrix leg). The
+  # `windows_mssql_drivers` job below substitutes a native SQL Server
+  # Developer Edition install for this — it gives a real Windows SQL Server
+  # service (TCP/IP on 1433, mixed-mode auth, separate process) that we can
+  # exercise through every Windows-supported MSSQL ODBC driver. Tracked as
+  # future work to also add the Linux-container approach once a runner image
+  # supports it.
+
+  windows_mssql_drivers:
+    name: "Windows Tests (SQL Server, ${{ matrix.driver.label }})"
+    runs-on: windows-2025
+    needs: [windows]
+    # The 3 drivers run as parallel matrix legs (rather than sequential stages
+    # inside one job) so a failure in one driver doesn't mask diagnostics from
+    # the others, and so each leg appears as its own check on the PR. The
+    # SQL Server install (~3-5 min) is the per-leg cost we pay for that
+    # isolation; it is still cheaper than the alternative of bringing up a
+    # Linux MSSQL Docker container on the Windows runner.
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        driver:
+          - label: "Legacy 'SQL Server' (in-box)"
+            test_env: "mssql_legacy"
+            driver_name: "SQL Server"
+            extra: ""
+          - label: "ODBC Driver 17"
+            test_env: "mssql_odbc17"
+            driver_name: "ODBC Driver 17 for SQL Server"
+            extra: ";TrustServerCertificate=Yes"
+          - label: "ODBC Driver 18"
+            test_env: "mssql_odbc18"
+            driver_name: "ODBC Driver 18 for SQL Server"
+            extra: ";TrustServerCertificate=Yes"
+    steps:
+      - name: "Download unit test binaries"
+        uses: actions/download-artifact@v4
+        with:
+          name: cl-debug-tests
+          path: install
+      - name: "Install Python YAML"
+        shell: pwsh
+        run: python -m pip install --disable-pip-version-check pyyaml
+      - name: "Disable conflicting PostgreSQL services"
+        shell: pwsh
+        # Defensive: the windows-2025 image ships PostgreSQL 17 pre-installed.
+        # It is not used here and we want to eliminate any chance of port
+        # contention or unexpected service activity during SQL Server setup.
+        run: |
+          $ErrorActionPreference = 'Continue'
+          Get-Service postgresql-x64-* -ErrorAction SilentlyContinue | ForEach-Object {
+            Stop-Service -Name $_.Name -Force -ErrorAction SilentlyContinue
+            Set-Service -Name $_.Name -StartupType Disabled
+          }
+      - name: "Install SQL Server (Developer Edition)"
+        # The community chocolatey `sql-server-express` package hardcodes
+        # /INSTANCENAME=SQLEXPRESS and silently drops --params, so it cannot
+        # be coerced into a default-instance / TCP-1433 / SA-auth setup. The
+        # `potatoqualitee/mssqlsuite` action direct-downloads the Microsoft
+        # SQL Server 2022 Developer Edition bootstrapper and runs it with
+        # /INSTANCENAME=MSSQLSERVER /TCPENABLED=1, then flips LoginMode=2 in
+        # the registry and resets the SA password post-install — yielding
+        # exactly what we need (localhost,1433 + SA auth). Developer Edition
+        # is feature-identical to Enterprise and free for test use, so it is
+        # a strictly more thorough "real MSSQL" target than Express.
+        uses: potatoqualitee/mssqlsuite@v1.12
+        with:
+          install: sqlengine
+          version: 2022
+          sa-password: "Lightweight!Test42"
+          show-log: true
+      - name: "Install ODBC Driver 17 and 18"
+        shell: pwsh
+        # windows-2025 only guarantees the OLEDB drivers and the in-box
+        # legacy "SQL Server" ODBC driver. ODBC Driver 17 and 18 (which are
+        # distinct from OLEDB 17/18) are installed explicitly here. Version-
+        # pinned package names — the unsuffixed `sqlserver-odbcdriver`
+        # currently tracks Driver 18 and would silently swap to a future
+        # major. The Get-OdbcDriver dump below verifies which drivers
+        # actually registered.
+        run: |
+          $ErrorActionPreference = 'Stop'
+          choco install sqlserver-odbcdriver-17 -y --no-progress
+          choco install sqlserver-odbcdriver-18 -y --no-progress
+      - name: "List installed ODBC drivers"
+        shell: pwsh
+        run: Get-OdbcDriver | Format-Table -AutoSize
+      - name: "Create LightweightTest database"
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          sqlcmd -S "localhost,1433" -U SA -P "Lightweight!Test42" -Q "CREATE DATABASE LightweightTest;"
+      - name: "Create .test-env.yml"
+        shell: pwsh
+        # Sole entry matches matrix.driver.test_env so each leg only ever
+        # talks to the driver under test (no cross-driver leakage if a future
+        # test accidentally hardcodes a key).
+        run: |
+          @"
+          ODBC_CONNECTION_STRING:
+            ${{ matrix.driver.test_env }}: "Driver={${{ matrix.driver.driver_name }}};Server=localhost,1433;Database=LightweightTest;Uid=SA;Pwd=Lightweight!Test42${{ matrix.driver.extra }}"
+          "@ | Out-File -FilePath .test-env.yml -Encoding utf8
+      - name: "Run SQL tests"
+        run: ./install/bin/LightweightTest.exe --test-env=${{ matrix.driver.test_env }}
+      - name: "Run dbtool tests"
+        shell: bash
+        env:
+          PYTHONUNBUFFERED: "1"
+          DBTOOL_TRACE: "1"
+        run: |
+          set -ex
+          python install/share/Lightweight/tests/test_dbtool.py \
+              --dbtool ./install/bin/dbtool.exe \
+              --plugins-dir ./install/share/Lightweight/tests/plugins \
+              --test-env ${{ matrix.driver.test_env }}
+      - name: "Capture SQL Server diagnostics on failure"
+        if: ${{ failure() }}
+        shell: pwsh
+        # Best-effort post-mortem — same shape as the LocalDB diagnostics
+        # block above so a failure here is debuggable from the workflow log
+        # alone. Wrapped in Continue + try/catch so a sqlcmd failure here
+        # cannot mask the actual test failure.
+        run: |
+          $ErrorActionPreference = 'Continue'
+          try {
+            sqlcmd -S "localhost,1433" -U SA -P "Lightweight!Test42" -d LightweightTest -Q "
+              SET NOCOUNT ON;
+              SELECT session_id, blocking_session_id, wait_type, wait_resource,
+                     command, status, last_wait_type,
+                     CAST(text AS nvarchar(2000)) AS sql_text
+              FROM sys.dm_exec_requests r
+              OUTER APPLY sys.dm_exec_sql_text(r.sql_handle);
+              SELECT request_session_id, resource_type, resource_associated_entity_id,
+                     request_mode, request_status FROM sys.dm_tran_locks;
+              EXEC sp_who2;
+            "
+          } catch {
+            Write-Host "Diagnostics query failed: $_"
+          }
 
   # }}}
   # {{{ Ubuntu build CC matrix
@@ -530,13 +669,17 @@ jobs:
         run: |
           sudo apt install -y libsqlite3-dev libsqliteodbc sqlite3
           sudo sed -i 's/^\[SQLite3\]$/[SQLite3 ODBC Driver]/' /etc/odbcinst.ini
-      - name: "Install MS SQL ODBC driver"
+      - name: "Install MS SQL ODBC drivers (17 + 18)"
         if: startsWith(matrix.database, 'MS SQL')
+        # mssql-tools18 pulls in msodbcsql18; install msodbcsql17 alongside so
+        # the mssql2017 / mssql2025 legs can also exercise Driver 17 against
+        # the same server (see the second "Run SQL tests (ODBC Driver 17)"
+        # step below).
         run: |
           curl https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc
           sudo add-apt-repository "$(wget -qO- https://packages.microsoft.com/config/ubuntu/20.04/prod.list)"
           sudo apt update
-          sudo ACCEPT_EULA=y DEBIAN_FRONTEND=noninteractive apt install -y mssql-tools18
+          sudo ACCEPT_EULA=y DEBIAN_FRONTEND=noninteractive apt install -y msodbcsql17 mssql-tools18
       - name: "Install PostgreSQL ODBC driver"
         if: matrix.database == 'PostgreSQL'
         run: sudo apt install -y odbc-postgresql
@@ -545,14 +688,14 @@ jobs:
         run: python3 ./scripts/tests/docker-databases.py --start --wait ${{ matrix.docker_db }}
       - name: "Inspect dependencies"
         run: ldd /usr/local/bin/LightweightTest
-      - name: "Run SQL tests"
+      - name: "Run SQL tests (ODBC Driver 18)"
         run: |
           set -ex
           if [[ "${{ matrix.database }}" = "SQLite3" ]]; then
               CMD_PREFIX="valgrind --leak-check=full --leak-resolution=high --num-callers=64 --error-exitcode=1"
           fi
           $CMD_PREFIX LightweightTest --test-env=${{ matrix.test_env }}
-      - name: "Run dbtool tests"
+      - name: "Run dbtool tests (ODBC Driver 18)"
         env:
           PYTHONUNBUFFERED: "1"
         run: |
@@ -561,6 +704,27 @@ jobs:
               --dbtool /usr/local/bin/dbtool \
               --plugins-dir /usr/local/share/Lightweight/tests/plugins \
               --test-env ${{ matrix.test_env }}
+      # Re-run the suite against the oldest + newest MSSQL versions through
+      # ODBC Driver 17, against the same server instance. Catches regressions
+      # that depend on driver-side behaviour (Unicode handling, datetime
+      # binding, batch row counts) without doubling the matrix leg count.
+      # `if: always()` is intentional so a Driver 18 failure still surfaces
+      # whether Driver 17 sees the same problem.
+      - name: "Run SQL tests (ODBC Driver 17)"
+        if: ${{ always() && (matrix.test_env == 'mssql2017' || matrix.test_env == 'mssql2025') }}
+        run: |
+          set -ex
+          LightweightTest --test-env=${{ matrix.test_env }}_odbc17
+      - name: "Run dbtool tests (ODBC Driver 17)"
+        if: ${{ always() && (matrix.test_env == 'mssql2017' || matrix.test_env == 'mssql2025') }}
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          set -ex
+          python3 /usr/local/share/Lightweight/tests/test_dbtool.py \
+              --dbtool /usr/local/bin/dbtool \
+              --plugins-dir /usr/local/share/Lightweight/tests/plugins \
+              --test-env ${{ matrix.test_env }}_odbc17
       - name: "Capture container log on failure"
         if: failure() && matrix.docker_db != ''
         run: |
