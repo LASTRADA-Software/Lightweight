@@ -4,6 +4,7 @@ var classLightweight_1_1SqlWhereClauseBuilder =
     [ "Or", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ad63ee3002c9921bfb053c5b611d6511b", null ],
     [ "Not", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a70eca9201efb0d7311b20cef6ef4db34", null ],
     [ "WhereRaw", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a5a857122df51ec8595876adafcaeb51d", null ],
+    [ "If", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#abbdd0b395fffa11f2d2b01bd0558b5cf", null ],
     [ "Where", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a30f6074add24d19f3d657f17b1879963", null ],
     [ "Where", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a928ea3e7274e0d1bdabfb4fe94cc7e3d", null ],
     [ "OrWhere", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aa624cd34621f34a4f2b3c2fa5a45bdb8", null ],
