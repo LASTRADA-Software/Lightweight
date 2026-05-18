@@ -59,19 +59,24 @@ namespace SqlSchema
     /// `Lightweight::SqlQualifiedTableColumnName`.
     struct ColumnIdentifier
     {
+        /// Fully qualified table the column belongs to.
         FullyQualifiedTableName table;
+        /// Column name within the table.
         std::string column;
 
+        /// Equality compares both the owning table and the column name.
         bool operator==(ColumnIdentifier const& other) const noexcept
         {
             return table == other.table && column == other.column;
         }
 
+        /// Inequality is the negation of equality.
         bool operator!=(ColumnIdentifier const& other) const noexcept
         {
             return !(*this == other);
         }
 
+        /// Lexicographic ordering by (table, column) so ColumnIdentifier can be used as a key in ordered containers.
         bool operator<(ColumnIdentifier const& other) const noexcept
         {
             return std::tie(table, column) < std::tie(other.table, other.column);
@@ -81,7 +86,9 @@ namespace SqlSchema
     /// Identifies an ordered set of columns within a single table (for composite keys / indexes).
     struct ColumnIdentifierSequence
     {
+        /// Fully qualified table the column sequence belongs to.
         FullyQualifiedTableName table;
+        /// Ordered list of column names (order is significant for composite keys / indexes).
         std::vector<std::string> columns;
     };
 
