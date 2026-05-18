@@ -1,7 +1,7 @@
 var searchData=
 [
   ['identification_0',['2.1 Server Identification',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md21-server-identification',1,'']]],
-  ['if_1',['If',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#abbdd0b395fffa11f2d2b01bd0558b5cf',1,'Lightweight::SqlWhereClauseBuilder']]],
+  ['if_1',['if',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#abbdd0b395fffa11f2d2b01bd0558b5cf',1,'Lightweight::SqlWhereClauseBuilder::If(std::optional&lt; T &gt; const &amp;value) noexcept'],['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a1c14c054b427a1cd690068a11e39db25',1,'Lightweight::SqlWhereClauseBuilder::If(std::optional&lt; T &gt; const &amp;value) noexcept']]],
   ['ifexists_2',['ifExists',['../dd/d47/structLightweight_1_1SqlDropTablePlan.html#af7adb5af3a0ff6c6a366fee2ce29beff',1,'Lightweight::SqlDropTablePlan']]],
   ['ifnotexists_3',['ifnotexists',['../d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#acd1d1fea3fc25d001846e2a4170e8fb7',1,'Lightweight::SqlMigration::MigrationManager::PlanFoldingResult::TableState::ifNotExists'],['../dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#a64587008f80036f6eae8301e96b6656b',1,'Lightweight::SqlCreateIndexPlan::ifNotExists']]],
   ['in_20oracle_20database_4',['64-bit Integer Handling in Oracle Database',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database',1,'']]],

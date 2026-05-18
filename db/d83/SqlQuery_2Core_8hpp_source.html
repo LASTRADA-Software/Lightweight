@@ -1207,263 +1207,266 @@ $(document).ready(function(){initNavTree('db/d83/SqlQuery_2Core_8hpp_source.html
 <div class="line"><a id="l01008" name="l01008"></a><span class="lineno"> 1008</span>    };</div>
 <div class="line"><a id="l01009" name="l01009"></a><span class="lineno"> 1009</span> </div>
 <div class="line"><a id="l01010" name="l01010"></a><span class="lineno"> 1010</span>} <span class="comment">// namespace detail</span></div>
-<div class="line"><a id="l01011" name="l01011"></a><span class="lineno"> 1011</span> </div>
-<div class="line"><a id="l01012" name="l01012"></a><span class="lineno"> 1012</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01013" name="l01013"></a><span class="lineno"> 1013</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l01014" name="l01014"></a><span class="lineno"> 1014</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keyword">auto</span> <a class="code hl_function" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#abbdd0b395fffa11f2d2b01bd0558b5cf">SqlWhereClauseBuilder&lt;Derived&gt;::If</a>(std::optional&lt;T&gt; <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
-<div class="line"><a id="l01015" name="l01015"></a><span class="lineno"> 1015</span>{</div>
-<div class="line"><a id="l01016" name="l01016"></a><span class="lineno"> 1016</span>    <span class="keywordflow">return</span> detail::ConditionalWhereBuilder&lt;Derived, T&gt; { <span class="keyword">static_cast&lt;</span>Derived&amp;<span class="keyword">&gt;</span>(*this), value };</div>
-<div class="line"><a id="l01017" name="l01017"></a><span class="lineno"> 1017</span>}</div>
-<div class="line"><a id="l01018" name="l01018"></a><span class="lineno"> 1018</span> </div>
-<div class="line"><a id="l01019" name="l01019"></a><span class="lineno"> 1019</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="foldopen" id="foldopen01020" data-start="{" data-end="}">
-<div class="line"><a id="l01020" name="l01020"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a5a857122df51ec8595876adafcaeb51d"> 1020</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; <a class="code hl_function" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a5a857122df51ec8595876adafcaeb51d">SqlWhereClauseBuilder&lt;Derived&gt;::WhereRaw</a>(std::string_view sqlConditionExpression)</div>
-<div class="line"><a id="l01021" name="l01021"></a><span class="lineno"> 1021</span>{</div>
-<div class="line"><a id="l01022" name="l01022"></a><span class="lineno"> 1022</span>    AppendWhereJunctor();</div>
-<div class="line"><a id="l01023" name="l01023"></a><span class="lineno"> 1023</span> </div>
-<div class="line"><a id="l01024" name="l01024"></a><span class="lineno"> 1024</span>    <span class="keyword">auto</span>&amp; condition = SearchCondition().condition;</div>
-<div class="line"><a id="l01025" name="l01025"></a><span class="lineno"> 1025</span>    condition += sqlConditionExpression;</div>
-<div class="line"><a id="l01026" name="l01026"></a><span class="lineno"> 1026</span> </div>
-<div class="line"><a id="l01027" name="l01027"></a><span class="lineno"> 1027</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived&amp;<span class="keyword">&gt;</span>(*this);</div>
-<div class="line"><a id="l01028" name="l01028"></a><span class="lineno"> 1028</span>}</div>
+<div class="line"><a id="l01011" name="l01011"></a><span class="lineno"> 1011</span><span class="comment"></span> </div>
+<div class="line"><a id="l01012" name="l01012"></a><span class="lineno"> 1012</span><span class="comment">/// Starts a conditional WHERE chain gated by a `std::optional` value.</span></div>
+<div class="line"><a id="l01013" name="l01013"></a><span class="lineno"> 1013</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01014" name="l01014"></a><span class="lineno"> 1014</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="foldopen" id="foldopen01015" data-start="{" data-end="}">
+<div class="line"><a id="l01015" name="l01015"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a1c14c054b427a1cd690068a11e39db25"> 1015</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keyword">auto</span> <a class="code hl_function" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#abbdd0b395fffa11f2d2b01bd0558b5cf">SqlWhereClauseBuilder&lt;Derived&gt;::If</a>(std::optional&lt;T&gt; <span class="keyword">const</span>&amp; value) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l01016" name="l01016"></a><span class="lineno"> 1016</span>{</div>
+<div class="line"><a id="l01017" name="l01017"></a><span class="lineno"> 1017</span>    <span class="keywordflow">return</span> detail::ConditionalWhereBuilder&lt;Derived, T&gt; { <span class="keyword">static_cast&lt;</span>Derived&amp;<span class="keyword">&gt;</span>(*this), value };</div>
+<div class="line"><a id="l01018" name="l01018"></a><span class="lineno"> 1018</span>}</div>
 </div>
-<div class="line"><a id="l01029" name="l01029"></a><span class="lineno"> 1029</span> </div>
-<div class="line"><a id="l01030" name="l01030"></a><span class="lineno"> 1030</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01031" name="l01031"></a><span class="lineno"> 1031</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition&amp; <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::SearchCondition</a>() noexcept</div>
-<div class="line"><a id="l01032" name="l01032"></a><span class="lineno"> 1032</span>{</div>
-<div class="line"><a id="l01033" name="l01033"></a><span class="lineno"> 1033</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived*<span class="keyword">&gt;</span>(<span class="keyword">this</span>)-&gt;SearchCondition();</div>
-<div class="line"><a id="l01034" name="l01034"></a><span class="lineno"> 1034</span>}</div>
-<div class="line"><a id="l01035" name="l01035"></a><span class="lineno"> 1035</span> </div>
-<div class="line"><a id="l01036" name="l01036"></a><span class="lineno"> 1036</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01037" name="l01037"></a><span class="lineno"> 1037</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter <span class="keyword">const</span>&amp; SqlWhereClauseBuilder&lt;Derived&gt;::Formatter() const noexcept</div>
-<div class="line"><a id="l01038" name="l01038"></a><span class="lineno"> 1038</span>{</div>
-<div class="line"><a id="l01039" name="l01039"></a><span class="lineno"> 1039</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived const*<span class="keyword">&gt;</span>(<span class="keyword">this</span>)-&gt;Formatter();</div>
-<div class="line"><a id="l01040" name="l01040"></a><span class="lineno"> 1040</span>}</div>
-<div class="line"><a id="l01041" name="l01041"></a><span class="lineno"> 1041</span> </div>
-<div class="line"><a id="l01042" name="l01042"></a><span class="lineno"> 1042</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01043" name="l01043"></a><span class="lineno"> 1043</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> SqlWhereClauseBuilder&lt;Derived&gt;::AppendWhereJunctor()</div>
-<div class="line"><a id="l01044" name="l01044"></a><span class="lineno"> 1044</span>{</div>
-<div class="line"><a id="l01045" name="l01045"></a><span class="lineno"> 1045</span>    <span class="keyword">using namespace </span>std::string_view_literals;</div>
-<div class="line"><a id="l01046" name="l01046"></a><span class="lineno"> 1046</span> </div>
-<div class="line"><a id="l01047" name="l01047"></a><span class="lineno"> 1047</span>    <span class="keyword">auto</span>&amp; condition = SearchCondition().condition;</div>
-<div class="line"><a id="l01048" name="l01048"></a><span class="lineno"> 1048</span> </div>
-<div class="line"><a id="l01049" name="l01049"></a><span class="lineno"> 1049</span>    <span class="keywordflow">switch</span> (m_nextWhereJunctor)</div>
-<div class="line"><a id="l01050" name="l01050"></a><span class="lineno"> 1050</span>    {</div>
-<div class="line"><a id="l01051" name="l01051"></a><span class="lineno"> 1051</span>        <span class="keywordflow">case</span> WhereJunctor::Null:</div>
-<div class="line"><a id="l01052" name="l01052"></a><span class="lineno"> 1052</span>            <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l01053" name="l01053"></a><span class="lineno"> 1053</span>        <span class="keywordflow">case</span> WhereJunctor::Where:</div>
-<div class="line"><a id="l01054" name="l01054"></a><span class="lineno"> 1054</span>            condition += <span class="stringliteral">&quot;\n WHERE &quot;</span>sv;</div>
-<div class="line"><a id="l01055" name="l01055"></a><span class="lineno"> 1055</span>            <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l01056" name="l01056"></a><span class="lineno"> 1056</span>        <span class="keywordflow">case</span> WhereJunctor::And:</div>
-<div class="line"><a id="l01057" name="l01057"></a><span class="lineno"> 1057</span>            condition += <span class="stringliteral">&quot; AND &quot;</span>sv;</div>
-<div class="line"><a id="l01058" name="l01058"></a><span class="lineno"> 1058</span>            <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l01059" name="l01059"></a><span class="lineno"> 1059</span>        <span class="keywordflow">case</span> WhereJunctor::Or:</div>
-<div class="line"><a id="l01060" name="l01060"></a><span class="lineno"> 1060</span>            condition += <span class="stringliteral">&quot; OR &quot;</span>sv;</div>
-<div class="line"><a id="l01061" name="l01061"></a><span class="lineno"> 1061</span>            <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l01062" name="l01062"></a><span class="lineno"> 1062</span>    }</div>
-<div class="line"><a id="l01063" name="l01063"></a><span class="lineno"> 1063</span> </div>
-<div class="line"><a id="l01064" name="l01064"></a><span class="lineno"> 1064</span>    <span class="keywordflow">if</span> (m_nextIsNot)</div>
-<div class="line"><a id="l01065" name="l01065"></a><span class="lineno"> 1065</span>    {</div>
-<div class="line"><a id="l01066" name="l01066"></a><span class="lineno"> 1066</span>        condition += <span class="stringliteral">&quot;NOT &quot;</span>sv;</div>
-<div class="line"><a id="l01067" name="l01067"></a><span class="lineno"> 1067</span>        m_nextIsNot = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l01068" name="l01068"></a><span class="lineno"> 1068</span>    }</div>
-<div class="line"><a id="l01069" name="l01069"></a><span class="lineno"> 1069</span> </div>
-<div class="line"><a id="l01070" name="l01070"></a><span class="lineno"> 1070</span>    m_nextWhereJunctor = WhereJunctor::And;</div>
-<div class="line"><a id="l01071" name="l01071"></a><span class="lineno"> 1071</span>}</div>
-<div class="line"><a id="l01072" name="l01072"></a><span class="lineno"> 1072</span><span class="comment"></span> </div>
-<div class="line"><a id="l01073" name="l01073"></a><span class="lineno"> 1073</span><span class="comment">/// Appends a column name to the WHERE condition.</span></div>
-<div class="line"><a id="l01074" name="l01074"></a><span class="lineno"> 1074</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01075" name="l01075"></a><span class="lineno"> 1075</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ColumnName&gt;</div>
-<div class="line"><a id="l01076" name="l01076"></a><span class="lineno"> 1076</span>    <span class="keyword">requires</span>(std::same_as&lt;ColumnName, SqlQualifiedTableColumnName&gt; || std::convertible_to&lt;ColumnName, std::string_view&gt;</div>
-<div class="line"><a id="l01077" name="l01077"></a><span class="lineno"> 1077</span>             || std::convertible_to&lt;ColumnName, std::string&gt;)</div>
-<div class="foldopen" id="foldopen01078" data-start="{" data-end="}">
-<div class="line"><a id="l01078" name="l01078"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a51ab85e6d6b300bd68e5be87336013dc"> 1078</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::AppendColumnName</a>(ColumnName <span class="keyword">const</span>&amp; columnName)</div>
-<div class="line"><a id="l01079" name="l01079"></a><span class="lineno"> 1079</span>{</div>
-<div class="line"><a id="l01080" name="l01080"></a><span class="lineno"> 1080</span>    SearchCondition().condition += detail::MakeSqlColumnName(columnName);</div>
-<div class="line"><a id="l01081" name="l01081"></a><span class="lineno"> 1081</span>}</div>
+<div class="line"><a id="l01019" name="l01019"></a><span class="lineno"> 1019</span> </div>
+<div class="line"><a id="l01020" name="l01020"></a><span class="lineno"> 1020</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="foldopen" id="foldopen01021" data-start="{" data-end="}">
+<div class="line"><a id="l01021" name="l01021"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a5a857122df51ec8595876adafcaeb51d"> 1021</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; <a class="code hl_function" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a5a857122df51ec8595876adafcaeb51d">SqlWhereClauseBuilder&lt;Derived&gt;::WhereRaw</a>(std::string_view sqlConditionExpression)</div>
+<div class="line"><a id="l01022" name="l01022"></a><span class="lineno"> 1022</span>{</div>
+<div class="line"><a id="l01023" name="l01023"></a><span class="lineno"> 1023</span>    AppendWhereJunctor();</div>
+<div class="line"><a id="l01024" name="l01024"></a><span class="lineno"> 1024</span> </div>
+<div class="line"><a id="l01025" name="l01025"></a><span class="lineno"> 1025</span>    <span class="keyword">auto</span>&amp; condition = SearchCondition().condition;</div>
+<div class="line"><a id="l01026" name="l01026"></a><span class="lineno"> 1026</span>    condition += sqlConditionExpression;</div>
+<div class="line"><a id="l01027" name="l01027"></a><span class="lineno"> 1027</span> </div>
+<div class="line"><a id="l01028" name="l01028"></a><span class="lineno"> 1028</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived&amp;<span class="keyword">&gt;</span>(*this);</div>
+<div class="line"><a id="l01029" name="l01029"></a><span class="lineno"> 1029</span>}</div>
 </div>
-<div class="line"><a id="l01082" name="l01082"></a><span class="lineno"> 1082</span><span class="comment"></span> </div>
-<div class="line"><a id="l01083" name="l01083"></a><span class="lineno"> 1083</span><span class="comment">/// Appends a literal value to the WHERE condition.</span></div>
-<div class="line"><a id="l01084" name="l01084"></a><span class="lineno"> 1084</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01085" name="l01085"></a><span class="lineno"> 1085</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> LiteralType&gt;</div>
-<div class="foldopen" id="foldopen01086" data-start="{" data-end="}">
-<div class="line"><a id="l01086" name="l01086"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e6c126aafc9b8261118bea5977f272f"> 1086</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::AppendLiteralValue</a>(LiteralType <span class="keyword">const</span>&amp; value)</div>
-<div class="line"><a id="l01087" name="l01087"></a><span class="lineno"> 1087</span>{</div>
-<div class="line"><a id="l01088" name="l01088"></a><span class="lineno"> 1088</span>    <span class="keyword">auto</span>&amp; searchCondition = SearchCondition();</div>
-<div class="line"><a id="l01089" name="l01089"></a><span class="lineno"> 1089</span> </div>
-<div class="line"><a id="l01090" name="l01090"></a><span class="lineno"> 1090</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;LiteralType, SqlQualifiedTableColumnName&gt;</div>
-<div class="line"><a id="l01091" name="l01091"></a><span class="lineno"> 1091</span>                  || detail::OneOf&lt;LiteralType, SqlNullType, std::nullopt_t&gt; || std::is_same_v&lt;LiteralType, SqlWildcardType&gt;</div>
-<div class="line"><a id="l01092" name="l01092"></a><span class="lineno"> 1092</span>                  || std::is_same_v&lt;LiteralType, detail::RawSqlCondition&gt;)</div>
-<div class="line"><a id="l01093" name="l01093"></a><span class="lineno"> 1093</span>    {</div>
-<div class="line"><a id="l01094" name="l01094"></a><span class="lineno"> 1094</span>        PopulateLiteralValueInto(value, searchCondition.condition);</div>
-<div class="line"><a id="l01095" name="l01095"></a><span class="lineno"> 1095</span>    }</div>
-<div class="line"><a id="l01096" name="l01096"></a><span class="lineno"> 1096</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> (searchCondition.inputBindings)</div>
-<div class="line"><a id="l01097" name="l01097"></a><span class="lineno"> 1097</span>    {</div>
-<div class="line"><a id="l01098" name="l01098"></a><span class="lineno"> 1098</span>        searchCondition.condition += <span class="charliteral">&#39;?&#39;</span>;</div>
-<div class="line"><a id="l01099" name="l01099"></a><span class="lineno"> 1099</span>        searchCondition.inputBindings-&gt;emplace_back(value);</div>
-<div class="line"><a id="l01100" name="l01100"></a><span class="lineno"> 1100</span>    }</div>
-<div class="line"><a id="l01101" name="l01101"></a><span class="lineno"> 1101</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;LiteralType, bool&gt;)</div>
-<div class="line"><a id="l01102" name="l01102"></a><span class="lineno"> 1102</span>    {</div>
-<div class="line"><a id="l01103" name="l01103"></a><span class="lineno"> 1103</span>        searchCondition.condition += Formatter().BooleanLiteral(value);</div>
-<div class="line"><a id="l01104" name="l01104"></a><span class="lineno"> 1104</span>    }</div>
-<div class="line"><a id="l01105" name="l01105"></a><span class="lineno"> 1105</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (!WhereConditionLiteralType&lt;LiteralType&gt;::needsQuotes)</div>
-<div class="line"><a id="l01106" name="l01106"></a><span class="lineno"> 1106</span>    {</div>
-<div class="line"><a id="l01107" name="l01107"></a><span class="lineno"> 1107</span>        searchCondition.condition += std::format(<span class="stringliteral">&quot;{}&quot;</span>, value);</div>
-<div class="line"><a id="l01108" name="l01108"></a><span class="lineno"> 1108</span>    }</div>
-<div class="line"><a id="l01109" name="l01109"></a><span class="lineno"> 1109</span>    <span class="keywordflow">else</span></div>
-<div class="line"><a id="l01110" name="l01110"></a><span class="lineno"> 1110</span>    {</div>
-<div class="line"><a id="l01111" name="l01111"></a><span class="lineno"> 1111</span>        searchCondition.condition += detail::MakeEscapedSqlString(std::format(<span class="stringliteral">&quot;{}&quot;</span>, value));</div>
-<div class="line"><a id="l01112" name="l01112"></a><span class="lineno"> 1112</span>    }</div>
-<div class="line"><a id="l01113" name="l01113"></a><span class="lineno"> 1113</span>}</div>
+<div class="line"><a id="l01030" name="l01030"></a><span class="lineno"> 1030</span> </div>
+<div class="line"><a id="l01031" name="l01031"></a><span class="lineno"> 1031</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01032" name="l01032"></a><span class="lineno"> 1032</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE SqlSearchCondition&amp; <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::SearchCondition</a>() noexcept</div>
+<div class="line"><a id="l01033" name="l01033"></a><span class="lineno"> 1033</span>{</div>
+<div class="line"><a id="l01034" name="l01034"></a><span class="lineno"> 1034</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived*<span class="keyword">&gt;</span>(<span class="keyword">this</span>)-&gt;SearchCondition();</div>
+<div class="line"><a id="l01035" name="l01035"></a><span class="lineno"> 1035</span>}</div>
+<div class="line"><a id="l01036" name="l01036"></a><span class="lineno"> 1036</span> </div>
+<div class="line"><a id="l01037" name="l01037"></a><span class="lineno"> 1037</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01038" name="l01038"></a><span class="lineno"> 1038</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE SqlQueryFormatter <span class="keyword">const</span>&amp; SqlWhereClauseBuilder&lt;Derived&gt;::Formatter() const noexcept</div>
+<div class="line"><a id="l01039" name="l01039"></a><span class="lineno"> 1039</span>{</div>
+<div class="line"><a id="l01040" name="l01040"></a><span class="lineno"> 1040</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived const*<span class="keyword">&gt;</span>(<span class="keyword">this</span>)-&gt;Formatter();</div>
+<div class="line"><a id="l01041" name="l01041"></a><span class="lineno"> 1041</span>}</div>
+<div class="line"><a id="l01042" name="l01042"></a><span class="lineno"> 1042</span> </div>
+<div class="line"><a id="l01043" name="l01043"></a><span class="lineno"> 1043</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01044" name="l01044"></a><span class="lineno"> 1044</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> SqlWhereClauseBuilder&lt;Derived&gt;::AppendWhereJunctor()</div>
+<div class="line"><a id="l01045" name="l01045"></a><span class="lineno"> 1045</span>{</div>
+<div class="line"><a id="l01046" name="l01046"></a><span class="lineno"> 1046</span>    <span class="keyword">using namespace </span>std::string_view_literals;</div>
+<div class="line"><a id="l01047" name="l01047"></a><span class="lineno"> 1047</span> </div>
+<div class="line"><a id="l01048" name="l01048"></a><span class="lineno"> 1048</span>    <span class="keyword">auto</span>&amp; condition = SearchCondition().condition;</div>
+<div class="line"><a id="l01049" name="l01049"></a><span class="lineno"> 1049</span> </div>
+<div class="line"><a id="l01050" name="l01050"></a><span class="lineno"> 1050</span>    <span class="keywordflow">switch</span> (m_nextWhereJunctor)</div>
+<div class="line"><a id="l01051" name="l01051"></a><span class="lineno"> 1051</span>    {</div>
+<div class="line"><a id="l01052" name="l01052"></a><span class="lineno"> 1052</span>        <span class="keywordflow">case</span> WhereJunctor::Null:</div>
+<div class="line"><a id="l01053" name="l01053"></a><span class="lineno"> 1053</span>            <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l01054" name="l01054"></a><span class="lineno"> 1054</span>        <span class="keywordflow">case</span> WhereJunctor::Where:</div>
+<div class="line"><a id="l01055" name="l01055"></a><span class="lineno"> 1055</span>            condition += <span class="stringliteral">&quot;\n WHERE &quot;</span>sv;</div>
+<div class="line"><a id="l01056" name="l01056"></a><span class="lineno"> 1056</span>            <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l01057" name="l01057"></a><span class="lineno"> 1057</span>        <span class="keywordflow">case</span> WhereJunctor::And:</div>
+<div class="line"><a id="l01058" name="l01058"></a><span class="lineno"> 1058</span>            condition += <span class="stringliteral">&quot; AND &quot;</span>sv;</div>
+<div class="line"><a id="l01059" name="l01059"></a><span class="lineno"> 1059</span>            <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l01060" name="l01060"></a><span class="lineno"> 1060</span>        <span class="keywordflow">case</span> WhereJunctor::Or:</div>
+<div class="line"><a id="l01061" name="l01061"></a><span class="lineno"> 1061</span>            condition += <span class="stringliteral">&quot; OR &quot;</span>sv;</div>
+<div class="line"><a id="l01062" name="l01062"></a><span class="lineno"> 1062</span>            <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l01063" name="l01063"></a><span class="lineno"> 1063</span>    }</div>
+<div class="line"><a id="l01064" name="l01064"></a><span class="lineno"> 1064</span> </div>
+<div class="line"><a id="l01065" name="l01065"></a><span class="lineno"> 1065</span>    <span class="keywordflow">if</span> (m_nextIsNot)</div>
+<div class="line"><a id="l01066" name="l01066"></a><span class="lineno"> 1066</span>    {</div>
+<div class="line"><a id="l01067" name="l01067"></a><span class="lineno"> 1067</span>        condition += <span class="stringliteral">&quot;NOT &quot;</span>sv;</div>
+<div class="line"><a id="l01068" name="l01068"></a><span class="lineno"> 1068</span>        m_nextIsNot = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l01069" name="l01069"></a><span class="lineno"> 1069</span>    }</div>
+<div class="line"><a id="l01070" name="l01070"></a><span class="lineno"> 1070</span> </div>
+<div class="line"><a id="l01071" name="l01071"></a><span class="lineno"> 1071</span>    m_nextWhereJunctor = WhereJunctor::And;</div>
+<div class="line"><a id="l01072" name="l01072"></a><span class="lineno"> 1072</span>}</div>
+<div class="line"><a id="l01073" name="l01073"></a><span class="lineno"> 1073</span><span class="comment"></span> </div>
+<div class="line"><a id="l01074" name="l01074"></a><span class="lineno"> 1074</span><span class="comment">/// Appends a column name to the WHERE condition.</span></div>
+<div class="line"><a id="l01075" name="l01075"></a><span class="lineno"> 1075</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01076" name="l01076"></a><span class="lineno"> 1076</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> ColumnName&gt;</div>
+<div class="line"><a id="l01077" name="l01077"></a><span class="lineno"> 1077</span>    <span class="keyword">requires</span>(std::same_as&lt;ColumnName, SqlQualifiedTableColumnName&gt; || std::convertible_to&lt;ColumnName, std::string_view&gt;</div>
+<div class="line"><a id="l01078" name="l01078"></a><span class="lineno"> 1078</span>             || std::convertible_to&lt;ColumnName, std::string&gt;)</div>
+<div class="foldopen" id="foldopen01079" data-start="{" data-end="}">
+<div class="line"><a id="l01079" name="l01079"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a51ab85e6d6b300bd68e5be87336013dc"> 1079</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::AppendColumnName</a>(ColumnName <span class="keyword">const</span>&amp; columnName)</div>
+<div class="line"><a id="l01080" name="l01080"></a><span class="lineno"> 1080</span>{</div>
+<div class="line"><a id="l01081" name="l01081"></a><span class="lineno"> 1081</span>    SearchCondition().condition += detail::MakeSqlColumnName(columnName);</div>
+<div class="line"><a id="l01082" name="l01082"></a><span class="lineno"> 1082</span>}</div>
 </div>
-<div class="line"><a id="l01114" name="l01114"></a><span class="lineno"> 1114</span><span class="comment"></span> </div>
-<div class="line"><a id="l01115" name="l01115"></a><span class="lineno"> 1115</span><span class="comment">/// Populates a literal value into the target string.</span></div>
-<div class="line"><a id="l01116" name="l01116"></a><span class="lineno"> 1116</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01117" name="l01117"></a><span class="lineno"> 1117</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> LiteralType, <span class="keyword">typename</span> TargetType&gt;</div>
-<div class="foldopen" id="foldopen01118" data-start="{" data-end="}">
-<div class="line"><a id="l01118" name="l01118"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ab37dadea0850fbda74e2efe467118c87"> 1118</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::PopulateLiteralValueInto</a>(LiteralType <span class="keyword">const</span>&amp; value,</div>
-<div class="line"><a id="l01119" name="l01119"></a><span class="lineno"> 1119</span>                                                                                              TargetType&amp; target)</div>
-<div class="line"><a id="l01120" name="l01120"></a><span class="lineno"> 1120</span>{</div>
-<div class="line"><a id="l01121" name="l01121"></a><span class="lineno"> 1121</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;LiteralType, SqlQualifiedTableColumnName&gt;)</div>
-<div class="line"><a id="l01122" name="l01122"></a><span class="lineno"> 1122</span>    {</div>
-<div class="line"><a id="l01123" name="l01123"></a><span class="lineno"> 1123</span>        target += <span class="charliteral">&#39;&quot;&#39;</span>;</div>
-<div class="line"><a id="l01124" name="l01124"></a><span class="lineno"> 1124</span>        target += value.tableName;</div>
-<div class="line"><a id="l01125" name="l01125"></a><span class="lineno"> 1125</span>        target += <span class="stringliteral">&quot;\&quot;.\&quot;&quot;</span>;</div>
-<div class="line"><a id="l01126" name="l01126"></a><span class="lineno"> 1126</span>        target += value.columnName;</div>
-<div class="line"><a id="l01127" name="l01127"></a><span class="lineno"> 1127</span>        target += <span class="charliteral">&#39;&quot;&#39;</span>;</div>
-<div class="line"><a id="l01128" name="l01128"></a><span class="lineno"> 1128</span>    }</div>
-<div class="line"><a id="l01129" name="l01129"></a><span class="lineno"> 1129</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (detail::OneOf&lt;LiteralType, SqlNullType, std::nullopt_t&gt;)</div>
-<div class="line"><a id="l01130" name="l01130"></a><span class="lineno"> 1130</span>    {</div>
-<div class="line"><a id="l01131" name="l01131"></a><span class="lineno"> 1131</span>        target += <span class="stringliteral">&quot;NULL&quot;</span>;</div>
-<div class="line"><a id="l01132" name="l01132"></a><span class="lineno"> 1132</span>    }</div>
-<div class="line"><a id="l01133" name="l01133"></a><span class="lineno"> 1133</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;LiteralType, SqlWildcardType&gt;)</div>
-<div class="line"><a id="l01134" name="l01134"></a><span class="lineno"> 1134</span>    {</div>
-<div class="line"><a id="l01135" name="l01135"></a><span class="lineno"> 1135</span>        target += <span class="charliteral">&#39;?&#39;</span>;</div>
-<div class="line"><a id="l01136" name="l01136"></a><span class="lineno"> 1136</span>    }</div>
-<div class="line"><a id="l01137" name="l01137"></a><span class="lineno"> 1137</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;LiteralType, detail::RawSqlCondition&gt;)</div>
-<div class="line"><a id="l01138" name="l01138"></a><span class="lineno"> 1138</span>    {</div>
-<div class="line"><a id="l01139" name="l01139"></a><span class="lineno"> 1139</span>        target += value.condition;</div>
-<div class="line"><a id="l01140" name="l01140"></a><span class="lineno"> 1140</span>    }</div>
-<div class="line"><a id="l01141" name="l01141"></a><span class="lineno"> 1141</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;LiteralType, bool&gt;)</div>
-<div class="line"><a id="l01142" name="l01142"></a><span class="lineno"> 1142</span>    {</div>
-<div class="line"><a id="l01143" name="l01143"></a><span class="lineno"> 1143</span>        target += Formatter().BooleanLiteral(value);</div>
-<div class="line"><a id="l01144" name="l01144"></a><span class="lineno"> 1144</span>    }</div>
-<div class="line"><a id="l01145" name="l01145"></a><span class="lineno"> 1145</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (!WhereConditionLiteralType&lt;LiteralType&gt;::needsQuotes)</div>
-<div class="line"><a id="l01146" name="l01146"></a><span class="lineno"> 1146</span>    {</div>
-<div class="line"><a id="l01147" name="l01147"></a><span class="lineno"> 1147</span>        target += std::format(<span class="stringliteral">&quot;{}&quot;</span>, value);</div>
-<div class="line"><a id="l01148" name="l01148"></a><span class="lineno"> 1148</span>    }</div>
-<div class="line"><a id="l01149" name="l01149"></a><span class="lineno"> 1149</span>    <span class="keywordflow">else</span></div>
-<div class="line"><a id="l01150" name="l01150"></a><span class="lineno"> 1150</span>    {</div>
-<div class="line"><a id="l01151" name="l01151"></a><span class="lineno"> 1151</span>        target += detail::MakeEscapedSqlString(std::format(<span class="stringliteral">&quot;{}&quot;</span>, value));</div>
-<div class="line"><a id="l01152" name="l01152"></a><span class="lineno"> 1152</span>    }</div>
-<div class="line"><a id="l01153" name="l01153"></a><span class="lineno"> 1153</span>}</div>
+<div class="line"><a id="l01083" name="l01083"></a><span class="lineno"> 1083</span><span class="comment"></span> </div>
+<div class="line"><a id="l01084" name="l01084"></a><span class="lineno"> 1084</span><span class="comment">/// Appends a literal value to the WHERE condition.</span></div>
+<div class="line"><a id="l01085" name="l01085"></a><span class="lineno"> 1085</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01086" name="l01086"></a><span class="lineno"> 1086</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> LiteralType&gt;</div>
+<div class="foldopen" id="foldopen01087" data-start="{" data-end="}">
+<div class="line"><a id="l01087" name="l01087"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e6c126aafc9b8261118bea5977f272f"> 1087</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::AppendLiteralValue</a>(LiteralType <span class="keyword">const</span>&amp; value)</div>
+<div class="line"><a id="l01088" name="l01088"></a><span class="lineno"> 1088</span>{</div>
+<div class="line"><a id="l01089" name="l01089"></a><span class="lineno"> 1089</span>    <span class="keyword">auto</span>&amp; searchCondition = SearchCondition();</div>
+<div class="line"><a id="l01090" name="l01090"></a><span class="lineno"> 1090</span> </div>
+<div class="line"><a id="l01091" name="l01091"></a><span class="lineno"> 1091</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;LiteralType, SqlQualifiedTableColumnName&gt;</div>
+<div class="line"><a id="l01092" name="l01092"></a><span class="lineno"> 1092</span>                  || detail::OneOf&lt;LiteralType, SqlNullType, std::nullopt_t&gt; || std::is_same_v&lt;LiteralType, SqlWildcardType&gt;</div>
+<div class="line"><a id="l01093" name="l01093"></a><span class="lineno"> 1093</span>                  || std::is_same_v&lt;LiteralType, detail::RawSqlCondition&gt;)</div>
+<div class="line"><a id="l01094" name="l01094"></a><span class="lineno"> 1094</span>    {</div>
+<div class="line"><a id="l01095" name="l01095"></a><span class="lineno"> 1095</span>        PopulateLiteralValueInto(value, searchCondition.condition);</div>
+<div class="line"><a id="l01096" name="l01096"></a><span class="lineno"> 1096</span>    }</div>
+<div class="line"><a id="l01097" name="l01097"></a><span class="lineno"> 1097</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> (searchCondition.inputBindings)</div>
+<div class="line"><a id="l01098" name="l01098"></a><span class="lineno"> 1098</span>    {</div>
+<div class="line"><a id="l01099" name="l01099"></a><span class="lineno"> 1099</span>        searchCondition.condition += <span class="charliteral">&#39;?&#39;</span>;</div>
+<div class="line"><a id="l01100" name="l01100"></a><span class="lineno"> 1100</span>        searchCondition.inputBindings-&gt;emplace_back(value);</div>
+<div class="line"><a id="l01101" name="l01101"></a><span class="lineno"> 1101</span>    }</div>
+<div class="line"><a id="l01102" name="l01102"></a><span class="lineno"> 1102</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;LiteralType, bool&gt;)</div>
+<div class="line"><a id="l01103" name="l01103"></a><span class="lineno"> 1103</span>    {</div>
+<div class="line"><a id="l01104" name="l01104"></a><span class="lineno"> 1104</span>        searchCondition.condition += Formatter().BooleanLiteral(value);</div>
+<div class="line"><a id="l01105" name="l01105"></a><span class="lineno"> 1105</span>    }</div>
+<div class="line"><a id="l01106" name="l01106"></a><span class="lineno"> 1106</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (!WhereConditionLiteralType&lt;LiteralType&gt;::needsQuotes)</div>
+<div class="line"><a id="l01107" name="l01107"></a><span class="lineno"> 1107</span>    {</div>
+<div class="line"><a id="l01108" name="l01108"></a><span class="lineno"> 1108</span>        searchCondition.condition += std::format(<span class="stringliteral">&quot;{}&quot;</span>, value);</div>
+<div class="line"><a id="l01109" name="l01109"></a><span class="lineno"> 1109</span>    }</div>
+<div class="line"><a id="l01110" name="l01110"></a><span class="lineno"> 1110</span>    <span class="keywordflow">else</span></div>
+<div class="line"><a id="l01111" name="l01111"></a><span class="lineno"> 1111</span>    {</div>
+<div class="line"><a id="l01112" name="l01112"></a><span class="lineno"> 1112</span>        searchCondition.condition += detail::MakeEscapedSqlString(std::format(<span class="stringliteral">&quot;{}&quot;</span>, value));</div>
+<div class="line"><a id="l01113" name="l01113"></a><span class="lineno"> 1113</span>    }</div>
+<div class="line"><a id="l01114" name="l01114"></a><span class="lineno"> 1114</span>}</div>
 </div>
-<div class="line"><a id="l01154" name="l01154"></a><span class="lineno"> 1154</span> </div>
-<div class="line"><a id="l01155" name="l01155"></a><span class="lineno"> 1155</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01156" name="l01156"></a><span class="lineno"> 1156</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> LiteralType&gt;</div>
-<div class="line"><a id="l01157" name="l01157"></a><span class="lineno"> 1157</span>detail::RawSqlCondition <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::PopulateSqlSetExpression</a>(LiteralType <span class="keyword">const</span>&amp; values)</div>
-<div class="line"><a id="l01158" name="l01158"></a><span class="lineno"> 1158</span>{</div>
-<div class="line"><a id="l01159" name="l01159"></a><span class="lineno"> 1159</span>    <span class="keyword">using namespace </span>std::string_view_literals;</div>
-<div class="line"><a id="l01160" name="l01160"></a><span class="lineno"> 1160</span>    std::ostringstream fragment;</div>
-<div class="line"><a id="l01161" name="l01161"></a><span class="lineno"> 1161</span>    fragment &lt;&lt; <span class="charliteral">&#39;(&#39;</span>;</div>
-<div class="line"><a id="l01162" name="l01162"></a><span class="lineno"> 1162</span><span class="preprocessor">#if !defined(__cpp_lib_ranges_enumerate)</span></div>
-<div class="line"><a id="l01163" name="l01163"></a><span class="lineno"> 1163</span>    <span class="keywordtype">int</span> index { -1 };</div>
-<div class="line"><a id="l01164" name="l01164"></a><span class="lineno"> 1164</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; value: values)</div>
-<div class="line"><a id="l01165" name="l01165"></a><span class="lineno"> 1165</span>    {</div>
-<div class="line"><a id="l01166" name="l01166"></a><span class="lineno"> 1166</span>        ++index;</div>
-<div class="line"><a id="l01167" name="l01167"></a><span class="lineno"> 1167</span><span class="preprocessor">#else</span></div>
-<div class="line"><a id="l01168" name="l01168"></a><span class="lineno"> 1168</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp;&amp; [index, value]: values | std::views::enumerate)</div>
-<div class="line"><a id="l01169" name="l01169"></a><span class="lineno"> 1169</span>    {</div>
-<div class="line"><a id="l01170" name="l01170"></a><span class="lineno"> 1170</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l01171" name="l01171"></a><span class="lineno"> 1171</span>        <span class="keywordflow">if</span> (index &gt; 0)</div>
-<div class="line"><a id="l01172" name="l01172"></a><span class="lineno"> 1172</span>            fragment &lt;&lt; <span class="stringliteral">&quot;, &quot;</span>sv;</div>
-<div class="line"><a id="l01173" name="l01173"></a><span class="lineno"> 1173</span> </div>
-<div class="line"><a id="l01174" name="l01174"></a><span class="lineno"> 1174</span>        std::string valueString;</div>
-<div class="line"><a id="l01175" name="l01175"></a><span class="lineno"> 1175</span>        PopulateLiteralValueInto(value, valueString);</div>
-<div class="line"><a id="l01176" name="l01176"></a><span class="lineno"> 1176</span>        fragment &lt;&lt; valueString;</div>
-<div class="line"><a id="l01177" name="l01177"></a><span class="lineno"> 1177</span>    }</div>
-<div class="line"><a id="l01178" name="l01178"></a><span class="lineno"> 1178</span>    fragment &lt;&lt; <span class="charliteral">&#39;)&#39;</span>;</div>
-<div class="line"><a id="l01179" name="l01179"></a><span class="lineno"> 1179</span>    <span class="keywordflow">return</span> detail::RawSqlCondition { fragment.str() };</div>
-<div class="line"><a id="l01180" name="l01180"></a><span class="lineno"> 1180</span>}</div>
-<div class="line"><a id="l01181" name="l01181"></a><span class="lineno"> 1181</span> </div>
-<div class="line"><a id="l01182" name="l01182"></a><span class="lineno"> 1182</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01183" name="l01183"></a><span class="lineno"> 1183</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; SqlWhereClauseBuilder&lt;Derived&gt;::Join(JoinType joinType,</div>
-<div class="line"><a id="l01184" name="l01184"></a><span class="lineno"> 1184</span>                                                                              TableName <span class="keyword">auto</span> joinTable,</div>
-<div class="line"><a id="l01185" name="l01185"></a><span class="lineno"> 1185</span>                                                                              std::string_view joinColumnName,</div>
-<div class="line"><a id="l01186" name="l01186"></a><span class="lineno"> 1186</span>                                                                              SqlQualifiedTableColumnName onOtherColumn)</div>
-<div class="line"><a id="l01187" name="l01187"></a><span class="lineno"> 1187</span>{</div>
-<div class="line"><a id="l01188" name="l01188"></a><span class="lineno"> 1188</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> std::array&lt;std::string_view, 4&gt; JoinTypeStrings = {</div>
-<div class="line"><a id="l01189" name="l01189"></a><span class="lineno"> 1189</span>        <span class="stringliteral">&quot;INNER&quot;</span>,</div>
-<div class="line"><a id="l01190" name="l01190"></a><span class="lineno"> 1190</span>        <span class="stringliteral">&quot;LEFT OUTER&quot;</span>,</div>
-<div class="line"><a id="l01191" name="l01191"></a><span class="lineno"> 1191</span>        <span class="stringliteral">&quot;RIGHT OUTER&quot;</span>,</div>
-<div class="line"><a id="l01192" name="l01192"></a><span class="lineno"> 1192</span>        <span class="stringliteral">&quot;FULL OUTER&quot;</span>,</div>
-<div class="line"><a id="l01193" name="l01193"></a><span class="lineno"> 1193</span>    };</div>
-<div class="line"><a id="l01194" name="l01194"></a><span class="lineno"> 1194</span> </div>
-<div class="line"><a id="l01195" name="l01195"></a><span class="lineno"> 1195</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(joinTable)&gt;, AliasedTableName&gt;)</div>
-<div class="line"><a id="l01196" name="l01196"></a><span class="lineno"> 1196</span>    {</div>
-<div class="line"><a id="l01197" name="l01197"></a><span class="lineno"> 1197</span>        SearchCondition().tableJoins += std::format(<span class="stringliteral">&quot;\n&quot;</span></div>
-<div class="line"><a id="l01198" name="l01198"></a><span class="lineno"> 1198</span>                                                    R<span class="stringliteral">&quot;( {0} JOIN &quot;{1}&quot; AS &quot;{2}&quot; ON &quot;{2}&quot;.&quot;{3}&quot; = &quot;{4}&quot;.&quot;{5}&quot;)&quot;,</span></div>
-<div class="line"><a id="l01199" name="l01199"></a><span class="lineno"> 1199</span><span class="stringliteral">                                                    JoinTypeStrings[</span><span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(joinType)],</div>
-<div class="line"><a id="l01200" name="l01200"></a><span class="lineno"> 1200</span>                                                    joinTable.tableName,</div>
-<div class="line"><a id="l01201" name="l01201"></a><span class="lineno"> 1201</span>                                                    joinTable.alias,</div>
-<div class="line"><a id="l01202" name="l01202"></a><span class="lineno"> 1202</span>                                                    joinColumnName,</div>
-<div class="line"><a id="l01203" name="l01203"></a><span class="lineno"> 1203</span>                                                    onOtherColumn.tableName,</div>
-<div class="line"><a id="l01204" name="l01204"></a><span class="lineno"> 1204</span>                                                    onOtherColumn.columnName);</div>
-<div class="line"><a id="l01205" name="l01205"></a><span class="lineno"> 1205</span>    }</div>
-<div class="line"><a id="l01206" name="l01206"></a><span class="lineno"> 1206</span>    <span class="keywordflow">else</span></div>
-<div class="line"><a id="l01207" name="l01207"></a><span class="lineno"> 1207</span>    {</div>
-<div class="line"><a id="l01208" name="l01208"></a><span class="lineno"> 1208</span>        SearchCondition().tableJoins += std::format(<span class="stringliteral">&quot;\n&quot;</span></div>
-<div class="line"><a id="l01209" name="l01209"></a><span class="lineno"> 1209</span>                                                    R<span class="stringliteral">&quot;( {0} JOIN &quot;{1}&quot; ON &quot;{1}&quot;.&quot;{2}&quot; = &quot;{3}&quot;.&quot;{4}&quot;)&quot;,</span></div>
-<div class="line"><a id="l01210" name="l01210"></a><span class="lineno"> 1210</span><span class="stringliteral">                                                    JoinTypeStrings[</span><span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(joinType)],</div>
-<div class="line"><a id="l01211" name="l01211"></a><span class="lineno"> 1211</span>                                                    joinTable,</div>
-<div class="line"><a id="l01212" name="l01212"></a><span class="lineno"> 1212</span>                                                    joinColumnName,</div>
-<div class="line"><a id="l01213" name="l01213"></a><span class="lineno"> 1213</span>                                                    onOtherColumn.tableName,</div>
-<div class="line"><a id="l01214" name="l01214"></a><span class="lineno"> 1214</span>                                                    onOtherColumn.columnName);</div>
-<div class="line"><a id="l01215" name="l01215"></a><span class="lineno"> 1215</span>    }</div>
-<div class="line"><a id="l01216" name="l01216"></a><span class="lineno"> 1216</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived&amp;<span class="keyword">&gt;</span>(*this);</div>
-<div class="line"><a id="l01217" name="l01217"></a><span class="lineno"> 1217</span>}</div>
-<div class="line"><a id="l01218" name="l01218"></a><span class="lineno"> 1218</span> </div>
-<div class="line"><a id="l01219" name="l01219"></a><span class="lineno"> 1219</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01220" name="l01220"></a><span class="lineno"> 1220</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; SqlWhereClauseBuilder&lt;Derived&gt;::Join(JoinType joinType,</div>
-<div class="line"><a id="l01221" name="l01221"></a><span class="lineno"> 1221</span>                                                                              TableName <span class="keyword">auto</span> joinTable,</div>
-<div class="line"><a id="l01222" name="l01222"></a><span class="lineno"> 1222</span>                                                                              std::string_view joinColumnName,</div>
-<div class="line"><a id="l01223" name="l01223"></a><span class="lineno"> 1223</span>                                                                              std::string_view onMainTableColumn)</div>
-<div class="line"><a id="l01224" name="l01224"></a><span class="lineno"> 1224</span>{</div>
-<div class="line"><a id="l01225" name="l01225"></a><span class="lineno"> 1225</span>    <span class="keywordflow">return</span> Join(joinType,</div>
-<div class="line"><a id="l01226" name="l01226"></a><span class="lineno"> 1226</span>                joinTable,</div>
-<div class="line"><a id="l01227" name="l01227"></a><span class="lineno"> 1227</span>                joinColumnName,</div>
-<div class="line"><a id="l01228" name="l01228"></a><span class="lineno"> 1228</span>                SqlQualifiedTableColumnName { .tableName = SearchCondition().tableName, .columnName = onMainTableColumn });</div>
-<div class="line"><a id="l01229" name="l01229"></a><span class="lineno"> 1229</span>}</div>
-<div class="line"><a id="l01230" name="l01230"></a><span class="lineno"> 1230</span><span class="comment"></span> </div>
-<div class="line"><a id="l01231" name="l01231"></a><span class="lineno"> 1231</span><span class="comment">/// Constructs a JOIN clause with a custom ON clause builder.</span></div>
-<div class="line"><a id="l01232" name="l01232"></a><span class="lineno"> 1232</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l01233" name="l01233"></a><span class="lineno"> 1233</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Callable&gt;</div>
-<div class="foldopen" id="foldopen01234" data-start="{" data-end="}">
-<div class="line"><a id="l01234" name="l01234"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e7fe33501cc9bd570959f7e2ed5d0b0"> 1234</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::Join</a>(JoinType joinType,</div>
-<div class="line"><a id="l01235" name="l01235"></a><span class="lineno"> 1235</span>                                                                              TableName <span class="keyword">auto</span> joinTable,</div>
-<div class="line"><a id="l01236" name="l01236"></a><span class="lineno"> 1236</span>                                                                              Callable <span class="keyword">const</span>&amp; onClauseBuilder)</div>
-<div class="line"><a id="l01237" name="l01237"></a><span class="lineno"> 1237</span>{</div>
-<div class="line"><a id="l01238" name="l01238"></a><span class="lineno"> 1238</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> std::array&lt;std::string_view, 4&gt; JoinTypeStrings = {</div>
-<div class="line"><a id="l01239" name="l01239"></a><span class="lineno"> 1239</span>        <span class="stringliteral">&quot;INNER&quot;</span>,</div>
-<div class="line"><a id="l01240" name="l01240"></a><span class="lineno"> 1240</span>        <span class="stringliteral">&quot;LEFT OUTER&quot;</span>,</div>
-<div class="line"><a id="l01241" name="l01241"></a><span class="lineno"> 1241</span>        <span class="stringliteral">&quot;RIGHT OUTER&quot;</span>,</div>
-<div class="line"><a id="l01242" name="l01242"></a><span class="lineno"> 1242</span>        <span class="stringliteral">&quot;FULL OUTER&quot;</span>,</div>
-<div class="line"><a id="l01243" name="l01243"></a><span class="lineno"> 1243</span>    };</div>
-<div class="line"><a id="l01244" name="l01244"></a><span class="lineno"> 1244</span> </div>
-<div class="line"><a id="l01245" name="l01245"></a><span class="lineno"> 1245</span>    <span class="keywordtype">size_t</span> <span class="keyword">const</span> originalSize = SearchCondition().tableJoins.size();</div>
-<div class="line"><a id="l01246" name="l01246"></a><span class="lineno"> 1246</span>    SearchCondition().tableJoins +=</div>
-<div class="line"><a id="l01247" name="l01247"></a><span class="lineno"> 1247</span>        std::format(<span class="stringliteral">&quot;\n {0} JOIN \&quot;{1}\&quot; ON &quot;</span>, JoinTypeStrings[<span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(joinType)], joinTable);</div>
-<div class="line"><a id="l01248" name="l01248"></a><span class="lineno"> 1248</span>    <span class="keywordtype">size_t</span> <span class="keyword">const</span> sizeBefore = SearchCondition().tableJoins.size();</div>
-<div class="line"><a id="l01249" name="l01249"></a><span class="lineno"> 1249</span>    onClauseBuilder(<a class="code hl_class" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> { joinTable, &amp;SearchCondition().tableJoins });</div>
-<div class="line"><a id="l01250" name="l01250"></a><span class="lineno"> 1250</span>    <span class="keywordtype">size_t</span> <span class="keyword">const</span> sizeAfter = SearchCondition().tableJoins.size();</div>
-<div class="line"><a id="l01251" name="l01251"></a><span class="lineno"> 1251</span>    <span class="keywordflow">if</span> (sizeBefore == sizeAfter)</div>
-<div class="line"><a id="l01252" name="l01252"></a><span class="lineno"> 1252</span>        SearchCondition().tableJoins.resize(originalSize);</div>
-<div class="line"><a id="l01253" name="l01253"></a><span class="lineno"> 1253</span> </div>
-<div class="line"><a id="l01254" name="l01254"></a><span class="lineno"> 1254</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived&amp;<span class="keyword">&gt;</span>(*this);</div>
-<div class="line"><a id="l01255" name="l01255"></a><span class="lineno"> 1255</span>}</div>
+<div class="line"><a id="l01115" name="l01115"></a><span class="lineno"> 1115</span><span class="comment"></span> </div>
+<div class="line"><a id="l01116" name="l01116"></a><span class="lineno"> 1116</span><span class="comment">/// Populates a literal value into the target string.</span></div>
+<div class="line"><a id="l01117" name="l01117"></a><span class="lineno"> 1117</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01118" name="l01118"></a><span class="lineno"> 1118</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> LiteralType, <span class="keyword">typename</span> TargetType&gt;</div>
+<div class="foldopen" id="foldopen01119" data-start="{" data-end="}">
+<div class="line"><a id="l01119" name="l01119"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ab37dadea0850fbda74e2efe467118c87"> 1119</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::PopulateLiteralValueInto</a>(LiteralType <span class="keyword">const</span>&amp; value,</div>
+<div class="line"><a id="l01120" name="l01120"></a><span class="lineno"> 1120</span>                                                                                              TargetType&amp; target)</div>
+<div class="line"><a id="l01121" name="l01121"></a><span class="lineno"> 1121</span>{</div>
+<div class="line"><a id="l01122" name="l01122"></a><span class="lineno"> 1122</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;LiteralType, SqlQualifiedTableColumnName&gt;)</div>
+<div class="line"><a id="l01123" name="l01123"></a><span class="lineno"> 1123</span>    {</div>
+<div class="line"><a id="l01124" name="l01124"></a><span class="lineno"> 1124</span>        target += <span class="charliteral">&#39;&quot;&#39;</span>;</div>
+<div class="line"><a id="l01125" name="l01125"></a><span class="lineno"> 1125</span>        target += value.tableName;</div>
+<div class="line"><a id="l01126" name="l01126"></a><span class="lineno"> 1126</span>        target += <span class="stringliteral">&quot;\&quot;.\&quot;&quot;</span>;</div>
+<div class="line"><a id="l01127" name="l01127"></a><span class="lineno"> 1127</span>        target += value.columnName;</div>
+<div class="line"><a id="l01128" name="l01128"></a><span class="lineno"> 1128</span>        target += <span class="charliteral">&#39;&quot;&#39;</span>;</div>
+<div class="line"><a id="l01129" name="l01129"></a><span class="lineno"> 1129</span>    }</div>
+<div class="line"><a id="l01130" name="l01130"></a><span class="lineno"> 1130</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (detail::OneOf&lt;LiteralType, SqlNullType, std::nullopt_t&gt;)</div>
+<div class="line"><a id="l01131" name="l01131"></a><span class="lineno"> 1131</span>    {</div>
+<div class="line"><a id="l01132" name="l01132"></a><span class="lineno"> 1132</span>        target += <span class="stringliteral">&quot;NULL&quot;</span>;</div>
+<div class="line"><a id="l01133" name="l01133"></a><span class="lineno"> 1133</span>    }</div>
+<div class="line"><a id="l01134" name="l01134"></a><span class="lineno"> 1134</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;LiteralType, SqlWildcardType&gt;)</div>
+<div class="line"><a id="l01135" name="l01135"></a><span class="lineno"> 1135</span>    {</div>
+<div class="line"><a id="l01136" name="l01136"></a><span class="lineno"> 1136</span>        target += <span class="charliteral">&#39;?&#39;</span>;</div>
+<div class="line"><a id="l01137" name="l01137"></a><span class="lineno"> 1137</span>    }</div>
+<div class="line"><a id="l01138" name="l01138"></a><span class="lineno"> 1138</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;LiteralType, detail::RawSqlCondition&gt;)</div>
+<div class="line"><a id="l01139" name="l01139"></a><span class="lineno"> 1139</span>    {</div>
+<div class="line"><a id="l01140" name="l01140"></a><span class="lineno"> 1140</span>        target += value.condition;</div>
+<div class="line"><a id="l01141" name="l01141"></a><span class="lineno"> 1141</span>    }</div>
+<div class="line"><a id="l01142" name="l01142"></a><span class="lineno"> 1142</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;LiteralType, bool&gt;)</div>
+<div class="line"><a id="l01143" name="l01143"></a><span class="lineno"> 1143</span>    {</div>
+<div class="line"><a id="l01144" name="l01144"></a><span class="lineno"> 1144</span>        target += Formatter().BooleanLiteral(value);</div>
+<div class="line"><a id="l01145" name="l01145"></a><span class="lineno"> 1145</span>    }</div>
+<div class="line"><a id="l01146" name="l01146"></a><span class="lineno"> 1146</span>    <span class="keywordflow">else</span> <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (!WhereConditionLiteralType&lt;LiteralType&gt;::needsQuotes)</div>
+<div class="line"><a id="l01147" name="l01147"></a><span class="lineno"> 1147</span>    {</div>
+<div class="line"><a id="l01148" name="l01148"></a><span class="lineno"> 1148</span>        target += std::format(<span class="stringliteral">&quot;{}&quot;</span>, value);</div>
+<div class="line"><a id="l01149" name="l01149"></a><span class="lineno"> 1149</span>    }</div>
+<div class="line"><a id="l01150" name="l01150"></a><span class="lineno"> 1150</span>    <span class="keywordflow">else</span></div>
+<div class="line"><a id="l01151" name="l01151"></a><span class="lineno"> 1151</span>    {</div>
+<div class="line"><a id="l01152" name="l01152"></a><span class="lineno"> 1152</span>        target += detail::MakeEscapedSqlString(std::format(<span class="stringliteral">&quot;{}&quot;</span>, value));</div>
+<div class="line"><a id="l01153" name="l01153"></a><span class="lineno"> 1153</span>    }</div>
+<div class="line"><a id="l01154" name="l01154"></a><span class="lineno"> 1154</span>}</div>
 </div>
-<div class="line"><a id="l01256" name="l01256"></a><span class="lineno"> 1256</span> </div>
-<div class="line"><a id="l01257" name="l01257"></a><span class="lineno"> 1257</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l01155" name="l01155"></a><span class="lineno"> 1155</span> </div>
+<div class="line"><a id="l01156" name="l01156"></a><span class="lineno"> 1156</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01157" name="l01157"></a><span class="lineno"> 1157</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> LiteralType&gt;</div>
+<div class="line"><a id="l01158" name="l01158"></a><span class="lineno"> 1158</span>detail::RawSqlCondition <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::PopulateSqlSetExpression</a>(LiteralType <span class="keyword">const</span>&amp; values)</div>
+<div class="line"><a id="l01159" name="l01159"></a><span class="lineno"> 1159</span>{</div>
+<div class="line"><a id="l01160" name="l01160"></a><span class="lineno"> 1160</span>    <span class="keyword">using namespace </span>std::string_view_literals;</div>
+<div class="line"><a id="l01161" name="l01161"></a><span class="lineno"> 1161</span>    std::ostringstream fragment;</div>
+<div class="line"><a id="l01162" name="l01162"></a><span class="lineno"> 1162</span>    fragment &lt;&lt; <span class="charliteral">&#39;(&#39;</span>;</div>
+<div class="line"><a id="l01163" name="l01163"></a><span class="lineno"> 1163</span><span class="preprocessor">#if !defined(__cpp_lib_ranges_enumerate)</span></div>
+<div class="line"><a id="l01164" name="l01164"></a><span class="lineno"> 1164</span>    <span class="keywordtype">int</span> index { -1 };</div>
+<div class="line"><a id="l01165" name="l01165"></a><span class="lineno"> 1165</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; value: values)</div>
+<div class="line"><a id="l01166" name="l01166"></a><span class="lineno"> 1166</span>    {</div>
+<div class="line"><a id="l01167" name="l01167"></a><span class="lineno"> 1167</span>        ++index;</div>
+<div class="line"><a id="l01168" name="l01168"></a><span class="lineno"> 1168</span><span class="preprocessor">#else</span></div>
+<div class="line"><a id="l01169" name="l01169"></a><span class="lineno"> 1169</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp;&amp; [index, value]: values | std::views::enumerate)</div>
+<div class="line"><a id="l01170" name="l01170"></a><span class="lineno"> 1170</span>    {</div>
+<div class="line"><a id="l01171" name="l01171"></a><span class="lineno"> 1171</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l01172" name="l01172"></a><span class="lineno"> 1172</span>        <span class="keywordflow">if</span> (index &gt; 0)</div>
+<div class="line"><a id="l01173" name="l01173"></a><span class="lineno"> 1173</span>            fragment &lt;&lt; <span class="stringliteral">&quot;, &quot;</span>sv;</div>
+<div class="line"><a id="l01174" name="l01174"></a><span class="lineno"> 1174</span> </div>
+<div class="line"><a id="l01175" name="l01175"></a><span class="lineno"> 1175</span>        std::string valueString;</div>
+<div class="line"><a id="l01176" name="l01176"></a><span class="lineno"> 1176</span>        PopulateLiteralValueInto(value, valueString);</div>
+<div class="line"><a id="l01177" name="l01177"></a><span class="lineno"> 1177</span>        fragment &lt;&lt; valueString;</div>
+<div class="line"><a id="l01178" name="l01178"></a><span class="lineno"> 1178</span>    }</div>
+<div class="line"><a id="l01179" name="l01179"></a><span class="lineno"> 1179</span>    fragment &lt;&lt; <span class="charliteral">&#39;)&#39;</span>;</div>
+<div class="line"><a id="l01180" name="l01180"></a><span class="lineno"> 1180</span>    <span class="keywordflow">return</span> detail::RawSqlCondition { fragment.str() };</div>
+<div class="line"><a id="l01181" name="l01181"></a><span class="lineno"> 1181</span>}</div>
+<div class="line"><a id="l01182" name="l01182"></a><span class="lineno"> 1182</span> </div>
+<div class="line"><a id="l01183" name="l01183"></a><span class="lineno"> 1183</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01184" name="l01184"></a><span class="lineno"> 1184</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; SqlWhereClauseBuilder&lt;Derived&gt;::Join(JoinType joinType,</div>
+<div class="line"><a id="l01185" name="l01185"></a><span class="lineno"> 1185</span>                                                                              TableName <span class="keyword">auto</span> joinTable,</div>
+<div class="line"><a id="l01186" name="l01186"></a><span class="lineno"> 1186</span>                                                                              std::string_view joinColumnName,</div>
+<div class="line"><a id="l01187" name="l01187"></a><span class="lineno"> 1187</span>                                                                              SqlQualifiedTableColumnName onOtherColumn)</div>
+<div class="line"><a id="l01188" name="l01188"></a><span class="lineno"> 1188</span>{</div>
+<div class="line"><a id="l01189" name="l01189"></a><span class="lineno"> 1189</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> std::array&lt;std::string_view, 4&gt; JoinTypeStrings = {</div>
+<div class="line"><a id="l01190" name="l01190"></a><span class="lineno"> 1190</span>        <span class="stringliteral">&quot;INNER&quot;</span>,</div>
+<div class="line"><a id="l01191" name="l01191"></a><span class="lineno"> 1191</span>        <span class="stringliteral">&quot;LEFT OUTER&quot;</span>,</div>
+<div class="line"><a id="l01192" name="l01192"></a><span class="lineno"> 1192</span>        <span class="stringliteral">&quot;RIGHT OUTER&quot;</span>,</div>
+<div class="line"><a id="l01193" name="l01193"></a><span class="lineno"> 1193</span>        <span class="stringliteral">&quot;FULL OUTER&quot;</span>,</div>
+<div class="line"><a id="l01194" name="l01194"></a><span class="lineno"> 1194</span>    };</div>
+<div class="line"><a id="l01195" name="l01195"></a><span class="lineno"> 1195</span> </div>
+<div class="line"><a id="l01196" name="l01196"></a><span class="lineno"> 1196</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (std::is_same_v&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(joinTable)&gt;, AliasedTableName&gt;)</div>
+<div class="line"><a id="l01197" name="l01197"></a><span class="lineno"> 1197</span>    {</div>
+<div class="line"><a id="l01198" name="l01198"></a><span class="lineno"> 1198</span>        SearchCondition().tableJoins += std::format(<span class="stringliteral">&quot;\n&quot;</span></div>
+<div class="line"><a id="l01199" name="l01199"></a><span class="lineno"> 1199</span>                                                    R<span class="stringliteral">&quot;( {0} JOIN &quot;{1}&quot; AS &quot;{2}&quot; ON &quot;{2}&quot;.&quot;{3}&quot; = &quot;{4}&quot;.&quot;{5}&quot;)&quot;,</span></div>
+<div class="line"><a id="l01200" name="l01200"></a><span class="lineno"> 1200</span><span class="stringliteral">                                                    JoinTypeStrings[</span><span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(joinType)],</div>
+<div class="line"><a id="l01201" name="l01201"></a><span class="lineno"> 1201</span>                                                    joinTable.tableName,</div>
+<div class="line"><a id="l01202" name="l01202"></a><span class="lineno"> 1202</span>                                                    joinTable.alias,</div>
+<div class="line"><a id="l01203" name="l01203"></a><span class="lineno"> 1203</span>                                                    joinColumnName,</div>
+<div class="line"><a id="l01204" name="l01204"></a><span class="lineno"> 1204</span>                                                    onOtherColumn.tableName,</div>
+<div class="line"><a id="l01205" name="l01205"></a><span class="lineno"> 1205</span>                                                    onOtherColumn.columnName);</div>
+<div class="line"><a id="l01206" name="l01206"></a><span class="lineno"> 1206</span>    }</div>
+<div class="line"><a id="l01207" name="l01207"></a><span class="lineno"> 1207</span>    <span class="keywordflow">else</span></div>
+<div class="line"><a id="l01208" name="l01208"></a><span class="lineno"> 1208</span>    {</div>
+<div class="line"><a id="l01209" name="l01209"></a><span class="lineno"> 1209</span>        SearchCondition().tableJoins += std::format(<span class="stringliteral">&quot;\n&quot;</span></div>
+<div class="line"><a id="l01210" name="l01210"></a><span class="lineno"> 1210</span>                                                    R<span class="stringliteral">&quot;( {0} JOIN &quot;{1}&quot; ON &quot;{1}&quot;.&quot;{2}&quot; = &quot;{3}&quot;.&quot;{4}&quot;)&quot;,</span></div>
+<div class="line"><a id="l01211" name="l01211"></a><span class="lineno"> 1211</span><span class="stringliteral">                                                    JoinTypeStrings[</span><span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(joinType)],</div>
+<div class="line"><a id="l01212" name="l01212"></a><span class="lineno"> 1212</span>                                                    joinTable,</div>
+<div class="line"><a id="l01213" name="l01213"></a><span class="lineno"> 1213</span>                                                    joinColumnName,</div>
+<div class="line"><a id="l01214" name="l01214"></a><span class="lineno"> 1214</span>                                                    onOtherColumn.tableName,</div>
+<div class="line"><a id="l01215" name="l01215"></a><span class="lineno"> 1215</span>                                                    onOtherColumn.columnName);</div>
+<div class="line"><a id="l01216" name="l01216"></a><span class="lineno"> 1216</span>    }</div>
+<div class="line"><a id="l01217" name="l01217"></a><span class="lineno"> 1217</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived&amp;<span class="keyword">&gt;</span>(*this);</div>
+<div class="line"><a id="l01218" name="l01218"></a><span class="lineno"> 1218</span>}</div>
+<div class="line"><a id="l01219" name="l01219"></a><span class="lineno"> 1219</span> </div>
+<div class="line"><a id="l01220" name="l01220"></a><span class="lineno"> 1220</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01221" name="l01221"></a><span class="lineno"> 1221</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; SqlWhereClauseBuilder&lt;Derived&gt;::Join(JoinType joinType,</div>
+<div class="line"><a id="l01222" name="l01222"></a><span class="lineno"> 1222</span>                                                                              TableName <span class="keyword">auto</span> joinTable,</div>
+<div class="line"><a id="l01223" name="l01223"></a><span class="lineno"> 1223</span>                                                                              std::string_view joinColumnName,</div>
+<div class="line"><a id="l01224" name="l01224"></a><span class="lineno"> 1224</span>                                                                              std::string_view onMainTableColumn)</div>
+<div class="line"><a id="l01225" name="l01225"></a><span class="lineno"> 1225</span>{</div>
+<div class="line"><a id="l01226" name="l01226"></a><span class="lineno"> 1226</span>    <span class="keywordflow">return</span> Join(joinType,</div>
+<div class="line"><a id="l01227" name="l01227"></a><span class="lineno"> 1227</span>                joinTable,</div>
+<div class="line"><a id="l01228" name="l01228"></a><span class="lineno"> 1228</span>                joinColumnName,</div>
+<div class="line"><a id="l01229" name="l01229"></a><span class="lineno"> 1229</span>                SqlQualifiedTableColumnName { .tableName = SearchCondition().tableName, .columnName = onMainTableColumn });</div>
+<div class="line"><a id="l01230" name="l01230"></a><span class="lineno"> 1230</span>}</div>
+<div class="line"><a id="l01231" name="l01231"></a><span class="lineno"> 1231</span><span class="comment"></span> </div>
+<div class="line"><a id="l01232" name="l01232"></a><span class="lineno"> 1232</span><span class="comment">/// Constructs a JOIN clause with a custom ON clause builder.</span></div>
+<div class="line"><a id="l01233" name="l01233"></a><span class="lineno"> 1233</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l01234" name="l01234"></a><span class="lineno"> 1234</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Callable&gt;</div>
+<div class="foldopen" id="foldopen01235" data-start="{" data-end="}">
+<div class="line"><a id="l01235" name="l01235"></a><span class="lineno"><a class="line" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e7fe33501cc9bd570959f7e2ed5d0b0"> 1235</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE Derived&amp; <a class="code hl_class" href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html">SqlWhereClauseBuilder&lt;Derived&gt;::Join</a>(JoinType joinType,</div>
+<div class="line"><a id="l01236" name="l01236"></a><span class="lineno"> 1236</span>                                                                              TableName <span class="keyword">auto</span> joinTable,</div>
+<div class="line"><a id="l01237" name="l01237"></a><span class="lineno"> 1237</span>                                                                              Callable <span class="keyword">const</span>&amp; onClauseBuilder)</div>
+<div class="line"><a id="l01238" name="l01238"></a><span class="lineno"> 1238</span>{</div>
+<div class="line"><a id="l01239" name="l01239"></a><span class="lineno"> 1239</span>    <span class="keyword">static</span> <span class="keyword">constexpr</span> std::array&lt;std::string_view, 4&gt; JoinTypeStrings = {</div>
+<div class="line"><a id="l01240" name="l01240"></a><span class="lineno"> 1240</span>        <span class="stringliteral">&quot;INNER&quot;</span>,</div>
+<div class="line"><a id="l01241" name="l01241"></a><span class="lineno"> 1241</span>        <span class="stringliteral">&quot;LEFT OUTER&quot;</span>,</div>
+<div class="line"><a id="l01242" name="l01242"></a><span class="lineno"> 1242</span>        <span class="stringliteral">&quot;RIGHT OUTER&quot;</span>,</div>
+<div class="line"><a id="l01243" name="l01243"></a><span class="lineno"> 1243</span>        <span class="stringliteral">&quot;FULL OUTER&quot;</span>,</div>
+<div class="line"><a id="l01244" name="l01244"></a><span class="lineno"> 1244</span>    };</div>
+<div class="line"><a id="l01245" name="l01245"></a><span class="lineno"> 1245</span> </div>
+<div class="line"><a id="l01246" name="l01246"></a><span class="lineno"> 1246</span>    <span class="keywordtype">size_t</span> <span class="keyword">const</span> originalSize = SearchCondition().tableJoins.size();</div>
+<div class="line"><a id="l01247" name="l01247"></a><span class="lineno"> 1247</span>    SearchCondition().tableJoins +=</div>
+<div class="line"><a id="l01248" name="l01248"></a><span class="lineno"> 1248</span>        std::format(<span class="stringliteral">&quot;\n {0} JOIN \&quot;{1}\&quot; ON &quot;</span>, JoinTypeStrings[<span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(joinType)], joinTable);</div>
+<div class="line"><a id="l01249" name="l01249"></a><span class="lineno"> 1249</span>    <span class="keywordtype">size_t</span> <span class="keyword">const</span> sizeBefore = SearchCondition().tableJoins.size();</div>
+<div class="line"><a id="l01250" name="l01250"></a><span class="lineno"> 1250</span>    onClauseBuilder(<a class="code hl_class" href="../../dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html">SqlJoinConditionBuilder</a> { joinTable, &amp;SearchCondition().tableJoins });</div>
+<div class="line"><a id="l01251" name="l01251"></a><span class="lineno"> 1251</span>    <span class="keywordtype">size_t</span> <span class="keyword">const</span> sizeAfter = SearchCondition().tableJoins.size();</div>
+<div class="line"><a id="l01252" name="l01252"></a><span class="lineno"> 1252</span>    <span class="keywordflow">if</span> (sizeBefore == sizeAfter)</div>
+<div class="line"><a id="l01253" name="l01253"></a><span class="lineno"> 1253</span>        SearchCondition().tableJoins.resize(originalSize);</div>
+<div class="line"><a id="l01254" name="l01254"></a><span class="lineno"> 1254</span> </div>
+<div class="line"><a id="l01255" name="l01255"></a><span class="lineno"> 1255</span>    <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>Derived&amp;<span class="keyword">&gt;</span>(*this);</div>
+<div class="line"><a id="l01256" name="l01256"></a><span class="lineno"> 1256</span>}</div>
+</div>
+<div class="line"><a id="l01257" name="l01257"></a><span class="lineno"> 1257</span> </div>
+<div class="line"><a id="l01258" name="l01258"></a><span class="lineno"> 1258</span>} <span class="comment">// namespace Lightweight</span></div>
 </div>
 </div>
 </div>
@@ -1494,7 +1497,7 @@ $(document).ready(function(){initNavTree('db/d83/SqlQuery_2Core_8hpp_source.html
 <div class="ttc" id="aclassLightweight_1_1SqlWhereClauseBuilder_html_a2ed3b25d0c0477243e93b6752fd05298"><div class="ttname"><a href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a2ed3b25d0c0477243e93b6752fd05298">Lightweight::SqlWhereClauseBuilder::WhereNotNull</a></div><div class="ttdeci">Derived &amp; WhereNotNull(ColumnName const &amp;columnName)</div><div class="ttdoc">Constructs or extends a WHERE clause to test for a value being not null.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlWhereClauseBuilder_html_a30f6074add24d19f3d657f17b1879963"><div class="ttname"><a href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a30f6074add24d19f3d657f17b1879963">Lightweight::SqlWhereClauseBuilder::Where</a></div><div class="ttdeci">Derived &amp; Where(ColumnName const &amp;columnName, std::string_view binaryOp, T const &amp;value)</div><div class="ttdoc">Constructs or extends a WHERE clause to test for a binary operation.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlWhereClauseBuilder_html_a4241be56beceebced167232d63f669db"><div class="ttname"><a href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a4241be56beceebced167232d63f669db">Lightweight::SqlWhereClauseBuilder::InnerJoin</a></div><div class="ttdeci">Derived &amp; InnerJoin()</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00851">Core.hpp:851</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlWhereClauseBuilder_html_a5a857122df51ec8595876adafcaeb51d"><div class="ttname"><a href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a5a857122df51ec8595876adafcaeb51d">Lightweight::SqlWhereClauseBuilder::WhereRaw</a></div><div class="ttdeci">Derived &amp; WhereRaw(std::string_view sqlConditionExpression)</div><div class="ttdoc">Constructs or extends a raw WHERE clause.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01020">Core.hpp:1020</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlWhereClauseBuilder_html_a5a857122df51ec8595876adafcaeb51d"><div class="ttname"><a href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a5a857122df51ec8595876adafcaeb51d">Lightweight::SqlWhereClauseBuilder::WhereRaw</a></div><div class="ttdeci">Derived &amp; WhereRaw(std::string_view sqlConditionExpression)</div><div class="ttdoc">Constructs or extends a raw WHERE clause.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l01021">Core.hpp:1021</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlWhereClauseBuilder_html_a6e324a452019ade1800038cb13aae152"><div class="ttname"><a href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a6e324a452019ade1800038cb13aae152">Lightweight::SqlWhereClauseBuilder::LeftOuterJoin</a></div><div class="ttdeci">Derived &amp; LeftOuterJoin(TableName auto joinTable, std::string_view joinColumnName, SqlQualifiedTableColumnName onOtherColumn)</div><div class="ttdoc">Constructs an LEFT OUTER JOIN clause.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00876">Core.hpp:876</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlWhereClauseBuilder_html_a70eca9201efb0d7311b20cef6ef4db34"><div class="ttname"><a href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a70eca9201efb0d7311b20cef6ef4db34">Lightweight::SqlWhereClauseBuilder::Not</a></div><div class="ttdeci">Derived &amp; Not() noexcept</div><div class="ttdoc">Indicates, that the next WHERE clause should be negated.</div><div class="ttdef"><b>Definition</b> <a href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00613">Core.hpp:613</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlWhereClauseBuilder_html_a7322f0f36ed298443acce7adfd582526"><div class="ttname"><a href="../../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a7322f0f36ed298443acce7adfd582526">Lightweight::SqlWhereClauseBuilder::WhereNull</a></div><div class="ttdeci">Derived &amp; WhereNull(ColumnName const &amp;columnName)</div><div class="ttdoc">Constructs or extends an WHERE/OR clause to test for a value to be NULL.</div></div>
