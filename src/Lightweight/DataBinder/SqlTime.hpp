@@ -134,25 +134,32 @@ struct SqlDataBinder<SqlTime>
 {
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::Time {};
 
+    // The legacy Microsoft "SQL Server" ODBC driver (SQLSRV32.DLL) is ODBC 2.x-only
+    // and rejects SQL_C_TYPE_TIME / SQL_TYPE_TIME with HYC00. See SqlDate.hpp for
+    // the same fallback dance.
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              SqlTime const& value,
-                                                             SqlDataBinderCallback& /*cb*/) noexcept
+                                                             SqlDataBinderCallback& cb) noexcept
     {
+        auto const cType = static_cast<SQLSMALLINT>(cb.IsLegacyMicrosoftSqlServerDriver() ? SQL_C_TIME : SQL_C_TYPE_TIME);
+        auto const sqlType = static_cast<SQLSMALLINT>(cb.IsLegacyMicrosoftSqlServerDriver() ? SQL_TIME : SQL_TYPE_TIME);
         return SQLBindParameter(
-            stmt, column, SQL_PARAM_INPUT, SQL_C_TYPE_TIME, SQL_TYPE_TIME, 0, 0, (SQLPOINTER) &value.sqlValue, 0, nullptr);
+            stmt, column, SQL_PARAM_INPUT, cType, sqlType, 0, 0, (SQLPOINTER) &value.sqlValue, 0, nullptr);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
-        SQLHSTMT stmt, SQLUSMALLINT column, SqlTime* result, SQLLEN* indicator, SqlDataBinderCallback& /*cb*/) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN
+    OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, SqlTime* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
-        return SQLBindCol(stmt, column, SQL_C_TYPE_TIME, &result->sqlValue, sizeof(result->sqlValue), indicator);
+        auto const cType = static_cast<SQLSMALLINT>(cb.IsLegacyMicrosoftSqlServerDriver() ? SQL_C_TIME : SQL_C_TYPE_TIME);
+        return SQLBindCol(stmt, column, cType, &result->sqlValue, sizeof(result->sqlValue), indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(
-        SQLHSTMT stmt, SQLUSMALLINT column, SqlTime* result, SQLLEN* indicator, SqlDataBinderCallback const& /*cb*/) noexcept
+        SQLHSTMT stmt, SQLUSMALLINT column, SqlTime* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
     {
-        return SQLGetData(stmt, column, SQL_C_TYPE_TIME, &result->sqlValue, sizeof(result->sqlValue), indicator);
+        auto const cType = static_cast<SQLSMALLINT>(cb.IsLegacyMicrosoftSqlServerDriver() ? SQL_C_TIME : SQL_C_TYPE_TIME);
+        return SQLGetData(stmt, column, cType, &result->sqlValue, sizeof(result->sqlValue), indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(SqlTime const& value) noexcept

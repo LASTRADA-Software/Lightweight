@@ -371,6 +371,21 @@ struct SqlDataBinder<AnsiStringType>
                 size_t const bufferSize = StringTraits::Size(result) - writeIndex;
                 SQLRETURN const rv =
                     SQLGetData(stmt, column, SQL_C_CHAR, bufferStart, static_cast<SQLLEN>(bufferSize), indicator);
+                // Derive the actual chunk length from the driver-written null
+                // terminator rather than trusting bufferSize - 1. Spec-conformant
+                // drivers write (bufferSize - 1) data bytes + NUL at position
+                // (bufferSize - 1) on truncation, so the scan returns the same
+                // value. The legacy Microsoft "SQL Server" ODBC driver
+                // (SQLSRV32.DLL), however, leaves one byte of slack — it writes
+                // (bufferSize - 2) data bytes + NUL at (bufferSize - 2). Trusting
+                // bufferSize - 1 then walks past the NUL and embeds it into the
+                // assembled string ('WideStringFro\0mVarcharTest'). Scanning makes
+                // the chunked-read self-correcting for both driver shapes. The
+                // resize-fill-with-NUL contract of Resize guarantees the buffer
+                // beyond the freshly-written data is zero-initialised, so the
+                // first NUL we find is always the driver's terminator.
+                auto const* nulPos = static_cast<char const*>(std::memchr(bufferStart, '\0', bufferSize));
+                size_t const chunkLen = nulPos ? static_cast<size_t>(nulPos - bufferStart) : bufferSize;
                 switch (rv)
                 {
                     case SQL_SUCCESS:
@@ -378,7 +393,10 @@ struct SqlDataBinder<AnsiStringType>
                         // last successive call
                         if (*indicator != SQL_NULL_DATA)
                         {
-                            StringTraits::Resize(result, static_cast<SQLLEN>(writeIndex) + *indicator);
+                            // chunkLen reflects what the driver actually wrote in
+                            // this final chunk; preferring it over *indicator
+                            // keeps us correct under the legacy driver's slack.
+                            StringTraits::Resize(result, static_cast<SQLLEN>(writeIndex + chunkLen));
                             *indicator = static_cast<SQLLEN>(StringTraits::Size(result));
                         }
                         return SQL_SUCCESS;
@@ -387,19 +405,19 @@ struct SqlDataBinder<AnsiStringType>
                         if (*indicator == SQL_NO_TOTAL)
                         {
                             // We have a truncation and the server does not know how much data is left.
-                            writeIndex += bufferSize - 1;
+                            writeIndex += chunkLen;
                             StringTraits::Resize(result, static_cast<SQLLEN>((2 * writeIndex) + 1));
                         }
                         else if (std::cmp_greater_equal(*indicator, bufferSize))
                         {
                             // We have a truncation and the server knows how much data is left.
-                            writeIndex += bufferSize - 1;
+                            writeIndex += chunkLen;
                             StringTraits::Resize(result, static_cast<SQLLEN>(writeIndex) + *indicator);
                         }
                         else
                         {
                             // We have no truncation and the server knows how much data is left.
-                            StringTraits::Resize(result, static_cast<SQLLEN>(writeIndex) + *indicator - 1);
+                            StringTraits::Resize(result, static_cast<SQLLEN>(writeIndex + chunkLen));
                             return SQL_SUCCESS;
                         }
                         break;

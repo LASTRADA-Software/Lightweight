@@ -134,6 +134,13 @@ class SqlConnection final
     /// Retrieves the name of the driver used for this connection.
     [[nodiscard]] std::string const& DriverName() const noexcept;
 
+    /// Returns true when the legacy in-box Microsoft "SQL Server" ODBC driver
+    /// (SQLSRV32.DLL) is in use. That driver is ODBC 2.x-only and has known
+    /// quirks the binder layer must compensate for (date/time type codes,
+    /// chunked SQL_C_CHAR read off-by-one). Modern drivers (ODBC Driver 17/18
+    /// for SQL Server) return false.
+    [[nodiscard]] bool IsLegacyMicrosoftSqlServerDriver() const noexcept;
+
     /// Retrieves a query formatter suitable for the SQL server being connected.
     [[nodiscard]] SqlQueryFormatter const& QueryFormatter() const noexcept;
 
@@ -210,6 +217,11 @@ inline SqlServerType SqlConnection::ServerType() const noexcept
 inline std::string const& SqlConnection::DriverName() const noexcept
 {
     return m_driverName;
+}
+
+inline bool SqlConnection::IsLegacyMicrosoftSqlServerDriver() const noexcept
+{
+    return m_serverType == SqlServerType::MICROSOFT_SQL && m_driverName == "SQLSRV32.DLL";
 }
 
 inline SqlQueryFormatter const& SqlConnection::QueryFormatter() const noexcept
