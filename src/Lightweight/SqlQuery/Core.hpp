@@ -1009,6 +1009,7 @@ namespace detail
 
 } // namespace detail
 
+/// Starts a conditional WHERE chain gated by a `std::optional` value.
 template <typename Derived>
 template <typename T>
 inline LIGHTWEIGHT_FORCE_INLINE auto SqlWhereClauseBuilder<Derived>::If(std::optional<T> const& value) noexcept
