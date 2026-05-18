@@ -40,7 +40,7 @@ var searchData=
   ['api_37',['api',['../de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html',1,'Data Binder API'],['../index.html#high-level-api',1,'High level API'],['../d2/da6/sql-migrations.html#migration-manager-api',1,'Migration Manager API'],['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-the-datamapper-api',1,'Use the DataMapper API']]],
   ['api_20for_20c_2023_38',['Lightweight, an ODBC SQL API for C++23',['../index.html',1,'']]],
   ['api_3a_20sqlstatement_20sqlconnection_39',['Low-Level API: SqlStatement &amp; SqlConnection',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#low-level-api-sqlstatement--sqlconnection',1,'']]],
-  ['appendcolumnname_40',['AppendColumnName',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8c3a9e6b4cfb0f8d3235f100b42ace79',1,'Lightweight::SqlWhereClauseBuilder']]],
+  ['appendcolumnname_40',['AppendColumnName',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a51ab85e6d6b300bd68e5be87336013dc',1,'Lightweight::SqlWhereClauseBuilder']]],
   ['appendliteralvalue_41',['AppendLiteralValue',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e6c126aafc9b8261118bea5977f272f',1,'Lightweight::SqlWhereClauseBuilder']]],
   ['applied_42',['applied',['../d5/dc4/dbtool.html#list-applied',1,'list-applied'],['../d2/da6/sql-migrations.html#mark-as-applied',1,'Mark as Applied']]],
   ['applied_20timestamp_43',['mark-applied &lt;TIMESTAMP&gt;',['../d5/dc4/dbtool.html#mark-applied-timestamp',1,'']]],

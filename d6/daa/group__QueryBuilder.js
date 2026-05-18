@@ -15,10 +15,6 @@ var group__QueryBuilder =
       [ "Migration", "de/da0/classLightweight_1_1SqlQueryBuilder.html#aa69bce960ab6b67f3a39750799754c4e", null ]
     ] ],
     [ "Lightweight::SqlWildcardType", "d2/d74/structLightweight_1_1SqlWildcardType.html", null ],
-    [ "Lightweight::SqlQualifiedTableColumnName", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html", [
-      [ "tableName", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#a1459637ec9641e6554ca94d6faf0edfe", null ],
-      [ "columnName", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#a721158a65634bdfa5abfd7c666a18e06", null ]
-    ] ],
     [ "Lightweight::SqlJoinConditionBuilder", "dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html", [
       [ "SqlJoinConditionBuilder", "dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a20d79f682c02518bae99131795adb28b", null ],
       [ "On", "dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#a07b8c6e89aa7cbfd31eed3997d5dbf4f", null ],
@@ -77,7 +73,7 @@ var group__QueryBuilder =
       [ "Where", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a6b83a086d2fbfc0417a6a313a0048b9c", null ],
       [ "Where", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a920840bddb79e3d841b4f9b23250b6d1", null ],
       [ "OrWhere", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aef966cbcd0888b69b5bbf542e014b2a0", null ],
-      [ "AppendColumnName", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8c3a9e6b4cfb0f8d3235f100b42ace79", null ],
+      [ "AppendColumnName", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a51ab85e6d6b300bd68e5be87336013dc", null ],
       [ "AppendLiteralValue", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e6c126aafc9b8261118bea5977f272f", null ],
       [ "PopulateLiteralValueInto", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ab37dadea0850fbda74e2efe467118c87", null ],
       [ "Join", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8e7fe33501cc9bd570959f7e2ed5d0b0", null ]
@@ -243,6 +239,11 @@ var group__QueryBuilder =
       [ "ToSql", "d3/ded/structLightweight_1_1SqlMigrationPlan.html#af68f6e6d4328db95b59ada75a24f17f3", null ],
       [ "formatter", "d3/ded/structLightweight_1_1SqlMigrationPlan.html#a1125d9bd0e213d69685b1a6deb03398e", null ],
       [ "steps", "d3/ded/structLightweight_1_1SqlMigrationPlan.html#aa0f9b688696f6d9a0c8b46695ca501f1", null ]
+    ] ],
+    [ "Lightweight::SqlQualifiedTableColumnName", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html", [
+      [ "operator<=>", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#a259b09aa04472c0b394790eb89b0131a", null ],
+      [ "tableName", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#a1459637ec9641e6554ca94d6faf0edfe", null ],
+      [ "columnName", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#a721158a65634bdfa5abfd7c666a18e06", null ]
     ] ],
     [ "Lightweight::SqlAlterTableCommand", "d6/daa/group__QueryBuilder.html#ga35da70532d7195d108a26ea3ab737ec3", null ],
     [ "Lightweight::SqlMigrationPlanElement", "d6/daa/group__QueryBuilder.html#gace7448ea30e7d08a6417adef1c6edc6e", null ],

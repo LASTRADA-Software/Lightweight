@@ -26,7 +26,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20260303.0</span>
+   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20260514.0</span>
    </div>
   </td>
  </tr>
@@ -180,12 +180,8 @@ Variables</h2></td></tr>
 <tr class="separator:ga2bf8fa94d9c5b41f9a1045395403ccab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaed63e2eb978095fa8298c02414f9ca03" id="r_gaed63e2eb978095fa8298c02414f9ca03"><td class="memTemplParams" colspan="2">template&lt;auto ReferencedField&gt; </td></tr>
 <tr class="memitem:gaed63e2eb978095fa8298c02414f9ca03"><td class="memTemplItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaed63e2eb978095fa8298c02414f9ca03">Lightweight::FullyQualifiedNameOf</a></td></tr>
-<tr class="memdesc:gaed63e2eb978095fa8298c02414f9ca03"><td class="mdescLeft">&#160;</td><td class="mdescRight">Holds the quoted fully qualified field name (including table name) of the given field.  <br /></td></tr>
+<tr class="memdesc:gaed63e2eb978095fa8298c02414f9ca03"><td class="mdescLeft">&#160;</td><td class="mdescRight">Holds the fully qualified column reference (table + column) for the given field.  <br /></td></tr>
 <tr class="separator:gaed63e2eb978095fa8298c02414f9ca03"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga8e59547a0c0c6f118824cab220ae43c4" id="r_ga8e59547a0c0c6f118824cab220ae43c4"><td class="memTemplParams" colspan="2">template&lt;auto... ReferencedFields&gt; </td></tr>
-<tr class="memitem:ga8e59547a0c0c6f118824cab220ae43c4"><td class="memTemplItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga8e59547a0c0c6f118824cab220ae43c4">Lightweight::FullyQualifiedNamesOf</a></td></tr>
-<tr class="memdesc:ga8e59547a0c0c6f118824cab220ae43c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Holds the quoted fully qualified field names of the given fields.  <br /></td></tr>
-<tr class="separator:ga8e59547a0c0c6f118824cab220ae43c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>The data mapper is a high level API for mapping records to and from the database using high level C++ syntax. </p>
@@ -423,7 +419,7 @@ template&lt;typename Record &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00176">176</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00815">Lightweight::SqlWhereClauseBuilder&lt; Derived &gt;::InnerJoin()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00823">Lightweight::SqlWhereClauseBuilder&lt; Derived &gt;::InnerJoin()</a>.</p>
 
 </div>
 </div>
@@ -448,54 +444,29 @@ template&lt;auto ReferencedField&gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
-<b>Initial value:</b><div class="fragment"><div class="line">= SqlRawColumnNameView {</div>
-<div class="line">    .value = detail::FullyQualifiedNameOfImpl&lt;ReferencedField&gt;::value,</div>
+<b>Initial value:</b><div class="fragment"><div class="line">= SqlQualifiedTableColumnName {</div>
+<div class="line"> </div>
+<div class="line"> </div>
+<div class="line"> </div>
+<div class="line">    .tableName = <a class="code hl_variable" href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">RecordTableName</a>&lt;MemberClassType&lt;<span class="keyword">decltype</span>(ReferencedField)&gt;&gt;,</div>
+<div class="line"> </div>
+<div class="line">    .columnName = FieldNameOf&lt;ReferencedField&gt;,</div>
 <div class="line">}</div>
+<div class="ttc" id="agroup__DataMapper_html_ga2bf8fa94d9c5b41f9a1045395403ccab"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">Lightweight::RecordTableName</a></div><div class="ttdeci">constexpr std::string_view RecordTableName</div><div class="ttdoc">Holds the SQL tabl ename for the given record type.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00176">Utils.hpp:176</a></div></div>
 </div><!-- fragment -->
-<p>Holds the quoted fully qualified field name (including table name) of the given field. </p>
+<p>Holds the fully qualified column reference (table + column) for the given field. </p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
-    <tr><td class="paramname">ReferencedField</td><td></td></tr>
+    <tr><td class="paramname">ReferencedField</td><td>A pointer-to-member identifying the field.</td></tr>
   </table>
   </dd>
 </dl>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> quotedFieldName = FullyQualifiedNameOf&lt;&amp;Person::id&gt;;</div>
-<div class="line"><span class="keyword">static_assert</span>(quotedFieldName.value == R<span class="stringliteral">&quot;sql(&quot;Person&quot;.&quot;id&quot;)sql&quot;);</span></div>
-</div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00311">311</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
+<div class="fragment"><div class="line"><span class="keyword">constexpr</span> <span class="keyword">auto</span> ref = FullyQualifiedNameOf&lt;&amp;Person::id&gt;;</div>
+<div class="line"><span class="keyword">static_assert</span>(ref.tableName == <span class="stringliteral">&quot;Person&quot;</span>);</div>
+<div class="line"><span class="keyword">static_assert</span>(ref.columnName == <span class="stringliteral">&quot;id&quot;</span>);</div>
+</div><!-- fragment --><p>The result is an <code><a class="el" href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html" title="SqlQualifiedTableColumnName represents a column name qualified with a table name.">SqlQualifiedTableColumnName</a></code> accepted by every column-name entry point in the builder (<code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a></code>, <code>Fields</code>, <code>Where</code>, <code>OrderBy</code>, <code>GroupBy</code>, <code>Aggregate::*</code>, joins). The builder applies the quoting. </p>
 
-</div>
-</div>
-<a id="ga8e59547a0c0c6f118824cab220ae43c4" name="ga8e59547a0c0c6f118824cab220ae43c4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ga8e59547a0c0c6f118824cab220ae43c4">&#9670;&#160;</a></span>FullyQualifiedNamesOf</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;auto... ReferencedFields&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">constexpr auto Lightweight::FullyQualifiedNamesOf</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<b>Initial value:</b><div class="fragment"><div class="line">= SqlRawColumnNameView {</div>
-<div class="line">    .value = detail::FullyQualifiedNamesOfImpl&lt;ReferencedFields...&gt;::value,</div>
-<div class="line">}</div>
-</div><!-- fragment -->
-<p>Holds the quoted fully qualified field names of the given fields. </p>
-<div class="fragment"><div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> quotedFieldNames = FullyQualifiedNamesOf&lt;&amp;Person::id, &amp;Person::name, &amp;Person::age&gt;;</div>
-<div class="line"><span class="keyword">static_assert</span>(quotedFieldNames.value == R<span class="stringliteral">&quot;sql(&quot;Person&quot;.&quot;id&quot;, &quot;Person&quot;.&quot;name&quot;, &quot;Person&quot;.&quot;age&quot;)sql&quot;);</span></div>
-</div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00356">356</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00252">252</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
 </div>
 </div>

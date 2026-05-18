@@ -26,7 +26,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20260303.0</span>
+   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20260514.0</span>
    </div>
   </td>
  </tr>
@@ -91,6 +91,7 @@ $(document).ready(function(){initNavTree('db/d8e/structLightweight_1_1SqlQualifi
 
 <div class="header">
   <div class="summary">
+<a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="../../d1/d5b/structLightweight_1_1SqlQualifiedTableColumnName-members.html">List of all members</a>  </div>
   <div class="headertitle"><div class="title">Lightweight::SqlQualifiedTableColumnName Struct Reference<div class="ingroups"><a class="el" href="../../d6/daa/group__QueryBuilder.html">Query Builder</a></div></div></div>
@@ -100,8 +101,15 @@ $(document).ready(function(){initNavTree('db/d8e/structLightweight_1_1SqlQualifi
 <p><a class="el" href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html" title="SqlQualifiedTableColumnName represents a column name qualified with a table name.">SqlQualifiedTableColumnName</a> represents a column name qualified with a table name.  
  <a href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#details">More...</a></p>
 
-<p><code>#include &lt;<a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>&gt;</code></p>
+<p><code>#include &lt;<a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>&gt;</code></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
+Public Member Functions</h2></td></tr>
+<tr class="memitem:a259b09aa04472c0b394790eb89b0131a" id="r_a259b09aa04472c0b394790eb89b0131a"><td class="memItemLeft" align="right" valign="top"><a id="a259b09aa04472c0b394790eb89b0131a" name="a259b09aa04472c0b394790eb89b0131a"></a>
+constexpr std::weak_ordering&#160;</td><td class="memItemRight" valign="bottom"><b>operator&lt;=&gt;</b> (<a class="el" href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html">SqlQualifiedTableColumnName</a> const &amp;) const noexcept=default</td></tr>
+<tr class="memdesc:a259b09aa04472c0b394790eb89b0131a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Three-way comparison operator. <br /></td></tr>
+<tr class="separator:a259b09aa04472c0b394790eb89b0131a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:a1459637ec9641e6554ca94d6faf0edfe" id="r_a1459637ec9641e6554ca94d6faf0edfe"><td class="memItemLeft" align="right" valign="top">std::string_view&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#a1459637ec9641e6554ca94d6faf0edfe">tableName</a></td></tr>
@@ -113,8 +121,9 @@ Public Attributes</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p><a class="el" href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html" title="SqlQualifiedTableColumnName represents a column name qualified with a table name.">SqlQualifiedTableColumnName</a> represents a column name qualified with a table name. </p>
+<p>This is the single structural representation of a <code>table.column</code> reference used throughout the query builder API. The builder is responsible for quoting; do not pre-quote the values stored here. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00059">59</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00226">226</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 </div><h2 class="groupheader">Member Data Documentation</h2>
 <a id="a1459637ec9641e6554ca94d6faf0edfe" name="a1459637ec9641e6554ca94d6faf0edfe"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1459637ec9641e6554ca94d6faf0edfe">&#9670;&#160;</a></span>tableName</h2>
@@ -130,9 +139,9 @@ Public Attributes</h2></td></tr>
 
 <p>The table name. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00062">62</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00229">229</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00222">Lightweight::SqlSelectQueryBuilder::Fields()</a>, and <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00177">Lightweight::SqlJoinConditionBuilder::Operator()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00226">Lightweight::SqlSelectQueryBuilder::Fields()</a>, and <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00164">Lightweight::SqlJoinConditionBuilder::Operator()</a>.</p>
 
 </div>
 </div>
@@ -150,14 +159,14 @@ Public Attributes</h2></td></tr>
 
 <p>The column name. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00064">64</a> of file <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00231">231</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00177">Lightweight::SqlJoinConditionBuilder::Operator()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00164">Lightweight::SqlJoinConditionBuilder::Operator()</a>.</p>
 
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>Lightweight/SqlQuery/<a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html">Core.hpp</a></li>
+<li>Lightweight/<a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->

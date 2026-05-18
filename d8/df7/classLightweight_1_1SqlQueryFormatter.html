@@ -26,7 +26,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20260303.0</span>
+   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20260514.0</span>
    </div>
   </td>
  </tr>
@@ -248,7 +248,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>API to format SQL queries for different SQL dialects. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00020">20</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00019">19</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="abf21ac12103c4b8224cc68fb0cc114c0" name="abf21ac12103c4b8224cc68fb0cc114c0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#abf21ac12103c4b8224cc68fb0cc114c0">&#9670;&#160;</a></span>StringList</h2>
@@ -264,7 +264,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 
 <p>Alias for a list of SQL statement strings. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00128">128</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00127">127</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -547,7 +547,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Whether the dialect must rebuild a table to add or drop a foreign-key constraint (i.e. cannot express it via <code>ALTER TABLE … ADD/DROP CONSTRAINT</code>). </p>
 <p>SQLite returns <code>true</code>; every other backend defaults to <code>false</code>. The migration executor consults this to decide whether to take the table-rebuild path on <code>AlterTable</code> steps that touch foreign keys. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00188">188</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00187">187</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -591,7 +591,7 @@ template&lt;typename Range &gt; </div>
 <p>Produces <code>FK_&lt;table&gt;_&lt;col1&gt;[_&lt;col2&gt;…]</code>. A single-column FK collapses to <code>FK_&lt;table&gt;_&lt;col&gt;</code>; a composite FK includes every column so that a composite FK whose first column matches an existing single-column FK doesn't collide on the constraint name (which MSSQL enforces as globally unique per DB).</p>
 <p>Consumers include the SQL Server, PostgreSQL and SQLite formatters — centralising the convention here keeps CREATE/ALTER emission in sync with DROP CONSTRAINT lookup (e.g. <code>SQLiteRebuildDropForeignKey</code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00204">204</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00203">203</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -623,7 +623,7 @@ template&lt;typename Range &gt; </div>
 <p>Returns an empty string when the DBMS has no session-level concept of a default schema (SQL Server, SQLite). Callers must skip emission for empty results. PostgreSQL implements this via <code>SET search_path TO ...</code>.</p>
 <p>The <code>schema</code> value is interpolated into the statement; callers must validate it (e.g. whitelist <code>[A-Za-z0-9_]</code>) before invoking. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00225">225</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00224">224</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
