@@ -43,7 +43,6 @@ using Lightweight::FieldWithStorage;
 using Lightweight::FormatName;
 using Lightweight::FormatType;
 using Lightweight::FullyQualifiedNameOf;
-using Lightweight::FullyQualifiedNamesOf;
 using Lightweight::GetPrimaryKeyField;
 using Lightweight::HasAutoIncrementPrimaryKey;
 using Lightweight::HasMany;
@@ -216,9 +215,7 @@ using Lightweight::Unwrap;
 
 using Lightweight::is_belongs_to;
 
-using Lightweight::operator!=;
 using Lightweight::operator<<;
-using Lightweight::operator==;
 
 namespace Aggregate
 {
