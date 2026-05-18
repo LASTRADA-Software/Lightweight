@@ -110,25 +110,34 @@ struct SqlDataBinder<SqlDate>
 {
     static constexpr auto ColumnType = SqlColumnTypeDefinitions::Date {};
 
+    // The legacy Microsoft "SQL Server" ODBC driver (SQLSRV32.DLL) is ODBC 2.x-only
+    // and rejects the ODBC 3.x SQL_C_TYPE_DATE / SQL_TYPE_DATE type codes with
+    // HYC00 ("Optional feature not implemented"). Fall back to the equivalent
+    // ODBC 2.x codes when that driver is detected; modern drivers (ODBC Driver
+    // 17/18) accept both forms.
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN InputParameter(SQLHSTMT stmt,
                                                              SQLUSMALLINT column,
                                                              SqlDate const& value,
-                                                             SqlDataBinderCallback& /*cb*/) noexcept
+                                                             SqlDataBinderCallback& cb) noexcept
     {
+        auto const cType = static_cast<SQLSMALLINT>(cb.IsLegacyMicrosoftSqlServerDriver() ? SQL_C_DATE : SQL_C_TYPE_DATE);
+        auto const sqlType = static_cast<SQLSMALLINT>(cb.IsLegacyMicrosoftSqlServerDriver() ? SQL_DATE : SQL_TYPE_DATE);
         return SQLBindParameter(
-            stmt, column, SQL_PARAM_INPUT, SQL_C_TYPE_DATE, SQL_TYPE_DATE, 0, 0, (SQLPOINTER) &value.sqlValue, 0, nullptr);
+            stmt, column, SQL_PARAM_INPUT, cType, sqlType, 0, 0, (SQLPOINTER) &value.sqlValue, 0, nullptr);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
-        SQLHSTMT stmt, SQLUSMALLINT column, SqlDate* result, SQLLEN* indicator, SqlDataBinderCallback& /*cb*/) noexcept
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN
+    OutputColumn(SQLHSTMT stmt, SQLUSMALLINT column, SqlDate* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept
     {
-        return SQLBindCol(stmt, column, SQL_C_TYPE_DATE, &result->sqlValue, sizeof(result->sqlValue), indicator);
+        auto const cType = static_cast<SQLSMALLINT>(cb.IsLegacyMicrosoftSqlServerDriver() ? SQL_C_DATE : SQL_C_TYPE_DATE);
+        return SQLBindCol(stmt, column, cType, &result->sqlValue, sizeof(result->sqlValue), indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN GetColumn(
-        SQLHSTMT stmt, SQLUSMALLINT column, SqlDate* result, SQLLEN* indicator, SqlDataBinderCallback const& /*cb*/) noexcept
+        SQLHSTMT stmt, SQLUSMALLINT column, SqlDate* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) noexcept
     {
-        return SQLGetData(stmt, column, SQL_C_TYPE_DATE, &result->sqlValue, sizeof(result->sqlValue), indicator);
+        auto const cType = static_cast<SQLSMALLINT>(cb.IsLegacyMicrosoftSqlServerDriver() ? SQL_C_DATE : SQL_C_TYPE_DATE);
+        return SQLGetData(stmt, column, cType, &result->sqlValue, sizeof(result->sqlValue), indicator);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE std::string Inspect(SqlDate const& value) noexcept

@@ -78,6 +78,17 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
 
     /// @return The driver name of the database.
     [[nodiscard]] virtual std::string const& DriverName() const noexcept = 0;
+
+    /// @return True if the legacy in-box Microsoft "SQL Server" ODBC driver
+    /// (SQLSRV32.DLL) is in use. That driver is ODBC 2.x-only: it returns HYC00
+    /// for SQL_C_TYPE_DATE / SQL_C_TYPE_TIME / SQL_C_TYPE_TIMESTAMP and has an
+    /// off-by-one in chunked SQL_C_CHAR reads. Binders use this to pick the
+    /// ODBC-2 fallback type codes or to compensate for chunked-read slack.
+    /// Modern drivers (ODBC Driver 17/18 for SQL Server) return false.
+    [[nodiscard]] bool IsLegacyMicrosoftSqlServerDriver() const noexcept
+    {
+        return ServerType() == SqlServerType::MICROSOFT_SQL && DriverName() == "SQLSRV32.DLL";
+    }
 };
 
 template <typename>
