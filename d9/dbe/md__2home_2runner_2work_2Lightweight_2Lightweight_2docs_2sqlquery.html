@@ -223,34 +223,6 @@ Select elements</h1>
 <li>Example of usage <code>Where("a",1).Or().Where("b",1)</code></li>
 </ul>
 </li>
-<li><code>If(optional).ThenWhere(column[, binaryOp])</code> — conditional WHERE driven by a <code>std::optional</code><ul>
-<li><code>ThenWhere(column)</code> appends <code>WHERE column = *value</code> only when the optional holds a value; when the optional is empty the call is a no-op and the underlying query is left untouched. Returns the underlying builder, so it can be chained between other clauses.</li>
-<li><code>ThenWhere(column, binaryOp)</code> mirrors <code>Where(column, binaryOp, value)</code> — emits <code>WHERE column &lt;binaryOp&gt; *value</code> (e.g. <code>"&gt;="</code>, <code>"&lt;"</code>, <code>"!="</code>, <code>"LIKE"</code>) under the same empty/populated rules. Useful for range-style filters over <code>SqlDateTime</code>, numeric columns, etc.</li>
-<li>Works with any column-name overload accepted by <code>Where</code> — plain strings, <code>SqlQualifiedTableColumnName</code>, and <code>FullyQualifiedNameOf&lt;&amp;Record::field&gt;</code>.</li>
-<li>Available on every builder that derives from <code>SqlWhereClauseBuilder</code>: <code>Select</code>, <code>Update</code>, and <code>Delete</code>.</li>
-<li>Example — combining equality and range filters, any of which can be absent: <div class="fragment"><div class="line">std::optional&lt;int&gt;         userId = MaybeUserIdFromRequest();</div>
-<div class="line">std::optional&lt;SqlDateTime&gt; since  = MaybeSinceFromRequest();</div>
-<div class="line">std::optional&lt;SqlDateTime&gt; until  = MaybeUntilFromRequest();</div>
-<div class="line"> </div>
-<div class="line"><span class="keyword">auto</span> query = q.FromTable(<span class="stringliteral">&quot;Events&quot;</span>)</div>
-<div class="line">              .Select()</div>
-<div class="line">              .Field(<span class="stringliteral">&quot;id&quot;</span>)</div>
-<div class="line">              .If(userId).ThenWhere(FullyQualifiedNameOf&lt;&amp;Events::userId&gt;)</div>
-<div class="line">              .If(since).ThenWhere(FullyQualifiedNameOf&lt;&amp;Events::createdAt&gt;, <span class="stringliteral">&quot;&gt;=&quot;</span>)</div>
-<div class="line">              .If(until).ThenWhere(FullyQualifiedNameOf&lt;&amp;Events::createdAt&gt;, <span class="stringliteral">&quot;&lt;&quot;</span>)</div>
-<div class="line">              .OrderBy(<span class="stringliteral">&quot;id&quot;</span>)</div>
-<div class="line">              .All();</div>
-<div class="line"><span class="comment">// userId={42}, since={2026-01-01}, until={2026-05-18T12:30:45}</span></div>
-<div class="line"><span class="comment">//   -&gt; WHERE &quot;Events&quot;.&quot;userId&quot; = 42</span></div>
-<div class="line"><span class="comment">//      AND &quot;Events&quot;.&quot;createdAt&quot; &gt;= &#39;2026-01-01T00:00:00.000&#39;</span></div>
-<div class="line"><span class="comment">//      AND &quot;Events&quot;.&quot;createdAt&quot; &lt;  &#39;2026-05-18T12:30:45.000&#39;</span></div>
-<div class="line"><span class="comment">// userId={}, since={}, until={2026-05-18T12:30:45}</span></div>
-<div class="line"><span class="comment">//   -&gt; WHERE &quot;Events&quot;.&quot;createdAt&quot; &lt; &#39;2026-05-18T12:30:45.000&#39;</span></div>
-<div class="line"><span class="comment">// userId={}, since={}, until={}</span></div>
-<div class="line"><span class="comment">//   -&gt; no WHERE clause is emitted</span></div>
-</div><!-- fragment --></li>
-</ul>
-</li>
 <li><code>Inner</code>|<code>LeftOuter</code>|<code>RightOuter</code>|<code>FullOuter</code> + <code>Join</code><ul>
 <li>See documentation for <code>SqlJoinConditionBuilder</code> for details</li>
 </ul>

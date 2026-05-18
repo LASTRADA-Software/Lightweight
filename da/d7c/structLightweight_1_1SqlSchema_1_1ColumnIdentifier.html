@@ -103,22 +103,17 @@ $(document).ready(function(){initNavTree('da/d7c/structLightweight_1_1SqlSchema_
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:aaf7395ed8fc39e934b7531482e074061" id="r_aaf7395ed8fc39e934b7531482e074061"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#aaf7395ed8fc39e934b7531482e074061">operator==</a> (<a class="el" href="../../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html">ColumnIdentifier</a> const &amp;other) const noexcept</td></tr>
-<tr class="memdesc:aaf7395ed8fc39e934b7531482e074061"><td class="mdescLeft">&#160;</td><td class="mdescRight">Equality compares both the owning table and the column name.  <br /></td></tr>
 <tr class="separator:aaf7395ed8fc39e934b7531482e074061"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aafd4dee4c0385d502e5cd97d2e1c7927" id="r_aafd4dee4c0385d502e5cd97d2e1c7927"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#aafd4dee4c0385d502e5cd97d2e1c7927">operator!=</a> (<a class="el" href="../../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html">ColumnIdentifier</a> const &amp;other) const noexcept</td></tr>
-<tr class="memdesc:aafd4dee4c0385d502e5cd97d2e1c7927"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inequality is the negation of equality.  <br /></td></tr>
 <tr class="separator:aafd4dee4c0385d502e5cd97d2e1c7927"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab35f526bdaf9d9ae761de98d3ae66d95" id="r_ab35f526bdaf9d9ae761de98d3ae66d95"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#ab35f526bdaf9d9ae761de98d3ae66d95">operator&lt;</a> (<a class="el" href="../../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html">ColumnIdentifier</a> const &amp;other) const noexcept</td></tr>
-<tr class="memdesc:ab35f526bdaf9d9ae761de98d3ae66d95"><td class="mdescLeft">&#160;</td><td class="mdescRight">Lexicographic ordering by (table, column) so <a class="el" href="../../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html">ColumnIdentifier</a> can be used as a key in ordered containers.  <br /></td></tr>
 <tr class="separator:ab35f526bdaf9d9ae761de98d3ae66d95"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:ac4fab43b4ddee4e6218412da3d9c4986" id="r_ac4fab43b4ddee4e6218412da3d9c4986"><td class="memItemLeft" align="right" valign="top">FullyQualifiedTableName&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#ac4fab43b4ddee4e6218412da3d9c4986">table</a></td></tr>
-<tr class="memdesc:ac4fab43b4ddee4e6218412da3d9c4986"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fully qualified table the column belongs to.  <br /></td></tr>
 <tr class="separator:ac4fab43b4ddee4e6218412da3d9c4986"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a21394a9759f62578e40d06a2507f847e" id="r_a21394a9759f62578e40d06a2507f847e"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#a21394a9759f62578e40d06a2507f847e">column</a></td></tr>
-<tr class="memdesc:a21394a9759f62578e40d06a2507f847e"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="../../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html" title="Holds the definition of a column in a SQL table as read from the database schema.">Column</a> name within the table.  <br /></td></tr>
 <tr class="separator:a21394a9759f62578e40d06a2507f847e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -151,11 +146,7 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Equality compares both the owning table and the column name. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00068">68</a> of file <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html">SqlSchema.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00065">column</a>, and <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00063">table</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00065">65</a> of file <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html">SqlSchema.hpp</a>.</p>
 
 </div>
 </div>
@@ -183,9 +174,7 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Inequality is the negation of equality. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00074">74</a> of file <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html">SqlSchema.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html">SqlSchema.hpp</a>.</p>
 
 </div>
 </div>
@@ -213,11 +202,7 @@ Public Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Lexicographic ordering by (table, column) so <a class="el" href="../../da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html">ColumnIdentifier</a> can be used as a key in ordered containers. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00080">80</a> of file <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html">SqlSchema.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00065">column</a>, and <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00063">table</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00075">75</a> of file <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html">SqlSchema.hpp</a>.</p>
 
 </div>
 </div>
@@ -234,11 +219,7 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Fully qualified table the column belongs to. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00063">63</a> of file <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html">SqlSchema.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00080">operator&lt;()</a>, and <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00068">operator==()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00062">62</a> of file <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html">SqlSchema.hpp</a>.</p>
 
 </div>
 </div>
@@ -254,11 +235,7 @@ Public Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p><a class="el" href="../../d2/db8/structLightweight_1_1SqlSchema_1_1Column.html" title="Holds the definition of a column in a SQL table as read from the database schema.">Column</a> name within the table. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00065">65</a> of file <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html">SqlSchema.hpp</a>.</p>
-
-<p class="reference">Referenced by <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00080">operator&lt;()</a>, and <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00068">operator==()</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html#l00063">63</a> of file <a class="el" href="../../db/d1c/SqlSchema_8hpp_source.html">SqlSchema.hpp</a>.</p>
 
 </div>
 </div>
