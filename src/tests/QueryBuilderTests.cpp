@@ -383,7 +383,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.IfThenWhere FullyQualifi
                 .Select()
                 .Field("a")
                 .If(populated)
-                .ThenWhere(FullyQualifiedNameOf<&IfThenWhereTable::value>)
+                .ThenWhere(FullyQualifiedNameOf<Member(IfThenWhereTable::value)>)
                 .All();
         },
         QueryExpectations::All(R"SQL(SELECT "a" FROM "IfThenWhereTable"
