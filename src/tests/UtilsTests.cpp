@@ -476,15 +476,15 @@ TEST_CASE("SqlSchema::FullyQualifiedTableName equality and ordering", "[SqlSchem
     CHECK(a < c);
 }
 
-TEST_CASE("SqlSchema::FullyQualifiedTableColumn equality and ordering", "[SqlSchema]")
+TEST_CASE("SqlSchema::ColumnIdentifier equality and ordering", "[SqlSchema]")
 {
-    using Lightweight::SqlSchema::FullyQualifiedTableColumn;
+    using Lightweight::SqlSchema::ColumnIdentifier;
     using Lightweight::SqlSchema::FullyQualifiedTableName;
     FullyQualifiedTableName const t1 { .catalog = "", .schema = "s", .table = "t" };
     FullyQualifiedTableName const t2 { .catalog = "", .schema = "s", .table = "t" };
-    FullyQualifiedTableColumn const a { .table = t1, .column = "x" };
-    FullyQualifiedTableColumn const b { .table = t2, .column = "x" };
-    FullyQualifiedTableColumn const c { .table = t1, .column = "y" };
+    ColumnIdentifier const a { .table = t1, .column = "x" };
+    ColumnIdentifier const b { .table = t2, .column = "x" };
+    ColumnIdentifier const c { .table = t1, .column = "y" };
     CHECK(a == b);
     CHECK(a != c);
     CHECK(a < c);
@@ -524,69 +524,67 @@ TEST_CASE("SqlSchema::FullyQualifiedTableName formatter", "[SqlSchema]")
     }
 }
 
-TEST_CASE("SqlSchema::FullyQualifiedTableColumn formatter", "[SqlSchema]")
+TEST_CASE("SqlSchema::ColumnIdentifier formatter", "[SqlSchema]")
 {
-    using Lightweight::SqlSchema::FullyQualifiedTableColumn;
+    using Lightweight::SqlSchema::ColumnIdentifier;
     using Lightweight::SqlSchema::FullyQualifiedTableName;
 
     SECTION("with table prefix")
     {
-        FullyQualifiedTableColumn const c { .table = { .catalog = "", .schema = "", .table = "Users" }, .column = "Id" };
+        ColumnIdentifier const c { .table = { .catalog = "", .schema = "", .table = "Users" }, .column = "Id" };
         CHECK(std::format("{}", c) == "Users.Id");
     }
 
     SECTION("without table prefix returns column only")
     {
-        FullyQualifiedTableColumn const c { .table = { .catalog = "", .schema = "", .table = "" }, .column = "Id" };
+        ColumnIdentifier const c { .table = { .catalog = "", .schema = "", .table = "" }, .column = "Id" };
         CHECK(std::format("{}", c) == "Id");
     }
 }
 
-TEST_CASE("SqlSchema::FullyQualifiedTableColumnSequence formatter", "[SqlSchema]")
+TEST_CASE("SqlSchema::ColumnIdentifierSequence formatter", "[SqlSchema]")
 {
-    using Lightweight::SqlSchema::FullyQualifiedTableColumnSequence;
+    using Lightweight::SqlSchema::ColumnIdentifierSequence;
     using Lightweight::SqlSchema::FullyQualifiedTableName;
 
-    FullyQualifiedTableColumnSequence const seq { .table = { .catalog = "", .schema = "", .table = "Users" },
-                                                  .columns = { "Id", "Name", "Email" } };
+    ColumnIdentifierSequence const seq { .table = { .catalog = "", .schema = "", .table = "Users" },
+                                         .columns = { "Id", "Name", "Email" } };
     auto const formatted = std::format("{}", seq);
     CHECK(formatted == "Users(Id, Name, Email)");
 }
 
-TEST_CASE("SqlSchema::FullyQualifiedTableColumnSequence: single column", "[SqlSchema]")
+TEST_CASE("SqlSchema::ColumnIdentifierSequence: single column", "[SqlSchema]")
 {
-    using Lightweight::SqlSchema::FullyQualifiedTableColumnSequence;
-    FullyQualifiedTableColumnSequence const seq { .table = { .catalog = "", .schema = "", .table = "T" },
-                                                  .columns = { "id" } };
+    using Lightweight::SqlSchema::ColumnIdentifierSequence;
+    ColumnIdentifierSequence const seq { .table = { .catalog = "", .schema = "", .table = "T" }, .columns = { "id" } };
     CHECK(std::format("{}", seq) == "T(id)");
 }
 
-TEST_CASE("SqlSchema::FullyQualifiedTableColumnSequence: empty columns", "[SqlSchema]")
+TEST_CASE("SqlSchema::ColumnIdentifierSequence: empty columns", "[SqlSchema]")
 {
-    using Lightweight::SqlSchema::FullyQualifiedTableColumnSequence;
-    FullyQualifiedTableColumnSequence const seq { .table = { .catalog = "", .schema = "", .table = "T" }, .columns = {} };
+    using Lightweight::SqlSchema::ColumnIdentifierSequence;
+    ColumnIdentifierSequence const seq { .table = { .catalog = "", .schema = "", .table = "T" }, .columns = {} };
     CHECK(std::format("{}", seq) == "T()");
 }
 
-TEST_CASE("SqlSchema::FullyQualifiedTableColumnSequence ordering", "[SqlSchema]")
+TEST_CASE("SqlSchema::ColumnIdentifierSequence ordering", "[SqlSchema]")
 {
-    using Lightweight::SqlSchema::FullyQualifiedTableColumnSequence;
-    FullyQualifiedTableColumnSequence const a { .table = { .catalog = "", .schema = "", .table = "A" }, .columns = { "x" } };
-    FullyQualifiedTableColumnSequence const b { .table = { .catalog = "", .schema = "", .table = "B" }, .columns = { "x" } };
+    using Lightweight::SqlSchema::ColumnIdentifierSequence;
+    ColumnIdentifierSequence const a { .table = { .catalog = "", .schema = "", .table = "A" }, .columns = { "x" } };
+    ColumnIdentifierSequence const b { .table = { .catalog = "", .schema = "", .table = "B" }, .columns = { "x" } };
     CHECK(a < b);
 }
 
 TEST_CASE("SqlSchema::ForeignKeyConstraint ordering", "[SqlSchema]")
 {
+    using Lightweight::SqlSchema::ColumnIdentifierSequence;
     using Lightweight::SqlSchema::ForeignKeyConstraint;
-    using Lightweight::SqlSchema::FullyQualifiedTableColumnSequence;
 
-    FullyQualifiedTableColumnSequence const fk1 { .table = { .catalog = "", .schema = "", .table = "Children" },
-                                                  .columns = { "parent_id" } };
-    FullyQualifiedTableColumnSequence const pk1 { .table = { .catalog = "", .schema = "", .table = "Parents" },
-                                                  .columns = { "id" } };
-    FullyQualifiedTableColumnSequence const fk2 { .table = { .catalog = "", .schema = "", .table = "Children" },
-                                                  .columns = { "other_id" } };
+    ColumnIdentifierSequence const fk1 { .table = { .catalog = "", .schema = "", .table = "Children" },
+                                         .columns = { "parent_id" } };
+    ColumnIdentifierSequence const pk1 { .table = { .catalog = "", .schema = "", .table = "Parents" }, .columns = { "id" } };
+    ColumnIdentifierSequence const fk2 { .table = { .catalog = "", .schema = "", .table = "Children" },
+                                         .columns = { "other_id" } };
 
     ForeignKeyConstraint const a { .foreignKey = fk1, .primaryKey = pk1 };
     ForeignKeyConstraint const b { .foreignKey = fk2, .primaryKey = pk1 };

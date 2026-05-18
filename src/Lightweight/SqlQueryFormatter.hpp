@@ -14,7 +14,6 @@ namespace Lightweight
 {
 
 class SqlAdvisoryLockHandler;
-struct SqlQualifiedTableColumnName;
 
 /// API to format SQL queries for different SQL dialects.
 class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter

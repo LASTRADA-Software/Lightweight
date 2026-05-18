@@ -80,19 +80,20 @@ struct QuotedFieldNameTestRecord
     Lightweight::Field<int> salary;
 };
 
-TEST_CASE_METHOD(SqlTestFixture, "FullyQualifiedNamesOf", "[Utils]")
+TEST_CASE_METHOD(SqlTestFixture, "detail::FullyQualifiedNamesOf", "[Utils]")
 {
-    static_assert(Lightweight::FullyQualifiedNamesOf<Member(QuotedFieldNameTestRecord::firstName)>.value
+    static_assert(Lightweight::detail::FullyQualifiedNamesOf<Member(QuotedFieldNameTestRecord::firstName)>
                   == R"sql("QuotedFieldNameTestRecord"."firstName")sql");
 
-    static_assert(
-        Lightweight::FullyQualifiedNamesOf<Member(QuotedFieldNameTestRecord::firstName), Member(QuotedFieldNameTestRecord::lastName)>.value
-        == R"sql("QuotedFieldNameTestRecord"."firstName", "QuotedFieldNameTestRecord"."lastName")sql");
+    static_assert(Lightweight::detail::FullyQualifiedNamesOf<Member(QuotedFieldNameTestRecord::firstName),
+                                                             Member(QuotedFieldNameTestRecord::lastName)>
+                  == R"sql("QuotedFieldNameTestRecord"."firstName", "QuotedFieldNameTestRecord"."lastName")sql");
 
-    static_assert(Lightweight::FullyQualifiedNamesOf<Member(QuotedFieldNameTestRecord::firstName),
-                                          Member(QuotedFieldNameTestRecord::lastName),
-                                          Member(QuotedFieldNameTestRecord::salary)>.value
-          == R"sql("QuotedFieldNameTestRecord"."firstName", "QuotedFieldNameTestRecord"."lastName", "QuotedFieldNameTestRecord"."salary")sql");
+    static_assert(
+        Lightweight::detail::FullyQualifiedNamesOf<Member(QuotedFieldNameTestRecord::firstName),
+                                                   Member(QuotedFieldNameTestRecord::lastName),
+                                                   Member(QuotedFieldNameTestRecord::salary)>
+        == R"sql("QuotedFieldNameTestRecord"."firstName", "QuotedFieldNameTestRecord"."lastName", "QuotedFieldNameTestRecord"."salary")sql");
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnectionDataSource.FromConnectionString", "[SqlConnection]")

@@ -391,7 +391,7 @@ std::optional<std::string> CxxModelPrinter::MapColumnNameOverride(SqlSchema::Ful
                                                                   std::string const& columnName) const
 {
     using namespace SqlSchema;
-    auto const it = _config.columnNameOverrides.find(FullyQualifiedTableColumn {
+    auto const it = _config.columnNameOverrides.find(ColumnIdentifier {
         .table = tableName,
         .column = columnName,
     });

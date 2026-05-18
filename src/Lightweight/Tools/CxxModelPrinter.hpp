@@ -15,7 +15,7 @@
 namespace Lightweight::Tools
 {
 
-using ColumnNameOverrides = std::map<SqlSchema::FullyQualifiedTableColumn, std::string>;
+using ColumnNameOverrides = std::map<SqlSchema::ColumnIdentifier, std::string>;
 
 class CxxModelPrinter
 {

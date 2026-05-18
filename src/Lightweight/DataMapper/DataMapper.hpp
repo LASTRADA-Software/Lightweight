@@ -824,7 +824,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All() -> std:
 
     auto stmt = SqlStatement { _dm.Connection() };
     stmt.Prepare(_formatter.SelectAll(this->_query.distinct,
-                                      FullyQualifiedNamesOf<Field>.string_view(),
+                                      detail::FullyQualifiedNamesOf<Field>,
                                       RecordTableName<Record>,
                                       this->_query.searchCondition.tableAlias,
                                       this->_query.searchCondition.tableJoins,
@@ -861,7 +861,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All() -> std:
     auto stmt = SqlStatement { _dm.Connection() };
 
     stmt.Prepare(_formatter.SelectAll(this->_query.distinct,
-                                      FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
+                                      detail::FullyQualifiedNamesOf<ReferencedFields...>,
                                       RecordTableName<Record>,
                                       this->_query.searchCondition.tableAlias,
                                       this->_query.searchCondition.tableJoins,
@@ -929,7 +929,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First() -> st
     auto constexpr count = 1;
     auto stmt = SqlStatement { _dm.Connection() };
     stmt.Prepare(_formatter.SelectFirst(this->_query.distinct,
-                                        FullyQualifiedNamesOf<Field>.string_view(),
+                                        detail::FullyQualifiedNamesOf<Field>,
                                         RecordTableName<Record>,
                                         this->_query.searchCondition.tableAlias,
                                         this->_query.searchCondition.tableJoins,
@@ -950,7 +950,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First() -> st
 
     auto stmt = SqlStatement { _dm.Connection() };
     stmt.Prepare(_formatter.SelectFirst(this->_query.distinct,
-                                        FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
+                                        detail::FullyQualifiedNamesOf<ReferencedFields...>,
                                         RecordTableName<Record>,
                                         this->_query.searchCondition.tableAlias,
                                         this->_query.searchCondition.tableJoins,
@@ -1042,7 +1042,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
     records.reserve(limit);
     stmt.Prepare(
         _formatter.SelectRange(this->_query.distinct,
-                               FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
+                               detail::FullyQualifiedNamesOf<ReferencedFields...>,
                                RecordTableName<Record>,
                                this->_query.searchCondition.tableAlias,
                                this->_query.searchCondition.tableJoins,
@@ -1094,7 +1094,7 @@ template <auto... ReferencedFields>
     auto stmt = SqlStatement { _dm.Connection() };
     records.reserve(n);
     stmt.Prepare(_formatter.SelectFirst(this->_query.distinct,
-                                        FullyQualifiedNamesOf<ReferencedFields...>.string_view(),
+                                        detail::FullyQualifiedNamesOf<ReferencedFields...>,
                                         RecordTableName<Record>,
                                         this->_query.searchCondition.tableAlias,
                                         this->_query.searchCondition.tableJoins,

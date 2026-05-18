@@ -47,10 +47,14 @@ TEST_CASE_METHOD(SqlTestFixture, "SQL entity naming", "[DataMapper]")
     static_assert(FieldNameOf<Member(NamingTest2::pk1)> == "First_PK"sv);
     static_assert(FieldNameOf<Member(NamingTest2::pk2)> == "Second_PK"sv);
 
-    static_assert(FullyQualifiedNameOf<Member(NamingTest1::normal)> == R"("NamingTest1"."normal")");
-    static_assert(FullyQualifiedNameOf<Member(NamingTest1::name)> == R"("NamingTest1"."c1")");
-    static_assert(FullyQualifiedNameOf<Member(NamingTest2::pk1)> == R"("NamingTest2_aliased"."First_PK")");
-    static_assert(FullyQualifiedNameOf<Member(NamingTest2::pk2)> == R"("NamingTest2_aliased"."Second_PK")");
+    static_assert(FullyQualifiedNameOf<Member(NamingTest1::normal)>
+                  == SqlQualifiedTableColumnName { .tableName = "NamingTest1", .columnName = "normal" });
+    static_assert(FullyQualifiedNameOf<Member(NamingTest1::name)>
+                  == SqlQualifiedTableColumnName { .tableName = "NamingTest1", .columnName = "c1" });
+    static_assert(FullyQualifiedNameOf<Member(NamingTest2::pk1)>
+                  == SqlQualifiedTableColumnName { .tableName = "NamingTest2_aliased", .columnName = "First_PK" });
+    static_assert(FullyQualifiedNameOf<Member(NamingTest2::pk2)>
+                  == SqlQualifiedTableColumnName { .tableName = "NamingTest2_aliased", .columnName = "Second_PK" });
 }
 
 namespace Models

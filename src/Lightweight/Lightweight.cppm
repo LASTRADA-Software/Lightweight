@@ -169,7 +169,6 @@ using Lightweight::SqlQueryFormatter;
 using Lightweight::SqlQueryObject;
 using Lightweight::SqlRawColumn;
 using Lightweight::SqlRawColumnMetadata;
-using Lightweight::SqlRawColumnNameView;
 using Lightweight::SqlRawSqlPlan;
 using Lightweight::SqlRealName;
 using Lightweight::SqlRequireLoadedError;
@@ -316,10 +315,10 @@ namespace SqlSchema
 {
     using Lightweight::SqlSchema::AllForeignKeysTo;
     using Lightweight::SqlSchema::Column;
+    using Lightweight::SqlSchema::ColumnIdentifier;
+    using Lightweight::SqlSchema::ColumnIdentifierSequence;
     using Lightweight::SqlSchema::EventHandler;
     using Lightweight::SqlSchema::ForeignKeyConstraint;
-    using Lightweight::SqlSchema::FullyQualifiedTableColumn;
-    using Lightweight::SqlSchema::FullyQualifiedTableColumnSequence;
     using Lightweight::SqlSchema::FullyQualifiedTableName;
     using Lightweight::SqlSchema::IndexDefinition;
     using Lightweight::SqlSchema::KeyPair;

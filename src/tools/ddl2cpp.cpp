@@ -25,7 +25,7 @@
 using namespace std::string_view_literals;
 using namespace Lightweight;
 
-using ColumnNameOverrides = std::map<SqlSchema::FullyQualifiedTableColumn, std::string>;
+using ColumnNameOverrides = std::map<SqlSchema::ColumnIdentifier, std::string>;
 
 namespace
 {
@@ -329,7 +329,7 @@ std::expected<Configuration, std::string> LoadConfigFile(std::filesystem::path c
             {
                 auto columnName = columnNode.first.as<std::string>();
                 auto columnOverrideName = columnNode.second.as<std::string>();
-                auto const tableColumn = SqlSchema::FullyQualifiedTableColumn {
+                auto const tableColumn = SqlSchema::ColumnIdentifier {
                     .table = SqlSchema::FullyQualifiedTableName { .catalog = {}, .schema = {}, .table = tableName },
                     .column = std::move(columnName),
                 };

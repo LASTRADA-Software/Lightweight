@@ -53,42 +53,47 @@ namespace SqlSchema
         }
     };
 
-    struct FullyQualifiedTableColumn
+    /// Identifies a single column within a schema (catalog.schema.table.column).
+    ///
+    /// Schema-introspection layer only — distinct from the query-builder DSL type
+    /// `Lightweight::SqlQualifiedTableColumnName`.
+    struct ColumnIdentifier
     {
         FullyQualifiedTableName table;
         std::string column;
 
-        bool operator==(FullyQualifiedTableColumn const& other) const noexcept
+        bool operator==(ColumnIdentifier const& other) const noexcept
         {
             return table == other.table && column == other.column;
         }
 
-        bool operator!=(FullyQualifiedTableColumn const& other) const noexcept
+        bool operator!=(ColumnIdentifier const& other) const noexcept
         {
             return !(*this == other);
         }
 
-        bool operator<(FullyQualifiedTableColumn const& other) const noexcept
+        bool operator<(ColumnIdentifier const& other) const noexcept
         {
             return std::tie(table, column) < std::tie(other.table, other.column);
         }
     };
 
-    struct FullyQualifiedTableColumnSequence
+    /// Identifies an ordered set of columns within a single table (for composite keys / indexes).
+    struct ColumnIdentifierSequence
     {
         FullyQualifiedTableName table;
         std::vector<std::string> columns;
     };
 
-    inline bool operator<(FullyQualifiedTableColumnSequence const& a, FullyQualifiedTableColumnSequence const& b) noexcept
+    inline bool operator<(ColumnIdentifierSequence const& a, ColumnIdentifierSequence const& b) noexcept
     {
         return std::tie(a.table, a.columns) < std::tie(b.table, b.columns);
     }
 
     struct ForeignKeyConstraint
     {
-        FullyQualifiedTableColumnSequence foreignKey;
-        FullyQualifiedTableColumnSequence primaryKey;
+        ColumnIdentifierSequence foreignKey;
+        ColumnIdentifierSequence primaryKey;
     };
 
     inline bool operator<(ForeignKeyConstraint const& a, ForeignKeyConstraint const& b) noexcept
@@ -306,10 +311,9 @@ struct std::formatter<Lightweight::SqlSchema::FullyQualifiedTableName>: std::for
 };
 
 template <>
-struct std::formatter<Lightweight::SqlSchema::FullyQualifiedTableColumn>: std::formatter<std::string>
+struct std::formatter<Lightweight::SqlSchema::ColumnIdentifier>: std::formatter<std::string>
 {
-    auto format(Lightweight::SqlSchema::FullyQualifiedTableColumn const& value, format_context& ctx) const
-        -> format_context::iterator
+    auto format(Lightweight::SqlSchema::ColumnIdentifier const& value, format_context& ctx) const -> format_context::iterator
     {
         auto const table = std::format("{}", value.table);
         if (table.empty())
@@ -320,9 +324,9 @@ struct std::formatter<Lightweight::SqlSchema::FullyQualifiedTableColumn>: std::f
 };
 
 template <>
-struct std::formatter<Lightweight::SqlSchema::FullyQualifiedTableColumnSequence>: std::formatter<std::string>
+struct std::formatter<Lightweight::SqlSchema::ColumnIdentifierSequence>: std::formatter<std::string>
 {
-    auto format(Lightweight::SqlSchema::FullyQualifiedTableColumnSequence const& value, format_context& ctx) const
+    auto format(Lightweight::SqlSchema::ColumnIdentifierSequence const& value, format_context& ctx) const
         -> format_context::iterator
     {
         auto const resolvedTableName = std::format("{}", value.table);

@@ -216,10 +216,52 @@ using MemberClassType = detail::MemberClassTypeHelper<T>::type;
 
 #endif // LIGHTWEIGHT_CXX26_REFLECTION
 
+/// @brief SqlQualifiedTableColumnName represents a column name qualified with a table name.
+///
+/// This is the single structural representation of a `table.column` reference used
+/// throughout the query builder API. The builder is responsible for quoting; do not
+/// pre-quote the values stored here.
+///
+/// @ingroup QueryBuilder
+struct SqlQualifiedTableColumnName
+{
+    /// The table name.
+    std::string_view tableName;
+    /// The column name.
+    std::string_view columnName;
+
+    /// Three-way comparison operator.
+    constexpr std::weak_ordering operator<=>(SqlQualifiedTableColumnName const&) const noexcept = default;
+};
+
+/// @brief Holds the fully qualified column reference (table + column) for the given field.
+/// @tparam ReferencedField A pointer-to-member identifying the field.
+///
+/// @code
+/// constexpr auto ref = FullyQualifiedNameOf<&Person::id>;
+/// static_assert(ref.tableName == "Person");
+/// static_assert(ref.columnName == "id");
+/// @endcode
+///
+/// The result is an `SqlQualifiedTableColumnName` accepted by every column-name
+/// entry point in the builder (`Field`, `Fields`, `Where`, `OrderBy`, `GroupBy`,
+/// `Aggregate::*`, joins). The builder applies the quoting.
+///
+/// @ingroup DataMapper
+template <auto ReferencedField>
+constexpr inline auto FullyQualifiedNameOf = SqlQualifiedTableColumnName {
+#if defined(LIGHTWEIGHT_CXX26_REFLECTION)
+    .tableName = RecordTableName<typename[:std::meta::parent_of(ReferencedField):]>,
+#else
+    .tableName = RecordTableName<MemberClassType<decltype(ReferencedField)>>,
+#endif
+    .columnName = FieldNameOf<ReferencedField>,
+};
+
 namespace detail
 {
     template <auto ReferencedField>
-    struct FullyQualifiedNameOfImpl
+    struct FullyQualifiedQuotedNameOfImpl
     {
 #if defined(LIGHTWEIGHT_CXX26_REFLECTION)
         static constexpr auto ClassName = RecordTableName<typename[:std::meta::parent_of(ReferencedField):]>;
@@ -244,81 +286,15 @@ namespace detail
         }();
         static constexpr auto value = std::string_view(Storage.data(), Storage.size() - 1);
     };
-} // namespace detail
 
-struct SqlRawColumnNameView
-{
-    std::string_view value;
+    template <auto ReferencedField>
+    constexpr inline auto FullyQualifiedQuotedNameOf = FullyQualifiedQuotedNameOfImpl<ReferencedField>::value;
 
-    std::weak_ordering operator<=>(SqlRawColumnNameView const& other) const = default;
-
-    [[nodiscard]] constexpr auto begin() const noexcept
-    {
-        return value.begin();
-    }
-
-    [[nodiscard]] constexpr auto end() const noexcept
-    {
-        return value.end();
-    }
-
-    [[nodiscard]] constexpr auto size() const noexcept
-    {
-        return value.size();
-    }
-
-    [[nodiscard]] constexpr auto empty() const noexcept
-    {
-        return value.empty();
-    }
-
-    [[nodiscard]] constexpr auto data() const noexcept
-    {
-        return value.data();
-    }
-
-    [[nodiscard]] constexpr std::string_view string_view() const noexcept
-    {
-        return value;
-    }
-
-    [[nodiscard]] constexpr std::string to_string() const
-    {
-        return std::string(value);
-    }
-};
-
-constexpr bool operator==(SqlRawColumnNameView const& lhs, std::string_view rhs) noexcept
-{
-    return lhs.value == rhs;
-}
-
-constexpr bool operator!=(SqlRawColumnNameView const& lhs, std::string_view rhs) noexcept
-{
-    return lhs.value != rhs;
-}
-
-/// @brief Holds the quoted fully qualified field name (including table name) of the given field.
-/// @tparam ReferencedField
-///
-/// @code
-/// auto const quotedFieldName = FullyQualifiedNameOf<&Person::id>;
-/// static_assert(quotedFieldName.value == R"sql("Person"."id")sql");
-/// @endcode
-///
-/// @ingroup DataMapper
-template <auto ReferencedField>
-constexpr inline auto FullyQualifiedNameOf = SqlRawColumnNameView {
-    .value = detail::FullyQualifiedNameOfImpl<ReferencedField>::value,
-};
-
-namespace detail
-{
     template <auto... ReferencedFields>
     struct FullyQualifiedNamesOfImpl
     {
         static constexpr auto StorageSize =
-            1 + (2 * (sizeof...(ReferencedFields) - 1)) + (0 + ... + FullyQualifiedNameOf<ReferencedFields>.size());
+            1 + (2 * (sizeof...(ReferencedFields) - 1)) + (0 + ... + FullyQualifiedQuotedNameOf<ReferencedFields>.size());
 
         static constexpr std::array<char, StorageSize> Storage = []() consteval {
             auto result = std::array<char, StorageSize> {};
@@ -331,8 +307,8 @@ namespace detail
                         std::ranges::copy(Delimiter, result.begin() + offset);
                         offset += Delimiter.size();
                     }
-                    std::ranges::copy(FullyQualifiedNameOf<ReferencedFields>, result.begin() + offset);
-                    offset += FullyQualifiedNameOf<ReferencedFields>.size();
+                    std::ranges::copy(FullyQualifiedQuotedNameOf<ReferencedFields>, result.begin() + offset);
+                    offset += FullyQualifiedQuotedNameOf<ReferencedFields>.size();
                 }(),
                 ...);
             result.back() = '\0';
@@ -342,20 +318,12 @@ namespace detail
         static constexpr auto value = std::string_view(Storage.data(), Storage.size() - 1);
     };
 
-} // namespace detail
+    /// Pre-quoted, comma-joined fully qualified field names of the given fields.
+    /// Internal helper used by DataMapper to embed column lists into SQL text directly.
+    template <auto... ReferencedFields>
+    constexpr inline auto FullyQualifiedNamesOf = FullyQualifiedNamesOfImpl<ReferencedFields...>::value;
 
-/// @brief Holds the quoted fully qualified field names of the given fields.
-///
-/// @code
-/// auto const quotedFieldNames = FullyQualifiedNamesOf<&Person::id, &Person::name, &Person::age>;
-/// static_assert(quotedFieldNames.value == R"sql("Person"."id", "Person"."name", "Person"."age")sql");
-/// @endcode
-///
-/// @ingroup DataMapper
-template <auto... ReferencedFields>
-constexpr inline auto FullyQualifiedNamesOf = SqlRawColumnNameView {
-    .value = detail::FullyQualifiedNamesOfImpl<ReferencedFields...>::value,
-};
+} // namespace detail
 
 LIGHTWEIGHT_API void LogIfFailed(SQLHSTMT hStmt, SQLRETURN error, std::source_location sourceLocation);
 

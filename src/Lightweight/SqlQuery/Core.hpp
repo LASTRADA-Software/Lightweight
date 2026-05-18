@@ -4,6 +4,7 @@
 
 #include "../Api.hpp"
 #include "../SqlQueryFormatter.hpp"
+#include "../Utils.hpp"
 
 #include <algorithm>
 #include <concepts>
@@ -54,16 +55,6 @@ namespace detail
 
 } // namespace detail
 
-/// @brief SqlQualifiedTableColumnName represents a column name qualified with a table name.
-/// @ingroup QueryBuilder
-struct SqlQualifiedTableColumnName
-{
-    /// The table name.
-    std::string_view tableName;
-    /// The column name.
-    std::string_view columnName;
-};
-
 /// @brief Helper function to create a SqlQualifiedTableColumnName from string_view
 ///
 /// @param column The column name, which must be qualified with a table name.
@@ -103,10 +94,6 @@ namespace detail
             output += R"(".")"sv;
             output += columnName.columnName;
             output += '"';
-        }
-        else if constexpr (std::is_same_v<ColumnName, SqlRawColumnNameView>)
-        {
-            output += columnName.value;
         }
         else if constexpr (std::is_same_v<ColumnName, SqlWildcardType>)
         {
@@ -394,7 +381,7 @@ class [[nodiscard]] SqlWhereClauseBuilder
     /// Appends a column name to the WHERE condition.
     template <typename ColumnName>
         requires(std::same_as<ColumnName, SqlQualifiedTableColumnName> || std::convertible_to<ColumnName, std::string_view>
-                 || std::same_as<ColumnName, SqlRawColumnNameView> || std::convertible_to<ColumnName, std::string>)
+                 || std::convertible_to<ColumnName, std::string>)
     void AppendColumnName(ColumnName const& columnName);
 
     /// Appends a literal value to the WHERE condition.
@@ -487,6 +474,9 @@ class [[nodiscard]] SqlBasicSelectQueryBuilder: public SqlWhereClauseBuilder<Der
     /// Constructs or extends a GROUP BY clause.
     Derived& GroupBy(std::string_view columnName);
 
+    /// Constructs or extends a GROUP BY clause with a qualified column name.
+    Derived& GroupBy(SqlQualifiedTableColumnName const& columnName);
+
     using ComposedQuery = detail::ComposedQuery;
 
   protected:
@@ -554,6 +544,24 @@ inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlBasicSelectQueryBuilder<Derived>::Gr
 
     _query.groupBy += '"';
     _query.groupBy += columnName;
+    _query.groupBy += '"';
+
+    return static_cast<Derived&>(*this);
+}
+
+template <typename Derived>
+inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlBasicSelectQueryBuilder<Derived>::GroupBy(
+    SqlQualifiedTableColumnName const& columnName)
+{
+    if (_query.groupBy.empty())
+        _query.groupBy += "\n GROUP BY ";
+    else
+        _query.groupBy += ", ";
+
+    _query.groupBy += '"';
+    _query.groupBy += columnName.tableName;
+    _query.groupBy += "\".\"";
+    _query.groupBy += columnName.columnName;
     _query.groupBy += '"';
 
     return static_cast<Derived&>(*this);
@@ -963,7 +971,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendWhere
 template <typename Derived>
 template <typename ColumnName>
     requires(std::same_as<ColumnName, SqlQualifiedTableColumnName> || std::convertible_to<ColumnName, std::string_view>
-             || std::same_as<ColumnName, SqlRawColumnNameView> || std::convertible_to<ColumnName, std::string>)
+             || std::convertible_to<ColumnName, std::string>)
 inline LIGHTWEIGHT_FORCE_INLINE void SqlWhereClauseBuilder<Derived>::AppendColumnName(ColumnName const& columnName)
 {
     SearchCondition().condition += detail::MakeSqlColumnName(columnName);

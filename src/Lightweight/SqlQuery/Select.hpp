@@ -27,17 +27,21 @@ struct [[nodiscard]] SqlFieldExpression final
 namespace Aggregate
 {
 
-    inline SqlFieldExpression Count(std::string const& field = "*") noexcept
+    inline SqlFieldExpression Count(std::string_view field = "*") noexcept
     {
+        if (field == "*")
+            return SqlFieldExpression { .expression = "COUNT(*)" };
         return SqlFieldExpression { .expression = std::format("COUNT(\"{}\")", field) };
     }
 
     inline SqlFieldExpression Count(SqlQualifiedTableColumnName const& field) noexcept
     {
+        if (field.columnName == "*")
+            return SqlFieldExpression { .expression = std::format(R"(COUNT("{}".*))", field.tableName) };
         return SqlFieldExpression { .expression = std::format(R"(COUNT("{}"."{}"))", field.tableName, field.columnName) };
     }
 
-    inline SqlFieldExpression Sum(std::string const& field) noexcept
+    inline SqlFieldExpression Sum(std::string_view field) noexcept
     {
         return SqlFieldExpression { .expression = std::format("SUM(\"{}\")", field) };
     }
@@ -47,7 +51,7 @@ namespace Aggregate
         return SqlFieldExpression { .expression = std::format(R"(SUM("{}"."{}"))", field.tableName, field.columnName) };
     }
 
-    inline SqlFieldExpression Avg(std::string const& field) noexcept
+    inline SqlFieldExpression Avg(std::string_view field) noexcept
     {
         return SqlFieldExpression { .expression = std::format("AVG(\"{}\")", field) };
     }
@@ -57,7 +61,7 @@ namespace Aggregate
         return SqlFieldExpression { .expression = std::format(R"(AVG("{}"."{}"))", field.tableName, field.columnName) };
     }
 
-    inline SqlFieldExpression Min(std::string const& field) noexcept
+    inline SqlFieldExpression Min(std::string_view field) noexcept
     {
         return SqlFieldExpression { .expression = std::format("MIN(\"{}\")", field) };
     }
@@ -67,7 +71,7 @@ namespace Aggregate
         return SqlFieldExpression { .expression = std::format(R"(MIN("{}"."{}"))", field.tableName, field.columnName) };
     }
 
-    inline SqlFieldExpression Max(std::string const& field) noexcept
+    inline SqlFieldExpression Max(std::string_view field) noexcept
     {
         return SqlFieldExpression { .expression = std::format("MAX(\"{}\")", field) };
     }
