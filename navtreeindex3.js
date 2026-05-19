@@ -1,5 +1,8 @@
 var NAVTREEINDEX3 =
 {
+"d7/d53/structLightweight_1_1SqlTime.html#aad1328d9dbf6a77a3d7a632528376652":[10,0,10,8],
+"d7/d53/structLightweight_1_1SqlTime.html#ab3be70c906d47b15e6b0bb2c3b8af75a":[10,0,10,5],
+"d7/d53/structLightweight_1_1SqlTime.html#ad2fa6d376c7fd1ca95119d08e0e6b814":[10,0,10,9],
 "d7/d53/structLightweight_1_1SqlTime.html#aeac9fe591411b84af0285ea3f4152892":[10,0,10,6],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html":[10,0,4],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a02be3f28ff302516bb8a6690464820f7":[10,0,4,29],
@@ -199,7 +202,6 @@ var NAVTREEINDEX3 =
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ac391fe5ce2043b272fe4191b98e26f52":[12,0,0,29,3],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ac89cf719251905b8e0af7f5ed4e42036":[12,0,0,29,0],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914":[12,0,0,29,8],
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ae630058661d14d9ab1dd8a71a481bd48":[12,0,0,29,11],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aecb8ed9927ded35a8b35dd570bf53170":[12,0,0,29,2],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html":[3],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modife-database-schema":[3,0],
@@ -247,7 +249,5 @@ var NAVTREEINDEX3 =
 "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#adcfe1f8e73b8c0d8dc52f90db2302f97":[12,0,0,1,10,2],
 "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ae2ac5e8f6feb4b31de19ad64fce540f5":[12,0,0,1,10,0],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html":[12,0,0,57],
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a2838b8c9fd55745b05cc38a622836419":[12,0,0,57,0],
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a76a7fc936dc18d3af22496f7e3d88017":[12,0,0,57,2],
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e":[12,0,0,57,5]
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a2838b8c9fd55745b05cc38a622836419":[12,0,0,57,0]
 };
