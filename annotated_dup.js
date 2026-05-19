@@ -33,17 +33,11 @@ var annotated_dup =
       ] ],
       [ "SqlSchema", null, [
         [ "Column", "d2/db8/structLightweight_1_1SqlSchema_1_1Column.html", "d2/db8/structLightweight_1_1SqlSchema_1_1Column" ],
-        [ "ColumnDiff", "de/d75/structLightweight_1_1SqlSchema_1_1ColumnDiff.html", "de/d75/structLightweight_1_1SqlSchema_1_1ColumnDiff" ],
         [ "ColumnIdentifier", "da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html", "da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier" ],
         [ "ColumnIdentifierSequence", "d0/dd4/structLightweight_1_1SqlSchema_1_1ColumnIdentifierSequence.html", "d0/dd4/structLightweight_1_1SqlSchema_1_1ColumnIdentifierSequence" ],
-        [ "DiffProgressEvent", "dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent.html", "dc/d83/structLightweight_1_1SqlSchema_1_1DiffProgressEvent" ],
         [ "EventHandler", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html", "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler" ],
         [ "IndexDefinition", "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition.html", "d6/de6/structLightweight_1_1SqlSchema_1_1IndexDefinition" ],
-        [ "RowDiff", "d2/d37/structLightweight_1_1SqlSchema_1_1RowDiff.html", "d2/d37/structLightweight_1_1SqlSchema_1_1RowDiff" ],
-        [ "SchemaDiff", "d0/dd0/structLightweight_1_1SqlSchema_1_1SchemaDiff.html", "d0/dd0/structLightweight_1_1SqlSchema_1_1SchemaDiff" ],
-        [ "Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", "d3/dda/structLightweight_1_1SqlSchema_1_1Table" ],
-        [ "TableDataDiff", "d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff.html", "d1/d8b/structLightweight_1_1SqlSchema_1_1TableDataDiff" ],
-        [ "TableDiff", "da/d90/structLightweight_1_1SqlSchema_1_1TableDiff.html", "da/d90/structLightweight_1_1SqlSchema_1_1TableDiff" ]
+        [ "Table", "d3/dda/structLightweight_1_1SqlSchema_1_1Table.html", "d3/dda/structLightweight_1_1SqlSchema_1_1Table" ]
       ] ],
       [ "Zip", null, [
         [ "EntryInfo", "d7/d09/structLightweight_1_1Zip_1_1EntryInfo.html", "d7/d09/structLightweight_1_1Zip_1_1EntryInfo" ],

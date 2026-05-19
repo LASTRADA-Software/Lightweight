@@ -10,5 +10,6 @@ var classLightweight_1_1SqlDataBinderCallback =
     [ "ProvideInputIndicator", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a7d7b102126f4b2455df46e31906cb189", null ],
     [ "ProvideInputIndicators", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914", null ],
     [ "ServerType", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aa4a1025e0d27d3e8f0c97081e2419875", null ],
-    [ "DriverName", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36", null ]
+    [ "DriverName", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36", null ],
+    [ "IsLegacyMicrosoftSqlServerDriver", "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ae630058661d14d9ab1dd8a71a481bd48", null ]
 ];

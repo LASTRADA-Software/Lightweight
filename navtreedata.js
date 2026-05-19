@@ -125,12 +125,6 @@ var NAVTREE =
         [ "rollback-to <TIMESTAMP>", "d5/dc4/dbtool.html#rollback-to-timestamp", null ],
         [ "mark-applied <TIMESTAMP>", "d5/dc4/dbtool.html#mark-applied-timestamp", null ]
       ] ],
-      [ "Diff", "d5/dc4/dbtool.html#diff", [
-        [ "diff", "d5/dc4/dbtool.html#diff-1", [
-          [ "Examples", "d5/dc4/dbtool.html#examples", null ],
-          [ "Caveats", "d5/dc4/dbtool.html#caveats", null ]
-        ] ]
-      ] ],
       [ "Backup & Restore", "d5/dc4/dbtool.html#backup--restore", [
         [ "backup", "d5/dc4/dbtool.html#backup", null ],
         [ "restore", "d5/dc4/dbtool.html#restore", null ]
@@ -225,12 +219,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#a5d28935f66fa335c491af43a83924200",
-"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#a7fe5b59bee8beac8f5df6665b8b76ac8",
-"d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33",
-"d9/de5/SqlLogger_8hpp_source.html",
-"dc/d47/structLightweight_1_1SqlRawSqlPlan.html#a5d326696e3b77aa3f9ab20dd0c5e8d1d",
-"de/dfe/structLightweight_1_1SqlText.html#acb96ee68a3cc936ac16a50cb90d587d5"
+"d2/dd0/structLightweight_1_1Field.html#ac38b8072a1d454cdab18e208bf86291b",
+"d5/dc4/dbtool.html#building-from-source",
+"d7/d53/structLightweight_1_1SqlTime.html#aad1328d9dbf6a77a3d7a632528376652",
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a2838b8c9fd55745b05cc38a622836419",
+"dd/d47/structLightweight_1_1SqlDropTablePlan.html#a70993d937b9b2479d4fc33bfec3ffd81",
+"df/d3f/structLightweight_1_1SqlVariant.html#ac5d8a6c99aa9aa19716c13511803a007"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

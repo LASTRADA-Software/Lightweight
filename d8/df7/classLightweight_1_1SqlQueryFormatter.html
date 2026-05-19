@@ -225,6 +225,8 @@ static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.ht
 static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>SqlServer</b> ()</td></tr>
 <tr class="memdesc:ad030b627656e0f4db9883c71575ff864"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the SQL query formatter for Microsoft SQL server. <br /></td></tr>
 <tr class="separator:ad030b627656e0f4db9883c71575ff864"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af0094a8d55e33343e45055034719c51b" id="r_af0094a8d55e33343e45055034719c51b"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#af0094a8d55e33343e45055034719c51b">SqlServerLegacy</a> ()</td></tr>
+<tr class="separator:af0094a8d55e33343e45055034719c51b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1dcad31b87db906a61205bbfc9561bd1" id="r_a1dcad31b87db906a61205bbfc9561bd1"><td class="memItemLeft" align="right" valign="top"><a id="a1dcad31b87db906a61205bbfc9561bd1" name="a1dcad31b87db906a61205bbfc9561bd1"></a>
 static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>PostgrSQL</b> ()</td></tr>
 <tr class="memdesc:a1dcad31b87db906a61205bbfc9561bd1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves the SQL query formatter for PostgreSQL. <br /></td></tr>
@@ -521,6 +523,33 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 
 </div>
 </div>
+<a id="af0094a8d55e33343e45055034719c51b" name="af0094a8d55e33343e45055034719c51b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af0094a8d55e33343e45055034719c51b">&#9670;&#160;</a></span>SqlServerLegacy()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">static <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const  &amp; Lightweight::SqlQueryFormatter::SqlServerLegacy </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Retrieves the SQL query formatter for the legacy in-box Microsoft "SQL
+Server" ODBC driver (SQLSRV32.DLL). Same dialect as <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ad030b627656e0f4db9883c71575ff864" title="Retrieves the SQL query formatter for Microsoft SQL server.">SqlServer()</a> except that DATE / TIME column types are rewritten to DATETIME, because the legacy driver predates the SQL Server 2008 wire formats. Selected automatically by <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html" title="Represents a connection to a SQL database.">SqlConnection</a> when SQLSRV32 is detected. </p>
+
+</div>
+</div>
 <a id="a4259cbd0861534246ce81a9494caf032" name="a4259cbd0861534246ce81a9494caf032"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a4259cbd0861534246ce81a9494caf032">&#9670;&#160;</a></span>RequiresTableRebuildForForeignKeyChange()</h2>
 
@@ -545,9 +574,9 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 </div><div class="memdoc">
 
 <p>Whether the dialect must rebuild a table to add or drop a foreign-key constraint (i.e. cannot express it via <code>ALTER TABLE … ADD/DROP CONSTRAINT</code>). </p>
-<p>Defaults to <code>false</code>; SQLiteQueryFormatter overrides to <code>true</code>. Because PG and MSSQL formatters inherit from SQLiteQueryFormatter, they re-override back to <code>false</code>. The migration executor consults this to decide whether to take the table-rebuild path on <code>AlterTable</code> steps that touch foreign keys. </p>
+<p>SQLite returns <code>true</code>; every other backend defaults to <code>false</code>. The migration executor consults this to decide whether to take the table-rebuild path on <code>AlterTable</code> steps that touch foreign keys. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00188">188</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00194">194</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -591,7 +620,7 @@ template&lt;typename Range &gt; </div>
 <p>Produces <code>FK_&lt;table&gt;_&lt;col1&gt;[_&lt;col2&gt;…]</code>. A single-column FK collapses to <code>FK_&lt;table&gt;_&lt;col&gt;</code>; a composite FK includes every column so that a composite FK whose first column matches an existing single-column FK doesn't collide on the constraint name (which MSSQL enforces as globally unique per DB).</p>
 <p>Consumers include the SQL Server, PostgreSQL and SQLite formatters — centralising the convention here keeps CREATE/ALTER emission in sync with DROP CONSTRAINT lookup (e.g. <code>SQLiteRebuildDropForeignKey</code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00204">204</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00210">210</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -623,7 +652,7 @@ template&lt;typename Range &gt; </div>
 <p>Returns an empty string when the DBMS has no session-level concept of a default schema (SQL Server, SQLite). Callers must skip emission for empty results. PostgreSQL implements this via <code>SET search_path TO ...</code>.</p>
 <p>The <code>schema</code> value is interpolated into the statement; callers must validate it (e.g. whitelist <code>[A-Za-z0-9_]</code>) before invoking. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00225">225</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00231">231</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
