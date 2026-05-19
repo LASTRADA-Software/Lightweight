@@ -1,5 +1,7 @@
 var NAVTREEINDEX6 =
 {
+"df/d3f/structLightweight_1_1SqlVariant.html#ac5d8a6c99aa9aa19716c13511803a007":[10,0,11,19],
+"df/d3f/structLightweight_1_1SqlVariant.html#ac6bdc0e439922f4def84ce33fa34f74c":[10,0,11,23],
 "df/d3f/structLightweight_1_1SqlVariant.html#acaf1b2edb45bd58883cdffc667c29578":[10,0,11,24],
 "df/d3f/structLightweight_1_1SqlVariant.html#ad4df6e7ae555895c331c2675ed9e6ab8":[10,0,11,21],
 "df/d3f/structLightweight_1_1SqlVariant.html#adf3c49cf96b4f0dca466e6a2d56088ff":[10,0,11,4],
@@ -83,8 +85,8 @@ var NAVTREEINDEX6 =
 "functions_e.html":[12,2,0,5],
 "functions_enum.html":[12,2,4],
 "functions_f.html":[12,2,0,6],
-"functions_func.html":[12,2,1,0],
 "functions_func.html":[12,2,1],
+"functions_func.html":[12,2,1,0],
 "functions_func_b.html":[12,2,1,1],
 "functions_func_c.html":[12,2,1,2],
 "functions_func_d.html":[12,2,1,3],
@@ -152,8 +154,8 @@ var NAVTREEINDEX6 =
 "functions_z.html":[12,2,0,24],
 "functions_~.html":[12,2,0,25],
 "hierarchy.html":[12,1],
-"index.html":[0],
 "index.html":[],
+"index.html":[0],
 "index.html#building-with-c20-modules":[0,7],
 "index.html#compile-using-c26-reflection-support":[0,6],
 "index.html#foreign-keys-relation":[0,3,1],

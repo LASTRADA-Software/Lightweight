@@ -202,6 +202,7 @@ var NAVTREEINDEX3 =
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ac391fe5ce2043b272fe4191b98e26f52":[12,0,0,29,3],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ac89cf719251905b8e0af7f5ed4e42036":[12,0,0,29,0],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914":[12,0,0,29,8],
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ae630058661d14d9ab1dd8a71a481bd48":[12,0,0,29,11],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aecb8ed9927ded35a8b35dd570bf53170":[12,0,0,29,2],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html":[3],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modife-database-schema":[3,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ac16512ae4852ecbf22ab84abeda29e7e":[12,0,0,1,10,1],
 "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#adcfe1f8e73b8c0d8dc52f90db2302f97":[12,0,0,1,10,2],
 "d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ae2ac5e8f6feb4b31de19ad64fce540f5":[12,0,0,1,10,0],
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html":[12,0,0,57],
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a2838b8c9fd55745b05cc38a622836419":[12,0,0,57,0]
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html":[12,0,0,57]
 };
