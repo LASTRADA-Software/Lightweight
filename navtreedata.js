@@ -101,11 +101,7 @@ var NAVTREE =
     ] ],
     [ "dbtool - Database Management CLI", "d5/dc4/dbtool.html", [
       [ "Overview", "d5/dc4/dbtool.html#overview", null ],
-      [ "Installation", "d5/dc4/dbtool.html#installation", [
-        [ "Pre-built installers", "d5/dc4/dbtool.html#pre-built-installers", null ],
-        [ "Building from source", "d5/dc4/dbtool.html#building-from-source", null ],
-        [ "Producing the installer locally", "d5/dc4/dbtool.html#producing-the-installer-locally", null ]
-      ] ],
+      [ "Installation", "d5/dc4/dbtool.html#installation", null ],
       [ "Configuration", "d5/dc4/dbtool.html#configuration", [
         [ "Connection String", "d5/dc4/dbtool.html#connection-string", null ],
         [ "Configuration File Format", "d5/dc4/dbtool.html#configuration-file-format", null ],
@@ -219,12 +215,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#ad1a8cbeb9c8d35dae6052c5c8068e8a5",
-"d5/dc4/dbtool.html#command-line-options-reference",
-"d7/d9a/classLightweight_1_1SqlDynamicString.html",
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#abccc1073f563291d8caf94685890f64d",
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a9da76151b89502f7c2d8704e32bdcae6",
-"df/d4f/DataMapper_8hpp_source.html"
+"d2/dd0/structLightweight_1_1Field.html#ac38b8072a1d454cdab18e208bf86291b",
+"d5/dc4/dbtool.html#checksum-mismatches",
+"d7/d53/structLightweight_1_1SqlTime.html#aeac9fe591411b84af0285ea3f4152892",
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10",
+"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a08cf8f2f35c6eec60086b7e18667bc61",
+"df/d3f/structLightweight_1_1SqlVariant.html#ae8582b210d51a2301ec3c5c4106f2568"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

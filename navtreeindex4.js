@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10":[12,0,0,57,4],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#abccc1073f563291d8caf94685890f64d":[12,0,0,57,1],
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html":[12,0,0,1,7],
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html#a066abf8c9d7c35374587d6fe850d8d2d":[12,0,0,1,7,3],
@@ -40,6 +41,11 @@ var NAVTREEINDEX4 =
 "da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#af3f8be66ec88e462629f484bd6363344":[10,2,9,2],
 "da/d62/SQLiteFormatter_8hpp_source.html":[13,0,1,2,1],
 "da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html":[12,0,0,3,1],
+"da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#a21394a9759f62578e40d06a2507f847e":[12,0,0,3,1,4],
+"da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#aaf7395ed8fc39e934b7531482e074061":[12,0,0,3,1,0],
+"da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#aafd4dee4c0385d502e5cd97d2e1c7927":[12,0,0,3,1,1],
+"da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#ab35f526bdaf9d9ae761de98d3ae66d95":[12,0,0,3,1,2],
+"da/d7c/structLightweight_1_1SqlSchema_1_1ColumnIdentifier.html#ac4fab43b4ddee4e6218412da3d9c4986":[12,0,0,3,1,3],
 "da/d7e/structLightweight_1_1SqlRawColumn.html":[12,0,0,56],
 "da/d7e/structLightweight_1_1SqlRawColumn.html#a46be282ffe105f3df50dd090c0419d68":[12,0,0,56,0],
 "da/d7e/structLightweight_1_1SqlRawColumn.html#a9125efddb4978d91a258ef9525c0ea3d":[12,0,0,56,2],
@@ -243,11 +249,5 @@ var NAVTREEINDEX4 =
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#a881594ba67a9c5f1443d92f285b53bbe":[10,4,16,1],
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#af7adb5af3a0ff6c6a366fee2ce29beff":[10,4,16,2],
 "dd/d60/Restore_8hpp_source.html":[13,0,1,3,4],
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html":[10,4,13],
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a08cf8f2f35c6eec60086b7e18667bc61":[10,4,13,4],
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a22f0cff41af2b13c21aaeb2091c72046":[10,4,13,7],
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a4368430137de8b3dbb77d7b31b0112b1":[10,4,13,1],
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a4f44edc807219a6714f522cf31bc4953":[10,4,13,0],
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a59119220ab43706394b2a1f22caf183d":[10,4,13,3],
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a64c002c93535164bed683e2a3de11ae7":[10,4,13,2]
+"dd/d71/structLightweight_1_1SqlColumnDeclaration.html":[10,4,13]
 };

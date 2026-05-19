@@ -105,39 +105,10 @@ Overview</h1>
 </ul>
 <h1><a class="anchor" id="installation"></a>
 Installation</h1>
-<h2><a class="anchor" id="pre-built-installers"></a>
-Pre-built installers</h2>
-<p>Released artifacts ship <code>dbtool</code> and <code>dbtool-gui</code> together with every runtime DLL or shared object they need. They do <b>not</b> include an ODBC driver — you must install the appropriate driver for your database separately (e.g., Microsoft ODBC Driver for SQL Server, PostgreSQL ODBC, or SQLite ODBC).</p>
-<table class="markdownTable">
-<tr class="markdownTableHead">
-<th class="markdownTableHeadNone">Platform   </th><th class="markdownTableHeadNone">Artifact   </th><th class="markdownTableHeadNone">Install command    </th></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">Windows (x86_64)   </td><td class="markdownTableBodyNone"><code>Lightweight-&lt;version&gt;-win64.msi</code>   </td><td class="markdownTableBodyNone"><code>msiexec /i Lightweight-&lt;version&gt;-win64.msi</code>    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone">Debian / Ubuntu   </td><td class="markdownTableBodyNone"><code>lightweight_&lt;version&gt;_amd64.deb</code>   </td><td class="markdownTableBodyNone"><code>sudo dpkg -i lightweight_&lt;version&gt;_amd64.deb</code>    </td></tr>
-<tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone">Fedora / RHEL   </td><td class="markdownTableBodyNone"><code>lightweight-&lt;version&gt;.x86_64.rpm</code>   </td><td class="markdownTableBodyNone"><code>sudo dnf install lightweight-&lt;version&gt;.x86_64.rpm</code>    </td></tr>
-<tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone">Portable (Linux)   </td><td class="markdownTableBodyNone"><code>Lightweight-&lt;version&gt;-Linux.tar.gz</code>   </td><td class="markdownTableBodyNone">extract anywhere; run from <code>bin/</code>   </td></tr>
-</table>
-<p>Windows installs into <code>C:\Program Files\Lightweight\bin\</code>. Linux packages install into <code>/usr/bin/</code> with <code>Lightweight.so.&lt;version&gt;</code> under <code>/usr/lib/</code>.</p>
-<h2><a class="anchor" id="building-from-source"></a>
-Building from source</h2>
+<p>Build dbtool as part of the Lightweight project:</p>
 <div class="fragment"><div class="line">cmake --preset clang-release</div>
 <div class="line">cmake --build out/build/clang-release --target dbtool</div>
 </div><!-- fragment --><p>The binary will be located at <code>out/build/clang-release/src/tools/dbtool/dbtool</code>.</p>
-<h2><a class="anchor" id="producing-the-installer-locally"></a>
-Producing the installer locally</h2>
-<div class="fragment"><div class="line"># Linux (TGZ + DEB + RPM)</div>
-<div class="line">cmake --preset gcc-release</div>
-<div class="line">cmake --build --preset gcc-release</div>
-<div class="line">cpack --preset gcc-release</div>
-<div class="line"> </div>
-<div class="line"># Windows (WiX MSI)</div>
-<div class="line">cmake --preset clangcl-release -DLIGHTWEIGHT_BUILD_GUI=ON</div>
-<div class="line">cmake --build --preset clangcl-release</div>
-<div class="line">cpack --preset clangcl-release</div>
-</div><!-- fragment --><p>The resulting artefacts land in <code>out/package/&lt;preset&gt;/</code>.</p>
 <h1><a class="anchor" id="configuration"></a>
 Configuration</h1>
 <h2><a class="anchor" id="connection-string"></a>
@@ -165,14 +136,7 @@ Configuration File Format</h2>
 <div class="line">  dev:</div>
 <div class="line">    pluginsDir: ./dev-plugins       # per-profile override</div>
 <div class="line">    connectionString: &quot;DRIVER=SQLite3;Database=dev.db&quot;</div>
-</div><!-- fragment --><p><code>defaultPluginsDir</code> also accepts a YAML sequence to fan out plugin discovery across multiple directories — handy when a vendor ships a shared plugin set under one prefix and the operator keeps local overrides under another:</p>
-<div class="fragment"><div class="line">defaultPluginsDir:</div>
-<div class="line">  - ./plugins                       # local / operator-owned plugins</div>
-<div class="line">  - /opt/lightweight/plugins        # vendor-shipped baseline</div>
-</div><!-- fragment --><p>When the same plugin filename appears in more than one of those directories, dbtool keeps the file with the newest modification time and discards the others — so dropping a fresher build into <code>./plugins</code> reliably shadows the baseline copy without having to rebuild the YAML. Filename comparison is case-insensitive on Windows and case-sensitive elsewhere; when two same-named files share the same modification time, the directory listed earlier in the sequence wins.</p>
-<p>Pass <code>--verbose</code> (<code>-v</code>) to see one stderr line per discarded duplicate, e.g.:</p>
-<div class="fragment"><div class="line">plugin &#39;pricing.dll&#39; from ./plugins/pricing.dll shadowed by /opt/lightweight/plugins/pricing.dll (newer mtime)</div>
-</div><!-- fragment --><p>The effective plugin directory for a given run resolves as: <code>--plugins-dir</code> CLI option → profile's own <code>pluginsDir</code> → top-level <code>defaultPluginsDir</code> (possibly a list) → current working directory.</p>
+</div><!-- fragment --><p>The effective plugin directory for a given run resolves as: <code>--plugins-dir</code> CLI option → profile's own <code>pluginsDir</code> → top-level <code>defaultPluginsDir</code> → current working directory.</p>
 <h2><a class="anchor" id="inspecting-configured-profiles"></a>
 Inspecting configured profiles</h2>
 <p>Use <code>list-profiles</code> to enumerate every profile parsed from the configuration file. The command does not open a database connection, so it works against any platform. Values of <code>PWD=</code> / <code>Password=</code> inside a profile's raw <code>connectionString</code> are redacted to <code>***</code> in the output:</p>
