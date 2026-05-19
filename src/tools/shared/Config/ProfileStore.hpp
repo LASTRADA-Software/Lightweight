@@ -22,7 +22,16 @@
 //       connectionString: "Driver=SQLite3;Database=dev.db"
 //
 // `defaultPluginsDir` is a top-level fallback used by any profile that does
-// not set its own `pluginsDir`.
+// not set its own `pluginsDir`. It accepts either a single string or a
+// sequence of strings:
+//
+//   defaultPluginsDir:
+//     - ./migrations
+//     - /opt/lightweight/plugins
+//
+// When the same plugin filename is present in more than one of these
+// directories the plugin loader keeps the file with the newest modification
+// time and discards the others (see `PluginDiscovery`).
 //
 // Secret material (`password`) is never written to the YAML file. Callers
 // resolve `secretRef` via `Lightweight::Secrets::SecretResolver` before
@@ -130,25 +139,32 @@ class ProfileStore
         return _defaultProfile;
     }
 
-    /// Store-wide fallback plugin search directory. Used when a profile does
-    /// not declare its own `pluginsDir`. Empty when unset.
-    [[nodiscard]] std::filesystem::path const& DefaultPluginsDir() const noexcept
+    /// Store-wide fallback plugin search directories. Used when a profile
+    /// does not declare its own `pluginsDir`. Empty when unset. May contain
+    /// one or many directories: when multiple are listed and the same plugin
+    /// filename appears in more than one, plugin-loading callers resolve
+    /// the conflict by picking the file with the newest modification time
+    /// (see `Lightweight::Tools::DiscoverPlugins`).
+    [[nodiscard]] std::vector<std::filesystem::path> const& DefaultPluginsDir() const noexcept
     {
         return _defaultPluginsDir;
     }
 
-    /// Sets the store-wide fallback plugin directory. Pass an empty path to
-    /// clear.
-    void SetDefaultPluginsDir(std::filesystem::path path)
+    /// Sets the store-wide fallback plugin directories. Pass an empty vector
+    /// to clear.
+    void SetDefaultPluginsDir(std::vector<std::filesystem::path> paths)
     {
-        _defaultPluginsDir = std::move(path);
+        _defaultPluginsDir = std::move(paths);
     }
 
-    /// Effective plugin directory for `profile`: the profile's own
-    /// `pluginsDir` when set, otherwise the store-wide `defaultPluginsDir`.
-    [[nodiscard]] std::filesystem::path EffectivePluginsDir(Profile const& profile) const
+    /// Effective plugin search directories for `profile`: a single-element
+    /// vector containing the profile's own `pluginsDir` when set, otherwise
+    /// the store-wide `defaultPluginsDir` list.
+    [[nodiscard]] std::vector<std::filesystem::path> EffectivePluginsDir(Profile const& profile) const
     {
-        return !profile.pluginsDir.empty() ? profile.pluginsDir : _defaultPluginsDir;
+        if (!profile.pluginsDir.empty())
+            return { profile.pluginsDir };
+        return _defaultPluginsDir;
     }
 
     /// Inserts or replaces a profile with the given name.
@@ -178,7 +194,7 @@ class ProfileStore
   private:
     std::vector<Profile> _profiles;
     std::string _defaultProfile;
-    std::filesystem::path _defaultPluginsDir;
+    std::vector<std::filesystem::path> _defaultPluginsDir;
 };
 
 } // namespace Lightweight::Config

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -191,18 +191,6 @@ if(WIN32)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/target CACHE STRING "")
 endif()
 
-if(NOT(CPACK_GENERATOR))
-    set(CPACK_GENERATOR TGZ)
-endif()
-set(CPACK_PACKAGE_NAME "Lightweight")
-set(CPACK_PACKAGE_VENDOR "https://github.com/LASTRADA-Software/Lightweight")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Lightweight SQL C++ library on top of ODBC")
-set(CPACK_PACKAGE_CONTACT "Christian Parpart <christian@parpart.family>")
-set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
-#set(CPACK_PACKAGE_EXECUTABLES LightweightTest "Lightweight Test Suite")
-#set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE.txt")
-#set(CPACK_PACKAGE_INSTALL_DIRECTORY "Lightweight SQL ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
-
 enable_testing()
 
 # Resolve Qt 6 for the optional migrations GUI before descending into tools.
@@ -249,3 +237,7 @@ endif()
 if(LIGHTWEIGHT_BUILD_DOCUMENTATION)
     add_subdirectory(docs)
 endif()
+
+# Packaging (CPack: WIX on Windows, TGZ+DEB+RPM on Linux). Lives last so that
+# every install(TARGETS ...) rule from the subdirectories above is in scope.
+include(cmake/Packaging.cmake)

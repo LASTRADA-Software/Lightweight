@@ -212,16 +212,68 @@ profiles:
     REQUIRE(result.has_value());
 
     auto const& store = *result;
-    CHECK(store.DefaultPluginsDir().string() == "/opt/migrations");
+    REQUIRE(store.DefaultPluginsDir().size() == 1);
+    CHECK(store.DefaultPluginsDir().front().string() == "/opt/migrations");
 
     auto const* prod = store.Find("prod");
     REQUIRE(prod != nullptr);
     CHECK(prod->pluginsDir.empty());
-    CHECK(store.EffectivePluginsDir(*prod).string() == "/opt/migrations");
+    auto const prodDirs = store.EffectivePluginsDir(*prod);
+    REQUIRE(prodDirs.size() == 1);
+    CHECK(prodDirs.front().string() == "/opt/migrations");
 
     auto const* dev = store.Find("dev");
     REQUIRE(dev != nullptr);
-    CHECK(store.EffectivePluginsDir(*dev).string() == "/opt/dev-migrations");
+    auto const devDirs = store.EffectivePluginsDir(*dev);
+    REQUIRE(devDirs.size() == 1);
+    CHECK(devDirs.front().string() == "/opt/dev-migrations");
+}
+
+TEST_CASE("ProfileStore — defaultPluginsDir accepts a YAML sequence", "[ProfileStore]")
+{
+    using namespace Lightweight::Config;
+
+    ScopedTempYaml const yaml(R"(defaultProfile: prod
+defaultPluginsDir:
+  - /opt/migrations
+  - /opt/vendor-migrations
+profiles:
+  prod:
+    connectionString: "DRIVER=SQLite3;Database=prod.db"
+)");
+
+    auto const result = ProfileStore::LoadOrDefault(yaml.Path());
+    REQUIRE(result.has_value());
+
+    auto const& dirs = result->DefaultPluginsDir();
+    REQUIRE(dirs.size() == 2);
+    CHECK(dirs[0].string() == "/opt/migrations");
+    CHECK(dirs[1].string() == "/opt/vendor-migrations");
+
+    auto const* prod = result->Find("prod");
+    REQUIRE(prod != nullptr);
+    auto const effective = result->EffectivePluginsDir(*prod);
+    REQUIRE(effective.size() == 2);
+    CHECK(effective[0].string() == "/opt/migrations");
+    CHECK(effective[1].string() == "/opt/vendor-migrations");
+}
+
+TEST_CASE("ProfileStore — defaultPluginsDir rejects a non-string sequence element", "[ProfileStore]")
+{
+    using namespace Lightweight::Config;
+
+    ScopedTempYaml const yaml(R"(defaultProfile: prod
+defaultPluginsDir:
+  - /opt/migrations
+  - { not: a string }
+profiles:
+  prod:
+    connectionString: "DRIVER=SQLite3;Database=prod.db"
+)");
+
+    auto const result = ProfileStore::LoadOrDefault(yaml.Path());
+    REQUIRE_FALSE(result.has_value());
+    CHECK(result.error().contains("defaultPluginsDir"));
 }
 
 TEST_CASE("ProfileStore — defaultPluginsDir round-trips through Save", "[ProfileStore]")
@@ -232,7 +284,7 @@ TEST_CASE("ProfileStore — defaultPluginsDir round-trips through Save", "[Profi
     std::filesystem::remove(path);
 
     ProfileStore store;
-    store.SetDefaultPluginsDir("/srv/migrations");
+    store.SetDefaultPluginsDir({ std::filesystem::path { "/srv/migrations" } });
     store.Upsert(Profile {
         .name = "solo",
         .pluginsDir = {},
@@ -247,11 +299,48 @@ TEST_CASE("ProfileStore — defaultPluginsDir round-trips through Save", "[Profi
 
     auto const reloaded = ProfileStore::LoadOrDefault(path);
     REQUIRE(reloaded.has_value());
-    CHECK(reloaded->DefaultPluginsDir().string() == "/srv/migrations");
+    REQUIRE(reloaded->DefaultPluginsDir().size() == 1);
+    CHECK(reloaded->DefaultPluginsDir().front().string() == "/srv/migrations");
 
     auto const* solo = reloaded->Find("solo");
     REQUIRE(solo != nullptr);
-    CHECK(reloaded->EffectivePluginsDir(*solo).string() == "/srv/migrations");
+    auto const effective = reloaded->EffectivePluginsDir(*solo);
+    REQUIRE(effective.size() == 1);
+    CHECK(effective.front().string() == "/srv/migrations");
+
+    std::filesystem::remove(path);
+}
+
+TEST_CASE("ProfileStore — defaultPluginsDir multi-entry round-trip preserves order", "[ProfileStore]")
+{
+    using namespace Lightweight::Config;
+
+    auto const path = std::filesystem::temp_directory_path() / "lightweight-profilestore-globaldirs.yml";
+    std::filesystem::remove(path);
+
+    ProfileStore store;
+    store.SetDefaultPluginsDir({
+        std::filesystem::path { "/srv/migrations" },
+        std::filesystem::path { "/opt/vendor-migrations" },
+    });
+    store.Upsert(Profile {
+        .name = "solo",
+        .pluginsDir = {},
+        .schema = {},
+        .dsn = {},
+        .connectionString = "DRIVER=SQLite3;Database=:memory:",
+        .uid = {},
+        .secretRef = {},
+    });
+
+    REQUIRE(store.Save(path).has_value());
+
+    auto const reloaded = ProfileStore::LoadOrDefault(path);
+    REQUIRE(reloaded.has_value());
+    auto const& dirs = reloaded->DefaultPluginsDir();
+    REQUIRE(dirs.size() == 2);
+    CHECK(dirs[0].string() == "/srv/migrations");
+    CHECK(dirs[1].string() == "/opt/vendor-migrations");
 
     std::filesystem::remove(path);
 }

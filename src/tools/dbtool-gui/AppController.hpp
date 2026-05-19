@@ -23,15 +23,12 @@
 #include <QtCore/QString>
 #include <QtQml/QQmlEngine>
 
-// Forward-declare the PluginLoader so this header stays moc-friendly (see
-// MigrationRunner.hpp for the parser workaround).
-namespace Lightweight
-{
-namespace Tools
-{
-    class PluginLoader;
-}
-} // namespace Lightweight
+// `_plugins` below is a pimpl pointer (defined in AppController.cpp) so
+// this moc-parsed header avoids pulling in <PluginIngestion.hpp>. The
+// reason is concrete: moc 6.11's scanner mis-counts braces around the
+// C++17 `namespace A::B { ... }` syntax used by tools_shared headers,
+// which leaks subsequent declarations (e.g. `DbtoolGui`) into the
+// outer namespace and breaks the generated meta-object.
 
 #include <filesystem>
 #include <memory>
@@ -205,6 +202,23 @@ class AppController: public QObject
     /// access to `AppController`. Mirrors `ThemeController::SeedInitialMode`.
     /// @param enabled Whether backup/restore UI surfaces should be enabled.
     static void SeedBackupRestoreEnabled(bool enabled) noexcept;
+
+    /// Seeds the initial value of `_verbose` before the QML engine
+    /// instantiates the singleton. Must be called before any QML access to
+    /// `AppController`. Mirrors `SeedBackupRestoreEnabled` so `main.cpp` can
+    /// thread the parsed `--verbose`/`-v` flag into the controller's first
+    /// `ReloadPlugins()`. Idempotent; later changes take effect on the next
+    /// `ReloadPlugins()` only if the value is updated via `SetVerbose`.
+    ///
+    /// Calling `SeedVerbose(false)` is equivalent to not calling
+    /// `SeedVerbose` at all — `_verbose` defaults to `false`. The `bool`
+    /// argument exists so callers can forward a parsed CLI flag directly
+    /// (`SeedVerbose(parser.isSet(verboseOpt))`) without an explicit `if`,
+    /// matching the adjacent `SeedBackupRestoreEnabled` call site.
+    ///
+    /// @param enabled Whether shadow-plugin notices should be emitted via
+    ///                `qInfo()`.
+    static void SeedVerbose(bool enabled) noexcept;
     [[nodiscard]] SqlQueryRunner* sqlQueryRunner() noexcept
     {
         return &_sqlQueryRunner;
@@ -422,11 +436,12 @@ class AppController: public QObject
     void ReportError(QString const& message);
     void ClearError();
 
-    /// Computes the effective plugins directory for the current connection
-    /// mode: the user override wins in `dsn` / `custom` modes, whereas
-    /// `profile` mode is locked to the profile's own `pluginsDir`. Returns
-    /// an empty path when nothing is configured.
-    [[nodiscard]] std::filesystem::path EffectivePluginsDir() const;
+    /// Computes the effective plugin search directories for the current
+    /// connection mode: the user override wins in `dsn` / `custom` modes,
+    /// whereas `profile` mode is locked to the profile's own `pluginsDir`.
+    /// May return more than one path when `defaultPluginsDir` in the YAML
+    /// store is a list. Returns an empty vector when nothing is configured.
+    [[nodiscard]] std::vector<std::filesystem::path> EffectivePluginsDir() const;
 
     /// Rebuilds the plugin list from `EffectivePluginsDir()` and refreshes
     /// the migration / release models. Triggered at startup and whenever a
@@ -480,6 +495,10 @@ class AppController: public QObject
     QString _lastWarning;
     bool _connected = false;
     bool _logVisible = true;
+    /// Set by `SetVerbose()` from `main.cpp` when the user passes
+    /// `--verbose`/`-v`. Currently only gates the shadowed-plugin notices
+    /// in `LoadPluginsInto`; never persisted across runs.
+    bool _verbose = false;
     /// Active UI mode — default is `"simple"` for new installs so non-expert
     /// downstream users are not greeted by the full timeline on first launch.
     QString _viewMode = QStringLiteral("simple");
@@ -514,7 +533,12 @@ class AppController: public QObject
     // Plugins must outlive every MigrationBase pointer the MigrationManager
     // holds — unloading a plugin invalidates its migrations. Keep them for
     // the lifetime of the controller.
-    std::vector<std::unique_ptr<Lightweight::Tools::PluginLoader>> _plugins;
+    /// Opaque bundle of `Lightweight::Tools::LoadedPlugin` keeping every
+    /// loaded shared library alive. Defined in `AppController.cpp` so the
+    /// header doesn't pull in `<PluginIngestion.hpp>` (see the comment at
+    /// the top of this file for the moc-parser reason).
+    struct PluginsBundle;
+    std::unique_ptr<PluginsBundle> _plugins;
 };
 
 } // namespace DbtoolGui

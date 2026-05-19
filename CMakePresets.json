@@ -133,14 +133,22 @@
             "packageName": "Lightweight",
             "packageDirectory": "${sourceDir}/out/package/gcc-debug",
             "configurePreset": "gcc-debug",
-            "generators": [ "TGZ" ]
+            "generators": [ "TGZ", "DEB", "RPM" ]
         },
         {
             "name": "gcc-release",
             "packageName": "Lightweight",
-            "packageDirectory": "${sourceDir}/out/package/gcc-debug",
+            "packageDirectory": "${sourceDir}/out/package/gcc-release",
             "configurePreset": "gcc-release",
-            "generators": [ "TGZ" ]
+            "generators": [ "TGZ", "DEB", "RPM" ]
+        },
+        {
+            "name": "clangcl-release",
+            "packageName": "Lightweight",
+            "packageDirectory": "${sourceDir}/out/package/clangcl-release",
+            "configurePreset": "clangcl-release",
+            "configurations": [ "Release" ],
+            "generators": [ "WIX" ]
         }
     ]
 }
