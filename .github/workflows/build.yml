@@ -405,7 +405,7 @@ jobs:
       - name: "package tar.gz"
         run: |
           cpack --preset gcc-release
-          cp out/package/gcc-debug/Lightweight-*-Linux.tar.gz ./Lightweight-Linux-CI.tar.gz
+          cp out/package/gcc-release/Lightweight-*-Linux.tar.gz ./Lightweight-Linux-CI.tar.gz
       - name: "Move tests to root directory"
         run: mv out/build/gcc-release/src/tests/LightweightTest .
       - name: "Upload unit tests"

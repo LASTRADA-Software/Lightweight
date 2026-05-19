@@ -120,9 +120,44 @@ set_target_properties(dbtool-gui PROPERTIES
 )
 
 install(TARGETS dbtool-gui
-    BUNDLE  DESTINATION .
-    RUNTIME DESTINATION bin
+    BUNDLE  DESTINATION .                          COMPONENT Runtime
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}    COMPONENT Runtime
 )
+
+# Install-time Qt deployment: the POST_BUILD windeployqt below populates the
+# build tree, but the install staging tree is a separate directory. Run it
+# again at install time so the MSI / DEB / RPM payload contains all Qt6 DLLs,
+# QML modules, platform plugins, styles, and image formats.
+if(WIN32)
+    install(CODE "
+        set(_qml_dir \"${CMAKE_CURRENT_SOURCE_DIR}/qml\")
+        set(_target  \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}/dbtool-gui.exe\")
+        if(NOT EXISTS \"\${_target}\")
+            message(FATAL_ERROR \"windeployqt: \${_target} not found in install tree\")
+        endif()
+        find_program(_windeployqt windeployqt HINTS \"${Qt6_DIR}/../../../bin\")
+        if(NOT _windeployqt)
+            message(FATAL_ERROR \"windeployqt not found; cannot stage Qt runtime for dbtool-gui\")
+        endif()
+        set(_cfg_flag --release)
+        if(\"\${CMAKE_INSTALL_CONFIG_NAME}\" STREQUAL \"Debug\")
+            set(_cfg_flag --debug)
+        endif()
+        message(STATUS \"Running windeployqt against \${_target} (\${_cfg_flag})\")
+        execute_process(COMMAND \"\${_windeployqt}\"
+            \${_cfg_flag}
+            --no-translations
+            --no-system-d3d-compiler
+            --qmldir \"\${_qml_dir}\"
+            --dir    \"\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}\"
+            \"\${_target}\"
+            RESULT_VARIABLE _wdq_rc
+        )
+        if(NOT _wdq_rc EQUAL 0)
+            message(FATAL_ERROR \"windeployqt failed with exit code \${_wdq_rc}\")
+        endif()
+    " COMPONENT Runtime)
+endif()
 
 # Post-build deployment hooks so a fresh checkout can run the binary without
 # manually copying Qt DLLs / frameworks. No-ops on Linux (use system Qt or
