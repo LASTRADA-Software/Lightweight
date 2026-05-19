@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <concepts>
+#include <optional>
 #include <ranges>
 
 namespace Lightweight
@@ -209,6 +210,33 @@ class [[nodiscard]] SqlWhereClauseBuilder
 
     /// Constructs or extends a raw WHERE clause.
     [[nodiscard]] Derived& WhereRaw(std::string_view sqlConditionExpression);
+
+    /// @brief Starts a conditional WHERE chain driven by a `std::optional<T>` value.
+    ///
+    /// The returned sub-builder exposes two `ThenWhere` overloads:
+    /// `ThenWhere(column)` appends `WHERE column = *value`, and
+    /// `ThenWhere(column, binaryOp)` appends `WHERE column <binaryOp> *value`
+    /// (e.g. `">="`, `"<"`, `"!="`). Both overloads emit nothing when @p value
+    /// is empty and return the underlying builder for further chaining.
+    ///
+    /// The optional is captured by reference and must outlive the chain.
+    ///
+    /// @tparam T The contained value type held by the optional.
+    /// @param value The optional whose presence gates the conditional WHERE.
+    /// @return A sub-builder exposing `ThenWhere(column)` and `ThenWhere(column, binaryOp)`.
+    ///
+    /// Example:
+    /// @code
+    /// std::optional<int> val { 42 };
+    /// builder.If(val).ThenWhere(FullyQualifiedNameOf<&Table::value>);
+    /// // Appends: WHERE "Table"."value" = 42
+    ///
+    /// std::optional<SqlDateTime> since = ...;
+    /// builder.If(since).ThenWhere(FullyQualifiedNameOf<&Events::createdAt>, ">=");
+    /// // Appends: WHERE "Events"."createdAt" >= '2026-05-18T12:30:45.000'  (when since holds a value)
+    /// @endcode
+    template <typename T>
+    [[nodiscard]] auto If(std::optional<T> const& value) noexcept;
 
     /// Constructs or extends a WHERE clause to test for a binary operation.
     template <typename ColumnName, typename T>
@@ -911,6 +939,82 @@ template <typename OnChainCallable>
 Derived& SqlWhereClauseBuilder<Derived>::FullOuterJoin(TableName auto joinTable, OnChainCallable const& onClauseBuilder)
 {
     return Join(JoinType::FULL, joinTable, onClauseBuilder);
+}
+
+namespace detail
+{
+
+    /// @brief Sub-builder returned by `SqlWhereClauseBuilder::If`.
+    ///
+    /// Captures the underlying builder and a gating `std::optional`. Calling
+    /// `ThenWhere(column)` or `ThenWhere(column, binaryOp)` commits the chain:
+    /// when the optional holds a value it appends `WHERE column = *value` (or
+    /// `WHERE column <binaryOp> *value` for the explicit-operator overload);
+    /// either way it returns the underlying builder so further methods can be
+    /// chained.
+    template <typename Derived, typename T>
+    class [[nodiscard]] ConditionalWhereBuilder
+    {
+      public:
+        /// Constructs the sub-builder, binding to the underlying builder and the gating optional.
+        constexpr ConditionalWhereBuilder(Derived& builder, std::optional<T> const& value) noexcept:
+            _builder { builder },
+            _value { value }
+        {
+        }
+
+        /// Commits the conditional WHERE for @p column. Appends
+        /// `WHERE column = *value` when the gating optional holds a value;
+        /// otherwise the builder is left untouched.
+        /// @param column The column name (string, `SqlQualifiedTableColumnName`, etc.).
+        /// @return Reference to the underlying query builder.
+        template <typename ColumnName>
+        [[nodiscard]] Derived& ThenWhere(ColumnName const& column) const
+        {
+            if (_value.has_value())
+                return _builder.Where(column, *_value);
+            return _builder;
+        }
+
+        /// Commits the conditional WHERE for @p column using an explicit binary
+        /// operator. Appends `WHERE column <binaryOp> *value` when the gating
+        /// optional holds a value; otherwise the builder is left untouched.
+        /// Mirrors the `Where(column, binaryOp, value)` overload — use it for
+        /// range-style filters such as `">="`, `"<"`, `"!="`, or `"LIKE"`.
+        /// @param column The column name (string, `SqlQualifiedTableColumnName`, etc.).
+        /// @param binaryOp The SQL binary operator (e.g. `">="`, `"<"`, `"!="`).
+        /// @return Reference to the underlying query builder.
+        ///
+        /// Example:
+        /// @code
+        /// std::optional<SqlDateTime> since = ...;
+        /// std::optional<SqlDateTime> until = ...;
+        /// q.FromTable("Events").Select().Field("id")
+        ///     .If(since).ThenWhere(FullyQualifiedNameOf<&Events::createdAt>, ">=")
+        ///     .If(until).ThenWhere(FullyQualifiedNameOf<&Events::createdAt>, "<")
+        ///     .All();
+        /// @endcode
+        template <typename ColumnName>
+        [[nodiscard]] Derived& ThenWhere(ColumnName const& column, std::string_view binaryOp) const
+        {
+            if (_value.has_value())
+                return _builder.Where(column, binaryOp, *_value);
+            return _builder;
+        }
+
+      private:
+        Derived& _builder;
+        std::optional<T> const& _value;
+    };
+
+} // namespace detail
+
+/// Starts a conditional WHERE chain gated by a `std::optional` value.
+template <typename Derived>
+template <typename T>
+inline LIGHTWEIGHT_FORCE_INLINE auto SqlWhereClauseBuilder<Derived>::If(std::optional<T> const& value) noexcept
+{
+    return detail::ConditionalWhereBuilder<Derived, T> { static_cast<Derived&>(*this), value };
 }
 
 template <typename Derived>

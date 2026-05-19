@@ -347,6 +347,164 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.WhereNull", "[SqlQueryBu
                                      WHERE "Column1" IS NULL)SQL"));
 }
 
+namespace
+{
+struct IfThenWhereTable
+{
+    Field<int> value;
+};
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.IfThenWhere optional empty", "[SqlQueryBuilder]")
+{
+    std::optional<int> const empty {};
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) { return q.FromTable("Table").Select().Field("a").If(empty).ThenWhere("Column1").All(); },
+        QueryExpectations::All(R"SQL(SELECT "a" FROM "Table")SQL"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.IfThenWhere optional populated", "[SqlQueryBuilder]")
+{
+    std::optional<int> const populated { 42 };
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            return q.FromTable("Table").Select().Field("a").If(populated).ThenWhere("Column1").All();
+        },
+        QueryExpectations::All(R"SQL(SELECT "a" FROM "Table"
+                                     WHERE "Column1" = 42)SQL"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.IfThenWhere FullyQualifiedNameOf", "[SqlQueryBuilder]")
+{
+    std::optional<int> const populated { 7 };
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            return q.FromTable(RecordTableName<IfThenWhereTable>)
+                .Select()
+                .Field("a")
+                .If(populated)
+                .ThenWhere(FullyQualifiedNameOf<Member(IfThenWhereTable::value)>)
+                .All();
+        },
+        QueryExpectations::All(R"SQL(SELECT "a" FROM "IfThenWhereTable"
+                                     WHERE "IfThenWhereTable"."value" = 7)SQL"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.IfThenWhere with SqlDateTime", "[SqlQueryBuilder]")
+{
+    using namespace std::chrono_literals;
+
+    std::optional<SqlDateTime> const empty {};
+    std::optional<SqlDateTime> const populated { SqlDateTime {
+        std::chrono::year { 2026 }, std::chrono::month { 5 }, std::chrono::day { 18 }, 12h, 30min, 45s } };
+
+    // Empty optional => no WHERE
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            return q.FromTable("Events").Select().Field("id").If(empty).ThenWhere("createdAt").All();
+        },
+        QueryExpectations::All(R"SQL(SELECT "id" FROM "Events")SQL"));
+
+    // Populated optional => WHERE with quoted ISO-8601 literal
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            return q.FromTable("Events").Select().Field("id").If(populated).ThenWhere("createdAt").All();
+        },
+        QueryExpectations::All(R"SQL(SELECT "id" FROM "Events"
+                                     WHERE "createdAt" = '2026-05-18T12:30:45.000')SQL"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.IfThenWhere SqlDateTime range with operators", "[SqlQueryBuilder]")
+{
+    using namespace std::chrono_literals;
+
+    std::optional<SqlDateTime> const since { SqlDateTime {
+        std::chrono::year { 2026 }, std::chrono::month { 1 }, std::chrono::day { 1 }, 0h, 0min, 0s } };
+    std::optional<SqlDateTime> const until { SqlDateTime {
+        std::chrono::year { 2026 }, std::chrono::month { 5 }, std::chrono::day { 18 }, 12h, 30min, 45s } };
+    std::optional<SqlDateTime> const empty {};
+
+    // Both bounds present: combined `>=` and `<` filter (AND junctor between two If/ThenWhere)
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            return q.FromTable("Events")
+                .Select()
+                .Field("id")
+                .If(since)
+                .ThenWhere("createdAt", ">=")
+                .If(until)
+                .ThenWhere("createdAt", "<")
+                .All();
+        },
+        QueryExpectations::All(R"SQL(SELECT "id" FROM "Events"
+                                     WHERE "createdAt" >= '2026-01-01T00:00:00.000' AND "createdAt" < '2026-05-18T12:30:45.000')SQL"));
+
+    // Only upper bound present: empty `since` is a no-op, only `<` filter is emitted
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            return q.FromTable("Events")
+                .Select()
+                .Field("id")
+                .If(empty)
+                .ThenWhere("createdAt", ">=")
+                .If(until)
+                .ThenWhere("createdAt", "<")
+                .All();
+        },
+        QueryExpectations::All(R"SQL(SELECT "id" FROM "Events"
+                                     WHERE "createdAt" < '2026-05-18T12:30:45.000')SQL"));
+
+    // Both empty: no WHERE at all
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) {
+            return q.FromTable("Events")
+                .Select()
+                .Field("id")
+                .If(empty)
+                .ThenWhere("createdAt", ">=")
+                .If(empty)
+                .ThenWhere("createdAt", "<")
+                .All();
+        },
+        QueryExpectations::All(R"SQL(SELECT "id" FROM "Events")SQL"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.IfThenWhere with std::string", "[SqlQueryBuilder]")
+{
+    std::optional<std::string> const empty {};
+    std::optional<std::string> const populated { "Alice" };
+
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) { return q.FromTable("Users").Select().Field("id").If(empty).ThenWhere("name").All(); },
+        QueryExpectations::All(R"SQL(SELECT "id" FROM "Users")SQL"));
+
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) { return q.FromTable("Users").Select().Field("id").If(populated).ThenWhere("name").All(); },
+        QueryExpectations::All(R"SQL(SELECT "id" FROM "Users"
+                                     WHERE "name" = 'Alice')SQL"));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.IfThenWhere on Update and Delete", "[SqlQueryBuilder]")
+{
+    std::optional<int> const empty {};
+    std::optional<int> const populated { 5 };
+
+    CheckSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("T").Update().Set("a", 1).If(empty).ThenWhere("id"); },
+                         QueryExpectations::All(R"SQL(UPDATE "T" SET "a" = 1)SQL"));
+
+    CheckSqlQueryBuilder(
+        [&](SqlQueryBuilder& q) { return q.FromTable("T").Update().Set("a", 1).If(populated).ThenWhere("id"); },
+        QueryExpectations::All(R"SQL(UPDATE "T" SET "a" = 1
+                                     WHERE "id" = 5)SQL"));
+
+    CheckSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("T").Delete().If(empty).ThenWhere("id"); },
+                         QueryExpectations::All(R"SQL(DELETE FROM "T")SQL"));
+
+    CheckSqlQueryBuilder([&](SqlQueryBuilder& q) { return q.FromTable("T").Delete().If(populated).ThenWhere("id"); },
+                         QueryExpectations::All(R"SQL(DELETE FROM "T"
+                                                      WHERE "id" = 5)SQL"));
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.Junctors", "[SqlQueryBuilder]")
 {
     CheckSqlQueryBuilder(

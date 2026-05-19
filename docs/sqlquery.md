@@ -94,6 +94,34 @@ interface. Here we present a compressed list of functions that can be used to cr
     - `Where(SqlQualifiedTableColumnName { .tableName = "Table_A", .columnName = "a" }, 42)` such call translated into `WHERE "Table_A"."a" = 42`
   - `Or()`, `And()` and `Not()` logical functions to apply to the next call
     - Example of usage `Where("a",1).Or().Where("b",1)`
+  - `If(optional).ThenWhere(column[, binaryOp])` — conditional WHERE driven by a `std::optional`
+    - `ThenWhere(column)` appends `WHERE column = *value` only when the optional holds a value; when the optional is empty the call is a no-op and the underlying query is left untouched. Returns the underlying builder, so it can be chained between other clauses.
+    - `ThenWhere(column, binaryOp)` mirrors `Where(column, binaryOp, value)` — emits `WHERE column <binaryOp> *value` (e.g. `">="`, `"<"`, `"!="`, `"LIKE"`) under the same empty/populated rules. Useful for range-style filters over `SqlDateTime`, numeric columns, etc.
+    - Works with any column-name overload accepted by `Where` — plain strings, `SqlQualifiedTableColumnName`, and `FullyQualifiedNameOf<&Record::field>`.
+    - Available on every builder that derives from `SqlWhereClauseBuilder`: `Select`, `Update`, and `Delete`.
+    - Example — combining equality and range filters, any of which can be absent:
+      ```cpp
+      std::optional<int>         userId = MaybeUserIdFromRequest();
+      std::optional<SqlDateTime> since  = MaybeSinceFromRequest();
+      std::optional<SqlDateTime> until  = MaybeUntilFromRequest();
+
+      auto query = q.FromTable("Events")
+                    .Select()
+                    .Field("id")
+                    .If(userId).ThenWhere(FullyQualifiedNameOf<&Events::userId>)
+                    .If(since).ThenWhere(FullyQualifiedNameOf<&Events::createdAt>, ">=")
+                    .If(until).ThenWhere(FullyQualifiedNameOf<&Events::createdAt>, "<")
+                    .OrderBy("id")
+                    .All();
+      // userId={42}, since={2026-01-01}, until={2026-05-18T12:30:45}
+      //   -> WHERE "Events"."userId" = 42
+      //      AND "Events"."createdAt" >= '2026-01-01T00:00:00.000'
+      //      AND "Events"."createdAt" <  '2026-05-18T12:30:45.000'
+      // userId={}, since={}, until={2026-05-18T12:30:45}
+      //   -> WHERE "Events"."createdAt" < '2026-05-18T12:30:45.000'
+      // userId={}, since={}, until={}
+      //   -> no WHERE clause is emitted
+      ```
   -  `Inner`|`LeftOuter`|`RightOuter`|`FullOuter` + `Join`
     - See documentation for `SqlJoinConditionBuilder` for details 
 - End
