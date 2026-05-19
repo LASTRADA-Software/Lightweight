@@ -16,6 +16,7 @@ var classLightweight_1_1SqlConnection =
     [ "ServerVersion", "da/da8/classLightweight_1_1SqlConnection.html#adedd93d863e37dcd325f71024c1d6601", null ],
     [ "ServerType", "da/da8/classLightweight_1_1SqlConnection.html#a2cf1b575719f949078c4a5c31145e501", null ],
     [ "DriverName", "da/da8/classLightweight_1_1SqlConnection.html#ae8e906b9e44522971275823056bc5a5e", null ],
+    [ "IsLegacyMicrosoftSqlServerDriver", "da/da8/classLightweight_1_1SqlConnection.html#a868addb2554777ae5fabebc3dc083445", null ],
     [ "QueryFormatter", "da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32", null ],
     [ "Query", "da/da8/classLightweight_1_1SqlConnection.html#a40304c8c5a364f85cdd0a5e1afcd461f", null ],
     [ "QueryAs", "da/da8/classLightweight_1_1SqlConnection.html#a4165425040fb439fdbfc44efdad7f550", null ],
