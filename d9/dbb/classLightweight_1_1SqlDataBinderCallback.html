@@ -149,7 +149,7 @@ Public Member Functions</h2></td></tr>
 <div class="textblock"><p>Callback interface for SqlDataBinder to allow post-processing of output columns.</p>
 <p>This is needed because the SQLBindCol() function does not allow to specify a callback function to be called after the data has been fetched from the database. This is needed to trim strings to the correct size, for example. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00031">31</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00033">33</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a209f52c2128670486fa0df251261bf80" name="a209f52c2128670486fa0df251261bf80"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a209f52c2128670486fa0df251261bf80">&#9670;&#160;</a></span>PlanPostExecuteCallback()</h2>
@@ -348,9 +348,10 @@ The indicators must remain valid until the statement is executed.</dd></dl>
   </tr>
 </table>
 </div><div class="memdoc">
-<dl class="section return"><dt>Returns</dt><dd>True if the legacy in-box Microsoft "SQL Server" ODBC driver (SQLSRV32.DLL) is in use. That driver is ODBC 2.x-only: it returns HYC00 for SQL_C_TYPE_DATE / SQL_C_TYPE_TIME / SQL_C_TYPE_TIMESTAMP and has an off-by-one in chunked SQL_C_CHAR reads. Binders use this to pick the ODBC-2 fallback type codes or to compensate for chunked-read slack. Modern drivers (ODBC Driver 17/18 for SQL Server) return false. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>True if the legacy in-box Microsoft "SQL Server" ODBC driver (SQLSRV32.DLL) is in use. That driver is ODBC 2.x-only: it returns HYC00 for SQL_C_TYPE_DATE / SQL_C_TYPE_TIME / SQL_C_TYPE_TIMESTAMP and has an off-by-one in chunked SQL_C_CHAR reads. Binders use this to pick the ODBC-2 fallback type codes or to compensate for chunked-read slack. Modern drivers (ODBC Driver 17/18 for SQL Server) return false.</dd></dl>
+<p>Detection is case-insensitive on the driver-file substring "SQLSRV32" because <code>SQLGetInfo(SQL_DRIVER_NAME)</code> casing has shifted across Windows releases ("SQLSRV32.DLL" vs "sqlsrv32.dll" have both been observed) and the file may have a versioned suffix on some installs. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00088">88</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00095">95</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 
 </div>
 </div>
