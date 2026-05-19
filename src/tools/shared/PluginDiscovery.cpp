@@ -189,7 +189,7 @@ std::vector<ResolvedPlugin> DiscoverPlugins(std::span<std::filesystem::path cons
     std::vector<ResolvedPlugin> result;
     result.reserve(winners.size());
     for (auto const& [_, c]: winners)
-        result.push_back(ResolvedPlugin { .path = c.path, .dirIndex = c.dirIndex });
+        result.emplace_back(c.path, c.dirIndex);
 
     std::ranges::sort(result, [&](ResolvedPlugin const& a, ResolvedPlugin const& b) {
         // Re-emit in the order candidates were first encountered so the

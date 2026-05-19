@@ -209,6 +209,13 @@ class AppController: public QObject
     /// thread the parsed `--verbose`/`-v` flag into the controller's first
     /// `ReloadPlugins()`. Idempotent; later changes take effect on the next
     /// `ReloadPlugins()` only if the value is updated via `SetVerbose`.
+    ///
+    /// Calling `SeedVerbose(false)` is equivalent to not calling
+    /// `SeedVerbose` at all — `_verbose` defaults to `false`. The `bool`
+    /// argument exists so callers can forward a parsed CLI flag directly
+    /// (`SeedVerbose(parser.isSet(verboseOpt))`) without an explicit `if`,
+    /// matching the adjacent `SeedBackupRestoreEnabled` call site.
+    ///
     /// @param enabled Whether shadow-plugin notices should be emitted via
     ///                `qInfo()`.
     static void SeedVerbose(bool enabled) noexcept;
