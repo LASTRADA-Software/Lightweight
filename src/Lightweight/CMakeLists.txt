@@ -273,16 +273,17 @@ include(GNUInstallDirs) # Provides standard installation directory variables lik
 install(
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Lightweight
+    COMPONENT Development
     FILES_MATCHING PATTERN "*.hpp"
 )
 
 install(TARGETS Lightweight
     EXPORT Lightweight-targets
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} # For DLLs on Windows
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} # For shared libs (.so, .dll) and Windows import libs (.lib)
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} # For static libs (.a, .lib)
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} # IMPORTANT: Needed for interface libraries / header locations
-    FILE_SET CXX_MODULES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Lightweight # Install module files if present
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}     COMPONENT Runtime      # For DLLs on Windows
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}     COMPONENT Runtime      # For shared libs (.so) and Linux DT_SONAME links
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}     COMPONENT Development  # Static libs / Windows import libs
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILE_SET CXX_MODULES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Lightweight COMPONENT Development
 )
 
 # Only install the PDB file for Debug and RelWithDebInfo configurations on Windows platform
@@ -315,13 +316,15 @@ install(
         "${CMAKE_CURRENT_BINARY_DIR}/Lightweight-config.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/Lightweight-config-version.cmake"
     DESTINATION
-        "${CMAKE_INSTALL_LIBDIR}/cmake/Lightweight" # Same dir as INSTALL_DESTINATION above
+        "${CMAKE_INSTALL_LIBDIR}/cmake/Lightweight"
+    COMPONENT Development
 )
 
 install(
     EXPORT Lightweight-targets # Must match the EXPORT name used in install(TARGETS)
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Lightweight" # Same dir as config files
-    NAMESPACE Lightweight:: # The namespace for imported targets (e.g., Lightweight::Lightweight)
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Lightweight"
+    NAMESPACE Lightweight::
+    COMPONENT Development
 )
 
-include(CPack)
+# Note: include(CPack) is invoked from cmake/Packaging.cmake at the top level.

@@ -158,7 +158,27 @@ std::expected<ProfileStore, std::string> ProfileStore::LoadOrDefault(std::filesy
         store._defaultProfile = defaults.as<std::string>();
 
     if (auto n = root["defaultPluginsDir"])
-        store._defaultPluginsDir = n.as<std::string>();
+    {
+        if (n.IsScalar())
+        {
+            store._defaultPluginsDir.emplace_back(n.as<std::string>());
+        }
+        else if (n.IsSequence())
+        {
+            for (auto const& item: n)
+            {
+                if (!item.IsScalar())
+                    return std::unexpected(std::format(
+                        "defaultPluginsDir in {} must be a string or a list of strings", path.string()));
+                store._defaultPluginsDir.emplace_back(item.as<std::string>());
+            }
+        }
+        else
+        {
+            return std::unexpected(
+                std::format("defaultPluginsDir in {} must be a string or a list of strings", path.string()));
+        }
+    }
 
     auto profiles = root["profiles"];
     if (!profiles || !profiles.IsMap())
@@ -197,7 +217,22 @@ std::expected<void, std::string> ProfileStore::Save(std::filesystem::path path) 
     if (!_defaultProfile.empty())
         out << YAML::Key << "defaultProfile" << YAML::Value << _defaultProfile;
     if (!_defaultPluginsDir.empty())
-        out << YAML::Key << "defaultPluginsDir" << YAML::Value << _defaultPluginsDir.string();
+    {
+        out << YAML::Key << "defaultPluginsDir" << YAML::Value;
+        if (_defaultPluginsDir.size() == 1)
+        {
+            // Scalar form keeps the YAML file backward-compatible with older
+            // readers and with hand-written single-directory configs.
+            out << _defaultPluginsDir.front().string();
+        }
+        else
+        {
+            out << YAML::BeginSeq;
+            for (auto const& dir: _defaultPluginsDir)
+                out << dir.string();
+            out << YAML::EndSeq;
+        }
+    }
 
     out << YAML::Key << "profiles" << YAML::Value << YAML::BeginMap;
     for (auto const& p: _profiles)

@@ -10,6 +10,15 @@ add_library(tools_shared STATIC
     Config/ProfileStore.cpp
     Config/ProfileStore.hpp
 
+    PluginDiscovery.cpp
+    PluginDiscovery.hpp
+
+    PluginIngestion.cpp
+    PluginIngestion.hpp
+
+    PluginLoader.cpp
+    PluginLoader.hpp
+
     Odbc/DataSourceEnumerator.cpp
     Odbc/DataSourceEnumerator.hpp
 
@@ -41,6 +50,13 @@ target_link_libraries(tools_shared PUBLIC Lightweight::Lightweight)
 # yaml-cpp is used only by Config/ProfileStore.cpp. Linking PRIVATE keeps it
 # off downstream consumers and out of the installed Lightweight package.
 target_link_libraries(tools_shared PRIVATE yaml-cpp::yaml-cpp)
+
+# `dlopen` / `dlsym` for `PluginLoader.cpp` on POSIX. Windows links
+# against `kernel32.lib` for `LoadLibraryW` / `GetProcAddress`, which is
+# implicit in the MSVC toolchain — no entry needed.
+if(UNIX)
+    target_link_libraries(tools_shared PRIVATE ${CMAKE_DL_LIBS})
+endif()
 
 if(NOT WIN32)
     set_target_properties(tools_shared PROPERTIES POSITION_INDEPENDENT_CODE ON)
