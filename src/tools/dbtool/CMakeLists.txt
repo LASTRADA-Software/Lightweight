@@ -1,6 +1,4 @@
 add_library(dbtool_lib STATIC
-    PluginLoader.cpp
-    PluginLoader.hpp
     StandardProgressManager.cpp
     StandardProgressManager.hpp
 )
@@ -13,10 +11,6 @@ if(WIN32)
     target_link_libraries(dbtool PRIVATE dbtool_lib libzip::zip)
 else()
     target_link_libraries(dbtool PRIVATE dbtool_lib zip)
-endif()
-
-if(UNIX)
-    target_link_libraries(dbtool_lib PRIVATE ${CMAKE_DL_LIBS})
 endif()
 
 install(TARGETS dbtool DESTINATION bin)

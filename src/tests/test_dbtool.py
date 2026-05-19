@@ -455,6 +455,73 @@ def main():
             print("list-profiles with missing --config unexpectedly succeeded")
             sys.exit(1)
 
+    print("--- 12b. defaultPluginsDir as list deduplicates same-named plugins by mtime ---")
+    # Verifies the multi-directory `defaultPluginsDir` form:
+    #   - Two directories that contain the *same* plugin filename must
+    #     resolve to a single load (filename-based dedup).
+    #   - When the user passes --verbose, the shadowed copy is reported
+    #     on stderr so the choice is debuggable.
+    # The original `args.plugins_dir` (single directory) is the source of
+    # the real plugin DLLs; we copy each file into two fresh directories
+    # and bump one copy's mtime forward so the "newer wins" branch is
+    # exercised deterministically.
+    import shutil
+    import time
+    plugin_exts = (".dll", ".so", ".dylib")
+    src_plugins = [p for p in os.listdir(args.plugins_dir)
+                   if p.lower().endswith(plugin_exts)
+                   and os.path.isfile(os.path.join(args.plugins_dir, p))]
+    if not src_plugins:
+        print(f"No plugin files found under {args.plugins_dir} — cannot run multi-dir test")
+        sys.exit(1)
+
+    with tempfile.TemporaryDirectory() as multi_tmpdir:
+        dir_old = os.path.join(multi_tmpdir, "old")
+        dir_new = os.path.join(multi_tmpdir, "new")
+        os.makedirs(dir_old)
+        os.makedirs(dir_new)
+        for name in src_plugins:
+            shutil.copy2(os.path.join(args.plugins_dir, name), os.path.join(dir_old, name))
+            shutil.copy2(os.path.join(args.plugins_dir, name), os.path.join(dir_new, name))
+        # Push the "new" copies' mtime forward so they unambiguously win
+        # the newest-mtime tiebreak, regardless of filesystem mtime resolution.
+        future = time.time() + 120
+        for name in src_plugins:
+            os.utime(os.path.join(dir_new, name), (future, future))
+
+        cfg_path = os.path.join(multi_tmpdir, "dbtool.yml")
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            f.write(
+                "defaultProfile: prod\n"
+                "defaultPluginsDir:\n"
+                f"  - {dir_old}\n"
+                f"  - {dir_new}\n"
+                "profiles:\n"
+                "  prod:\n"
+                f"    connectionString: \"{connection_string}\"\n"
+            )
+
+        # `list-pending` is a read-only query that exits 0 regardless of
+        # whether anything is pending — what we actually want to assert is
+        # that loading the same plugin filename from two directories
+        # produces *no* duplicate-plugin failure and that the verbose
+        # output names the older copy as shadowed.
+        multi_result = run_command(
+            [args.dbtool, "--config", cfg_path, "--verbose", "list-pending"],
+            check=False,
+        )
+        if multi_result.returncode != 0:
+            print(f"multi-dir list-pending failed:\n{multi_result.stdout}\n---\n{multi_result.stderr}")
+            sys.exit(1)
+        # The verbose log must attribute the shadow to the older directory.
+        if "shadowed by" not in multi_result.stderr:
+            print(f"--verbose did not report shadowed plugin on stderr:\n{multi_result.stderr}")
+            sys.exit(1)
+        # The winner must be the newer copy; dbtool prints the load path.
+        if dir_new not in multi_result.stdout:
+            print(f"newer plugin copy was not the one loaded:\n{multi_result.stdout}")
+            sys.exit(1)
+
     print("--- 13. status fails fast when no migration plugin is loaded ---")
     with tempfile.TemporaryDirectory() as empty_plugins_dir:
         empty_cmd = [args.dbtool, "--plugins-dir", empty_plugins_dir,
