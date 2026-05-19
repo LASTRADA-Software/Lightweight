@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "Lightweight/SqlConnectInfo.hpp"
-#include "PluginLoader.hpp"
 #include "StandardProgressManager.hpp"
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
@@ -27,6 +26,9 @@
 #include <vector>
 
 #include <Config/ProfileStore.hpp>
+#include <PluginDiscovery.hpp>
+#include <PluginIngestion.hpp>
+#include <PluginLoader.hpp>
 #include <Secrets/SecretResolver.hpp>
 
 #if defined(__clang__)
@@ -220,6 +222,8 @@ void PrintUsage()
     std::println("  {}--schema-only{}             Backup/restore schema only, skip data",
                  c.option, c.reset);
     std::println("  {}--quiet{}                   Suppress progress output", c.option, c.reset);
+    std::println("  {}--verbose{}, {}-v{}             Emit extra informational output (e.g. shadowed plugins)",
+                 c.option, c.reset, c.option, c.reset);
     std::println("  {}--show-examples{}           Show usage examples and exit", c.option, c.reset);
     std::println("  {}--help{}                    Show this help message", c.option, c.reset);
     std::println("");
@@ -309,7 +313,11 @@ struct Options
 {
     std::string command;
     std::string argument;
-    std::filesystem::path pluginsDir;
+    /// Plugin search directories. `--plugins-dir` sets this to a single-element
+    /// list; `defaultPluginsDir` in `dbtool.yml` may set it to multiple entries
+    /// — see `Tools::DiscoverPlugins` for the filename-based dedup that
+    /// reconciles the multi-directory case.
+    std::vector<std::filesystem::path> pluginsDir;
     SqlConnectionString connectionString;
     std::string configFile;
     std::string profileName; ///< Named profile selected via --profile (empty = ProfileStore default)
@@ -331,6 +339,7 @@ struct Options
     bool noLock = false;     ///< If true, skip migration locking for write operations
     bool schemaOnly = false; ///< If true, backup/restore schema only (no data)
     bool yes = false;        ///< If true, confirm destructive actions (e.g. rewrite-checksums)
+    bool verbose = false;    ///< If true, emit extra informational output (e.g. shadowed plugins)
 
     /// @brief `--up-to <X>` for migration commands. Empty = no bound.
     std::string upTo;
@@ -503,7 +512,7 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
             options.configFile = argv[++i];
 
     // Initialize defaults before loading config
-    options.pluginsDir = std::filesystem::current_path();
+    options.pluginsDir = { std::filesystem::current_path() };
 
     // Second pass to get actual arguments and override config
     for (int i = 1; i < argc; ++i)
@@ -523,8 +532,12 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
         {
             if (i + 1 >= argc)
                 return std::unexpected { "Error: --plugins-dir requires an argument" };
-            options.pluginsDir = argv[++i];
+            options.pluginsDir = { std::filesystem::path { argv[++i] } };
             options.pluginsDirSet = true;
+        }
+        else if (arg == "--verbose" || arg == "-v")
+        {
+            options.verbose = true;
         }
         else if (arg == "--connection-string")
         {
@@ -690,87 +703,24 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
     return options;
 }
 
-std::vector<Tools::PluginLoader> LoadPlugins(std::filesystem::path const& dir)
+/// Wires `--verbose` and dbtool's stdout/stderr conventions into
+/// `Tools::PluginIngestOptions`. Extracted so the body of
+/// `GetMigrationManager` stays scannable.
+[[nodiscard]] Tools::PluginIngestOptions MakeIngestOptions(bool verbose)
 {
-    std::vector<Tools::PluginLoader> plugins;
-    std::vector<void const*> handles;
-
-    if (!std::filesystem::exists(dir))
-    {
-        std::println(std::cerr, "Warning: Plugins directory '{}' does not exist.", dir.string());
-        return plugins;
-    }
-
-    for (auto const& entry: std::filesystem::directory_iterator(dir))
-    {
-        if (!entry.is_regular_file())
-            continue;
-
-        auto const ext = entry.path().extension();
-        if (!(ext == ".so" || ext == ".dll" || ext == ".dylib"))
-            continue;
-
-        try
-        {
-            std::println("Loading plugin: {}", entry.path().string());
-            Tools::PluginLoader loader { entry.path() };
-            void const* const handle = loader.GetNativeHandle();
-
-            // Check if handle already exists
-            if (std::ranges::contains(handles, handle))
-            {
-                std::println(std::cerr, "Failed to load plugin {}: duplicate handle", entry.path().string());
-                std::exit(EXIT_FAILURE);
-            }
-
-            handles.push_back(handle);
-            plugins.push_back(std::move(loader));
-        }
-        catch (std::exception const& e)
-        {
-            std::println(std::cerr, "Failed to load plugin {}: {}", entry.path().string(), e.what());
-            std::exit(EXIT_FAILURE);
-        }
-    }
-    return plugins;
-}
-
-void CollectMigrations(std::vector<Tools::PluginLoader> const& plugins, MigrationManager& centralManager)
-{
-    for (auto const& plugin: plugins)
-    {
-        try
-        {
-            auto const acquireParams = plugin.GetFunction<MigrationManager*()>("AcquireMigrationManager");
-            if (acquireParams)
-            {
-                MigrationManager* pluginManager = acquireParams();
-                if (pluginManager && pluginManager != &centralManager)
-                {
-                    // Register releases before migrations: the failure mode most likely to throw
-                    // here is a cross-plugin duplicate release, and we'd rather skip the whole
-                    // plugin on conflict than end up with migrations imported but releases missing.
-                    for (auto const& release: pluginManager->GetAllReleases())
-                    {
-                        centralManager.RegisterRelease(release.version, release.highestTimestamp);
-                    }
-                    for (auto const* migration: pluginManager->GetAllMigrations())
-                    {
-                        centralManager.AddMigration(migration);
-                    }
-                    // Propagate any compat policy the plugin installed on its own singleton
-                    // manager. Composition lets multiple plugins contribute policies in the
-                    // same dbtool process; see `MigrationManager::ComposeCompatPolicy`.
-                    if (auto const& policy = pluginManager->GetCompatPolicy())
-                        centralManager.ComposeCompatPolicy(policy);
-                }
-            }
-        }
-        catch (std::exception const& e)
-        {
-            std::println(std::cerr, "Error retrieving migrations from plugin: {}", e.what());
-        }
-    }
+    Tools::PluginIngestOptions opts;
+    if (verbose)
+        opts.logShadowed = [](std::string_view msg) {
+            std::println(std::cerr, "{}", msg);
+        };
+    opts.logLoading = [](std::string_view msg) {
+        std::println("{}", msg);
+    };
+    opts.logError = [](std::string_view msg) {
+        std::println(std::cerr, "{}", msg);
+    };
+    opts.throwOnLoadError = true; // dbtool fails fast on bad plugins — historic behaviour
+    return opts;
 }
 
 std::expected<MigrationBase const*, std::string> GetMigration(MigrationManager& manager, std::string_view argument)
@@ -822,6 +772,48 @@ bool SetupConnectionString(SqlConnectionString const& connectionString)
         std::println(std::cerr, "Warning: could not ensure SQLite database file exists for {}", defaultString.Sanitized());
     TraceBreadcrumb("SetupConnectionString: returning true");
     return true;
+}
+
+/// Builds the redacted, truncated `CONNECTION` column for `list-profiles`.
+/// Extracted as a free function so `ListProfiles` stays under the clang-tidy
+/// cognitive-complexity threshold (lambdas count against the enclosing
+/// function's budget).
+[[nodiscard]] std::string BuildProfileConnectionColumn(Lightweight::Config::Profile const& profile)
+{
+    constexpr std::size_t MaxConnectionWidth = 60;
+
+    std::string s;
+    if (!profile.connectionString.empty())
+        s = RedactConnectionStringSecrets(profile.connectionString);
+    else if (!profile.dsn.empty())
+        s = std::format("dsn={}", profile.dsn);
+
+    if (s.size() > MaxConnectionWidth)
+        s = std::format("{}...", std::string_view { s }.substr(0, MaxConnectionWidth - 3));
+    return s;
+}
+
+/// Joins a profile's effective plugin search directories into a single
+/// `PLUGINSDIR` column. The list separator mirrors `$PATH` conventions for
+/// the platform so users recognise the form (`;` on Windows, `:` on POSIX).
+[[nodiscard]] std::string BuildProfilePluginsDirColumn(Lightweight::Config::ProfileStore const& store,
+                                                       Lightweight::Config::Profile const& profile)
+{
+    constexpr std::string_view PathSep =
+#ifdef _WIN32
+        ";";
+#else
+        ":";
+#endif
+    auto const effectiveDirs = store.EffectivePluginsDir(profile);
+    std::string joined;
+    for (std::size_t idx = 0; idx < effectiveDirs.size(); ++idx)
+    {
+        if (idx > 0)
+            joined += PathSep;
+        joined += effectiveDirs[idx].string();
+    }
+    return joined;
 }
 
 /// Implements the `list-profiles` command: enumerates every profile parsed by
@@ -893,29 +885,16 @@ int ListProfiles(Options const& options)
         std::string pluginsDir;
     };
 
-    constexpr std::size_t MaxConnectionWidth = 60;
-
     std::vector<Row> rows;
     rows.reserve(store.Profiles().size());
     for (auto const& profile: store.Profiles())
-    {
-        std::string connection;
-        if (!profile.connectionString.empty())
-            connection = RedactConnectionStringSecrets(profile.connectionString);
-        else if (!profile.dsn.empty())
-            connection = std::format("dsn={}", profile.dsn);
-
-        if (connection.size() > MaxConnectionWidth)
-            connection = std::format("{}...", std::string_view { connection }.substr(0, MaxConnectionWidth - 3));
-
         rows.push_back(Row {
             .name = profile.name,
             .defaultMarker = profile.name == defaultName ? std::string { "*" } : std::string {},
-            .connection = std::move(connection),
+            .connection = BuildProfileConnectionColumn(profile),
             .schema = profile.schema,
-            .pluginsDir = store.EffectivePluginsDir(profile).string(),
+            .pluginsDir = BuildProfilePluginsDirColumn(store, profile),
         });
-    }
 
     auto const widthOf = [&](std::string Row::* member, std::string_view header) {
         auto width = header.size();
@@ -2255,16 +2234,23 @@ MigrationManager& GetMigrationManager(Options const& options)
     // Keep plugins loaded for the lifetime of the program.
     // The MigrationManager holds references to migration code from these plugins,
     // so they must not be unloaded (via dlclose) while migrations may still be accessed.
-    static std::vector<Tools::PluginLoader> plugins;
+    static std::vector<Tools::LoadedPlugin> plugins;
     static bool initialized = false;
 
     auto& manager = MigrationManager::GetInstance();
     if (!initialized)
     {
-        TraceBreadcrumb("GetMigrationManager: loading plugins");
-        plugins = LoadPlugins(options.pluginsDir);
-        TraceBreadcrumb("GetMigrationManager: collecting migrations");
-        CollectMigrations(plugins, manager);
+        TraceBreadcrumb("GetMigrationManager: ingesting plugins");
+        try
+        {
+            plugins = Tools::IngestPlugins(
+                options.pluginsDir, Tools::DefaultPluginLoader(), manager, MakeIngestOptions(options.verbose));
+        }
+        catch (std::exception const& e)
+        {
+            std::println(std::cerr, "Failed to load plugins: {}", e.what());
+            std::exit(EXIT_FAILURE);
+        }
         // Apply --schema before opening the connection so the post-connect
         // hook is installed prior to CreateMigrationHistory()'s first connect.
         if (!options.schema.empty())
@@ -2295,9 +2281,9 @@ MigrationManager& GetMigrationManager(Options const& options)
             auto& conn = manager.GetDataMapper().Connection();
             for (auto const& plugin: plugins)
             {
-                auto const postInit =
+                auto* const postInit =
                     plugin.TryGetFunction<void(SqlConnection&, MigrationManager&)>("LightweightMigrationPluginPostInit");
-                if (!postInit)
+                if (postInit == nullptr)
                     continue; // Optional symbol — not all plugins implement it.
                 try
                 {

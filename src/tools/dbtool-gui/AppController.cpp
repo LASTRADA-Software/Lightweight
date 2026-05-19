@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include "../dbtool/PluginLoader.hpp"
 #include "AppController.hpp"
 
 #include <Lightweight/DataMapper/DataMapper.hpp>
@@ -8,12 +7,30 @@
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlMigration.hpp>
 
+#include <PluginIngestion.hpp>
+#include <PluginLoader.hpp>
+
+namespace DbtoolGui
+{
+
+/// Pimpl payload — concrete vector of loaded plugins. Lives entirely in
+/// this translation unit so the moc-parsed `AppController.hpp` doesn't
+/// need to see `<PluginIngestion.hpp>`.
+struct AppController::PluginsBundle
+{
+    std::vector<Lightweight::Tools::LoadedPlugin> entries;
+};
+
+} // namespace DbtoolGui
+
 #include <algorithm>
 #include <exception>
 #include <filesystem>
+#include <span>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
+#include <QtCore/QDebug>
 #include <QtCore/QDir>
 #include <QtCore/QFileSystemWatcher>
 #include <QtCore/QModelIndex>
@@ -35,6 +52,10 @@ namespace
     /// `AppController::SeedBackupRestoreEnabled` from `main.cpp` after the
     /// command line is parsed, and consumed by the singleton's constructor.
     bool s_initialBackupRestoreEnabled = false;
+
+    /// Initial value for `AppController::_verbose`. Mirror of the
+    /// `--verbose`/`-v` CLI flag; consumed by the singleton's constructor.
+    bool s_initialVerbose = false;
 
     /// Settings keys — scoped to `connection/` so new preference groups can
     /// coexist (e.g. future `ui/splitSizes`) without a schema migration.
@@ -94,46 +115,29 @@ namespace
         return fallback.isEmpty() ? QStringLiteral("(no details reported)") : fallback;
     }
 
-    /// Scans `dir` for shared libraries (`.dll` / `.so` / `.dylib`), loads each
-    /// as a migration plugin, and registers its migrations + releases with the
-    /// global `MigrationManager`. Mirrors `dbtool`'s `LoadPlugins` +
-    /// `CollectMigrations`; centralising this here means the GUI shows the same
-    /// migration set as the CLI for a given profile.
-    void LoadPluginsInto(std::filesystem::path const& dir,
-                         std::vector<std::unique_ptr<Lightweight::Tools::PluginLoader>>& plugins,
-                         Lightweight::SqlMigration::MigrationManager& manager)
+    /// Builds the `Tools::PluginIngestOptions` the GUI uses for every
+    /// `IngestPlugins` call. Verbose mode pipes shadow + loading lines
+    /// through `qInfo`; load errors always reach `qWarning` so a broken
+    /// plugin file is visible in the log even when verbose is off.
+    /// `throwOnLoadError = false` keeps the rest of the migration set
+    /// usable when one plugin fails to load.
+    [[nodiscard]] Lightweight::Tools::PluginIngestOptions MakeGuiIngestOptions(bool verbose)
     {
-        namespace fs = std::filesystem;
-
-        if (!fs::exists(dir) || !fs::is_directory(dir))
-            return;
-
-        for (auto const& entry: fs::directory_iterator(dir))
+        Lightweight::Tools::PluginIngestOptions opts;
+        if (verbose)
         {
-            if (!entry.is_regular_file())
-                continue;
-            auto const ext = entry.path().extension();
-            if (ext != ".dll" && ext != ".so" && ext != ".dylib")
-                continue;
-
-            auto loader = std::make_unique<Lightweight::Tools::PluginLoader>(entry.path());
-            auto acquire = loader->GetFunction<Lightweight::SqlMigration::MigrationManager*()>("AcquireMigrationManager");
-            if (!acquire)
-            {
-                // Not a migration plugin — skip silently. dbtool behaves the same way.
-                continue;
-            }
-
-            if (auto* pluginManager = acquire(); pluginManager && pluginManager != &manager)
-            {
-                for (auto const& release: pluginManager->GetAllReleases())
-                    manager.RegisterRelease(release.version, release.highestTimestamp);
-                for (auto const* migration: pluginManager->GetAllMigrations())
-                    manager.AddMigration(migration);
-            }
-
-            plugins.push_back(std::move(loader));
+            opts.logShadowed = [](std::string_view msg) {
+                qInfo("%s", std::string(msg).c_str());
+            };
+            opts.logLoading = [](std::string_view msg) {
+                qInfo("%s", std::string(msg).c_str());
+            };
         }
+        opts.logError = [](std::string_view msg) {
+            qWarning("%s", std::string(msg).c_str());
+        };
+        opts.throwOnLoadError = false; // GUI surfaces the error and keeps running
+        return opts;
     }
 
 } // namespace
@@ -143,9 +147,16 @@ void AppController::SeedBackupRestoreEnabled(bool enabled) noexcept
     s_initialBackupRestoreEnabled = enabled;
 }
 
+void AppController::SeedVerbose(bool enabled) noexcept
+{
+    s_initialVerbose = enabled;
+}
+
 AppController::AppController(QObject* parent):
     QObject(parent),
-    _backupRestoreEnabled(s_initialBackupRestoreEnabled)
+    _backupRestoreEnabled(s_initialBackupRestoreEnabled),
+    _verbose(s_initialVerbose),
+    _plugins(std::make_unique<PluginsBundle>())
 {
     _runner.SetManager(&Lightweight::SqlMigration::MigrationManager::GetInstance());
     _backupRunner.setEnabled(_backupRestoreEnabled);
@@ -1108,23 +1119,25 @@ void AppController::OnProfileFileChanged(QString const& path)
     });
 }
 
-std::filesystem::path AppController::EffectivePluginsDir() const
+std::vector<std::filesystem::path> AppController::EffectivePluginsDir() const
 {
     // Resolution order:
     //   1. The active profile's own `pluginsDir`. A profile that ships a
     //      path is self-describing and takes precedence so switching
     //      profiles can swap plugin sets without re-editing globals.
     //   2. The store-wide `defaultPluginsDir` from `dbtool.yml`. Shared with
-    //      dbtool so a single YAML entry configures both tools.
+    //      dbtool so a single YAML entry configures both tools — and a
+    //      list of directories at this layer fans out into multi-dir
+    //      discovery downstream.
     //   3. The Settings-page global (`config/pluginsDir`) — GUI-only
     //      fallback for users without YAML access.
     //   4. Empty — caller surfaces "no plugins discovered".
     if (auto const* profile = _store.Find(_currentProfile.toStdString()); profile && !profile->pluginsDir.empty())
-        return profile->pluginsDir;
+        return { profile->pluginsDir };
     if (!_store.DefaultPluginsDir().empty())
         return _store.DefaultPluginsDir();
     if (!_pluginsDir.isEmpty())
-        return _pluginsDir.toStdString();
+        return { std::filesystem::path { _pluginsDir.toStdString() } };
     return {};
 }
 
@@ -1138,25 +1151,35 @@ void AppController::InvalidateConnectionTarget()
 
 void AppController::ReloadPlugins()
 {
-    auto const pluginsDir = EffectivePluginsDir();
+    auto const pluginsDirs = EffectivePluginsDir();
 
     auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
     // Wipe first, so switching to a profile with no plugins-dir clears
     // the stale list instead of leaving the previous one showing.
     manager.RemoveAllMigrations();
     manager.RemoveAllReleases();
-    _plugins.clear();
+    _plugins->entries.clear();
 
-    if (!pluginsDir.empty())
+    if (!pluginsDirs.empty())
     {
         try
         {
-            LoadPluginsInto(pluginsDir, _plugins, manager);
+            _plugins->entries = Lightweight::Tools::IngestPlugins(
+                pluginsDirs, Lightweight::Tools::DefaultPluginLoader(), manager, MakeGuiIngestOptions(_verbose));
         }
         catch (std::exception const& e)
         {
+            // `throwOnLoadError = false` in GUI options means we usually
+            // do not reach this branch — only `IngestPlugins`'s own
+            // contract violations (or directory-iteration errors) bubble
+            // up. Surface them on the error banner anyway so the user
+            // sees something went wrong.
+            QStringList paths;
+            paths.reserve(static_cast<qsizetype>(pluginsDirs.size()));
+            for (auto const& dir: pluginsDirs)
+                paths.append(QString::fromStdString(dir.string()));
             ReportError(QStringLiteral("Failed to load plugins from %1: %2")
-                            .arg(QString::fromStdString(pluginsDir.string()), QString::fromUtf8(e.what())));
+                            .arg(paths.join(QStringLiteral("; ")), QString::fromUtf8(e.what())));
         }
     }
 

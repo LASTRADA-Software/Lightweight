@@ -14,7 +14,24 @@ Key features:
 
 ## Installation
 
-Build dbtool as part of the Lightweight project:
+### Pre-built installers
+
+Released artifacts ship `dbtool` and `dbtool-gui` together with every runtime
+DLL or shared object they need. They do **not** include an ODBC driver — you
+must install the appropriate driver for your database separately (e.g.,
+Microsoft ODBC Driver for SQL Server, PostgreSQL ODBC, or SQLite ODBC).
+
+| Platform           | Artifact                          | Install command                                     |
+|--------------------|-----------------------------------|------------------------------------------------------|
+| Windows (x86_64)   | `Lightweight-<version>-win64.msi` | `msiexec /i Lightweight-<version>-win64.msi`         |
+| Debian / Ubuntu    | `lightweight_<version>_amd64.deb` | `sudo dpkg -i lightweight_<version>_amd64.deb`       |
+| Fedora / RHEL      | `lightweight-<version>.x86_64.rpm`| `sudo dnf install lightweight-<version>.x86_64.rpm`  |
+| Portable (Linux)   | `Lightweight-<version>-Linux.tar.gz` | extract anywhere; run from `bin/`                  |
+
+Windows installs into `C:\Program Files\Lightweight\bin\`. Linux packages
+install into `/usr/bin/` with `Lightweight.so.<version>` under `/usr/lib/`.
+
+### Building from source
 
 ```bash
 cmake --preset clang-release
@@ -22,6 +39,22 @@ cmake --build out/build/clang-release --target dbtool
 ```
 
 The binary will be located at `out/build/clang-release/src/tools/dbtool/dbtool`.
+
+### Producing the installer locally
+
+```bash
+# Linux (TGZ + DEB + RPM)
+cmake --preset gcc-release
+cmake --build --preset gcc-release
+cpack --preset gcc-release
+
+# Windows (WiX MSI)
+cmake --preset clangcl-release -DLIGHTWEIGHT_BUILD_GUI=ON
+cmake --build --preset clangcl-release
+cpack --preset clangcl-release
+```
+
+The resulting artefacts land in `out/package/<preset>/`.
 
 ## Configuration
 
@@ -58,9 +91,33 @@ profiles:
     connectionString: "DRIVER=SQLite3;Database=dev.db"
 ```
 
+`defaultPluginsDir` also accepts a YAML sequence to fan out plugin discovery
+across multiple directories — handy when a vendor ships a shared plugin set
+under one prefix and the operator keeps local overrides under another:
+
+```yaml
+defaultPluginsDir:
+  - ./plugins                       # local / operator-owned plugins
+  - /opt/lightweight/plugins        # vendor-shipped baseline
+```
+
+When the same plugin filename appears in more than one of those directories,
+dbtool keeps the file with the newest modification time and discards the
+others — so dropping a fresher build into `./plugins` reliably shadows the
+baseline copy without having to rebuild the YAML. Filename comparison is
+case-insensitive on Windows and case-sensitive elsewhere; when two
+same-named files share the same modification time, the directory listed
+earlier in the sequence wins.
+
+Pass `--verbose` (`-v`) to see one stderr line per discarded duplicate, e.g.:
+
+```
+plugin 'pricing.dll' from ./plugins/pricing.dll shadowed by /opt/lightweight/plugins/pricing.dll (newer mtime)
+```
+
 The effective plugin directory for a given run resolves as: `--plugins-dir`
-CLI option → profile's own `pluginsDir` → top-level `defaultPluginsDir` →
-current working directory.
+CLI option → profile's own `pluginsDir` → top-level `defaultPluginsDir`
+(possibly a list) → current working directory.
 
 ### Inspecting configured profiles
 

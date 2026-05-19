@@ -126,9 +126,14 @@ int main(int argc, char* argv[])
         QStringLiteral("Enable the experimental backup/restore UI. "
                        "Disabled by default — the feature is not yet fully implemented."));
     parser.addOption(enableBackupRestoreOpt);
+    QCommandLineOption const verboseOpt(
+        { QStringLiteral("v"), QStringLiteral("verbose") },
+        QStringLiteral("Emit informational messages (e.g. shadowed plugins) via qInfo() to stderr."));
+    parser.addOption(verboseOpt);
     parser.process(app);
 
     DbtoolGui::AppController::SeedBackupRestoreEnabled(parser.isSet(enableBackupRestoreOpt));
+    DbtoolGui::AppController::SeedVerbose(parser.isSet(verboseOpt));
 
     // QSettings requires the organization/application names set above; the
     // stored value survives across runs and `--theme` overrides it on demand.
