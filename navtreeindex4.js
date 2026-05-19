@@ -1,5 +1,8 @@
 var NAVTREEINDEX4 =
 {
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a76a7fc936dc18d3af22496f7e3d88017":[12,0,0,57,2],
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e":[12,0,0,57,5],
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a8ce0577acded3840d02009304a73888a":[12,0,0,57,3],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10":[12,0,0,57,4],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#abccc1073f563291d8caf94685890f64d":[12,0,0,57,1],
 "da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html":[12,0,0,1,7],
@@ -246,8 +249,5 @@ var NAVTREEINDEX4 =
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html":[10,4,16],
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#a36797cc9ea243cafa5f2627920401c91":[10,4,16,0],
 "dd/d47/structLightweight_1_1SqlDropTablePlan.html#a70993d937b9b2479d4fc33bfec3ffd81":[10,4,16,3],
-"dd/d47/structLightweight_1_1SqlDropTablePlan.html#a881594ba67a9c5f1443d92f285b53bbe":[10,4,16,1],
-"dd/d47/structLightweight_1_1SqlDropTablePlan.html#af7adb5af3a0ff6c6a366fee2ce29beff":[10,4,16,2],
-"dd/d60/Restore_8hpp_source.html":[13,0,1,3,4],
-"dd/d71/structLightweight_1_1SqlColumnDeclaration.html":[10,4,13]
+"dd/d47/structLightweight_1_1SqlDropTablePlan.html#a881594ba67a9c5f1443d92f285b53bbe":[10,4,16,1]
 };

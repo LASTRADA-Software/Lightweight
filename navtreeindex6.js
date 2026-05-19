@@ -1,5 +1,8 @@
 var NAVTREEINDEX6 =
 {
+"df/d3f/structLightweight_1_1SqlVariant.html#acaf1b2edb45bd58883cdffc667c29578":[10,0,11,24],
+"df/d3f/structLightweight_1_1SqlVariant.html#ad4df6e7ae555895c331c2675ed9e6ab8":[10,0,11,21],
+"df/d3f/structLightweight_1_1SqlVariant.html#adf3c49cf96b4f0dca466e6a2d56088ff":[10,0,11,4],
 "df/d3f/structLightweight_1_1SqlVariant.html#ae8582b210d51a2301ec3c5c4106f2568":[10,0,11,22],
 "df/d3f/structLightweight_1_1SqlVariant.html#ae9c6a738dcee0915f91d450760f1df60":[10,0,11,3],
 "df/d3f/structLightweight_1_1SqlVariant.html#aedbb7d758d17b73225e57ae5e958acdc":[10,0,11,27],
