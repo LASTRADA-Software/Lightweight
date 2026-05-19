@@ -1,5 +1,8 @@
 var NAVTREEINDEX3 =
 {
+"d7/d9a/classLightweight_1_1SqlDynamicString.html":[10,0,4],
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a02be3f28ff302516bb8a6690464820f7":[10,0,4,29],
+"d7/d9a/classLightweight_1_1SqlDynamicString.html#a10dd315378c94f97d7a3c7431ba66a63":[10,0,4,36],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a19e5bb98b44338dc3c316fd057a213c2":[10,0,4,0],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a1e03f8cab91fedfdd8cf11c5c5e57adf":[10,0,4,15],
 "d7/d9a/classLightweight_1_1SqlDynamicString.html#a1fc1b3ec6aaa8d6a43f91185ad2370ab":[10,0,4,23],
@@ -195,7 +198,6 @@ var NAVTREEINDEX3 =
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ac391fe5ce2043b272fe4191b98e26f52":[12,0,0,29,3],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ac89cf719251905b8e0af7f5ed4e42036":[12,0,0,29,0],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914":[12,0,0,29,8],
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ae630058661d14d9ab1dd8a71a481bd48":[12,0,0,29,11],
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aecb8ed9927ded35a8b35dd570bf53170":[12,0,0,29,2],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html":[3],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modife-database-schema":[3,0],
@@ -247,7 +249,5 @@ var NAVTREEINDEX3 =
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a76a7fc936dc18d3af22496f7e3d88017":[12,0,0,57,2],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a7cc9f36813cfe7afbb318d8c0c99963e":[12,0,0,57,5],
 "da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a8ce0577acded3840d02009304a73888a":[12,0,0,57,3],
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10":[12,0,0,57,4],
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#abccc1073f563291d8caf94685890f64d":[12,0,0,57,1],
-"da/d0d/structLightweight_1_1SqlBackup_1_1RestoreSettings.html":[12,0,0,1,7]
+"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10":[12,0,0,57,4]
 };

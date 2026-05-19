@@ -1,5 +1,6 @@
 var NAVTREEINDEX5 =
 {
+"dd/d71/structLightweight_1_1SqlColumnDeclaration.html#a9da76151b89502f7c2d8704e32bdcae6":[10,4,13,6],
 "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#ac7edfc2036f6d77ebce95c4a17d39fd8":[10,4,13,5],
 "dd/d71/structLightweight_1_1SqlColumnDeclaration.html#adc6c2316125cc865139f3dae21badfb6":[10,4,13,8],
 "dd/d75/structLightweight_1_1SqlAlterTablePlan.html":[10,4,15],
@@ -248,6 +249,5 @@ var NAVTREEINDEX5 =
 "df/d3f/structLightweight_1_1SqlVariant.html#aedbb7d758d17b73225e57ae5e958acdc":[10,0,11,27],
 "df/d3f/structLightweight_1_1SqlVariant.html#af3f6b677c46a51433e557a75078a07db":[10,0,11,14],
 "df/d3f/structLightweight_1_1SqlVariant.html#af528f083ac94acf3403ae2c989fd3256":[10,0,11,26],
-"df/d3f/structLightweight_1_1SqlVariant.html#affcbadd579dc7e2ff85503c8b6f3352d":[10,0,11,13],
-"df/d4f/DataMapper_8hpp_source.html":[13,0,1,1,2]
+"df/d3f/structLightweight_1_1SqlVariant.html#affcbadd579dc7e2ff85503c8b6f3352d":[10,0,11,13]
 };

@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"d5/dc4/dbtool.html#command-line-options-reference":[7,5],
 "d5/dc4/dbtool.html#configuration":[7,2],
 "d5/dc4/dbtool.html#configuration-file-format":[7,2,1],
 "d5/dc4/dbtool.html#connection-errors":[7,8,0],
@@ -22,6 +23,8 @@ var NAVTREEINDEX2 =
 "d5/dc4/dbtool.html#overview":[7,0],
 "d5/dc4/dbtool.html#parallel-backup-and-restore":[7,7,2],
 "d5/dc4/dbtool.html#plugin-system":[7,6],
+"d5/dc4/dbtool.html#pre-built-installers":[7,1,0],
+"d5/dc4/dbtool.html#producing-the-installer-locally":[7,1,2],
 "d5/dc4/dbtool.html#restore":[7,4,1],
 "d5/dc4/dbtool.html#rollback-timestamp":[7,3,6],
 "d5/dc4/dbtool.html#rollback-to-timestamp":[7,3,7],
@@ -246,8 +249,5 @@ var NAVTREEINDEX2 =
 "d7/d53/structLightweight_1_1SqlTime.html#aad1328d9dbf6a77a3d7a632528376652":[10,0,10,8],
 "d7/d53/structLightweight_1_1SqlTime.html#ab3be70c906d47b15e6b0bb2c3b8af75a":[10,0,10,5],
 "d7/d53/structLightweight_1_1SqlTime.html#ad2fa6d376c7fd1ca95119d08e0e6b814":[10,0,10,9],
-"d7/d53/structLightweight_1_1SqlTime.html#aeac9fe591411b84af0285ea3f4152892":[10,0,10,6],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html":[10,0,4],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a02be3f28ff302516bb8a6690464820f7":[10,0,4,29],
-"d7/d9a/classLightweight_1_1SqlDynamicString.html#a10dd315378c94f97d7a3c7431ba66a63":[10,0,4,36]
+"d7/d53/structLightweight_1_1SqlTime.html#aeac9fe591411b84af0285ea3f4152892":[10,0,10,6]
 };
