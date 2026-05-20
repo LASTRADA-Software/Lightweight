@@ -3,6 +3,12 @@ ODBC_CONNECTION_STRING:
   mssql2022: Driver={ODBC Driver 18 for SQL Server};SERVER=localhost,1433;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest
   mssql2019: Driver={ODBC Driver 18 for SQL Server};SERVER=localhost,1434;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest
   mssql2017: Driver={ODBC Driver 18 for SQL Server};SERVER=localhost,1432;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest
+  # Same servers as mssql2017 / mssql2025, but routed through the older ODBC
+  # Driver 17. Used by CI to verify Lightweight stays driver-compatible across
+  # the two Microsoft-supported drivers (oldest + newest server tested with
+  # both drivers; the 2019/2022 legs only run Driver 18).
+  mssql2017_odbc17: Driver={ODBC Driver 17 for SQL Server};SERVER=localhost,1432;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest
+  mssql2025_odbc17: Driver={ODBC Driver 17 for SQL Server};SERVER=localhost,1435;UID=SA;PWD=Lightweight!Test42;TrustServerCertificate=yes;DATABASE=LightweightTest
   # LFConversion=0 disables psqlODBC's LF<->CRLF translation so TEXT/VARCHAR values
   # round-trip byte-exact.
   # BoolsAsChar=0 makes psqlODBC report BOOLEAN as SQL_BIT, which is what SqlVariant's
