@@ -735,4 +735,48 @@ TEST_CASE("ParseConnectionString tolerates empty fragments", "[ConnectionString]
     }
 }
 
+// The starter type returned by Select() overrides All/First/Range as deducing-this
+// member templates whose bodies are ill-formed via static_assert, asking the user
+// to add a projection first. Those locals shadow the corresponding base methods
+// at name lookup, so calling them without a projection (either inline
+// `Select().All()` or via a named lvalue `auto q = Select(); q.All();`) fails to
+// compile. Once `Field(...)` / `Fields(...)` returns a `SqlSelectQueryBuilder&`,
+// the chain is back on the base type and the real finalizers are reachable.
+//
+// Verified by the build itself: if either pattern were to compile, the lines
+// below — kept commented as documentation — would silently produce malformed
+// `SELECT  FROM "Employees"` SQL at runtime.
+//
+//   auto queryIllFormed = dm.FromTable("Employees").Select();
+//   auto const queryIllFormedComplete = queryIllFormed.All();  // compile error
+//
+//   auto const chained = dm.FromTable("Employees").Select().All();  // compile error
+
+TEST_CASE_METHOD(SqlTestFixture, "Query building", "[SqlStatement]")
+{
+    auto stmt = Light::SqlStatement {};
+    CreateEmployeesTable(stmt);
+    FillEmployeesTable(stmt);
+
+    auto dm = Light::DataMapper {};
+
+    SECTION("Select().All()")
+    {
+        auto const query = dm.FromTable("Employees").Select().Field("*").All();
+
+        auto res = stmt.ExecuteDirect(query);
+        REQUIRE(res.FetchRow());
+    }
+
+    SECTION("Builder const")
+    {
+        auto const start = dm.FromTable("Employees").Select();
+        auto const second = start.Field("*");
+        auto const query = second.All();
+
+        auto res = stmt.ExecuteDirect(query);
+        REQUIRE(res.FetchRow());
+    }
+}
+
 // NOLINTEND(readability-container-size-empty)

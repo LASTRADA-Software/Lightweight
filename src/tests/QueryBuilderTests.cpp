@@ -299,6 +299,7 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.ComplexOR", "[SqlQueryBuilder]
             using namespace std::string_view_literals;
             return q.FromTable("Table1")
                 .Select()
+                .Fields({ "id"sv, "name"sv }, "Table1")
                 .LeftOuterJoin("Table2"sv, "id"sv, "id"sv)
                 .RightOuterJoin("Table3"sv,
                                 [](SqlJoinConditionBuilder q) {
@@ -309,7 +310,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.ComplexOR", "[SqlQueryBuilder]
                                             .OrOn("id", { .tableName = "Table1", .columnName = "column4" });
                                     // clang-format on
                                 })
-                .Fields({ "id"sv, "name"sv }, "Table1")
                 .All();
         },
         QueryExpectations::All(R"(SELECT "Table1"."id", "Table1"."name" FROM "Table1"
@@ -1691,4 +1691,18 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: SqlDateTime formatting", "[Sq
     // ensure that the formatting of sqlDateTime is correct and matches the ISO 8601 format
     // with the only difference that the Z is not in the format
     CHECK(std::format("{}Z", sqlDateTime) == std::format("{:%FT%TZ}", tp_micros));
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder: construct string out of query", "[SqlQueryBuilder]")
+{
+    auto dm = DataMapper {};
+
+    SECTION("Select with specific fields")
+    {
+        auto const query = dm.FromTable("Employees").Select().Fields("FirstName", "LastName").All();
+
+        auto queryString = query.ToSql();
+
+        CHECK(queryString == R"(SELECT "FirstName", "LastName" FROM "Employees")");
+    }
 }

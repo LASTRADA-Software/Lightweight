@@ -508,7 +508,10 @@ class [[nodiscard]] SqlBasicSelectQueryBuilder: public SqlWhereClauseBuilder<Der
     using ComposedQuery = detail::ComposedQuery;
 
   protected:
-    ComposedQuery _query {}; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
+    // mutable so const finalizers / projection-helpers can delegate to the
+    // non-const implementations via const_cast (idiomatic builder pattern —
+    // the observable const-state is the produced SQL, not the accumulator).
+    mutable ComposedQuery _query {}; // NOLINT(cppcoreguidelines-non-private-member-variables-in-classes)
 };
 
 template <typename Derived>

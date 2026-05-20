@@ -134,12 +134,16 @@ std::string BuildSelectQueryWithOffset(SqlQueryFormatter const& formatter,
     if (needsMssqlDecimalConvert)
         return BuildMssqlDecimalSelectQuery(schema, tableName, columns, primaryKeys, offset);
 
-    // Use Query Builder with schema support
-    auto query = schema.empty() ? SqlQueryBuilder(formatter).FromTable(tableName).Select()
-                                : SqlQueryBuilder(formatter).FromSchemaTable(schema, tableName).Select();
+    // Use Query Builder with schema support. The starter returned by Select() does
+    // not expose All/First/Range/OrderBy until at least one column is projected;
+    // capture the first Field()'s return (a SqlSelectQueryBuilder& aliasing the
+    // starter's storage) and continue from there.
+    auto starter = schema.empty() ? SqlQueryBuilder(formatter).FromTable(tableName).Select()
+                                  : SqlQueryBuilder(formatter).FromSchemaTable(schema, tableName).Select();
 
-    for (auto const& col: columns)
-        query.Field(col.name);
+    auto& query = starter.Field(columns[0].name);
+    for (size_t i = 1; i < columns.size(); ++i)
+        query.Field(columns[i].name);
 
     // ORDER BY is required for:
     // 1. MS SQL Server when using OFFSET
