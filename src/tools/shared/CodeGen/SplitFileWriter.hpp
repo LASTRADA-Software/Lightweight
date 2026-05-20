@@ -61,11 +61,9 @@ struct WriteResult
                                       std::string_view fileFooter = {});
 
 /// @brief Writes a `CMakeLists.txt` and a `Plugin.cpp` next to the generated
-/// migration sources so the output directory becomes a drop-in plugin.
-///
-/// Mirrors the layout of `src/tools/LupMigrationsPlugin/` so consumers can
-/// `add_subdirectory()` the generated dir and pick up a self-registering plugin
-/// without further glue.
+/// migration sources so the output directory becomes a drop-in plugin
+/// that consumers can `add_subdirectory()` to pick up a self-registering
+/// plugin without further glue.
 void EmitPluginCmake(std::filesystem::path const& outputDir,
                      std::string_view pluginName,
                      std::string_view sourceGlob = "lup_*.cpp");

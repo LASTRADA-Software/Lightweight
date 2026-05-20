@@ -403,9 +403,8 @@ dbtool migrate --plugins-dir ./build/plugins
 A plugin may export an optional `LightweightMigrationPluginPostInit` symbol that
 `dbtool` calls **once per invocation**, after `schema_migrations` has been created
 and a live connection is available. Use this for one-shot bridging work that needs
-both a `SqlConnection` and the merged `MigrationManager` — the canonical example is
-importing a legacy version-tracking table into `schema_migrations` (see
-`LupMigrationsPlugin` and its `TransitionGlue`).
+both a `SqlConnection` and the merged `MigrationManager` — for example, importing
+a legacy version-tracking table into `schema_migrations`.
 
 ```cpp
 #include <Lightweight/SqlMigration.hpp>

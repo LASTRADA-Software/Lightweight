@@ -1,7 +1,7 @@
 # dbtool-gui — Qt 6 GUI companion to the dbtool CLI.
 #
 # Built only when LIGHTWEIGHT_BUILD_GUI is ON and Qt 6 was located by the
-# top-level FindQt probe. See docs/migrations-gui-plan.md for the design.
+# top-level LightweightFindQt probe. See docs/migrations-gui-plan.md for the design.
 
 # The top-level CMakeLists ran `lightweight_probe_qt6()` which extends
 # CMAKE_PREFIX_PATH, but did not call `find_package(Qt6)` itself because the
@@ -114,8 +114,7 @@ set_target_properties(dbtool-gui PROPERTIES
     MACOSX_BUNDLE ON
     # Qt's camelCase signal/slot convention, unscoped Q_ENUMs, and
     # parent-based `new` ownership all clash with the project-wide
-    # clang-tidy policy. Follow the same carve-out LupMigrationsPlugin and
-    # LastradaDbMigrations use for their non-Lightweight-style code.
+    # clang-tidy policy — opt this target out of clang-tidy entirely.
     CXX_CLANG_TIDY ""
 )
 

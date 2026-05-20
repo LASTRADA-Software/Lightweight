@@ -80,7 +80,7 @@ File: `src/Lightweight/DataMapper/Pool.{hpp,cpp}`. The pool is the canonical way
   generic distributed-lock RAII wrapper) plus
   `src/Lightweight/SqlAdvisoryLock.hpp` (the per-dialect handler interface
   selected via `SqlQueryFormatter::AdvisoryLockOps()`).
-- The `dbtool` subcommand and the `lup2dbtool` adapter live in `src/tools/`.
+- The `dbtool` subcommand lives in `src/tools/`.
 
 ## Where reflection lives
 

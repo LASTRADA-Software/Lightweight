@@ -10,7 +10,6 @@
 | `src/tests/QueryBuilderTests.cpp` | DSL surface |
 | `src/tests/MigrationTests.cpp`, `MigrationReflectionTests.cpp` | Migrations & reflection |
 | `src/tests/CxxModelPrinterTests.cpp` | `ddl2cpp` output shape |
-| `src/tests/Lup2DbtoolTests.cpp` | `lup2dbtool` |
 | `src/tests/UnicodeConverterTests.cpp` | u8/u16/wchar_t conversion |
 | `src/tests/UtilsTests.cpp` | Internal utilities |
 | `src/tests/SqlBackup/` | Backup framework |

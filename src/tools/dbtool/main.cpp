@@ -1195,9 +1195,9 @@ int RunAdminCommand(
 /// Rewrites stored checksums in `schema_migrations` to match the current code.
 ///
 /// Used after a regen of generated migrations changes byte shape but not logical
-/// effect (the Unicode-default flip in `lup2dbtool` is the canonical case). The
-/// caller is expected to have verified out-of-band that the regen is logically
-/// equivalent — this command is a recovery tool, not a maintenance loop.
+/// effect. The caller is expected to have verified out-of-band that the regen
+/// is logically equivalent — this command is a recovery tool, not a maintenance
+/// loop.
 ///
 /// In dry-run mode the diff is printed and nothing is written. Without dry-run the
 /// caller must explicitly confirm; otherwise the command exits without writing.

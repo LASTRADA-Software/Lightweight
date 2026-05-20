@@ -1,14 +1,16 @@
-# FindQt.cmake
+# LightweightFindQt.cmake
 #
 # Helper that locates a Qt 6 installation when the user has not explicitly
 # pointed CMake at one. The goal is to make `cmake -DLIGHTWEIGHT_BUILD_GUI=ON`
 # work out-of-the-box when Qt is installed in a standard location, while still
 # honouring explicit configuration (Qt6_DIR, CMAKE_PREFIX_PATH, QT_ROOT_DIR).
 #
-# NOTE: despite the Find*.cmake naming, this is a helper module that exposes
-# the `lightweight_probe_qt6()` function — it is not intended to be driven by
-# `find_package(Qt)` and does not set the usual `Qt_FOUND` contract. Include
-# it explicitly via `include(FindQt)` and then call `lightweight_probe_qt6()`.
+# This is a Lightweight-specific helper module that exposes the
+# `lightweight_probe_qt6()` function — it is not a CMake `Find*.cmake` module.
+# The previous `FindQt.cmake` name clashed with host projects that ship their
+# own `cmake/FindQt.cmake` when Lightweight is consumed via add_subdirectory.
+# Include it explicitly via `include(LightweightFindQt)` and then call
+# `lightweight_probe_qt6()`.
 #
 # Resolution order:
 #   1. If Qt6_DIR is already set in the cache -> keep it, do nothing.

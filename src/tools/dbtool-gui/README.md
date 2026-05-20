@@ -8,7 +8,7 @@ This subdirectory is **opt-in**. It only builds when both of the following are
 true:
 
 - `LIGHTWEIGHT_BUILD_GUI=ON` is passed at configure time, and
-- A Qt 6 (>= 6.5) install is found by `cmake/FindQt.cmake` — either via an
+- A Qt 6 (>= 6.5) install is found by `cmake/LightweightFindQt.cmake` — either via an
   explicit `Qt6_DIR` / `CMAKE_PREFIX_PATH`, or by auto-probing the standard
   install locations (`C:/Qt/6.x/<compiler>_64/`, Homebrew `qt@6`, `~/Qt/`).
 

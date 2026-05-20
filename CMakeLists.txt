@@ -198,7 +198,7 @@ enable_testing()
 # nothing is found we downgrade the option to OFF instead of failing the
 # configure, so the rest of the project (library, dbtool, tests) still builds.
 if(LIGHTWEIGHT_BUILD_GUI)
-    include(FindQt)
+    include(LightweightFindQt)
     lightweight_probe_qt6(
         MIN_VERSION 6.8.0
         REQUIRED_COMPONENTS Core Gui Qml Quick QuickControls2
@@ -209,7 +209,7 @@ if(LIGHTWEIGHT_BUILD_GUI)
             "LIGHTWEIGHT_BUILD_GUI=ON but Qt 6 could not be auto-detected.\n"
             "Pass -DQt6_DIR=<path-to-qt>/lib/cmake/Qt6 or add the Qt prefix to "
             "CMAKE_PREFIX_PATH to enable the GUI. Disabling GUI build for now. "
-            "See cmake/FindQt.cmake for the list of probed install locations."
+            "See cmake/LightweightFindQt.cmake for the list of probed install locations."
         )
         set(LIGHTWEIGHT_BUILD_GUI OFF CACHE BOOL "" FORCE)
     endif()
@@ -240,4 +240,10 @@ endif()
 
 # Packaging (CPack: WIX on Windows, TGZ+DEB+RPM on Linux). Lives last so that
 # every install(TARGETS ...) rule from the subdirectories above is in scope.
-include(cmake/Packaging.cmake)
+# Only relevant when Lightweight is the top-level project; when consumed via
+# add_subdirectory the host project owns its own CPack configuration, and
+# Lightweight's own CPACK_RESOURCE_FILE_* paths (rooted at ${CMAKE_SOURCE_DIR})
+# would resolve into the host's tree.
+if(PROJECT_IS_TOP_LEVEL)
+    include(cmake/Packaging.cmake)
+endif()

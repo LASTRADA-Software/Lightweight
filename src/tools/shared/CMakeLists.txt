@@ -1,5 +1,5 @@
-# tools_shared — helpers shared between dbtool, dbtool-gui, lup2dbtool, and
-# the test suite. NOT installed and NOT part of the public Lightweight API:
+# tools_shared — helpers shared between dbtool, dbtool-gui, and the test
+# suite. NOT installed and NOT part of the public Lightweight API:
 # the core SQL framework has no dependency on these, so they live alongside
 # the tools that actually use them.
 #

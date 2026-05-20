@@ -3,14 +3,12 @@ target_link_libraries(ddl2cpp PRIVATE Lightweight::Lightweight Lightweight::Tool
 install(TARGETS ddl2cpp DESTINATION bin)
 
 # tools-private static library (Config / Secrets / Odbc enum / SplitFileWriter)
-# shared between dbtool, dbtool-gui, lup2dbtool, and the test suite. Must be
-# declared before the tools that link against it.
+# shared between dbtool, dbtool-gui, and the test suite. Must be declared
+# before the tools that link against it.
 add_subdirectory(shared)
 
 add_subdirectory(dbtool)
 add_subdirectory(large-db-generator)
-add_subdirectory(lup2dbtool)
-add_subdirectory(LupMigrationsPlugin)
 
 # Optional: Qt 6 GUI companion to the dbtool CLI. LIGHTWEIGHT_BUILD_GUI is
 # gated (and possibly downgraded to OFF) by the top-level CMakeLists after
