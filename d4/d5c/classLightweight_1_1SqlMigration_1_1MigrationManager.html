@@ -307,7 +307,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Per-migration compat policy. </p>
-<p>Given a migration about to be applied (or previewed), returns the set of compat flags that should be active while rendering it. Plugins that ship legacy migrations use this to scope compat behaviour to their own timestamp range (e.g. <code>LupMigrationsPlugin</code> enables <code>lup-truncate</code> for migrations predating release 6.0.0). Unset means "strict for every migration". </p>
+<p>Given a migration about to be applied (or previewed), returns the set of compat flags that should be active while rendering it. Plugins that ship legacy migrations use this to scope compat behaviour to their own timestamp range (e.g. a plugin enables <code>lup-truncate</code> for migrations predating a given release). Unset means "strict for every migration". </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00350">350</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 

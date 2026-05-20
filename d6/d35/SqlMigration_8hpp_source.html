@@ -474,8 +474,8 @@ $(document).ready(function(){initNavTree('d6/d35/SqlMigration_8hpp_source.html',
 <div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span><span class="comment">        /// Given a migration about to be applied (or previewed), returns the set of compat</span></div>
 <div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span><span class="comment">        /// flags that should be active while rendering it. Plugins that ship legacy</span></div>
 <div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span><span class="comment">        /// migrations use this to scope compat behaviour to their own timestamp range</span></div>
-<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span><span class="comment">        /// (e.g. `LupMigrationsPlugin` enables `lup-truncate` for migrations predating</span></div>
-<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span><span class="comment">        /// release 6.0.0). Unset means &quot;strict for every migration&quot;.</span></div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span><span class="comment">        /// (e.g. a plugin enables `lup-truncate` for migrations predating a given</span></div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span><span class="comment">        /// release). Unset means &quot;strict for every migration&quot;.</span></div>
 <div class="line"><a id="l00350" name="l00350"></a><span class="lineno"><a class="line" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ac1527da65bfe8360cd0da83013a30727">  350</a></span><span class="comment"></span>        <span class="keyword">using </span><a class="code hl_typedef" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ac1527da65bfe8360cd0da83013a30727">CompatPolicy</a> = std::function&lt;std::set&lt;std::string&gt;(<a class="code hl_class" href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">MigrationBase</a> <span class="keyword">const</span>&amp;)&gt;;</div>
 <div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span><span class="comment"></span> </div>
 <div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span><span class="comment">        /// @brief Installs a per-migration compat policy. Pass `{}` to clear.</span></div>
@@ -872,14 +872,14 @@ $(document).ready(function(){initNavTree('d6/d35/SqlMigration_8hpp_source.html',
 <div class="line"><a id="l00724" name="l00724"></a><span class="lineno">  724</span><span class="comment">/// created and an active connection is available on the central manager. Plugins use</span></div>
 <div class="line"><a id="l00725" name="l00725"></a><span class="lineno">  725</span><span class="comment">/// this to perform one-shot bridging work that needs both a live `SqlConnection` and</span></div>
 <div class="line"><a id="l00726" name="l00726"></a><span class="lineno">  726</span><span class="comment">/// the merged `MigrationManager` — for example, importing legacy version tracking</span></div>
-<div class="line"><a id="l00727" name="l00727"></a><span class="lineno">  727</span><span class="comment">/// (`LASTRADA_PROPERTIES`) into `schema_migrations`.</span></div>
+<div class="line"><a id="l00727" name="l00727"></a><span class="lineno">  727</span><span class="comment">/// from a custom table into `schema_migrations`.</span></div>
 <div class="line"><a id="l00728" name="l00728"></a><span class="lineno">  728</span><span class="comment">///</span></div>
 <div class="line"><a id="l00729" name="l00729"></a><span class="lineno">  729</span><span class="comment">/// Use as:</span></div>
 <div class="line"><a id="l00730" name="l00730"></a><span class="lineno">  730</span><span class="comment">///</span></div>
 <div class="line"><a id="l00731" name="l00731"></a><span class="lineno">  731</span><span class="comment">/// @code</span></div>
 <div class="line"><a id="l00732" name="l00732"></a><span class="lineno">  732</span><span class="comment">/// LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)</span></div>
 <div class="line"><a id="l00733" name="l00733"></a><span class="lineno">  733</span><span class="comment">/// {</span></div>
-<div class="line"><a id="l00734" name="l00734"></a><span class="lineno">  734</span><span class="comment">///     Lup::TransitionGlue::Initialize(manager, connection);</span></div>
+<div class="line"><a id="l00734" name="l00734"></a><span class="lineno">  734</span><span class="comment">///     MyPlugin::ImportLegacyVersions(manager, connection);</span></div>
 <div class="line"><a id="l00735" name="l00735"></a><span class="lineno">  735</span><span class="comment">/// }</span></div>
 <div class="line"><a id="l00736" name="l00736"></a><span class="lineno">  736</span><span class="comment">/// @endcode</span></div>
 <div class="line"><a id="l00737" name="l00737"></a><span class="lineno">  737</span><span class="comment">///</span></div>

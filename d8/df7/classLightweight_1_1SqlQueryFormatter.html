@@ -545,9 +545,9 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 </div><div class="memdoc">
 
 <p>Whether the dialect must rebuild a table to add or drop a foreign-key constraint (i.e. cannot express it via <code>ALTER TABLE … ADD/DROP CONSTRAINT</code>). </p>
-<p>Defaults to <code>false</code>; SQLiteQueryFormatter overrides to <code>true</code>. Because PG and MSSQL formatters inherit from SQLiteQueryFormatter, they re-override back to <code>false</code>. The migration executor consults this to decide whether to take the table-rebuild path on <code>AlterTable</code> steps that touch foreign keys. </p>
+<p>SQLite returns <code>true</code>; every other backend defaults to <code>false</code>. The migration executor consults this to decide whether to take the table-rebuild path on <code>AlterTable</code> steps that touch foreign keys. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00188">188</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00187">187</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -591,7 +591,7 @@ template&lt;typename Range &gt; </div>
 <p>Produces <code>FK_&lt;table&gt;_&lt;col1&gt;[_&lt;col2&gt;…]</code>. A single-column FK collapses to <code>FK_&lt;table&gt;_&lt;col&gt;</code>; a composite FK includes every column so that a composite FK whose first column matches an existing single-column FK doesn't collide on the constraint name (which MSSQL enforces as globally unique per DB).</p>
 <p>Consumers include the SQL Server, PostgreSQL and SQLite formatters — centralising the convention here keeps CREATE/ALTER emission in sync with DROP CONSTRAINT lookup (e.g. <code>SQLiteRebuildDropForeignKey</code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00204">204</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00203">203</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -623,7 +623,7 @@ template&lt;typename Range &gt; </div>
 <p>Returns an empty string when the DBMS has no session-level concept of a default schema (SQL Server, SQLite). Callers must skip emission for empty results. PostgreSQL implements this via <code>SET search_path TO ...</code>.</p>
 <p>The <code>schema</code> value is interpolated into the statement; callers must validate it (e.g. whitelist <code>[A-Za-z0-9_]</code>) before invoking. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00225">225</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00224">224</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
