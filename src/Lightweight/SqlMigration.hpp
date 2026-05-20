@@ -345,8 +345,8 @@ namespace SqlMigration
         /// Given a migration about to be applied (or previewed), returns the set of compat
         /// flags that should be active while rendering it. Plugins that ship legacy
         /// migrations use this to scope compat behaviour to their own timestamp range
-        /// (e.g. `LupMigrationsPlugin` enables `lup-truncate` for migrations predating
-        /// release 6.0.0). Unset means "strict for every migration".
+        /// (e.g. a plugin enables `lup-truncate` for migrations predating a given
+        /// release). Unset means "strict for every migration".
         using CompatPolicy = std::function<std::set<std::string>(MigrationBase const&)>;
 
         /// @brief Installs a per-migration compat policy. Pass `{}` to clear.
@@ -724,14 +724,14 @@ namespace SqlMigration
 /// created and an active connection is available on the central manager. Plugins use
 /// this to perform one-shot bridging work that needs both a live `SqlConnection` and
 /// the merged `MigrationManager` — for example, importing legacy version tracking
-/// (`LASTRADA_PROPERTIES`) into `schema_migrations`.
+/// from a custom table into `schema_migrations`.
 ///
 /// Use as:
 ///
 /// @code
 /// LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connection, manager)
 /// {
-///     Lup::TransitionGlue::Initialize(manager, connection);
+///     MyPlugin::ImportLegacyVersions(manager, connection);
 /// }
 /// @endcode
 ///

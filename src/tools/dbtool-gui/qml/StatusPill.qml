@@ -65,9 +65,9 @@ Rectangle {
                  "effect on the schema is identical. The database has not " +
                  "necessarily drifted — only the rendering has.\n\n" +
                  "Common causes:\n" +
-                 "• The migration plugin was regenerated (e.g. lup2dbtool re-run " +
-                 "  with new options — uppercased identifiers, IfNotExists guards, " +
-                 "  index renaming, --varchar-scale, FK constraint quoting, etc.).\n" +
+                 "• The migration plugin was regenerated (e.g. its code generator " +
+                 "  re-run with new options — uppercased identifiers, IfNotExists guards, " +
+                 "  index renaming, FK constraint quoting, etc.).\n" +
                  "• The Lightweight library was upgraded and now formats some DDL " +
                  "  differently (e.g. wrapping AddForeignKey in DO $$ on Postgres, " +
                  "  or IF NOT EXISTS guards on SQL Server).\n" +

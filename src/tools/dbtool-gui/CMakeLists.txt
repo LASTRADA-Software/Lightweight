@@ -114,8 +114,7 @@ set_target_properties(dbtool-gui PROPERTIES
     MACOSX_BUNDLE ON
     # Qt's camelCase signal/slot convention, unscoped Q_ENUMs, and
     # parent-based `new` ownership all clash with the project-wide
-    # clang-tidy policy. Follow the same carve-out LupMigrationsPlugin and
-    # LastradaDbMigrations use for their non-Lightweight-style code.
+    # clang-tidy policy — opt this target out of clang-tidy entirely.
     CXX_CLANG_TIDY ""
 )
 
