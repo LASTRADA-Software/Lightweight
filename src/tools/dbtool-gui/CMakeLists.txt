@@ -1,7 +1,7 @@
 # dbtool-gui — Qt 6 GUI companion to the dbtool CLI.
 #
 # Built only when LIGHTWEIGHT_BUILD_GUI is ON and Qt 6 was located by the
-# top-level FindQt probe. See docs/migrations-gui-plan.md for the design.
+# top-level LightweightFindQt probe. See docs/migrations-gui-plan.md for the design.
 
 # The top-level CMakeLists ran `lightweight_probe_qt6()` which extends
 # CMAKE_PREFIX_PATH, but did not call `find_package(Qt6)` itself because the
