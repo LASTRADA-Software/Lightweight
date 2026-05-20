@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['selecttype_0',['SelectType',['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af4ccd5e64aa4e1be75ee688d107afcee',1,'Lightweight::SqlSelectQueryBuilder']]],
+  ['selecttype_0',['selecttype',['../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#af4ccd5e64aa4e1be75ee688d107afcee',1,'Lightweight::SqlSelectQueryStarter::SelectType'],['../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#af4ccd5e64aa4e1be75ee688d107afcee',1,'Lightweight::SqlSelectQueryBuilder::SelectType']]],
   ['sql_5ftype_1',['sql_type',['../d7/d53/structLightweight_1_1SqlTime.html#a77e27a267510342d66743aee61902494',1,'Lightweight::SqlTime']]],
   ['sqlaltertablecommand_2',['SqlAlterTableCommand',['../d6/daa/group__QueryBuilder.html#ga35da70532d7195d108a26ea3ab737ec3',1,'Lightweight']]],
   ['sqlansistring_3',['SqlAnsiString',['../d4/d7c/group__DataTypes.html#gab8dd8d8b07e4d40ed1aa43984de429ea',1,'Lightweight']]],
