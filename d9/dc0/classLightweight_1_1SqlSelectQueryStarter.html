@@ -383,8 +383,17 @@ LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Adds a single column to the SELECT clause.</p>
+<p>Const overload that returns a <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html" title="Query builder for building SELECT ... queries.">SqlSelectQueryBuilder</a> const&amp;</code> aliasing the starter's storage, so a <code>const <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html" title="Compile-time gate for SELECT query construction.">SqlSelectQueryStarter</a></code> can still reach the const finalizers (<code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a5f323b662f6c3b74001a28af6603600a" title="Finalizes building the query as SELECT field names FROM ... query.">All() const </a>/</code> <code>First() const /</code> <code>Range() const</code>).</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">fieldName</td><td>Column name; the literal "*" is emitted unquoted. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Reference to the starter typed as a const SELECT builder. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00401">401</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00409">409</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -411,8 +420,16 @@ LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Adds a single qualified column to the SELECT clause. Const overload — see <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a9e0c074db68680dc259138783359436f">Field(std::string_view const&amp;) const</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">fieldName</td><td>Qualified column name (table + column). </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Reference to the starter typed as a const SELECT builder. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00406">406</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00419">419</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -439,8 +456,16 @@ LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Adds an aggregate expression to the SELECT clause. Const overload — see <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a9e0c074db68680dc259138783359436f">Field(std::string_view const&amp;) const</a>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">fieldExpression</td><td>Pre-formatted SQL field expression (e.g. an aggregate). </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Reference to the starter typed as a const SELECT builder. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00411">411</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00429">429</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
