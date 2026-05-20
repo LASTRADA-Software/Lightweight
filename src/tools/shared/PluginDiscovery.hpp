@@ -36,8 +36,19 @@ struct ResolvedPlugin
 };
 
 /// Scans every directory in `dirs` for shared libraries (`.so` / `.dll` /
-/// `.dylib`), deduplicates by filename, and returns the surviving entries
-/// in directory-listing order.
+/// `.dylib`) **whose file stem ends with the literal token `Plugin`** (e.g.
+/// `FooPlugin.dll`, `SqlMigrationsPlugin.so`), deduplicates by filename, and
+/// returns the surviving entries in directory-listing order.
+///
+/// Naming requirement:
+///   - A file is only considered a plugin candidate when its stem ends in
+///     `Plugin`. This is enforced **before** `LoadLibrary`/`dlopen`, so
+///     neighbouring runtime DLLs (vcpkg-applocal deposits like `zlib1.dll`
+///     or `bz2d.dll`, Qt6*.dll dropped next to a GUI tool, the C/C++
+///     runtimes, ...) are never mapped into the host process just to be
+///     skipped at the symbol-lookup step.
+///   - The suffix check is **case-insensitive on Windows** (matching the
+///     filesystem and `LoadLibraryW`) and **case-sensitive elsewhere**.
 ///
 /// Deduplication rules:
 ///   - The filename (basename, including extension) is the dedup key. Two

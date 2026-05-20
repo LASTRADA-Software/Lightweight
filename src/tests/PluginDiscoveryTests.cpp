@@ -90,8 +90,8 @@ TEST_CASE("DiscoverPlugins — distinct filenames across directories all survive
     auto const dirA = tree.Dir("a");
     auto const dirB = tree.Dir("b");
 
-    Touch(dirA / "alpha.dll", BaseTime());
-    Touch(dirB / "beta.dll", BaseTime());
+    Touch(dirA / "AlphaPlugin.dll", BaseTime());
+    Touch(dirB / "BetaPlugin.dll", BaseTime());
 
     std::vector<std::filesystem::path> dirs { dirA, dirB };
     auto const resolved = Lightweight::Tools::DiscoverPlugins(dirs);
@@ -100,7 +100,7 @@ TEST_CASE("DiscoverPlugins — distinct filenames across directories all survive
     auto const names = resolved | std::views::transform([](auto const& r) { return r.path.filename().string(); });
     std::vector<std::string> sortedNames(names.begin(), names.end());
     std::ranges::sort(sortedNames);
-    CHECK(sortedNames == std::vector<std::string> { "alpha.dll", "beta.dll" });
+    CHECK(sortedNames == std::vector<std::string> { "AlphaPlugin.dll", "BetaPlugin.dll" });
 }
 
 TEST_CASE("DiscoverPlugins — same filename: newer mtime wins", "[PluginDiscovery]")
@@ -110,8 +110,8 @@ TEST_CASE("DiscoverPlugins — same filename: newer mtime wins", "[PluginDiscove
     auto const dirNew = tree.Dir("new");
 
     auto const base = BaseTime();
-    Touch(dirOld / "plugin.so", base);
-    Touch(dirNew / "plugin.so", base + std::chrono::seconds(30));
+    Touch(dirOld / "MyPlugin.so", base);
+    Touch(dirNew / "MyPlugin.so", base + std::chrono::seconds(30));
 
     std::vector<std::filesystem::path> dirs { dirOld, dirNew };
     std::vector<std::string> shadows;
@@ -119,9 +119,9 @@ TEST_CASE("DiscoverPlugins — same filename: newer mtime wins", "[PluginDiscove
 
     REQUIRE(resolved.size() == 1);
     CHECK(resolved.front().path.parent_path() == dirNew);
-    CHECK(resolved.front().path.filename() == std::filesystem::path("plugin.so"));
+    CHECK(resolved.front().path.filename() == std::filesystem::path("MyPlugin.so"));
     REQUIRE(shadows.size() == 1);
-    CHECK(shadows.front().contains("plugin.so"));
+    CHECK(shadows.front().contains("MyPlugin.so"));
     CHECK(shadows.front().contains("newer mtime"));
 }
 
@@ -132,8 +132,8 @@ TEST_CASE("DiscoverPlugins — mtime tie: earlier-listed dir wins", "[PluginDisc
     auto const dirSecond = tree.Dir("second");
 
     auto const same = BaseTime();
-    Touch(dirFirst / "plugin.dylib", same);
-    Touch(dirSecond / "plugin.dylib", same);
+    Touch(dirFirst / "MyPlugin.dylib", same);
+    Touch(dirSecond / "MyPlugin.dylib", same);
 
     std::vector<std::filesystem::path> dirs { dirFirst, dirSecond };
     auto const resolved = Lightweight::Tools::DiscoverPlugins(dirs);
@@ -148,7 +148,7 @@ TEST_CASE("DiscoverPlugins — non-plugin extensions are skipped", "[PluginDisco
     ScopedTempTree const tree;
     auto const dir = tree.Dir("mixed");
 
-    Touch(dir / "real.dll", BaseTime());
+    Touch(dir / "RealPlugin.dll", BaseTime());
     Touch(dir / "notes.txt", BaseTime());
     Touch(dir / "data.json", BaseTime());
 
@@ -156,7 +156,27 @@ TEST_CASE("DiscoverPlugins — non-plugin extensions are skipped", "[PluginDisco
     auto const resolved = Lightweight::Tools::DiscoverPlugins(dirs);
 
     REQUIRE(resolved.size() == 1);
-    CHECK(resolved.front().path.filename() == std::filesystem::path("real.dll"));
+    CHECK(resolved.front().path.filename() == std::filesystem::path("RealPlugin.dll"));
+}
+
+TEST_CASE("DiscoverPlugins — DLLs whose stem does not end in 'Plugin' are skipped", "[PluginDiscovery]")
+{
+    // Mirrors the real-world clutter in `out/build/.../plugins/` after vcpkg's
+    // applocal step copies a plugin's dependency closure next to it: only the
+    // actual plugin (stem ending in "Plugin") should be picked up by discovery.
+    ScopedTempTree const tree;
+    auto const dir = tree.Dir("applocal-like");
+
+    Touch(dir / "SqlMigrationsPlugin.dll", BaseTime());
+    Touch(dir / "Lightweight.dll", BaseTime());
+    Touch(dir / "zlibd1.dll", BaseTime());
+    Touch(dir / "bz2d.dll", BaseTime());
+
+    std::vector<std::filesystem::path> dirs { dir };
+    auto const resolved = Lightweight::Tools::DiscoverPlugins(dirs);
+
+    REQUIRE(resolved.size() == 1);
+    CHECK(resolved.front().path.filename() == std::filesystem::path("SqlMigrationsPlugin.dll"));
 }
 
 TEST_CASE("DiscoverPlugins — missing directories are skipped without crashing", "[PluginDiscovery]")
@@ -166,25 +186,27 @@ TEST_CASE("DiscoverPlugins — missing directories are skipped without crashing"
     auto const ghost = tree.Dir("ghost");
     std::filesystem::remove_all(ghost);
 
-    Touch(dir / "p.dll", BaseTime());
+    Touch(dir / "MyPlugin.dll", BaseTime());
 
     std::vector<std::filesystem::path> dirs { ghost, dir };
     auto const resolved = Lightweight::Tools::DiscoverPlugins(dirs);
 
     REQUIRE(resolved.size() == 1);
-    CHECK(resolved.front().path.filename() == std::filesystem::path("p.dll"));
+    CHECK(resolved.front().path.filename() == std::filesystem::path("MyPlugin.dll"));
 }
 
 #ifdef _WIN32
 TEST_CASE("DiscoverPlugins — filename comparison is case-insensitive on Windows", "[PluginDiscovery]")
 {
+    // Both names pass the case-insensitive `*Plugin` suffix filter, and the
+    // dedup key collapses `FooPlugin.dll` and `fooplugin.dll` to one entry.
     ScopedTempTree const tree;
     auto const dirA = tree.Dir("a");
     auto const dirB = tree.Dir("b");
 
     auto const base = BaseTime();
-    Touch(dirA / "Plugin.dll", base);
-    Touch(dirB / "plugin.dll", base + std::chrono::seconds(10));
+    Touch(dirA / "FooPlugin.dll", base);
+    Touch(dirB / "fooplugin.dll", base + std::chrono::seconds(10));
 
     std::vector<std::filesystem::path> dirs { dirA, dirB };
     auto const resolved = Lightweight::Tools::DiscoverPlugins(dirs);
@@ -195,19 +217,20 @@ TEST_CASE("DiscoverPlugins — filename comparison is case-insensitive on Window
 #else
 TEST_CASE("DiscoverPlugins — filename comparison is case-sensitive on POSIX", "[PluginDiscovery]")
 {
+    // Both stems end in the exact token `Plugin` (case-sensitive), so both
+    // pass the suffix filter; on a case-sensitive filesystem they're two
+    // distinct plugins, not a duplicate.
     ScopedTempTree const tree;
     auto const dirA = tree.Dir("a");
     auto const dirB = tree.Dir("b");
 
     auto const base = BaseTime();
-    Touch(dirA / "Plugin.so", base);
-    Touch(dirB / "plugin.so", base + std::chrono::seconds(10));
+    Touch(dirA / "FooPlugin.so", base);
+    Touch(dirB / "fooPlugin.so", base + std::chrono::seconds(10));
 
     std::vector<std::filesystem::path> dirs { dirA, dirB };
     auto const resolved = Lightweight::Tools::DiscoverPlugins(dirs);
 
-    // On case-sensitive filesystems these are two distinct plugins, not a
-    // duplicate — both should survive.
     REQUIRE(resolved.size() == 2);
 }
 #endif

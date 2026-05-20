@@ -126,8 +126,8 @@ TEST_CASE("IngestPlugins — loader invoked once per resolved plugin", "[PluginI
     auto const dirNew = tree.Dir("new");
 
     auto const base = Baseline();
-    TouchPluginFile(dirOld / "p.dll", base);
-    TouchPluginFile(dirNew / "p.dll", base + std::chrono::seconds(60));
+    TouchPluginFile(dirOld / "MyPlugin.dll", base);
+    TouchPluginFile(dirNew / "MyPlugin.dll", base + std::chrono::seconds(60));
 
     Lightweight::SqlMigration::MigrationManager central;
     std::vector<std::filesystem::path> callPaths;
@@ -153,14 +153,14 @@ TEST_CASE("IngestPlugins — nullopt from loader is a silent skip", "[PluginInge
 {
     ScopedTempTree const tree;
     auto const dir = tree.Dir("plugins");
-    TouchPluginFile(dir / "real.dll", Baseline());
-    TouchPluginFile(dir / "passthrough.dll", Baseline());
+    TouchPluginFile(dir / "RealPlugin.dll", Baseline());
+    TouchPluginFile(dir / "PassthroughPlugin.dll", Baseline());
 
     Lightweight::SqlMigration::MigrationManager central;
     std::vector<std::string> errors;
 
     auto loader = [&](std::filesystem::path const& path) -> std::optional<Lightweight::Tools::LoadedPlugin> {
-        if (path.filename() == "passthrough.dll")
+        if (path.filename() == "PassthroughPlugin.dll")
             return std::nullopt;
         return Lightweight::Tools::LoadedPlugin {
             .path = path,
@@ -178,7 +178,7 @@ TEST_CASE("IngestPlugins — nullopt from loader is a silent skip", "[PluginInge
     auto const loaded = Lightweight::Tools::IngestPlugins(dirs, loader, central, opts);
 
     REQUIRE(loaded.size() == 1);
-    CHECK(loaded.front().path.filename() == std::filesystem::path("real.dll"));
+    CHECK(loaded.front().path.filename() == std::filesystem::path("RealPlugin.dll"));
     CHECK(errors.empty());
 }
 
@@ -186,7 +186,7 @@ TEST_CASE("IngestPlugins — loader exception rethrows when throwOnLoadError is 
 {
     ScopedTempTree const tree;
     auto const dir = tree.Dir("plugins");
-    TouchPluginFile(dir / "bad.dll", Baseline());
+    TouchPluginFile(dir / "BadPlugin.dll", Baseline());
 
     Lightweight::SqlMigration::MigrationManager central;
     std::string errorLine;
@@ -203,7 +203,7 @@ TEST_CASE("IngestPlugins — loader exception rethrows when throwOnLoadError is 
 
     std::vector<std::filesystem::path> dirs { dir };
     REQUIRE_THROWS_AS(Lightweight::Tools::IngestPlugins(dirs, loader, central, opts), std::runtime_error);
-    CHECK(errorLine.contains("bad.dll"));
+    CHECK(errorLine.contains("BadPlugin.dll"));
     CHECK(errorLine.contains("boom"));
 }
 
@@ -211,15 +211,15 @@ TEST_CASE("IngestPlugins — loader exception is swallowed when throwOnLoadError
 {
     ScopedTempTree const tree;
     auto const dir = tree.Dir("plugins");
-    TouchPluginFile(dir / "a.dll", Baseline());
-    TouchPluginFile(dir / "b.dll", Baseline() + std::chrono::seconds(5));
+    TouchPluginFile(dir / "APlugin.dll", Baseline());
+    TouchPluginFile(dir / "BPlugin.dll", Baseline() + std::chrono::seconds(5));
 
     Lightweight::SqlMigration::MigrationManager central;
     int errorCount = 0;
 
     auto loader = [](std::filesystem::path const& path) -> std::optional<Lightweight::Tools::LoadedPlugin> {
-        if (path.filename() == "a.dll")
-            throw std::runtime_error("a.dll is poisoned");
+        if (path.filename() == "APlugin.dll")
+            throw std::runtime_error("APlugin.dll is poisoned");
         return Lightweight::Tools::LoadedPlugin {
             .path = path,
             .handle = std::make_shared<int>(0),
@@ -237,7 +237,7 @@ TEST_CASE("IngestPlugins — loader exception is swallowed when throwOnLoadError
     auto const loaded = Lightweight::Tools::IngestPlugins(dirs, loader, central, opts);
 
     REQUIRE(loaded.size() == 1);
-    CHECK(loaded.front().path.filename() == std::filesystem::path("b.dll"));
+    CHECK(loaded.front().path.filename() == std::filesystem::path("BPlugin.dll"));
     CHECK(errorCount == 1);
 }
 
@@ -245,8 +245,8 @@ TEST_CASE("IngestPlugins — duplicate handle is rejected", "[PluginIngestion]")
 {
     ScopedTempTree const tree;
     auto const dir = tree.Dir("plugins");
-    TouchPluginFile(dir / "first.dll", Baseline());
-    TouchPluginFile(dir / "second.dll", Baseline() + std::chrono::seconds(5));
+    TouchPluginFile(dir / "FirstPlugin.dll", Baseline());
+    TouchPluginFile(dir / "SecondPlugin.dll", Baseline() + std::chrono::seconds(5));
 
     Lightweight::SqlMigration::MigrationManager central;
     // Both calls hand back the *same* shared_ptr — simulating an OS-level
@@ -279,7 +279,7 @@ TEST_CASE("IngestPlugins — releases and migrations propagate to central", "[Pl
 {
     ScopedTempTree const tree;
     auto const dir = tree.Dir("plugins");
-    TouchPluginFile(dir / "plugin.dll", Baseline());
+    TouchPluginFile(dir / "MainPlugin.dll", Baseline());
 
     Lightweight::SqlMigration::MigrationManager central;
 
@@ -316,7 +316,7 @@ TEST_CASE("IngestPlugins — pluginManager == &central is a no-op merge", "[Plug
 {
     ScopedTempTree const tree;
     auto const dir = tree.Dir("plugins");
-    TouchPluginFile(dir / "self.dll", Baseline());
+    TouchPluginFile(dir / "SelfPlugin.dll", Baseline());
 
     Lightweight::SqlMigration::MigrationManager central;
     FakeMigration preexisting { Lightweight::SqlMigration::MigrationTimestamp { 20260201000000ULL }, "pre" };
@@ -344,8 +344,8 @@ TEST_CASE("IngestPlugins — logShadowed wired through to DiscoverPlugins", "[Pl
     auto const dirOld = tree.Dir("old");
     auto const dirNew = tree.Dir("new");
     auto const base = Baseline();
-    TouchPluginFile(dirOld / "twin.dll", base);
-    TouchPluginFile(dirNew / "twin.dll", base + std::chrono::seconds(30));
+    TouchPluginFile(dirOld / "TwinPlugin.dll", base);
+    TouchPluginFile(dirNew / "TwinPlugin.dll", base + std::chrono::seconds(30));
 
     Lightweight::SqlMigration::MigrationManager central;
     int shadowedCount = 0;
@@ -374,9 +374,9 @@ TEST_CASE("IngestPlugins — logLoading fires per successfully-loaded plugin", "
 {
     ScopedTempTree const tree;
     auto const dir = tree.Dir("plugins");
-    TouchPluginFile(dir / "a.dll", Baseline());
-    TouchPluginFile(dir / "b.dll", Baseline() + std::chrono::seconds(1));
-    TouchPluginFile(dir / "c.dll", Baseline() + std::chrono::seconds(2));
+    TouchPluginFile(dir / "APlugin.dll", Baseline());
+    TouchPluginFile(dir / "BPlugin.dll", Baseline() + std::chrono::seconds(1));
+    TouchPluginFile(dir / "CPlugin.dll", Baseline() + std::chrono::seconds(2));
 
     Lightweight::SqlMigration::MigrationManager central;
     int loadingCount = 0;
