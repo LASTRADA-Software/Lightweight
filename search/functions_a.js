@@ -5,5 +5,6 @@ var searchData=
   ['lastused_2',['LastUsed',['../da/da8/classLightweight_1_1SqlConnection.html#ad02b8090e26e09ac511f37aad3a277df',1,'Lightweight::SqlConnection']]],
   ['leftouterjoin_3',['leftouterjoin',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a6e324a452019ade1800038cb13aae152',1,'Lightweight::SqlWhereClauseBuilder::LeftOuterJoin(TableName auto joinTable, std::string_view joinColumnName, SqlQualifiedTableColumnName onOtherColumn)'],['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a034d2ea6e30aa6d5d52833da134f2e6c',1,'Lightweight::SqlWhereClauseBuilder::LeftOuterJoin(TableName auto joinTable, std::string_view joinColumnName, std::string_view onMainTableColumn)'],['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a8ed2c6f1e3810719878562ff5b826175',1,'Lightweight::SqlWhereClauseBuilder::LeftOuterJoin(TableName auto joinTable, OnChainCallable const &amp;onClauseBuilder)']]],
   ['loadrelations_4',['LoadRelations',['../de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702',1,'Lightweight::DataMapper']]],
-  ['locateentry_5',['LocateEntry',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#ad890fbbd6aadf8a5a2ceb6204a57a299',1,'Lightweight::Zip::ZipArchive']]]
+  ['locateentry_5',['LocateEntry',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#ad890fbbd6aadf8a5a2ceb6204a57a299',1,'Lightweight::Zip::ZipArchive']]],
+  ['log_6',['Log',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad118fa0bc45f292869406719db3f2cdc',1,'Lightweight::SqlMigration::MigrationManager']]]
 ];

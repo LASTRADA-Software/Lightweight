@@ -1,5 +1,10 @@
 var NAVTREEINDEX3 =
 {
+"d7/d53/structLightweight_1_1SqlTime.html#a77e27a267510342d66743aee61902494":[10,0,10,1],
+"d7/d53/structLightweight_1_1SqlTime.html#a8113bd80b73f33f870275927fafed62d":[10,0,10,3],
+"d7/d53/structLightweight_1_1SqlTime.html#a9514703950ebb6f7ac3251976256813b":[10,0,10,11],
+"d7/d53/structLightweight_1_1SqlTime.html#a9b72124521fa13dbc3b084e948cec1e5":[10,0,10,10],
+"d7/d53/structLightweight_1_1SqlTime.html#aa3a8628bcc0afb2df5a174ed754d74df":[10,0,10,12],
 "d7/d53/structLightweight_1_1SqlTime.html#aad1328d9dbf6a77a3d7a632528376652":[10,0,10,8],
 "d7/d53/structLightweight_1_1SqlTime.html#ab3be70c906d47b15e6b0bb2c3b8af75a":[10,0,10,5],
 "d7/d53/structLightweight_1_1SqlTime.html#ad2fa6d376c7fd1ca95119d08e0e6b814":[10,0,10,9],
@@ -210,13 +215,6 @@ var NAVTREEINDEX3 =
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#examples-of-sql-to-datamapper-mappings":[3,2,1],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#insert-elements":[3,1],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#select-elements":[3,2],
-"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html":[12,0,0,67],
-"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a7b9e872d2afb20e37e1725886934a197":[12,0,0,67,0],
-"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a854831226a9aefce1afeb1ad06f871f2":[12,0,0,67,1],
-"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#aaa7992a48a7fcdd4e8215643a02768e7":[12,0,0,67,4],
-"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#ad2cb37cc75c422a1eba097335103071a":[12,0,0,67,5],
-"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#aecde81ddfa2e95f916a035eb5afe1e1f":[12,0,0,67,3],
-"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#af7d085eb90fabbec24d1493d0a4d725a":[12,0,0,67,2],
 "d9/dc2/SqlGuid_8hpp_source.html":[13,0,1,0,9],
 "d9/dc3/StdStringView_8hpp_source.html":[13,0,1,0,18],
 "d9/dd1/structLightweight_1_1SqlAlterTableCommands_1_1DropIndexIfExists.html":[12,0,0,0,2],
@@ -249,5 +247,7 @@ var NAVTREEINDEX3 =
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a9de53272af6d3db165c4f8964223d8a1":[12,0,0,1,11,2],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ac5078f37747a5a12b4d3d7e8df8b7595":[12,0,0,1,11,4],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad0650ea29db5c33bcebf5af75b9be9d8":[12,0,0,1,11,1],
-"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad1aedd312e0a7ea569f6d9ac712a39e6":[12,0,0,1,11,3]
+"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad1aedd312e0a7ea569f6d9ac712a39e6":[12,0,0,1,11,3],
+"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ae825585f8af8a8d21b07068e9bfc9e98":[12,0,0,1,11,0],
+"d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html":[12,0,0,1,10]
 };

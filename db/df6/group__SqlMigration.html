@@ -165,11 +165,11 @@ Macros</h2></td></tr>
 <div class="line">    {                                                                                                    \</div>
 <div class="line">        <span class="keywordflow">return</span> &amp;<a class="code hl_function" href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8">Lightweight::SqlMigration::MigrationManager::GetInstance</a>();                              \</div>
 <div class="line">    }</div>
-<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationManager_html"><div class="ttname"><a href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html">Lightweight::SqlMigration::MigrationManager</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00209">SqlMigration.hpp:210</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationManager_html"><div class="ttname"><a href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html">Lightweight::SqlMigration::MigrationManager</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00210">SqlMigration.hpp:211</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationManager_html_ae03991a2dff12fb763353d0327c29bf8"><div class="ttname"><a href="../../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ae03991a2dff12fb763353d0327c29bf8">Lightweight::SqlMigration::MigrationManager::GetInstance</a></div><div class="ttdeci">static LIGHTWEIGHT_API MigrationManager &amp; GetInstance()</div></div>
 </div><!-- fragment --><p>Requires the user to call <a class="el" href="../../db/df6/group__SqlMigration.html#gaef227c1f2230d962d19572a234ceaa73">LIGHTWEIGHT_MIGRATION_PLUGIN()</a> in exactly one CPP file of the migration plugin. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00716">716</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00785">785</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -207,9 +207,9 @@ Macros</h2></td></tr>
 <div class="line">{</div>
 <div class="line">    MyPlugin::ImportLegacyVersions(manager, connection);</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga8292c8bc098a73ae82344c31693bb4ff"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00739">SqlMigration.hpp:739</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga8292c8bc098a73ae82344c31693bb4ff"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga8292c8bc098a73ae82344c31693bb4ff">LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT</a></div><div class="ttdeci">#define LIGHTWEIGHT_MIGRATION_PLUGIN_POSTINIT(connArg, mgrArg)</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00808">SqlMigration.hpp:808</a></div></div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00739">739</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l00808">808</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -237,7 +237,7 @@ Macros</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01005">1005</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01074">1074</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -283,8 +283,8 @@ Macros</h2></td></tr>
 <div class="line">                                                                                                                       \</div>
 <div class="line">    <span class="keywordtype">void</span> Migration_##timestamp::Up(<a class="code hl_class" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">Lightweight::SqlMigrationQueryBuilder</a>&amp; plan) <span class="keyword">const</span></div>
 <div class="ttc" id="aclassLightweight_1_1SqlMigrationQueryBuilder_html"><div class="ttname"><a href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">Lightweight::SqlMigrationQueryBuilder</a></div><div class="ttdoc">Query builder for building SQL migration queries.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6b/Migrate_8hpp_source.html#l00468">Migrate.hpp:469</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">Lightweight::SqlMigration::MigrationBase</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00746">SqlMigration.hpp:747</a></div></div>
-<div class="ttc" id="astructLightweight_1_1SqlMigration_1_1MigrationTimestamp_html"><div class="ttname"><a href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">Lightweight::SqlMigration::MigrationTimestamp</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00047">SqlMigration.hpp:48</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigration_1_1MigrationBase_html"><div class="ttname"><a href="../../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html">Lightweight::SqlMigration::MigrationBase</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00815">SqlMigration.hpp:816</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlMigration_1_1MigrationTimestamp_html"><div class="ttname"><a href="../../d3/d3b/structLightweight_1_1SqlMigration_1_1MigrationTimestamp.html">Lightweight::SqlMigration::MigrationTimestamp</a></div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l00048">SqlMigration.hpp:49</a></div></div>
 </div><!-- fragment -->
 <p>Creates a new migration. </p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -301,10 +301,10 @@ Macros</h2></td></tr>
 <div class="line">{</div>
 <div class="line">    <span class="comment">// Use &#39;plan&#39; to define the migration steps, for example creating tables.</span></div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01025">SqlMigration.hpp:1025</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga41dacd6fabd65f95ca0dfb209e7d187e"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION(timestamp, description)</div><div class="ttdoc">Creates a new migration.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01094">SqlMigration.hpp:1094</a></div></div>
 </div><!-- fragment --><dl class="section see"><dt>See also</dt><dd><a class="el" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html" title="Query builder for building SQL migration queries.">Lightweight::SqlMigrationQueryBuilder</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01025">1025</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01094">1094</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -372,10 +372,10 @@ Macros</h2></td></tr>
 <div class="line">{</div>
 <div class="line">    plan.DropTable(<span class="stringliteral">&quot;MyTable&quot;</span>);</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga76c71fe0a6e518e2b94b51bcbdf9e164"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164">LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE(timestamp, description)</div><div class="ttdoc">Creates a new reversible migration whose Down() is defined out-of-line via LIGHTWEIGHT_SQL_MIGRATION_...</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01066">SqlMigration.hpp:1066</a></div></div>
-<div class="ttc" id="agroup__SqlMigration_html_ga885073903b9f8e7bd81d9dabc8e33d5c"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c">LIGHTWEIGHT_SQL_MIGRATION_DOWN</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION_DOWN(timestamp)</div><div class="ttdoc">Companion to LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE — defines the out-of-line Down() body.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01096">SqlMigration.hpp:1096</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga76c71fe0a6e518e2b94b51bcbdf9e164"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga76c71fe0a6e518e2b94b51bcbdf9e164">LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE(timestamp, description)</div><div class="ttdoc">Creates a new reversible migration whose Down() is defined out-of-line via LIGHTWEIGHT_SQL_MIGRATION_...</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01135">SqlMigration.hpp:1135</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga885073903b9f8e7bd81d9dabc8e33d5c"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga885073903b9f8e7bd81d9dabc8e33d5c">LIGHTWEIGHT_SQL_MIGRATION_DOWN</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_MIGRATION_DOWN(timestamp)</div><div class="ttdoc">Companion to LIGHTWEIGHT_SQL_MIGRATION_REVERSIBLE — defines the out-of-line Down() body.</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01165">SqlMigration.hpp:1165</a></div></div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01066">1066</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01135">1135</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -404,7 +404,7 @@ Macros</h2></td></tr>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01096">1096</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01165">1165</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>
@@ -455,9 +455,9 @@ Macros</h2></td></tr>
 <div class="line"> </div>
 <div class="line"><a class="code hl_define" href="../../db/df6/group__SqlMigration.html#ga41dacd6fabd65f95ca0dfb209e7d187e">LIGHTWEIGHT_SQL_MIGRATION</a>(20260501120000, <span class="stringliteral">&quot;Add orders table&quot;</span>) { ... }</div>
 <div class="line"><a class="code hl_define" href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a">LIGHTWEIGHT_SQL_RELEASE</a>(<span class="stringliteral">&quot;6.7.0&quot;</span>, 20260501120000);</div>
-<div class="ttc" id="agroup__SqlMigration_html_ga91ef871053a7180297054840ef21a41a"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a">LIGHTWEIGHT_SQL_RELEASE</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp)</div><div class="ttdoc">Associates a software release (version string) with the highest migration timestamp present at the ti...</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01118">SqlMigration.hpp:1118</a></div></div>
+<div class="ttc" id="agroup__SqlMigration_html_ga91ef871053a7180297054840ef21a41a"><div class="ttname"><a href="../../db/df6/group__SqlMigration.html#ga91ef871053a7180297054840ef21a41a">LIGHTWEIGHT_SQL_RELEASE</a></div><div class="ttdeci">#define LIGHTWEIGHT_SQL_RELEASE(version, highestTimestamp)</div><div class="ttdoc">Associates a software release (version string) with the highest migration timestamp present at the ti...</div><div class="ttdef"><b>Definition</b> <a href="../../d6/d35/SqlMigration_8hpp_source.html#l01187">SqlMigration.hpp:1187</a></div></div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01118">1118</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html#l01187">1187</a> of file <a class="el" href="../../d6/d35/SqlMigration_8hpp_source.html">SqlMigration.hpp</a>.</p>
 
 </div>
 </div>

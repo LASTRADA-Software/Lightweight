@@ -40,8 +40,10 @@ var searchData=
   ['locateentry_37',['LocateEntry',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#ad890fbbd6aadf8a5a2ceb6204a57a299',1,'Lightweight::Zip::ZipArchive']]],
   ['lock_20acquisition_20failed_38',['Lock Acquisition Failed',['../d5/dc4/dbtool.html#lock-acquisition-failed',1,'']]],
   ['lockname_39',['lockName',['../d6/d3b/structLightweight_1_1SqlLockError.html#ac84025dddd1fc79469d13504b5c733cf',1,'Lightweight::SqlLockError']]],
-  ['logic_20separate_40',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]],
-  ['lookupattempted_41',['lookupAttempted',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a7d5c90cf0a765b640b1de1ed07a24f28',1,'Lightweight::MigrationRenderContext']]],
-  ['low_20level_20api_3a_20sqlstatement_20sqlconnection_42',['Low-Level API: SqlStatement &amp; SqlConnection',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#low-level-api-sqlstatement--sqlconnection',1,'']]],
-  ['luptruncate_43',['lupTruncate',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a2951b6980a9d504a748699de0167c8de',1,'Lightweight::MigrationRenderContext']]]
+  ['log_40',['Log',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#ad118fa0bc45f292869406719db3f2cdc',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['logic_20separate_41',['Keep Data Model and Business Logic Separate',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#keep-data-model-and-business-logic-separate',1,'']]],
+  ['logsink_42',['LogSink',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a423a6b3502b0b2d9127b6890d5d7daa4',1,'Lightweight::SqlMigration::MigrationManager']]],
+  ['lookupattempted_43',['lookupAttempted',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a7d5c90cf0a765b640b1de1ed07a24f28',1,'Lightweight::MigrationRenderContext']]],
+  ['low_20level_20api_3a_20sqlstatement_20sqlconnection_44',['Low-Level API: SqlStatement &amp; SqlConnection',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#low-level-api-sqlstatement--sqlconnection',1,'']]],
+  ['luptruncate_45',['lupTruncate',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a2951b6980a9d504a748699de0167c8de',1,'Lightweight::MigrationRenderContext']]]
 ];
