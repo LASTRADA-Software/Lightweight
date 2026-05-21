@@ -21,6 +21,7 @@ set(MIGRATIONS_GUI_CXX_SOURCES
     AppController.cpp
     BackupRunner.hpp
     BackupRunner.cpp
+    LogLevel.hpp
     MigrationRunner.hpp
     MigrationRunner.cpp
     QmlProgressManager.hpp

@@ -61,14 +61,14 @@ namespace
                                  .arg(QString::fromStdString(std::string { p.tableName }))
                                  .arg(p.currentRows)
                                  .arg(QString::fromStdString(std::string { p.message }));
-            auto const level = static_cast<int>(p.state == Lightweight::SqlBackup::Progress::State::Error     ? 2
-                                                : p.state == Lightweight::SqlBackup::Progress::State::Warning ? 1
-                                                                                                              : 0);
+            auto const level = p.state == Lightweight::SqlBackup::Progress::State::Error     ? LogLevel::Error
+                               : p.state == Lightweight::SqlBackup::Progress::State::Warning ? LogLevel::Warning
+                                                                                             : LogLevel::Info;
             QMetaObject::invokeMethod(
                 _target,
                 [this, msg, level] {
                     QMetaObject::invokeMethod(
-                        _target, "logLine", Qt::DirectConnection, Q_ARG(QString, msg), Q_ARG(int, level));
+                        _target, "logLine", Qt::DirectConnection, Q_ARG(QString, msg), Q_ARG(DbtoolGui::LogLevel, level));
                 },
                 Qt::QueuedConnection);
         }
