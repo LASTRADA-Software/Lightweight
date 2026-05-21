@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include "LogLevel.hpp"
+
 #include <atomic>
 #include <functional>
 
@@ -67,7 +69,7 @@ class BackupRunner: public QObject
     }
 
   signals:
-    void logLine(QString line, int level);
+    void logLine(QString line, DbtoolGui::LogLevel level);
     void finished(bool ok, QString summary);
     void phaseChanged();
 

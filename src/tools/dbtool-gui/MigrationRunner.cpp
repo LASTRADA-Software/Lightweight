@@ -122,7 +122,7 @@ namespace
 
     /// Pushes a plain log line onto the runner from a worker thread, marshalling
     /// through the event loop so QML consumers see it on the GUI thread.
-    void PostLogLine(MigrationRunner* runner, QString const& line, int level)
+    void PostLogLine(MigrationRunner* runner, QString const& line, LogLevel level)
     {
         QMetaObject::invokeMethod(
             runner, [runner, line, level] { emit runner->logLine(line, level); }, Qt::QueuedConnection);
@@ -145,7 +145,8 @@ namespace
             [runner, ts, title, idx, total, verb] {
                 emit runner->migrationStarted(static_cast<qulonglong>(ts));
                 emit runner->progress(static_cast<qulonglong>(ts), title, idx, total);
-                emit runner->logLine(QStringLiteral("[%1/%2] %3 %4 %5").arg(idx).arg(total).arg(verb).arg(ts).arg(title), 0);
+                emit runner->logLine(QStringLiteral("[%1/%2] %3 %4 %5").arg(idx).arg(total).arg(verb).arg(ts).arg(title),
+                                     LogLevel::Info);
             },
             Qt::QueuedConnection);
     }
@@ -183,20 +184,24 @@ namespace
         auto const ts = static_cast<qulonglong>(ex.GetMigrationTimestamp().value);
         auto const step = static_cast<qulonglong>(ex.GetStepIndex());
 
-        PostLogLine(runner, QStringLiteral("!! %1 failed: %2 - %3 (step %4)").arg(verb).arg(ts).arg(title).arg(step), 2);
+        PostLogLine(runner,
+                    QStringLiteral("!! %1 failed: %2 - %3 (step %4)").arg(verb).arg(ts).arg(title).arg(step),
+                    LogLevel::Error);
         if (!sqlState.isEmpty() && sqlState != QStringLiteral("     "))
-            PostLogLine(runner, QStringLiteral("   SQL State: %1, Native error: %2").arg(sqlState).arg(nativeError), 2);
+            PostLogLine(runner,
+                        QStringLiteral("   SQL State: %1, Native error: %2").arg(sqlState).arg(nativeError),
+                        LogLevel::Error);
         if (!driverMsg.isEmpty())
         {
-            PostLogLine(runner, QStringLiteral("   Driver message:"), 2);
+            PostLogLine(runner, QStringLiteral("   Driver message:"), LogLevel::Error);
             for (auto const& line: driverMsg.split(QLatin1Char('\n'), Qt::KeepEmptyParts))
-                PostLogLine(runner, QStringLiteral("     %1").arg(line), 2);
+                PostLogLine(runner, QStringLiteral("     %1").arg(line), LogLevel::Error);
         }
         if (!failedSql.isEmpty())
         {
-            PostLogLine(runner, QStringLiteral("   Failed SQL:"), 2);
+            PostLogLine(runner, QStringLiteral("   Failed SQL:"), LogLevel::Error);
             for (auto const& line: failedSql.split(QLatin1Char('\n'), Qt::KeepEmptyParts))
-                PostLogLine(runner, QStringLiteral("     %1").arg(line), 2);
+                PostLogLine(runner, QStringLiteral("     %1").arg(line), LogLevel::Error);
         }
     }
 
@@ -231,7 +236,7 @@ void MigrationRunner::dryRunUpTo(QString const& targetTimestamp)
             PostLogLine(runner,
                         targetTs == 0 ? QStringLiteral("No pending migrations to dry-run.")
                                       : QStringLiteral("No pending migrations up to %1.").arg(targetLabel),
-                        1);
+                        LogLevel::Warning);
             PostFinished(runner, true, QStringLiteral("Dry-run produced 0 migrations."));
             return;
         }
@@ -241,13 +246,13 @@ void MigrationRunner::dryRunUpTo(QString const& targetTimestamp)
             targetTs == 0
                 ? QStringLiteral("-- Dry-run: would apply %1 pending migration(s).").arg(toRun.size())
                 : QStringLiteral("-- Dry-run: would apply %1 migration(s) up to %2.").arg(toRun.size()).arg(targetLabel),
-            0);
+            LogLevel::Info);
 
         for (size_t i = 0; i < toRun.size(); ++i)
         {
             if (runner->phase() == Phase::Cancelling)
             {
-                PostLogLine(runner, QStringLiteral("-- Cancelled."), 1);
+                PostLogLine(runner, QStringLiteral("-- Cancelled."), LogLevel::Warning);
                 PostFinished(runner, false, QStringLiteral("Dry-run cancelled."));
                 return;
             }
@@ -275,19 +280,19 @@ void MigrationRunner::applyUpTo(QString const& targetTimestamp)
             PostLogLine(runner,
                         targetTs == 0 ? QStringLiteral("No pending migrations to apply.")
                                       : QStringLiteral("No pending migrations up to %1.").arg(targetLabel),
-                        1);
+                        LogLevel::Warning);
             PostFinished(runner, true, QStringLiteral("Applied 0 migrations."));
             return;
         }
 
-        PostLogLine(runner, QStringLiteral("Applying %1 migration(s)...").arg(toRun.size()), 0);
+        PostLogLine(runner, QStringLiteral("Applying %1 migration(s)...").arg(toRun.size()), LogLevel::Info);
 
         size_t applied = 0;
         for (size_t i = 0; i < toRun.size(); ++i)
         {
             if (runner->phase() == Phase::Cancelling)
             {
-                PostLogLine(runner, QStringLiteral("-- Cancelled after %1 migration(s).").arg(applied), 1);
+                PostLogLine(runner, QStringLiteral("-- Cancelled after %1 migration(s).").arg(applied), LogLevel::Warning);
                 PostFinished(runner, false, QStringLiteral("Cancelled after %1 migrations.").arg(applied));
                 return;
             }
@@ -316,7 +321,7 @@ void MigrationRunner::applyUpTo(QString const& targetTimestamp)
                                 .arg(ts)
                                 .arg(QString::fromStdString(std::string { toRun[i]->GetTitle() }))
                                 .arg(QString::fromUtf8(e.what())),
-                            2);
+                            LogLevel::Error);
                 PostFinished(runner,
                              false,
                              QStringLiteral("Applied %1 of %2 migrations before failing.").arg(applied).arg(toRun.size()));
@@ -342,11 +347,12 @@ void MigrationRunner::dryRunSelected(QStringList const& timestamps)
         auto const toRun = CollectSelected(*manager, snapshot);
         if (toRun.empty())
         {
-            PostLogLine(runner, QStringLiteral("No pending migrations in the current selection."), 1);
+            PostLogLine(runner, QStringLiteral("No pending migrations in the current selection."), LogLevel::Warning);
             PostFinished(runner, true, QStringLiteral("Dry-run produced 0 migrations."));
             return;
         }
-        PostLogLine(runner, QStringLiteral("-- Dry-run: would apply %1 selected migration(s).").arg(toRun.size()), 0);
+        PostLogLine(
+            runner, QStringLiteral("-- Dry-run: would apply %1 selected migration(s).").arg(toRun.size()), LogLevel::Info);
         for (size_t i = 0; i < toRun.size(); ++i)
             PostProgress(runner, *toRun[i], i, toRun.size(), QStringLiteral("would apply"));
         PostFinished(runner, true, QStringLiteral("Dry-run produced %1 migrations.").arg(toRun.size()));
@@ -368,19 +374,19 @@ void MigrationRunner::applySelected(QStringList const& timestamps)
         auto const toRun = CollectSelected(*manager, snapshot);
         if (toRun.empty())
         {
-            PostLogLine(runner, QStringLiteral("No pending migrations in the current selection."), 1);
+            PostLogLine(runner, QStringLiteral("No pending migrations in the current selection."), LogLevel::Warning);
             PostFinished(runner, true, QStringLiteral("Applied 0 migrations."));
             return;
         }
 
-        PostLogLine(runner, QStringLiteral("Applying %1 selected migration(s)...").arg(toRun.size()), 0);
+        PostLogLine(runner, QStringLiteral("Applying %1 selected migration(s)...").arg(toRun.size()), LogLevel::Info);
 
         size_t applied = 0;
         for (size_t i = 0; i < toRun.size(); ++i)
         {
             if (runner->phase() == Phase::Cancelling)
             {
-                PostLogLine(runner, QStringLiteral("-- Cancelled after %1 migration(s).").arg(applied), 1);
+                PostLogLine(runner, QStringLiteral("-- Cancelled after %1 migration(s).").arg(applied), LogLevel::Warning);
                 PostFinished(runner, false, QStringLiteral("Cancelled after %1 migrations.").arg(applied));
                 return;
             }
@@ -403,7 +409,7 @@ void MigrationRunner::applySelected(QStringList const& timestamps)
             catch (std::exception const& e)
             {
                 PostMigrationFailed(runner, ts);
-                PostLogLine(runner, QStringLiteral("!! %1 — %2").arg(ts).arg(QString::fromUtf8(e.what())), 2);
+                PostLogLine(runner, QStringLiteral("!! %1 — %2").arg(ts).arg(QString::fromUtf8(e.what())), LogLevel::Error);
                 PostFinished(
                     runner, false, QStringLiteral("Applied %1 of %2 before failing.").arg(applied).arg(toRun.size()));
                 return;
@@ -429,7 +435,7 @@ void MigrationRunner::rollbackToRelease(QString const& version)
         if (!release)
         {
             auto const msg = QStringLiteral("Release '%1' is not declared").arg(QString::fromStdString(versionStd));
-            PostLogLine(runner, msg, 2);
+            PostLogLine(runner, msg, LogLevel::Error);
             PostFinished(runner, false, msg);
             return;
         }
@@ -457,29 +463,31 @@ void MigrationRunner::rollbackToRelease(QString const& version)
                 // inside the rich-text spans, so we split them here.
                 auto const ts = static_cast<qulonglong>(result.failedAt->value);
                 auto const title = QString::fromStdString(result.failedTitle);
-                PostLogLine(runner, QStringLiteral("!! Rollback failed: %1 - %2").arg(ts).arg(title), 2);
+                PostLogLine(runner, QStringLiteral("!! Rollback failed: %1 - %2").arg(ts).arg(title), LogLevel::Error);
                 if (!result.failedSql.empty())
                 {
-                    PostLogLine(
-                        runner, QStringLiteral("   Step: %1").arg(static_cast<qulonglong>(result.failedStepIndex)), 2);
+                    PostLogLine(runner,
+                                QStringLiteral("   Step: %1").arg(static_cast<qulonglong>(result.failedStepIndex)),
+                                LogLevel::Error);
                     if (!result.sqlState.empty() && result.sqlState != "     ")
                         PostLogLine(runner,
                                     QStringLiteral("   SQL State: %1, Native error: %2")
                                         .arg(QString::fromStdString(result.sqlState))
                                         .arg(static_cast<qlonglong>(result.nativeErrorCode)),
-                                    2);
-                    PostLogLine(runner, QStringLiteral("   Driver message:"), 2);
+                                    LogLevel::Error);
+                    PostLogLine(runner, QStringLiteral("   Driver message:"), LogLevel::Error);
                     auto const driverMsg = QString::fromStdString(result.errorMessage);
                     for (auto const& line: driverMsg.split(QLatin1Char('\n'), Qt::KeepEmptyParts))
-                        PostLogLine(runner, QStringLiteral("     %1").arg(line), 2);
-                    PostLogLine(runner, QStringLiteral("   Failed SQL:"), 2);
+                        PostLogLine(runner, QStringLiteral("     %1").arg(line), LogLevel::Error);
+                    PostLogLine(runner, QStringLiteral("   Failed SQL:"), LogLevel::Error);
                     auto const failedSql = QString::fromStdString(result.failedSql);
                     for (auto const& line: failedSql.split(QLatin1Char('\n'), Qt::KeepEmptyParts))
-                        PostLogLine(runner, QStringLiteral("     %1").arg(line), 2);
+                        PostLogLine(runner, QStringLiteral("     %1").arg(line), LogLevel::Error);
                 }
                 else
                 {
-                    PostLogLine(runner, QStringLiteral("   %1").arg(QString::fromStdString(result.errorMessage)), 2);
+                    PostLogLine(
+                        runner, QStringLiteral("   %1").arg(QString::fromStdString(result.errorMessage)), LogLevel::Error);
                 }
                 PostFinished(runner, false, QStringLiteral("Rollback of migration %1 '%2' failed").arg(ts).arg(title));
             }
@@ -501,7 +509,7 @@ void MigrationRunner::rollbackToRelease(QString const& version)
         }
         catch (std::exception const& e)
         {
-            PostLogLine(runner, QString::fromUtf8(e.what()), 2);
+            PostLogLine(runner, QString::fromUtf8(e.what()), LogLevel::Error);
             PostFinished(runner, false, QString::fromUtf8(e.what()));
         }
     });

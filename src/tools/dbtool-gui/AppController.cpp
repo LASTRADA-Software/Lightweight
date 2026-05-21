@@ -6,9 +6,11 @@
 #include <Lightweight/SqlConnection.hpp>
 #include <Lightweight/SqlError.hpp>
 #include <Lightweight/SqlMigration.hpp>
+#include <Lightweight/SqlServerType.hpp>
 
 #include <PluginIngestion.hpp>
 #include <PluginLoader.hpp>
+#include <QtCore/QtGlobal>
 
 namespace DbtoolGui
 {
@@ -39,6 +41,8 @@ struct AppController::PluginsBundle
 #include <QtCore/QTimer>
 #include <QtCore/QUrl>
 #include <QtGui/QDesktopServices>
+#include <QtGui/QGuiApplication>
+#include <QtGui/QStyleHints>
 
 namespace DbtoolGui
 {
@@ -115,29 +119,23 @@ namespace
         return fallback.isEmpty() ? QStringLiteral("(no details reported)") : fallback;
     }
 
-    /// Builds the `Tools::PluginIngestOptions` the GUI uses for every
-    /// `IngestPlugins` call. Verbose mode pipes shadow + loading lines
-    /// through `qInfo`; load errors always reach `qWarning` so a broken
-    /// plugin file is visible in the log even when verbose is off.
-    /// `throwOnLoadError = false` keeps the rest of the migration set
-    /// usable when one plugin fails to load.
-    [[nodiscard]] Lightweight::Tools::PluginIngestOptions MakeGuiIngestOptions(bool verbose)
+    /// Maps the internal `SqlServerType` enum to the human-readable display
+    /// string already used by the project's `std::formatter` specialization
+    /// (which `dbtool` and the docs also use). Keeps the GUI's "Connected:"
+    /// log line consistent with every other surface that names a server.
+    /// @param serverType Server flavour detected by `SqlConnection`.
+    /// @return UTF-16 display string, e.g. `"PostgreSQL"` or `"SQLite"`.
+    [[nodiscard]] QString ServerTypeDisplayName(Lightweight::SqlServerType serverType)
     {
-        Lightweight::Tools::PluginIngestOptions opts;
-        if (verbose)
-        {
-            opts.logShadowed = [](std::string_view msg) {
-                qInfo("%s", std::string(msg).c_str());
-            };
-            opts.logLoading = [](std::string_view msg) {
-                qInfo("%s", std::string(msg).c_str());
-            };
-        }
-        opts.logError = [](std::string_view msg) {
-            qWarning("%s", std::string(msg).c_str());
-        };
-        opts.throwOnLoadError = false; // GUI surfaces the error and keeps running
-        return opts;
+        return QString::fromStdString(std::format("{}", serverType));
+    }
+
+    /// Converts a UTF-8 `std::string_view` (the form every `PluginIngestion`
+    /// callback receives) into the `QString` the log feed wants. Centralised
+    /// so the three callbacks below all do the trim/convert the same way.
+    [[nodiscard]] QString FromUtf8View(std::string_view msg)
+    {
+        return QString::fromUtf8(msg.data(), static_cast<qsizetype>(msg.size()));
     }
 
 } // namespace
@@ -206,13 +204,19 @@ AppController::AppController(QObject* parent):
     // include real execution context (the failing DDL, driver error, etc.)
     // without asking QML to read the LogPanel — which lives in a sibling
     // QML tree that may not even be instantiated under the Simple view.
-    auto const bufferLogLine = [this](QString const& line, int /*level*/) {
+    auto const bufferLogLine = [this](QString const& line, LogLevel /*level*/) {
         _recentLog.append(line);
         while (_recentLog.size() > kRecentLogCapacity)
             _recentLog.removeFirst();
     };
     QObject::connect(&_runner, &MigrationRunner::logLine, this, bufferLogLine);
     QObject::connect(&_backupRunner, &BackupRunner::logLine, this, bufferLogLine);
+
+    // The log pane subscribes to `AppController::logLine` (single source of
+    // truth). Forward the runners' streams so migration progress and backup
+    // events surface in the same feed as the startup banner.
+    QObject::connect(&_runner, &MigrationRunner::logLine, this, &AppController::logLine);
+    QObject::connect(&_backupRunner, &BackupRunner::logLine, this, &AppController::logLine);
     // After a run finishes, do one authoritative refresh. `Refresh` touches
     // schema_migrations and will throw on an unmanaged database — we fall
     // back to `RefreshPluginsOnly` in that case. An uncaught exception
@@ -294,12 +298,38 @@ AppController::AppController(QObject* parent):
 
     refreshOdbcDataSources();
 
+    // Startup banner — emitted while no QML receiver exists yet; the buffer
+    // in `Log()` holds these until `LogPanel.qml` calls `attachLogSink()`,
+    // at which point they replay in order. Plain English throughout —
+    // never the CLI flag name (e.g. "Plugins directory", not "--plugins-dir").
+    LogInfo(QStringLiteral("dbtool-gui starting (Qt %1)").arg(QLatin1String(qVersion())));
+    {
+        // `ui/theme` is the same QSettings key `main.cpp` writes via `--theme`
+        // and reads back across runs. Kept as a string literal here so this
+        // file does not have to import the constant from `main.cpp`.
+        QSettings const settings;
+        auto const requestedTheme = settings.value(QStringLiteral("ui/theme"), QStringLiteral("system")).toString();
+        auto const effectiveTheme = QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark
+                                        ? QStringLiteral("dark")
+                                        : QStringLiteral("light");
+        LogInfo(QStringLiteral("Theme: %1 (requested %2)").arg(effectiveTheme, requestedTheme));
+    }
+    LogInfo(QStringLiteral("View mode: %1").arg(_viewMode));
+    {
+        auto const storePath = !_profileStorePath.isEmpty()
+                                   ? _profileStorePath
+                                   : QString::fromStdString(Lightweight::Config::ProfileStore::DefaultPath().string());
+        LogInfo(QStringLiteral("Profile store: %1 (%2 profile(s))").arg(storePath).arg(_profiles.rowCount()));
+    }
+
     // Load the plugin DLLs eagerly so the migration list is populated before
     // the user clicks Connect. This runs after profile + settings restoration
     // because `EffectivePluginsDir()` consults both `_pluginsDir` and the
     // current profile. Safe to run here even if no connection is open —
     // plugin discovery is a pure filesystem operation.
     ReloadPlugins();
+
+    LogInfo(QStringLiteral("Ready — not connected. Pick a profile to connect."));
 }
 
 AppController::~AppController()
@@ -630,6 +660,8 @@ bool AppController::connectToProfile()
         return false;
     }
 
+    LogInfo(QStringLiteral("Connecting %1…").arg(connectionSummary()));
+
     auto& manager = Lightweight::SqlMigration::MigrationManager::GetInstance();
 
     // Plugin discovery is a pure filesystem operation independent of ODBC,
@@ -696,10 +728,33 @@ bool AppController::connectToProfile()
     }
     catch (std::exception const& e)
     {
-        ReportError(QStringLiteral("Could not open the database connection: %1").arg(ExceptionMessage(e)));
+        auto const failureMsg = ExceptionMessage(e);
+        LogError(QStringLiteral("Connection failed: %1").arg(failureMsg));
+        ReportError(QStringLiteral("Could not open the database connection: %1").arg(failureMsg));
         return false;
     }
     _everConnected = true;
+
+    // Connection is up — surface server flavour / database / version so the
+    // user knows *which* DB they just opened. Pulling these from
+    // `SqlConnection` (post-handshake) means we report what the driver
+    // actually negotiated, not what was in the typed-in connection string.
+    try
+    {
+        auto const& connection = Lightweight::DataMapper::AcquireThreadLocal().Connection();
+        auto const serverDisplay = ServerTypeDisplayName(connection.ServerType());
+        auto const databaseName = QString::fromStdString(connection.DatabaseName());
+        auto const serverVersion = QString::fromStdString(connection.ServerVersion());
+        LogInfo(QStringLiteral("Connected: %1 · %2 · %3").arg(serverDisplay, databaseName, serverVersion));
+        if (!effectiveSchema.empty())
+            LogInfo(QStringLiteral("Schema search path: %1").arg(QString::fromStdString(effectiveSchema)));
+    }
+    catch (std::exception const&)
+    {
+        // Best-effort metadata read — if it fails the connect itself still
+        // succeeded, so silently skip the descriptive line rather than
+        // contradict the previous "Connecting …" with a misleading error.
+    }
 
     // Opening migration history is best-effort. Failure here does NOT abort
     // the connect — the user may be pointing at an unmanaged database (no
@@ -753,6 +808,7 @@ bool AppController::connectToProfile()
 
     _connected = true;
     emit connectedChanged();
+    LogInfo(QStringLiteral("Applied migrations: %1 / %2").arg(appliedCount()).arg(_migrations.rowCount()));
     // Release labels and counter bindings depend on the applied-set we
     // just fetched. `Refresh` above already emitted `migrationsChanged`,
     // but that fired while `_connected` was still false — re-emit after
@@ -1147,6 +1203,7 @@ void AppController::InvalidateConnectionTarget()
         return;
     _connected = false;
     emit connectedChanged();
+    LogInfo(QStringLiteral("Disconnected."));
 }
 
 void AppController::ReloadPlugins()
@@ -1160,12 +1217,38 @@ void AppController::ReloadPlugins()
     manager.RemoveAllReleases();
     _plugins->entries.clear();
 
-    if (!pluginsDirs.empty())
+    if (pluginsDirs.empty())
     {
+        LogInfo(QStringLiteral("Plugins directory: none configured"));
+    }
+    else
+    {
+        QStringList dirDisplay;
+        dirDisplay.reserve(static_cast<qsizetype>(pluginsDirs.size()));
+        for (auto const& dir: pluginsDirs)
+            dirDisplay.append(QString::fromStdString(dir.string()));
+        LogInfo(QStringLiteral("Plugins directory: %1").arg(dirDisplay.join(QStringLiteral("; "))));
+
+        Lightweight::Tools::PluginIngestOptions opts;
+        // Forward every discovery event through the unified log feed.
+        // Successful loads / shadowed candidates run unconditionally —
+        // `_verbose` is no longer required to *see* discovery state,
+        // only to surface extra noise on stderr that nobody reads.
+        opts.logLoading = [this](std::string_view msg) {
+            LogInfo(QStringLiteral("Loaded plugin: %1").arg(FromUtf8View(msg)));
+        };
+        opts.logShadowed = [this](std::string_view msg) {
+            LogWarn(QStringLiteral("Plugin shadowed: %1").arg(FromUtf8View(msg)));
+        };
+        opts.logError = [this](std::string_view msg) {
+            LogError(QStringLiteral("Plugin failed: %1").arg(FromUtf8View(msg)));
+        };
+        opts.throwOnLoadError = false;
+
         try
         {
-            _plugins->entries = Lightweight::Tools::IngestPlugins(
-                pluginsDirs, Lightweight::Tools::DefaultPluginLoader(), manager, MakeGuiIngestOptions(_verbose));
+            _plugins->entries =
+                Lightweight::Tools::IngestPlugins(pluginsDirs, Lightweight::Tools::DefaultPluginLoader(), manager, opts);
         }
         catch (std::exception const& e)
         {
@@ -1178,8 +1261,10 @@ void AppController::ReloadPlugins()
             paths.reserve(static_cast<qsizetype>(pluginsDirs.size()));
             for (auto const& dir: pluginsDirs)
                 paths.append(QString::fromStdString(dir.string()));
-            ReportError(QStringLiteral("Failed to load plugins from %1: %2")
-                            .arg(paths.join(QStringLiteral("; ")), QString::fromUtf8(e.what())));
+            auto const errorText = QStringLiteral("Failed to load plugins from %1: %2")
+                                       .arg(paths.join(QStringLiteral("; ")), QString::fromUtf8(e.what()));
+            LogError(errorText);
+            ReportError(errorText);
         }
     }
 
@@ -1202,7 +1287,51 @@ void AppController::ReloadPlugins()
         _migrations.RefreshPluginsOnly(manager);
     }
     _releases.Refresh(manager);
+    LogInfo(QStringLiteral("Migrations available: %1 · Releases declared: %2")
+                .arg(_migrations.rowCount())
+                .arg(_releases.rowCount()));
     emit migrationsChanged();
+}
+
+void AppController::Log(LogLevel level, QString line)
+{
+    if (_logSinkAttached)
+    {
+        emit logLine(std::move(line), level);
+        return;
+    }
+    // No QML receiver yet — buffer until `attachLogSink()` runs. Plugin
+    // discovery happens in the constructor, well before `LogPanel.qml`
+    // exists, so emitting now would drop the message on the floor.
+    _pendingLogs.append({ std::move(line), level });
+}
+
+void AppController::LogInfo(QString line)
+{
+    Log(LogLevel::Info, std::move(line));
+}
+
+void AppController::LogWarn(QString line)
+{
+    Log(LogLevel::Warning, std::move(line));
+}
+
+void AppController::LogError(QString line)
+{
+    Log(LogLevel::Error, std::move(line));
+}
+
+void AppController::attachLogSink()
+{
+    if (_logSinkAttached)
+        return; // Idempotent — re-instantiating the panel must not replay the banner.
+    _logSinkAttached = true;
+    // Replay in the order events occurred. Move-out so the buffer can drop
+    // its allocation; it stays empty for the rest of the process lifetime.
+    auto pending = std::move(_pendingLogs);
+    _pendingLogs.clear();
+    for (auto const& entry: pending)
+        emit logLine(entry.first, entry.second);
 }
 
 } // namespace DbtoolGui

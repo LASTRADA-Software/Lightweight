@@ -11,6 +11,7 @@
 #pragma once
 
 #include "BackupRunner.hpp"
+#include "LogLevel.hpp"
 #include "MigrationRunner.hpp"
 #include "Models/MigrationListModel.hpp"
 #include "Models/OdbcDataSourceListModel.hpp"
@@ -19,7 +20,9 @@
 #include "SqlQueryRunner.hpp"
 
 #include <Config/ProfileStore.hpp>
+#include <QtCore/QList>
 #include <QtCore/QObject>
+#include <QtCore/QPair>
 #include <QtCore/QString>
 #include <QtQml/QQmlEngine>
 
@@ -403,7 +406,21 @@ class AppController: public QObject
     /// nothing if no profile file has been loaded yet.
     Q_INVOKABLE void openProfileFileExternally();
 
+    /// Called from `LogPanel.qml`'s `Component.onCompleted` to flush any
+    /// startup/plugin/connection log messages produced *before* the QML
+    /// engine wired up its `Connections { target: AppController }` block.
+    /// Idempotent — repeated calls after the first one are no-ops, so
+    /// re-instantiating the panel (e.g. after a tab swap) doesn't replay
+    /// the buffered banner.
+    Q_INVOKABLE void attachLogSink();
+
   signals:
+    /// Unified log-pane feed: every startup banner, plugin discovery event,
+    /// connection-state change, and migration progress line emerges here.
+    /// `MigrationRunner::logLine` and `BackupRunner::logLine` are forwarded
+    /// into this signal so QML only has to listen to one source.
+    void logLine(QString line, DbtoolGui::LogLevel level);
+
     void currentProfileChanged();
     void connectedChanged();
     void connectionStringOverrideChanged();
@@ -435,6 +452,16 @@ class AppController: public QObject
   private:
     void ReportError(QString const& message);
     void ClearError();
+
+    /// Routes `line` at severity `level` into the unified `logLine` signal.
+    /// When the QML panel has not yet called `attachLogSink()` the message
+    /// is buffered and replayed when the panel comes online — important
+    /// because plugin discovery runs in the constructor, before any QML
+    /// receiver exists.
+    void Log(LogLevel level, QString line);
+    void LogInfo(QString line);
+    void LogWarn(QString line);
+    void LogError(QString line);
 
     /// Computes the effective plugin search directories for the current
     /// connection mode: the user override wins in `dsn` / `custom` modes,
@@ -524,6 +551,14 @@ class AppController: public QObject
     /// because the connection string just changed" (every subsequent
     /// connect).
     bool _everConnected = false;
+
+    /// Log messages produced before the QML `LogPanel` connected its
+    /// receiver (i.e. before `attachLogSink()` ran). Replayed in order on
+    /// first attach and then permanently bypassed.
+    QList<QPair<QString, LogLevel>> _pendingLogs;
+    /// `true` once `attachLogSink()` has run for the first time. Past that
+    /// point `Log()` emits directly without touching `_pendingLogs`.
+    bool _logSinkAttached = false;
 
     /// Forward-declared by the Qt pointer in the .cpp — a QFileSystemWatcher
     /// held by raw pointer to keep `<QtCore/QFileSystemWatcher>` out of this
