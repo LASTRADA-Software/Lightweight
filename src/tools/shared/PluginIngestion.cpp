@@ -146,4 +146,29 @@ PluginLoaderFn DefaultPluginLoader()
     };
 }
 
+void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
+                            Lightweight::SqlConnection& connection,
+                            Lightweight::SqlMigration::MigrationManager& central,
+                            std::function<void(std::string_view)> const& logError)
+{
+    using HookSignature = void(Lightweight::SqlConnection&, Lightweight::SqlMigration::MigrationManager&);
+
+    for (auto const& plugin: plugins)
+    {
+        auto* const postInit = plugin.TryGetFunction<HookSignature>("LightweightMigrationPluginPostInit");
+        if (postInit == nullptr)
+            continue; // Optional symbol — plugins without legacy glue skip the hook.
+
+        try
+        {
+            postInit(connection, central);
+        }
+        catch (std::exception const& exception)
+        {
+            if (logError)
+                logError(std::format("Plugin post-init failed ({}): {}", plugin.path.string(), exception.what()));
+        }
+    }
+}
+
 } // namespace Lightweight::Tools

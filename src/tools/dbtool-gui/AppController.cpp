@@ -756,31 +756,38 @@ bool AppController::connectToProfile()
         // contradict the previous "Connecting …" with a misleading error.
     }
 
-    // Opening migration history is best-effort. Failure here does NOT abort
-    // the connect — the user may be pointing at an unmanaged database (no
-    // `schema_migrations` table yet) and they need the GUI populated with
-    // the plugin-declared migration plan so they can run them to bootstrap
-    // the history table. Any hard failure surfaces as a yellow warning
-    // banner; hard errors (connection refused, auth failure, etc.) have
-    // already been caught by the `SetDefaultConnectionString` path above.
-    bool historyOpen = true;
-    try
-    {
-        manager.CreateMigrationHistory();
-    }
-    catch (std::exception const& e)
-    {
-        historyOpen = false;
-        _lastWarning = QStringLiteral("Database is currently unmanaged — no schema_migrations table yet. "
-                                      "Apply any pending migration to create it. (details: %1)")
-                           .arg(ExceptionMessage(e));
-        emit lastWarningChanged();
-    }
+    // Route status banners emitted by plugin post-init hooks (e.g. the
+    // "Transitioning from LASTRADA_PROPERTIES …" line from SqlMigrationsPlugin)
+    // through `AppController::LogInfo` so the message lands in the GUI's log
+    // pane instead of stderr. Installed before invoking the hooks below so
+    // the very first banner is captured.
+    manager.SetLogSink(
+        [this](std::string_view message) { LogInfo(QString::fromUtf8(message.data(), static_cast<int>(message.size()))); });
 
-    // `Refresh` reads `GetAppliedMigrationIds` which also touches
-    // schema_migrations; fold the same exception path into a warning so
-    // the list still shows the plugin-declared migrations even when the
-    // table is missing.
+    // Run plugin post-init hooks (e.g. SqlMigrationsPlugin's transition glue
+    // that observes `LASTRADA_PROPERTIES NR=4` and populates the virtual
+    // applied overlay). Until this fires, the migration list would render the
+    // entire legacy range as pending. Per-plugin failures are surfaced via
+    // `LogError` but never abort the connect — a misbehaving plugin must not
+    // brick the GUI's read paths.
+    //
+    // We deliberately do NOT call `CreateMigrationHistory()` here: the table
+    // is materialised lazily inside Lightweight's write paths
+    // (`ApplySingleMigration` / `MarkMigrationAsApplied` / `RevertSingleMigration`),
+    // so introspection-only connects against a fresh or unmanaged database
+    // leave the schema untouched.
+    Lightweight::Tools::RunPluginPostInitHooks(
+        _plugins->entries,
+        Lightweight::DataMapper::AcquireThreadLocal().Connection(),
+        manager,
+        [this](std::string_view message) { LogError(QString::fromUtf8(message.data(), static_cast<int>(message.size()))); });
+
+    // `Refresh` reads `GetAppliedMigrationIds` which merges the plugin-supplied
+    // overlay with whatever rows exist in `schema_migrations`. The accessor
+    // already swallows a missing-table `SqlException` and returns the overlay
+    // alone, but a Refresh-level failure (e.g. malformed row, unreadable
+    // column) should still surface as a warning instead of leaving the GUI
+    // stuck on a stale model.
     try
     {
         _migrations.Refresh(manager);
@@ -788,14 +795,11 @@ bool AppController::connectToProfile()
     }
     catch (std::exception const& e)
     {
-        if (historyOpen)
-        {
-            _lastWarning = QStringLiteral("Could not read migration history: %1").arg(ExceptionMessage(e));
-            emit lastWarningChanged();
-        }
-        // Fall back to a plain-plugin view with no applied rows. This is the
-        // right mental model for an unmanaged DB: every plugin migration
-        // shows as pending so the user can apply them.
+        _lastWarning = QStringLiteral("Could not read migration history: %1").arg(ExceptionMessage(e));
+        emit lastWarningChanged();
+        // Fall back to a plain-plugin view. The overlay is still observable
+        // via `RefreshPluginsOnly` because it lives on the manager, not in
+        // `schema_migrations`.
         _migrations.RefreshPluginsOnly(manager);
         _releases.Refresh(manager);
     }
