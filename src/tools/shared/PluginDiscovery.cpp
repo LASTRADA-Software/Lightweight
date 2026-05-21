@@ -47,6 +47,38 @@ namespace
         return ext == ".so" || ext == ".dll" || ext == ".dylib";
     }
 
+    /// True when `p`'s file stem ends with the literal token "Plugin" (e.g.
+    /// `FooPlugin.dll`, `SqlMigrationsPlugin.so`). Filtering before
+    /// `LoadLibrary`/`dlopen` is what keeps neighbouring runtime DLLs out of
+    /// the loader: a vcpkg-applocal deposit (`zlib1.dll`, `bz2d.dll`, ...) or
+    /// a Qt frontend's Qt6*.dll has no business being mapped into dbtool just
+    /// to be skipped at the symbol-lookup step. Match the case-sensitivity
+    /// policy already used by `FilenameKeyFromPath` so a user's mental model
+    /// of "what counts as the same filename" stays consistent across both
+    /// stages of discovery.
+    [[nodiscard]] bool HasPluginStemSuffix(std::filesystem::path const& p) noexcept
+    {
+#ifdef _WIN32
+        constexpr std::wstring_view requiredSuffix { L"Plugin" };
+        auto const stem = p.stem().wstring();
+        if (stem.size() < requiredSuffix.size())
+            return false;
+        auto const tail = std::wstring_view(stem).substr(stem.size() - requiredSuffix.size());
+        // Case-insensitive on Windows: NTFS/refs and `LoadLibraryW` both
+        // ignore case, so `myplugin.dll` and `MyPlugin.dll` mean the same
+        // thing to the loader and should mean the same thing here.
+        return std::ranges::equal(tail, requiredSuffix, [](wchar_t a, wchar_t b) {
+            return std::towlower(static_cast<wint_t>(a)) == std::towlower(static_cast<wint_t>(b));
+        });
+#else
+        constexpr std::string_view requiredSuffix { "Plugin" };
+        auto const stem = p.stem().string();
+        if (stem.size() < requiredSuffix.size())
+            return false;
+        return std::string_view(stem).substr(stem.size() - requiredSuffix.size()) == requiredSuffix;
+#endif
+    }
+
     struct Candidate
     {
         std::filesystem::path path;
@@ -166,7 +198,7 @@ namespace
         {
             if (ec)
                 break;
-            if (!entry.is_regular_file(ec) || !IsPluginExtension(entry.path()))
+            if (!entry.is_regular_file(ec) || !IsPluginExtension(entry.path()) || !HasPluginStemSuffix(entry.path()))
                 continue;
             IngestCandidate(winners, MakeCandidate(entry.path(), dirIndex, encounter++), emit);
         }
