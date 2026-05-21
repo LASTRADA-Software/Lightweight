@@ -210,6 +210,13 @@ var NAVTREEINDEX3 =
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#examples-of-sql-to-datamapper-mappings":[3,2,1],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#insert-elements":[3,1],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#select-elements":[3,2],
+"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html":[12,0,0,67],
+"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a7b9e872d2afb20e37e1725886934a197":[12,0,0,67,0],
+"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a854831226a9aefce1afeb1ad06f871f2":[12,0,0,67,1],
+"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#aaa7992a48a7fcdd4e8215643a02768e7":[12,0,0,67,4],
+"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#ad2cb37cc75c422a1eba097335103071a":[12,0,0,67,5],
+"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#aecde81ddfa2e95f916a035eb5afe1e1f":[12,0,0,67,3],
+"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#af7d085eb90fabbec24d1493d0a4d725a":[12,0,0,67,2],
 "d9/dc2/SqlGuid_8hpp_source.html":[13,0,1,0,9],
 "d9/dc3/StdStringView_8hpp_source.html":[13,0,1,0,18],
 "d9/dd1/structLightweight_1_1SqlAlterTableCommands_1_1DropIndexIfExists.html":[12,0,0,0,2],
@@ -242,12 +249,5 @@ var NAVTREEINDEX3 =
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a9de53272af6d3db165c4f8964223d8a1":[12,0,0,1,11,2],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ac5078f37747a5a12b4d3d7e8df8b7595":[12,0,0,1,11,4],
 "d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad0650ea29db5c33bcebf5af75b9be9d8":[12,0,0,1,11,1],
-"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad1aedd312e0a7ea569f6d9ac712a39e6":[12,0,0,1,11,3],
-"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ae825585f8af8a8d21b07068e9bfc9e98":[12,0,0,1,11,0],
-"d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html":[12,0,0,1,10],
-"d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ac16512ae4852ecbf22ab84abeda29e7e":[12,0,0,1,10,1],
-"d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#adcfe1f8e73b8c0d8dc52f90db2302f97":[12,0,0,1,10,2],
-"d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ae2ac5e8f6feb4b31de19ad64fce540f5":[12,0,0,1,10,0],
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html":[12,0,0,57],
-"da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a2838b8c9fd55745b05cc38a622836419":[12,0,0,57,0]
+"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#ad1aedd312e0a7ea569f6d9ac712a39e6":[12,0,0,1,11,3]
 };

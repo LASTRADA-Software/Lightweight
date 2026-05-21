@@ -131,10 +131,8 @@ LIGHTWEIGHT_API <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBui
 LIGHTWEIGHT_API SqlLastInsertIdQuery&#160;</td><td class="memItemRight" valign="bottom"><b>LastInsertId</b> ()</td></tr>
 <tr class="memdesc:ad9d7e0290e84a1b8560e32a9f37d5a1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a query to retrieve the last insert ID for the given table. <br /></td></tr>
 <tr class="separator:ad9d7e0290e84a1b8560e32a9f37d5a1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a83960533b5032f3a161070e9a6e8da5c" id="r_a83960533b5032f3a161070e9a6e8da5c"><td class="memItemLeft" align="right" valign="top"><a id="a83960533b5032f3a161070e9a6e8da5c" name="a83960533b5032f3a161070e9a6e8da5c"></a>
-LIGHTWEIGHT_API <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">SqlSelectQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Select</b> () noexcept</td></tr>
-<tr class="memdesc:a83960533b5032f3a161070e9a6e8da5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initiates SELECT query building. <br /></td></tr>
-<tr class="separator:a83960533b5032f3a161070e9a6e8da5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4a0f2b9056d0afaa3e6ae3fbd3f55516" id="r_a4a0f2b9056d0afaa3e6ae3fbd3f55516"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html">SqlSelectQueryStarter</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a4a0f2b9056d0afaa3e6ae3fbd3f55516">Select</a> () noexcept</td></tr>
+<tr class="separator:a4a0f2b9056d0afaa3e6ae3fbd3f55516"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adeb820498dd1bc9a5c575244e1bdf853" id="r_adeb820498dd1bc9a5c575244e1bdf853"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API SqlUpdateQueryBuilder&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#adeb820498dd1bc9a5c575244e1bdf853">Update</a> (std::vector&lt; <a class="el" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> &gt; *boundInputs=nullptr) noexcept</td></tr>
 <tr class="separator:adeb820498dd1bc9a5c575244e1bdf853"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9220ec49d875faa49983e9a53a507ef3" id="r_a9220ec49d875faa49983e9a53a507ef3"><td class="memItemLeft" align="right" valign="top"><a id="a9220ec49d875faa49983e9a53a507ef3" name="a9220ec49d875faa49983e9a53a507ef3"></a>
@@ -193,7 +191,7 @@ LIGHTWEIGHT_API <a class="el" href="../../d8/d65/classLightweight_1_1SqlMigratio
 
 <p>Constructs a new query builder for the given table. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html#l00093">93</a> of file <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html">SqlQuery.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html#l00101">101</a> of file <a class="el" href="../../dc/dcc/SqlQuery_8hpp_source.html">SqlQuery.hpp</a>.</p>
 
 </div>
 </div>
@@ -295,6 +293,35 @@ template&lt;size_t N&gt; </div>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a4a0f2b9056d0afaa3e6ae3fbd3f55516" name="a4a0f2b9056d0afaa3e6ae3fbd3f55516"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4a0f2b9056d0afaa3e6ae3fbd3f55516">&#9670;&#160;</a></span>Select()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html">SqlSelectQueryStarter</a> Lightweight::SqlQueryBuilder::Select </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Initiates SELECT query building.</p>
+<p>Returns a <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html">SqlSelectQueryStarter</a> — a type that intentionally does not expose <code>All</code> / <code>First</code> / <code>Range</code>, so <code><a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a4a0f2b9056d0afaa3e6ae3fbd3f55516">Select()</a>.All()</code> and the equivalent <code>auto q = <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html#a4a0f2b9056d0afaa3e6ae3fbd3f55516">Select()</a>; q.All();</code> (both empty-projection patterns) fail to compile. Add a column via <code>.Field(...)</code>, <code>.Fields(...)</code>, <code>.FieldAs(...)</code>, or <code>.Build([](auto&amp; q){ ... })</code> — each returns a <code><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html" title="Query builder for building SELECT ... queries.">SqlSelectQueryBuilder</a>&amp;</code> that exposes the finalizers. <code>.Count()</code> is exposed on the starter directly, since <code>SELECT COUNT(*)</code> is well-formed without an explicit field list. </p>
+
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01584">Lightweight::DataMapper::QuerySingle()</a>.</p>
 
 </div>
 </div>
