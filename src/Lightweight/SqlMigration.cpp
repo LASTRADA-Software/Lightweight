@@ -43,6 +43,24 @@ namespace
         return std::format(
             "Failed to {} migration {} '{}' at step {}: {}", verb, timestamp.value, title, stepIndex, driverError.message);
     }
+
+    /// Convert a (possibly empty) author string into the storage form used by
+    /// `SchemaMigration::author`. Empty input maps to `std::nullopt` so the row
+    /// is rendered with a SQL NULL rather than an empty `VARCHAR(128)`.
+    std::optional<SqlString<128>> MakeOptionalSqlString128(std::string_view value)
+    {
+        if (value.empty())
+            return std::nullopt;
+        return SqlString<128> { value };
+    }
+
+    /// Same as `MakeOptionalSqlString128`, sized for `SchemaMigration::description`.
+    std::optional<SqlString<1024>> MakeOptionalSqlString1024(std::string_view value)
+    {
+        if (value.empty())
+            return std::nullopt;
+        return SqlString<1024> { value };
+    }
 } // namespace
 
 MigrationException::MigrationException(Operation operation,
@@ -249,22 +267,156 @@ std::string_view MigrationManager::DefaultSchema() const noexcept
 std::vector<MigrationTimestamp> MigrationManager::GetAppliedMigrationIds() const
 {
     auto result = std::vector<MigrationTimestamp> {};
-    auto& dm = GetDataMapper();
-    auto records = std::vector<SchemaMigration> {};
 
+    // Database half: read `schema_migrations` rows when the table exists. When
+    // it does not (fresh DB, or any read-only command issued before the first
+    // apply), `Query` throws and we silently fall through to the overlay-only
+    // path. We deliberately *do not* create the table here — read paths must
+    // remain side-effect free so `dbtool status` against an untouched legacy
+    // database neither writes nor requires write permissions.
     try
     {
-        records = dm.Query<SchemaMigration>().OrderBy("version", SqlResultOrdering::ASCENDING).All();
+        auto const records = GetDataMapper().Query<SchemaMigration>().OrderBy("version", SqlResultOrdering::ASCENDING).All();
+        result.reserve(records.size());
+        for (auto const& record: records)
+            result.emplace_back(MigrationTimestamp { record.version.Value() });
     }
-    catch (SqlException const&)
+    catch (SqlException const& ex)
     {
-        return result;
+        // Table absent or otherwise unreadable — fall back to overlay-only.
+        Log(std::format("schema_migrations read fell through to overlay-only: {}", ex.what()));
     }
 
-    for (auto const& record: records)
-        result.emplace_back(MigrationTimestamp { record.version.Value() });
+    // Overlay half: merge any virtually-applied IDs (populated by plugin
+    // post-init hooks) that the caller wants to be observable as applied even
+    // before `schema_migrations` has been materialised. Both inputs are sorted
+    // ascending; `set_union` produces a deduplicated, sorted result in one
+    // pass.
+    if (!_virtualAppliedIds.empty())
+    {
+        auto merged = std::vector<MigrationTimestamp> {};
+        merged.reserve(result.size() + _virtualAppliedIds.size());
+        std::ranges::set_union(result, _virtualAppliedIds, std::back_inserter(merged));
+        result = std::move(merged);
+    }
 
     return result;
+}
+
+void MigrationManager::AddVirtualAppliedMigrations(std::span<MigrationTimestamp const> timestamps)
+{
+    if (timestamps.empty())
+        return;
+
+    // Merge into the existing overlay, preserving the sorted+deduped invariant
+    // so `GetAppliedMigrationIds`'s `set_union` stays correct on subsequent
+    // calls. Sort the incoming chunk in-place via a local copy so the caller's
+    // span is not mutated.
+    auto incoming = std::vector<MigrationTimestamp> { timestamps.begin(), timestamps.end() };
+    std::ranges::sort(incoming);
+    auto const [removeBegin, removeEnd] = std::ranges::unique(incoming);
+    incoming.erase(removeBegin, removeEnd);
+
+    auto merged = std::vector<MigrationTimestamp> {};
+    merged.reserve(_virtualAppliedIds.size() + incoming.size());
+    std::ranges::set_union(_virtualAppliedIds, incoming, std::back_inserter(merged));
+    _virtualAppliedIds = std::move(merged);
+}
+
+void MigrationManager::ClearVirtualAppliedMigrations()
+{
+    _virtualAppliedIds.clear();
+}
+
+void MigrationManager::SetLogSink(LogSink sink)
+{
+    _logSink = std::move(sink);
+}
+
+void MigrationManager::Log(std::string_view message) const
+{
+    if (_logSink)
+        _logSink(message);
+}
+
+void MigrationManager::PersistVirtualAppliedMigrations()
+{
+    // We are crossing into write territory — materialise the history table
+    // exactly here, so read-only commands never trigger it. Done
+    // unconditionally (not gated on a non-empty overlay) because every write
+    // path that calls this also goes on to `dm.CreateExplicit(SchemaMigration{...})`
+    // for its own new row, which would fail with "no such table" on a fresh
+    // DB without an overlay otherwise. `CreateMigrationHistory` is idempotent
+    // and swallows "already exists" errors, so the cost on subsequent writes
+    // is a single catch on the SQL driver's table-exists check.
+    CreateMigrationHistory();
+
+    if (_virtualAppliedIds.empty())
+        return;
+
+    // Move the overlay onto the stack before any writes so re-entrant calls
+    // (e.g. an inner `MarkMigrationAsApplied` triggered by a future plugin
+    // hook) cannot observe a partially-drained state.
+    auto pending = std::move(_virtualAppliedIds);
+    _virtualAppliedIds.clear();
+
+    auto& dm = GetDataMapper();
+
+    // Re-read the rows that are *physically* present so the overlay is filtered
+    // against actual database state. This matters when a plugin re-installed
+    // an overlay entry that the database already knows about (e.g. running
+    // `dbtool migrate` twice on the same legacy DB without restarting).
+    auto realApplied = std::vector<MigrationTimestamp> {};
+    try
+    {
+        auto const records = dm.Query<SchemaMigration>().OrderBy("version", SqlResultOrdering::ASCENDING).All();
+        realApplied.reserve(records.size());
+        for (auto const& record: records)
+            realApplied.emplace_back(MigrationTimestamp { record.version.Value() });
+    }
+    catch (SqlException const& ex)
+    {
+        // `CreateMigrationHistory` just ran without throwing, so the table
+        // should exist. If `Query` still failed it is a real driver error and
+        // not the missing-table case — let it surface from the writes below.
+        Log(std::format("schema_migrations re-read after CreateMigrationHistory failed: {}", ex.what()));
+    }
+
+    // Index `_migrations` by timestamp so we can resolve each overlay entry
+    // back to a registered migration without an O(N*M) scan.
+    auto byTimestamp = std::unordered_map<uint64_t, MigrationBase const*> {};
+    byTimestamp.reserve(_migrations.size());
+    for (auto const* migration: _migrations)
+        byTimestamp.emplace(migration->GetTimestamp().value, migration);
+
+    for (auto const& timestamp: pending)
+    {
+        if (std::ranges::contains(realApplied, timestamp))
+            continue;
+
+        auto const it = byTimestamp.find(timestamp.value);
+        if (it == byTimestamp.end())
+        {
+            // Overlay entry points at a timestamp that no longer matches any
+            // registered migration (plugin was unloaded, or a plugin re-issued
+            // an old overlay against a manager that has since dropped the
+            // migration). Skipping is the right call: there is no checksum or
+            // metadata to record, and re-throwing would make the first
+            // `migrate` invocation of a stale overlay un-recoverable.
+            continue;
+        }
+        auto const& migration = *it->second;
+
+        auto const checksum = migration.ComputeChecksum(dm.Connection().QueryFormatter());
+        dm.CreateExplicit(SchemaMigration {
+            .version = migration.GetTimestamp().value,
+            .checksum = checksum,
+            .applied_at = SqlDateTime::Now(),
+            .author = MakeOptionalSqlString128(migration.GetAuthor()),
+            .description = MakeOptionalSqlString1024(migration.GetDescription()),
+            .execution_duration_ms = std::nullopt,
+        });
+    }
 }
 
 MigrationManager::MigrationList MigrationManager::GetPending() const noexcept
@@ -523,20 +675,6 @@ MigrationManager::MigrationList MigrationManager::GetMigrationsForRelease(std::s
 
 namespace
 {
-    std::optional<SqlString<128>> MakeOptionalSqlString128(std::string_view value)
-    {
-        if (value.empty())
-            return std::nullopt;
-        return SqlString<128> { value };
-    }
-
-    std::optional<SqlString<1024>> MakeOptionalSqlString1024(std::string_view value)
-    {
-        if (value.empty())
-            return std::nullopt;
-        return SqlString<1024> { value };
-    }
-
     /// Represents a parsed SQLite runtime guard extracted from a SQL script's leading sentinel comment.
     ///
     /// The SQLite formatter emits guarded DDL with a marker:
@@ -1047,6 +1185,13 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration)
 
 void MigrationManager::ApplySingleMigration(MigrationBase const& migration, MigrationRenderContext& context)
 {
+    // We are about to write a real `schema_migrations` row, so any overlay
+    // entries contributed by plugin post-init hooks have to be materialised
+    // first — both so dependency checks below see the full history and so the
+    // table's row order matches the actual applied order. `PersistVirtualAppliedMigrations`
+    // is a no-op when the overlay is empty.
+    PersistVirtualAppliedMigrations();
+
     // Re-derive compat knobs for this specific migration. The column-width cache in
     // `context` persists across migrations (on purpose — CREATE TABLE in migration N
     // populates widths an INSERT in migration N+k consults); the per-migration knobs
@@ -1122,6 +1267,13 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration, Migr
 
 void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
 {
+    // Revert deletes a `schema_migrations` row, so the overlay (if any) needs
+    // to be drained first. A virtual-applied entry has no on-disk row to
+    // remove; persisting it before the revert lets `DELETE FROM schema_migrations`
+    // operate uniformly on the materialised history without a separate
+    // overlay-aware code path.
+    PersistVirtualAppliedMigrations();
+
     // Check if Down() is implemented before attempting revert
     if (!migration.HasDownImplementation())
     {
@@ -1426,8 +1578,21 @@ std::vector<ChecksumVerificationResult> MigrationManager::VerifyChecksums() cons
     std::vector<ChecksumVerificationResult> results;
     auto& dm = GetDataMapper();
 
-    // Get all applied migrations with their checksums
-    auto appliedMigrations = dm.Query<SchemaMigration>().OrderBy("version", SqlResultOrdering::ASCENDING).All();
+    // Get all applied migrations with their checksums. The table may not yet
+    // exist — that's the legitimate "fresh DB / overlay-only" state in the
+    // post-overlay design, so swallow the missing-table error and return an
+    // empty result. Virtual-applied overlay entries are deliberately not
+    // checked here: they carry no stored checksum and behave like the
+    // pre-checksum legacy rows (storedChecksum empty ⇒ treated as match).
+    auto appliedMigrations = std::vector<SchemaMigration> {};
+    try
+    {
+        appliedMigrations = dm.Query<SchemaMigration>().OrderBy("version", SqlResultOrdering::ASCENDING).All();
+    }
+    catch (SqlException const&)
+    {
+        return results;
+    }
 
     for (auto const& record: appliedMigrations)
     {
@@ -1474,6 +1639,12 @@ std::vector<ChecksumVerificationResult> MigrationManager::VerifyChecksums() cons
 
 void MigrationManager::MarkMigrationAsApplied(MigrationBase const& migration)
 {
+    // Drain the overlay before writing this row. If the caller is bulk-marking
+    // a sequence of migrations on top of a virtual-applied overlay, this is
+    // also what guarantees the overlay timestamps land in the table ahead of
+    // the new row — preserving the natural `version ASC` ordering on disk.
+    PersistVirtualAppliedMigrations();
+
     auto& dm = GetDataMapper();
 
     // Check if already applied

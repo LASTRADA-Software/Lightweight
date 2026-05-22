@@ -33,10 +33,13 @@ Rectangle {
     // API that preserves cursor/selection state.
     property int lineCount: 0
 
+    // `level` is `DbtoolGui::LogLevel` from C++ — the QML side receives the
+    // underlying integer (0=Info, 1=Warning, 2=Error). Keep this table in
+    // sync with `LogLevel.hpp` if the enum is ever extended.
     function colorFor(level) {
-        if (level === 2) return "#f87171";
-        if (level === 1) return "#fbbf24";
-        return "#cbd5e1";
+        if (level === 2) return "#f87171"; // Error
+        if (level === 1) return "#fbbf24"; // Warning
+        return "#cbd5e1";                  // Info
     }
 
     function escapeHtml(s) {
@@ -115,8 +118,13 @@ Rectangle {
         }
     }
 
+    // Drain any startup banner / plugin-discovery / connect lines that
+    // `AppController` buffered before this panel existed. Idempotent on the
+    // C++ side, so a panel re-instantiation does not replay the banner.
+    Component.onCompleted: AppController.attachLogSink()
+
     Connections {
-        target: AppController.runner
+        target: AppController
         function onLogLine(line, level) {
             logText.append("<span style=\"color:" + root.colorFor(level) + ";\">"
                 + root.escapeHtml(line) + "</span>");

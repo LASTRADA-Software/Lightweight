@@ -2252,7 +2252,8 @@ MigrationManager& GetMigrationManager(Options const& options)
             std::exit(EXIT_FAILURE);
         }
         // Apply --schema before opening the connection so the post-connect
-        // hook is installed prior to CreateMigrationHistory()'s first connect.
+        // hook is installed prior to the first connect performed by the
+        // plugin post-init hooks below.
         if (!options.schema.empty())
         {
             TraceBreadcrumb("GetMigrationManager: setting default schema");
@@ -2266,8 +2267,12 @@ MigrationManager& GetMigrationManager(Options const& options)
                 std::exit(EXIT_FAILURE);
             }
         }
-        TraceBreadcrumb("GetMigrationManager: creating migration history table");
-        manager.CreateMigrationHistory();
+
+        // Route plugin status banners (e.g. SqlMigrationsPlugin's
+        // "Transitioning from LASTRADA_PROPERTIES …" line) to stdout so the
+        // historical CLI output is preserved exactly. dbtool-gui installs its
+        // own sink that routes through `qInfo`.
+        manager.SetLogSink([](std::string_view message) { std::println("{}", message); });
 
         // Run optional plugin post-init hooks. Each plugin may export a
         // `LightweightMigrationPluginPostInit(SqlConnection&, MigrationManager&)`
@@ -2276,25 +2281,16 @@ MigrationManager& GetMigrationManager(Options const& options)
         // migration manager. Per-plugin failures are reported but do not abort
         // dbtool startup — a misbehaving plugin must not be able to brick
         // unrelated commands like `status` or `backup`.
+        //
+        // We deliberately do *not* call `CreateMigrationHistory()` here: the
+        // history table is materialised lazily by the first write path
+        // (`ApplySingleMigration`, `MarkMigrationAsApplied`, `RevertSingleMigration`),
+        // so read-only commands like `status` or `list-applied` never touch
+        // the database with a CREATE TABLE.
         TraceBreadcrumb("GetMigrationManager: running plugin post-init hooks");
-        {
-            auto& conn = manager.GetDataMapper().Connection();
-            for (auto const& plugin: plugins)
-            {
-                auto* const postInit =
-                    plugin.TryGetFunction<void(SqlConnection&, MigrationManager&)>("LightweightMigrationPluginPostInit");
-                if (postInit == nullptr)
-                    continue; // Optional symbol — not all plugins implement it.
-                try
-                {
-                    postInit(conn, manager);
-                }
-                catch (std::exception const& e)
-                {
-                    std::println(std::cerr, "Plugin post-init failed: {}", e.what());
-                }
-            }
-        }
+        Tools::RunPluginPostInitHooks(plugins, manager.GetDataMapper().Connection(), manager, [](std::string_view message) {
+            std::println(std::cerr, "{}", message);
+        });
 
         TraceBreadcrumb("GetMigrationManager: ready");
         initialized = true;

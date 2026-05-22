@@ -128,4 +128,26 @@ struct PluginIngestOptions
 /// `std::runtime_error` when `PluginLoader` construction itself fails.
 [[nodiscard]] PluginLoaderFn DefaultPluginLoader();
 
+/// Invoke every plugin's optional `LightweightMigrationPluginPostInit` hook
+/// against the supplied connection and central manager. Used by `dbtool` and
+/// `dbtool-gui` to give plugins a one-shot opportunity to bridge legacy
+/// version-tracking schemes (e.g. SqlMigrationsPlugin's
+/// `LASTRADA_PROPERTIES` → virtual-applied overlay) once a live ODBC link
+/// exists and the merged migration manager is fully populated.
+///
+/// Hooks that throw are reported through `logError` and skipped — a
+/// misbehaving plugin must not abort the host's startup or connect path.
+/// Plugins that do not export the symbol are silently bypassed.
+///
+/// @param plugins  Plugin set returned by `IngestPlugins`.
+/// @param connection Live connection to pass to each hook.
+/// @param central  Host-side merged migration manager passed to each hook.
+/// @param logError Sink for per-plugin failure messages. May be empty; in
+///                 that case failures are silently swallowed (suitable for
+///                 contexts where the caller has no log channel).
+void RunPluginPostInitHooks(std::span<LoadedPlugin const> plugins,
+                            Lightweight::SqlConnection& connection,
+                            Lightweight::SqlMigration::MigrationManager& central,
+                            std::function<void(std::string_view)> const& logError);
+
 } // namespace Lightweight::Tools

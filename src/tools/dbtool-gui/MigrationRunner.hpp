@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include "LogLevel.hpp"
+
 #include <atomic>
 #include <functional>
 
@@ -88,7 +90,7 @@ class MigrationRunner: public QObject
 
   signals:
     void progress(qulonglong timestamp, QString title, int index, int total);
-    void logLine(QString line, int level);
+    void logLine(QString line, DbtoolGui::LogLevel level);
     void finished(bool ok, QString summary);
     void phaseChanged();
 

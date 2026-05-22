@@ -17,6 +17,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -322,8 +323,57 @@ namespace SqlMigration
 
         /// Get all applied migration IDs.
         ///
-        /// @return Vector of applied migration IDs.
+        /// Returns the union of timestamps physically present in `schema_migrations`
+        /// and the in-memory "virtual applied" overlay (see `AddVirtualAppliedMigrations`),
+        /// sorted ascending and deduplicated. The accessor never creates the
+        /// `schema_migrations` table — when the table does not exist the database
+        /// half of the union is the empty set, so a pure-overlay state is fully
+        /// observable here without any side effects.
+        ///
+        /// @return Vector of applied migration IDs (database rows ∪ overlay).
         [[nodiscard]] LIGHTWEIGHT_API std::vector<MigrationTimestamp> GetAppliedMigrationIds() const;
+
+        /// Contribute "virtual" applied migration IDs that participate in every
+        /// `GetAppliedMigrationIds()` read but are not persisted to
+        /// `schema_migrations` until the manager actually performs a write
+        /// (`ApplySingleMigration`, `MarkMigrationAsApplied`, or
+        /// `RevertSingleMigration`). Designed for plugin post-init hooks that
+        /// need to bridge a foreign version-tracking table (e.g. the legacy
+        /// `LASTRADA_PROPERTIES NR=4` row) into the modern applied-set view
+        /// without paying for table creation on read-only commands like
+        /// `status` or `list-applied`.
+        ///
+        /// The input is merged into an internal sorted, deduplicated vector;
+        /// passing the same timestamp twice is a no-op.
+        ///
+        /// @param timestamps Timestamps to add to the overlay.
+        LIGHTWEIGHT_API void AddVirtualAppliedMigrations(std::span<MigrationTimestamp const> timestamps);
+
+        /// Drop every entry from the in-memory virtual-applied overlay. Intended
+        /// for test setup/teardown and for callers that want to re-derive the
+        /// overlay from scratch (e.g. a `dbtool-gui` reconnect against a
+        /// different profile). Has no effect on `schema_migrations` rows.
+        LIGHTWEIGHT_API void ClearVirtualAppliedMigrations();
+
+        /// Optional sink for informational status messages emitted by plugin
+        /// hooks (e.g. the "Transitioning from LASTRADA_PROPERTIES …" banner).
+        /// `dbtool` installs a sink that prints to `stdout` to preserve the
+        /// historical CLI output; `dbtool-gui` installs a sink that routes
+        /// through its `LogInfo` channel so the banner shows up in the
+        /// activity log instead of going to a hidden stream.
+        using LogSink = std::function<void(std::string_view)>;
+
+        /// Install a log sink. Pass `{}` to clear.
+        ///
+        /// @param sink Callable invoked once per status message.
+        LIGHTWEIGHT_API void SetLogSink(LogSink sink);
+
+        /// Emit a status message via the installed sink. No-op when no sink is
+        /// installed — silent by default keeps the library suitable for use in
+        /// embedded contexts that have no obvious output stream.
+        ///
+        /// @param message The message to deliver.
+        LIGHTWEIGHT_API void Log(std::string_view message) const;
 
         /// Get the data mapper used for migrations.
         [[nodiscard]] LIGHTWEIGHT_API DataMapper& GetDataMapper();
@@ -703,11 +753,30 @@ namespace SqlMigration
         /// before rendering a given migration's steps.
         [[nodiscard]] static MigrationRenderContext MakeRenderContext();
 
+        /// @brief Materialises any pending virtual-applied entries as real rows
+        /// in `schema_migrations`. Creates the history table if necessary, then
+        /// inserts one row per overlay entry that maps to a registered
+        /// migration and is not yet present in the table. Clears the overlay on
+        /// success. Called as the first action of every write path so the
+        /// physical table only exists when there is at least one row to put in
+        /// it.
+        void PersistVirtualAppliedMigrations();
+
         MigrationList _migrations;
         std::vector<MigrationRelease> _releases;
         mutable DataMapper* _dataMapper { nullptr };
         CompatPolicy _compatPolicy;
         std::string _defaultSchema; ///< Default schema applied to migration connections, empty when unset.
+
+        /// @brief In-memory overlay of applied migration timestamps that are
+        /// not (yet) persisted to `schema_migrations`. Populated by plugin
+        /// post-init hooks via `AddVirtualAppliedMigrations`; drained into the
+        /// table by `PersistVirtualAppliedMigrations` whenever the manager
+        /// transitions from a read-only state into actually writing. Always
+        /// kept sorted ascending and deduplicated.
+        std::vector<MigrationTimestamp> _virtualAppliedIds;
+
+        LogSink _logSink; ///< Optional status-message sink. Empty by default.
     };
 
 /// Requires the user to call LIGHTWEIGHT_MIGRATION_PLUGIN() in exactly one CPP file of the migration plugin.

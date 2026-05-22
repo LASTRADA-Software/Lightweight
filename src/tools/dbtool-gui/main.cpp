@@ -110,8 +110,10 @@ int main(int argc, char* argv[])
     QGuiApplication::setOrganizationName(QStringLiteral("JP-Software"));
     QGuiApplication::setOrganizationDomain(QStringLiteral("lastrada.software"));
 
-    std::fprintf(stderr, "[INFO] dbtool-gui starting (Qt %s)\n", qVersion());
-    std::fflush(stderr);
+    // The "dbtool-gui starting (Qt …)" / "Theme: …" / "Event loop starting"
+    // lines now appear in the GUI's log pane (emitted by `AppController`'s
+    // constructor / startup banner). Keeping stderr copies as well would
+    // double-up the developer-facing console and the user-facing pane.
 
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Lightweight SQL migrations GUI."));
@@ -148,14 +150,8 @@ int main(int argc, char* argv[])
     // is silently ignored by the KDE Plasma platform theme plugin.
     auto const themeModeEnum = DbtoolGui::ThemeController::ModeFromString(themeMode);
     DbtoolGui::ThemeController::SeedInitialMode(themeModeEnum);
-    auto const effectiveDark = themeModeEnum == DbtoolGui::ThemeController::Mode::Dark
-                               || (themeModeEnum == DbtoolGui::ThemeController::Mode::System
-                                   && QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark);
-    std::fprintf(stderr,
-                 "[INFO] Theme: requested=%s, effective=%s\n",
-                 themeMode.toLocal8Bit().constData(),
-                 effectiveDark ? "dark" : "light");
-    std::fflush(stderr);
+    // (Effective theme is logged into the GUI's log pane from
+    // `AppController`'s constructor — see the banner there.)
 
     // "Fusion" gives us a consistent look across platforms until we commit to
     // a native style per OS. The mockup in docs/migrations-gui-mockup.html is
@@ -186,7 +182,5 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    std::fprintf(stderr, "[INFO] Event loop starting\n");
-    std::fflush(stderr);
     return app.exec();
 }
