@@ -107,6 +107,7 @@ var annotated_dup =
       [ "SqlScopedTimeLogger", "dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html", "dc/d6c/classLightweight_1_1SqlScopedTimeLogger" ],
       [ "SqlScopedTraceLogger", "df/d9c/classLightweight_1_1SqlScopedTraceLogger.html", "df/d9c/classLightweight_1_1SqlScopedTraceLogger" ],
       [ "SqlSelectQueryBuilder", "de/d33/classLightweight_1_1SqlSelectQueryBuilder.html", "de/d33/classLightweight_1_1SqlSelectQueryBuilder" ],
+      [ "SqlSelectQueryStarter", "d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html", "d9/dc0/classLightweight_1_1SqlSelectQueryStarter" ],
       [ "SqlStatement", "db/dad/classLightweight_1_1SqlStatement.html", "db/dad/classLightweight_1_1SqlStatement" ],
       [ "SqlText", "de/dfe/structLightweight_1_1SqlText.html", "de/dfe/structLightweight_1_1SqlText" ],
       [ "SqlTime", "d7/d53/structLightweight_1_1SqlTime.html", "d7/d53/structLightweight_1_1SqlTime" ],

@@ -26,7 +26,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20260514.0</span>
+   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20260522.0</span>
    </div>
   </td>
  </tr>
@@ -257,15 +257,38 @@ Select elements</h1>
 </li>
 </ul>
 </li>
-<li>End<ul>
+<li>End (finalizers — only reachable after at least one projection has been added)<ul>
+<li><code>Count()</code><ul>
+<li>Emits <code>SELECT COUNT(*) FROM ...</code>. Exposed on the starter directly — <code>SELECT COUNT(*)</code> is well-formed without an explicit column list.</li>
+</ul>
+</li>
 <li><code>First()</code><ul>
 <li>Specify number of elements to fetch, by default only one element will be fetched.</li>
 </ul>
 </li>
 <li><code>All()</code></li>
+<li><code>Range(offset, limit)</code></li>
 </ul>
 </li>
 </ul>
+<blockquote class="doxtable">
+<p>&zwj;<b>Compile-time guard against empty projections.</b> <code>Select()</code> returns a <code>SqlSelectQueryStarter</code> — a distinct type that intentionally does <b>not</b> expose <code>All()</code>, <code>First()</code>, or <code>Range()</code>. Both of these patterns are therefore compile errors:</p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> bad1 = q.FromTable(<span class="stringliteral">&quot;T&quot;</span>).Select().All();           <span class="comment">// chain — compile error</span></div>
+<div class="line"> </div>
+<div class="line"><span class="keyword">auto</span> q2 = q.FromTable(<span class="stringliteral">&quot;T&quot;</span>).Select();</div>
+<div class="line"><span class="keyword">auto</span> bad2 = q2.All();                                  <span class="comment">// named lvalue — compile error</span></div>
+</div><!-- fragment --><p>Adding a projection (<code>Field</code>, <code>Fields</code>, <code>FieldAs</code>, <code>Build</code>) returns a <code>SqlSelectQueryBuilder&amp;</code> aliasing the starter's storage. That reference exposes the finalizers:</p>
+<div class="fragment"><div class="line"><span class="comment">// Chain — Field returns Builder&amp;, finalizer bound to that reference:</span></div>
+<div class="line"><span class="keyword">auto</span> good = q.FromTable(<span class="stringliteral">&quot;T&quot;</span>).Select().Field(<span class="stringliteral">&quot;*&quot;</span>).All();</div>
+<div class="line"> </div>
+<div class="line"><span class="comment">// Imperative — capture the first projection as auto&amp;, continue from there:</span></div>
+<div class="line"><span class="keyword">auto</span> starter = q.FromTable(<span class="stringliteral">&quot;T&quot;</span>).Select();</div>
+<div class="line"><span class="keyword">auto</span>&amp; query = starter.Field(columns[0].name);</div>
+<div class="line"><span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 1; i &lt; columns.size(); ++i) query.Field(columns[i].name);</div>
+<div class="line"><span class="keyword">auto</span> result = query.All();</div>
+</div><!-- fragment --><p>To select all columns, use <code>.Field("*")</code> — the single-<code>Field</code> overload special-cases the wildcard. <code>Fields("*")</code> and <code>Fields({"*"})</code> quote the literal and produce <code>SELECT "*" FROM ...</code>, which is not what you want.</p>
+<p><code>Distinct()</code> and <code>Varying()</code> are exposed on the starter as state-preserving overrides (they return <code>SqlSelectQueryStarter&amp;</code>), so chains like <code>Select().Distinct().Fields(...).All()</code> keep working while <code>Select().Distinct().All()</code> is still a compile error. <code>Where</code>, <code>OrderBy</code>, <code>GroupBy</code>, and the join family (<code>InnerJoin</code>, <code>LeftOuterJoin</code>, etc.) are re-exposed via <code>using</code> declarations and <em>promote</em> the chain — they return <code>SqlSelectQueryBuilder&amp;</code>. A chain like <code>Select().WhereNotNull("x").All()</code> will therefore compile (a small leak in the gate, in exchange for keeping the common <code>Select().WhereNotNull("x").Count()</code> pattern working unchanged). </p>
+</blockquote>
 <h2><a class="anchor" id="example-1"></a>
 Example</h2>
 <div class="fragment"><div class="line"><span class="keyword">auto</span> query = q.FromTable(<span class="stringliteral">&quot;Table_A&quot;</span>)</div>

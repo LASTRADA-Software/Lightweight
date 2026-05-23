@@ -222,9 +222,9 @@ var NAVTREEINDEX =
 "d2/dd0/structLightweight_1_1Field.html#ac38b8072a1d454cdab18e208bf86291b",
 "d5/dc4/dbtool.html",
 "d7/d53/structLightweight_1_1SqlTime.html#a77e27a267510342d66743aee61902494",
-"d9/dfd/classLightweight_1_1SqlBackup_1_1TableFilter.html#ac16512ae4852ecbf22ab84abeda29e7e",
-"dd/d2b/structLightweight_1_1SqlCreateIndexPlan.html#ae9a36b06c089d48e25e896e2e25d0676",
-"df/d3f/structLightweight_1_1SqlVariant.html#ab4b919a8e1ae022435d908bdab2684a0"
+"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2",
+"dd/d2a/TracyProfiler_8hpp_source.html",
+"df/d3f/structLightweight_1_1SqlVariant.html#a0c88051cb048b8cc50fa3ae9bc77a3ef"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
