@@ -124,10 +124,54 @@ interface. Here we present a compressed list of functions that can be used to cr
       ```
   -  `Inner`|`LeftOuter`|`RightOuter`|`FullOuter` + `Join`
     - See documentation for `SqlJoinConditionBuilder` for details 
-- End
+- End (finalizers — only reachable after at least one projection has been added)
+  - `Count()`
+    - Emits `SELECT COUNT(*) FROM ...`. Exposed on the starter directly — `SELECT COUNT(*)` is well-formed without an explicit column list.
   - `First()`
     - Specify number of elements to fetch, by default only one element will be fetched.
   - `All()`
+  - `Range(offset, limit)`
+
+> **Compile-time guard against empty projections.** `Select()` returns a
+> `SqlSelectQueryStarter` — a distinct type that intentionally does **not** expose
+> `All()`, `First()`, or `Range()`. Both of these patterns are therefore compile
+> errors:
+>
+> ```cpp
+> auto bad1 = q.FromTable("T").Select().All();           // chain — compile error
+>
+> auto q2 = q.FromTable("T").Select();
+> auto bad2 = q2.All();                                  // named lvalue — compile error
+> ```
+>
+> Adding a projection (`Field`, `Fields`, `FieldAs`, `Build`) returns a
+> `SqlSelectQueryBuilder&` aliasing the starter's storage. That reference exposes
+> the finalizers:
+>
+> ```cpp
+> // Chain — Field returns Builder&, finalizer bound to that reference:
+> auto good = q.FromTable("T").Select().Field("*").All();
+>
+> // Imperative — capture the first projection as auto&, continue from there:
+> auto starter = q.FromTable("T").Select();
+> auto& query = starter.Field(columns[0].name);
+> for (size_t i = 1; i < columns.size(); ++i) query.Field(columns[i].name);
+> auto result = query.All();
+> ```
+>
+> To select all columns, use `.Field("*")` — the single-`Field` overload special-cases
+> the wildcard. `Fields("*")` and `Fields({"*"})` quote the literal and produce
+> `SELECT "*" FROM ...`, which is not what you want.
+>
+> `Distinct()` and `Varying()` are exposed on the starter as state-preserving
+> overrides (they return `SqlSelectQueryStarter&`), so chains like
+> `Select().Distinct().Fields(...).All()` keep working while
+> `Select().Distinct().All()` is still a compile error. `Where`, `OrderBy`,
+> `GroupBy`, and the join family (`InnerJoin`, `LeftOuterJoin`, etc.) are
+> re-exposed via `using` declarations and *promote* the chain — they return
+> `SqlSelectQueryBuilder&`. A chain like `Select().WhereNotNull("x").All()` will
+> therefore compile (a small leak in the gate, in exchange for keeping the
+> common `Select().WhereNotNull("x").Count()` pattern working unchanged).
 
 
 ### Example

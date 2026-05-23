@@ -1588,19 +1588,26 @@ std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
     ZoneScopedN("DataMapper::QuerySingle(PK)");
     ZoneTextObject(RecordTableName<Record>);
 
-    auto queryBuilder = _connection.Query(RecordTableName<Record>).Select();
-
+    // Starter doesn't expose finalizers / Where until at least one column is
+    // projected. The reflection enumeration below is constexpr-conditional, so
+    // which iteration adds the first column isn't known up front — promote on the
+    // first storage field via the returned Builder&, then reuse that pointer.
+    auto selectStarter = _connection.Query(RecordTableName<Record>).Select();
+    SqlSelectQueryBuilder* queryBuilder = nullptr;
     Reflection::EnumerateMembers<Record>([&]<size_t I, typename FieldType>() {
         if constexpr (FieldWithStorage<FieldType>)
         {
-            queryBuilder.Field(FieldNameAt<I, Record>);
+            if (queryBuilder == nullptr)
+                queryBuilder = &selectStarter.Field(FieldNameAt<I, Record>);
+            else
+                queryBuilder->Field(FieldNameAt<I, Record>);
 
             if constexpr (FieldType::IsPrimaryKey)
-                std::ignore = queryBuilder.Where(FieldNameAt<I, Record>, SqlWildcard);
+                std::ignore = queryBuilder->Where(FieldNameAt<I, Record>, SqlWildcard);
         }
     });
 
-    _stmt.Prepare(queryBuilder.First());
+    _stmt.Prepare(queryBuilder->First());
     auto reader = _stmt.Execute(std::forward<PrimaryKeyTypes>(primaryKeys)...);
 
     auto resultRecord = std::optional<Record> { Record {} };

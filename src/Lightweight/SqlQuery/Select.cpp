@@ -202,4 +202,80 @@ SqlSelectQueryBuilder::ComposedQuery SqlSelectQueryBuilder::Range(std::size_t of
         return _query;
 }
 
+// ---- const overloads ---------------------------------------------------------
+// Delegate to the non-const overloads via const_cast. Well-defined here because
+// the only state these overloads touch (_query in the base, _aliasAllowed
+// here) is marked `mutable` — mutable members are exempt from the const
+// constraint, so writes through a const-cast handle have defined behavior even
+// for a truly-const object. This lets callers chain through a `const`-bound
+// builder reference (e.g. `auto const second = first.Field("x");`).
+
+SqlSelectQueryBuilder const& SqlSelectQueryBuilder::Field(std::string_view const& fieldName) const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->Field(fieldName);
+}
+
+SqlSelectQueryBuilder const& SqlSelectQueryBuilder::Field(SqlQualifiedTableColumnName const& fieldName) const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->Field(fieldName);
+}
+
+SqlSelectQueryBuilder const& SqlSelectQueryBuilder::Field(SqlFieldExpression const& fieldExpression) const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->Field(fieldExpression);
+}
+
+SqlSelectQueryBuilder const& SqlSelectQueryBuilder::As(std::string_view alias) const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->As(alias);
+}
+
+SqlSelectQueryBuilder const& SqlSelectQueryBuilder::Fields(std::vector<std::string_view> const& fieldNames) const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->Fields(fieldNames);
+}
+
+SqlSelectQueryBuilder const& SqlSelectQueryBuilder::Fields(std::vector<std::string_view> const& fieldNames,
+                                                           std::string_view tableName) const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->Fields(fieldNames, tableName);
+}
+
+SqlSelectQueryBuilder const& SqlSelectQueryBuilder::Fields(std::initializer_list<std::string_view> const& fieldNames,
+                                                           std::string_view tableName) const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->Fields(fieldNames, tableName);
+}
+
+SqlSelectQueryBuilder const& SqlSelectQueryBuilder::Fields(std::span<SqlQualifiedTableColumnName const> fieldNames) const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->Fields(fieldNames);
+}
+
+SqlSelectQueryBuilder const& SqlSelectQueryBuilder::Fields(
+    std::initializer_list<SqlQualifiedTableColumnName const> fieldNames) const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->Fields(fieldNames);
+}
+
+SqlSelectQueryBuilder::ComposedQuery SqlSelectQueryBuilder::Count() const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->Count();
+}
+
+SqlSelectQueryBuilder::ComposedQuery SqlSelectQueryBuilder::All() const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->All();
+}
+
+SqlSelectQueryBuilder::ComposedQuery SqlSelectQueryBuilder::First(size_t count) const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->First(count);
+}
+
+SqlSelectQueryBuilder::ComposedQuery SqlSelectQueryBuilder::Range(std::size_t offset, std::size_t limit) const
+{
+    return const_cast<SqlSelectQueryBuilder*>(this)->Range(offset, limit);
+}
+
 } // namespace Lightweight

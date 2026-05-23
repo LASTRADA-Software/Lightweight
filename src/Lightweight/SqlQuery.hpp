@@ -68,7 +68,15 @@ class [[nodiscard]] SqlQueryBuilder final
     LIGHTWEIGHT_API SqlLastInsertIdQuery LastInsertId();
 
     /// Initiates SELECT query building.
-    LIGHTWEIGHT_API SqlSelectQueryBuilder Select() noexcept;
+    ///
+    /// Returns a @ref SqlSelectQueryStarter — a type that intentionally does not
+    /// expose @c All / @c First / @c Range, so `Select().All()` and the equivalent
+    /// `auto q = Select(); q.All();` (both empty-projection patterns) fail to
+    /// compile. Add a column via `.Field(...)`, `.Fields(...)`, `.FieldAs(...)`,
+    /// or `.Build([](auto& q){ ... })` — each returns a `SqlSelectQueryBuilder&`
+    /// that exposes the finalizers. `.Count()` is exposed on the starter directly,
+    /// since `SELECT COUNT(*)` is well-formed without an explicit field list.
+    LIGHTWEIGHT_API SqlSelectQueryStarter Select() noexcept;
 
     /// Initiates UPDATE query building.
     ///
