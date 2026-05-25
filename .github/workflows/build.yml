@@ -574,6 +574,67 @@ jobs:
               -f .github/Reflection.Dockerfile \
               --load . --no-cache
 
+  ubuntu_dbtool_gui:
+    # Headless CI coverage for the Qt 6 dbtool-gui binary. Runs three test
+    # layers under `QT_QPA_PLATFORM=offscreen` — Catch2 unit tests for
+    # AppController, qmltestrunner suites for the Lightweight.Migrations QML
+    # module, and a process smoke test against the real binary. No display
+    # server is required.
+    name: "dbtool-gui (Ubuntu, Qt 6.8, headless)"
+    # ubuntu-24.04 ships Catch2 v3 (the test sources include the v3-only
+    # `catch2/catch_session.hpp`); 22.04's `catch2` package is still v2.
+    runs-on: ubuntu-24.04
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fetch tags
+        # cmake/Version.cmake derives the project version from the latest
+        # `v*` git tag; actions/checkout does a shallow clone without tags, so
+        # unshallow + fetch tags here (matching ubuntu_build_cc_matrix).
+        run: git fetch --prune --unshallow --tags
+      - name: "update APT database"
+        run: sudo apt -q update
+      - name: "install build + ODBC dependencies"
+        run: |
+          sudo apt install -y \
+            cmake ninja-build catch2 \
+            unixodbc-dev libsqliteodbc \
+            uuid-dev libyaml-cpp-dev libzip-dev \
+            python3-yaml \
+            libgl1-mesa-dev libegl1 libxkbcommon0 libfontconfig1
+      - name: "install Clang 20"
+        # clang-20 is not in the stock Ubuntu repositories — pull it from the
+        # official LLVM apt source.
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 20
+          sudo apt-get install -y clang-20
+      - name: Install Qt 6.8
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.0'
+          cache: true
+          # QtQml/QtQuick/QtQuickControls2 ship in the base desktop install —
+          # they are NOT aqtinstall add-on modules, so listing `qtdeclarative`
+          # here makes aqt fail its package-XML lookup. Only true add-ons go in
+          # `modules`; qtshadertools provides the build-time `qsb` tooling.
+          modules: 'qtshadertools'
+      - name: "configure"
+        run: |
+          cmake -S . -B out/build/ci-gui \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_COMPILER=clang++-20 \
+            -DLIGHTWEIGHT_BUILD_GUI=ON \
+            -DLIGHTWEIGHT_BUILD_TESTS=ON \
+            -DPEDANTIC_COMPILER_WERROR=OFF
+      - name: "build"
+        run: cmake --build out/build/ci-gui --target dbtool-gui dbtool-gui-tests dbtool-gui-qmltest -- -j3
+      - name: "ctest (Catch2 + qmltestrunner + smoke)"
+        run: ctest --test-dir out/build/ci-gui -L dbtool-gui --output-on-failure
+
   ddl2cpp:
     name: "ddl2cpp"
     runs-on: ubuntu-24.04
