@@ -31,12 +31,12 @@ plan and deferred work.
   Tracking as a phase-4 follow-up; the CLI-grade fallback chain
   (`env:` / `file:` / `stdin:`) is wired today and covers every headless / CI
   scenario.
-- Three new GitHub Actions matrix jobs (`ubuntu + Qt 6.7`, `windows + Qt 6.7`,
-  `macos + Qt 6.7`) — the plan's §8 CI section. Ready to add once the team
-  confirms the `jurplel/install-qt-action` caching strategy.
-- QML test-runner integration (`qmltestrunner`) — the C++ view-model is
-  covered by compilation + offscreen smoke runs; dedicated QML component
-  tests come in the CI follow-up.
+- Windows + macOS GitHub Actions runners for the GUI tests. The Linux job
+  (`ubuntu_dbtool_gui` in `.github/workflows/build.yml`) lands as the first
+  step; the same `jurplel/install-qt-action@v4` recipe drops onto the other
+  two platforms in a follow-up once the Linux job is stable.
+- Postgres / MSSQL fan-out for the GUI test job (the existing
+  `dbms_test_matrix` pattern reused with `LIGHTWEIGHT_BUILD_GUI=ON`).
 
 ## Building
 
@@ -58,6 +58,31 @@ cmake -S . -B build -DLIGHTWEIGHT_BUILD_GUI=ON -DQt6_DIR=C:/Qt/6.11.0/msvc2022_6
 # Headless smoke test (uses Qt's offscreen platform — no display needed):
 QT_QPA_PLATFORM=offscreen ./build/target/dbtool-gui &
 ```
+
+## Running the tests
+
+When the project is configured with `LIGHTWEIGHT_BUILD_GUI=ON` **and**
+`LIGHTWEIGHT_BUILD_TESTS=ON`, three CTest entries become available under the
+shared `dbtool-gui` label, all of which run under
+`QT_QPA_PLATFORM=offscreen`:
+
+| CTest entry          | Layer              | Runner                                  |
+|----------------------|--------------------|-----------------------------------------|
+| `dbtool-gui-tests`   | C++ view-model     | Catch2 (`AppControllerTests.cpp`)       |
+| `dbtool-gui-qmltest` | QML components     | Qt `qmltestrunner` (`tests/qml/*.qml`)  |
+| `dbtool-gui-smoke`   | Process startup    | `src/tests/test_dbtool_gui.py` (Python) |
+
+Run them all in one go:
+
+```bash
+ctest --preset clang-debug -L dbtool-gui --output-on-failure
+# or, against the Windows build:
+ctest --preset clangcl-debug -L dbtool-gui --output-on-failure
+```
+
+The same recipe runs on every push via the `dbtool-gui (Ubuntu, Qt 6.8,
+headless)` GitHub Actions job — see `ubuntu_dbtool_gui` in
+`.github/workflows/build.yml`.
 
 ## QML module
 
@@ -92,4 +117,7 @@ dbtool-gui/
                             MigrationRow, StatusCard, ReleasesSummary,
                             ActionsPanel, LogPanel, ConnectionPanel,
                             BackupRestoreDialog).
+  tests/                    Headless test suites. Built when
+                            LIGHTWEIGHT_BUILD_TESTS=ON; see "Running the
+                            tests" above.
 ```
