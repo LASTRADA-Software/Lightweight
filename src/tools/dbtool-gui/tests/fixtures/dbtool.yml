@@ -1,0 +1,18 @@
+# Profile store fixture for the dbtool-gui Catch2 tests.
+#
+# Two profiles so tests that exercise the profile model see a non-trivial
+# list. No `connectionString` is exercised at *load* time — the
+# `connectToProfile()` integration tests pick the right driver per platform
+# at runtime so this YAML stays portable across CI hosts.
+
+defaultProfile: sqlite-temp
+
+profiles:
+  sqlite-temp:
+    # Driver name varies (Linux: SQLite3, Windows: SQLite3 ODBC Driver) —
+    # individual tests assemble the live connection string instead of
+    # binding the fixture to one platform.
+    connectionString: "Driver=SQLite3;Database=:memory:"
+
+  sqlite-secondary:
+    connectionString: "Driver=SQLite3;Database=:memory:"
