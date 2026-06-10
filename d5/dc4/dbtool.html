@@ -283,7 +283,19 @@ restore</h2>
 <div class="fragment"><div class="line">dbtool restore --input backup.zip --schema new_schema</div>
 </div><!-- fragment --><p><b>Restore only specific tables:</b></p>
 <div class="fragment"><div class="line">dbtool restore --input backup.zip --filter-tables=Users,Products</div>
-</div><!-- fragment --><h1><a class="anchor" id="command-line-options-reference"></a>
+</div><!-- fragment --><h2><a class="anchor" id="backup-diff"></a>
+backup-diff</h2>
+<p>Compare the <b>data content</b> of two backup archives to detect silent data corruption — for example, to prove that a concurrent (multi-threaded) backup contains the same rows as a safe single-threaded baseline:</p>
+<div class="fragment"><div class="line">dbtool backup-diff --left backup_st.zip --right backup_mt.zip</div>
+</div><!-- fragment --><p>This is a pure file comparison: it opens <b>no database connection</b>.</p>
+<p>The comparison is <b>order-independent</b>. Two backups of the same database can legitimately emit rows in a different order and split them into different chunks (different pagination, worker interleaving), so chunk-level checksums would diverge even when the data is identical. Instead, <code>backup-diff</code> compares the <em>multiset of rows</em> per table:</p>
+<ul>
+<li>Tables present in only one archive are reported as a difference.</li>
+<li>For each common table, every row is decoded from its <code>data/&lt;table&gt;/NNNN.msgpack</code> chunks, serialized to a canonical, length-prefixed, type-tagged byte encoding (with an explicit NULL marker so e.g. string <code>"12"</code> followed by int <code>3</code> can never collide with string <code>"123"</code>), hashed with SHA-256, and counted into a <code>digest -&gt; count</code> map. The two maps are then compared. Only digests and counts are retained, so memory stays proportional to the number of <em>distinct</em> rows — archives with millions of rows remain tractable. One table is processed at a time on both sides; neither archive is held in memory in full.</li>
+<li>For differing tables, the command reports the per-side row count, the number of rows present only on each side, and up to three example differing row digests.</li>
+</ul>
+<p>It prints a summary line (<code>N tables compared, M identical, K differing</code>) and exits <code>0</code> when every common table is identical and both archives hold the same set of tables, or <code>1</code> otherwise.</p>
+<h1><a class="anchor" id="command-line-options-reference"></a>
 Command-Line Options Reference</h1>
 <table class="markdownTable">
 <tr class="markdownTableHead">
@@ -300,6 +312,10 @@ Command-Line Options Reference</h1>
 <td class="markdownTableBodyNone"><code>--output &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">Output file for backup   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--input &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">Input file for restore   </td><td class="markdownTableBodyNone"></td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>--left &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">First (baseline) backup archive for <code>backup-diff</code>   </td><td class="markdownTableBodyNone"></td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>--right &lt;FILE&gt;</code>   </td><td class="markdownTableBodyNone">Second (candidate) backup archive for <code>backup-diff</code>   </td><td class="markdownTableBodyNone"></td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--filter-tables &lt;PATTERN&gt;</code>   </td><td class="markdownTableBodyNone">Table filter (wildcards supported)   </td><td class="markdownTableBodyNone"><code>*</code> (all tables)    </td></tr>
 <tr class="markdownTableRowEven">
