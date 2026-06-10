@@ -8,6 +8,9 @@
 
 #include "Api.hpp"
 #include "DataBinder/Core.hpp"
+#include "DataBinder/SqlDate.hpp"
+#include "DataBinder/SqlDateTime.hpp"
+#include "DataBinder/SqlGuid.hpp"
 #include "SqlConnection.hpp"
 #include "SqlQuery.hpp"
 #include "SqlQueryFormatter.hpp"
@@ -43,6 +46,7 @@ concept SqlQueryObject = requires(QueryObject const& queryObject) {
 
 class SqlResultCursor;
 class SqlVariantRowCursor;
+class RowArrayCursor;
 
 /// @brief High level API for (prepared) raw SQL statements
 ///
@@ -209,6 +213,20 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     [[nodiscard]] SqlResultCursor ExecuteDirect(SqlQueryObject auto const& query,
                                                 std::source_location location = std::source_location::current());
 
+    /// Executes @p query and prepares bulk row-array fetching with up to @p arrayDepth rows per
+    /// SQLFetchScroll round-trip.
+    ///
+    /// This is a fast-path alternative to the per-cell SQLGetData loop used by the regular result
+    /// cursor: it binds one contiguous buffer per result column and materializes whole row blocks
+    /// per ODBC round-trip. Only fixed-stride column types are supported (integers, floating point,
+    /// and bounded character columns). LOB / unbounded columns (varchar(max)/text/varbinary(max))
+    /// are rejected by the returned cursor's construction.
+    ///
+    /// @param query The SQL query to execute.
+    /// @param arrayDepth Maximum number of rows materialized per SQLFetchScroll call (must be > 0).
+    /// @return A RowArrayCursor bound to this statement's result set.
+    [[nodiscard]] LIGHTWEIGHT_API RowArrayCursor ExecuteBatchFetch(std::string_view query, std::size_t arrayDepth);
+
     /// Executes an SQL migration query, as created b the callback.
     template <typename Callable>
         requires std::invocable<Callable, SqlMigrationQueryBuilder&>
@@ -245,6 +263,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 
   private:
     friend class SqlResultCursor;
+    friend class RowArrayCursor;
 
     [[nodiscard]] LIGHTWEIGHT_API size_t NumRowsAffected() const;
     [[nodiscard]] LIGHTWEIGHT_API size_t NumColumnsAffected() const;
@@ -461,6 +480,164 @@ class [[nodiscard]] SqlResultCursor
 
   private:
     SqlStatement* m_stmt;
+};
+
+/// @brief A cursor that fetches result rows in bulk (ODBC row-array binding) for fast column reads.
+///
+/// Created via @ref SqlStatement::ExecuteBatchFetch. Instead of issuing one SQLGetData per cell,
+/// this cursor binds a contiguous buffer per result column and lets the driver materialize whole
+/// blocks of rows per SQLFetchScroll round-trip — eliminating per-cell driver round-trips.
+///
+/// Supported (fixed-stride) column types, decided per column from SQLDescribeCol:
+///  - integer SQL types (SQL_BIT, SQL_TINYINT, SQL_SMALLINT, SQL_INTEGER, SQL_BIGINT)
+///    are bound as SQL_C_SBIGINT (an int64 buffer);
+///  - floating SQL types (SQL_REAL, SQL_FLOAT, SQL_DOUBLE) are bound as SQL_C_DOUBLE;
+///  - all other types (char/varchar/decimal/date/time/timestamp/numeric/...) are bound as
+///    SQL_C_CHAR with a per-column buffer sized from the reported column size (plus a margin,
+///    capped at @ref MaxCharColumnBytes).
+///
+/// LOB / unbounded columns (the driver reports column size 0 or an absurdly large size) are
+/// rejected: constructing the cursor throws std::runtime_error. Such columns must use the
+/// single-row SQLGetData fallback instead.
+///
+/// The cursor is non-copyable and non-movable: it owns the ODBC statement's array-binding state for
+/// its entire lifetime. The constructor binds raw pointers into its own members
+/// (SQL_ATTR_ROWS_FETCHED_PTR, SQL_ATTR_ROW_STATUS_PTR) and SQLBindCol into its per-column buffers,
+/// so the object must not be relocated after construction — a move would leave the statement handle
+/// pointing at the moved-from storage (use-after-free). It is constructed in place via
+/// @ref SqlStatement::ExecuteBatchFetch (guaranteed copy elision) and used as a local. The bound
+/// buffers must outlive the SQLBindCol binding until fetching completes. Cell indices are 1-based to
+/// match SqlResultCursor::GetColumn.
+class [[nodiscard]] RowArrayCursor
+{
+  public:
+    /// Maximum byte width allocated for a single bound character column (per row). Columns whose
+    /// reported size exceeds this are treated as unbounded/LOB and rejected.
+    static constexpr std::size_t MaxCharColumnBytes = 8192;
+
+    /// Per-cursor byte budget for the bound column buffers. The effective array depth is
+    /// clamp(budget / row-byte-width, MinArrayDepth, requested depth), so wide tables (many or
+    /// large character columns) bind fewer rows per round-trip instead of exhausting memory —
+    /// the footprint otherwise multiplies across workers x columns x depth on real schemas.
+    static constexpr std::size_t MemoryBudgetBytes = 4 * 1024 * 1024;
+
+    /// Lower bound for the budget-adapted array depth, so bulk fetch always makes progress even
+    /// on extremely wide rows (never reduced below this unless the caller requested less).
+    static constexpr std::size_t MinArrayDepth = 16;
+
+    RowArrayCursor() = delete;
+    RowArrayCursor(RowArrayCursor const&) = delete;
+    RowArrayCursor& operator=(RowArrayCursor const&) = delete;
+    RowArrayCursor(RowArrayCursor&&) = delete;
+    RowArrayCursor& operator=(RowArrayCursor&&) = delete;
+
+    /// @brief Constructs the cursor on a statement whose query has already been executed.
+    /// Inspects the result columns via SQLDescribeCol, allocates per-column buffers, and binds
+    /// them with the row-array statement attributes.
+    /// @param stmt The executed statement (must outlive the cursor).
+    /// @param arrayDepth Maximum number of rows materialized per FetchArray() (must be > 0). The
+    ///                   effective depth may be reduced to fit MemoryBudgetBytes (see ArrayDepth()).
+    LIGHTWEIGHT_API RowArrayCursor(SqlStatement& stmt, std::size_t arrayDepth);
+
+    /// @brief Resets the statement's row-array attributes and unbinds the columns so the handle
+    /// can be safely reused.
+    LIGHTWEIGHT_API ~RowArrayCursor() noexcept;
+
+    /// @brief Fetches the next block of rows into the bound buffers.
+    /// @return The number of rows materialized (0 at end of result set).
+    [[nodiscard]] LIGHTWEIGHT_API std::size_t FetchArray();
+
+    /// @brief The number of result columns.
+    [[nodiscard]] LIGHTWEIGHT_API std::size_t ColumnCount() const noexcept;
+
+    /// @brief The effective maximum number of rows per FetchArray() — the requested depth, possibly
+    /// reduced so the bound buffers fit MemoryBudgetBytes (never below MinArrayDepth unless the
+    /// caller requested less).
+    [[nodiscard]] LIGHTWEIGHT_API std::size_t ArrayDepth() const noexcept;
+
+    /// @brief Reads an integer cell from the last fetched block.
+    /// @param rowInBatch 0-based row offset within the block returned by the last FetchArray().
+    /// @param column 1-based result column index.
+    /// @return The value, or std::nullopt if the cell is NULL.
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<std::int64_t> GetI64(std::size_t rowInBatch, SQLUSMALLINT column) const;
+
+    /// @brief Reads a floating-point cell from the last fetched block.
+    /// @param rowInBatch 0-based row offset within the block returned by the last FetchArray().
+    /// @param column 1-based result column index.
+    /// @return The value, or std::nullopt if the cell is NULL.
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<double> GetF64(std::size_t rowInBatch, SQLUSMALLINT column) const;
+
+    /// @brief Reads a text cell from the last fetched block, however the driver bound it.
+    ///
+    /// Narrow-bound cells (SQL_C_CHAR) are returned verbatim — identical bytes to a single-row
+    /// SQL_C_CHAR read. Wide-bound cells (the driver reported SQL_WCHAR/SQL_WVARCHAR, e.g. MSSQL
+    /// NVARCHAR, or SQLite which reports all text as wide) are converted UTF-16 -> UTF-8; for
+    /// valid UTF-8 source data that round-trip is byte-lossless, so the result again matches the
+    /// single-row read of the same cell.
+    ///
+    /// @param rowInBatch 0-based row offset within the block returned by the last FetchArray().
+    /// @param column 1-based result column index.
+    /// @return The UTF-8 value, or std::nullopt if the cell is NULL.
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<std::string> GetString(std::size_t rowInBatch, SQLUSMALLINT column) const;
+
+    /// @brief Reads a DATE cell from the last fetched block. Valid only for Date-bound columns.
+    /// @param rowInBatch 0-based row offset within the block returned by the last FetchArray().
+    /// @param column 1-based result column index.
+    /// @return The value, or std::nullopt if the cell is NULL.
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<SqlDate> GetDate(std::size_t rowInBatch, SQLUSMALLINT column) const;
+
+    /// @brief Reads a TIMESTAMP/DATETIME cell from the last fetched block. Valid only for
+    /// Timestamp-bound columns.
+    /// @param rowInBatch 0-based row offset within the block returned by the last FetchArray().
+    /// @param column 1-based result column index.
+    /// @return The value, or std::nullopt if the cell is NULL.
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<SqlDateTime> GetTimestamp(std::size_t rowInBatch, SQLUSMALLINT column) const;
+
+    /// @brief Reads a GUID cell from the last fetched block. Valid only for Guid-bound columns
+    /// (drivers that report SQL_GUID, i.e. MSSQL uniqueidentifier / PostgreSQL uuid).
+    /// @param rowInBatch 0-based row offset within the block returned by the last FetchArray().
+    /// @param column 1-based result column index.
+    /// @return The value, or std::nullopt if the cell is NULL.
+    [[nodiscard]] LIGHTWEIGHT_API std::optional<SqlGuid> GetGuid(std::size_t rowInBatch, SQLUSMALLINT column) const;
+
+  private:
+    /// How a result column is bound for bulk fetch.
+    enum class BoundType : std::uint8_t
+    {
+        Int64,     //!< bound as SQL_C_SBIGINT into an int64 buffer
+        Double,    //!< bound as SQL_C_DOUBLE into a double buffer
+        Char,      //!< bound as SQL_C_CHAR into a per-column byte buffer
+        WChar,     //!< bound as SQL_C_WCHAR (UTF-16) into a per-column byte buffer
+        Date,      //!< bound as SQL_C_TYPE_DATE into a SQL_DATE_STRUCT buffer
+        Timestamp, //!< bound as SQL_C_TYPE_TIMESTAMP into a SQL_TIMESTAMP_STRUCT buffer
+        Guid,      //!< bound as SQL_C_GUID into a 16-byte GUID buffer
+    };
+
+    /// Per-column binding metadata + owning buffers.
+    struct BoundColumn
+    {
+        BoundType type {};              //!< how this column is bound
+        std::size_t elementWidth {};    //!< byte stride of one row's value in the buffer
+        std::vector<char> buffer;       //!< arrayDepth * elementWidth contiguous bytes
+        std::vector<SQLLEN> indicators; //!< arrayDepth length indicators (SQL_NULL_DATA etc.)
+    };
+
+    void ResetStatementState() noexcept;
+
+    /// Shared accessor prelude: bounds-checks @p rowInBatch against the last fetched block,
+    /// verifies the column is bound as @p expected, and returns the cell's buffer address —
+    /// or nullptr when the cell is SQL NULL.
+    [[nodiscard]] char const* CheckedCell(std::size_t rowInBatch,
+                                          SQLUSMALLINT column,
+                                          BoundType expected,
+                                          char const* accessorName) const;
+
+    SqlStatement* m_stmt;
+    std::size_t m_arrayDepth;
+    std::size_t m_lastFetched = 0;
+    std::vector<BoundColumn> m_columns;
+    SQLULEN m_rowsFetched = 0;
+    std::vector<SQLUSMALLINT> m_rowStatus;
 };
 
 struct [[nodiscard]] SqlSentinelIterator
@@ -1086,7 +1263,13 @@ inline T SqlStatement::GetColumn(SQLUSMALLINT column) const
 {
     T result {};
     SQLLEN indicator {};
-    RequireSuccess(SqlDataBinder<T>::GetColumn(m_hStmt, column, &result, &indicator, *this));
+    {
+        // SQLGetData is where the ODBC driver materializes the column value (driver/network I/O).
+        // Isolating it lets a profiler separate I/O-bound retrieval from CPU-bound value conversion
+        // done by the caller — the key question for deciding what to parallelize.
+        ZoneScopedN("SqlStatement::ColumnGetData");
+        RequireSuccess(SqlDataBinder<T>::GetColumn(m_hStmt, column, &result, &indicator, *this));
+    }
     if constexpr (!detail::SqlNullableType<T>)
         if (indicator == SQL_NULL_DATA)
             throw std::runtime_error { "Column value is NULL" };
@@ -1098,7 +1281,10 @@ inline std::optional<T> SqlStatement::GetNullableColumn(SQLUSMALLINT column) con
 {
     T result {};
     SQLLEN indicator {}; // TODO: Handle NULL values if we find out that we need them for our use-cases.
-    RequireSuccess(SqlDataBinder<T>::GetColumn(m_hStmt, column, &result, &indicator, *this));
+    {
+        ZoneScopedN("SqlStatement::ColumnGetData");
+        RequireSuccess(SqlDataBinder<T>::GetColumn(m_hStmt, column, &result, &indicator, *this));
+    }
     if (indicator == SQL_NULL_DATA)
         return std::nullopt;
     return { std::move(result) };

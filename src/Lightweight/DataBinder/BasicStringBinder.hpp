@@ -7,7 +7,6 @@
 
 #include <cassert>
 #include <cstddef>
-#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <optional>
@@ -43,6 +42,11 @@ namespace detail
     {
         using CharType = ArrayType::value_type;
 
+        // Character C types NUL-terminate every SQLGetData transfer, consuming the last buffer
+        // slot; SQL_C_BINARY transfers raw bytes WITHOUT a terminator, so every buffer slot holds
+        // data. Getting this wrong for binary loses the byte at each continuation boundary.
+        constexpr size_t TrailingNulTerminators = CType == SQL_C_BINARY ? 0 : 1;
+
         *indicator = 0;
 
         // Resize the string to the size of the data
@@ -64,14 +68,18 @@ namespace detail
             return sqlResult;
         }
 
-        if (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator > static_cast<SQLLEN>(result->size()))
+        if (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator != SQL_NO_TOTAL
+            && (static_cast<size_t>(*indicator) / sizeof(CharType)) + TrailingNulTerminators > result->size())
         {
+            // Truncation with a known total. Note the TrailingNulTerminators term: a CHARACTER value whose
+            // length exactly equals the buffer still truncates (the driver spends the last slot
+            // on the NUL terminator), so the continuation must run for indicator == buffer size.
             // We have a truncation and the server knows how much data is left.
             auto const totalCharCount = static_cast<size_t>(*indicator) / sizeof(CharType);
-            auto const charsWritten = result->size() - 1;
-            result->resize(totalCharCount + 1);
+            auto const charsWritten = result->size() - TrailingNulTerminators;
+            result->resize(totalCharCount + TrailingNulTerminators);
             auto* bufferCont = result->data() + charsWritten;
-            auto const bufferCharsAvailable = (totalCharCount + 1) - charsWritten;
+            auto const bufferCharsAvailable = (totalCharCount + TrailingNulTerminators) - charsWritten;
             sqlResult = SQLGetData(
                 stmt, column, CType, bufferCont, static_cast<SQLLEN>(bufferCharsAvailable * sizeof(CharType)), indicator);
             if (SQL_SUCCEEDED(sqlResult))
@@ -83,13 +91,17 @@ namespace detail
         while (sqlResult == SQL_SUCCESS_WITH_INFO && *indicator == SQL_NO_TOTAL)
         {
             // We have a truncation and the server does not know how much data is left.
-            writeIndex += result->size() - 1;
+            writeIndex += result->size() - TrailingNulTerminators;
             result->resize(result->size() * 2);
             auto* const bufferStart = result->data() + writeIndex;
             size_t const bufferCharsAvailable = result->size() - writeIndex;
             sqlResult = SQLGetData(
                 stmt, column, CType, bufferStart, static_cast<SQLLEN>(bufferCharsAvailable * sizeof(CharType)), indicator);
         }
+        // The unknown-total loop exits with the final transfer's char count in the indicator; trim
+        // the over-allocated buffer to the bytes actually written.
+        if (writeIndex > 0 && SQL_SUCCEEDED(sqlResult) && *indicator != SQL_NULL_DATA && *indicator != SQL_NO_TOTAL)
+            result->resize(writeIndex + (static_cast<size_t>(*indicator) / sizeof(CharType)));
         return sqlResult;
     }
 

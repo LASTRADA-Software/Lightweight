@@ -105,14 +105,18 @@ set(SOURCE_FILES
     SqlNumericTests.cpp
     SqlRealNameTests.cpp
     SqlSchemaDbTests.cpp
+    SqlStatementBatchFetchTests.cpp
     SqlStatementDbTests.cpp
     SqlTransactionTests.cpp
     ThreadSafeQueueTests.cpp
     SqlVariantAccessorTests.cpp
     SqlVariantDbTests.cpp
     SqlBackup/AllColumnTypesTests.cpp
+    SqlBackup/EncodingRoundTripTests.cpp
     SqlBackup/BatchManagerIntegrationTests.cpp
+    SqlBackup/ChunkPlannerTests.cpp
     SqlBackup/CommonHelpersTests.cpp
+    SqlBackup/ConnectionPoolTests.cpp
     SqlBackup/ProgressManagerTests.cpp
     SqlBackup/BatchManagerTests.cpp
     SqlBackup/MsgPackChunkFormatsTests.cpp
@@ -125,6 +129,7 @@ set(SOURCE_FILES
     SqlBackup/RobustnessTests.cpp
     SqlBackup/Sha256Tests.cpp
     SqlBackup/TableFilterTests.cpp
+    SqlBackup/WorkerChunkArchiveTests.cpp
     SqlBackup/Tests.cpp
     SqlBackup/SqlBackupCompositeFKTests.cpp
     SqlBackup/SqlBackupIndexTests.cpp

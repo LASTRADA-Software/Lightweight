@@ -189,6 +189,21 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return false;
     }
 
+    /// @brief Whether the dialect provides a batched, whole-database schema-introspection
+    /// fast path that `SqlSchema::ReadAllTables` can use instead of the per-table ODBC
+    /// catalog loop.
+    ///
+    /// Defaults to `false`, meaning the generic per-table catalog reader is used.
+    /// SQL Server returns `true`: it can answer the entire schema with a handful of
+    /// `sys.*` queries, collapsing thousands of per-table round-trips into a few.
+    /// The batched path must produce byte-identical schema metadata to the legacy path.
+    ///
+    /// @return `true` if the dialect supports the batched fast path, `false` otherwise.
+    [[nodiscard]] virtual bool SupportsBatchedSchemaIntrospection() const noexcept
+    {
+        return false;
+    }
+
     /// @brief Builds the canonical foreign-key constraint name for a set of columns.
     ///
     /// Produces `FK_<table>_<col1>[_<col2>…]`. A single-column FK collapses to

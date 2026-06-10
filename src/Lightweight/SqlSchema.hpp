@@ -29,6 +29,34 @@ namespace SqlSchema
                 value.remove_suffix(1);
             return value;
         }
+
+        /// The @c sys.columns size/precision metrics that qualify a Microsoft SQL Server
+        /// column type. Grouped into one struct so the three same-typed integers cannot be
+        /// transposed at a call site.
+        struct MssqlColumnMetrics
+        {
+            /// @c sys.columns.max_length (bytes; @c -1 means MAX/LOB).
+            int maxLength = 0;
+            /// @c sys.columns.precision (for numeric/decimal/money types).
+            int precision = 0;
+            /// @c sys.columns.scale (for numeric/decimal/money types).
+            int scale = 0;
+        };
+
+        /// Maps a Microsoft SQL Server system type name (from @c sys.types.name) plus the
+        /// column's @c max_length / @c precision / @c scale (from @c sys.columns) to the
+        /// canonical @c SqlColumnTypeDefinition variant.
+        ///
+        /// This reproduces, for the batched MSSQL schema reader, exactly what the legacy
+        /// per-table path (@c MakeColumnTypeFromNative plus the MSSQL fixups in
+        /// @c SqlSchema.cpp) yields for the same column, so backup metadata stays
+        /// byte-identical.
+        ///
+        /// @param sysTypeName The system type name, e.g. @c "int", @c "nvarchar", @c "decimal".
+        /// @param metrics     The column's @c max_length / @c precision / @c scale from @c sys.columns.
+        /// @return The mapped column type variant; defaults to @c Varchar for unknown names.
+        [[nodiscard]] LIGHTWEIGHT_API SqlColumnTypeDefinition MakeColumnTypeFromMssqlSysType(std::string_view sysTypeName,
+                                                                                             MssqlColumnMetrics metrics);
     } // namespace detail
 
     struct FullyQualifiedTableName

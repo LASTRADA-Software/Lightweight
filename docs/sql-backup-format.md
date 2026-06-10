@@ -1,5 +1,7 @@
 # Lightweight SQL Backup File Format
 
+> See [sql-backup.md](sql-backup.md) for how the backup engine works (parallelism, memory profile, fault tolerance).
+
 This document specifies the file format used by the Lightweight `SqlBackup` facility and as used by the `dbtool` command-line tool. The backup file is a standard **ZIP archive** containing a metadata manifest and a collection of data chunks for each table.
 
 ## 1. Archive Structure

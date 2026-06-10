@@ -4,6 +4,7 @@
 #include "../DataBinder/SqlGuid.hpp"
 #include "../DataBinder/SqlTime.hpp"
 #include "../SqlColumnTypeDefinitions.hpp"
+#include "../TracyProfiler.hpp"
 #include "../Utils.hpp"
 #include "BatchManager.hpp"
 
@@ -66,6 +67,13 @@ struct BatchColumn
 
     /// Clear the batch column.
     virtual void Clear() = 0;
+
+    /// Bytes the column's fixed-stride raw buffer will occupy at ToRaw() time. Used to flush
+    /// early when variable-length values (large binaries) would make stride x rows explode.
+    [[nodiscard]] virtual size_t ProjectedRawBytes() const
+    {
+        return 0;
+    }
 };
 
 /// A typed batch column.
@@ -950,19 +958,19 @@ struct MsTimeBatchColumn: BatchColumn
 struct StringBatchColumn: BatchColumn
 {
     SqlRawColumnMetadata metadata;
-    std::vector<char> buffer;
-    size_t maxLen;
+    std::vector<std::string> values; // variable-length; fixed-stride buffer built in ToRaw()
+    std::vector<char> buffer;        // ToRaw() staging (stride x rows), rebuilt per flush
     std::vector<SQLLEN> indicators;
+    size_t maxActual = 0; // largest value in this batch -> the ToRaw() stride
 
-    StringBatchColumn(SqlRawColumnMetadata meta, size_t maxLen):
-        metadata(meta),
-        maxLen(std::max(size_t { 1 }, maxLen))
+    StringBatchColumn(SqlRawColumnMetadata meta, size_t declaredLen):
+        metadata(meta)
     {
         // Bind as standard C char array.
         metadata.cType = SQL_C_CHAR;
         // Standard VARCHAR SQL type (unless overridden).
         if (metadata.sqlType == 0)
-            metadata.sqlType = maxLen > 255 ? SQL_LONGVARCHAR : SQL_VARCHAR;
+            metadata.sqlType = declaredLen > 255 ? SQL_LONGVARCHAR : SQL_VARCHAR;
     }
 
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -1039,38 +1047,45 @@ struct StringBatchColumn: BatchColumn
 
     void PushString(std::string_view s)
     {
-        size_t const bufOffset = buffer.size();
-        size_t const copyLen =
-            std::min(s.size(), maxLen); // Binary doesn't need null terminator space technically, but strict sizing
-        buffer.resize(bufOffset + maxLen);
-        std::memcpy(buffer.data() + bufOffset, s.data(), copyLen);
-        // We don't need null terminator for SQL_C_BINARY, but zeroing rest is good practice
-        std::fill(buffer.begin() + static_cast<std::ptrdiff_t>(bufOffset + copyLen),
-                  buffer.begin() + static_cast<std::ptrdiff_t>(bufOffset + maxLen),
-                  0);
-        indicators.push_back(static_cast<SQLLEN>(copyLen));
+        // Stored variable-length (no truncation; the old fixed stride silently cut long
+        // VARCHAR(MAX)/TEXT values); the fixed-stride buffer is laid out at flush time.
+        maxActual = std::max(maxActual, s.size());
+        indicators.push_back(static_cast<SQLLEN>(s.size()));
+        values.emplace_back(s);
     }
 
     void PushNull() override
     {
-        size_t const bufOffset = buffer.size();
-        buffer.resize(bufOffset + maxLen);
+        values.emplace_back();
         indicators.push_back(SQL_NULL_DATA);
     }
 
     void Clear() override
     {
+        values.clear();
+        values.shrink_to_fit();
         buffer.clear();
         buffer.shrink_to_fit();
         indicators.clear();
         indicators.shrink_to_fit();
+        maxActual = 0;
+    }
+
+    [[nodiscard]] size_t ProjectedRawBytes() const override
+    {
+        return std::max(maxActual, size_t { 1 }) * values.size();
     }
 
     SqlRawColumn ToRaw() override
     {
+        size_t const stride = std::max(maxActual, size_t { 1 });
+        buffer.assign(stride * values.size(), 0);
+        for (size_t i = 0; i < values.size(); ++i)
+            if (!values[i].empty())
+                std::memcpy(buffer.data() + (i * stride), values[i].data(), values[i].size());
+
         SqlRawColumnMetadata meta = metadata;
-        // meta.size = maxLen;
-        meta.bufferLength = maxLen;
+        meta.bufferLength = stride;
         return SqlRawColumn { .metadata = meta,
                               .data = std::as_bytes(std::span(buffer)),
                               .indicators = std::span<SQLLEN const> { indicators.data(), indicators.size() } };
@@ -1080,19 +1095,19 @@ struct StringBatchColumn: BatchColumn
 struct WideStringBatchColumn: BatchColumn
 {
     SqlRawColumnMetadata metadata;
-    std::vector<char16_t> buffer;
-    size_t maxLen;
+    std::vector<std::u16string> values; // variable-length; fixed-stride buffer built in ToRaw()
+    std::vector<char16_t> buffer;       // ToRaw() staging (stride x rows), rebuilt per flush
     std::vector<SQLLEN> indicators;
+    size_t maxActualChars = 0; // largest value (in UTF-16 units) -> the ToRaw() stride
 
-    WideStringBatchColumn(SqlRawColumnMetadata meta, size_t maxLen):
-        metadata(meta),
-        maxLen(std::max(size_t { 1 }, maxLen))
+    WideStringBatchColumn(SqlRawColumnMetadata meta, size_t declaredLen):
+        metadata(meta)
     {
         // Bind as Unicode char array.
         metadata.cType = SQL_C_WCHAR;
         // Only set sqlType if not already set (preserve SQL_WLONGVARCHAR for MAX types)
         if (metadata.sqlType == 0)
-            metadata.sqlType = maxLen > 255 ? SQL_WLONGVARCHAR : SQL_WVARCHAR;
+            metadata.sqlType = declaredLen > 255 ? SQL_WLONGVARCHAR : SQL_WVARCHAR;
     }
 
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -1184,46 +1199,49 @@ struct WideStringBatchColumn: BatchColumn
 
     void PushString(std::string_view s)
     {
-        auto const ws = ToUtf16(std::u8string_view(reinterpret_cast<char8_t const*>(s.data()), s.size()));
-        size_t const bufOffset = buffer.size();
-        // size in characters (not bytes)
-        size_t const copyLen = std::min(ws.size(), maxLen);
-
-        buffer.resize(bufOffset + maxLen);
-        std::memcpy(buffer.data() + bufOffset, ws.data(), copyLen * sizeof(char16_t));
-
-        // Zero-fill remaining buffer
-        if (copyLen < maxLen)
-            std::memset(buffer.data() + bufOffset + copyLen, 0, (maxLen - copyLen) * sizeof(char16_t));
-
-        indicators.push_back(static_cast<SQLLEN>(copyLen * sizeof(char16_t)));
+        // Stored variable-length (no truncation; the old fixed stride silently cut long
+        // NVARCHAR(MAX) values); the fixed-stride buffer is laid out at flush time.
+        auto ws = ToUtf16(std::u8string_view(reinterpret_cast<char8_t const*>(s.data()), s.size()));
+        maxActualChars = std::max(maxActualChars, ws.size());
+        indicators.push_back(static_cast<SQLLEN>(ws.size() * sizeof(char16_t)));
+        values.emplace_back(std::move(ws));
     }
 
     void PushNull() override
     {
-        size_t const bufOffset = buffer.size();
-        buffer.resize(bufOffset + maxLen); // Default init to 0
+        values.emplace_back();
         indicators.push_back(SQL_NULL_DATA);
     }
 
     void Clear() override
     {
+        values.clear();
+        values.shrink_to_fit();
         buffer.clear();
         buffer.shrink_to_fit();
         indicators.clear();
         indicators.shrink_to_fit();
+        maxActualChars = 0;
+    }
+
+    [[nodiscard]] size_t ProjectedRawBytes() const override
+    {
+        return std::max(maxActualChars, size_t { 1 }) * sizeof(char16_t) * values.size();
     }
 
     SqlRawColumn ToRaw() override
     {
+        size_t const strideChars = std::max(maxActualChars, size_t { 1 });
+        buffer.assign(strideChars * values.size(), char16_t { 0 });
+        for (size_t i = 0; i < values.size(); ++i)
+            if (!values[i].empty())
+                std::memcpy(buffer.data() + (i * strideChars), values[i].data(), values[i].size() * sizeof(char16_t));
+
         SqlRawColumnMetadata meta = metadata;
         // Preserve size=0 for MAX types to avoid HY104 precision errors on MS SQL
         if (metadata.size != 0)
-            meta.size = maxLen;
-        meta.bufferLength = maxLen * sizeof(char16_t);
-        // Preserve sqlType if already set (e.g., SQL_WLONGVARCHAR for MAX types)
-        if (metadata.sqlType == 0)
-            meta.sqlType = maxLen > 4000 ? SQL_WLONGVARCHAR : SQL_WVARCHAR;
+            meta.size = strideChars;
+        meta.bufferLength = strideChars * sizeof(char16_t);
 
         return SqlRawColumn { .metadata = meta,
                               // Send data as bytes
@@ -1235,103 +1253,72 @@ struct WideStringBatchColumn: BatchColumn
 struct BinaryBatchColumn: BatchColumn
 {
     SqlRawColumnMetadata metadata;
-    std::vector<uint8_t> buffer;
-    size_t maxLen;
+    std::vector<std::vector<uint8_t>> values; // variable-length; fixed-stride buffer built in ToRaw()
     std::vector<SQLLEN> indicators;
+    std::vector<uint8_t> buffer; // ToRaw() staging (stride x rows), rebuilt per flush
+    size_t maxActual = 0;        // largest value in this batch -> the ToRaw() stride
 
-    BinaryBatchColumn(SqlRawColumnMetadata meta, size_t maxLen):
-        metadata(meta),
-        maxLen(std::max(size_t { 1 }, maxLen))
+    BinaryBatchColumn(SqlRawColumnMetadata meta, size_t declaredLen):
+        metadata(meta)
     {
         metadata.cType = SQL_C_BINARY;
         // Only set sqlType if not already set (preserve SQL_LONGVARBINARY for MAX types)
         if (metadata.sqlType == 0)
-            metadata.sqlType = maxLen > 255 ? SQL_LONGVARBINARY : SQL_VARBINARY;
+            metadata.sqlType = declaredLen > 255 ? SQL_LONGVARBINARY : SQL_VARBINARY;
     }
 
-    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+    void AppendValue(std::vector<uint8_t> v)
+    {
+        maxActual = std::max(maxActual, v.size());
+        indicators.push_back(static_cast<SQLLEN>(v.size()));
+        values.push_back(std::move(v));
+    }
+
+    static std::vector<uint8_t> DecodeHex(std::string_view s)
+    {
+        auto fromHex = [](char c) -> uint8_t {
+            if (c >= '0' && c <= '9')
+                return static_cast<uint8_t>(c - '0');
+            if (c >= 'A' && c <= 'F')
+                return static_cast<uint8_t>(c - 'A' + 10);
+            if (c >= 'a' && c <= 'f')
+                return static_cast<uint8_t>(c - 'a' + 10);
+            return 0;
+        };
+        std::vector<uint8_t> out(s.size() / 2);
+        for (size_t b = 0; b < out.size(); ++b)
+            out[b] = static_cast<uint8_t>((fromHex(s[b * 2]) << 4) | fromHex(s[(b * 2) + 1]));
+        return out;
+    }
+
     void PushFromBatch(ColumnBatch::ColumnData const& colData,
                        std::vector<bool> const& nulls,
                        size_t offset,
                        size_t count) override
     {
         std::visit(
-            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
             [&](auto const& inVec) {
                 using VecT = std::decay_t<decltype(inVec)>;
                 for (size_t i = 0; i < count; ++i)
                 {
-                    size_t idx = offset + i;
+                    size_t const idx = offset + i;
                     if (idx < nulls.size() && nulls[idx])
                     {
                         PushNull();
                         continue;
                     }
 
-                    if constexpr (std::is_same_v<VecT, std::monostate>)
-                    {
-                        PushNull();
-                    }
-                    else if constexpr (std::is_same_v<VecT, std::vector<std::vector<uint8_t>>>)
+                    if constexpr (std::is_same_v<VecT, std::vector<std::vector<uint8_t>>>)
                     {
                         if (idx < inVec.size())
-                        {
-                            auto const& v = inVec[idx];
-                            size_t const bufOffset = buffer.size();
-                            buffer.resize(bufOffset + maxLen);
-                            size_t const copyLen = std::min(v.size(), maxLen);
-                            if (copyLen > 0)
-                                std::memcpy(buffer.data() + bufOffset, v.data(), copyLen);
-                            if (copyLen < maxLen)
-                                std::memset(buffer.data() + bufOffset + copyLen, 0, maxLen - copyLen);
-                            indicators.push_back(static_cast<SQLLEN>(copyLen));
-                        }
+                            AppendValue(inVec[idx]); // full value: no truncation
                         else
                             PushNull();
                     }
                     else if constexpr (std::is_same_v<VecT, std::vector<std::string>>)
                     {
                         if (idx < inVec.size())
-                        {
-                            auto const& s = inVec[idx];
-                            if (s.empty())
-                            {
-                                size_t const bufOffset = buffer.size();
-                                buffer.resize(bufOffset + maxLen);
-                                std::memset(buffer.data() + bufOffset, 0, maxLen);
-                                indicators.push_back(0);
-                            }
-                            else
-                            {
-                                size_t const bufOffset = buffer.size();
-                                buffer.resize(bufOffset + maxLen);
-
-                                // Decode Hex
-                                size_t const hexLen = s.size();
-                                size_t const binLen = hexLen / 2;
-                                size_t const copyLen = std::min(binLen, maxLen);
-
-                                for (size_t b = 0; b < copyLen; ++b)
-                                {
-                                    char h1 = s[b * 2];
-                                    char h2 = s[(b * 2) + 1];
-                                    auto fromHex = [](char c) -> uint8_t {
-                                        if (c >= '0' && c <= '9')
-                                            return static_cast<uint8_t>(c - '0');
-                                        if (c >= 'A' && c <= 'F')
-                                            return static_cast<uint8_t>(c - 'A' + 10);
-                                        if (c >= 'a' && c <= 'f')
-                                            return static_cast<uint8_t>(c - 'a' + 10);
-                                        return 0;
-                                    };
-                                    buffer[bufOffset + b] = static_cast<uint8_t>((fromHex(h1) << 4) | fromHex(h2));
-                                }
-
-                                if (copyLen < maxLen)
-                                    std::memset(buffer.data() + bufOffset + copyLen, 0, maxLen - copyLen);
-                                indicators.push_back(static_cast<SQLLEN>(copyLen));
-                            }
-                        }
+                            AppendValue(DecodeHex(inVec[idx])); // full hex-decoded value
                         else
                             PushNull();
                     }
@@ -1349,76 +1336,59 @@ struct BinaryBatchColumn: BatchColumn
         std::visit(
             [this](auto&& arg) {
                 using ArgT = std::decay_t<decltype(arg)>;
-                if constexpr (std::is_same_v<ArgT, std::monostate>)
-                {
-                    this->PushNull();
-                }
-                else if constexpr (std::is_same_v<ArgT, std::vector<uint8_t>>)
-                {
-                    size_t const offset = buffer.size();
-                    buffer.resize(offset + maxLen);
-                    size_t const copyLen = std::min(arg.size(), maxLen);
-                    std::memcpy(buffer.data() + offset, arg.data(), copyLen);
-                    if (copyLen < maxLen)
-                        std::memset(buffer.data() + offset + copyLen, 0, maxLen - copyLen);
-                    indicators.push_back(static_cast<SQLLEN>(copyLen));
-                }
+                if constexpr (std::is_same_v<ArgT, std::vector<uint8_t>>)
+                    AppendValue(arg);
                 else if constexpr (std::is_same_v<ArgT, std::string>)
-                {
-                    if (arg.empty())
-                    {
-                        size_t const offset = buffer.size();
-                        buffer.resize(offset + maxLen);
-                        std::memset(buffer.data() + offset, 0, maxLen);
-                        indicators.push_back(0);
-                    }
-                    else
-                    {
-                        size_t const offset = buffer.size();
-                        buffer.resize(offset + maxLen);
-
-                        size_t const copyLen = std::min(arg.size(), maxLen);
-                        std::memcpy(buffer.data() + offset, arg.data(), copyLen);
-
-                        if (copyLen < maxLen)
-                            std::memset(buffer.data() + offset + copyLen, 0, maxLen - copyLen);
-                        indicators.push_back(static_cast<SQLLEN>(copyLen));
-                    }
-                }
+                    AppendValue(std::vector<uint8_t>(arg.begin(), arg.end()));
                 else
-                {
                     this->PushNull();
-                }
             },
             val);
     }
 
     void PushNull() override
     {
-        buffer.resize(buffer.size() + maxLen, 0);
+        values.emplace_back();
         indicators.push_back(SQL_NULL_DATA);
     }
 
     void Clear() override
     {
+        values.clear();
+        values.shrink_to_fit();
         buffer.clear();
         buffer.shrink_to_fit();
         indicators.clear();
         indicators.shrink_to_fit();
+        maxActual = 0;
+    }
+
+    [[nodiscard]] size_t ProjectedRawBytes() const override
+    {
+        return std::max(maxActual, size_t { 1 }) * values.size();
     }
 
     SqlRawColumn ToRaw() override
     {
+        // Build the column-wise fixed-stride buffer with the stride of the LARGEST value in this
+        // batch (the old fixed 64 KB stride silently truncated larger LOBs). BatchManager caps the
+        // batch by projected bytes, so stride x rows stays bounded even for multi-MB blobs.
+        size_t const stride = std::max(maxActual, size_t { 1 });
+        buffer.assign(stride * values.size(), 0);
+        for (size_t i = 0; i < values.size(); ++i)
+            if (!values[i].empty())
+                std::memcpy(buffer.data() + (i * stride), values[i].data(), values[i].size());
+
         SqlRawColumnMetadata meta = metadata;
-        // meta.size = maxLen; // Keep original column size (0 for MAX)
-        meta.bufferLength = maxLen;
+        // meta.size stays the declared column size (0 for MAX; the SqlRawColumn binder substitutes
+        // bufferLength as the ColumnSize for LONG types).
+        meta.bufferLength = stride;
         return SqlRawColumn { .metadata = meta,
                               .data = std::span<std::byte const> { reinterpret_cast<std::byte const*>(buffer.data()),
                                                                    buffer.size() },
                               .indicators = std::span<SQLLEN const> { indicators.data(), indicators.size() } };
     }
 };
-
 /// A batch column for GUID values using proper SQL_GUID binding.
 struct GuidBatchColumn: BatchColumn
 {
@@ -1606,11 +1576,16 @@ BatchManager::BatchManager(BatchExecutor executor,
     }
 
     // Calculate memory-aware capacity
-    // Estimate bytes per row based on column definitions
+    // Estimate bytes per row based on column definitions. The per-column estimate is capped:
+    // unbounded types report their declared size, which for varchar(max)/varbinary(max) is the
+    // 2 GB sentinel — uncapped, that drove the capacity to 1 row and the restore into row-by-row
+    // inserts. Actual memory safety is enforced at runtime by the projected-bytes budget
+    // (ExceedsByteBudget), which flushes early when large values really arrive.
+    constexpr size_t MaxColumnEstimate = 64ULL * 1024;
     size_t bytesPerRow = 0;
     for (auto const& col: colDecls)
     {
-        bytesPerRow += EstimateColumnBufferSize(col);
+        bytesPerRow += std::min(EstimateColumnBufferSize(col), MaxColumnEstimate);
         bytesPerRow += sizeof(SQLLEN); // indicator per column
     }
     bytesPerRow = std::max(bytesPerRow, size_t { 1 });
@@ -1794,17 +1769,15 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
     if (std::holds_alternative<SqlColumnTypeDefinitions::VarBinary>(col.type)
         || std::holds_alternative<SqlColumnTypeDefinitions::Binary>(col.type))
     {
-        // Cap binary column sizes to prevent memory exhaustion with VARBINARY(MAX) types.
-        // VARBINARY(MAX) has size INT_MAX (2147483647), which would allocate 2GB per row.
-        // Using 64KB as max - large enough for most data, small enough to not exhaust memory.
-        // Data larger than this will be truncated during batch insert.
-        size_t constexpr maxBinarySize = 65535;
-        size_t constexpr defaultBinarySize = 65535;
-        size_t size = defaultBinarySize;
+        // Values are stored variable-length and laid out into a fixed-stride buffer at flush
+        // time with the stride of the largest value actually present (the old fixed 64 KB stride
+        // silently TRUNCATED larger LOBs). BatchManager bounds memory by flushing when the
+        // projected stride x rows bytes exceed its budget.
+        size_t declaredLen = 0;
         if (auto const* bin = std::get_if<SqlColumnTypeDefinitions::VarBinary>(&col.type))
-            size = (bin->size > 0 && bin->size <= maxBinarySize) ? bin->size : defaultBinarySize;
+            declaredLen = bin->size;
         else if (auto const* bin2 = std::get_if<SqlColumnTypeDefinitions::Binary>(&col.type))
-            size = (bin2->size > 0 && bin2->size <= maxBinarySize) ? bin2->size : defaultBinarySize;
+            declaredLen = bin2->size;
 
         if (meta.size == 0 || meta.size >= 4000)
         {
@@ -1813,7 +1786,7 @@ std::unique_ptr<BatchColumn> BatchManager::CreateColumn(SqlColumnDeclaration con
         }
 
         meta.decimalDigits = 0;
-        return std::make_unique<BinaryBatchColumn>(meta, size);
+        return std::make_unique<BinaryBatchColumn>(meta, declaredLen == 0 ? size_t { 65536 } : declaredLen);
     }
 
     // fallback to varchar
@@ -1827,12 +1800,18 @@ void BatchManager::Flush()
     if (rowCount == 0)
         return;
 
+    ZoneScopedN("Restore::BatchFlush");
+    ZoneValue(rowCount);
+
     try
     {
         std::vector<SqlRawColumn> rawCols;
         rawCols.reserve(columns.size());
-        for (auto& c: columns)
-            rawCols.push_back(c->ToRaw());
+        {
+            ZoneScopedN("Restore::BuildRawColumns");
+            for (auto& c: columns)
+                rawCols.push_back(c->ToRaw());
+        }
 
         executor(rawCols, rowCount);
     }
@@ -1849,6 +1828,22 @@ void BatchManager::Flush()
     rowCount = 0;
 }
 
+namespace
+{
+    /// Byte budget for one batch's fixed-stride raw buffers: variable-length columns (large
+    /// binaries / long texts) flush early instead of letting stride x rows explode (a 2 MB blob
+    /// at a 1000-row capacity would otherwise stage 2 GB at ToRaw time).
+    constexpr size_t MaxBatchRawBytes = 64ULL * 1024 * 1024;
+
+    bool ExceedsByteBudget(std::vector<std::unique_ptr<BatchColumn>> const& columns)
+    {
+        size_t total = 0;
+        for (auto const& column: columns)
+            total += column->ProjectedRawBytes();
+        return total > MaxBatchRawBytes;
+    }
+} // namespace
+
 void BatchManager::PushRow(std::vector<BackupValue> const& row)
 {
     if (row.size() != columns.size())
@@ -1856,7 +1851,7 @@ void BatchManager::PushRow(std::vector<BackupValue> const& row)
     for (size_t i = 0; i < row.size(); ++i)
         columns[i]->Push(row[i]);
     rowCount++;
-    if (rowCount >= capacity)
+    if (rowCount >= capacity || ExceedsByteBudget(columns))
         Flush();
 }
 
@@ -1888,6 +1883,9 @@ void BatchManager::PushBatch(ColumnBatch const& batch)
         rowCount += chunk;
         offset += chunk;
         remaining -= chunk;
+
+        if (ExceedsByteBudget(columns))
+            Flush();
     }
     if (rowCount >= capacity)
         Flush();

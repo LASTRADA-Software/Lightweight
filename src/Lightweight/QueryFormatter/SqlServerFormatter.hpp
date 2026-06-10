@@ -31,6 +31,11 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
         return false;
     }
 
+    [[nodiscard]] bool SupportsBatchedSchemaIntrospection() const noexcept override
+    {
+        return true;
+    }
+
     [[nodiscard]] StringList DropTable(std::string_view schemaName,
                                        std::string_view const& tableName,
                                        bool ifExists = false,
@@ -40,14 +45,18 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
 
         if (cascade)
         {
-            // Drop all FK constraints referencing this table first using dynamic SQL
-            std::string const schemaFilter = schemaName.empty() ? "dbo" : std::string(schemaName);
+            // Drop all FK constraints referencing this table first using dynamic SQL. An empty
+            // schema means the connection's DEFAULT schema (SCHEMA_NAME()) — the same schema the
+            // unqualified DROP TABLE below resolves to — NOT a hard-coded 'dbo': for users whose
+            // default schema differs (e.g. one named after the login), a 'dbo' filter matches
+            // nothing, the referencing FKs survive, and the DROP TABLE fails.
+            std::string const schemaFilter = schemaName.empty() ? "SCHEMA_NAME()" : std::format("'{}'", schemaName);
 
             result.emplace_back(std::format(
                 R"(DECLARE @sql NVARCHAR(MAX) = N'';
 SELECT @sql = @sql + 'ALTER TABLE ' + QUOTENAME(OBJECT_SCHEMA_NAME(fk.parent_object_id)) + '.' + QUOTENAME(OBJECT_NAME(fk.parent_object_id)) + ' DROP CONSTRAINT ' + QUOTENAME(fk.name) + '; '
 FROM sys.foreign_keys fk
-WHERE OBJECT_NAME(fk.referenced_object_id) = '{}' AND OBJECT_SCHEMA_NAME(fk.referenced_object_id) = '{}';
+WHERE OBJECT_NAME(fk.referenced_object_id) = '{}' AND OBJECT_SCHEMA_NAME(fk.referenced_object_id) = {};
 EXEC sp_executesql @sql;)",
                 tableName,
                 schemaFilter));
@@ -334,7 +343,12 @@ EXEC sp_executesql @sql;)",
                                   else
                                       return std::format("NVARCHAR({})", type.size);
                               },
-                              [](Real const&) -> std::string { return "REAL"; },
+                              [](Real const& type) -> std::string {
+                                  // REAL is FLOAT(24) (float32); a Real with precision > 24 (e.g.
+                                  // an introspected float(53) column) must round-trip as FLOAT(53)
+                                  // or restore silently narrows every double to float32.
+                                  return type.precision > 24 ? "FLOAT(53)" : "REAL";
+                              },
                               [](Smallint const&) -> std::string { return "SMALLINT"; },
                               [](Text const&) -> std::string { return "VARCHAR(MAX)"; },
                               [](Time const&) -> std::string { return "TIME"; },

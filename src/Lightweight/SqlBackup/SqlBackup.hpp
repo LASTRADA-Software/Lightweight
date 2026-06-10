@@ -51,8 +51,24 @@ struct BackupSettings
     /// Default: 10 MB.
     std::size_t chunkSizeBytes = 10 * 1024 * 1024;
 
+    /// Target rows per chunk window. Tables with a single numeric primary key are split into
+    /// windows of about this many keys (subject to a per-table window cap) that are backed up
+    /// in parallel by multiple workers.
+    std::size_t rowsPerChunk = 100'000;
+
+    /// Uncompressed bytes each worker accumulates in its private temp archive before sealing it
+    /// (the compression of that archive runs in the worker thread at that point, overlapped with
+    /// the network-bound fetch). Bounds worker memory at about jobs x workerArchiveBytes and
+    /// determines how many temp archives the finalize merge opens. Default: 256 MB.
+    std::size_t workerArchiveBytes = 256ULL * 1024 * 1024;
+
     /// If true, only export schema metadata without backing up table data.
     bool schemaOnly = false;
+
+    /// Deprecated no-op. Previously bypassed the MS SQL Server single-worker clamp; that clamp has
+    /// been removed (all databases now back up multi-threaded), so this flag no longer has any
+    /// effect. Retained temporarily to avoid an API/ABI break; pending removal.
+    bool forceMssqlConcurrency = false;
 };
 
 /// Configuration for restore operations including memory management.

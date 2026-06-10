@@ -8,7 +8,9 @@
 #include "../ThreadSafeQueue.hpp"
 #include "../TracyProfiler.hpp"
 #include "Backup.hpp"
+#include "ChunkPlanner.hpp"
 #include "Common.hpp"
+#include "ConnectionPool.hpp"
 #include "Restore.hpp"
 #include "SqlBackup.hpp"
 #include "SqlBackupFormats.hpp"
@@ -326,8 +328,6 @@ void Backup(std::filesystem::path const& outputFile,
     }
     ZoneValue(concurrency);
 
-    concurrency = std::max(1U, concurrency);
-
     SqlConnection mainConn { std::nullopt };
     if (!mainConn.Connect(connectionString))
     {
@@ -335,11 +335,11 @@ void Backup(std::filesystem::path const& outputFile,
         throw std::runtime_error(std::format("Failed to connect to database: {}", error.message));
     }
 
-    // Force single-threaded operation for MS SQL to avoid ODBC driver data races.
-    // The MS SQL ODBC driver has shared internal buffers that race when multiple
-    // connections execute queries concurrently.
-    if (mainConn.ServerType() == SqlServerType::MICROSOFT_SQL)
-        concurrency = 1U;
+    // All databases run multi-threaded. (Historically MS SQL Server was clamped to a single worker
+    // over a suspected ODBC driver data race. Each worker uses its own independent SqlConnection,
+    // and an initial multi-threaded backup compared byte-identical to a single-threaded baseline via
+    // backup-diff; broader stress validation is ongoing. Re-introduce a clamp if a real race surfaces.)
+    concurrency = std::max(1U, concurrency);
 
     // Create ZIP archive early so workers can write to it
     int err = 0;
@@ -359,14 +359,80 @@ void Backup(std::filesystem::path const& outputFile,
         return;
     }
 
+    // Discards the archive handle on every error path (the merge phase alone has several throw
+    // sites) so a failed backup does not leak the libzip handle and its pending entry state when
+    // Backup() is used as a long-lived library API. Disarmed after the successful zip_close.
+    struct ZipDiscardGuard
+    {
+        zip_t* zip;
+        explicit ZipDiscardGuard(zip_t* z) noexcept:
+            zip { z }
+        {
+        }
+        ZipDiscardGuard(ZipDiscardGuard const&) = delete;
+        ZipDiscardGuard& operator=(ZipDiscardGuard const&) = delete;
+        ZipDiscardGuard(ZipDiscardGuard&&) = delete;
+        ZipDiscardGuard& operator=(ZipDiscardGuard&&) = delete;
+        ~ZipDiscardGuard()
+        {
+            if (zip)
+                zip_discard(zip);
+        }
+    };
+    auto zipGuard = ZipDiscardGuard { zip };
+
     try
     {
+        // Temp directory for flushed chunk payloads (same volume as the archive). libzip defers
+        // reading sources until zip_close, so buffering chunks in memory would hold the entire
+        // uncompressed backup in RAM; file-backed sources keep RSS bounded for huge databases.
+        // The guard removes the directory after zip_close (and on any exception, where the
+        // abandoned archive's sources are never read).
+        struct TempDirGuard
+        {
+            std::filesystem::path dir;
+            explicit TempDirGuard(std::filesystem::path d) noexcept:
+                dir { std::move(d) }
+            {
+            }
+            TempDirGuard(TempDirGuard const&) = delete;
+            TempDirGuard& operator=(TempDirGuard const&) = delete;
+            TempDirGuard(TempDirGuard&&) = delete;
+            TempDirGuard& operator=(TempDirGuard&&) = delete;
+            ~TempDirGuard()
+            {
+                std::error_code ec;
+                std::filesystem::remove_all(dir, ec);
+            }
+        };
+        auto const tempDirGuard = TempDirGuard { std::filesystem::path { outputFile.string() + ".tmp" } };
+        std::filesystem::create_directories(tempDirGuard.dir);
+
+        // The merge keeps the workers' sealed archives open as raw-copy sources until the final
+        // zip_close has streamed their bytes; this guard closes them afterwards (and on error
+        // paths). Declared after tempDirGuard so the handles are closed before the files vanish.
+        struct MergeSourcesGuard
+        {
+            std::vector<zip_t*> sources;
+            MergeSourcesGuard() = default;
+            MergeSourcesGuard(MergeSourcesGuard const&) = delete;
+            MergeSourcesGuard& operator=(MergeSourcesGuard const&) = delete;
+            MergeSourcesGuard(MergeSourcesGuard&&) = delete;
+            MergeSourcesGuard& operator=(MergeSourcesGuard&&) = delete;
+            ~MergeSourcesGuard()
+            {
+                for (auto* source: sources)
+                    zip_close(source);
+            }
+        };
+        auto mergeSources = MergeSourcesGuard {};
+
         std::mutex zipMutex;
         std::map<std::string, std::string> checksums;
         std::mutex checksumMutex;
 
-        // Thread-safe queue for streaming tables from schema reader to workers
-        ThreadSafeQueue<SqlSchema::Table> tableQueue;
+        // Thread-safe queue for streaming chunks of work to the backup workers.
+        ThreadSafeQueue<detail::Chunk> chunkQueue;
 
         // Storage for completed tables (for metadata creation after workers finish)
         std::vector<SqlSchema::Table> completedTables;
@@ -429,8 +495,11 @@ void Backup(std::filesystem::path const& outputFile,
         // The MS SQL ODBC driver and OpenSSL have shared internal state that's not thread-safe
         // when multiple connections are executing queries concurrently with schema queries.
         auto stmt = SqlStatement { mainConn };
-        SqlSchema::ReadAllTables(
-            stmt, mainConn.DatabaseName(), schema, schemaCallback, tableReadyCallback, tableFilterPredicate);
+        {
+            ZoneScopedN("Backup::Phase::SchemaScan");
+            SqlSchema::ReadAllTables(
+                stmt, mainConn.DatabaseName(), schema, schemaCallback, tableReadyCallback, tableFilterPredicate);
+        }
 
         progress.Update({ .state = Progress::State::Finished,
                           .tableName = "Scanning schema",
@@ -443,37 +512,122 @@ void Backup(std::filesystem::path const& outputFile,
         // Back up data (unless schema-only mode)
         if (!backupSettings.schemaOnly)
         {
-            // Now that schema scanning is complete, pre-create all worker connections.
+            ZoneScopedN("Backup::Phase::DataExport");
+            // Now that schema scanning is complete, pre-create the worker connection pool.
             // All connections are established sequentially to avoid ODBC driver races.
-            std::vector<std::unique_ptr<SqlConnection>> workerConnections;
-            workerConnections.reserve(concurrency);
-            for (auto const i: std::views::iota(0U, concurrency))
+            detail::ConnectionPool pool { connectionString, concurrency, retrySettings, progress };
+
+            // Plan the chunk work-list: every PK-range window is its own queue entry so multiple
+            // workers can process one table concurrently. Window bounds (MIN/MAX per PK table) are
+            // queried on the main connection here, before the workers start. The plan owns the
+            // per-table states the chunks point into; it outlives the workers (joined below).
+            auto planStmt = SqlStatement { mainConn };
+            auto const plan = detail::PlanChunks(
+                completedTables,
+                backupSettings.rowsPerChunk,
+                [&planStmt](SqlSchema::Table const& table, std::string const& pkColumn) {
+                    return detail::QueryPkBounds(planStmt, table, pkColumn);
+                },
+                mainConn.ServerType());
+
+            // Plan-time progress: PK-range totals are known now (estimate = key span; their state
+            // carries it). OFFSET tables have totalRows == 0 here and report their exact total
+            // from the worker after COUNT(*), as before. Empty PK tables have no chunks and are
+            // reported done immediately.
+            for (auto const& tableState: plan.tableStates)
+                progress.AddTotalItems(tableState.totalRows.load());
+            for (auto const* emptyTable: plan.emptyTables)
             {
-                auto conn = std::make_unique<SqlConnection>(std::nullopt);
-                if (!detail::ConnectWithRetry(
-                        *conn, connectionString, retrySettings, progress, std::format("Worker {}", i + 1)))
-                {
-                    throw std::runtime_error(
-                        std::format("Failed to create worker connection {}: {}", i + 1, conn->LastError().message));
-                }
-                workerConnections.push_back(std::move(conn));
+                progress.AddTotalItems(0);
+                progress.Update({ .state = Progress::State::Finished,
+                                  .tableName = emptyTable->name,
+                                  .currentRows = 0,
+                                  .totalRows = size_t { 0 },
+                                  .message = "Finished table backup" });
             }
 
-            // Push all collected tables to the queue for workers
-            for (auto& table: completedTables)
-                tableQueue.Push(SqlSchema::Table(table)); // Copy since completedTables is still needed
+            for (auto const& chunk: plan.chunks)
+                chunkQueue.Push(chunk);
+            chunkQueue.MarkFinished();
 
-            tableQueue.MarkFinished();
+            // One private compressed chunk archive per worker (deque: stable addresses for the
+            // thread lambdas). Chunk compression happens inside the workers as rotations fill,
+            // overlapped with the network-bound fetch.
+            std::deque<detail::WorkerChunkArchive> workerArchives;
+            for (auto const workerId: std::views::iota(0U, concurrency))
+                workerArchives.emplace_back(tempDirGuard.dir,
+                                            workerId,
+                                            backupSettings.workerArchiveBytes,
+                                            backupSettings.method,
+                                            backupSettings.level);
 
-            // Start data worker threads - schema scanning is already complete
+            // Start data worker threads - schema scanning is already complete.
+            // Each worker borrows a connection lease from the pool for its lifetime.
             std::vector<std::thread> workers;
             workers.reserve(concurrency);
-            for (auto const i: std::views::iota(0U, concurrency))
-                workers.emplace_back(detail::BackupWorker, std::ref(tableQueue), ctx, std::ref(*workerConnections[i]));
+            for (auto const workerId: std::views::iota(0U, concurrency))
+            {
+                auto& archive = workerArchives[workerId];
+                workers.emplace_back([&chunkQueue, ctx, &pool, &archive] {
+                    auto lease = pool.Acquire();
+                    detail::ChunkWorker(chunkQueue, ctx, lease.Get(), archive);
+                });
+            }
 
             // Wait for all workers to complete
             for (auto& t: workers)
                 t.join();
+
+            // Raw-merge the workers' sealed archives into the final zip: every entry is copied
+            // COMPRESSED (zipmerge-style, ZIP_FL_COMPRESSED carries the source's compression
+            // method), so the final zip_close below only streams already-compressed bytes instead
+            // of deflating gigabytes single-threadedly. Tombstoned names (stale sub-chunks of
+            // retried windows; unique per worker by plan-time naming) are skipped; rotation order
+            // plus ZIP_FL_OVERWRITE makes a retried window's latest attempt win.
+            {
+                ZoneScopedN("Backup::Phase::Merge");
+                auto tombstones = std::set<std::string> {};
+                for (auto const& archive: workerArchives)
+                    tombstones.insert(archive.Tombstones().begin(), archive.Tombstones().end());
+
+                for (auto const& archive: workerArchives)
+                    for (auto const& archivePath: archive.SealedArchives())
+                    {
+                        int mergeErr = 0;
+                        zip_t* src = zip_open(archivePath.string().c_str(), ZIP_RDONLY, &mergeErr);
+                        if (!src)
+                            throw std::runtime_error("Failed to open worker chunk archive for merge: "
+                                                     + archivePath.string());
+                        mergeSources.sources.push_back(src);
+
+                        auto const numEntries = zip_get_num_entries(src, 0);
+                        for (zip_int64_t entry = 0; entry < numEntries; ++entry)
+                        {
+                            char const* name = zip_get_name(src, static_cast<zip_uint64_t>(entry), 0);
+                            if (!name || tombstones.contains(name))
+                                continue;
+                        // zip_source_zip_file (and its trailing password argument) was added in
+                        // libzip 1.8; older libzip (e.g. Ubuntu 24.04's apt libzip 1.7) only has
+                        // the deprecated zip_source_zip with no password parameter. Same guard as
+                        // the round-trip merge in the SqlBackup tests.
+#if LIBZIP_VERSION_MAJOR > 1 || (LIBZIP_VERSION_MAJOR == 1 && LIBZIP_VERSION_MINOR >= 8)
+                            zip_source_t* source = zip_source_zip_file(
+                                zip, src, static_cast<zip_uint64_t>(entry), ZIP_FL_COMPRESSED, 0, -1, nullptr);
+#else
+                            // NOLINTNEXTLINE(clang-diagnostic-deprecated-declarations)
+                            zip_source_t* source =
+                                zip_source_zip(zip, src, static_cast<zip_uint64_t>(entry), ZIP_FL_COMPRESSED, 0, -1);
+#endif
+                            if (!source)
+                                throw std::runtime_error(std::format("Failed to create merge source for {}", name));
+                            if (zip_file_add(zip, name, source, ZIP_FL_OVERWRITE | ZIP_FL_ENC_UTF_8) < 0)
+                            {
+                                zip_source_free(source);
+                                throw std::runtime_error(std::format("Failed to merge {} into the backup archive", name));
+                            }
+                        }
+                    }
+            }
         }
         else
         {
@@ -483,6 +637,11 @@ void Backup(std::filesystem::path const& outputFile,
                               .totalRows = std::nullopt,
                               .message = "Schema-only backup: skipping data export" });
         }
+
+        // Finalize: write metadata + checksums and close the archive. Data entries were merged in
+        // precompressed (raw copy), so Backup::ZipClose below only streams bytes — the heavy
+        // deflate work already happened inside the workers.
+        ZoneScopedN("Backup::Phase::Finalize");
 
         // Create metadata.json from completed tables (moved to end since we need full list)
         auto const metadataJson = CreateMetadata(connectionString, completedTables, schema);
@@ -564,11 +723,17 @@ void Backup(std::filesystem::path const& outputFile,
                                      backupSettings.level);
         }
 
-        if (zip_close(zip) < 0)
+        int zipCloseResult = 0;
+        {
+            ZoneScopedN("Backup::ZipClose");
+            zipCloseResult = zip_close(zip);
+        }
+        if (zipCloseResult < 0)
         {
             zip_error_t* zerr = zip_get_error(zip);
             throw std::runtime_error(std::format("Failed to close zip: {}", zip_error_strerror(zerr)));
         }
+        zipGuard.zip = nullptr; // zip_close succeeded and consumed the handle
         progress.AllDone();
     }
     // LCOV_EXCL_START - Exception handlers for backup failures
@@ -1025,14 +1190,10 @@ void Restore(std::filesystem::path const& inputFile,
         .restoreSettings = effectiveSettings,
     };
 
-    // Force single-threaded operation for MS SQL to avoid ODBC driver data races.
-    // The MS SQL ODBC driver has shared internal buffers that race when multiple
-    // connections execute queries concurrently.
-    {
-        SqlConnection checkConn;
-        if (checkConn.Connect(connectionString) && checkConn.ServerType() == SqlServerType::MICROSOFT_SQL)
-            concurrency = 1U;
-    }
+    // All databases restore multi-threaded. (Historically MS SQL Server was clamped to a single
+    // worker over a suspected ODBC driver data race — the same clamp the backup side dropped.
+    // Each worker uses its own independent SqlConnection and works on its own chunk; restored
+    // data is verified via backup-diff round trips. Re-introduce a clamp if a real race surfaces.)
 
     // Pre-create worker connections to avoid data races in the ODBC driver
     // during concurrent connection establishment.

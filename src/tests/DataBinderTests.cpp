@@ -327,6 +327,40 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlTime", "[SqlDataBinder],[SqlVar
     CHECK(result.IsNull());
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "GetColumn at the exact internal buffer boundary", "[SqlDataBinder]")
+{
+    // The chunked SQLGetData reader starts with a 255-char buffer. A value whose length EXACTLY
+    // fills that buffer still truncates for character types (the driver spends the final slot on
+    // the NUL terminator), so the continuation fetch must run for indicator == buffer size —
+    // a strict '>' comparison silently loses the last character.
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect(
+        [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::NVarchar { 300 }); });
+
+    for (auto const length: { std::size_t { 254 }, std::size_t { 255 }, std::size_t { 256 } })
+    {
+        auto const expected = std::string(length, 'x');
+        (void) stmt.ExecuteDirect(stmt.Query("Test").Delete());
+        stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+        (void) stmt.Execute(expected);
+
+        {
+            auto cursor = stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
+            (void) cursor.FetchRow();
+            auto const narrow = cursor.GetNullableColumn<std::string>(1);
+            REQUIRE(narrow.has_value());
+            CHECK(narrow->size() == length);
+        }
+        {
+            auto cursor = stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
+            (void) cursor.FetchRow();
+            auto const wide = cursor.GetNullableColumn<std::u16string>(1);
+            REQUIRE(wide.has_value());
+            CHECK(wide->size() == length);
+        }
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "InputParameter and GetColumn for very large values", "[SqlDataBinder]")
 {
     auto stmt = SqlStatement {};

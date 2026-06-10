@@ -5,7 +5,7 @@ add_library(dbtool_lib STATIC
 
 target_link_libraries(dbtool_lib PUBLIC Lightweight tools_shared)
 
-add_executable(dbtool main.cpp)
+add_executable(dbtool main.cpp BackupDiff.cpp BackupDiff.hpp)
 if(WIN32)
     find_package(libzip CONFIG REQUIRED)
     target_link_libraries(dbtool PRIVATE dbtool_lib libzip::zip)

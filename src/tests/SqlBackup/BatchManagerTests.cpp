@@ -3,11 +3,17 @@
 #include "TestHelpers.hpp"
 
 #include <Lightweight/SqlBackup/BatchManager.hpp>
+#include <Lightweight/SqlBackup/MsgPackChunkFormats.hpp>
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cstring>
+#include <filesystem>
+#include <format>
+#include <fstream>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -101,6 +107,72 @@ TEST_CASE("BatchManager: PushBatch splitting", "[SqlBackup]")
     bm.Flush();
     REQUIRE(flushCount == 3);
     REQUIRE(flushedSizes.back() == 1);
+}
+
+TEST_CASE("BatchManager: small rows fill batches to capacity (no spurious byte-budget flushes)", "[SqlBackup]")
+{
+    std::vector<SqlColumnDeclaration> cols = { { .name = "id", .type = SqlColumnTypeDefinitions::Integer {} },
+                                               { .name = "name", .type = SqlColumnTypeDefinitions::Varchar { 255 } } };
+
+    std::vector<size_t> flushedSizes;
+    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& /*rawCols*/, size_t count) {
+        flushedSizes.push_back(count);
+    };
+
+    BatchManager bm(executor, cols, 4000);
+
+    constexpr size_t RowCount = 20'000;
+    ColumnBatch sourceBatch;
+    sourceBatch.rowCount = RowCount;
+    sourceBatch.nullIndicators.resize(2);
+    sourceBatch.nullIndicators[0].resize(RowCount, false);
+    sourceBatch.nullIndicators[1].resize(RowCount, false);
+    sourceBatch.columns.resize(2);
+    std::vector<int64_t> ids(RowCount);
+    std::vector<std::string> names(RowCount, "short-value");
+    sourceBatch.columns[0] = std::move(ids);
+    sourceBatch.columns[1] = std::move(names);
+
+    bm.PushBatch(sourceBatch);
+    bm.Flush();
+
+    // 20k small rows at capacity 4000 must produce exactly 5 full batches - the 64 MB projected-
+    // bytes budget exists for large LOB values and must never trigger on small rows.
+    REQUIRE(flushedSizes == std::vector<size_t> { 4000, 4000, 4000, 4000, 4000 });
+}
+
+TEST_CASE("BatchManager: oversize binary values are not truncated", "[SqlBackup]")
+{
+    std::vector<SqlColumnDeclaration> cols = { { .name = "blob", .type = SqlColumnTypeDefinitions::VarBinary { 0 } } };
+
+    std::vector<size_t> receivedSizes;
+    std::vector<uint8_t> firstValue;
+    BatchManager::BatchExecutor executor = [&](std::vector<SqlRawColumn> const& rawCols, size_t count) {
+        REQUIRE(rawCols.size() == 1);
+        auto const& col = rawCols[0];
+        for (size_t r = 0; r < count; ++r)
+        {
+            REQUIRE(col.indicators[r] >= 0);
+            receivedSizes.push_back(static_cast<size_t>(col.indicators[r]));
+            if (receivedSizes.size() == 1)
+            {
+                auto const* base = reinterpret_cast<uint8_t const*>(col.data.data());
+                firstValue.assign(base, base + col.indicators[0]);
+            }
+        }
+    };
+
+    BatchManager bm(executor, cols, 4000);
+
+    // 200'000 bytes - far beyond the old 64 KB fixed stride that silently truncated.
+    std::vector<uint8_t> big(200'000);
+    for (size_t i = 0; i < big.size(); ++i)
+        big[i] = static_cast<uint8_t>((i * 31) + 7);
+    bm.PushRow({ big });
+    bm.Flush();
+
+    REQUIRE(receivedSizes == std::vector<size_t> { 200'000 });
+    REQUIRE(firstValue == big);
 }
 
 TEST_CASE("BatchManager: String Content", "[SqlBackup]")

@@ -180,3 +180,93 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlSchema::MakeCreateTablePlan (TableList) pro
     for (auto const& p: plans)
         CHECK_FALSE(p.columns.empty());
 }
+
+// ================================================================================================
+// MakeColumnTypeFromMssqlSysType — pure-function mapping (no DB connection required)
+//
+// Verifies the batched MSSQL schema reader maps sys.types.name (+ max_length/precision/scale
+// from sys.columns) to the same SqlColumnTypeDefinition variant the legacy per-table path
+// produces. These tests are intentionally NOT fixture-based: they touch no database.
+// ================================================================================================
+
+namespace
+{
+using namespace Lightweight::SqlColumnTypeDefinitions;
+using Lightweight::SqlColumnTypeDefinition;
+using Lightweight::SqlSchema::detail::MakeColumnTypeFromMssqlSysType;
+
+// Helper: map a type name with the given (max_length, precision, scale) tuple.
+SqlColumnTypeDefinition Map(std::string_view name, int maxLength = 0, int precision = 0, int scale = 0)
+{
+    return MakeColumnTypeFromMssqlSysType(name, { .maxLength = maxLength, .precision = precision, .scale = scale });
+}
+} // namespace
+
+TEST_CASE("MakeColumnTypeFromMssqlSysType maps integral and boolean types", "[schema-mapping]")
+{
+    CHECK(Map("int") == SqlColumnTypeDefinition { Integer {} });
+    CHECK(Map("bigint") == SqlColumnTypeDefinition { Bigint {} });
+    CHECK(Map("smallint") == SqlColumnTypeDefinition { Smallint {} });
+    CHECK(Map("tinyint") == SqlColumnTypeDefinition { Tinyint {} });
+    CHECK(Map("bit") == SqlColumnTypeDefinition { Bool {} });
+}
+
+TEST_CASE("MakeColumnTypeFromMssqlSysType maps numeric types", "[schema-mapping]")
+{
+    CHECK(Map("decimal", /*maxLength=*/9, /*precision=*/18, /*scale=*/4)
+          == SqlColumnTypeDefinition { Decimal { .precision = 18, .scale = 4 } });
+    CHECK(Map("numeric", 5, 10, 2) == SqlColumnTypeDefinition { Decimal { .precision = 10, .scale = 2 } });
+    // money: sys.columns reports precision 19, scale 4.
+    CHECK(Map("money", 8, 19, 4) == SqlColumnTypeDefinition { Decimal { .precision = 19, .scale = 4 } });
+    // smallmoney: precision 10, scale 4.
+    CHECK(Map("smallmoney", 4, 10, 4) == SqlColumnTypeDefinition { Decimal { .precision = 10, .scale = 4 } });
+    // float/real both collapse to Real{53} (matches the legacy MSSQL float fixup).
+    CHECK(Map("float", 8, 53, 0) == SqlColumnTypeDefinition { Real { .precision = 53 } });
+    CHECK(Map("real", 4, 24, 0) == SqlColumnTypeDefinition { Real { .precision = 53 } });
+}
+
+TEST_CASE("MakeColumnTypeFromMssqlSysType maps non-Unicode character types", "[schema-mapping]")
+{
+    CHECK(Map("char", /*maxLength=*/10) == SqlColumnTypeDefinition { Char { .size = 10 } });
+    CHECK(Map("varchar", 255) == SqlColumnTypeDefinition { Varchar { .size = 255 } });
+    // varchar(max) — max_length == -1 -> LOB sentinel (matches the legacy SQLColumns COLUMN_SIZE).
+    CHECK(Map("varchar", -1) == SqlColumnTypeDefinition { Varchar { .size = 2147483647 } });
+    // text (LOB) -> Varchar with the same non-Unicode LOB sentinel.
+    CHECK(Map("text", 16) == SqlColumnTypeDefinition { Varchar { .size = 2147483647 } });
+}
+
+TEST_CASE("MakeColumnTypeFromMssqlSysType maps Unicode character types (size = bytes/2)", "[schema-mapping]")
+{
+    // nchar(10): max_length = 20 bytes -> size 10 characters.
+    CHECK(Map("nchar", /*maxLength=*/20) == SqlColumnTypeDefinition { NChar { .size = 10 } });
+    // nvarchar(255): max_length = 510 bytes -> size 255.
+    CHECK(Map("nvarchar", 510) == SqlColumnTypeDefinition { NVarchar { .size = 255 } });
+    // nvarchar(max) -> Unicode LOB sentinel (matches the legacy SQLColumns COLUMN_SIZE).
+    CHECK(Map("nvarchar", -1) == SqlColumnTypeDefinition { NVarchar { .size = 1073741823 } });
+    // ntext (LOB) -> NVarchar with the same Unicode LOB sentinel.
+    CHECK(Map("ntext", 16) == SqlColumnTypeDefinition { NVarchar { .size = 1073741823 } });
+}
+
+TEST_CASE("MakeColumnTypeFromMssqlSysType maps binary types", "[schema-mapping]")
+{
+    CHECK(Map("binary", /*maxLength=*/16) == SqlColumnTypeDefinition { Binary { .size = 16 } });
+    CHECK(Map("varbinary", 255) == SqlColumnTypeDefinition { VarBinary { .size = 255 } });
+    // varbinary(max) -> LOB sentinel (matches the legacy SQLColumns COLUMN_SIZE).
+    CHECK(Map("varbinary", -1) == SqlColumnTypeDefinition { VarBinary { .size = 2147483647 } });
+    // image (LOB) -> VarBinary with the same non-Unicode LOB sentinel.
+    CHECK(Map("image", 16) == SqlColumnTypeDefinition { VarBinary { .size = 2147483647 } });
+}
+
+TEST_CASE("MakeColumnTypeFromMssqlSysType maps identifier and temporal types", "[schema-mapping]")
+{
+    CHECK(Map("uniqueidentifier", 16) == SqlColumnTypeDefinition { Guid {} });
+    CHECK(Map("date", 3) == SqlColumnTypeDefinition { Date {} });
+    CHECK(Map("time", 5) == SqlColumnTypeDefinition { Time {} });
+    CHECK(Map("datetime", 8) == SqlColumnTypeDefinition { DateTime {} });
+    CHECK(Map("datetime2", 8) == SqlColumnTypeDefinition { DateTime {} });
+    CHECK(Map("smalldatetime", 4) == SqlColumnTypeDefinition { DateTime {} });
+    CHECK(Map("datetimeoffset", 10) == SqlColumnTypeDefinition { DateTime {} });
+    // timestamp/rowversion are 8-byte binary stamps.
+    CHECK(Map("timestamp", 8) == SqlColumnTypeDefinition { VarBinary { .size = 8 } });
+    CHECK(Map("rowversion", 8) == SqlColumnTypeDefinition { VarBinary { .size = 8 } });
+}

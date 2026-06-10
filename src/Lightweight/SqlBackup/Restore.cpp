@@ -11,8 +11,10 @@
 #include "Sha256.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <format>
 #include <ranges>
+#include <set>
 #include <thread>
 
 using namespace std::string_literals;
@@ -40,6 +42,7 @@ void IncrementChunkCounter(RestoreContext& ctx, std::string const& tableName, bo
 
 std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreContext& ctx)
 {
+    ZoneScopedN("Restore::FetchChunk");
     ZipEntryInfo entryInfo;
     {
         auto const lock = std::scoped_lock(ctx.queueMutex);
@@ -56,6 +59,7 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
 
     std::vector<uint8_t> content;
     {
+        ZoneScopedN("Restore::UnzipChunk");
         auto const lock = std::scoped_lock(ctx.fileMutex);
         if (!entryInfo.valid)
             return std::unexpected(
@@ -87,6 +91,7 @@ std::expected<RestoreChunkInfo, FetchChunkError> FetchNextRestoreChunk(RestoreCo
         auto const it = ctx.checksums->find(entryInfo.name);
         if (it != ctx.checksums->end())
         {
+            ZoneScopedN("Restore::Sha256Verify");
             std::string const actualHash = Sha256::Hash(content.data(), content.size());
             if (actualHash != it->second)
             {
@@ -168,10 +173,17 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                     std::views::iota(0UZ, tableInfo.columns.size()), std::string {}, [](std::string const& acc, size_t) {
                         return acc.empty() ? std::string("?") : acc + ", ?";
                     });
-                stmt.Prepare(formatter.Insert(ctx.schema, tableName, fields, placeholders));
+                {
+                    ZoneScopedN("Restore::Prepare");
+                    stmt.Prepare(formatter.Insert(ctx.schema, tableName, fields, placeholders));
+                }
 
                 ::Lightweight::detail::BatchManager batchManager(
-                    [&](std::vector<SqlRawColumn> const& cols, size_t rows) { (void) stmt.ExecuteBatch(cols, rows); },
+                    [&](std::vector<SqlRawColumn> const& cols, size_t rows) {
+                        ZoneScopedN("Restore::ExecuteBatch");
+                        ZoneValue(rows);
+                        (void) stmt.ExecuteBatch(cols, rows);
+                    },
                     tableInfo.columns,
                     batchCapacity,
                     workerConn.ServerType());
@@ -185,8 +197,15 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                 size_t const maxRowsPerCommit = ctx.restoreSettings.maxRowsPerCommit;
 
                 ColumnBatch batch;
-                while (reader->ReadBatch(batch))
+                while (true)
                 {
+                    bool hasBatch = false;
+                    {
+                        ZoneScopedN("Restore::ReadBatch");
+                        hasBatch = reader->ReadBatch(batch);
+                    }
+                    if (!hasBatch)
+                        break;
                     if (batch.rowCount == 0)
                         continue;
 
@@ -198,7 +217,10 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                                         batch.columns.size()));
                     }
 
-                    batchManager.PushBatch(batch);
+                    {
+                        ZoneScopedN("Restore::PushBatch");
+                        batchManager.PushBatch(batch);
+                    }
                     rowsSinceCommit += batch.rowCount;
 
                     // Intermediate commit for SQLite to reduce WAL memory accumulation
@@ -224,8 +246,11 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
                     ctx.progress.OnItemsProcessed(batch.rowCount);
                 }
 
-                batchManager.Flush();
-                transaction.Commit();
+                {
+                    ZoneScopedN("Restore::Commit");
+                    batchManager.Flush();
+                    transaction.Commit();
+                }
                 // Cursor cleanup is handled by RAII
             }
 
@@ -310,6 +335,10 @@ bool RestoreChunkData(RestoreContext& ctx, SqlConnection& workerConn, RestoreChu
 
 void RestoreWorker(RestoreContext ctx, SqlConnection& workerConn)
 {
+    static std::atomic<int> workerCounter { 0 };
+    auto const workerName = std::format("RestoreWorker-{}", workerCounter.fetch_add(1));
+    TracySetThreadName(workerName.c_str());
+
     size_t const batchCapacity = ctx.restoreSettings.batchSize > 0 ? ctx.restoreSettings.batchSize : 4000;
 
     try
@@ -467,15 +496,29 @@ void ApplyDatabaseConstraints(SqlConnectionString const& connectionString,
         if (info.foreignKeys.empty())
             continue;
 
+        // Source databases can contain literally duplicated FK constraints (the same column list,
+        // added repeatedly under different auto-generated names). The recreated constraint name is
+        // derived from table + columns (BuildForeignKeyConstraintName), so recreating each
+        // duplicate would collide (error 2714). Key the dedup on exactly the name-determining
+        // parts: only the first FK per column list is recreated.
+        std::set<std::string> seenColumnLists;
         std::vector<SqlAlterTableCommand> commands;
         commands.reserve(info.foreignKeys.size());
         for (auto const& fk: info.foreignKeys)
         {
+            std::string key;
+            for (auto const& column: fk.foreignKey.columns)
+                key += column + "|";
+            if (!seenColumnLists.insert(std::move(key)).second)
+                continue;
+
             commands.emplace_back(
                 SqlAlterTableCommands::AddCompositeForeignKey { .columns = fk.foreignKey.columns,
                                                                 .referencedTableName = fk.primaryKey.table.table,
                                                                 .referencedColumns = fk.primaryKey.columns });
         }
+        if (commands.empty())
+            continue;
 
         try
         {
