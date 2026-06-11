@@ -2,6 +2,11 @@
 #
 # Built only when LIGHTWEIGHT_BUILD_GUI is ON and Qt 6 was located by the
 # top-level LightweightFindQt probe. See docs/migrations-gui-plan.md for the design.
+#
+# The C++ view-model layer lives in a STATIC backing library
+# (`dbtool-gui-lib`) so the test binaries under `tests/` can link against
+# `AppController` & friends without duplicating sources. The executable
+# (`dbtool-gui`) reduces to a thin `main.cpp` wrapper around that library.
 
 # The top-level CMakeLists ran `lightweight_probe_qt6()` which extends
 # CMAKE_PREFIX_PATH, but did not call `find_package(Qt6)` itself because the
@@ -15,8 +20,6 @@ find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Concu
 qt_standard_project_setup(REQUIRES 6.8)
 
 set(MIGRATIONS_GUI_CXX_SOURCES
-    main.cpp
-
     AppController.hpp
     AppController.cpp
     BackupRunner.hpp
@@ -74,10 +77,6 @@ set(MIGRATIONS_GUI_QML_FILES
     qml/SettingsPage.qml
 )
 
-qt_add_executable(dbtool-gui
-    ${MIGRATIONS_GUI_CXX_SOURCES}
-)
-
 # A reusable QML module so the migrations view can be embedded by other Qt
 # applications later. URI is `Lightweight.Migrations` (version 1.0).
 # Theme.qml is a `pragma Singleton` and must be declared as such in the
@@ -88,14 +87,30 @@ set_source_files_properties(qml/Theme.qml PROPERTIES
     QT_QML_SINGLETON_TYPE TRUE
 )
 
-qt_add_qml_module(dbtool-gui
+# STATIC backing library. The QML module is attached to *this* target rather
+# than the executable so tests (and any future Qt host application) can link
+# `dbtool-gui-lib` and reach both the C++ view-models and the QML files
+# through a single dependency.
+qt_add_library(dbtool-gui-lib STATIC
+    ${MIGRATIONS_GUI_CXX_SOURCES}
+)
+
+qt_add_qml_module(dbtool-gui-lib
     URI Lightweight.Migrations
     VERSION 1.0
     QML_FILES ${MIGRATIONS_GUI_QML_FILES}
     RESOURCE_PREFIX /qt/qml
+    # Qt expects the module's OUTPUT_DIRECTORY to end with the URI's path
+    # (Lightweight/Migrations) so qmllint and related tooling resolve
+    # cross-imports without an explicit QML2_IMPORT_PATH. Setting it here
+    # silences the "should end in the same target path" warning the
+    # auto-derived directory would otherwise produce.
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Lightweight/Migrations
 )
 
-target_link_libraries(dbtool-gui PRIVATE
+target_include_directories(dbtool-gui-lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_link_libraries(dbtool-gui-lib PUBLIC
     Lightweight
     dbtool_lib  # reuses Tools::PluginLoader for migration-plugin loading
     Qt6::Core
@@ -106,6 +121,23 @@ target_link_libraries(dbtool-gui PRIVATE
     Qt6::Concurrent
 )
 
+set_target_properties(dbtool-gui-lib PROPERTIES
+    # Qt's camelCase signal/slot convention, unscoped Q_ENUMs, and
+    # parent-based `new` ownership all clash with the project-wide
+    # clang-tidy policy — opt this target out of clang-tidy entirely.
+    CXX_CLANG_TIDY ""
+)
+
+# Thin executable: only main.cpp + wiring. All real logic lives in the lib.
+qt_add_executable(dbtool-gui
+    main.cpp
+)
+
+target_link_libraries(dbtool-gui PRIVATE
+    dbtool-gui-lib
+    dbtool-gui-libplugin
+)
+
 # On Windows release builds, mark as GUI-only (no console window). On debug
 # builds we keep a console so Qt warnings, QML error lines, and our own
 # stderr output land somewhere the developer can read — the GUI is useless
@@ -113,9 +145,6 @@ target_link_libraries(dbtool-gui PRIVATE
 set_target_properties(dbtool-gui PROPERTIES
     WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>
     MACOSX_BUNDLE ON
-    # Qt's camelCase signal/slot convention, unscoped Q_ENUMs, and
-    # parent-based `new` ownership all clash with the project-wide
-    # clang-tidy policy — opt this target out of clang-tidy entirely.
     CXX_CLANG_TIDY ""
 )
 
@@ -190,4 +219,8 @@ elseif(APPLE)
     else()
         message(STATUS "macdeployqt not found — skipping Qt framework deployment for dbtool-gui")
     endif()
+endif()
+
+if(LIGHTWEIGHT_BUILD_TESTS)
+    add_subdirectory(tests)
 endif()
