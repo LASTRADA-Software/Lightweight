@@ -320,14 +320,14 @@ $(document).ready(function(){initNavTree('d7/d0f/DataBinder_2Core_8hpp_source.ht
 <div class="foldopen" id="foldopen00218" data-start="{" data-end="};">
 <div class="line"><a id="l00218" name="l00218"></a><span class="lineno"><a class="line" href="../../d2/da9/structLightweight_1_1SqlOptionalInner.html">  218</a></span><span class="keyword">struct </span><a class="code hl_struct" href="../../d2/da9/structLightweight_1_1SqlOptionalInner.html">SqlOptionalInner</a></div>
 <div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>{</div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    <span class="keyword">using </span>type = T;</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno"><a class="line" href="../../d2/da9/structLightweight_1_1SqlOptionalInner.html#adffb2dc408c8c8503d0ac5c6fa4e4d84">  220</a></span>    <span class="keyword">using </span><a class="code hl_typedef" href="../../d2/da9/structLightweight_1_1SqlOptionalInner.html#adffb2dc408c8c8503d0ac5c6fa4e4d84">type</a> = T; <span class="comment">///&lt; @p T itself, since @p T is not a @c std::optional.</span></div>
 <div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>};</div>
 </div>
 <div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span> </div>
 <div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span><span class="keyword">struct </span><a class="code hl_struct" href="../../d2/da9/structLightweight_1_1SqlOptionalInner.html">SqlOptionalInner</a>&lt;std::optional&lt;T&gt;&gt;</div>
 <div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>{</div>
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>    <span class="keyword">using </span>type = T;</div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>    <span class="keyword">using </span>type = T; <span class="comment">///&lt; The value type contained in the @c std::optional.</span></div>
 <div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>};</div>
 <div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span> </div>
 <div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
@@ -369,6 +369,7 @@ $(document).ready(function(){initNavTree('d7/d0f/DataBinder_2Core_8hpp_source.ht
 <div class="ttc" id="aclassLightweight_1_1SqlDataBinderCallback_html_aecb8ed9927ded35a8b35dd570bf53170"><div class="ttname"><a href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aecb8ed9927ded35a8b35dd570bf53170">Lightweight::SqlDataBinderCallback::SqlDataBinderCallback</a></div><div class="ttdeci">SqlDataBinderCallback(SqlDataBinderCallback const &amp;)=default</div><div class="ttdoc">Default copy constructor.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlDataBinderCallback_html_af7acc1d446fc49ea446f8ae20f58518c"><div class="ttname"><a href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#af7acc1d446fc49ea446f8ae20f58518c">Lightweight::SqlDataBinderCallback::ProvideBatchStagingBuffer</a></div><div class="ttdeci">virtual std::byte * ProvideBatchStagingBuffer(std::size_t byteCount)=0</div></div>
 <div class="ttc" id="astructLightweight_1_1SqlOptionalInner_html"><div class="ttname"><a href="../../d2/da9/structLightweight_1_1SqlOptionalInner.html">Lightweight::SqlOptionalInner</a></div><div class="ttdoc">The contained value type of a std::optional (or T itself when not an optional).</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00218">Core.hpp:219</a></div></div>
+<div class="ttc" id="astructLightweight_1_1SqlOptionalInner_html_adffb2dc408c8c8503d0ac5c6fa4e4d84"><div class="ttname"><a href="../../d2/da9/structLightweight_1_1SqlOptionalInner.html#adffb2dc408c8c8503d0ac5c6fa4e4d84">Lightweight::SqlOptionalInner::type</a></div><div class="ttdeci">T type</div><div class="ttdoc">T itself, since T is not a std::optional.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00220">Core.hpp:220</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

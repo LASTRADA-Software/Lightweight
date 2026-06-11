@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"d7/d53/structLightweight_1_1SqlTime.html#a13ab046cdb242b02223e8b6eeecae855":[10,0,10,7],
 "d7/d53/structLightweight_1_1SqlTime.html#a48e7d8375d908fbc5ba853159748e379":[10,0,10,4],
 "d7/d53/structLightweight_1_1SqlTime.html#a4b2b723b5ba31ad66427081d3016f937":[10,0,10,2],
 "d7/d53/structLightweight_1_1SqlTime.html#a73c0290cf0447b30a69f3144853bb598":[10,0,10,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "d9/de1/structLightweight_1_1SqlDate.html#abb63b8190ca89408601b6b10e58b7c9d":[10,0,1,0],
 "d9/de1/structLightweight_1_1SqlDate.html#ac22e4292f9c821d76c65c2dcd76ec3d2":[10,0,1,10],
 "d9/de1/structLightweight_1_1SqlDate.html#ac8926c16c74e11a1467098a40b13e552":[10,0,1,9],
-"d9/de1/structLightweight_1_1SqlDate.html#acbb3cb3b332956f35ba25c25d6dc34b5":[10,0,1,6],
-"d9/de1/structLightweight_1_1SqlDate.html#afe238c510db9a86dc6aac51196e8e3f1":[10,0,1,5]
+"d9/de1/structLightweight_1_1SqlDate.html#acbb3cb3b332956f35ba25c25d6dc34b5":[10,0,1,6]
 };

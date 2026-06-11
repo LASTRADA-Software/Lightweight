@@ -221,12 +221,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#ab971b90ecf62bcd13df1d3e7649fca3c",
-"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca8428552d86c0d262a542a528af490afa",
-"d7/d53/structLightweight_1_1SqlTime.html#a48e7d8375d908fbc5ba853159748e379",
-"d9/de5/SqlLogger_8hpp_source.html",
-"dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#acfb1859f3c204725710cc91d9ceb2332",
-"df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f"
+"d2/dd0/structLightweight_1_1Field.html#aaf257a679d7d4340a4514a567f03a27a",
+"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca12d868c18cb29bf58f02b504be9033fd",
+"d7/d53/structLightweight_1_1SqlTime.html#a13ab046cdb242b02223e8b6eeecae855",
+"d9/de1/structLightweight_1_1SqlDate.html#afe238c510db9a86dc6aac51196e8e3f1",
+"dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#a782c413681d6e9b9918c5d4643ccba09",
+"df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

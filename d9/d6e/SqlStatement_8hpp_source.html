@@ -289,7 +289,7 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span><span class="comment">    /// @endcode</span></div>
 <div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span><span class="comment">    ///</span></div>
 <div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span><span class="comment">    /// The native row-wise path is taken when every column value type is row-bindable</span></div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span><span class="comment">    /// (@ref SqlNativeRowBindableValue, or @c std::optional of such a non-numeric type), every accessor</span></div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span><span class="comment">    /// (@c SqlNativeRowBindableValue, or @c std::optional of such a non-numeric type), every accessor</span></div>
 <div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span><span class="comment">    /// returns an lvalue reference, the row stride satisfies the indicator-alignment requirement, and the</span></div>
 <div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span><span class="comment">    /// driver advertises parameter-array support (@ref SqlQueryFormatter::SupportsNativeRowBatch). A</span></div>
 <div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span><span class="comment">    /// per-row runtime stride check guards against accessors that are not constant-offset subobjects.</span></div>
@@ -974,7 +974,7 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="line"><a id="l00804" name="l00804"></a><span class="lineno">  804</span><span class="comment"></span> </div>
 <div class="line"><a id="l00805" name="l00805"></a><span class="lineno">  805</span><span class="comment">/// @brief A value type that can be bound in a native ODBC row-wise parameter array (fixed-width,</span></div>
 <div class="line"><a id="l00806" name="l00806"></a><span class="lineno">  806</span><span class="comment">/// inline, indicator-free, bound identically across backends). Backed by the data-driven</span></div>
-<div class="line"><a id="l00807" name="l00807"></a><span class="lineno">  807</span><span class="comment">/// @ref SqlIsNativeRowBindableValue trait that each eligible binder header opts into.</span></div>
+<div class="line"><a id="l00807" name="l00807"></a><span class="lineno">  807</span><span class="comment">/// @c SqlIsNativeRowBindableValue trait that each eligible binder header opts into.</span></div>
 <div class="line"><a id="l00808" name="l00808"></a><span class="lineno">  808</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> V&gt;</div>
 <div class="line"><a id="l00809" name="l00809"></a><span class="lineno"><a class="line" href="../../d4/dc2/conceptLightweight_1_1SqlNativeRowBindableValue.html">  809</a></span><span class="keyword">concept </span><a class="code hl_concept" href="../../d4/dc2/conceptLightweight_1_1SqlNativeRowBindableValue.html">SqlNativeRowBindableValue</a> = SqlIsNativeRowBindableValue&lt;V&gt;;</div>
 <div class="line"><a id="l00810" name="l00810"></a><span class="lineno">  810</span><span class="comment"></span> </div>

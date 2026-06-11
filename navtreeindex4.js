@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"d9/de1/structLightweight_1_1SqlDate.html#afe238c510db9a86dc6aac51196e8e3f1":[10,0,1,5],
 "d9/de5/SqlLogger_8hpp_source.html":[13,0,1,17],
 "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html":[10,3,6,0],
 "d9/df2/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ChecksumRewriteEntry.html#a64b56a650906d09b12d54ebf6e765559":[10,3,6,0,1],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html#a8c6e0209082d4a10bb1ace84edd67648":[12,0,0,65,0],
 "dc/d73/ZipArchive_8hpp_source.html":[13,0,1,6,0],
 "dc/d74/CollectDifferences_8hpp_source.html":[13,0,1,1,1],
-"dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html":[12,0,0,0,0],
-"dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#a782c413681d6e9b9918c5d4643ccba09":[12,0,0,0,0,2]
+"dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html":[12,0,0,0,0]
 };
