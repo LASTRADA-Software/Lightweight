@@ -127,8 +127,7 @@ var NAVTREE =
       ] ],
       [ "Backup & Restore", "d5/dc4/dbtool.html#backup--restore", [
         [ "backup", "d5/dc4/dbtool.html#backup", null ],
-        [ "restore", "d5/dc4/dbtool.html#restore", null ],
-        [ "backup-diff", "d5/dc4/dbtool.html#backup-diff", null ]
+        [ "restore", "d5/dc4/dbtool.html#restore", null ]
       ] ],
       [ "Command-Line Options Reference", "d5/dc4/dbtool.html#command-line-options-reference", [
         [ "Size Suffixes", "d5/dc4/dbtool.html#size-suffixes", null ]
@@ -220,12 +219,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#ab971b90ecf62bcd13df1d3e7649fca3c",
-"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca902b0d55fddef6f8d651fe1035b7d4bd",
-"d7/d53/structLightweight_1_1SqlTime.html#a4b2b723b5ba31ad66427081d3016f937",
-"d9/de1/structLightweight_1_1SqlDate.html#afe238c510db9a86dc6aac51196e8e3f1",
-"dc/d0c/structLightweight_1_1SqlMigration_1_1MigrationMetadata.html#aaacc540bd4fd3ab8f556b8cc92f2894b",
-"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#abf76f7e1b5519cef9ca2aee981d9054b"
+"d2/dd0/structLightweight_1_1Field.html#ac38b8072a1d454cdab18e208bf86291b",
+"d5/dc4/dbtool.html",
+"d7/d53/structLightweight_1_1SqlTime.html#a77e27a267510342d66743aee61902494",
+"d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2",
+"dd/d2a/TracyProfiler_8hpp_source.html",
+"df/d3f/structLightweight_1_1SqlVariant.html#a0c88051cb048b8cc50fa3ae9bc77a3ef"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
