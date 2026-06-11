@@ -12,6 +12,7 @@
 #include <optional>
 #include <ranges>
 #include <string>
+#include <string_view>
 #include <vector>
 
 using namespace Lightweight;
@@ -34,6 +35,33 @@ struct BatchAggregateRecord
     Field<int32_t, PrimaryKey::AutoAssign> id;
     Field<std::string> name;
     Field<std::optional<int32_t>> maybe;
+};
+
+// All columns fixed-width, including inline fixed-capacity strings (SqlAnsiString is a SqlFixedString
+// specialization): eligible for the native zero-copy row-wise batch path.
+struct BatchFixedStringRecord
+{
+    Field<int32_t, PrimaryKey::AutoAssign> id;
+    Field<SqlAnsiString<32>> name;
+    Field<SqlAnsiString<16>> code;
+};
+
+// Counts which batch execution path SqlStatement took: the native row-wise path emits a single
+// OnExecuteBatch(), the soft fallback emits one OnExecute() per row.
+class BatchPathCountingLogger: public SqlLogger::Null
+{
+  public:
+    int executeBatchCount = 0;
+    int executeCount = 0;
+
+    void OnExecuteBatch() override
+    {
+        ++executeBatchCount;
+    }
+    void OnExecute(std::string_view const& /*query*/) override
+    {
+        ++executeCount;
+    }
 };
 
 TEST_CASE_METHOD(SqlTestFixture, "DataMapper.CreateAll: native (all fixed-width)", "[DataMapper][batch]")
@@ -146,6 +174,40 @@ TEST_CASE_METHOD(SqlTestFixture, "DataMapper.CreateAll then single Create reuses
 
     CHECK(dm.Query<BatchFixedRecord>().Count() == 3);
     CHECK(dm.QuerySingle<BatchFixedRecord>(99).value().count.Value() == 990);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "DataMapper.CreateAll: native fixed-capacity strings", "[DataMapper][batch]")
+{
+    // All currently supported backends (MS SQL Server, PostgreSQL, SQLite3) accept native parameter
+    // arrays, so an all-fixed-width record — including inline fixed-capacity strings — must take the
+    // native row-wise path (a single batched execute), not one execute per row.
+    static_assert(sizeof(BatchFixedStringRecord) % alignof(SQLLEN) == 0,
+                  "fixed-capacity-string record must satisfy the row-strided indicator alignment requirement");
+
+    auto dm = DataMapper {};
+    dm.CreateTable<BatchFixedStringRecord>();
+
+    auto records = std::vector<BatchFixedStringRecord> {};
+    records.push_back({ .id = 1, .name = "Alice", .code = "AAA" });
+    records.push_back({ .id = 2, .name = "Bob", .code = "BB" });
+    records.push_back({ .id = 3, .name = "Charlie Brown", .code = "CCCCCCC" });
+
+    BatchPathCountingLogger logger;
+    auto& previousLogger = SqlLogger::GetLogger();
+    SqlLogger::SetLogger(logger);
+    dm.CreateAll(records);
+    SqlLogger::SetLogger(previousLogger);
+
+    CHECK(logger.executeBatchCount == 1); // native row-wise path: exactly one batched execute
+    CHECK(logger.executeCount == 0);      // and no per-row executes
+
+    for (auto const& expected: records)
+    {
+        auto const actual = dm.QuerySingle<BatchFixedStringRecord>(expected.id.Value());
+        REQUIRE(actual.has_value());
+        CHECK(actual->name.Value() == expected.name.Value());
+        CHECK(actual->code.Value() == expected.code.Value());
+    }
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)

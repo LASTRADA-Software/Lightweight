@@ -6,8 +6,10 @@
 #include "UnicodeConverter.hpp"
 
 #include <cassert>
+#include <cstddef>
 #include <cstring>
 #include <memory>
+#include <ranges>
 #include <utility>
 
 namespace Lightweight
@@ -269,6 +271,47 @@ struct SqlDataBinder<AnsiStringType>
                                 (SQLPOINTER) values,
                                 sizeof(AnsiStringType),
                                 indicators);
+    }
+
+    /// Binds an inline fixed-capacity string column of a native row-wise batch zero-copy.
+    ///
+    /// Only available for fixed-capacity string types (those exposing @c ::Capacity, e.g.
+    /// @c SqlFixedString / @c SqlAnsiString), whose character buffer is stored inline in the object —
+    /// so each row's characters are addressed at @c Data(elem0) + i*rowStride and bound directly,
+    /// while per-row lengths are supplied through a temporary row-strided indicator buffer. Heap-backed
+    /// strings (e.g. @c std::string) do not satisfy the constraint and use the soft batch path.
+    ///
+    /// @note Like the column-major batch binder, this binds @c SQL_C_CHAR without the PostgreSQL
+    /// UTF-16 round-trip, so it is correct for ASCII/single-byte content (matching existing batch
+    /// semantics); non-ASCII payloads on PostgreSQL should use the per-row path.
+    /// @note PRE (guaranteed by the caller): row-wise binding with @c SQL_ATTR_PARAM_BIND_TYPE ==
+    /// @p rowStride and @c rowStride % alignof(SQLLEN) == 0.
+    static SQLRETURN BatchRowWiseInputParameter(SQLHSTMT stmt,
+                                                SQLUSMALLINT column,
+                                                AnsiStringType const* elem0,
+                                                std::size_t rowStride,
+                                                std::size_t rowCount,
+                                                SqlDataBinderCallback& cb) noexcept
+        requires requires { AnsiStringType::Capacity; }
+    {
+        auto const* sourceBytes = reinterpret_cast<std::byte const*>(elem0);
+        auto* const indicatorBytes = cb.ProvideBatchStagingBuffer(((rowCount - 1) * rowStride) + sizeof(SQLLEN));
+        for (auto const i: std::views::iota(std::size_t { 0 }, rowCount))
+        {
+            auto const& str = *reinterpret_cast<AnsiStringType const*>(sourceBytes + (i * rowStride));
+            *reinterpret_cast<SQLLEN*>(indicatorBytes + (i * rowStride)) = static_cast<SQLLEN>(StringTraits::Size(&str));
+        }
+
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                SQL_C_CHAR,
+                                SQL_VARCHAR,
+                                AnsiStringType::Capacity,
+                                0,
+                                (SQLPOINTER) StringTraits::Data(elem0),
+                                static_cast<SQLLEN>(AnsiStringType::Capacity) + 1,
+                                reinterpret_cast<SQLLEN*>(indicatorBytes));
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(

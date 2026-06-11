@@ -820,6 +820,18 @@ concept SqlOptionalRowBindable =
 template <typename V>
 concept SqlRowBindableColumn = SqlNativeRowBindableValue<V> || SqlOptionalRowBindable<V>;
 
+/// @brief Whether @p V's binder provides a row-wise batch entry point (@c BatchRowWiseInputParameter).
+///
+/// Such types (e.g. @c std::optional of a fixed type, or inline fixed-capacity strings) need a
+/// temporary row-strided NULL/length indicator buffer, which in turn requires the row stride to keep
+/// @c SQLLEN indicator slots aligned. Plain indicator-free fixed values bind via @c InputParameter and
+/// do not satisfy this concept.
+template <typename V>
+concept SqlHasRowWiseBatchBinder =
+    requires(SQLHSTMT stmt, SQLUSMALLINT column, V const* elem0, std::size_t n, SqlDataBinderCallback& cb) {
+        { SqlDataBinder<V>::BatchRowWiseInputParameter(stmt, column, elem0, n, n, cb) } -> std::same_as<SQLRETURN>;
+    };
+
 template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguous_range... MoreColumnBatches>
 SqlResultCursor SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstColumnBatch,
                                                  MoreColumnBatches const&... moreColumnBatches)
@@ -923,18 +935,18 @@ SqlResultCursor SqlStatement::ExecuteBatch(Rows const& rows, ColumnAccessors con
 
     // Compile-time eligibility for the native row-wise path: every column must be row-bindable, every
     // accessor must return an lvalue reference (so the bound address is a stable subobject), and — when
-    // any column is an optional needing a row-strided indicator — the row stride must keep SQLLEN
-    // indicator slots aligned and non-overlapping.
+    // any column needs a row-strided indicator (optionals, inline fixed-capacity strings) — the row
+    // stride must keep SQLLEN indicator slots aligned and non-overlapping.
     constexpr bool allColumnsRowBindable =
         (SqlRowBindableColumn<std::remove_cvref_t<std::invoke_result_t<ColumnAccessors const&, RowElem const&>>> && ...);
     constexpr bool allAccessorsReturnReference =
         (std::is_reference_v<std::invoke_result_t<ColumnAccessors const&, RowElem const&>> && ...);
-    constexpr bool anyOptionalColumn =
-        (SqlOptionalRowBindable<std::remove_cvref_t<std::invoke_result_t<ColumnAccessors const&, RowElem const&>>> || ...);
+    constexpr bool anyStridedIndicatorColumn =
+        (SqlHasRowWiseBatchBinder<std::remove_cvref_t<std::invoke_result_t<ColumnAccessors const&, RowElem const&>>> || ...);
     constexpr bool indicatorAlignmentSatisfied = (sizeof(RowElem) % alignof(SQLLEN)) == 0;
 
     if constexpr (allColumnsRowBindable && allAccessorsReturnReference
-                  && (!anyOptionalColumn || indicatorAlignmentSatisfied))
+                  && (!anyStridedIndicatorColumn || indicatorAlignmentSatisfied))
     {
         auto const* rowData = std::ranges::data(rows);
 
@@ -980,7 +992,9 @@ SqlResultCursor SqlStatement::ExecuteBatchNativeRowWise(Rows const& rows, Column
     auto const bindColumn = [&](auto const& accessor) {
         ++column;
         using ValueType = std::remove_cvref_t<decltype(accessor(rowData[0]))>;
-        if constexpr (SqlIsStdOptional<ValueType>)
+        // Types needing a per-row indicator (optionals, inline fixed-capacity strings) provide a
+        // row-wise batch binder; indicator-free fixed values bind directly via InputParameter.
+        if constexpr (SqlHasRowWiseBatchBinder<ValueType>)
             RequireSuccess(SqlDataBinder<ValueType>::BatchRowWiseInputParameter(
                 m_hStmt, column, std::addressof(accessor(rowData[0])), sizeof(RowElem), rowCount, *this));
         else
@@ -988,6 +1002,7 @@ SqlResultCursor SqlStatement::ExecuteBatchNativeRowWise(Rows const& rows, Column
     };
     (bindColumn(accessors), ...);
 
+    SqlLogger::GetLogger().OnExecuteBatch();
     RequireSuccess(SQLExecute(m_hStmt));
     ProcessPostExecuteCallbacks();
 
@@ -1021,6 +1036,7 @@ SqlResultCursor SqlStatement::ExecuteBatchSoftRowMajor(Rows const& rows, ColumnA
           RequireSuccess(SqlDataBinder<std::remove_cvref_t<decltype(accessors(row))>>::InputParameter(
               m_hStmt, column, accessors(row), *this))),
          ...);
+        SqlLogger::GetLogger().OnExecute(m_preparedQuery);
         RequireSuccess(SQLExecute(m_hStmt));
         ProcessPostExecuteCallbacks();
     }
