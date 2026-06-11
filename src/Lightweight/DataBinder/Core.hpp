@@ -217,13 +217,13 @@ inline constexpr bool SqlIsStdOptional<std::optional<T>> = true;
 template <typename T>
 struct SqlOptionalInner
 {
-    using type = T;
+    using type = T; ///< @p T itself, since @p T is not a @c std::optional.
 };
 
 template <typename T>
 struct SqlOptionalInner<std::optional<T>>
 {
-    using type = T;
+    using type = T; ///< The value type contained in the @c std::optional.
 };
 
 template <typename T>

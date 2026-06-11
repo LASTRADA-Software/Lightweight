@@ -186,7 +186,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @endcode
     ///
     /// The native row-wise path is taken when every column value type is row-bindable
-    /// (@ref SqlNativeRowBindableValue, or @c std::optional of such a non-numeric type), every accessor
+    /// (@c SqlNativeRowBindableValue, or @c std::optional of such a non-numeric type), every accessor
     /// returns an lvalue reference, the row stride satisfies the indicator-alignment requirement, and the
     /// driver advertises parameter-array support (@ref SqlQueryFormatter::SupportsNativeRowBatch). A
     /// per-row runtime stride check guards against accessors that are not constant-offset subobjects.
@@ -804,7 +804,7 @@ concept SqlNativeBatchable =
 
 /// @brief A value type that can be bound in a native ODBC row-wise parameter array (fixed-width,
 /// inline, indicator-free, bound identically across backends). Backed by the data-driven
-/// @ref SqlIsNativeRowBindableValue trait that each eligible binder header opts into.
+/// @c SqlIsNativeRowBindableValue trait that each eligible binder header opts into.
 template <typename V>
 concept SqlNativeRowBindableValue = SqlIsNativeRowBindableValue<V>;
 

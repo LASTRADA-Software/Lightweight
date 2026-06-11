@@ -166,8 +166,7 @@ SqlStatement::SqlStatement(SqlConnection& relatedConnection):
 }
 
 SqlStatement::SqlStatement(std::nullopt_t /*nullopt*/):
-    m_data { const_cast<Data*>(&Data::NoData), [](Data* /*data*/) {
-            } }
+    m_data { const_cast<Data*>(&Data::NoData), [](Data* /*data*/) {} }
 {
 }
 
