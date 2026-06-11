@@ -110,6 +110,7 @@ var hierarchy =
     [ "Lightweight::SqlMigrationUpdateBuilder", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html", null ],
     [ "Lightweight::SqlNullType", "da/d96/structLightweight_1_1SqlNullType.html", null ],
     [ "Lightweight::SqlNumeric< ThePrecision, TheScale >", "d6/d1b/structLightweight_1_1SqlNumeric.html", null ],
+    [ "Lightweight::SqlOptionalInner< T >", "d2/da9/structLightweight_1_1SqlOptionalInner.html", null ],
     [ "Lightweight::SqlQualifiedTableColumnName", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html", null ],
     [ "Lightweight::SqlQueryBuilder", "de/da0/classLightweight_1_1SqlQueryBuilder.html", null ],
     [ "Lightweight::SqlQueryFormatter", "d8/df7/classLightweight_1_1SqlQueryFormatter.html", null ],

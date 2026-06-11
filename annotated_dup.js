@@ -93,6 +93,7 @@ var annotated_dup =
       [ "SqlMigrationUpdateBuilder", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html", "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder" ],
       [ "SqlNullType", "da/d96/structLightweight_1_1SqlNullType.html", "da/d96/structLightweight_1_1SqlNullType" ],
       [ "SqlNumeric", "d6/d1b/structLightweight_1_1SqlNumeric.html", "d6/d1b/structLightweight_1_1SqlNumeric" ],
+      [ "SqlOptionalInner", "d2/da9/structLightweight_1_1SqlOptionalInner.html", null ],
       [ "SqlQualifiedTableColumnName", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html", "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName" ],
       [ "SqlQueryBuilder", "de/da0/classLightweight_1_1SqlQueryBuilder.html", "de/da0/classLightweight_1_1SqlQueryBuilder" ],
       [ "SqlQueryFormatter", "d8/df7/classLightweight_1_1SqlQueryFormatter.html", "d8/df7/classLightweight_1_1SqlQueryFormatter" ],
