@@ -989,360 +989,378 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="line"><a id="l00819" name="l00819"></a><span class="lineno">  819</span><span class="comment">/// value or a row-bindable optional of one.</span></div>
 <div class="line"><a id="l00820" name="l00820"></a><span class="lineno">  820</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> V&gt;</div>
 <div class="line"><a id="l00821" name="l00821"></a><span class="lineno"><a class="line" href="../../d7/d90/conceptLightweight_1_1SqlRowBindableColumn.html">  821</a></span><span class="keyword">concept </span><a class="code hl_concept" href="../../d7/d90/conceptLightweight_1_1SqlRowBindableColumn.html">SqlRowBindableColumn</a> = <a class="code hl_concept" href="../../d4/dc2/conceptLightweight_1_1SqlNativeRowBindableValue.html">SqlNativeRowBindableValue&lt;V&gt;</a> || <a class="code hl_concept" href="../../d0/dd4/conceptLightweight_1_1SqlOptionalRowBindable.html">SqlOptionalRowBindable&lt;V&gt;</a>;</div>
-<div class="line"><a id="l00822" name="l00822"></a><span class="lineno">  822</span> </div>
-<div class="line"><a id="l00823" name="l00823"></a><span class="lineno">  823</span><span class="keyword">template</span> &lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguous_range... MoreColumnBatches&gt;</div>
-<div class="foldopen" id="foldopen00824" data-start="{" data-end="}">
-<div class="line"><a id="l00824" name="l00824"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#abf5a451e1dbe5fca332cb2cd30e95631">  824</a></span><a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#abf5a451e1dbe5fca332cb2cd30e95631">SqlStatement::ExecuteBatchNative</a>(FirstColumnBatch <span class="keyword">const</span>&amp; firstColumnBatch,</div>
-<div class="line"><a id="l00825" name="l00825"></a><span class="lineno">  825</span>                                                 MoreColumnBatches <span class="keyword">const</span>&amp;... moreColumnBatches)</div>
-<div class="line"><a id="l00826" name="l00826"></a><span class="lineno">  826</span>{</div>
-<div class="line"><a id="l00827" name="l00827"></a><span class="lineno">  827</span>    <span class="keyword">static_assert</span>(SqlNativeBatchable&lt;FirstColumnBatch, MoreColumnBatches...&gt;,</div>
-<div class="line"><a id="l00828" name="l00828"></a><span class="lineno">  828</span>                  <span class="stringliteral">&quot;Must be a supported native contiguous element type.&quot;</span>);</div>
-<div class="line"><a id="l00829" name="l00829"></a><span class="lineno">  829</span> </div>
-<div class="line"><a id="l00830" name="l00830"></a><span class="lineno">  830</span>    ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::ExecuteBatchNative&quot;</span>);</div>
-<div class="line"><a id="l00831" name="l00831"></a><span class="lineno">  831</span>    ZoneTextObject(m_preparedQuery);</div>
-<div class="line"><a id="l00832" name="l00832"></a><span class="lineno">  832</span> </div>
-<div class="line"><a id="l00833" name="l00833"></a><span class="lineno">  833</span>    <span class="keywordflow">if</span> (m_expectedParameterCount != 1 + <span class="keyword">sizeof</span>...(moreColumnBatches))</div>
-<div class="line"><a id="l00834" name="l00834"></a><span class="lineno">  834</span>        <span class="keywordflow">throw</span> std::invalid_argument { <span class="stringliteral">&quot;Invalid number of columns&quot;</span> };</div>
-<div class="line"><a id="l00835" name="l00835"></a><span class="lineno">  835</span> </div>
-<div class="line"><a id="l00836" name="l00836"></a><span class="lineno">  836</span>    <span class="keyword">auto</span> <span class="keyword">const</span> rowCount = std::ranges::size(firstColumnBatch);</div>
-<div class="line"><a id="l00837" name="l00837"></a><span class="lineno">  837</span>    ZoneValue(rowCount);</div>
-<div class="line"><a id="l00838" name="l00838"></a><span class="lineno">  838</span>    <span class="keywordflow">if</span> (!((std::size(moreColumnBatches) == rowCount) &amp;&amp; ...))</div>
-<div class="line"><a id="l00839" name="l00839"></a><span class="lineno">  839</span>        <span class="keywordflow">throw</span> std::invalid_argument { <span class="stringliteral">&quot;Uneven number of rows&quot;</span> };</div>
-<div class="line"><a id="l00840" name="l00840"></a><span class="lineno">  840</span> </div>
-<div class="line"><a id="l00841" name="l00841"></a><span class="lineno">  841</span>    <span class="keywordtype">size_t</span> rowStart = 0;</div>
-<div class="line"><a id="l00842" name="l00842"></a><span class="lineno">  842</span> </div>
-<div class="line"><a id="l00843" name="l00843"></a><span class="lineno">  843</span>    <span class="comment">// clang-format off</span></div>
-<div class="line"><a id="l00844" name="l00844"></a><span class="lineno">  844</span>    <span class="comment">// NOLINTNEXTLINE(performance-no-int-to-ptr)</span></div>
-<div class="line"><a id="l00845" name="l00845"></a><span class="lineno">  845</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) rowCount, 0));</div>
-<div class="line"><a id="l00846" name="l00846"></a><span class="lineno">  846</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, &amp;rowStart, 0));</div>
-<div class="line"><a id="l00847" name="l00847"></a><span class="lineno">  847</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0));</div>
-<div class="line"><a id="l00848" name="l00848"></a><span class="lineno">  848</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_OPERATION_PTR, SQL_PARAM_PROCEED, 0));</div>
-<div class="line"><a id="l00849" name="l00849"></a><span class="lineno">  849</span>    ClearBatchIndicators();</div>
-<div class="line"><a id="l00850" name="l00850"></a><span class="lineno">  850</span>    RequireSuccess(SqlDataBinder&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(*std::ranges::data(firstColumnBatch))&gt;&gt;::</div>
-<div class="line"><a id="l00851" name="l00851"></a><span class="lineno">  851</span>                       BatchInputParameter(m_hStmt, 1, std::ranges::data(firstColumnBatch), rowCount, *<span class="keyword">this</span>));</div>
-<div class="line"><a id="l00852" name="l00852"></a><span class="lineno">  852</span>    SQLUSMALLINT column = 1;</div>
-<div class="line"><a id="l00853" name="l00853"></a><span class="lineno">  853</span>    (RequireSuccess(SqlDataBinder&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(*std::ranges::data(moreColumnBatches))&gt;&gt;::</div>
-<div class="line"><a id="l00854" name="l00854"></a><span class="lineno">  854</span>                        BatchInputParameter(m_hStmt, ++column, std::ranges::data(moreColumnBatches), rowCount, *<span class="keyword">this</span>)),</div>
-<div class="line"><a id="l00855" name="l00855"></a><span class="lineno">  855</span>     ...);</div>
-<div class="line"><a id="l00856" name="l00856"></a><span class="lineno">  856</span>    RequireSuccess(SQLExecute(m_hStmt));</div>
-<div class="line"><a id="l00857" name="l00857"></a><span class="lineno">  857</span>    ProcessPostExecuteCallbacks();</div>
-<div class="line"><a id="l00858" name="l00858"></a><span class="lineno">  858</span>    <span class="comment">// clang-format on</span></div>
-<div class="line"><a id="l00859" name="l00859"></a><span class="lineno">  859</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> { *<span class="keyword">this</span> };</div>
-<div class="line"><a id="l00860" name="l00860"></a><span class="lineno">  860</span>}</div>
+<div class="line"><a id="l00822" name="l00822"></a><span class="lineno">  822</span><span class="comment"></span> </div>
+<div class="line"><a id="l00823" name="l00823"></a><span class="lineno">  823</span><span class="comment">/// @brief Whether @p V&#39;s binder provides a row-wise batch entry point (@c BatchRowWiseInputParameter).</span></div>
+<div class="line"><a id="l00824" name="l00824"></a><span class="lineno">  824</span><span class="comment">///</span></div>
+<div class="line"><a id="l00825" name="l00825"></a><span class="lineno">  825</span><span class="comment">/// Such types (e.g. @c std::optional of a fixed type, or inline fixed-capacity strings) need a</span></div>
+<div class="line"><a id="l00826" name="l00826"></a><span class="lineno">  826</span><span class="comment">/// temporary row-strided NULL/length indicator buffer, which in turn requires the row stride to keep</span></div>
+<div class="line"><a id="l00827" name="l00827"></a><span class="lineno">  827</span><span class="comment">/// @c SQLLEN indicator slots aligned. Plain indicator-free fixed values bind via @c InputParameter and</span></div>
+<div class="line"><a id="l00828" name="l00828"></a><span class="lineno">  828</span><span class="comment">/// do not satisfy this concept.</span></div>
+<div class="line"><a id="l00829" name="l00829"></a><span class="lineno">  829</span><span class="comment"></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> V&gt;</div>
+<div class="foldopen" id="foldopen00830" data-start="{" data-end="}">
+<div class="line"><a id="l00830" name="l00830"></a><span class="lineno"><a class="line" href="../../dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html">  830</a></span><span class="keyword">concept </span><a class="code hl_concept" href="../../dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html">SqlHasRowWiseBatchBinder</a> =</div>
+<div class="line"><a id="l00831" name="l00831"></a><span class="lineno">  831</span>    <span class="keyword">requires</span>(SQLHSTMT stmt, SQLUSMALLINT column, V <span class="keyword">const</span>* elem0, std::size_t n, SqlDataBinderCallback&amp; cb) {</div>
+<div class="line"><a id="l00832" name="l00832"></a><span class="lineno">  832</span>        { SqlDataBinder&lt;V&gt;::BatchRowWiseInputParameter(stmt, column, elem0, n, n, cb) } -&gt; std::same_as&lt;SQLRETURN&gt;;</div>
+<div class="line"><a id="l00833" name="l00833"></a><span class="lineno">  833</span>    };</div>
 </div>
-<div class="line"><a id="l00861" name="l00861"></a><span class="lineno">  861</span><span class="comment"></span> </div>
-<div class="line"><a id="l00862" name="l00862"></a><span class="lineno">  862</span><span class="comment">/// @copydoc SqlStatement::ExecuteBatch</span></div>
-<div class="line"><a id="l00863" name="l00863"></a><span class="lineno">  863</span><span class="comment"></span><span class="keyword">template</span> &lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt;</div>
-<div class="foldopen" id="foldopen00864" data-start="{" data-end="}">
-<div class="line"><a id="l00864" name="l00864"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cf433624157f588443d42e5071ee288">  864</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5976ca6716ffd13c9eb4977da4d171c8">SqlStatement::ExecuteBatch</a>(FirstColumnBatch <span class="keyword">const</span>&amp; firstColumnBatch,</div>
-<div class="line"><a id="l00865" name="l00865"></a><span class="lineno">  865</span>                                                                           MoreColumnBatches <span class="keyword">const</span>&amp;... moreColumnBatches)</div>
-<div class="line"><a id="l00866" name="l00866"></a><span class="lineno">  866</span>{</div>
-<div class="line"><a id="l00867" name="l00867"></a><span class="lineno">  867</span>    <span class="comment">// If the input ranges are contiguous and their element types are contiguous and supported as well,</span></div>
-<div class="line"><a id="l00868" name="l00868"></a><span class="lineno">  868</span>    <span class="comment">// we can use the native batch execution.</span></div>
-<div class="line"><a id="l00869" name="l00869"></a><span class="lineno">  869</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (SqlNativeBatchable&lt;FirstColumnBatch, MoreColumnBatches...&gt;)</div>
-<div class="line"><a id="l00870" name="l00870"></a><span class="lineno">  870</span>        <span class="keywordflow">return</span> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#abf5a451e1dbe5fca332cb2cd30e95631">ExecuteBatchNative</a>(firstColumnBatch, moreColumnBatches...);</div>
-<div class="line"><a id="l00871" name="l00871"></a><span class="lineno">  871</span>    <span class="keywordflow">else</span></div>
-<div class="line"><a id="l00872" name="l00872"></a><span class="lineno">  872</span>        <span class="keywordflow">return</span> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#af3606d3a07e9a9be93e49569946c176d">ExecuteBatchSoft</a>(firstColumnBatch, moreColumnBatches...);</div>
-<div class="line"><a id="l00873" name="l00873"></a><span class="lineno">  873</span>}</div>
+<div class="line"><a id="l00834" name="l00834"></a><span class="lineno">  834</span> </div>
+<div class="line"><a id="l00835" name="l00835"></a><span class="lineno">  835</span><span class="keyword">template</span> &lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguous_range... MoreColumnBatches&gt;</div>
+<div class="foldopen" id="foldopen00836" data-start="{" data-end="}">
+<div class="line"><a id="l00836" name="l00836"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#abf5a451e1dbe5fca332cb2cd30e95631">  836</a></span><a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#abf5a451e1dbe5fca332cb2cd30e95631">SqlStatement::ExecuteBatchNative</a>(FirstColumnBatch <span class="keyword">const</span>&amp; firstColumnBatch,</div>
+<div class="line"><a id="l00837" name="l00837"></a><span class="lineno">  837</span>                                                 MoreColumnBatches <span class="keyword">const</span>&amp;... moreColumnBatches)</div>
+<div class="line"><a id="l00838" name="l00838"></a><span class="lineno">  838</span>{</div>
+<div class="line"><a id="l00839" name="l00839"></a><span class="lineno">  839</span>    <span class="keyword">static_assert</span>(SqlNativeBatchable&lt;FirstColumnBatch, MoreColumnBatches...&gt;,</div>
+<div class="line"><a id="l00840" name="l00840"></a><span class="lineno">  840</span>                  <span class="stringliteral">&quot;Must be a supported native contiguous element type.&quot;</span>);</div>
+<div class="line"><a id="l00841" name="l00841"></a><span class="lineno">  841</span> </div>
+<div class="line"><a id="l00842" name="l00842"></a><span class="lineno">  842</span>    ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::ExecuteBatchNative&quot;</span>);</div>
+<div class="line"><a id="l00843" name="l00843"></a><span class="lineno">  843</span>    ZoneTextObject(m_preparedQuery);</div>
+<div class="line"><a id="l00844" name="l00844"></a><span class="lineno">  844</span> </div>
+<div class="line"><a id="l00845" name="l00845"></a><span class="lineno">  845</span>    <span class="keywordflow">if</span> (m_expectedParameterCount != 1 + <span class="keyword">sizeof</span>...(moreColumnBatches))</div>
+<div class="line"><a id="l00846" name="l00846"></a><span class="lineno">  846</span>        <span class="keywordflow">throw</span> std::invalid_argument { <span class="stringliteral">&quot;Invalid number of columns&quot;</span> };</div>
+<div class="line"><a id="l00847" name="l00847"></a><span class="lineno">  847</span> </div>
+<div class="line"><a id="l00848" name="l00848"></a><span class="lineno">  848</span>    <span class="keyword">auto</span> <span class="keyword">const</span> rowCount = std::ranges::size(firstColumnBatch);</div>
+<div class="line"><a id="l00849" name="l00849"></a><span class="lineno">  849</span>    ZoneValue(rowCount);</div>
+<div class="line"><a id="l00850" name="l00850"></a><span class="lineno">  850</span>    <span class="keywordflow">if</span> (!((std::size(moreColumnBatches) == rowCount) &amp;&amp; ...))</div>
+<div class="line"><a id="l00851" name="l00851"></a><span class="lineno">  851</span>        <span class="keywordflow">throw</span> std::invalid_argument { <span class="stringliteral">&quot;Uneven number of rows&quot;</span> };</div>
+<div class="line"><a id="l00852" name="l00852"></a><span class="lineno">  852</span> </div>
+<div class="line"><a id="l00853" name="l00853"></a><span class="lineno">  853</span>    <span class="keywordtype">size_t</span> rowStart = 0;</div>
+<div class="line"><a id="l00854" name="l00854"></a><span class="lineno">  854</span> </div>
+<div class="line"><a id="l00855" name="l00855"></a><span class="lineno">  855</span>    <span class="comment">// clang-format off</span></div>
+<div class="line"><a id="l00856" name="l00856"></a><span class="lineno">  856</span>    <span class="comment">// NOLINTNEXTLINE(performance-no-int-to-ptr)</span></div>
+<div class="line"><a id="l00857" name="l00857"></a><span class="lineno">  857</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) rowCount, 0));</div>
+<div class="line"><a id="l00858" name="l00858"></a><span class="lineno">  858</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, &amp;rowStart, 0));</div>
+<div class="line"><a id="l00859" name="l00859"></a><span class="lineno">  859</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0));</div>
+<div class="line"><a id="l00860" name="l00860"></a><span class="lineno">  860</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_OPERATION_PTR, SQL_PARAM_PROCEED, 0));</div>
+<div class="line"><a id="l00861" name="l00861"></a><span class="lineno">  861</span>    ClearBatchIndicators();</div>
+<div class="line"><a id="l00862" name="l00862"></a><span class="lineno">  862</span>    RequireSuccess(SqlDataBinder&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(*std::ranges::data(firstColumnBatch))&gt;&gt;::</div>
+<div class="line"><a id="l00863" name="l00863"></a><span class="lineno">  863</span>                       BatchInputParameter(m_hStmt, 1, std::ranges::data(firstColumnBatch), rowCount, *<span class="keyword">this</span>));</div>
+<div class="line"><a id="l00864" name="l00864"></a><span class="lineno">  864</span>    SQLUSMALLINT column = 1;</div>
+<div class="line"><a id="l00865" name="l00865"></a><span class="lineno">  865</span>    (RequireSuccess(SqlDataBinder&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(*std::ranges::data(moreColumnBatches))&gt;&gt;::</div>
+<div class="line"><a id="l00866" name="l00866"></a><span class="lineno">  866</span>                        BatchInputParameter(m_hStmt, ++column, std::ranges::data(moreColumnBatches), rowCount, *<span class="keyword">this</span>)),</div>
+<div class="line"><a id="l00867" name="l00867"></a><span class="lineno">  867</span>     ...);</div>
+<div class="line"><a id="l00868" name="l00868"></a><span class="lineno">  868</span>    RequireSuccess(SQLExecute(m_hStmt));</div>
+<div class="line"><a id="l00869" name="l00869"></a><span class="lineno">  869</span>    ProcessPostExecuteCallbacks();</div>
+<div class="line"><a id="l00870" name="l00870"></a><span class="lineno">  870</span>    <span class="comment">// clang-format on</span></div>
+<div class="line"><a id="l00871" name="l00871"></a><span class="lineno">  871</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> { *<span class="keyword">this</span> };</div>
+<div class="line"><a id="l00872" name="l00872"></a><span class="lineno">  872</span>}</div>
 </div>
-<div class="line"><a id="l00874" name="l00874"></a><span class="lineno">  874</span> </div>
-<div class="line"><a id="l00875" name="l00875"></a><span class="lineno">  875</span><span class="keyword">template</span> &lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt;</div>
+<div class="line"><a id="l00873" name="l00873"></a><span class="lineno">  873</span><span class="comment"></span> </div>
+<div class="line"><a id="l00874" name="l00874"></a><span class="lineno">  874</span><span class="comment">/// @copydoc SqlStatement::ExecuteBatch</span></div>
+<div class="line"><a id="l00875" name="l00875"></a><span class="lineno">  875</span><span class="comment"></span><span class="keyword">template</span> &lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt;</div>
 <div class="foldopen" id="foldopen00876" data-start="{" data-end="}">
-<div class="line"><a id="l00876" name="l00876"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#af3606d3a07e9a9be93e49569946c176d">  876</a></span><a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#af3606d3a07e9a9be93e49569946c176d">SqlStatement::ExecuteBatchSoft</a>(FirstColumnBatch <span class="keyword">const</span>&amp; firstColumnBatch,</div>
-<div class="line"><a id="l00877" name="l00877"></a><span class="lineno">  877</span>                                               MoreColumnBatches <span class="keyword">const</span>&amp;... moreColumnBatches)</div>
+<div class="line"><a id="l00876" name="l00876"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cf433624157f588443d42e5071ee288">  876</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5976ca6716ffd13c9eb4977da4d171c8">SqlStatement::ExecuteBatch</a>(FirstColumnBatch <span class="keyword">const</span>&amp; firstColumnBatch,</div>
+<div class="line"><a id="l00877" name="l00877"></a><span class="lineno">  877</span>                                                                           MoreColumnBatches <span class="keyword">const</span>&amp;... moreColumnBatches)</div>
 <div class="line"><a id="l00878" name="l00878"></a><span class="lineno">  878</span>{</div>
-<div class="line"><a id="l00879" name="l00879"></a><span class="lineno">  879</span>    ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::ExecuteBatchSoft&quot;</span>);</div>
-<div class="line"><a id="l00880" name="l00880"></a><span class="lineno">  880</span>    ZoneTextObject(m_preparedQuery);</div>
-<div class="line"><a id="l00881" name="l00881"></a><span class="lineno">  881</span> </div>
-<div class="line"><a id="l00882" name="l00882"></a><span class="lineno">  882</span>    <span class="keywordflow">if</span> (m_expectedParameterCount != 1 + <span class="keyword">sizeof</span>...(moreColumnBatches))</div>
-<div class="line"><a id="l00883" name="l00883"></a><span class="lineno">  883</span>        <span class="keywordflow">throw</span> std::invalid_argument { <span class="stringliteral">&quot;Invalid number of columns&quot;</span> };</div>
-<div class="line"><a id="l00884" name="l00884"></a><span class="lineno">  884</span> </div>
-<div class="line"><a id="l00885" name="l00885"></a><span class="lineno">  885</span>    <span class="keyword">auto</span> <span class="keyword">const</span> rowCount = std::ranges::size(firstColumnBatch);</div>
-<div class="line"><a id="l00886" name="l00886"></a><span class="lineno">  886</span>    ZoneValue(rowCount);</div>
-<div class="line"><a id="l00887" name="l00887"></a><span class="lineno">  887</span>    <span class="keywordflow">if</span> (!((std::size(moreColumnBatches) == rowCount) &amp;&amp; ...))</div>
-<div class="line"><a id="l00888" name="l00888"></a><span class="lineno">  888</span>        <span class="keywordflow">throw</span> std::invalid_argument { <span class="stringliteral">&quot;Uneven number of rows&quot;</span> };</div>
-<div class="line"><a id="l00889" name="l00889"></a><span class="lineno">  889</span> </div>
-<div class="line"><a id="l00890" name="l00890"></a><span class="lineno">  890</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span> rowIndex: std::views::iota(<span class="keywordtype">size_t</span> { 0 }, rowCount))</div>
-<div class="line"><a id="l00891" name="l00891"></a><span class="lineno">  891</span>    {</div>
-<div class="line"><a id="l00892" name="l00892"></a><span class="lineno">  892</span>        std::apply(</div>
-<div class="line"><a id="l00893" name="l00893"></a><span class="lineno">  893</span>            [&amp;]&lt;SqlInputParameterBinder... ColumnValues&gt;(ColumnValues <span class="keyword">const</span>&amp;... columnsInRow) {</div>
-<div class="line"><a id="l00894" name="l00894"></a><span class="lineno">  894</span>                SQLUSMALLINT column = 0;</div>
-<div class="line"><a id="l00895" name="l00895"></a><span class="lineno">  895</span>                ((++column, SqlDataBinder&lt;ColumnValues&gt;::InputParameter(m_hStmt, column, columnsInRow, *this)), ...);</div>
-<div class="line"><a id="l00896" name="l00896"></a><span class="lineno">  896</span>                RequireSuccess(SQLExecute(m_hStmt));</div>
-<div class="line"><a id="l00897" name="l00897"></a><span class="lineno">  897</span>                ProcessPostExecuteCallbacks();</div>
-<div class="line"><a id="l00898" name="l00898"></a><span class="lineno">  898</span>            },</div>
-<div class="line"><a id="l00899" name="l00899"></a><span class="lineno">  899</span>            std::make_tuple(</div>
-<div class="line"><a id="l00900" name="l00900"></a><span class="lineno">  900</span>                std::ref(*std::ranges::next(std::ranges::begin(firstColumnBatch), <span class="keyword">static_cast&lt;</span>std::ptrdiff_t<span class="keyword">&gt;</span>(rowIndex))),</div>
-<div class="line"><a id="l00901" name="l00901"></a><span class="lineno">  901</span>                std::ref(</div>
-<div class="line"><a id="l00902" name="l00902"></a><span class="lineno">  902</span>                    *std::ranges::next(std::ranges::begin(moreColumnBatches), <span class="keyword">static_cast&lt;</span>std::ptrdiff_t<span class="keyword">&gt;</span>(rowIndex)))...));</div>
-<div class="line"><a id="l00903" name="l00903"></a><span class="lineno">  903</span>    }</div>
-<div class="line"><a id="l00904" name="l00904"></a><span class="lineno">  904</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> { *<span class="keyword">this</span> };</div>
-<div class="line"><a id="l00905" name="l00905"></a><span class="lineno">  905</span>}</div>
+<div class="line"><a id="l00879" name="l00879"></a><span class="lineno">  879</span>    <span class="comment">// If the input ranges are contiguous and their element types are contiguous and supported as well,</span></div>
+<div class="line"><a id="l00880" name="l00880"></a><span class="lineno">  880</span>    <span class="comment">// we can use the native batch execution.</span></div>
+<div class="line"><a id="l00881" name="l00881"></a><span class="lineno">  881</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (SqlNativeBatchable&lt;FirstColumnBatch, MoreColumnBatches...&gt;)</div>
+<div class="line"><a id="l00882" name="l00882"></a><span class="lineno">  882</span>        <span class="keywordflow">return</span> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#abf5a451e1dbe5fca332cb2cd30e95631">ExecuteBatchNative</a>(firstColumnBatch, moreColumnBatches...);</div>
+<div class="line"><a id="l00883" name="l00883"></a><span class="lineno">  883</span>    <span class="keywordflow">else</span></div>
+<div class="line"><a id="l00884" name="l00884"></a><span class="lineno">  884</span>        <span class="keywordflow">return</span> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#af3606d3a07e9a9be93e49569946c176d">ExecuteBatchSoft</a>(firstColumnBatch, moreColumnBatches...);</div>
+<div class="line"><a id="l00885" name="l00885"></a><span class="lineno">  885</span>}</div>
 </div>
-<div class="line"><a id="l00906" name="l00906"></a><span class="lineno">  906</span> </div>
-<div class="line"><a id="l00907" name="l00907"></a><span class="lineno">  907</span><span class="keyword">template</span> &lt;std::ranges::contiguous_range Rows, <span class="keyword">typename</span>... ColumnAccessors&gt;</div>
-<div class="line"><a id="l00908" name="l00908"></a><span class="lineno">  908</span>    <span class="keyword">requires</span>(<span class="keyword">sizeof</span>...(ColumnAccessors) &gt;= 1</div>
-<div class="line"><a id="l00909" name="l00909"></a><span class="lineno">  909</span>             &amp;&amp; (std::invocable&lt;ColumnAccessors <span class="keyword">const</span>&amp;, std::ranges::range_value_t&lt;Rows&gt; <span class="keyword">const</span>&amp;&gt; &amp;&amp; ...))</div>
-<div class="foldopen" id="foldopen00910" data-start="{" data-end="}">
-<div class="line"><a id="l00910" name="l00910"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#ac394d28a45e9b10a2edb1cdf0037281e">  910</a></span><a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5976ca6716ffd13c9eb4977da4d171c8">SqlStatement::ExecuteBatch</a>(Rows <span class="keyword">const</span>&amp; rows, ColumnAccessors <span class="keyword">const</span>&amp;... accessors)</div>
-<div class="line"><a id="l00911" name="l00911"></a><span class="lineno">  911</span>{</div>
-<div class="line"><a id="l00912" name="l00912"></a><span class="lineno">  912</span>    ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::ExecuteBatch(row-major)&quot;</span>);</div>
-<div class="line"><a id="l00913" name="l00913"></a><span class="lineno">  913</span>    ZoneTextObject(m_preparedQuery);</div>
-<div class="line"><a id="l00914" name="l00914"></a><span class="lineno">  914</span> </div>
-<div class="line"><a id="l00915" name="l00915"></a><span class="lineno">  915</span>    <span class="keyword">using </span>RowElem = std::ranges::range_value_t&lt;Rows&gt;;</div>
-<div class="line"><a id="l00916" name="l00916"></a><span class="lineno">  916</span> </div>
-<div class="line"><a id="l00917" name="l00917"></a><span class="lineno">  917</span>    <span class="keyword">auto</span> <span class="keyword">const</span> rowCount = std::ranges::size(rows);</div>
-<div class="line"><a id="l00918" name="l00918"></a><span class="lineno">  918</span>    <span class="keywordflow">if</span> (rowCount == 0)</div>
-<div class="line"><a id="l00919" name="l00919"></a><span class="lineno">  919</span>        <span class="keywordflow">return</span> <a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> { *<span class="keyword">this</span> };</div>
-<div class="line"><a id="l00920" name="l00920"></a><span class="lineno">  920</span> </div>
-<div class="line"><a id="l00921" name="l00921"></a><span class="lineno">  921</span>    <span class="keywordflow">if</span> (m_expectedParameterCount != <span class="keyword">static_cast&lt;</span>SQLSMALLINT<span class="keyword">&gt;</span>(<span class="keyword">sizeof</span>...(accessors)))</div>
-<div class="line"><a id="l00922" name="l00922"></a><span class="lineno">  922</span>        <span class="keywordflow">throw</span> std::invalid_argument { <span class="stringliteral">&quot;Invalid number of columns&quot;</span> };</div>
-<div class="line"><a id="l00923" name="l00923"></a><span class="lineno">  923</span> </div>
-<div class="line"><a id="l00924" name="l00924"></a><span class="lineno">  924</span>    <span class="comment">// Compile-time eligibility for the native row-wise path: every column must be row-bindable, every</span></div>
-<div class="line"><a id="l00925" name="l00925"></a><span class="lineno">  925</span>    <span class="comment">// accessor must return an lvalue reference (so the bound address is a stable subobject), and — when</span></div>
-<div class="line"><a id="l00926" name="l00926"></a><span class="lineno">  926</span>    <span class="comment">// any column is an optional needing a row-strided indicator — the row stride must keep SQLLEN</span></div>
-<div class="line"><a id="l00927" name="l00927"></a><span class="lineno">  927</span>    <span class="comment">// indicator slots aligned and non-overlapping.</span></div>
-<div class="line"><a id="l00928" name="l00928"></a><span class="lineno">  928</span>    <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> allColumnsRowBindable =</div>
-<div class="line"><a id="l00929" name="l00929"></a><span class="lineno">  929</span>        (<a class="code hl_concept" href="../../d7/d90/conceptLightweight_1_1SqlRowBindableColumn.html">SqlRowBindableColumn&lt;std::remove_cvref_t&lt;std::invoke_result_t&lt;ColumnAccessors const&amp;, RowElem const&amp;&gt;</a>&gt;&gt; &amp;&amp; ...);</div>
-<div class="line"><a id="l00930" name="l00930"></a><span class="lineno">  930</span>    <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> allAccessorsReturnReference =</div>
-<div class="line"><a id="l00931" name="l00931"></a><span class="lineno">  931</span>        (std::is_reference_v&lt;std::invoke_result_t&lt;ColumnAccessors const&amp;, RowElem const&amp;&gt;&gt; &amp;&amp; ...);</div>
-<div class="line"><a id="l00932" name="l00932"></a><span class="lineno">  932</span>    <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> anyOptionalColumn =</div>
-<div class="line"><a id="l00933" name="l00933"></a><span class="lineno">  933</span>        (<a class="code hl_concept" href="../../d0/dd4/conceptLightweight_1_1SqlOptionalRowBindable.html">SqlOptionalRowBindable&lt;std::remove_cvref_t&lt;std::invoke_result_t&lt;ColumnAccessors const&amp;, RowElem const&amp;&gt;</a>&gt;&gt; || ...);</div>
-<div class="line"><a id="l00934" name="l00934"></a><span class="lineno">  934</span>    <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> indicatorAlignmentSatisfied = (<span class="keyword">sizeof</span>(RowElem) % <span class="keyword">alignof</span>(SQLLEN)) == 0;</div>
+<div class="line"><a id="l00886" name="l00886"></a><span class="lineno">  886</span> </div>
+<div class="line"><a id="l00887" name="l00887"></a><span class="lineno">  887</span><span class="keyword">template</span> &lt;SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::range... MoreColumnBatches&gt;</div>
+<div class="foldopen" id="foldopen00888" data-start="{" data-end="}">
+<div class="line"><a id="l00888" name="l00888"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#af3606d3a07e9a9be93e49569946c176d">  888</a></span><a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#af3606d3a07e9a9be93e49569946c176d">SqlStatement::ExecuteBatchSoft</a>(FirstColumnBatch <span class="keyword">const</span>&amp; firstColumnBatch,</div>
+<div class="line"><a id="l00889" name="l00889"></a><span class="lineno">  889</span>                                               MoreColumnBatches <span class="keyword">const</span>&amp;... moreColumnBatches)</div>
+<div class="line"><a id="l00890" name="l00890"></a><span class="lineno">  890</span>{</div>
+<div class="line"><a id="l00891" name="l00891"></a><span class="lineno">  891</span>    ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::ExecuteBatchSoft&quot;</span>);</div>
+<div class="line"><a id="l00892" name="l00892"></a><span class="lineno">  892</span>    ZoneTextObject(m_preparedQuery);</div>
+<div class="line"><a id="l00893" name="l00893"></a><span class="lineno">  893</span> </div>
+<div class="line"><a id="l00894" name="l00894"></a><span class="lineno">  894</span>    <span class="keywordflow">if</span> (m_expectedParameterCount != 1 + <span class="keyword">sizeof</span>...(moreColumnBatches))</div>
+<div class="line"><a id="l00895" name="l00895"></a><span class="lineno">  895</span>        <span class="keywordflow">throw</span> std::invalid_argument { <span class="stringliteral">&quot;Invalid number of columns&quot;</span> };</div>
+<div class="line"><a id="l00896" name="l00896"></a><span class="lineno">  896</span> </div>
+<div class="line"><a id="l00897" name="l00897"></a><span class="lineno">  897</span>    <span class="keyword">auto</span> <span class="keyword">const</span> rowCount = std::ranges::size(firstColumnBatch);</div>
+<div class="line"><a id="l00898" name="l00898"></a><span class="lineno">  898</span>    ZoneValue(rowCount);</div>
+<div class="line"><a id="l00899" name="l00899"></a><span class="lineno">  899</span>    <span class="keywordflow">if</span> (!((std::size(moreColumnBatches) == rowCount) &amp;&amp; ...))</div>
+<div class="line"><a id="l00900" name="l00900"></a><span class="lineno">  900</span>        <span class="keywordflow">throw</span> std::invalid_argument { <span class="stringliteral">&quot;Uneven number of rows&quot;</span> };</div>
+<div class="line"><a id="l00901" name="l00901"></a><span class="lineno">  901</span> </div>
+<div class="line"><a id="l00902" name="l00902"></a><span class="lineno">  902</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span> rowIndex: std::views::iota(<span class="keywordtype">size_t</span> { 0 }, rowCount))</div>
+<div class="line"><a id="l00903" name="l00903"></a><span class="lineno">  903</span>    {</div>
+<div class="line"><a id="l00904" name="l00904"></a><span class="lineno">  904</span>        std::apply(</div>
+<div class="line"><a id="l00905" name="l00905"></a><span class="lineno">  905</span>            [&amp;]&lt;SqlInputParameterBinder... ColumnValues&gt;(ColumnValues <span class="keyword">const</span>&amp;... columnsInRow) {</div>
+<div class="line"><a id="l00906" name="l00906"></a><span class="lineno">  906</span>                SQLUSMALLINT column = 0;</div>
+<div class="line"><a id="l00907" name="l00907"></a><span class="lineno">  907</span>                ((++column, SqlDataBinder&lt;ColumnValues&gt;::InputParameter(m_hStmt, column, columnsInRow, *this)), ...);</div>
+<div class="line"><a id="l00908" name="l00908"></a><span class="lineno">  908</span>                RequireSuccess(SQLExecute(m_hStmt));</div>
+<div class="line"><a id="l00909" name="l00909"></a><span class="lineno">  909</span>                ProcessPostExecuteCallbacks();</div>
+<div class="line"><a id="l00910" name="l00910"></a><span class="lineno">  910</span>            },</div>
+<div class="line"><a id="l00911" name="l00911"></a><span class="lineno">  911</span>            std::make_tuple(</div>
+<div class="line"><a id="l00912" name="l00912"></a><span class="lineno">  912</span>                std::ref(*std::ranges::next(std::ranges::begin(firstColumnBatch), <span class="keyword">static_cast&lt;</span>std::ptrdiff_t<span class="keyword">&gt;</span>(rowIndex))),</div>
+<div class="line"><a id="l00913" name="l00913"></a><span class="lineno">  913</span>                std::ref(</div>
+<div class="line"><a id="l00914" name="l00914"></a><span class="lineno">  914</span>                    *std::ranges::next(std::ranges::begin(moreColumnBatches), <span class="keyword">static_cast&lt;</span>std::ptrdiff_t<span class="keyword">&gt;</span>(rowIndex)))...));</div>
+<div class="line"><a id="l00915" name="l00915"></a><span class="lineno">  915</span>    }</div>
+<div class="line"><a id="l00916" name="l00916"></a><span class="lineno">  916</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> { *<span class="keyword">this</span> };</div>
+<div class="line"><a id="l00917" name="l00917"></a><span class="lineno">  917</span>}</div>
+</div>
+<div class="line"><a id="l00918" name="l00918"></a><span class="lineno">  918</span> </div>
+<div class="line"><a id="l00919" name="l00919"></a><span class="lineno">  919</span><span class="keyword">template</span> &lt;std::ranges::contiguous_range Rows, <span class="keyword">typename</span>... ColumnAccessors&gt;</div>
+<div class="line"><a id="l00920" name="l00920"></a><span class="lineno">  920</span>    <span class="keyword">requires</span>(<span class="keyword">sizeof</span>...(ColumnAccessors) &gt;= 1</div>
+<div class="line"><a id="l00921" name="l00921"></a><span class="lineno">  921</span>             &amp;&amp; (std::invocable&lt;ColumnAccessors <span class="keyword">const</span>&amp;, std::ranges::range_value_t&lt;Rows&gt; <span class="keyword">const</span>&amp;&gt; &amp;&amp; ...))</div>
+<div class="foldopen" id="foldopen00922" data-start="{" data-end="}">
+<div class="line"><a id="l00922" name="l00922"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#ac394d28a45e9b10a2edb1cdf0037281e">  922</a></span><a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a5976ca6716ffd13c9eb4977da4d171c8">SqlStatement::ExecuteBatch</a>(Rows <span class="keyword">const</span>&amp; rows, ColumnAccessors <span class="keyword">const</span>&amp;... accessors)</div>
+<div class="line"><a id="l00923" name="l00923"></a><span class="lineno">  923</span>{</div>
+<div class="line"><a id="l00924" name="l00924"></a><span class="lineno">  924</span>    ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::ExecuteBatch(row-major)&quot;</span>);</div>
+<div class="line"><a id="l00925" name="l00925"></a><span class="lineno">  925</span>    ZoneTextObject(m_preparedQuery);</div>
+<div class="line"><a id="l00926" name="l00926"></a><span class="lineno">  926</span> </div>
+<div class="line"><a id="l00927" name="l00927"></a><span class="lineno">  927</span>    <span class="keyword">using </span>RowElem = std::ranges::range_value_t&lt;Rows&gt;;</div>
+<div class="line"><a id="l00928" name="l00928"></a><span class="lineno">  928</span> </div>
+<div class="line"><a id="l00929" name="l00929"></a><span class="lineno">  929</span>    <span class="keyword">auto</span> <span class="keyword">const</span> rowCount = std::ranges::size(rows);</div>
+<div class="line"><a id="l00930" name="l00930"></a><span class="lineno">  930</span>    <span class="keywordflow">if</span> (rowCount == 0)</div>
+<div class="line"><a id="l00931" name="l00931"></a><span class="lineno">  931</span>        <span class="keywordflow">return</span> <a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> { *<span class="keyword">this</span> };</div>
+<div class="line"><a id="l00932" name="l00932"></a><span class="lineno">  932</span> </div>
+<div class="line"><a id="l00933" name="l00933"></a><span class="lineno">  933</span>    <span class="keywordflow">if</span> (m_expectedParameterCount != <span class="keyword">static_cast&lt;</span>SQLSMALLINT<span class="keyword">&gt;</span>(<span class="keyword">sizeof</span>...(accessors)))</div>
+<div class="line"><a id="l00934" name="l00934"></a><span class="lineno">  934</span>        <span class="keywordflow">throw</span> std::invalid_argument { <span class="stringliteral">&quot;Invalid number of columns&quot;</span> };</div>
 <div class="line"><a id="l00935" name="l00935"></a><span class="lineno">  935</span> </div>
-<div class="line"><a id="l00936" name="l00936"></a><span class="lineno">  936</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (allColumnsRowBindable &amp;&amp; allAccessorsReturnReference</div>
-<div class="line"><a id="l00937" name="l00937"></a><span class="lineno">  937</span>                  &amp;&amp; (!anyOptionalColumn || indicatorAlignmentSatisfied))</div>
-<div class="line"><a id="l00938" name="l00938"></a><span class="lineno">  938</span>    {</div>
-<div class="line"><a id="l00939" name="l00939"></a><span class="lineno">  939</span>        <span class="keyword">auto</span> <span class="keyword">const</span>* rowData = std::ranges::data(rows);</div>
-<div class="line"><a id="l00940" name="l00940"></a><span class="lineno">  940</span> </div>
-<div class="line"><a id="l00941" name="l00941"></a><span class="lineno">  941</span>        <span class="comment">// Runtime guard: confirm each accessor yields a constant-offset subobject (stride == sizeof row),</span></div>
-<div class="line"><a id="l00942" name="l00942"></a><span class="lineno">  942</span>        <span class="comment">// so binding row 0&#39;s address and striding by sizeof(RowElem) addresses every row correctly.</span></div>
-<div class="line"><a id="l00943" name="l00943"></a><span class="lineno">  943</span>        <span class="keyword">auto</span> <span class="keyword">const</span> accessorStrideMatchesRow = [&amp;](<span class="keyword">auto</span> <span class="keyword">const</span>&amp; accessor) <span class="keyword">noexcept</span> -&gt; <span class="keywordtype">bool</span> {</div>
-<div class="line"><a id="l00944" name="l00944"></a><span class="lineno">  944</span>            <span class="keyword">auto</span> <span class="keyword">const</span>* first = <span class="keyword">reinterpret_cast&lt;</span>std::byte const*<span class="keyword">&gt;</span>(std::addressof(accessor(rowData[0])));</div>
-<div class="line"><a id="l00945" name="l00945"></a><span class="lineno">  945</span>            <span class="keyword">auto</span> <span class="keyword">const</span>* second = <span class="keyword">reinterpret_cast&lt;</span>std::byte const*<span class="keyword">&gt;</span>(std::addressof(accessor(rowData[1])));</div>
-<div class="line"><a id="l00946" name="l00946"></a><span class="lineno">  946</span>            <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(second - first) == <span class="keyword">sizeof</span>(RowElem);</div>
-<div class="line"><a id="l00947" name="l00947"></a><span class="lineno">  947</span>        };</div>
-<div class="line"><a id="l00948" name="l00948"></a><span class="lineno">  948</span>        <span class="keywordtype">bool</span> <span class="keyword">const</span> rowStrideOk = rowCount &lt; 2 || (accessorStrideMatchesRow(accessors) &amp;&amp; ...);</div>
-<div class="line"><a id="l00949" name="l00949"></a><span class="lineno">  949</span> </div>
-<div class="line"><a id="l00950" name="l00950"></a><span class="lineno">  950</span>        <span class="keywordflow">if</span> (m_connection-&gt;QueryFormatter().SupportsNativeRowBatch() &amp;&amp; rowStrideOk)</div>
-<div class="line"><a id="l00951" name="l00951"></a><span class="lineno">  951</span>            <span class="keywordflow">return</span> ExecuteBatchNativeRowWise(rows, accessors...);</div>
-<div class="line"><a id="l00952" name="l00952"></a><span class="lineno">  952</span>    }</div>
-<div class="line"><a id="l00953" name="l00953"></a><span class="lineno">  953</span> </div>
-<div class="line"><a id="l00954" name="l00954"></a><span class="lineno">  954</span>    <span class="keywordflow">return</span> ExecuteBatchSoftRowMajor(rows, accessors...);</div>
-<div class="line"><a id="l00955" name="l00955"></a><span class="lineno">  955</span>}</div>
+<div class="line"><a id="l00936" name="l00936"></a><span class="lineno">  936</span>    <span class="comment">// Compile-time eligibility for the native row-wise path: every column must be row-bindable, every</span></div>
+<div class="line"><a id="l00937" name="l00937"></a><span class="lineno">  937</span>    <span class="comment">// accessor must return an lvalue reference (so the bound address is a stable subobject), and — when</span></div>
+<div class="line"><a id="l00938" name="l00938"></a><span class="lineno">  938</span>    <span class="comment">// any column needs a row-strided indicator (optionals, inline fixed-capacity strings) — the row</span></div>
+<div class="line"><a id="l00939" name="l00939"></a><span class="lineno">  939</span>    <span class="comment">// stride must keep SQLLEN indicator slots aligned and non-overlapping.</span></div>
+<div class="line"><a id="l00940" name="l00940"></a><span class="lineno">  940</span>    <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> allColumnsRowBindable =</div>
+<div class="line"><a id="l00941" name="l00941"></a><span class="lineno">  941</span>        (<a class="code hl_concept" href="../../d7/d90/conceptLightweight_1_1SqlRowBindableColumn.html">SqlRowBindableColumn&lt;std::remove_cvref_t&lt;std::invoke_result_t&lt;ColumnAccessors const&amp;, RowElem const&amp;&gt;</a>&gt;&gt; &amp;&amp; ...);</div>
+<div class="line"><a id="l00942" name="l00942"></a><span class="lineno">  942</span>    <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> allAccessorsReturnReference =</div>
+<div class="line"><a id="l00943" name="l00943"></a><span class="lineno">  943</span>        (std::is_reference_v&lt;std::invoke_result_t&lt;ColumnAccessors const&amp;, RowElem const&amp;&gt;&gt; &amp;&amp; ...);</div>
+<div class="line"><a id="l00944" name="l00944"></a><span class="lineno">  944</span>    <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> anyStridedIndicatorColumn =</div>
+<div class="line"><a id="l00945" name="l00945"></a><span class="lineno">  945</span>        (<a class="code hl_concept" href="../../dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html">SqlHasRowWiseBatchBinder&lt;std::remove_cvref_t&lt;std::invoke_result_t&lt;ColumnAccessors const&amp;, RowElem const&amp;&gt;</a>&gt;&gt; || ...);</div>
+<div class="line"><a id="l00946" name="l00946"></a><span class="lineno">  946</span>    <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> indicatorAlignmentSatisfied = (<span class="keyword">sizeof</span>(RowElem) % <span class="keyword">alignof</span>(SQLLEN)) == 0;</div>
+<div class="line"><a id="l00947" name="l00947"></a><span class="lineno">  947</span> </div>
+<div class="line"><a id="l00948" name="l00948"></a><span class="lineno">  948</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (allColumnsRowBindable &amp;&amp; allAccessorsReturnReference</div>
+<div class="line"><a id="l00949" name="l00949"></a><span class="lineno">  949</span>                  &amp;&amp; (!anyStridedIndicatorColumn || indicatorAlignmentSatisfied))</div>
+<div class="line"><a id="l00950" name="l00950"></a><span class="lineno">  950</span>    {</div>
+<div class="line"><a id="l00951" name="l00951"></a><span class="lineno">  951</span>        <span class="keyword">auto</span> <span class="keyword">const</span>* rowData = std::ranges::data(rows);</div>
+<div class="line"><a id="l00952" name="l00952"></a><span class="lineno">  952</span> </div>
+<div class="line"><a id="l00953" name="l00953"></a><span class="lineno">  953</span>        <span class="comment">// Runtime guard: confirm each accessor yields a constant-offset subobject (stride == sizeof row),</span></div>
+<div class="line"><a id="l00954" name="l00954"></a><span class="lineno">  954</span>        <span class="comment">// so binding row 0&#39;s address and striding by sizeof(RowElem) addresses every row correctly.</span></div>
+<div class="line"><a id="l00955" name="l00955"></a><span class="lineno">  955</span>        <span class="keyword">auto</span> <span class="keyword">const</span> accessorStrideMatchesRow = [&amp;](<span class="keyword">auto</span> <span class="keyword">const</span>&amp; accessor) <span class="keyword">noexcept</span> -&gt; <span class="keywordtype">bool</span> {</div>
+<div class="line"><a id="l00956" name="l00956"></a><span class="lineno">  956</span>            <span class="keyword">auto</span> <span class="keyword">const</span>* first = <span class="keyword">reinterpret_cast&lt;</span>std::byte const*<span class="keyword">&gt;</span>(std::addressof(accessor(rowData[0])));</div>
+<div class="line"><a id="l00957" name="l00957"></a><span class="lineno">  957</span>            <span class="keyword">auto</span> <span class="keyword">const</span>* second = <span class="keyword">reinterpret_cast&lt;</span>std::byte const*<span class="keyword">&gt;</span>(std::addressof(accessor(rowData[1])));</div>
+<div class="line"><a id="l00958" name="l00958"></a><span class="lineno">  958</span>            <span class="keywordflow">return</span> <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(second - first) == <span class="keyword">sizeof</span>(RowElem);</div>
+<div class="line"><a id="l00959" name="l00959"></a><span class="lineno">  959</span>        };</div>
+<div class="line"><a id="l00960" name="l00960"></a><span class="lineno">  960</span>        <span class="keywordtype">bool</span> <span class="keyword">const</span> rowStrideOk = rowCount &lt; 2 || (accessorStrideMatchesRow(accessors) &amp;&amp; ...);</div>
+<div class="line"><a id="l00961" name="l00961"></a><span class="lineno">  961</span> </div>
+<div class="line"><a id="l00962" name="l00962"></a><span class="lineno">  962</span>        <span class="keywordflow">if</span> (m_connection-&gt;QueryFormatter().SupportsNativeRowBatch() &amp;&amp; rowStrideOk)</div>
+<div class="line"><a id="l00963" name="l00963"></a><span class="lineno">  963</span>            <span class="keywordflow">return</span> ExecuteBatchNativeRowWise(rows, accessors...);</div>
+<div class="line"><a id="l00964" name="l00964"></a><span class="lineno">  964</span>    }</div>
+<div class="line"><a id="l00965" name="l00965"></a><span class="lineno">  965</span> </div>
+<div class="line"><a id="l00966" name="l00966"></a><span class="lineno">  966</span>    <span class="keywordflow">return</span> ExecuteBatchSoftRowMajor(rows, accessors...);</div>
+<div class="line"><a id="l00967" name="l00967"></a><span class="lineno">  967</span>}</div>
 </div>
-<div class="line"><a id="l00956" name="l00956"></a><span class="lineno">  956</span> </div>
-<div class="line"><a id="l00957" name="l00957"></a><span class="lineno">  957</span><span class="keyword">template</span> &lt;std::ranges::contiguous_range Rows, <span class="keyword">typename</span>... ColumnAccessors&gt;</div>
-<div class="line"><a id="l00958" name="l00958"></a><span class="lineno">  958</span><a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> SqlStatement::ExecuteBatchNativeRowWise(Rows <span class="keyword">const</span>&amp; rows, ColumnAccessors <span class="keyword">const</span>&amp;... accessors)</div>
-<div class="line"><a id="l00959" name="l00959"></a><span class="lineno">  959</span>{</div>
-<div class="line"><a id="l00960" name="l00960"></a><span class="lineno">  960</span>    ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::ExecuteBatchNativeRowWise&quot;</span>);</div>
-<div class="line"><a id="l00961" name="l00961"></a><span class="lineno">  961</span>    ZoneTextObject(m_preparedQuery);</div>
-<div class="line"><a id="l00962" name="l00962"></a><span class="lineno">  962</span> </div>
-<div class="line"><a id="l00963" name="l00963"></a><span class="lineno">  963</span>    <span class="keyword">using </span>RowElem = std::ranges::range_value_t&lt;Rows&gt;;</div>
-<div class="line"><a id="l00964" name="l00964"></a><span class="lineno">  964</span>    <span class="keyword">auto</span> <span class="keyword">const</span> rowCount = std::ranges::size(rows);</div>
-<div class="line"><a id="l00965" name="l00965"></a><span class="lineno">  965</span>    ZoneValue(rowCount);</div>
-<div class="line"><a id="l00966" name="l00966"></a><span class="lineno">  966</span>    <span class="keyword">auto</span> <span class="keyword">const</span>* rowData = std::ranges::data(rows);</div>
-<div class="line"><a id="l00967" name="l00967"></a><span class="lineno">  967</span> </div>
-<div class="line"><a id="l00968" name="l00968"></a><span class="lineno">  968</span>    <span class="comment">// Row-wise array binding: the driver strides every bound value and indicator pointer by sizeof(RowElem).</span></div>
-<div class="line"><a id="l00969" name="l00969"></a><span class="lineno">  969</span>    <span class="comment">// clang-format off</span></div>
-<div class="line"><a id="l00970" name="l00970"></a><span class="lineno">  970</span>    <span class="comment">// NOLINTNEXTLINE(performance-no-int-to-ptr)</span></div>
-<div class="line"><a id="l00971" name="l00971"></a><span class="lineno">  971</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) rowCount, 0));</div>
-<div class="line"><a id="l00972" name="l00972"></a><span class="lineno">  972</span>    <span class="comment">// NOLINTNEXTLINE(performance-no-int-to-ptr)</span></div>
-<div class="line"><a id="l00973" name="l00973"></a><span class="lineno">  973</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, (SQLPOINTER) <span class="keyword">sizeof</span>(RowElem), 0));</div>
-<div class="line"><a id="l00974" name="l00974"></a><span class="lineno">  974</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, <span class="keyword">nullptr</span>, 0));</div>
-<div class="line"><a id="l00975" name="l00975"></a><span class="lineno">  975</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_OPERATION_PTR, SQL_PARAM_PROCEED, 0));</div>
-<div class="line"><a id="l00976" name="l00976"></a><span class="lineno">  976</span>    <span class="comment">// clang-format on</span></div>
-<div class="line"><a id="l00977" name="l00977"></a><span class="lineno">  977</span>    ClearBatchIndicators();</div>
-<div class="line"><a id="l00978" name="l00978"></a><span class="lineno">  978</span> </div>
-<div class="line"><a id="l00979" name="l00979"></a><span class="lineno">  979</span>    SQLUSMALLINT column = 0;</div>
-<div class="line"><a id="l00980" name="l00980"></a><span class="lineno">  980</span>    <span class="keyword">auto</span> <span class="keyword">const</span> bindColumn = [&amp;](<span class="keyword">auto</span> <span class="keyword">const</span>&amp; accessor) {</div>
-<div class="line"><a id="l00981" name="l00981"></a><span class="lineno">  981</span>        ++column;</div>
-<div class="line"><a id="l00982" name="l00982"></a><span class="lineno">  982</span>        <span class="keyword">using </span>ValueType = std::remove_cvref_t&lt;<span class="keyword">decltype</span>(accessor(rowData[0]))&gt;;</div>
-<div class="line"><a id="l00983" name="l00983"></a><span class="lineno">  983</span>        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (SqlIsStdOptional&lt;ValueType&gt;)</div>
-<div class="line"><a id="l00984" name="l00984"></a><span class="lineno">  984</span>            RequireSuccess(SqlDataBinder&lt;ValueType&gt;::BatchRowWiseInputParameter(</div>
-<div class="line"><a id="l00985" name="l00985"></a><span class="lineno">  985</span>                m_hStmt, column, std::addressof(accessor(rowData[0])), <span class="keyword">sizeof</span>(RowElem), rowCount, *<span class="keyword">this</span>));</div>
-<div class="line"><a id="l00986" name="l00986"></a><span class="lineno">  986</span>        <span class="keywordflow">else</span></div>
-<div class="line"><a id="l00987" name="l00987"></a><span class="lineno">  987</span>            RequireSuccess(SqlDataBinder&lt;ValueType&gt;::InputParameter(m_hStmt, column, accessor(rowData[0]), *<span class="keyword">this</span>));</div>
-<div class="line"><a id="l00988" name="l00988"></a><span class="lineno">  988</span>    };</div>
-<div class="line"><a id="l00989" name="l00989"></a><span class="lineno">  989</span>    (bindColumn(accessors), ...);</div>
+<div class="line"><a id="l00968" name="l00968"></a><span class="lineno">  968</span> </div>
+<div class="line"><a id="l00969" name="l00969"></a><span class="lineno">  969</span><span class="keyword">template</span> &lt;std::ranges::contiguous_range Rows, <span class="keyword">typename</span>... ColumnAccessors&gt;</div>
+<div class="line"><a id="l00970" name="l00970"></a><span class="lineno">  970</span><a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> SqlStatement::ExecuteBatchNativeRowWise(Rows <span class="keyword">const</span>&amp; rows, ColumnAccessors <span class="keyword">const</span>&amp;... accessors)</div>
+<div class="line"><a id="l00971" name="l00971"></a><span class="lineno">  971</span>{</div>
+<div class="line"><a id="l00972" name="l00972"></a><span class="lineno">  972</span>    ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::ExecuteBatchNativeRowWise&quot;</span>);</div>
+<div class="line"><a id="l00973" name="l00973"></a><span class="lineno">  973</span>    ZoneTextObject(m_preparedQuery);</div>
+<div class="line"><a id="l00974" name="l00974"></a><span class="lineno">  974</span> </div>
+<div class="line"><a id="l00975" name="l00975"></a><span class="lineno">  975</span>    <span class="keyword">using </span>RowElem = std::ranges::range_value_t&lt;Rows&gt;;</div>
+<div class="line"><a id="l00976" name="l00976"></a><span class="lineno">  976</span>    <span class="keyword">auto</span> <span class="keyword">const</span> rowCount = std::ranges::size(rows);</div>
+<div class="line"><a id="l00977" name="l00977"></a><span class="lineno">  977</span>    ZoneValue(rowCount);</div>
+<div class="line"><a id="l00978" name="l00978"></a><span class="lineno">  978</span>    <span class="keyword">auto</span> <span class="keyword">const</span>* rowData = std::ranges::data(rows);</div>
+<div class="line"><a id="l00979" name="l00979"></a><span class="lineno">  979</span> </div>
+<div class="line"><a id="l00980" name="l00980"></a><span class="lineno">  980</span>    <span class="comment">// Row-wise array binding: the driver strides every bound value and indicator pointer by sizeof(RowElem).</span></div>
+<div class="line"><a id="l00981" name="l00981"></a><span class="lineno">  981</span>    <span class="comment">// clang-format off</span></div>
+<div class="line"><a id="l00982" name="l00982"></a><span class="lineno">  982</span>    <span class="comment">// NOLINTNEXTLINE(performance-no-int-to-ptr)</span></div>
+<div class="line"><a id="l00983" name="l00983"></a><span class="lineno">  983</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) rowCount, 0));</div>
+<div class="line"><a id="l00984" name="l00984"></a><span class="lineno">  984</span>    <span class="comment">// NOLINTNEXTLINE(performance-no-int-to-ptr)</span></div>
+<div class="line"><a id="l00985" name="l00985"></a><span class="lineno">  985</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, (SQLPOINTER) <span class="keyword">sizeof</span>(RowElem), 0));</div>
+<div class="line"><a id="l00986" name="l00986"></a><span class="lineno">  986</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, <span class="keyword">nullptr</span>, 0));</div>
+<div class="line"><a id="l00987" name="l00987"></a><span class="lineno">  987</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_OPERATION_PTR, SQL_PARAM_PROCEED, 0));</div>
+<div class="line"><a id="l00988" name="l00988"></a><span class="lineno">  988</span>    <span class="comment">// clang-format on</span></div>
+<div class="line"><a id="l00989" name="l00989"></a><span class="lineno">  989</span>    ClearBatchIndicators();</div>
 <div class="line"><a id="l00990" name="l00990"></a><span class="lineno">  990</span> </div>
-<div class="line"><a id="l00991" name="l00991"></a><span class="lineno">  991</span>    RequireSuccess(SQLExecute(m_hStmt));</div>
-<div class="line"><a id="l00992" name="l00992"></a><span class="lineno">  992</span>    ProcessPostExecuteCallbacks();</div>
-<div class="line"><a id="l00993" name="l00993"></a><span class="lineno">  993</span> </div>
-<div class="line"><a id="l00994" name="l00994"></a><span class="lineno">  994</span>    <span class="comment">// Restore single-row binding so a subsequent reuse of this handle (without re-Prepare) is unaffected.</span></div>
-<div class="line"><a id="l00995" name="l00995"></a><span class="lineno">  995</span>    <span class="comment">// clang-format off</span></div>
-<div class="line"><a id="l00996" name="l00996"></a><span class="lineno">  996</span>    <span class="comment">// NOLINTNEXTLINE(performance-no-int-to-ptr)</span></div>
-<div class="line"><a id="l00997" name="l00997"></a><span class="lineno">  997</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) 1, 0));</div>
-<div class="line"><a id="l00998" name="l00998"></a><span class="lineno">  998</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0));</div>
-<div class="line"><a id="l00999" name="l00999"></a><span class="lineno">  999</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, <span class="keyword">nullptr</span>, 0));</div>
-<div class="line"><a id="l01000" name="l01000"></a><span class="lineno"> 1000</span>    <span class="comment">// clang-format on</span></div>
-<div class="line"><a id="l01001" name="l01001"></a><span class="lineno"> 1001</span>    ClearBatchIndicators();</div>
-<div class="line"><a id="l01002" name="l01002"></a><span class="lineno"> 1002</span> </div>
-<div class="line"><a id="l01003" name="l01003"></a><span class="lineno"> 1003</span>    <span class="keywordflow">return</span> SqlResultCursor { *<span class="keyword">this</span> };</div>
-<div class="line"><a id="l01004" name="l01004"></a><span class="lineno"> 1004</span>}</div>
-<div class="line"><a id="l01005" name="l01005"></a><span class="lineno"> 1005</span> </div>
-<div class="line"><a id="l01006" name="l01006"></a><span class="lineno"> 1006</span><span class="keyword">template</span> &lt;std::ranges::contiguous_range Rows, <span class="keyword">typename</span>... ColumnAccessors&gt;</div>
-<div class="line"><a id="l01007" name="l01007"></a><span class="lineno"> 1007</span>SqlResultCursor SqlStatement::ExecuteBatchSoftRowMajor(Rows <span class="keyword">const</span>&amp; rows, ColumnAccessors <span class="keyword">const</span>&amp;... accessors)</div>
-<div class="line"><a id="l01008" name="l01008"></a><span class="lineno"> 1008</span>{</div>
-<div class="line"><a id="l01009" name="l01009"></a><span class="lineno"> 1009</span>    ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::ExecuteBatchSoftRowMajor&quot;</span>);</div>
-<div class="line"><a id="l01010" name="l01010"></a><span class="lineno"> 1010</span>    ZoneTextObject(m_preparedQuery);</div>
-<div class="line"><a id="l01011" name="l01011"></a><span class="lineno"> 1011</span> </div>
-<div class="line"><a id="l01012" name="l01012"></a><span class="lineno"> 1012</span>    <span class="keyword">auto</span> <span class="keyword">const</span>* rowData = std::ranges::data(rows);</div>
-<div class="line"><a id="l01013" name="l01013"></a><span class="lineno"> 1013</span>    <span class="keyword">auto</span> <span class="keyword">const</span> rowCount = std::ranges::size(rows);</div>
-<div class="line"><a id="l01014" name="l01014"></a><span class="lineno"> 1014</span>    ZoneValue(rowCount);</div>
-<div class="line"><a id="l01015" name="l01015"></a><span class="lineno"> 1015</span> </div>
-<div class="line"><a id="l01016" name="l01016"></a><span class="lineno"> 1016</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span> rowIndex: std::views::iota(std::size_t { 0 }, rowCount))</div>
-<div class="line"><a id="l01017" name="l01017"></a><span class="lineno"> 1017</span>    {</div>
-<div class="line"><a id="l01018" name="l01018"></a><span class="lineno"> 1018</span>        <span class="keyword">auto</span> <span class="keyword">const</span>&amp; row = rowData[rowIndex];</div>
-<div class="line"><a id="l01019" name="l01019"></a><span class="lineno"> 1019</span>        SQLUSMALLINT column = 0;</div>
-<div class="line"><a id="l01020" name="l01020"></a><span class="lineno"> 1020</span>        ((++column,</div>
-<div class="line"><a id="l01021" name="l01021"></a><span class="lineno"> 1021</span>          RequireSuccess(SqlDataBinder&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(accessors(row))&gt;&gt;::InputParameter(</div>
-<div class="line"><a id="l01022" name="l01022"></a><span class="lineno"> 1022</span>              m_hStmt, column, accessors(row), *<span class="keyword">this</span>))),</div>
-<div class="line"><a id="l01023" name="l01023"></a><span class="lineno"> 1023</span>         ...);</div>
-<div class="line"><a id="l01024" name="l01024"></a><span class="lineno"> 1024</span>        RequireSuccess(SQLExecute(m_hStmt));</div>
-<div class="line"><a id="l01025" name="l01025"></a><span class="lineno"> 1025</span>        ProcessPostExecuteCallbacks();</div>
-<div class="line"><a id="l01026" name="l01026"></a><span class="lineno"> 1026</span>    }</div>
-<div class="line"><a id="l01027" name="l01027"></a><span class="lineno"> 1027</span> </div>
-<div class="line"><a id="l01028" name="l01028"></a><span class="lineno"> 1028</span>    <span class="keywordflow">return</span> SqlResultCursor { *<span class="keyword">this</span> };</div>
-<div class="line"><a id="l01029" name="l01029"></a><span class="lineno"> 1029</span>}</div>
+<div class="line"><a id="l00991" name="l00991"></a><span class="lineno">  991</span>    SQLUSMALLINT column = 0;</div>
+<div class="line"><a id="l00992" name="l00992"></a><span class="lineno">  992</span>    <span class="keyword">auto</span> <span class="keyword">const</span> bindColumn = [&amp;](<span class="keyword">auto</span> <span class="keyword">const</span>&amp; accessor) {</div>
+<div class="line"><a id="l00993" name="l00993"></a><span class="lineno">  993</span>        ++column;</div>
+<div class="line"><a id="l00994" name="l00994"></a><span class="lineno">  994</span>        <span class="keyword">using </span>ValueType = std::remove_cvref_t&lt;<span class="keyword">decltype</span>(accessor(rowData[0]))&gt;;</div>
+<div class="line"><a id="l00995" name="l00995"></a><span class="lineno">  995</span>        <span class="comment">// Types needing a per-row indicator (optionals, inline fixed-capacity strings) provide a</span></div>
+<div class="line"><a id="l00996" name="l00996"></a><span class="lineno">  996</span>        <span class="comment">// row-wise batch binder; indicator-free fixed values bind directly via InputParameter.</span></div>
+<div class="line"><a id="l00997" name="l00997"></a><span class="lineno">  997</span>        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (<a class="code hl_concept" href="../../dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html">SqlHasRowWiseBatchBinder&lt;ValueType&gt;</a>)</div>
+<div class="line"><a id="l00998" name="l00998"></a><span class="lineno">  998</span>            RequireSuccess(SqlDataBinder&lt;ValueType&gt;::BatchRowWiseInputParameter(</div>
+<div class="line"><a id="l00999" name="l00999"></a><span class="lineno">  999</span>                m_hStmt, column, std::addressof(accessor(rowData[0])), <span class="keyword">sizeof</span>(RowElem), rowCount, *<span class="keyword">this</span>));</div>
+<div class="line"><a id="l01000" name="l01000"></a><span class="lineno"> 1000</span>        <span class="keywordflow">else</span></div>
+<div class="line"><a id="l01001" name="l01001"></a><span class="lineno"> 1001</span>            RequireSuccess(SqlDataBinder&lt;ValueType&gt;::InputParameter(m_hStmt, column, accessor(rowData[0]), *<span class="keyword">this</span>));</div>
+<div class="line"><a id="l01002" name="l01002"></a><span class="lineno"> 1002</span>    };</div>
+<div class="line"><a id="l01003" name="l01003"></a><span class="lineno"> 1003</span>    (bindColumn(accessors), ...);</div>
+<div class="line"><a id="l01004" name="l01004"></a><span class="lineno"> 1004</span> </div>
+<div class="line"><a id="l01005" name="l01005"></a><span class="lineno"> 1005</span>    <a class="code hl_function" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">SqlLogger::GetLogger</a>().<a class="code hl_function" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a89a7b4c6fd89c71bfdab6e81b7f15f35">OnExecuteBatch</a>();</div>
+<div class="line"><a id="l01006" name="l01006"></a><span class="lineno"> 1006</span>    RequireSuccess(SQLExecute(m_hStmt));</div>
+<div class="line"><a id="l01007" name="l01007"></a><span class="lineno"> 1007</span>    ProcessPostExecuteCallbacks();</div>
+<div class="line"><a id="l01008" name="l01008"></a><span class="lineno"> 1008</span> </div>
+<div class="line"><a id="l01009" name="l01009"></a><span class="lineno"> 1009</span>    <span class="comment">// Restore single-row binding so a subsequent reuse of this handle (without re-Prepare) is unaffected.</span></div>
+<div class="line"><a id="l01010" name="l01010"></a><span class="lineno"> 1010</span>    <span class="comment">// clang-format off</span></div>
+<div class="line"><a id="l01011" name="l01011"></a><span class="lineno"> 1011</span>    <span class="comment">// NOLINTNEXTLINE(performance-no-int-to-ptr)</span></div>
+<div class="line"><a id="l01012" name="l01012"></a><span class="lineno"> 1012</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) 1, 0));</div>
+<div class="line"><a id="l01013" name="l01013"></a><span class="lineno"> 1013</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0));</div>
+<div class="line"><a id="l01014" name="l01014"></a><span class="lineno"> 1014</span>    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, <span class="keyword">nullptr</span>, 0));</div>
+<div class="line"><a id="l01015" name="l01015"></a><span class="lineno"> 1015</span>    <span class="comment">// clang-format on</span></div>
+<div class="line"><a id="l01016" name="l01016"></a><span class="lineno"> 1016</span>    ClearBatchIndicators();</div>
+<div class="line"><a id="l01017" name="l01017"></a><span class="lineno"> 1017</span> </div>
+<div class="line"><a id="l01018" name="l01018"></a><span class="lineno"> 1018</span>    <span class="keywordflow">return</span> SqlResultCursor { *<span class="keyword">this</span> };</div>
+<div class="line"><a id="l01019" name="l01019"></a><span class="lineno"> 1019</span>}</div>
+<div class="line"><a id="l01020" name="l01020"></a><span class="lineno"> 1020</span> </div>
+<div class="line"><a id="l01021" name="l01021"></a><span class="lineno"> 1021</span><span class="keyword">template</span> &lt;std::ranges::contiguous_range Rows, <span class="keyword">typename</span>... ColumnAccessors&gt;</div>
+<div class="line"><a id="l01022" name="l01022"></a><span class="lineno"> 1022</span>SqlResultCursor SqlStatement::ExecuteBatchSoftRowMajor(Rows <span class="keyword">const</span>&amp; rows, ColumnAccessors <span class="keyword">const</span>&amp;... accessors)</div>
+<div class="line"><a id="l01023" name="l01023"></a><span class="lineno"> 1023</span>{</div>
+<div class="line"><a id="l01024" name="l01024"></a><span class="lineno"> 1024</span>    ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::ExecuteBatchSoftRowMajor&quot;</span>);</div>
+<div class="line"><a id="l01025" name="l01025"></a><span class="lineno"> 1025</span>    ZoneTextObject(m_preparedQuery);</div>
+<div class="line"><a id="l01026" name="l01026"></a><span class="lineno"> 1026</span> </div>
+<div class="line"><a id="l01027" name="l01027"></a><span class="lineno"> 1027</span>    <span class="keyword">auto</span> <span class="keyword">const</span>* rowData = std::ranges::data(rows);</div>
+<div class="line"><a id="l01028" name="l01028"></a><span class="lineno"> 1028</span>    <span class="keyword">auto</span> <span class="keyword">const</span> rowCount = std::ranges::size(rows);</div>
+<div class="line"><a id="l01029" name="l01029"></a><span class="lineno"> 1029</span>    ZoneValue(rowCount);</div>
 <div class="line"><a id="l01030" name="l01030"></a><span class="lineno"> 1030</span> </div>
-<div class="line"><a id="l01031" name="l01031"></a><span class="lineno"> 1031</span><span class="keyword">template</span> &lt;SqlGetColumnNativeType T&gt;</div>
-<div class="line"><a id="l01032" name="l01032"></a><span class="lineno"> 1032</span><span class="keyword">inline</span> <span class="keywordtype">bool</span> SqlStatement::GetColumn(SQLUSMALLINT column, T* result)<span class="keyword"> const</span></div>
-<div class="line"><a id="l01033" name="l01033"></a><span class="lineno"> 1033</span><span class="keyword"></span>{</div>
-<div class="line"><a id="l01034" name="l01034"></a><span class="lineno"> 1034</span>    SQLLEN indicator {}; <span class="comment">// TODO: Handle NULL values if we find out that we need them for our use-cases.</span></div>
-<div class="line"><a id="l01035" name="l01035"></a><span class="lineno"> 1035</span>    RequireSuccess(SqlDataBinder&lt;T&gt;::GetColumn(m_hStmt, column, result, &amp;indicator, *<span class="keyword">this</span>));</div>
-<div class="line"><a id="l01036" name="l01036"></a><span class="lineno"> 1036</span>    <span class="keywordflow">return</span> indicator != SQL_NULL_DATA;</div>
-<div class="line"><a id="l01037" name="l01037"></a><span class="lineno"> 1037</span>}</div>
-<div class="line"><a id="l01038" name="l01038"></a><span class="lineno"> 1038</span> </div>
-<div class="line"><a id="l01039" name="l01039"></a><span class="lineno"> 1039</span><span class="keyword">namespace </span>detail</div>
-<div class="line"><a id="l01040" name="l01040"></a><span class="lineno"> 1040</span>{</div>
-<div class="line"><a id="l01041" name="l01041"></a><span class="lineno"> 1041</span> </div>
-<div class="line"><a id="l01042" name="l01042"></a><span class="lineno"> 1042</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l01043" name="l01043"></a><span class="lineno"> 1043</span>    <span class="keyword">concept </span>SqlNullableType = (std::same_as&lt;T, SqlVariant&gt; || IsSpecializationOf&lt;std::optional, T&gt;);</div>
-<div class="line"><a id="l01044" name="l01044"></a><span class="lineno"> 1044</span> </div>
-<div class="line"><a id="l01045" name="l01045"></a><span class="lineno"> 1045</span>} <span class="comment">// end namespace detail</span></div>
+<div class="line"><a id="l01031" name="l01031"></a><span class="lineno"> 1031</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span> rowIndex: std::views::iota(std::size_t { 0 }, rowCount))</div>
+<div class="line"><a id="l01032" name="l01032"></a><span class="lineno"> 1032</span>    {</div>
+<div class="line"><a id="l01033" name="l01033"></a><span class="lineno"> 1033</span>        <span class="keyword">auto</span> <span class="keyword">const</span>&amp; row = rowData[rowIndex];</div>
+<div class="line"><a id="l01034" name="l01034"></a><span class="lineno"> 1034</span>        SQLUSMALLINT column = 0;</div>
+<div class="line"><a id="l01035" name="l01035"></a><span class="lineno"> 1035</span>        ((++column,</div>
+<div class="line"><a id="l01036" name="l01036"></a><span class="lineno"> 1036</span>          RequireSuccess(SqlDataBinder&lt;std::remove_cvref_t&lt;<span class="keyword">decltype</span>(accessors(row))&gt;&gt;::InputParameter(</div>
+<div class="line"><a id="l01037" name="l01037"></a><span class="lineno"> 1037</span>              m_hStmt, column, accessors(row), *<span class="keyword">this</span>))),</div>
+<div class="line"><a id="l01038" name="l01038"></a><span class="lineno"> 1038</span>         ...);</div>
+<div class="line"><a id="l01039" name="l01039"></a><span class="lineno"> 1039</span>        <a class="code hl_function" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">SqlLogger::GetLogger</a>().<a class="code hl_function" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a1d04bb81c9f5d37e8b3690a657cd3f9d">OnExecute</a>(m_preparedQuery);</div>
+<div class="line"><a id="l01040" name="l01040"></a><span class="lineno"> 1040</span>        RequireSuccess(SQLExecute(m_hStmt));</div>
+<div class="line"><a id="l01041" name="l01041"></a><span class="lineno"> 1041</span>        ProcessPostExecuteCallbacks();</div>
+<div class="line"><a id="l01042" name="l01042"></a><span class="lineno"> 1042</span>    }</div>
+<div class="line"><a id="l01043" name="l01043"></a><span class="lineno"> 1043</span> </div>
+<div class="line"><a id="l01044" name="l01044"></a><span class="lineno"> 1044</span>    <span class="keywordflow">return</span> SqlResultCursor { *<span class="keyword">this</span> };</div>
+<div class="line"><a id="l01045" name="l01045"></a><span class="lineno"> 1045</span>}</div>
 <div class="line"><a id="l01046" name="l01046"></a><span class="lineno"> 1046</span> </div>
 <div class="line"><a id="l01047" name="l01047"></a><span class="lineno"> 1047</span><span class="keyword">template</span> &lt;SqlGetColumnNativeType T&gt;</div>
-<div class="line"><a id="l01048" name="l01048"></a><span class="lineno"> 1048</span><span class="keyword">inline</span> T SqlStatement::GetColumn(SQLUSMALLINT column)<span class="keyword"> const</span></div>
+<div class="line"><a id="l01048" name="l01048"></a><span class="lineno"> 1048</span><span class="keyword">inline</span> <span class="keywordtype">bool</span> SqlStatement::GetColumn(SQLUSMALLINT column, T* result)<span class="keyword"> const</span></div>
 <div class="line"><a id="l01049" name="l01049"></a><span class="lineno"> 1049</span><span class="keyword"></span>{</div>
-<div class="line"><a id="l01050" name="l01050"></a><span class="lineno"> 1050</span>    T result {};</div>
-<div class="line"><a id="l01051" name="l01051"></a><span class="lineno"> 1051</span>    SQLLEN indicator {};</div>
-<div class="line"><a id="l01052" name="l01052"></a><span class="lineno"> 1052</span>    RequireSuccess(SqlDataBinder&lt;T&gt;::GetColumn(m_hStmt, column, &amp;result, &amp;indicator, *<span class="keyword">this</span>));</div>
-<div class="line"><a id="l01053" name="l01053"></a><span class="lineno"> 1053</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (!detail::SqlNullableType&lt;T&gt;)</div>
-<div class="line"><a id="l01054" name="l01054"></a><span class="lineno"> 1054</span>        <span class="keywordflow">if</span> (indicator == SQL_NULL_DATA)</div>
-<div class="line"><a id="l01055" name="l01055"></a><span class="lineno"> 1055</span>            <span class="keywordflow">throw</span> std::runtime_error { <span class="stringliteral">&quot;Column value is NULL&quot;</span> };</div>
-<div class="line"><a id="l01056" name="l01056"></a><span class="lineno"> 1056</span>    <span class="keywordflow">return</span> result;</div>
-<div class="line"><a id="l01057" name="l01057"></a><span class="lineno"> 1057</span>}</div>
-<div class="line"><a id="l01058" name="l01058"></a><span class="lineno"> 1058</span> </div>
-<div class="line"><a id="l01059" name="l01059"></a><span class="lineno"> 1059</span><span class="keyword">template</span> &lt;SqlGetColumnNativeType T&gt;</div>
-<div class="line"><a id="l01060" name="l01060"></a><span class="lineno"> 1060</span><span class="keyword">inline</span> std::optional&lt;T&gt; SqlStatement::GetNullableColumn(SQLUSMALLINT column)<span class="keyword"> const</span></div>
-<div class="line"><a id="l01061" name="l01061"></a><span class="lineno"> 1061</span><span class="keyword"></span>{</div>
-<div class="line"><a id="l01062" name="l01062"></a><span class="lineno"> 1062</span>    T result {};</div>
-<div class="line"><a id="l01063" name="l01063"></a><span class="lineno"> 1063</span>    SQLLEN indicator {}; <span class="comment">// TODO: Handle NULL values if we find out that we need them for our use-cases.</span></div>
-<div class="line"><a id="l01064" name="l01064"></a><span class="lineno"> 1064</span>    RequireSuccess(SqlDataBinder&lt;T&gt;::GetColumn(m_hStmt, column, &amp;result, &amp;indicator, *<span class="keyword">this</span>));</div>
-<div class="line"><a id="l01065" name="l01065"></a><span class="lineno"> 1065</span>    <span class="keywordflow">if</span> (indicator == SQL_NULL_DATA)</div>
-<div class="line"><a id="l01066" name="l01066"></a><span class="lineno"> 1066</span>        <span class="keywordflow">return</span> std::nullopt;</div>
-<div class="line"><a id="l01067" name="l01067"></a><span class="lineno"> 1067</span>    <span class="keywordflow">return</span> { std::move(result) };</div>
-<div class="line"><a id="l01068" name="l01068"></a><span class="lineno"> 1068</span>}</div>
-<div class="line"><a id="l01069" name="l01069"></a><span class="lineno"> 1069</span> </div>
-<div class="line"><a id="l01070" name="l01070"></a><span class="lineno"> 1070</span><span class="keyword">template</span> &lt;SqlGetColumnNativeType T&gt;</div>
-<div class="line"><a id="l01071" name="l01071"></a><span class="lineno"> 1071</span>T SqlStatement::GetColumnOr(SQLUSMALLINT column, T&amp;&amp; defaultValue)<span class="keyword"> const</span></div>
-<div class="line"><a id="l01072" name="l01072"></a><span class="lineno"> 1072</span><span class="keyword"></span>{</div>
-<div class="line"><a id="l01073" name="l01073"></a><span class="lineno"> 1073</span>    <span class="keywordflow">return</span> GetNullableColumn&lt;T&gt;(column).value_or(std::forward&lt;T&gt;(defaultValue));</div>
-<div class="line"><a id="l01074" name="l01074"></a><span class="lineno"> 1074</span>}</div>
-<div class="line"><a id="l01075" name="l01075"></a><span class="lineno"> 1075</span> </div>
-<div class="foldopen" id="foldopen01076" data-start="{" data-end="}">
-<div class="line"><a id="l01076" name="l01076"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a1e5572123ab0d006d3ae3defee9c4f89"> 1076</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cc4145826d8674fe8500b8cd8d46927">SqlStatement::ExecuteDirect</a>(<a class="code hl_concept" href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">SqlQueryObject</a> <span class="keyword">auto</span> <span class="keyword">const</span>&amp; query,</div>
-<div class="line"><a id="l01077" name="l01077"></a><span class="lineno"> 1077</span>                                                                            std::source_location location)</div>
-<div class="line"><a id="l01078" name="l01078"></a><span class="lineno"> 1078</span>{</div>
-<div class="line"><a id="l01079" name="l01079"></a><span class="lineno"> 1079</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cc4145826d8674fe8500b8cd8d46927">ExecuteDirect</a>(query.ToSql(), location);</div>
-<div class="line"><a id="l01080" name="l01080"></a><span class="lineno"> 1080</span>}</div>
+<div class="line"><a id="l01050" name="l01050"></a><span class="lineno"> 1050</span>    SQLLEN indicator {}; <span class="comment">// TODO: Handle NULL values if we find out that we need them for our use-cases.</span></div>
+<div class="line"><a id="l01051" name="l01051"></a><span class="lineno"> 1051</span>    RequireSuccess(SqlDataBinder&lt;T&gt;::GetColumn(m_hStmt, column, result, &amp;indicator, *<span class="keyword">this</span>));</div>
+<div class="line"><a id="l01052" name="l01052"></a><span class="lineno"> 1052</span>    <span class="keywordflow">return</span> indicator != SQL_NULL_DATA;</div>
+<div class="line"><a id="l01053" name="l01053"></a><span class="lineno"> 1053</span>}</div>
+<div class="line"><a id="l01054" name="l01054"></a><span class="lineno"> 1054</span> </div>
+<div class="line"><a id="l01055" name="l01055"></a><span class="lineno"> 1055</span><span class="keyword">namespace </span>detail</div>
+<div class="line"><a id="l01056" name="l01056"></a><span class="lineno"> 1056</span>{</div>
+<div class="line"><a id="l01057" name="l01057"></a><span class="lineno"> 1057</span> </div>
+<div class="line"><a id="l01058" name="l01058"></a><span class="lineno"> 1058</span>    <span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l01059" name="l01059"></a><span class="lineno"> 1059</span>    <span class="keyword">concept </span>SqlNullableType = (std::same_as&lt;T, SqlVariant&gt; || IsSpecializationOf&lt;std::optional, T&gt;);</div>
+<div class="line"><a id="l01060" name="l01060"></a><span class="lineno"> 1060</span> </div>
+<div class="line"><a id="l01061" name="l01061"></a><span class="lineno"> 1061</span>} <span class="comment">// end namespace detail</span></div>
+<div class="line"><a id="l01062" name="l01062"></a><span class="lineno"> 1062</span> </div>
+<div class="line"><a id="l01063" name="l01063"></a><span class="lineno"> 1063</span><span class="keyword">template</span> &lt;SqlGetColumnNativeType T&gt;</div>
+<div class="line"><a id="l01064" name="l01064"></a><span class="lineno"> 1064</span><span class="keyword">inline</span> T SqlStatement::GetColumn(SQLUSMALLINT column)<span class="keyword"> const</span></div>
+<div class="line"><a id="l01065" name="l01065"></a><span class="lineno"> 1065</span><span class="keyword"></span>{</div>
+<div class="line"><a id="l01066" name="l01066"></a><span class="lineno"> 1066</span>    T result {};</div>
+<div class="line"><a id="l01067" name="l01067"></a><span class="lineno"> 1067</span>    SQLLEN indicator {};</div>
+<div class="line"><a id="l01068" name="l01068"></a><span class="lineno"> 1068</span>    RequireSuccess(SqlDataBinder&lt;T&gt;::GetColumn(m_hStmt, column, &amp;result, &amp;indicator, *<span class="keyword">this</span>));</div>
+<div class="line"><a id="l01069" name="l01069"></a><span class="lineno"> 1069</span>    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (!detail::SqlNullableType&lt;T&gt;)</div>
+<div class="line"><a id="l01070" name="l01070"></a><span class="lineno"> 1070</span>        <span class="keywordflow">if</span> (indicator == SQL_NULL_DATA)</div>
+<div class="line"><a id="l01071" name="l01071"></a><span class="lineno"> 1071</span>            <span class="keywordflow">throw</span> std::runtime_error { <span class="stringliteral">&quot;Column value is NULL&quot;</span> };</div>
+<div class="line"><a id="l01072" name="l01072"></a><span class="lineno"> 1072</span>    <span class="keywordflow">return</span> result;</div>
+<div class="line"><a id="l01073" name="l01073"></a><span class="lineno"> 1073</span>}</div>
+<div class="line"><a id="l01074" name="l01074"></a><span class="lineno"> 1074</span> </div>
+<div class="line"><a id="l01075" name="l01075"></a><span class="lineno"> 1075</span><span class="keyword">template</span> &lt;SqlGetColumnNativeType T&gt;</div>
+<div class="line"><a id="l01076" name="l01076"></a><span class="lineno"> 1076</span><span class="keyword">inline</span> std::optional&lt;T&gt; SqlStatement::GetNullableColumn(SQLUSMALLINT column)<span class="keyword"> const</span></div>
+<div class="line"><a id="l01077" name="l01077"></a><span class="lineno"> 1077</span><span class="keyword"></span>{</div>
+<div class="line"><a id="l01078" name="l01078"></a><span class="lineno"> 1078</span>    T result {};</div>
+<div class="line"><a id="l01079" name="l01079"></a><span class="lineno"> 1079</span>    SQLLEN indicator {}; <span class="comment">// TODO: Handle NULL values if we find out that we need them for our use-cases.</span></div>
+<div class="line"><a id="l01080" name="l01080"></a><span class="lineno"> 1080</span>    RequireSuccess(SqlDataBinder&lt;T&gt;::GetColumn(m_hStmt, column, &amp;result, &amp;indicator, *<span class="keyword">this</span>));</div>
+<div class="line"><a id="l01081" name="l01081"></a><span class="lineno"> 1081</span>    <span class="keywordflow">if</span> (indicator == SQL_NULL_DATA)</div>
+<div class="line"><a id="l01082" name="l01082"></a><span class="lineno"> 1082</span>        <span class="keywordflow">return</span> std::nullopt;</div>
+<div class="line"><a id="l01083" name="l01083"></a><span class="lineno"> 1083</span>    <span class="keywordflow">return</span> { std::move(result) };</div>
+<div class="line"><a id="l01084" name="l01084"></a><span class="lineno"> 1084</span>}</div>
+<div class="line"><a id="l01085" name="l01085"></a><span class="lineno"> 1085</span> </div>
+<div class="line"><a id="l01086" name="l01086"></a><span class="lineno"> 1086</span><span class="keyword">template</span> &lt;SqlGetColumnNativeType T&gt;</div>
+<div class="line"><a id="l01087" name="l01087"></a><span class="lineno"> 1087</span>T SqlStatement::GetColumnOr(SQLUSMALLINT column, T&amp;&amp; defaultValue)<span class="keyword"> const</span></div>
+<div class="line"><a id="l01088" name="l01088"></a><span class="lineno"> 1088</span><span class="keyword"></span>{</div>
+<div class="line"><a id="l01089" name="l01089"></a><span class="lineno"> 1089</span>    <span class="keywordflow">return</span> GetNullableColumn&lt;T&gt;(column).value_or(std::forward&lt;T&gt;(defaultValue));</div>
+<div class="line"><a id="l01090" name="l01090"></a><span class="lineno"> 1090</span>}</div>
+<div class="line"><a id="l01091" name="l01091"></a><span class="lineno"> 1091</span> </div>
+<div class="foldopen" id="foldopen01092" data-start="{" data-end="}">
+<div class="line"><a id="l01092" name="l01092"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a1e5572123ab0d006d3ae3defee9c4f89"> 1092</a></span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <a class="code hl_class" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">SqlResultCursor</a> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cc4145826d8674fe8500b8cd8d46927">SqlStatement::ExecuteDirect</a>(<a class="code hl_concept" href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">SqlQueryObject</a> <span class="keyword">auto</span> <span class="keyword">const</span>&amp; query,</div>
+<div class="line"><a id="l01093" name="l01093"></a><span class="lineno"> 1093</span>                                                                            std::source_location location)</div>
+<div class="line"><a id="l01094" name="l01094"></a><span class="lineno"> 1094</span>{</div>
+<div class="line"><a id="l01095" name="l01095"></a><span class="lineno"> 1095</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cc4145826d8674fe8500b8cd8d46927">ExecuteDirect</a>(query.ToSql(), location);</div>
+<div class="line"><a id="l01096" name="l01096"></a><span class="lineno"> 1096</span>}</div>
 </div>
-<div class="line"><a id="l01081" name="l01081"></a><span class="lineno"> 1081</span> </div>
-<div class="line"><a id="l01082" name="l01082"></a><span class="lineno"> 1082</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Callable&gt;</div>
-<div class="line"><a id="l01083" name="l01083"></a><span class="lineno"> 1083</span>    <span class="keyword">requires</span> std::invocable&lt;Callable, SqlMigrationQueryBuilder&amp;&gt;</div>
-<div class="foldopen" id="foldopen01084" data-start="{" data-end="}">
-<div class="line"><a id="l01084" name="l01084"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1"> 1084</a></span><span class="keywordtype">void</span> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1">SqlStatement::MigrateDirect</a>(Callable <span class="keyword">const</span>&amp; callable, std::source_location location)</div>
-<div class="line"><a id="l01085" name="l01085"></a><span class="lineno"> 1085</span>{</div>
-<div class="line"><a id="l01086" name="l01086"></a><span class="lineno"> 1086</span>    ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::MigrateDirect&quot;</span>);</div>
-<div class="line"><a id="l01087" name="l01087"></a><span class="lineno"> 1087</span>    <span class="keyword">auto</span> migration = <a class="code hl_class" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a> { <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a34d2659a84a934d2c67c6b31f64a7d4a">Connection</a>().<a class="code hl_function" href="../../da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32">QueryFormatter</a>() };</div>
-<div class="line"><a id="l01088" name="l01088"></a><span class="lineno"> 1088</span>    callable(migration);</div>
-<div class="line"><a id="l01089" name="l01089"></a><span class="lineno"> 1089</span>    <span class="keyword">auto</span> <span class="keyword">const</span> queries = migration.GetPlan().ToSql();</div>
-<div class="line"><a id="l01090" name="l01090"></a><span class="lineno"> 1090</span>    ZoneValue(queries.size());</div>
-<div class="line"><a id="l01091" name="l01091"></a><span class="lineno"> 1091</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; query: queries)</div>
-<div class="line"><a id="l01092" name="l01092"></a><span class="lineno"> 1092</span>    {</div>
-<div class="line"><a id="l01093" name="l01093"></a><span class="lineno"> 1093</span>        [[maybe_unused]] <span class="keyword">auto</span> cursor = <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cc4145826d8674fe8500b8cd8d46927">ExecuteDirect</a>(query, location);</div>
-<div class="line"><a id="l01094" name="l01094"></a><span class="lineno"> 1094</span>    }</div>
-<div class="line"><a id="l01095" name="l01095"></a><span class="lineno"> 1095</span>}</div>
+<div class="line"><a id="l01097" name="l01097"></a><span class="lineno"> 1097</span> </div>
+<div class="line"><a id="l01098" name="l01098"></a><span class="lineno"> 1098</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Callable&gt;</div>
+<div class="line"><a id="l01099" name="l01099"></a><span class="lineno"> 1099</span>    <span class="keyword">requires</span> std::invocable&lt;Callable, SqlMigrationQueryBuilder&amp;&gt;</div>
+<div class="foldopen" id="foldopen01100" data-start="{" data-end="}">
+<div class="line"><a id="l01100" name="l01100"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1"> 1100</a></span><span class="keywordtype">void</span> <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1">SqlStatement::MigrateDirect</a>(Callable <span class="keyword">const</span>&amp; callable, std::source_location location)</div>
+<div class="line"><a id="l01101" name="l01101"></a><span class="lineno"> 1101</span>{</div>
+<div class="line"><a id="l01102" name="l01102"></a><span class="lineno"> 1102</span>    ZoneScopedN(<span class="stringliteral">&quot;SqlStatement::MigrateDirect&quot;</span>);</div>
+<div class="line"><a id="l01103" name="l01103"></a><span class="lineno"> 1103</span>    <span class="keyword">auto</span> migration = <a class="code hl_class" href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">SqlMigrationQueryBuilder</a> { <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a34d2659a84a934d2c67c6b31f64a7d4a">Connection</a>().<a class="code hl_function" href="../../da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32">QueryFormatter</a>() };</div>
+<div class="line"><a id="l01104" name="l01104"></a><span class="lineno"> 1104</span>    callable(migration);</div>
+<div class="line"><a id="l01105" name="l01105"></a><span class="lineno"> 1105</span>    <span class="keyword">auto</span> <span class="keyword">const</span> queries = migration.GetPlan().ToSql();</div>
+<div class="line"><a id="l01106" name="l01106"></a><span class="lineno"> 1106</span>    ZoneValue(queries.size());</div>
+<div class="line"><a id="l01107" name="l01107"></a><span class="lineno"> 1107</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; query: queries)</div>
+<div class="line"><a id="l01108" name="l01108"></a><span class="lineno"> 1108</span>    {</div>
+<div class="line"><a id="l01109" name="l01109"></a><span class="lineno"> 1109</span>        [[maybe_unused]] <span class="keyword">auto</span> cursor = <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cc4145826d8674fe8500b8cd8d46927">ExecuteDirect</a>(query, location);</div>
+<div class="line"><a id="l01110" name="l01110"></a><span class="lineno"> 1110</span>    }</div>
+<div class="line"><a id="l01111" name="l01111"></a><span class="lineno"> 1111</span>}</div>
 </div>
-<div class="line"><a id="l01096" name="l01096"></a><span class="lineno"> 1096</span> </div>
-<div class="line"><a id="l01097" name="l01097"></a><span class="lineno"> 1097</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l01098" name="l01098"></a><span class="lineno"> 1098</span>    <span class="keyword">requires</span>(!std::same_as&lt;T, SqlVariant&gt;)</div>
-<div class="foldopen" id="foldopen01099" data-start="{" data-end="}">
-<div class="line"><a id="l01099" name="l01099"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a"> 1099</a></span><span class="keyword">inline</span> std::optional&lt;T&gt; <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a">SqlStatement::ExecuteDirectScalar</a>(std::string_view <span class="keyword">const</span>&amp; query, std::source_location location)</div>
-<div class="line"><a id="l01100" name="l01100"></a><span class="lineno"> 1100</span>{</div>
-<div class="line"><a id="l01101" name="l01101"></a><span class="lineno"> 1101</span>    <span class="keyword">auto</span> cursor = ExecuteDirect(query, location);</div>
-<div class="line"><a id="l01102" name="l01102"></a><span class="lineno"> 1102</span>    RequireSuccess(FetchRow());</div>
-<div class="line"><a id="l01103" name="l01103"></a><span class="lineno"> 1103</span>    <span class="keywordflow">return</span> GetNullableColumn&lt;T&gt;(1);</div>
-<div class="line"><a id="l01104" name="l01104"></a><span class="lineno"> 1104</span>}</div>
+<div class="line"><a id="l01112" name="l01112"></a><span class="lineno"> 1112</span> </div>
+<div class="line"><a id="l01113" name="l01113"></a><span class="lineno"> 1113</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l01114" name="l01114"></a><span class="lineno"> 1114</span>    <span class="keyword">requires</span>(!std::same_as&lt;T, SqlVariant&gt;)</div>
+<div class="foldopen" id="foldopen01115" data-start="{" data-end="}">
+<div class="line"><a id="l01115" name="l01115"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a"> 1115</a></span><span class="keyword">inline</span> std::optional&lt;T&gt; <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a">SqlStatement::ExecuteDirectScalar</a>(std::string_view <span class="keyword">const</span>&amp; query, std::source_location location)</div>
+<div class="line"><a id="l01116" name="l01116"></a><span class="lineno"> 1116</span>{</div>
+<div class="line"><a id="l01117" name="l01117"></a><span class="lineno"> 1117</span>    <span class="keyword">auto</span> cursor = ExecuteDirect(query, location);</div>
+<div class="line"><a id="l01118" name="l01118"></a><span class="lineno"> 1118</span>    RequireSuccess(FetchRow());</div>
+<div class="line"><a id="l01119" name="l01119"></a><span class="lineno"> 1119</span>    <span class="keywordflow">return</span> GetNullableColumn&lt;T&gt;(1);</div>
+<div class="line"><a id="l01120" name="l01120"></a><span class="lineno"> 1120</span>}</div>
 </div>
-<div class="line"><a id="l01105" name="l01105"></a><span class="lineno"> 1105</span> </div>
-<div class="line"><a id="l01106" name="l01106"></a><span class="lineno"> 1106</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l01107" name="l01107"></a><span class="lineno"> 1107</span>    <span class="keyword">requires</span>(std::same_as&lt;T, SqlVariant&gt;)</div>
-<div class="foldopen" id="foldopen01108" data-start="{" data-end="}">
-<div class="line"><a id="l01108" name="l01108"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#afa0ad7b88db2f3ea8bc4dcb8f102c9d3"> 1108</a></span><span class="keyword">inline</span> T <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a">SqlStatement::ExecuteDirectScalar</a>(std::string_view <span class="keyword">const</span>&amp; query, std::source_location location)</div>
-<div class="line"><a id="l01109" name="l01109"></a><span class="lineno"> 1109</span>{</div>
-<div class="line"><a id="l01110" name="l01110"></a><span class="lineno"> 1110</span>    <span class="keyword">auto</span> cursor = ExecuteDirect(query, location);</div>
-<div class="line"><a id="l01111" name="l01111"></a><span class="lineno"> 1111</span>    RequireSuccess(FetchRow());</div>
-<div class="line"><a id="l01112" name="l01112"></a><span class="lineno"> 1112</span>    <span class="keywordflow">if</span> (<span class="keyword">auto</span> result = GetNullableColumn&lt;T&gt;(1); result.has_value())</div>
-<div class="line"><a id="l01113" name="l01113"></a><span class="lineno"> 1113</span>        <span class="keywordflow">return</span> *result;</div>
-<div class="line"><a id="l01114" name="l01114"></a><span class="lineno"> 1114</span>    <span class="keywordflow">return</span> <a class="code hl_struct" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> { <a class="code hl_variable" href="../../d4/d7c/group__DataTypes.html#ga557658392c27465b9ba0a5ecacdc7f45">SqlNullValue</a> };</div>
-<div class="line"><a id="l01115" name="l01115"></a><span class="lineno"> 1115</span>}</div>
+<div class="line"><a id="l01121" name="l01121"></a><span class="lineno"> 1121</span> </div>
+<div class="line"><a id="l01122" name="l01122"></a><span class="lineno"> 1122</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l01123" name="l01123"></a><span class="lineno"> 1123</span>    <span class="keyword">requires</span>(std::same_as&lt;T, SqlVariant&gt;)</div>
+<div class="foldopen" id="foldopen01124" data-start="{" data-end="}">
+<div class="line"><a id="l01124" name="l01124"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#afa0ad7b88db2f3ea8bc4dcb8f102c9d3"> 1124</a></span><span class="keyword">inline</span> T <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a">SqlStatement::ExecuteDirectScalar</a>(std::string_view <span class="keyword">const</span>&amp; query, std::source_location location)</div>
+<div class="line"><a id="l01125" name="l01125"></a><span class="lineno"> 1125</span>{</div>
+<div class="line"><a id="l01126" name="l01126"></a><span class="lineno"> 1126</span>    <span class="keyword">auto</span> cursor = ExecuteDirect(query, location);</div>
+<div class="line"><a id="l01127" name="l01127"></a><span class="lineno"> 1127</span>    RequireSuccess(FetchRow());</div>
+<div class="line"><a id="l01128" name="l01128"></a><span class="lineno"> 1128</span>    <span class="keywordflow">if</span> (<span class="keyword">auto</span> result = GetNullableColumn&lt;T&gt;(1); result.has_value())</div>
+<div class="line"><a id="l01129" name="l01129"></a><span class="lineno"> 1129</span>        <span class="keywordflow">return</span> *result;</div>
+<div class="line"><a id="l01130" name="l01130"></a><span class="lineno"> 1130</span>    <span class="keywordflow">return</span> <a class="code hl_struct" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> { <a class="code hl_variable" href="../../d4/d7c/group__DataTypes.html#ga557658392c27465b9ba0a5ecacdc7f45">SqlNullValue</a> };</div>
+<div class="line"><a id="l01131" name="l01131"></a><span class="lineno"> 1131</span>}</div>
 </div>
-<div class="line"><a id="l01116" name="l01116"></a><span class="lineno"> 1116</span> </div>
-<div class="line"><a id="l01117" name="l01117"></a><span class="lineno"> 1117</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l01118" name="l01118"></a><span class="lineno"> 1118</span>    <span class="keyword">requires</span>(!std::same_as&lt;T, SqlVariant&gt;)</div>
-<div class="foldopen" id="foldopen01119" data-start="{" data-end="}">
-<div class="line"><a id="l01119" name="l01119"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a2f51e2e203c890b25312deadcad244b1"> 1119</a></span><span class="keyword">inline</span> std::optional&lt;T&gt; <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a">SqlStatement::ExecuteDirectScalar</a>(<a class="code hl_concept" href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">SqlQueryObject</a> <span class="keyword">auto</span> <span class="keyword">const</span>&amp; query, std::source_location location)</div>
-<div class="line"><a id="l01120" name="l01120"></a><span class="lineno"> 1120</span>{</div>
-<div class="line"><a id="l01121" name="l01121"></a><span class="lineno"> 1121</span>    <span class="keywordflow">return</span> ExecuteDirectScalar&lt;T&gt;(query.ToSql(), location);</div>
-<div class="line"><a id="l01122" name="l01122"></a><span class="lineno"> 1122</span>}</div>
+<div class="line"><a id="l01132" name="l01132"></a><span class="lineno"> 1132</span> </div>
+<div class="line"><a id="l01133" name="l01133"></a><span class="lineno"> 1133</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l01134" name="l01134"></a><span class="lineno"> 1134</span>    <span class="keyword">requires</span>(!std::same_as&lt;T, SqlVariant&gt;)</div>
+<div class="foldopen" id="foldopen01135" data-start="{" data-end="}">
+<div class="line"><a id="l01135" name="l01135"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a2f51e2e203c890b25312deadcad244b1"> 1135</a></span><span class="keyword">inline</span> std::optional&lt;T&gt; <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a">SqlStatement::ExecuteDirectScalar</a>(<a class="code hl_concept" href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">SqlQueryObject</a> <span class="keyword">auto</span> <span class="keyword">const</span>&amp; query, std::source_location location)</div>
+<div class="line"><a id="l01136" name="l01136"></a><span class="lineno"> 1136</span>{</div>
+<div class="line"><a id="l01137" name="l01137"></a><span class="lineno"> 1137</span>    <span class="keywordflow">return</span> ExecuteDirectScalar&lt;T&gt;(query.ToSql(), location);</div>
+<div class="line"><a id="l01138" name="l01138"></a><span class="lineno"> 1138</span>}</div>
 </div>
-<div class="line"><a id="l01123" name="l01123"></a><span class="lineno"> 1123</span> </div>
-<div class="line"><a id="l01124" name="l01124"></a><span class="lineno"> 1124</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l01125" name="l01125"></a><span class="lineno"> 1125</span>    <span class="keyword">requires</span>(std::same_as&lt;T, SqlVariant&gt;)</div>
-<div class="foldopen" id="foldopen01126" data-start="{" data-end="}">
-<div class="line"><a id="l01126" name="l01126"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a1dbd5345afd309378028c7ea6f455666"> 1126</a></span><span class="keyword">inline</span> T <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a">SqlStatement::ExecuteDirectScalar</a>(<a class="code hl_concept" href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">SqlQueryObject</a> <span class="keyword">auto</span> <span class="keyword">const</span>&amp; query, std::source_location location)</div>
-<div class="line"><a id="l01127" name="l01127"></a><span class="lineno"> 1127</span>{</div>
-<div class="line"><a id="l01128" name="l01128"></a><span class="lineno"> 1128</span>    <span class="keywordflow">return</span> ExecuteDirectScalar&lt;T&gt;(query.ToSql(), location);</div>
-<div class="line"><a id="l01129" name="l01129"></a><span class="lineno"> 1129</span>}</div>
+<div class="line"><a id="l01139" name="l01139"></a><span class="lineno"> 1139</span> </div>
+<div class="line"><a id="l01140" name="l01140"></a><span class="lineno"> 1140</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l01141" name="l01141"></a><span class="lineno"> 1141</span>    <span class="keyword">requires</span>(std::same_as&lt;T, SqlVariant&gt;)</div>
+<div class="foldopen" id="foldopen01142" data-start="{" data-end="}">
+<div class="line"><a id="l01142" name="l01142"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a1dbd5345afd309378028c7ea6f455666"> 1142</a></span><span class="keyword">inline</span> T <a class="code hl_function" href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a">SqlStatement::ExecuteDirectScalar</a>(<a class="code hl_concept" href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">SqlQueryObject</a> <span class="keyword">auto</span> <span class="keyword">const</span>&amp; query, std::source_location location)</div>
+<div class="line"><a id="l01143" name="l01143"></a><span class="lineno"> 1143</span>{</div>
+<div class="line"><a id="l01144" name="l01144"></a><span class="lineno"> 1144</span>    <span class="keywordflow">return</span> ExecuteDirectScalar&lt;T&gt;(query.ToSql(), location);</div>
+<div class="line"><a id="l01145" name="l01145"></a><span class="lineno"> 1145</span>}</div>
 </div>
-<div class="line"><a id="l01130" name="l01130"></a><span class="lineno"> 1130</span> </div>
-<div class="line"><a id="l01131" name="l01131"></a><span class="lineno"> 1131</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> SqlStatement::CloseCursor() noexcept</div>
-<div class="line"><a id="l01132" name="l01132"></a><span class="lineno"> 1132</span>{</div>
-<div class="line"><a id="l01133" name="l01133"></a><span class="lineno"> 1133</span>    <span class="comment">// SQL Server batches and DML/DDL row-count tokens produce multiple result</span></div>
-<div class="line"><a id="l01134" name="l01134"></a><span class="lineno"> 1134</span>    <span class="comment">// sets per SQLExecDirect. SQLFreeStmt(SQL_CLOSE) only discards the current</span></div>
-<div class="line"><a id="l01135" name="l01135"></a><span class="lineno"> 1135</span>    <span class="comment">// cursor — remaining result sets stay pending on the *connection*, and</span></div>
-<div class="line"><a id="l01136" name="l01136"></a><span class="lineno"> 1136</span>    <span class="comment">// without MARS every subsequent statement on that connection fails with</span></div>
-<div class="line"><a id="l01137" name="l01137"></a><span class="lineno"> 1137</span>    <span class="comment">// HY000 &quot;Connection is busy with results for another command&quot;. Drain via</span></div>
-<div class="line"><a id="l01138" name="l01138"></a><span class="lineno"> 1138</span>    <span class="comment">// SQLMoreResults until SQL_NO_DATA (or an error), then close.</span></div>
-<div class="line"><a id="l01139" name="l01139"></a><span class="lineno"> 1139</span>    <span class="comment">//</span></div>
-<div class="line"><a id="l01140" name="l01140"></a><span class="lineno"> 1140</span>    <span class="comment">// SQLMoreResults is standard ODBC; SQLite and PostgreSQL drivers return</span></div>
-<div class="line"><a id="l01141" name="l01141"></a><span class="lineno"> 1141</span>    <span class="comment">// SQL_NO_DATA on the first call when nothing is pending, so the cost on</span></div>
-<div class="line"><a id="l01142" name="l01142"></a><span class="lineno"> 1142</span>    <span class="comment">// single-statement queries is one no-op driver call.</span></div>
-<div class="line"><a id="l01143" name="l01143"></a><span class="lineno"> 1143</span>    <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
-<div class="line"><a id="l01144" name="l01144"></a><span class="lineno"> 1144</span>    {</div>
-<div class="line"><a id="l01145" name="l01145"></a><span class="lineno"> 1145</span>        <span class="keyword">auto</span> <span class="keyword">const</span> rc = SQLMoreResults(m_hStmt);</div>
-<div class="line"><a id="l01146" name="l01146"></a><span class="lineno"> 1146</span>        <span class="keywordflow">if</span> (rc == SQL_NO_DATA || !SQL_SUCCEEDED(rc))</div>
-<div class="line"><a id="l01147" name="l01147"></a><span class="lineno"> 1147</span>            <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l01148" name="l01148"></a><span class="lineno"> 1148</span>    }</div>
-<div class="line"><a id="l01149" name="l01149"></a><span class="lineno"> 1149</span>    SQLFreeStmt(m_hStmt, SQL_CLOSE);</div>
-<div class="line"><a id="l01150" name="l01150"></a><span class="lineno"> 1150</span>    <a class="code hl_function" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">SqlLogger::GetLogger</a>().<a class="code hl_function" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a531204f908c6870f7e7e589ac0e20c2f">OnFetchEnd</a>();</div>
-<div class="line"><a id="l01151" name="l01151"></a><span class="lineno"> 1151</span>}</div>
-<div class="line"><a id="l01152" name="l01152"></a><span class="lineno"> 1152</span> </div>
-<div class="line"><a id="l01153" name="l01153"></a><span class="lineno"> 1153</span><span class="comment">// }}}</span></div>
-<div class="line"><a id="l01154" name="l01154"></a><span class="lineno"> 1154</span> </div>
-<div class="line"><a id="l01155" name="l01155"></a><span class="lineno"> 1155</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l01146" name="l01146"></a><span class="lineno"> 1146</span> </div>
+<div class="line"><a id="l01147" name="l01147"></a><span class="lineno"> 1147</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> SqlStatement::CloseCursor() noexcept</div>
+<div class="line"><a id="l01148" name="l01148"></a><span class="lineno"> 1148</span>{</div>
+<div class="line"><a id="l01149" name="l01149"></a><span class="lineno"> 1149</span>    <span class="comment">// SQL Server batches and DML/DDL row-count tokens produce multiple result</span></div>
+<div class="line"><a id="l01150" name="l01150"></a><span class="lineno"> 1150</span>    <span class="comment">// sets per SQLExecDirect. SQLFreeStmt(SQL_CLOSE) only discards the current</span></div>
+<div class="line"><a id="l01151" name="l01151"></a><span class="lineno"> 1151</span>    <span class="comment">// cursor — remaining result sets stay pending on the *connection*, and</span></div>
+<div class="line"><a id="l01152" name="l01152"></a><span class="lineno"> 1152</span>    <span class="comment">// without MARS every subsequent statement on that connection fails with</span></div>
+<div class="line"><a id="l01153" name="l01153"></a><span class="lineno"> 1153</span>    <span class="comment">// HY000 &quot;Connection is busy with results for another command&quot;. Drain via</span></div>
+<div class="line"><a id="l01154" name="l01154"></a><span class="lineno"> 1154</span>    <span class="comment">// SQLMoreResults until SQL_NO_DATA (or an error), then close.</span></div>
+<div class="line"><a id="l01155" name="l01155"></a><span class="lineno"> 1155</span>    <span class="comment">//</span></div>
+<div class="line"><a id="l01156" name="l01156"></a><span class="lineno"> 1156</span>    <span class="comment">// SQLMoreResults is standard ODBC; SQLite and PostgreSQL drivers return</span></div>
+<div class="line"><a id="l01157" name="l01157"></a><span class="lineno"> 1157</span>    <span class="comment">// SQL_NO_DATA on the first call when nothing is pending, so the cost on</span></div>
+<div class="line"><a id="l01158" name="l01158"></a><span class="lineno"> 1158</span>    <span class="comment">// single-statement queries is one no-op driver call.</span></div>
+<div class="line"><a id="l01159" name="l01159"></a><span class="lineno"> 1159</span>    <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
+<div class="line"><a id="l01160" name="l01160"></a><span class="lineno"> 1160</span>    {</div>
+<div class="line"><a id="l01161" name="l01161"></a><span class="lineno"> 1161</span>        <span class="keyword">auto</span> <span class="keyword">const</span> rc = SQLMoreResults(m_hStmt);</div>
+<div class="line"><a id="l01162" name="l01162"></a><span class="lineno"> 1162</span>        <span class="keywordflow">if</span> (rc == SQL_NO_DATA || !SQL_SUCCEEDED(rc))</div>
+<div class="line"><a id="l01163" name="l01163"></a><span class="lineno"> 1163</span>            <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l01164" name="l01164"></a><span class="lineno"> 1164</span>    }</div>
+<div class="line"><a id="l01165" name="l01165"></a><span class="lineno"> 1165</span>    SQLFreeStmt(m_hStmt, SQL_CLOSE);</div>
+<div class="line"><a id="l01166" name="l01166"></a><span class="lineno"> 1166</span>    <a class="code hl_function" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">SqlLogger::GetLogger</a>().<a class="code hl_function" href="../../db/dfd/classLightweight_1_1SqlLogger.html#a531204f908c6870f7e7e589ac0e20c2f">OnFetchEnd</a>();</div>
+<div class="line"><a id="l01167" name="l01167"></a><span class="lineno"> 1167</span>}</div>
+<div class="line"><a id="l01168" name="l01168"></a><span class="lineno"> 1168</span> </div>
+<div class="line"><a id="l01169" name="l01169"></a><span class="lineno"> 1169</span><span class="comment">// }}}</span></div>
+<div class="line"><a id="l01170" name="l01170"></a><span class="lineno"> 1170</span> </div>
+<div class="line"><a id="l01171" name="l01171"></a><span class="lineno"> 1171</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1SqlConnection_html"><div class="ttname"><a href="../../da/da8/classLightweight_1_1SqlConnection.html">Lightweight::SqlConnection</a></div><div class="ttdoc">Represents a connection to a SQL database.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00039">SqlConnection.hpp:40</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlConnection_html_a3c238ed531289bd1efff63f44ec1bb70"><div class="ttname"><a href="../../da/da8/classLightweight_1_1SqlConnection.html#a3c238ed531289bd1efff63f44ec1bb70">Lightweight::SqlConnection::IsAlive</a></div><div class="ttdeci">LIGHTWEIGHT_API bool IsAlive() const noexcept</div><div class="ttdoc">Tests if the connection is still active.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlConnection_html_a6dabdd78f7aad57d5deb2597d553bc32"><div class="ttname"><a href="../../da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32">Lightweight::SqlConnection::QueryFormatter</a></div><div class="ttdeci">SqlQueryFormatter const &amp; QueryFormatter() const noexcept</div><div class="ttdoc">Retrieves a query formatter suitable for the SQL server being connected.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00215">SqlConnection.hpp:215</a></div></div>
@@ -1350,6 +1368,7 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="ttc" id="aclassLightweight_1_1SqlLogger_html_a1d04bb81c9f5d37e8b3690a657cd3f9d"><div class="ttname"><a href="../../db/dfd/classLightweight_1_1SqlLogger.html#a1d04bb81c9f5d37e8b3690a657cd3f9d">Lightweight::SqlLogger::OnExecute</a></div><div class="ttdeci">virtual void OnExecute(std::string_view const &amp;query)=0</div><div class="ttdoc">Invoked when a prepared query is executed.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlLogger_html_a2f793aa98f3c5b9cbbe4ae2e42bb6899"><div class="ttname"><a href="../../db/dfd/classLightweight_1_1SqlLogger.html#a2f793aa98f3c5b9cbbe4ae2e42bb6899">Lightweight::SqlLogger::GetLogger</a></div><div class="ttdeci">static LIGHTWEIGHT_API SqlLogger &amp; GetLogger()</div><div class="ttdoc">Retrieves the currently configured logger.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlLogger_html_a531204f908c6870f7e7e589ac0e20c2f"><div class="ttname"><a href="../../db/dfd/classLightweight_1_1SqlLogger.html#a531204f908c6870f7e7e589ac0e20c2f">Lightweight::SqlLogger::OnFetchEnd</a></div><div class="ttdeci">virtual void OnFetchEnd()=0</div><div class="ttdoc">Invoked when fetching is done.</div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlLogger_html_a89a7b4c6fd89c71bfdab6e81b7f15f35"><div class="ttname"><a href="../../db/dfd/classLightweight_1_1SqlLogger.html#a89a7b4c6fd89c71bfdab6e81b7f15f35">Lightweight::SqlLogger::OnExecuteBatch</a></div><div class="ttdeci">virtual void OnExecuteBatch()=0</div><div class="ttdoc">Invoked when a batch of queries is executed.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlLogger_html_a8f14312f2f4bf2436d124947d9150716"><div class="ttname"><a href="../../db/dfd/classLightweight_1_1SqlLogger.html#a8f14312f2f4bf2436d124947d9150716">Lightweight::SqlLogger::OnBindInputParameter</a></div><div class="ttdeci">void OnBindInputParameter(std::string_view const &amp;name, T &amp;&amp;value)</div><div class="ttdoc">Invoked when an input parameter is bound.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/de5/SqlLogger_8hpp_source.html#l00092">SqlLogger.hpp:92</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlMigrationQueryBuilder_html"><div class="ttname"><a href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">Lightweight::SqlMigrationQueryBuilder</a></div><div class="ttdoc">Query builder for building SQL migration queries.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6b/Migrate_8hpp_source.html#l00468">Migrate.hpp:469</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlQueryBuilder_html"><div class="ttname"><a href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html">Lightweight::SqlQueryBuilder</a></div><div class="ttdoc">API Entry point for building SQL queries.</div><div class="ttdef"><b>Definition</b> <a href="../../dc/dcc/SqlQuery_8hpp_source.html#l00031">SqlQuery.hpp:32</a></div></div>
@@ -1376,7 +1395,7 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="ttc" id="aclassLightweight_1_1SqlStatement_html_a0123c0f721c9374f8992e7c454294721"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#a0123c0f721c9374f8992e7c454294721">Lightweight::SqlStatement::Prepare</a></div><div class="ttdeci">LIGHTWEIGHT_API void Prepare(std::string_view query) &amp;</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlStatement_html_a0783a366bc0c8fd7d9f2639236b3fc36"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#a0783a366bc0c8fd7d9f2639236b3fc36">Lightweight::SqlStatement::NativeHandle</a></div><div class="ttdeci">LIGHTWEIGHT_API SQLHSTMT NativeHandle() const noexcept</div><div class="ttdoc">Retrieves the native handle of the statement.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00671">SqlStatement.hpp:671</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlStatement_html_a1a71ae6cfe36477d1b0e2632e50312ef"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#a1a71ae6cfe36477d1b0e2632e50312ef">Lightweight::SqlStatement::QueryAs</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlQueryBuilder QueryAs(std::string_view const &amp;table, std::string_view const &amp;tableAlias) const</div><div class="ttdoc">Creates a new query builder for the given table with an alias, compatible with the SQL server being c...</div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlStatement_html_a3409545779372b6a14b213c8eab814b1"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1">Lightweight::SqlStatement::MigrateDirect</a></div><div class="ttdeci">void MigrateDirect(Callable const &amp;callable, std::source_location location=std::source_location::current())</div><div class="ttdoc">Executes an SQL migration query, as created b the callback.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l01084">SqlStatement.hpp:1084</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlStatement_html_a3409545779372b6a14b213c8eab814b1"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#a3409545779372b6a14b213c8eab814b1">Lightweight::SqlStatement::MigrateDirect</a></div><div class="ttdeci">void MigrateDirect(Callable const &amp;callable, std::source_location location=std::source_location::current())</div><div class="ttdoc">Executes an SQL migration query, as created b the callback.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l01100">SqlStatement.hpp:1100</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlStatement_html_a34d2659a84a934d2c67c6b31f64a7d4a"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#a34d2659a84a934d2c67c6b31f64a7d4a">Lightweight::SqlStatement::Connection</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlConnection &amp; Connection() noexcept</div><div class="ttdoc">Retrieves the connection associated with this statement.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00656">SqlStatement.hpp:656</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlStatement_html_a45fcc0bd954ae62ec4a9c26f943326e1"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#a45fcc0bd954ae62ec4a9c26f943326e1">Lightweight::SqlStatement::PreparedQuery</a></div><div class="ttdeci">std::string const &amp; PreparedQuery() const noexcept</div><div class="ttdoc">Retrieves the last prepared query string.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00686">SqlStatement.hpp:686</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlStatement_html_a5428626df850d1cd2a6390e1758d4698"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#a5428626df850d1cd2a6390e1758d4698">Lightweight::SqlStatement::Execute</a></div><div class="ttdeci">SqlResultCursor Execute(Args const &amp;... args)</div><div class="ttdoc">Binds the given arguments to the prepared statement and executes it.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00746">SqlStatement.hpp:746</a></div></div>
@@ -1390,10 +1409,11 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="ttc" id="aclassLightweight_1_1SqlStatement_html_a9c02ace19a64ce8c3a7099a4a21e50ff"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#a9c02ace19a64ce8c3a7099a4a21e50ff">Lightweight::SqlStatement::SqlStatement</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlStatement(std::nullopt_t)</div><div class="ttdoc">Construct a new empty SqlStatement object. No SqlConnection is associated with this statement.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlStatement_html_a9cc4145826d8674fe8500b8cd8d46927"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#a9cc4145826d8674fe8500b8cd8d46927">Lightweight::SqlStatement::ExecuteDirect</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlResultCursor ExecuteDirect(std::string_view const &amp;query, std::source_location location=std::source_location::current())</div><div class="ttdoc">Executes the given query directly.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlStatement_html_aa36584130753011e131c0bfd6c75b3f4"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#aa36584130753011e131c0bfd6c75b3f4">Lightweight::SqlStatement::IsAlive</a></div><div class="ttdeci">LIGHTWEIGHT_API bool IsAlive() const noexcept</div><div class="ttdoc">Checks whether the statement's connection is alive and the statement handle is valid.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00646">SqlStatement.hpp:646</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlStatement_html_aa8528873d2ff2b2f879f587e8aa5026a"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a">Lightweight::SqlStatement::ExecuteDirectScalar</a></div><div class="ttdeci">std::optional&lt; T &gt; ExecuteDirectScalar(std::string_view const &amp;query, std::source_location location=std::source_location::current())</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l01099">SqlStatement.hpp:1099</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlStatement_html_abf5a451e1dbe5fca332cb2cd30e95631"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#abf5a451e1dbe5fca332cb2cd30e95631">Lightweight::SqlStatement::ExecuteBatchNative</a></div><div class="ttdeci">SqlResultCursor ExecuteBatchNative(FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00824">SqlStatement.hpp:824</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlStatement_html_aa8528873d2ff2b2f879f587e8aa5026a"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a">Lightweight::SqlStatement::ExecuteDirectScalar</a></div><div class="ttdeci">std::optional&lt; T &gt; ExecuteDirectScalar(std::string_view const &amp;query, std::source_location location=std::source_location::current())</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l01115">SqlStatement.hpp:1115</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlStatement_html_abf5a451e1dbe5fca332cb2cd30e95631"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#abf5a451e1dbe5fca332cb2cd30e95631">Lightweight::SqlStatement::ExecuteBatchNative</a></div><div class="ttdeci">SqlResultCursor ExecuteBatchNative(FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00836">SqlStatement.hpp:836</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlStatement_html_ae3ff62232ea5a9561c0189a0fc204525"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#ae3ff62232ea5a9561c0189a0fc204525">Lightweight::SqlStatement::SqlStatement</a></div><div class="ttdeci">LIGHTWEIGHT_API SqlStatement(SqlConnection &amp;relatedConnection)</div><div class="ttdoc">Construct a new SqlStatement object, using the given connection.</div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlStatement_html_af3606d3a07e9a9be93e49569946c176d"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#af3606d3a07e9a9be93e49569946c176d">Lightweight::SqlStatement::ExecuteBatchSoft</a></div><div class="ttdeci">SqlResultCursor ExecuteBatchSoft(FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00876">SqlStatement.hpp:876</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlStatement_html_af3606d3a07e9a9be93e49569946c176d"><div class="ttname"><a href="../../db/dad/classLightweight_1_1SqlStatement.html#af3606d3a07e9a9be93e49569946c176d">Lightweight::SqlStatement::ExecuteBatchSoft</a></div><div class="ttdeci">SqlResultCursor ExecuteBatchSoft(FirstColumnBatch const &amp;firstColumnBatch, MoreColumnBatches const &amp;... moreColumnBatches)</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00888">SqlStatement.hpp:888</a></div></div>
+<div class="ttc" id="aconceptLightweight_1_1SqlHasRowWiseBatchBinder_html"><div class="ttname"><a href="../../dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html">Lightweight::SqlHasRowWiseBatchBinder</a></div><div class="ttdoc">Whether V's binder provides a row-wise batch entry point (BatchRowWiseInputParameter).</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00830">SqlStatement.hpp:830</a></div></div>
 <div class="ttc" id="aconceptLightweight_1_1SqlNativeRowBindableValue_html"><div class="ttname"><a href="../../d4/dc2/conceptLightweight_1_1SqlNativeRowBindableValue.html">Lightweight::SqlNativeRowBindableValue</a></div><div class="ttdoc">A value type that can be bound in a native ODBC row-wise parameter array (fixed-width,...</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00809">SqlStatement.hpp:809</a></div></div>
 <div class="ttc" id="aconceptLightweight_1_1SqlOptionalRowBindable_html"><div class="ttname"><a href="../../d0/dd4/conceptLightweight_1_1SqlOptionalRowBindable.html">Lightweight::SqlOptionalRowBindable</a></div><div class="ttdoc">A std::optional column that can be bound zero-copy in a native row-wise batch: the contained type is ...</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00815">SqlStatement.hpp:815</a></div></div>
 <div class="ttc" id="aconceptLightweight_1_1SqlQueryObject_html"><div class="ttname"><a href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">Lightweight::SqlQueryObject</a></div><div class="ttdoc">Represents an SQL query object, that provides a ToSql() method.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00040">SqlStatement.hpp:40</a></div></div>

@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"df/d1a/structLightweight_1_1PoolConfig.html":[12,0,0,15],
 "df/d1a/structLightweight_1_1PoolConfig.html#a6a3e753156f65b2aa0ad1fdd0090a72c":[12,0,0,15,1],
 "df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f":[12,0,0,15,2],
 "df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4":[12,0,0,15,0],

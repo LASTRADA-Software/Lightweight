@@ -1,5 +1,6 @@
 var NAVTREEINDEX5 =
 {
+"dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html":[12,0,0,0,0],
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#a782c413681d6e9b9918c5d4643ccba09":[12,0,0,0,0,2],
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#acfb1859f3c204725710cc91d9ceb2332":[12,0,0,0,0,1],
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#afd0fb1ae392d5ddb2f6bcd9122776ffa":[12,0,0,0,0,0],
@@ -248,6 +249,5 @@ var NAVTREEINDEX5 =
 "de/dfe/structLightweight_1_1SqlText.html#acb96ee68a3cc936ac16a50cb90d587d5":[10,0,9,0],
 "de/dfe/structLightweight_1_1SqlText.html#af5030d1caea50f2ac9251206e039201a":[10,0,9,1],
 "df/d0f/Pool_8hpp_source.html":[13,0,1,1,8],
-"df/d13/SqlQueryFormatter_8hpp_source.html":[13,0,1,21],
-"df/d1a/structLightweight_1_1PoolConfig.html":[12,0,0,15]
+"df/d13/SqlQueryFormatter_8hpp_source.html":[13,0,1,21]
 };

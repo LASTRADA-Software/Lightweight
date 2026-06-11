@@ -249,5 +249,5 @@ var NAVTREEINDEX4 =
 "dc/d6c/classLightweight_1_1SqlScopedTimeLogger.html#a8c6e0209082d4a10bb1ace84edd67648":[12,0,0,65,0],
 "dc/d73/ZipArchive_8hpp_source.html":[13,0,1,6,0],
 "dc/d74/CollectDifferences_8hpp_source.html":[13,0,1,1,1],
-"dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html":[12,0,0,0,0]
+"dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html":[11,0,6]
 };
