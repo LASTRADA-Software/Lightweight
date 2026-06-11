@@ -126,6 +126,33 @@ void CRUD(DataMapper& dm)
 }
 ```
 
+### Batched insert and update
+
+To insert or update many records efficiently, use `CreateAll` and `UpdateAll`. They prepare a single
+statement once and submit the whole batch, preferring native ODBC row-wise array binding (one
+`SQLExecute`, zero-copy) when every column is a fixed-width type — primitives, `SqlDate`/`SqlTime`/
+`SqlDateTime`, `SqlNumeric`, or `std::optional` of a fixed non-numeric type — and the driver supports
+parameter arrays. Records with variable-length columns (e.g. `std::string`) transparently fall back to
+a prepare-once + per-row execute, which is still far cheaper than calling `Create`/`CreateExplicit` in
+a loop (those re-prepare per row).
+
+```cpp
+void BulkInsert(DataMapper& dm, std::vector<Person> const& people)
+{
+    dm.CreateTable<Person>();
+
+    // Inserts all records with a single prepared statement (native batch when possible).
+    dm.CreateAll(people); // accepts any contiguous range: std::vector, std::array, std::span, C array
+
+    // UpdateAll writes all storable non-primary-key columns, matched on the primary key.
+    dm.UpdateAll(people);
+}
+```
+
+> Note: `CreateAll`/`UpdateAll` do not write primary keys, relations, or modified-state back onto the
+> records (treat them as write-only inputs), and `UpdateAll` writes a uniform set of columns for every
+> row rather than only the per-record modified ones. The range must be contiguous.
+
 ## Simple row retrieval via structs
 
 When only read access is needed, you can use a simple `struct` to represent the row,

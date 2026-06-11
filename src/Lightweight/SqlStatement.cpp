@@ -7,6 +7,7 @@
 #include "TracyProfiler.hpp"
 #include "Utils.hpp"
 
+#include <cstddef>
 #include <deque>
 #include <vector>
 
@@ -19,6 +20,8 @@ struct SqlStatement::Data
     std::vector<SQLLEN> indicators;                  // Holds the indicators for the bound output columns
     std::deque<SQLLEN> inputIndicators;              // Holds the indicators for the bound input parameters
     std::deque<std::vector<SQLLEN>> batchIndicators; // Holds the indicators for the bound batch input parameters
+    std::deque<std::vector<std::byte>>
+        batchStagingBuffers; // Holds temporary scratch buffers for batch input parameter binders
     std::vector<std::function<void()>> postExecuteCallbacks;
     std::vector<std::function<void()>> postProcessOutputColumnCallbacks;
 
@@ -56,10 +59,19 @@ SQLLEN* SqlStatement::ProvideInputIndicators(size_t rowCount)
     return m_data->batchIndicators.back().data();
 }
 
+std::byte* SqlStatement::ProvideBatchStagingBuffer(std::size_t byteCount)
+{
+    // std::vector<std::byte> allocates via operator new, which yields max_align_t-aligned storage.
+    m_data->batchStagingBuffers.emplace_back(byteCount);
+    return m_data->batchStagingBuffers.back().data();
+}
+
 void SqlStatement::ClearBatchIndicators()
 {
     m_data->batchIndicators.clear();
     m_data->batchIndicators.shrink_to_fit();
+    m_data->batchStagingBuffers.clear();
+    m_data->batchStagingBuffers.shrink_to_fit();
 }
 
 void SqlStatement::PlanPostExecuteCallback(std::function<void()>&& cb)
@@ -95,6 +107,7 @@ SqlStatement::SqlStatement():
                  .indicators = {},
                  .inputIndicators = {},
                  .batchIndicators = {},
+                 .batchStagingBuffers = {},
                  .postExecuteCallbacks = {},
                  .postProcessOutputColumnCallbacks = {},
              },
@@ -153,7 +166,8 @@ SqlStatement::SqlStatement(SqlConnection& relatedConnection):
 }
 
 SqlStatement::SqlStatement(std::nullopt_t /*nullopt*/):
-    m_data { const_cast<Data*>(&Data::NoData), [](Data* /*data*/) {} }
+    m_data { const_cast<Data*>(&Data::NoData), [](Data* /*data*/) {
+            } }
 {
 }
 
@@ -183,6 +197,18 @@ void SqlStatement::Prepare(std::string_view query) &
     m_data->postProcessOutputColumnCallbacks.clear();
     m_data->inputIndicators.clear();
     m_data->batchIndicators.clear();
+    m_data->batchStagingBuffers.clear();
+
+    // Reset parameter-array binding attributes that a preceding batch execution may have left on the
+    // handle. SqlStatement handles are reused (e.g. by DataMapper) across single and batched executes;
+    // without this reset a subsequent single Execute() would inherit a stale PARAMSET_SIZE and a
+    // dangling row-wise PARAM_BIND_OFFSET_PTR/PARAM_BIND_TYPE.
+    // clang-format off
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) 1, 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, nullptr, 0));
+    // clang-format on
 
     // Unbinds the columns, if any
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));

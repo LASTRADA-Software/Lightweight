@@ -7,8 +7,10 @@
 #endif
 
 #include "Api.hpp"
+#include "DataBinder/Core.hpp"
 #include "SqlConnection.hpp"
 #include "SqlQuery.hpp"
+#include "SqlQueryFormatter.hpp"
 #include "SqlServerType.hpp"
 #include "TracyProfiler.hpp"
 #include "Utils.hpp"
@@ -172,6 +174,33 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// @param rowCount The number of rows to execute.
     [[nodiscard]] LIGHTWEIGHT_API SqlResultCursor ExecuteBatch(std::span<SqlRawColumn const> columns, size_t rowCount);
 
+    /// Executes the prepared statement once per row of a *row-major* batch, preferring native ODBC
+    /// row-wise array binding (a single zero-copy @c SQLExecute) and transparently falling back to a
+    /// prepare-once + per-row execute when native binding is not possible.
+    ///
+    /// Unlike the column-major @c ExecuteBatch overloads, the data here is laid out as an array of row
+    /// structs (e.g. records). Each @p accessors invocable maps a row to one bound column's value,
+    /// returning a reference into the row (so the native path binds the value in place):
+    /// @code
+    /// stmt.ExecuteBatch(std::span { records }, [](Record const& r) -> auto const& { return r.id.Value(); }, ...);
+    /// @endcode
+    ///
+    /// The native row-wise path is taken when every column value type is row-bindable
+    /// (@ref SqlNativeRowBindableValue, or @c std::optional of such a non-numeric type), every accessor
+    /// returns an lvalue reference, the row stride satisfies the indicator-alignment requirement, and the
+    /// driver advertises parameter-array support (@ref SqlQueryFormatter::SupportsNativeRowBatch). A
+    /// per-row runtime stride check guards against accessors that are not constant-offset subobjects.
+    /// Otherwise the soft path is used, which correctly binds every supported type (strings, binary,
+    /// variant, @c std::optional of any type, …) one row at a time.
+    ///
+    /// @param rows Contiguous range of row structs (e.g. @c std::span<Record const>).
+    /// @param accessors One invocable per bound column; @c accessor(row) yields that column's value.
+    /// @return A result cursor for the executed batch (empty when @p rows is empty).
+    template <std::ranges::contiguous_range Rows, typename... ColumnAccessors>
+        requires(sizeof...(ColumnAccessors) >= 1
+                 && (std::invocable<ColumnAccessors const&, std::ranges::range_value_t<Rows> const&> && ...))
+    [[nodiscard]] SqlResultCursor ExecuteBatch(Rows const& rows, ColumnAccessors const&... accessors);
+
     /// Executes the given query directly.
     [[nodiscard]] LIGHTWEIGHT_API SqlResultCursor
     ExecuteDirect(std::string_view const& query, std::source_location location = std::source_location::current());
@@ -251,6 +280,16 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     template <SqlGetColumnNativeType T>
     [[nodiscard]] T GetColumn(SQLUSMALLINT column) const;
 
+    /// @brief Native row-wise batch execution: binds each column in place over @p rows and submits the
+    /// whole batch in a single @c SQLExecute. Precondition: every column is row-bindable.
+    template <std::ranges::contiguous_range Rows, typename... ColumnAccessors>
+    [[nodiscard]] SqlResultCursor ExecuteBatchNativeRowWise(Rows const& rows, ColumnAccessors const&... accessors);
+
+    /// @brief Soft row-major batch execution: binds and executes each row individually. Works for every
+    /// supported column type and is the fallback when native row-wise binding does not apply.
+    template <std::ranges::contiguous_range Rows, typename... ColumnAccessors>
+    [[nodiscard]] SqlResultCursor ExecuteBatchSoftRowMajor(Rows const& rows, ColumnAccessors const&... accessors);
+
     template <SqlGetColumnNativeType T>
     [[nodiscard]] std::optional<T> GetNullableColumn(SQLUSMALLINT column) const;
 
@@ -267,6 +306,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 
     LIGHTWEIGHT_API SQLLEN* ProvideInputIndicator() override;
     LIGHTWEIGHT_API SQLLEN* ProvideInputIndicators(size_t rowCount) override;
+    LIGHTWEIGHT_API std::byte* ProvideBatchStagingBuffer(std::size_t byteCount) override;
     LIGHTWEIGHT_API void ClearBatchIndicators();
     LIGHTWEIGHT_API void RequireIndicators();
     LIGHTWEIGHT_API SQLLEN* GetIndicatorForColumn(SQLUSMALLINT column) noexcept;
@@ -762,6 +802,24 @@ concept SqlNativeBatchable =
 
 // clang-format on
 
+/// @brief A value type that can be bound in a native ODBC row-wise parameter array (fixed-width,
+/// inline, indicator-free, bound identically across backends). Backed by the data-driven
+/// @ref SqlIsNativeRowBindableValue trait that each eligible binder header opts into.
+template <typename V>
+concept SqlNativeRowBindableValue = SqlIsNativeRowBindableValue<V>;
+
+/// @brief A @c std::optional column that can be bound zero-copy in a native row-wise batch: the
+/// contained type is row-bindable and non-numeric (numeric optionals are not bound at a uniform
+/// offset/representation across backends and therefore use the soft path).
+template <typename V>
+concept SqlOptionalRowBindable =
+    SqlIsStdOptional<V> && SqlNativeRowBindableValue<SqlOptionalInnerType<V>> && !SqlIsNumericValue<SqlOptionalInnerType<V>>;
+
+/// @brief A column value type usable on the native row-wise batch path — either a row-bindable fixed
+/// value or a row-bindable optional of one.
+template <typename V>
+concept SqlRowBindableColumn = SqlNativeRowBindableValue<V> || SqlOptionalRowBindable<V>;
+
 template <SqlInputParameterBatchBinder FirstColumnBatch, std::ranges::contiguous_range... MoreColumnBatches>
 SqlResultCursor SqlStatement::ExecuteBatchNative(FirstColumnBatch const& firstColumnBatch,
                                                  MoreColumnBatches const&... moreColumnBatches)
@@ -843,6 +901,130 @@ SqlResultCursor SqlStatement::ExecuteBatchSoft(FirstColumnBatch const& firstColu
                 std::ref(
                     *std::ranges::next(std::ranges::begin(moreColumnBatches), static_cast<std::ptrdiff_t>(rowIndex)))...));
     }
+    return SqlResultCursor { *this };
+}
+
+template <std::ranges::contiguous_range Rows, typename... ColumnAccessors>
+    requires(sizeof...(ColumnAccessors) >= 1
+             && (std::invocable<ColumnAccessors const&, std::ranges::range_value_t<Rows> const&> && ...))
+SqlResultCursor SqlStatement::ExecuteBatch(Rows const& rows, ColumnAccessors const&... accessors)
+{
+    ZoneScopedN("SqlStatement::ExecuteBatch(row-major)");
+    ZoneTextObject(m_preparedQuery);
+
+    using RowElem = std::ranges::range_value_t<Rows>;
+
+    auto const rowCount = std::ranges::size(rows);
+    if (rowCount == 0)
+        return SqlResultCursor { *this };
+
+    if (m_expectedParameterCount != static_cast<SQLSMALLINT>(sizeof...(accessors)))
+        throw std::invalid_argument { "Invalid number of columns" };
+
+    // Compile-time eligibility for the native row-wise path: every column must be row-bindable, every
+    // accessor must return an lvalue reference (so the bound address is a stable subobject), and — when
+    // any column is an optional needing a row-strided indicator — the row stride must keep SQLLEN
+    // indicator slots aligned and non-overlapping.
+    constexpr bool allColumnsRowBindable =
+        (SqlRowBindableColumn<std::remove_cvref_t<std::invoke_result_t<ColumnAccessors const&, RowElem const&>>> && ...);
+    constexpr bool allAccessorsReturnReference =
+        (std::is_reference_v<std::invoke_result_t<ColumnAccessors const&, RowElem const&>> && ...);
+    constexpr bool anyOptionalColumn =
+        (SqlOptionalRowBindable<std::remove_cvref_t<std::invoke_result_t<ColumnAccessors const&, RowElem const&>>> || ...);
+    constexpr bool indicatorAlignmentSatisfied = (sizeof(RowElem) % alignof(SQLLEN)) == 0;
+
+    if constexpr (allColumnsRowBindable && allAccessorsReturnReference
+                  && (!anyOptionalColumn || indicatorAlignmentSatisfied))
+    {
+        auto const* rowData = std::ranges::data(rows);
+
+        // Runtime guard: confirm each accessor yields a constant-offset subobject (stride == sizeof row),
+        // so binding row 0's address and striding by sizeof(RowElem) addresses every row correctly.
+        auto const accessorStrideMatchesRow = [&](auto const& accessor) noexcept -> bool {
+            auto const* first = reinterpret_cast<std::byte const*>(std::addressof(accessor(rowData[0])));
+            auto const* second = reinterpret_cast<std::byte const*>(std::addressof(accessor(rowData[1])));
+            return static_cast<std::size_t>(second - first) == sizeof(RowElem);
+        };
+        bool const rowStrideOk = rowCount < 2 || (accessorStrideMatchesRow(accessors) && ...);
+
+        if (m_connection->QueryFormatter().SupportsNativeRowBatch() && rowStrideOk)
+            return ExecuteBatchNativeRowWise(rows, accessors...);
+    }
+
+    return ExecuteBatchSoftRowMajor(rows, accessors...);
+}
+
+template <std::ranges::contiguous_range Rows, typename... ColumnAccessors>
+SqlResultCursor SqlStatement::ExecuteBatchNativeRowWise(Rows const& rows, ColumnAccessors const&... accessors)
+{
+    ZoneScopedN("SqlStatement::ExecuteBatchNativeRowWise");
+    ZoneTextObject(m_preparedQuery);
+
+    using RowElem = std::ranges::range_value_t<Rows>;
+    auto const rowCount = std::ranges::size(rows);
+    ZoneValue(rowCount);
+    auto const* rowData = std::ranges::data(rows);
+
+    // Row-wise array binding: the driver strides every bound value and indicator pointer by sizeof(RowElem).
+    // clang-format off
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) rowCount, 0));
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, (SQLPOINTER) sizeof(RowElem), 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, nullptr, 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_OPERATION_PTR, SQL_PARAM_PROCEED, 0));
+    // clang-format on
+    ClearBatchIndicators();
+
+    SQLUSMALLINT column = 0;
+    auto const bindColumn = [&](auto const& accessor) {
+        ++column;
+        using ValueType = std::remove_cvref_t<decltype(accessor(rowData[0]))>;
+        if constexpr (SqlIsStdOptional<ValueType>)
+            RequireSuccess(SqlDataBinder<ValueType>::BatchRowWiseInputParameter(
+                m_hStmt, column, std::addressof(accessor(rowData[0])), sizeof(RowElem), rowCount, *this));
+        else
+            RequireSuccess(SqlDataBinder<ValueType>::InputParameter(m_hStmt, column, accessor(rowData[0]), *this));
+    };
+    (bindColumn(accessors), ...);
+
+    RequireSuccess(SQLExecute(m_hStmt));
+    ProcessPostExecuteCallbacks();
+
+    // Restore single-row binding so a subsequent reuse of this handle (without re-Prepare) is unaffected.
+    // clang-format off
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) 1, 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, nullptr, 0));
+    // clang-format on
+    ClearBatchIndicators();
+
+    return SqlResultCursor { *this };
+}
+
+template <std::ranges::contiguous_range Rows, typename... ColumnAccessors>
+SqlResultCursor SqlStatement::ExecuteBatchSoftRowMajor(Rows const& rows, ColumnAccessors const&... accessors)
+{
+    ZoneScopedN("SqlStatement::ExecuteBatchSoftRowMajor");
+    ZoneTextObject(m_preparedQuery);
+
+    auto const* rowData = std::ranges::data(rows);
+    auto const rowCount = std::ranges::size(rows);
+    ZoneValue(rowCount);
+
+    for (auto const rowIndex: std::views::iota(std::size_t { 0 }, rowCount))
+    {
+        auto const& row = rowData[rowIndex];
+        SQLUSMALLINT column = 0;
+        ((++column,
+          RequireSuccess(SqlDataBinder<std::remove_cvref_t<decltype(accessors(row))>>::InputParameter(
+              m_hStmt, column, accessors(row), *this))),
+         ...);
+        RequireSuccess(SQLExecute(m_hStmt));
+        ProcessPostExecuteCallbacks();
+    }
+
     return SqlResultCursor { *this };
 }
 

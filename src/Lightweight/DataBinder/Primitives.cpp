@@ -32,8 +32,12 @@ SQLRETURN Int64DataBinderHelper<Int64Type, TheCType>::InputParameter(SQLHSTMT st
 }
 
 template <typename Int64Type, SQLSMALLINT TheCType>
-SQLRETURN Int64DataBinderHelper<Int64Type, TheCType>::BatchInputParameter(
-    SQLHSTMT stmt, SQLUSMALLINT column, Int64Type const* values, size_t rowCount, SqlDataBinderCallback& cb) noexcept
+SQLRETURN Int64DataBinderHelper<Int64Type, TheCType>::BatchInputParameter(SQLHSTMT stmt,
+                                                                          SQLUSMALLINT column,
+                                                                          Int64Type const* values,
+                                                                          size_t rowCount,
+                                                                          SqlDataBinderCallback& cb,
+                                                                          SQLLEN* indicators) noexcept
 {
     // clang-format off
     static constexpr auto map = std::array {
@@ -45,7 +49,7 @@ SQLRETURN Int64DataBinderHelper<Int64Type, TheCType>::BatchInputParameter(
     };
     // clang-format on
     auto const index = static_cast<size_t>(cb.ServerType());
-    return map[index](stmt, column, values, rowCount, cb);
+    return map[index](stmt, column, values, rowCount, cb, indicators);
 }
 
 template <typename Int64Type, SQLSMALLINT TheCType>

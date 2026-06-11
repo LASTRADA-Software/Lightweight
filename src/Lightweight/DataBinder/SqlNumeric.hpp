@@ -291,6 +291,14 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
         return value.ToString();
     }
 };
+
+// SqlNumeric binds a fixed-width inline struct and is row-wise batchable for non-nullable columns. It
+// is flagged as numeric so the std::optional batch path excludes it (its contained value is not bound
+// at a uniform offset/representation across backends).
+template <std::size_t ThePrecision, std::size_t TheScale>
+inline constexpr bool SqlIsNativeRowBindableValue<SqlNumeric<ThePrecision, TheScale>> = true;
+template <std::size_t ThePrecision, std::size_t TheScale>
+inline constexpr bool SqlIsNumericValue<SqlNumeric<ThePrecision, TheScale>> = true;
 // clang-format off
 
 } // namespace Lightweight
