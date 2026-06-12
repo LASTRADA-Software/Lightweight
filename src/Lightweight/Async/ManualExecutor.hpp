@@ -62,14 +62,19 @@ class LIGHTWEIGHT_API ManualExecutor final: public IExecutor, public IResumeSche
     template <typename Predicate>
     void RunUntil(Predicate predicate)
     {
+        // NOTE: RunUntil deliberately ignores _stopped — it must pump strictly until the predicate
+        // is satisfied (the awaited task completes). Honoring Stop() here would return early with
+        // the predicate still false, causing the caller (SyncWaitPumping) to read an unfinished
+        // result. _stopped governs Run() (the event-loop pump), not RunUntil.
         while (!predicate())
         {
             Work work;
             {
                 std::unique_lock lock(_mutex);
-                _condition.wait(lock, [&] { return !_queue.empty() || _stopped || predicate(); });
-                if (predicate() || _queue.empty())
+                _condition.wait(lock, [&] { return !_queue.empty() || predicate(); });
+                if (predicate())
                     return;
+                // The wait guarantees the queue is non-empty here when the predicate is false.
                 work = std::move(_queue.front());
                 _queue.pop_front();
             }

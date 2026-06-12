@@ -70,12 +70,6 @@ if(LIGHTWEIGHT_HAS_STDEXEC)
 endif()
 
 set(SOURCE_FILES
-    Async/TaskTests.cpp
-    Async/ExecutorTests.cpp
-    Async/OffloadTests.cpp
-    Async/AsyncDbTests.cpp
-    Async/AsyncPoolTests.cpp
-    Async/AsyncTransactionTests.cpp
     ConfigProfileStoreTests.cpp
     CoreTests.cpp
     CxxModelPrinterTests.cpp
@@ -144,6 +138,19 @@ set(SOURCE_FILES
 
 if(LIGHTWEIGHT_HAS_STDEXEC)
     list(APPEND SOURCE_FILES DataMapper/AsynchronousTests.cpp)
+endif()
+
+# The coroutine async API and its tests are gated behind LIGHTWEIGHT_ENABLE_ASYNC; only compile
+# the async test sources when the feature is built, otherwise the OFF build fails to compile them.
+if(LIGHTWEIGHT_ENABLE_ASYNC)
+    list(APPEND SOURCE_FILES
+        Async/TaskTests.cpp
+        Async/ExecutorTests.cpp
+        Async/OffloadTests.cpp
+        Async/AsyncDbTests.cpp
+        Async/AsyncPoolTests.cpp
+        Async/AsyncTransactionTests.cpp
+    )
 endif()
 
 target_sources(LightweightTest PRIVATE ${SOURCE_FILES})

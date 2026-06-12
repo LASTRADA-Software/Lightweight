@@ -100,18 +100,30 @@ the pool). Acquire a connection without blocking via `Pool::AcquireAsync`:
 
 ```cpp
 Async::ThreadPoolExecutor dbWorkers { 8 };
-DataMapperPool pool; // or Pool<YourConfig>{}
 
-Async::Task<std::optional<User>> Fetch(DataMapperPool& pool, SqlGuid id)
+// Back-pressure (suspend-on-exhaustion) requires the BoundedWait strategy; the default
+// DataMapperPool uses BoundedOverflow, which never suspends (see the note below).
+using BoundedPool = Pool<PoolConfig { .initialSize = 4, .maxSize = 8,
+                                      .growthStrategy = GrowthStrategy::BoundedWait }>;
+BoundedPool pool;
+
+Async::Task<std::optional<User>> Fetch(BoundedPool& pool, SqlGuid id)
 {
-    auto dm = co_await pool.AcquireAsync(dbWorkers, dbWorkers); // suspends, never blocks
+    auto dm = co_await pool.AcquireAsync(dbWorkers, dbWorkers); // suspends when at capacity, never blocks
     co_return co_await dm->QuerySingleAsync<User>(id);
     // dm returns to the pool when the coroutine ends
 }
 ```
 
-When the pool is exhausted, `AcquireAsync` suspends the coroutine and resumes it once another
-caller returns a connection — no thread is parked.
+`AcquireAsync` never blocks the calling thread; its back-pressure behavior depends on the pool's
+growth strategy:
+
+- **`BoundedWait`** — when the pool is at `maxSize`, `AcquireAsync` *suspends* the coroutine and
+  resumes it once another caller returns a connection. No thread is parked.
+- **`BoundedOverflow`** (the **default** `DataMapperPool`) and **`UnboundedGrow`** — never suspend:
+  if no idle connection is available a fresh one is created (matching the synchronous `Acquire`).
+  Under load this can open an unbounded number of connections, so choose `BoundedWait` when you
+  need back-pressure.
 
 ## Transactions
 

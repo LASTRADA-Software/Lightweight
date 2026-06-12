@@ -9,6 +9,7 @@
 #include <atomic>
 #include <latch>
 #include <ranges>
+#include <stdexcept>
 #include <vector>
 
 using namespace Lightweight::Async;
@@ -86,4 +87,22 @@ TEST_CASE("Async.ManualExecutor RunUntil stops on predicate", "[Async][Executor]
     executor.Post([&flag] { flag = true; });
     executor.RunUntil([&flag] { return flag; });
     CHECK(flag);
+}
+
+TEST_CASE("Async.ManualExecutor RunUntil pumps to completion even after Stop", "[Async][Executor]")
+{
+    // Regression: RunUntil must ignore _stopped and pump until the predicate is satisfied, so a
+    // SyncWaitPumping over a stopped executor never returns an unfinished result.
+    ManualExecutor executor;
+    executor.Stop(); // sets _stopped (intended for Run(), not RunUntil)
+    bool done = false;
+    executor.Post([&done] { done = true; });
+    executor.RunUntil([&done] { return done; });
+    CHECK(done);
+}
+
+TEST_CASE("Async.ThreadPoolExecutor rejects a zero thread count", "[Async][Executor]")
+{
+    // A pool with no workers would silently never run posted work; reject it loudly instead.
+    CHECK_THROWS_AS(ThreadPoolExecutor { 0 }, std::invalid_argument);
 }

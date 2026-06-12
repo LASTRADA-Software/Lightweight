@@ -25,7 +25,13 @@ namespace Lightweight::Async
 /// The underlying connection must have async enabled (SqlConnection::EnableAsync) before use.
 /// Always `co_await CommitAsync()` or `co_await RollbackAsync()` explicitly; the destructor only
 /// performs a best-effort *synchronous* finalization (per the configured mode) if the transaction
-/// is still open, which may run on the destroying thread.
+/// is still open, which runs on the destroying thread and emits a warning via @c SqlLogger.
+///
+/// @warning Because that finalization touches the ODBC connection handle synchronously and *off*
+/// the connection's strand, you must finalize explicitly (`co_await CommitAsync()` /
+/// `RollbackAsync()`) and ensure no other async operation is in flight on the same connection
+/// before this object is destroyed. Destroying an open transaction while a strand operation runs
+/// concurrently on the same connection is a data race on the ODBC handle.
 ///
 /// @code
 /// auto tx = Async::AsyncSqlTransaction { dm.Connection() };

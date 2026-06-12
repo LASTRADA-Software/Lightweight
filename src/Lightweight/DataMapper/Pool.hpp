@@ -12,6 +12,7 @@
     #include "../Async/Executor.hpp"
     #include "../Async/Task.hpp"
 
+    #include <cassert>
     #include <coroutine>
     #include <deque>
 #endif
@@ -124,6 +125,11 @@ class Pool
     void Return(std::unique_ptr<DataMapper> dm) noexcept
         requires(Config.growthStrategy == GrowthStrategy::UnboundedGrow)
     {
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+        // Drop any async backend so a recycled connection never carries references to executors
+        // that may have been destroyed; the next AcquireAsync re-enables it fresh.
+        dm->Connection().DisableAsync();
+#endif
         std::scoped_lock lock(_mutex);
         _idleDataMappers.push_back(std::move(dm));
     }
@@ -134,6 +140,10 @@ class Pool
         requires(Config.growthStrategy == GrowthStrategy::BoundedWait)
     {
 #if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+        // Drop any async backend before the mapper is idled or handed to a waiter, so a recycled
+        // connection never carries references to (possibly destroyed) executors; a waiter's
+        // AcquireAsync re-enables it fresh.
+        dm->Connection().DisableAsync();
         AsyncWaiter waiter;
         bool haveAsyncWaiter = false;
 #endif
@@ -168,6 +178,11 @@ class Pool
     void Return(std::unique_ptr<DataMapper> dm) noexcept
         requires(Config.growthStrategy == GrowthStrategy::BoundedOverflow)
     {
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+        // Drop any async backend so a recycled connection never carries references to executors
+        // that may have been destroyed; the next AcquireAsync re-enables it fresh.
+        dm->Connection().DisableAsync();
+#endif
         std::scoped_lock lock(_mutex);
         if (_idleDataMappers.size() < Config.maxSize)
             _idleDataMappers.push_back(std::move(dm));
@@ -183,10 +198,18 @@ class Pool
             _idleDataMappers.push_back(std::make_unique<DataMapper>());
     }
 
-    /// Default destructor, the pool manages the lifecycle of the data mappers, so no special cleanup is needed
-    /// bug be aware that any acquired data mappers that are not returned to the pool will be destroyed when the pool is
-    /// destroyed, which may lead to resource leaks if not handled properly
-    ~Pool() noexcept = default;
+    /// Destructor. The pool manages the lifecycle of the idle data mappers; be aware that any
+    /// acquired data mappers not returned to the pool are destroyed when the pool is destroyed,
+    /// which may leak resources if not handled properly.
+    ~Pool() noexcept
+    {
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+        // A coroutine still parked in AcquireAsync when the pool dies would leak its frame: we
+        // cannot safely resume or destroy a frame the pool does not own. Drive such tasks to
+        // completion before destroying the pool.
+        assert(_asyncWaiters.empty() && "Pool destroyed with coroutines still parked in AcquireAsync");
+#endif
+    }
 
     Pool(Pool const&) = delete;
     Pool& operator=(Pool const&) = delete;
@@ -278,11 +301,42 @@ class Pool
     };
 
     /// Awaitable that acquires a DataMapper, suspending only when the pool is at capacity.
+    ///
+    /// Non-copyable/non-movable: it is constructed in place in the co_await expression and lives in
+    /// the coroutine frame. The destructor de-registers a still-parked waiter so that destroying a
+    /// suspended AcquireAsync task does not leave a dangling entry in pool._asyncWaiters.
     struct AsyncAcquireAwaitable
     {
         Pool& pool;
         Async::IResumeScheduler& resume;
         std::unique_ptr<DataMapper> acquired {};
+        bool parked = false; ///< true while this awaitable's waiter sits in pool._asyncWaiters.
+
+        AsyncAcquireAwaitable(Pool& poolRef, Async::IResumeScheduler& resumeRef) noexcept:
+            pool { poolRef },
+            resume { resumeRef }
+        {
+        }
+
+        AsyncAcquireAwaitable(AsyncAcquireAwaitable const&) = delete;
+        AsyncAcquireAwaitable& operator=(AsyncAcquireAwaitable const&) = delete;
+        AsyncAcquireAwaitable(AsyncAcquireAwaitable&&) = delete;
+        AsyncAcquireAwaitable& operator=(AsyncAcquireAwaitable&&) = delete;
+
+        /// De-registers a still-parked waiter if the awaiting coroutine is destroyed before it is
+        /// resumed (e.g. the AcquireAsync task is dropped/cancelled). Without this, a later Return()
+        /// would write through a dangling slot pointer and resume a destroyed coroutine.
+        ///
+        /// Race-free for the single-threaded pump model (Return and cancellation run on the same
+        /// thread). In the multi-threaded resume model a suspended AcquireAsync task must not be
+        /// destroyed from a thread other than the one returning mappers.
+        ~AsyncAcquireAwaitable()
+        {
+            if (!parked)
+                return;
+            std::scoped_lock const lock(pool._mutex);
+            std::erase_if(pool._asyncWaiters, [this](AsyncWaiter const& w) { return w.slot == &acquired; });
+        }
 
         [[nodiscard]] bool await_ready() const noexcept
         {
@@ -300,11 +354,15 @@ class Pool
                     ++pool._checkedOut;
                 return false; // do not suspend — resume immediately
             }
+            // Only BoundedWait bounds the pool and parks coroutines on exhaustion. The non-blocking
+            // strategies (BoundedOverflow — the default — and UnboundedGrow) always create a fresh
+            // mapper here, matching the synchronous Acquire() overloads, which also never suspend.
             if constexpr (Config.growthStrategy == GrowthStrategy::BoundedWait)
             {
                 if (pool._checkedOut >= Config.maxSize)
                 {
                     pool._asyncWaiters.push_back(AsyncWaiter { handle, &resume, &acquired });
+                    parked = true;
                     return true; // suspend until a mapper is returned
                 }
                 ++pool._checkedOut;
@@ -315,6 +373,7 @@ class Pool
 
         std::unique_ptr<DataMapper> await_resume() noexcept
         {
+            parked = false;
             return std::move(acquired);
         }
     };
@@ -322,8 +381,12 @@ class Pool
     Async::Task<PooledDataMapper> AcquireAsyncImpl(Async::IExecutor* dbWorkers, Async::IResumeScheduler* resume)
     {
         auto dm = co_await AsyncAcquireAwaitable { *this, *resume };
-        dm->Connection().EnableAsync(*dbWorkers, *resume);
-        co_return PooledDataMapper(*this, std::move(dm));
+        // Wrap in the RAII PooledDataMapper BEFORE the throwing EnableAsync call: if EnableAsync
+        // throws (e.g. bad_alloc), ~PooledDataMapper returns the mapper to the pool, decrementing
+        // _checkedOut and avoiding a permanent BoundedWait capacity leak.
+        auto pooled = PooledDataMapper(*this, std::move(dm));
+        pooled->Connection().EnableAsync(*dbWorkers, *resume);
+        co_return std::move(pooled);
     }
 #endif
 

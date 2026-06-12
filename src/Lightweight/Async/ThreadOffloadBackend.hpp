@@ -24,7 +24,8 @@ class ThreadOffloadBackend final: public IAsyncBackend
     ///
     /// @param dbWorkers The shared worker-thread pool that actually runs blocking work.
     /// @param resume The scheduler used to resume coroutines (typically the app run loop).
-    ThreadOffloadBackend(IExecutor& dbWorkers, IResumeScheduler& resume) noexcept:
+    /// @note Not @c noexcept: constructing the strand allocates its shared state.
+    ThreadOffloadBackend(IExecutor& dbWorkers, IResumeScheduler& resume):
         _strand { dbWorkers },
         _resume { resume }
     {
@@ -38,11 +39,6 @@ class ThreadOffloadBackend final: public IAsyncBackend
     [[nodiscard]] IResumeScheduler& ResumeScheduler() noexcept override
     {
         return _resume;
-    }
-
-    [[nodiscard]] bool IsNative() const noexcept override
-    {
-        return false;
     }
 
   private:

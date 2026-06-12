@@ -16,6 +16,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <ranges>
+#include <stdexcept>
 
 using namespace Lightweight;
 using namespace Lightweight::Async;
@@ -68,4 +69,14 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.DataMapper: QueryAsync returns multiple 
     auto const all =
         SyncWaitPumping(dm.QueryAsync<Person>(R"(SELECT "id", "name", "is_active", "age" FROM "Person")"), appLoop);
     CHECK(all.size() == 5);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Async.DataMapper: async method without EnableAsync throws", "[Async][DataMapper]")
+{
+    DataMapper dm; // EnableAsync intentionally NOT called
+
+    auto person = Person { .id = SqlGuid::Create(), .name = "X", .age = 1 };
+    // The *Async methods are not coroutines: they evaluate AsyncBackend() eagerly at the call site,
+    // so the precondition violation throws here (fail-fast) rather than as undefined behavior.
+    CHECK_THROWS_AS((void) dm.CreateAsync(person), std::logic_error);
 }

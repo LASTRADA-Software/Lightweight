@@ -5,6 +5,7 @@
 #include "Executor.hpp"
 
 #include <deque>
+#include <memory>
 #include <mutex>
 
 namespace Lightweight::Async
@@ -16,16 +17,19 @@ namespace Lightweight::Async
 /// the items execute on the underlying executor's worker threads. This guarantees that a
 /// single ODBC connection — which is not safe for concurrent use — is touched by only one
 /// thread at a time. A strand does not own a thread; it borrows the underlying executor.
+///
+/// The strand's mutable state lives in a heap @c State held by a @c std::shared_ptr. Each
+/// in-flight drain closure keeps a copy of that pointer, so the state outlives the
+/// @c StrandExecutor wrapper itself until the last drain returns. This makes the strand safe
+/// to destroy (or to replace, e.g. via @c SqlConnection::EnableAsync) while a drain is still
+/// running on a worker thread — the closure only ever touches @c State, never the wrapper.
 class LIGHTWEIGHT_API StrandExecutor final: public IExecutor, public IResumeScheduler
 {
   public:
     /// Constructs a strand layered over @p underlying.
     ///
     /// @param underlying The executor that actually runs the serialized work.
-    explicit StrandExecutor(IExecutor& underlying) noexcept:
-        _underlying { underlying }
-    {
-    }
+    explicit StrandExecutor(IExecutor& underlying);
 
     StrandExecutor(StrandExecutor const&) = delete;
     StrandExecutor& operator=(StrandExecutor const&) = delete;
@@ -37,12 +41,26 @@ class LIGHTWEIGHT_API StrandExecutor final: public IExecutor, public IResumeSche
     void Resume(std::coroutine_handle<> handle) override;
 
   private:
-    void ScheduleDrain();
+    /// Mutable strand state, heap-allocated so in-flight drain closures can keep it alive
+    /// independently of the @c StrandExecutor wrapper's lifetime.
+    struct State
+    {
+        IExecutor& underlying; ///< Borrowed executor that runs the serialized work.
+        std::mutex mutex;
+        std::deque<Work> pending;
+        bool running = false; ///< true while a drain closure is scheduled/running.
 
-    IExecutor& _underlying;
-    std::mutex _mutex;
-    std::deque<Work> _pending;
-    bool _running = false;
+        explicit State(IExecutor& underlyingExecutor) noexcept:
+            underlying { underlyingExecutor }
+        {
+        }
+    };
+
+    /// Schedules a single drain closure on @p state->underlying that drains @p state->pending
+    /// to completion. The closure captures a copy of @p state, keeping it alive while it runs.
+    static void ScheduleDrain(std::shared_ptr<State> state);
+
+    std::shared_ptr<State> _state;
 };
 
 } // namespace Lightweight::Async

@@ -13,13 +13,12 @@ namespace Lightweight::Async
 /// Per-connection asynchronous execution backend.
 ///
 /// A backend owns (or references) the execution context used to run a connection's blocking
-/// ODBC work and to resume the awaiting coroutine. Two implementations exist:
-///  - @ref ThreadOffloadBackend — portable; offloads to a worker thread. Always available.
-///  - the native event backend (Windows + SQL Server) — selected per-connection when the
-///    driver advertises async-notification support.
+/// ODBC work and to resume the awaiting coroutine. Currently the only implementation is
+/// @ref ThreadOffloadBackend (portable; offloads to a worker thread). A native event backend
+/// (Windows + SQL Server) is planned behind this same interface.
 ///
-/// The backend is selected once per connection (see @c MakeAsyncBackend) and used by all of
-/// that connection's async methods.
+/// The backend is selected once per connection (see @c SqlConnection::EnableAsync) and used by
+/// all of that connection's async methods.
 class IAsyncBackend
 {
   public:
@@ -37,9 +36,6 @@ class IAsyncBackend
     /// The scheduler used to resume coroutines after a blocking step completes (typically the
     /// application's run loop).
     [[nodiscard]] virtual IResumeScheduler& ResumeScheduler() noexcept = 0;
-
-    /// @return true if this backend uses native driver async I/O instead of thread offload.
-    [[nodiscard]] virtual bool IsNative() const noexcept = 0;
 };
 
 /// Runs a whole synchronous operation on @p backend's strand, resuming on its scheduler.

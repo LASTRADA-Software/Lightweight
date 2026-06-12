@@ -207,17 +207,28 @@ class SqlConnection final
     /// otherwise the portable thread-offload backend is used.
     ///
     /// Both executors must outlive this connection and every coroutine driven through it.
+    /// Must not be called while asynchronous operations are in flight on this connection (it
+    /// replaces the backend); the connection pool calls @ref DisableAsync on return so each
+    /// re-acquire is a fresh enable rather than a live replacement.
     ///
     /// @param dbWorkers The worker-thread pool used to run blocking ODBC calls.
     /// @param resume The scheduler used to resume coroutines after a blocking step completes.
     LIGHTWEIGHT_API void EnableAsync(Async::IExecutor& dbWorkers, Async::IResumeScheduler& resume);
 
-    /// @return true if @ref EnableAsync has been called on this connection.
+    /// Tears down the asynchronous backend, returning the connection to a non-async state.
+    ///
+    /// Called by the connection pool when a mapper is returned, so a recycled connection never
+    /// carries a stale backend that references executors which may have been destroyed. Safe to
+    /// call when async was never enabled. Must not be called while async work is in flight.
+    LIGHTWEIGHT_API void DisableAsync() noexcept;
+
+    /// @return true if @ref EnableAsync has been called on this connection (and not yet disabled).
     [[nodiscard]] LIGHTWEIGHT_API bool IsAsyncEnabled() const noexcept;
 
     /// Retrieves the connection's asynchronous execution backend.
     ///
     /// @pre @ref IsAsyncEnabled returns true.
+    /// @throws std::logic_error if async has not been enabled (programmer error, fail-fast).
     /// @return The async backend used by this connection's async methods.
     [[nodiscard]] LIGHTWEIGHT_API Async::IAsyncBackend& AsyncBackend() const;
 #endif

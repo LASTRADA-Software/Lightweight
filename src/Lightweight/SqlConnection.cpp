@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <mutex>
+#include <stdexcept>
 
 #include <sql.h>
 
@@ -193,7 +194,16 @@ bool SqlConnection::IsAsyncEnabled() const noexcept
 
 Async::IAsyncBackend& SqlConnection::AsyncBackend() const
 {
+    if (!m_data->asyncBackend)
+        throw std::logic_error {
+            "SqlConnection::AsyncBackend(): asynchronous API used before EnableAsync() was called on this connection."
+        };
     return *m_data->asyncBackend;
+}
+
+void SqlConnection::DisableAsync() noexcept
+{
+    m_data->asyncBackend.reset();
 }
 
 #endif

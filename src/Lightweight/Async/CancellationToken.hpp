@@ -2,12 +2,8 @@
 #pragma once
 
 #include <atomic>
-#include <functional>
 #include <memory>
-#include <mutex>
 #include <stdexcept>
-#include <utility>
-#include <vector>
 
 namespace Lightweight::Async
 {
@@ -30,6 +26,11 @@ class OperationCancelledError: public std::runtime_error
 /// token. Obtain a cancellable token via @ref Create; copies share the same cancellation
 /// state, so a caller can keep one copy and @ref Request cancellation on the operation
 /// holding another.
+///
+/// Cancellation is honored cooperatively: the offload runtime checks @ref IsCancellationRequested
+/// once before a step is dispatched and completes it with @ref OperationCancelledError if set. A
+/// request that arrives after a step has begun running does not interrupt the in-flight blocking
+/// call.
 class CancellationToken
 {
   public:
@@ -44,63 +45,23 @@ class CancellationToken
         return token;
     }
 
-    /// @return true if this token can ever transition to the cancelled state.
-    [[nodiscard]] bool CanBeCancelled() const noexcept
-    {
-        return static_cast<bool>(_state);
-    }
-
     /// @return true if cancellation has been requested.
     [[nodiscard]] bool IsCancellationRequested() const noexcept
     {
         return _state && _state->cancelled.load(std::memory_order_acquire);
     }
 
-    /// Requests cancellation and runs any registered callbacks exactly once.
-    void Request()
+    /// Requests cancellation. Idempotent and thread-safe; a no-op on a non-cancellable token.
+    void Request() noexcept
     {
-        if (!_state)
-            return;
-        std::vector<std::function<void()>> callbacks;
-        {
-            std::scoped_lock const lock(_state->mutex);
-            if (_state->cancelled.exchange(true, std::memory_order_acq_rel))
-                return; // already requested
-            callbacks.swap(_state->callbacks);
-        }
-        for (auto& callback: callbacks)
-            if (callback)
-                callback();
-    }
-
-    /// Registers @p callback to run when cancellation is requested.
-    ///
-    /// If cancellation has already been requested, the callback runs immediately on the
-    /// calling thread. On a non-cancellable token the callback is dropped.
-    ///
-    /// @param callback The callback to invoke on cancellation (consumed).
-    void OnCancel(std::function<void()> callback)
-    {
-        if (!_state)
-            return;
-        {
-            std::scoped_lock const lock(_state->mutex);
-            if (!_state->cancelled.load(std::memory_order_acquire))
-            {
-                _state->callbacks.push_back(std::move(callback));
-                return;
-            }
-        }
-        if (callback)
-            callback();
+        if (_state)
+            _state->cancelled.store(true, std::memory_order_release);
     }
 
   private:
     struct State
     {
         std::atomic<bool> cancelled { false };
-        std::mutex mutex;
-        std::vector<std::function<void()>> callbacks;
     };
 
     std::shared_ptr<State> _state;

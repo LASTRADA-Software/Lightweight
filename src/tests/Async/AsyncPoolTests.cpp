@@ -71,3 +71,54 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync suspends until a mapp
     CHECK(acquired);
     CHECK(pool.IdleCount() == 1);
 }
+
+TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: a returned mapper is async-disabled", "[Async][Pool]")
+{
+    ThreadPoolExecutor dbWorkers { 1 };
+    ManualExecutor appLoop;
+    auto pool = Pool<PoolConfig { .initialSize = 1, .maxSize = 2, .growthStrategy = GrowthStrategy::BoundedOverflow }>();
+
+    RunPumped(
+        [&]() -> Task<void> {
+            auto dm = co_await pool.AcquireAsync(dbWorkers, appLoop);
+            CHECK(dm->Connection().IsAsyncEnabled());
+            co_return;
+        },
+        appLoop);
+
+    // On return, the pool must clear the backend so the recycled connection does not retain
+    // references to executors that may later be destroyed.
+    auto reused = pool.Acquire();
+    CHECK_FALSE(reused.Get().Connection().IsAsyncEnabled());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Async.Pool: destroying a parked AcquireAsync task de-registers its waiter",
+                 "[Async][Pool]")
+{
+    ThreadPoolExecutor dbWorkers { 1 };
+    ManualExecutor appLoop;
+    auto pool = Pool<PoolConfig { .initialSize = 1, .maxSize = 1, .growthStrategy = GrowthStrategy::BoundedWait }>();
+
+    std::optional holder { pool.Acquire() }; // exhaust the pool
+    CHECK(pool.IdleCount() == 0);
+
+    {
+        // Drive an AcquireAsync to its parked (suspended) state, then drop it without ever
+        // returning a mapper. The awaitable destructor must remove the waiter, so the Return()
+        // below does not write through a dangling slot / resume a destroyed coroutine.
+        auto task = pool.AcquireAsync(dbWorkers, appLoop);
+        task.GetHandle().resume();     // run the body until it parks on the exhausted pool
+        REQUIRE_FALSE(task.IsReady()); // still suspended (parked), not completed
+    } // task destroyed here -> waiter de-registered
+
+    holder.reset(); // with the waiter gone, this just idles the mapper
+    CHECK(pool.IdleCount() == 1);
+
+    // The pool is still fully usable.
+    {
+        auto reused = pool.Acquire();
+        CHECK(pool.IdleCount() == 0);
+    }
+    CHECK(pool.IdleCount() == 1);
+}

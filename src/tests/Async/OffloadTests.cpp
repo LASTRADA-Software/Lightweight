@@ -78,7 +78,20 @@ TEST_CASE("Async.RunAsync via ThreadOffloadBackend", "[Async][Offload]")
     ThreadPoolExecutor dbWorkers { 2 };
     ManualExecutor appLoop;
     ThreadOffloadBackend backend { dbWorkers, appLoop };
-    CHECK_FALSE(backend.IsNative());
 
     CHECK(RunPumped([&]() -> Task<int> { co_return co_await RunAsync(backend, [] { return 100; }); }, appLoop) == 100);
+}
+
+TEST_CASE("Async.SyncWaitPumping completes when the result lands on another thread", "[Async][Offload]")
+{
+    // Resume on the worker pool (NOT the pumped ManualExecutor), so the driver's completion Set()
+    // runs on a pool thread. Without the SyncWaitEvent waker, the pumping thread would sleep
+    // forever on a flag that was set without notifying its condition variable.
+    ThreadPoolExecutor dbWorkers { 2 };
+    StrandExecutor strand { dbWorkers };
+    ManualExecutor appLoop;
+
+    int const result =
+        RunPumped([&]() -> Task<int> { co_return co_await Async(strand, dbWorkers, [] { return 7; }); }, appLoop);
+    CHECK(result == 7);
 }

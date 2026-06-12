@@ -4,6 +4,7 @@
 #include "Task.hpp"
 
 #include <atomic>
+#include <functional>
 #include <semaphore>
 #include <type_traits>
 #include <variant>
@@ -22,9 +23,22 @@ namespace detail
     class SyncWaitEvent
     {
       public:
+        /// Installs a waker invoked from @ref Set after the completion flag is published.
+        ///
+        /// @ref SyncWaitPumping uses this so a completion that lands on a thread other than the
+        /// pumping thread still nudges the pumped executor to re-check its predicate, instead of
+        /// sleeping forever on a flag that was set without notifying the executor's condition
+        /// variable. Install it before the driver is started.
+        void SetWaker(std::function<void()> waker)
+        {
+            _waker = std::move(waker);
+        }
+
         void Set() noexcept
         {
             _set.store(true, std::memory_order_release);
+            if (_waker)
+                _waker(); // publish the flag (above) before waking, so the woken thread observes it
             _semaphore.release();
         }
 
@@ -41,6 +55,7 @@ namespace detail
       private:
         std::atomic<bool> _set { false };
         std::binary_semaphore _semaphore { 0 };
+        std::function<void()> _waker;
     };
 
     template <typename T>
@@ -272,6 +287,10 @@ template <typename T, typename Executor>
 T SyncWaitPumping(Task<T> task, Executor& executor)
 {
     detail::SyncWaitEvent signal;
+    // If the task completes on a thread other than this pumping thread, nudge the executor so
+    // RunUntil re-checks the predicate instead of sleeping forever (a no-op item enqueues under
+    // the executor's lock and notifies its condition variable). Install before starting the driver.
+    signal.SetWaker([&executor] { executor.Post([] {}); });
     auto driver = detail::MakeSyncWaitTask<T>(std::move(task));
     driver.Start(signal);
     executor.RunUntil([&signal] { return signal.IsSet(); });
