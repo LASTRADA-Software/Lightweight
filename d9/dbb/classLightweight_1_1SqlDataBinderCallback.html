@@ -138,6 +138,8 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a7d7b102126f4b2455df46e31906cb189"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad2b577cf0e7a7cc9eb671677b42cb914" id="r_ad2b577cf0e7a7cc9eb671677b42cb914"><td class="memItemLeft" align="right" valign="top">virtual SQLLEN *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914">ProvideInputIndicators</a> (size_t rowCount)=0</td></tr>
 <tr class="separator:ad2b577cf0e7a7cc9eb671677b42cb914"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af7acc1d446fc49ea446f8ae20f58518c" id="r_af7acc1d446fc49ea446f8ae20f58518c"><td class="memItemLeft" align="right" valign="top">virtual std::byte *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#af7acc1d446fc49ea446f8ae20f58518c">ProvideBatchStagingBuffer</a> (std::size_t byteCount)=0</td></tr>
+<tr class="separator:af7acc1d446fc49ea446f8ae20f58518c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa4a1025e0d27d3e8f0c97081e2419875" id="r_aa4a1025e0d27d3e8f0c97081e2419875"><td class="memItemLeft" align="right" valign="top">virtual SqlServerType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aa4a1025e0d27d3e8f0c97081e2419875">ServerType</a> () const noexcept=0</td></tr>
 <tr class="separator:aa4a1025e0d27d3e8f0c97081e2419875"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a151e499b5da3afcaea3326bfb35d3c36" id="r_a151e499b5da3afcaea3326bfb35d3c36"><td class="memItemLeft" align="right" valign="top">virtual std::string const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a151e499b5da3afcaea3326bfb35d3c36">DriverName</a> () const noexcept=0</td></tr>
@@ -147,7 +149,7 @@ Public Member Functions</h2></td></tr>
 <div class="textblock"><p>Callback interface for SqlDataBinder to allow post-processing of output columns.</p>
 <p>This is needed because the SQLBindCol() function does not allow to specify a callback function to be called after the data has been fetched from the database. This is needed to trim strings to the correct size, for example. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00031">31</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00033">33</a> of file <a class="el" href="../../d7/d0f/DataBinder_2Core_8hpp_source.html">Core.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a209f52c2128670486fa0df251261bf80" name="a209f52c2128670486fa0df251261bf80"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a209f52c2128670486fa0df251261bf80">&#9670;&#160;</a></span>PlanPostExecuteCallback()</h2>
@@ -269,6 +271,46 @@ The indicators must remain valid until the statement is executed.</dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A pointer to the first element of the indicator array. </dd></dl>
+
+</div>
+</div>
+<a id="af7acc1d446fc49ea446f8ae20f58518c" name="af7acc1d446fc49ea446f8ae20f58518c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af7acc1d446fc49ea446f8ae20f58518c">&#9670;&#160;</a></span>ProvideBatchStagingBuffer()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual std::byte * Lightweight::SqlDataBinderCallback::ProvideBatchStagingBuffer </td>
+          <td>(</td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>byteCount</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">pure virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Provides a pointer to a contiguous, suitably aligned temporary byte buffer that remains valid until the statement is executed.</p>
+<p>This is used by batch input parameter binders that need scratch storage whose lifetime must outlive the bind call but not the execution — for example a row-strided NULL/length indicator array used by native row-wise array binding of <code>std::optional</code> columns.</p>
+<dl class="section note"><dt>Note</dt><dd>The buffer contents are unspecified; the caller is responsible for initializing it. </dd>
+<dd>
+The returned storage is aligned to at least <code>alignof(std::max_align_t)</code>. </dd>
+<dd>
+Row-wise callers request <code>~rowStride*rowCount</code> bytes to hold only <code>rowCount</code> <code>SQLLEN</code> indicators. This over-allocation is intrinsic to ODBC row-wise binding, which strides the <code>StrLen_or_IndPtr</code> array by <code>SQL_ATTR_PARAM_BIND_TYPE</code> (the row stride) — there is no separate indicator stride — so a tightly packed indicator array would require descriptor-level binding.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">byteCount</td><td>The number of bytes to provide. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A pointer to the first byte of the buffer. </dd></dl>
 
 </div>
 </div>
