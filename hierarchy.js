@@ -43,6 +43,7 @@ var hierarchy =
     [ "Lightweight::Pool< Config >", "d3/d30/classLightweight_1_1Pool.html", null ],
     [ "Lightweight::Pool< Config >::PooledDataMapper", "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html", null ],
     [ "Lightweight::PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", null ],
+    [ "Lightweight::RowArrayCursor", "da/d6c/classLightweight_1_1RowArrayCursor.html", null ],
     [ "Lightweight::SqlAdvisoryLockHandler", "d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html", null ],
     [ "Lightweight::SqlAlterTableCommands::AddColumnIfNotExists", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html", null ],
     [ "Lightweight::SqlAlterTableCommands::DropColumnIfExists", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists.html", null ],
