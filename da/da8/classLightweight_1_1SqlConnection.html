@@ -169,9 +169,6 @@ LIGHTWEIGHT_API std::string&#160;</td><td class="memItemRight" valign="bottom"><
 <tr class="memitem:a6dabdd78f7aad57d5deb2597d553bc32" id="r_a6dabdd78f7aad57d5deb2597d553bc32"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32">QueryFormatter</a> () const noexcept</td></tr>
 <tr class="memdesc:a6dabdd78f7aad57d5deb2597d553bc32"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a query formatter suitable for the SQL server being connected.  <br /></td></tr>
 <tr class="separator:a6dabdd78f7aad57d5deb2597d553bc32"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac4ea8b83a43459581e2a52a568c595c5" id="r_ac4ea8b83a43459581e2a52a568c595c5"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5">SupportsNativeRowBatch</a> () const noexcept</td></tr>
-<tr class="memdesc:ac4ea8b83a43459581e2a52a568c595c5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether this connection's ODBC driver supports native parameter-array binding (<code>SQL_ATTR_PARAMSET_SIZE</code> &gt; 1) for batched row-wise execution.  <br /></td></tr>
-<tr class="separator:ac4ea8b83a43459581e2a52a568c595c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a40304c8c5a364f85cdd0a5e1afcd461f" id="r_a40304c8c5a364f85cdd0a5e1afcd461f"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html">SqlQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a40304c8c5a364f85cdd0a5e1afcd461f">Query</a> (std::string_view const &amp;table={}) const</td></tr>
 <tr class="separator:a40304c8c5a364f85cdd0a5e1afcd461f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4165425040fb439fdbfc44efdad7f550" id="r_a4165425040fb439fdbfc44efdad7f550"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html">SqlQueryBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a4165425040fb439fdbfc44efdad7f550">QueryAs</a> (std::string_view const &amp;table, std::string_view const &amp;tableAlias) const</td></tr>
@@ -451,9 +448,9 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the type of the server. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00217">217</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00205">205</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01313">Lightweight::DataMapper::CreateTable()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01926">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02008">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01868">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01782">Lightweight::DataMapper::QuerySingle()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00232">SupportsNativeRowBatch()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01261">Lightweight::DataMapper::CreateTable()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01728">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01810">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01670">Lightweight::DataMapper::Query()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01584">Lightweight::DataMapper::QuerySingle()</a>.</p>
 
 </div>
 </div>
@@ -482,7 +479,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the name of the driver used for this connection. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00222">222</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00210">210</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -511,42 +508,9 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves a query formatter suitable for the SQL server being connected. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00227">227</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00215">215</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01121">Lightweight::SqlStatement::MigrateDirect()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00420">Lightweight::DataMapper::Query()</a>.</p>
-
-</div>
-</div>
-<a id="ac4ea8b83a43459581e2a52a568c595c5" name="ac4ea8b83a43459581e2a52a568c595c5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac4ea8b83a43459581e2a52a568c595c5">&#9670;&#160;</a></span>SupportsNativeRowBatch()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool Lightweight::SqlConnection::SupportsNativeRowBatch </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Whether this connection's ODBC driver supports native parameter-array binding (<code>SQL_ATTR_PARAMSET_SIZE</code> &gt; 1) for batched row-wise execution. </p>
-<p>The batched <code>SqlStatement::ExecuteBatch(rows, accessors...)</code> consults this to decide whether it may submit the whole batch in a single row-wise <code>SQLExecute</code>, or must fall back to a single prepare followed by consecutive per-row executes. This is a driver/backend capability — not a SQL-dialect concern — so it belongs to the connection, which knows both the server type and the driver name (either of which a future carve-out can branch on).</p>
-<dl class="section return"><dt>Returns</dt><dd><code>true</code> if the driver honours parameter arrays. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00232">232</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00217">ServerType()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00395">Lightweight::DataMapper::Query()</a>.</p>
 
 </div>
 </div>
@@ -573,7 +537,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01731">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00465">Lightweight::DataMapper::FromTable()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01782">Lightweight::DataMapper::QuerySingle()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01614">Lightweight::DataMapper::Update()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01533">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00421">Lightweight::DataMapper::FromTable()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01584">Lightweight::DataMapper::QuerySingle()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01460">Lightweight::DataMapper::Update()</a>.</p>
 
 </div>
 </div>
@@ -638,7 +602,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the native handle. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00181">181</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00169">169</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70">Lightweight::SqlTransaction::TryCommit()</a>.</p>
 
