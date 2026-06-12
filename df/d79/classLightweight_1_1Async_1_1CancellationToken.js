@@ -4,5 +4,5 @@ var classLightweight_1_1Async_1_1CancellationToken =
     [ "CanBeCancelled", "df/d79/classLightweight_1_1Async_1_1CancellationToken.html#ae8cfae24478f1876cff265e9e2661ad1", null ],
     [ "IsCancellationRequested", "df/d79/classLightweight_1_1Async_1_1CancellationToken.html#a39d1bc20af29716362acd7fc004f3ab3", null ],
     [ "Request", "df/d79/classLightweight_1_1Async_1_1CancellationToken.html#a221d49f84a2df55286053bf1b95672cc", null ],
-    [ "OnCancel", "df/d79/classLightweight_1_1Async_1_1CancellationToken.html#a2dc0962df8f6fd17e6d31299c38ae162", null ]
+    [ "OnCancel", "df/d79/classLightweight_1_1Async_1_1CancellationToken.html#aefea5eb355184ba42bf4fc60791de013", null ]
 ];

@@ -14,7 +14,7 @@ var searchData=
   ['on_20windows_20operating_20system_11',['Using SQLite for testing on Windows operating system',['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'']]],
   ['onbind_12',['OnBind',['../db/dfd/classLightweight_1_1SqlLogger.html#a7d32ec109f6a93e7680a8ac63c92f2de',1,'Lightweight::SqlLogger']]],
   ['onbindinputparameter_13',['OnBindInputParameter',['../db/dfd/classLightweight_1_1SqlLogger.html#a8f14312f2f4bf2436d124947d9150716',1,'Lightweight::SqlLogger']]],
-  ['oncancel_14',['OnCancel',['../df/d79/classLightweight_1_1Async_1_1CancellationToken.html#a2dc0962df8f6fd17e6d31299c38ae162',1,'Lightweight::Async::CancellationToken']]],
+  ['oncancel_14',['OnCancel',['../df/d79/classLightweight_1_1Async_1_1CancellationToken.html#aefea5eb355184ba42bf4fc60791de013',1,'Lightweight::Async::CancellationToken']]],
   ['oncolumn_15',['OnColumn',['../df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a11394d602f3ebb20d53a20cf1f853d8a',1,'Lightweight::SqlSchema::EventHandler']]],
   ['onconnectionclosed_16',['OnConnectionClosed',['../db/dfd/classLightweight_1_1SqlLogger.html#aa4a431f0941273837878750619925192',1,'Lightweight::SqlLogger']]],
   ['onconnectionidle_17',['OnConnectionIdle',['../db/dfd/classLightweight_1_1SqlLogger.html#ab340e6fd29c7dc20244185b4faec7940',1,'Lightweight::SqlLogger']]],
