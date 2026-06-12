@@ -2,14 +2,11 @@ var dir_6d5ffb699f5cf69d1f74f24c0411e5f8 =
 [
     [ "Backup.hpp", "d3/dfd/Backup_8hpp_source.html", null ],
     [ "BatchManager.hpp", "d6/d45/BatchManager_8hpp_source.html", null ],
-    [ "ChunkPlanner.hpp", "d7/d6d/ChunkPlanner_8hpp_source.html", null ],
     [ "Common.hpp", "d8/ddd/Common_8hpp_source.html", null ],
-    [ "ConnectionPool.hpp", "df/d5e/ConnectionPool_8hpp_source.html", null ],
     [ "MsgPackChunkFormats.hpp", "d4/ded/MsgPackChunkFormats_8hpp_source.html", null ],
     [ "Restore.hpp", "dd/d60/Restore_8hpp_source.html", null ],
     [ "Sha256.hpp", "d6/d8f/Sha256_8hpp_source.html", null ],
     [ "SqlBackup.hpp", "d1/d69/SqlBackup_2SqlBackup_8hpp_source.html", null ],
     [ "SqlBackupFormats.hpp", "d0/d18/SqlBackupFormats_8hpp_source.html", null ],
-    [ "TableFilter.hpp", "d2/da0/TableFilter_8hpp_source.html", null ],
-    [ "WorkerChunkArchive.hpp", "d8/d53/WorkerChunkArchive_8hpp_source.html", null ]
+    [ "TableFilter.hpp", "d2/da0/TableFilter_8hpp_source.html", null ]
 ];

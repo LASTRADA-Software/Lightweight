@@ -194,7 +194,23 @@ High level Data Mapping</h1>
 <div class="line">    <span class="comment">// Delete the person</span></div>
 <div class="line">    dm.Delete(person);</div>
 <div class="line">}</div>
-</div><!-- fragment --><h1><a class="anchor" id="simple-row-retrieval-via-structs"></a>
+</div><!-- fragment --><h2><a class="anchor" id="batched-insert-and-update"></a>
+Batched insert and update</h2>
+<p>To insert or update many records efficiently, use <code>CreateAll</code> and <code>UpdateAll</code>. They prepare a single statement once and submit the whole batch, preferring native ODBC row-wise array binding (one <code>SQLExecute</code>, zero-copy) when every column is a fixed-width type — primitives, <code>SqlDate</code>/<code>SqlTime</code>/ <code>SqlDateTime</code>, <code>SqlNumeric</code>, inline fixed-capacity strings (<code>SqlAnsiString</code>/<code>SqlFixedString</code>), or <code>std::optional</code> of a fixed non-numeric type (including nullable fixed-capacity strings) — and the driver supports parameter arrays. Records with variable-length columns (e.g. <code>std::string</code>) transparently fall back to a prepare-once + per-row execute, which is still far cheaper than calling <code>Create</code>/<code>CreateExplicit</code> in a loop (those re-prepare per row).</p>
+<div class="fragment"><div class="line"><span class="keywordtype">void</span> BulkInsert(DataMapper&amp; dm, std::vector&lt;Person&gt; <span class="keyword">const</span>&amp; people)</div>
+<div class="line">{</div>
+<div class="line">    dm.CreateTable&lt;Person&gt;();</div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// Inserts all records with a single prepared statement (native batch when possible).</span></div>
+<div class="line">    dm.CreateAll(people); <span class="comment">// accepts any contiguous range: std::vector, std::array, std::span, C array</span></div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// UpdateAll writes all storable non-primary-key columns, matched on the primary key.</span></div>
+<div class="line">    dm.UpdateAll(people);</div>
+<div class="line">}</div>
+</div><!-- fragment --><blockquote class="doxtable">
+<p>&zwj;Note: <code>CreateAll</code>/<code>UpdateAll</code> do not write primary keys, relations, or modified-state back onto the records (treat them as write-only inputs), and <code>UpdateAll</code> writes a uniform set of columns for every row rather than only the per-record modified ones. The range must be contiguous. </p>
+</blockquote>
+<h1><a class="anchor" id="simple-row-retrieval-via-structs"></a>
 Simple row retrieval via structs</h1>
 <p>When only read access is needed, you can use a simple <code>struct</code> to represent the row, and also do not need to wrap the fields into <code>Field&lt;&gt;</code> template. The <code>struct</code> must have fields that match the columns in the query. The fields can be of any type that can be converted from the column type. The struct can have more fields than the columns in the query, but the fields that match the columns must be in the same order as the columns in the query.</p>
 <div class="fragment"><div class="line"><span class="keyword">struct </span>SimpleStruct</div>
