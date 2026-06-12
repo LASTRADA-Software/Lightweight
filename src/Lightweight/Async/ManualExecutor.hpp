@@ -1,0 +1,87 @@
+// SPDX-License-Identifier: Apache-2.0
+#pragma once
+
+#include "../Api.hpp"
+#include "Executor.hpp"
+
+#include <condition_variable>
+#include <cstddef>
+#include <deque>
+#include <mutex>
+
+namespace Lightweight::Async
+{
+
+/// An executor that runs work only when explicitly pumped by the owning thread.
+///
+/// This is the "app thread" / event-loop resume target for the single-threaded model:
+/// blocking ODBC work is offloaded to a @ref ThreadPoolExecutor, and the coroutine's
+/// continuation is posted back here so that all user-visible coroutine logic resumes on the
+/// one thread that drives this executor (via @ref Run, @ref Drain, @ref RunOne or
+/// @ref RunUntil). All members are thread-safe to call; the pumping members
+/// (@ref Run / @ref Drain / @ref RunOne / @ref RunUntil) are intended for a single
+/// consumer thread.
+class LIGHTWEIGHT_API ManualExecutor final: public IExecutor, public IResumeScheduler
+{
+  public:
+    ManualExecutor() = default;
+    ManualExecutor(ManualExecutor const&) = delete;
+    ManualExecutor& operator=(ManualExecutor const&) = delete;
+    ManualExecutor(ManualExecutor&&) = delete;
+    ManualExecutor& operator=(ManualExecutor&&) = delete;
+    ~ManualExecutor() override = default;
+
+    void Post(Work work) override;
+    void Resume(std::coroutine_handle<> handle) override;
+
+    /// Runs at most one queued work item without blocking.
+    /// @return true if an item was run, false if the queue was empty.
+    bool RunOne();
+
+    /// Runs all currently-runnable work until the queue is empty, without blocking.
+    /// @return the number of work items executed.
+    std::size_t Drain();
+
+    /// Blocks pumping work until @ref Stop is called and the queue has drained.
+    void Run();
+
+    /// Requests @ref Run to return once the queue is empty.
+    void Stop();
+
+    /// @return the number of currently-queued work items.
+    [[nodiscard]] std::size_t PendingCount() const;
+
+    /// Pumps work until @p predicate returns true.
+    ///
+    /// Blocks the calling thread between work items, waking when new work is posted. The
+    /// predicate must be cheap and must not acquire this executor's internal lock. This is
+    /// the driver used by @ref SyncWaitPumping for the single-threaded model.
+    ///
+    /// @tparam Predicate A callable returning something contextually convertible to bool.
+    /// @param predicate Stop condition, re-checked between work items.
+    template <typename Predicate>
+    void RunUntil(Predicate predicate)
+    {
+        while (!predicate())
+        {
+            Work work;
+            {
+                std::unique_lock lock(_mutex);
+                _condition.wait(lock, [&] { return !_queue.empty() || _stopped || predicate(); });
+                if (predicate() || _queue.empty())
+                    return;
+                work = std::move(_queue.front());
+                _queue.pop_front();
+            }
+            work();
+        }
+    }
+
+  private:
+    mutable std::mutex _mutex;
+    std::condition_variable _condition;
+    std::deque<Work> _queue;
+    bool _stopped = false;
+};
+
+} // namespace Lightweight::Async

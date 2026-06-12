@@ -516,6 +516,50 @@ class DataMapper
     template <typename T>
     [[nodiscard]] std::optional<T> Execute(std::string_view sqlQueryString);
 
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+    // --------------------------------------------------------------------------------------------
+    // Asynchronous (C++23 coroutine) API.
+    //
+    // Each method offloads its synchronous counterpart to the connection's async backend — a
+    // worker thread, serialized per connection — and resumes the awaiting coroutine on the app's
+    // resume scheduler. Call SqlConnection::EnableAsync(...) on the underlying connection (or use a
+    // pool that stamps it) before invoking any of these. Definitions live in
+    // Async/DataMapperAsync.inl (included at the end of this header).
+    //
+    // Methods taking a Record& / Record const& capture the record by reference: the caller must keep
+    // it alive and not touch it between the call and the co_await.
+
+    /// Asynchronously inserts @p record, updating its primary key in place. @see Create.
+    template <DataMapperOptions QueryOptions = {}, typename Record>
+    [[nodiscard]] Async::Task<RecordPrimaryKeyType<Record>> CreateAsync(Record& record);
+
+    /// Asynchronously queries a single record by primary key. @see QuerySingle.
+    template <typename Record, DataMapperOptions QueryOptions = {}, typename... PrimaryKeyTypes>
+    [[nodiscard]] Async::Task<std::optional<Record>> QuerySingleAsync(PrimaryKeyTypes... primaryKeys);
+
+    /// Asynchronously runs a SQL query string and maps the rows to records. @see Query.
+    template <typename Record, typename... InputParameters>
+    [[nodiscard]] Async::Task<std::vector<Record>> QueryAsync(std::string_view sqlQueryString,
+                                                              InputParameters... inputParameters);
+
+    /// Asynchronously runs a composed select query and maps the rows to records. @see Query.
+    template <typename Record, DataMapperOptions QueryOptions = {}, typename... InputParameters>
+    [[nodiscard]] Async::Task<std::vector<Record>> QueryAsync(SqlSelectQueryBuilder::ComposedQuery selectQuery,
+                                                              InputParameters... inputParameters);
+
+    /// Asynchronously updates @p record's modified fields. @see Update.
+    template <typename Record>
+    [[nodiscard]] Async::Task<void> UpdateAsync(Record& record);
+
+    /// Asynchronously deletes @p record. @see Delete.
+    template <typename Record>
+    [[nodiscard]] Async::Task<std::size_t> DeleteAsync(Record const& record);
+
+    /// Asynchronously loads @p record's relations. @see LoadRelations.
+    template <typename Record>
+    [[nodiscard]] Async::Task<void> LoadRelationsAsync(Record& record);
+#endif
+
   private:
     /// @brief Queries a single record from the database based on the given query.
     ///
@@ -2689,3 +2733,7 @@ std::optional<T> DataMapper::Execute(std::string_view sqlQueryString)
 }
 
 } // namespace Lightweight
+
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+    #include "../Async/DataMapperAsync.inl"
+#endif

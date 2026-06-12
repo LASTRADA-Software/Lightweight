@@ -12,6 +12,10 @@
 #include "SqlLogger.hpp"
 #include "SqlServerType.hpp"
 
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+    #include "Async/Fwd.hpp"
+#endif
+
 #include <atomic>
 #include <chrono>
 #include <expected>
@@ -192,6 +196,31 @@ class SqlConnection final
     /// Checks the result of an SQL operation, and throws an exception if it is not successful.
     LIGHTWEIGHT_API void RequireSuccess(SQLRETURN sqlResult,
                                         std::source_location sourceLocation = std::source_location::current()) const;
+
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+    /// Enables coroutine-based asynchronous methods on this connection.
+    ///
+    /// Wires the connection to an injected execution context: blocking ODBC work is offloaded to
+    /// @p dbWorkers (serialized per connection so the ODBC handle is only ever used by one thread
+    /// at a time) and the awaiting coroutine is resumed via @p resume (typically the application's
+    /// run loop). A native driver-async backend is selected when the driver advertises support;
+    /// otherwise the portable thread-offload backend is used.
+    ///
+    /// Both executors must outlive this connection and every coroutine driven through it.
+    ///
+    /// @param dbWorkers The worker-thread pool used to run blocking ODBC calls.
+    /// @param resume The scheduler used to resume coroutines after a blocking step completes.
+    LIGHTWEIGHT_API void EnableAsync(Async::IExecutor& dbWorkers, Async::IResumeScheduler& resume);
+
+    /// @return true if @ref EnableAsync has been called on this connection.
+    [[nodiscard]] LIGHTWEIGHT_API bool IsAsyncEnabled() const noexcept;
+
+    /// Retrieves the connection's asynchronous execution backend.
+    ///
+    /// @pre @ref IsAsyncEnabled returns true.
+    /// @return The async backend used by this connection's async methods.
+    [[nodiscard]] LIGHTWEIGHT_API Async::IAsyncBackend& AsyncBackend() const;
+#endif
 
   private:
     /// Ensures ODBC handles are allocated. Called by Connect() methods.

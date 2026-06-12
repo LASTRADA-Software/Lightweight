@@ -8,6 +8,14 @@
 #include <mutex>
 #include <vector>
 
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+    #include "../Async/Executor.hpp"
+    #include "../Async/Task.hpp"
+
+    #include <coroutine>
+    #include <deque>
+#endif
+
 namespace Lightweight
 {
 
@@ -120,15 +128,39 @@ class Pool
         _idleDataMappers.push_back(std::move(dm));
     }
 
-    /// for bounded wait strategy, return the data mapper to the pool and notify one waiting thread if any
+    /// for bounded wait strategy, return the data mapper to the pool. A suspended async waiter (if any)
+    /// is handed the mapper directly and resumed; otherwise a blocked synchronous waiter is notified.
     void Return(std::unique_ptr<DataMapper> dm) noexcept
         requires(Config.growthStrategy == GrowthStrategy::BoundedWait)
     {
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+        AsyncWaiter waiter;
+        bool haveAsyncWaiter = false;
+#endif
         {
             std::scoped_lock lock(_mutex);
-            _idleDataMappers.push_back(std::move(dm));
-            --_checkedOut;
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+            if (!_asyncWaiters.empty())
+            {
+                waiter = _asyncWaiters.front();
+                _asyncWaiters.pop_front();
+                *waiter.slot = std::move(dm); // hand off ownership; _checkedOut stays (transferred to the waiter)
+                haveAsyncWaiter = true;
+            }
+            else
+#endif
+            {
+                _idleDataMappers.push_back(std::move(dm));
+                --_checkedOut;
+            }
         }
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+        if (haveAsyncWaiter)
+        {
+            waiter.resume->Resume(waiter.handle); // resume outside the lock to avoid re-entrancy
+            return;
+        }
+#endif
         _cv.notify_one();
     }
 
@@ -209,6 +241,24 @@ class Pool
         return PooledDataMapper(*this, std::move(dm));
     }
 
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+    /// Asynchronously acquires a DataMapper from the pool without blocking the calling thread.
+    ///
+    /// If the pool is exhausted (BoundedWait at capacity), the awaiting coroutine is suspended and
+    /// resumed — via @p resume — when a mapper is returned, rather than parking a thread. The acquired
+    /// mapper's connection is wired for async via SqlConnection::EnableAsync(@p dbWorkers, @p resume),
+    /// so the caller can immediately co_await its async methods.
+    ///
+    /// @param dbWorkers The worker pool used to run the acquired mapper's blocking ODBC calls.
+    /// @param resume The scheduler used to resume coroutines (typically the app run loop).
+    /// @return A Task yielding a pooled DataMapper.
+    [[nodiscard]] Async::Task<PooledDataMapper> AcquireAsync(Async::IExecutor& dbWorkers, Async::IResumeScheduler& resume)
+    {
+        // Forward to a coroutine taking pointers (coroutines must not take reference parameters).
+        return AcquireAsyncImpl(&dbWorkers, &resume);
+    }
+#endif
+
 #if defined(BUILD_TESTS)
     [[nodiscard]] size_t IdleCount() noexcept
     {
@@ -218,10 +268,72 @@ class Pool
 #endif
 
   private:
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+    /// A suspended coroutine waiting for a DataMapper to become available.
+    struct AsyncWaiter
+    {
+        std::coroutine_handle<> handle {};
+        Async::IResumeScheduler* resume = nullptr;
+        std::unique_ptr<DataMapper>* slot = nullptr;
+    };
+
+    /// Awaitable that acquires a DataMapper, suspending only when the pool is at capacity.
+    struct AsyncAcquireAwaitable
+    {
+        Pool& pool;
+        Async::IResumeScheduler& resume;
+        std::unique_ptr<DataMapper> acquired {};
+
+        [[nodiscard]] static bool await_ready() noexcept
+        {
+            return false;
+        }
+
+        bool await_suspend(std::coroutine_handle<> handle)
+        {
+            std::scoped_lock const lock(pool._mutex);
+            if (!pool._idleDataMappers.empty())
+            {
+                acquired = std::move(pool._idleDataMappers.back());
+                pool._idleDataMappers.pop_back();
+                if constexpr (Config.growthStrategy == GrowthStrategy::BoundedWait)
+                    ++pool._checkedOut;
+                return false; // do not suspend — resume immediately
+            }
+            if constexpr (Config.growthStrategy == GrowthStrategy::BoundedWait)
+            {
+                if (pool._checkedOut >= Config.maxSize)
+                {
+                    pool._asyncWaiters.push_back(AsyncWaiter { handle, &resume, &acquired });
+                    return true; // suspend until a mapper is returned
+                }
+                ++pool._checkedOut;
+            }
+            acquired = std::make_unique<DataMapper>();
+            return false;
+        }
+
+        std::unique_ptr<DataMapper> await_resume() noexcept
+        {
+            return std::move(acquired);
+        }
+    };
+
+    Async::Task<PooledDataMapper> AcquireAsyncImpl(Async::IExecutor* dbWorkers, Async::IResumeScheduler* resume)
+    {
+        auto dm = co_await AsyncAcquireAwaitable { *this, *resume };
+        dm->Connection().EnableAsync(*dbWorkers, *resume);
+        co_return PooledDataMapper(*this, std::move(dm));
+    }
+#endif
+
     std::mutex _mutex;
     std::condition_variable _cv;
     std::vector<std::unique_ptr<DataMapper>> _idleDataMappers;
     size_t _checkedOut {};
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+    std::deque<AsyncWaiter> _asyncWaiters;
+#endif
 };
 
 // Default pool configuration, configurable via CMake options:

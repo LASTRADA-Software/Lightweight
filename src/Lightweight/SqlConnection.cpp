@@ -8,6 +8,10 @@
 #include "SqlStatement.hpp"
 #include "TracyProfiler.hpp"
 
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+    #include "Async/ThreadOffloadBackend.hpp"
+#endif
+
 #include <algorithm>
 #include <array>
 #include <mutex>
@@ -52,6 +56,9 @@ struct SqlConnection::Data
     std::chrono::steady_clock::time_point lastUsed; // Last time the connection was used (mostly interesting for
                                                     // idle connections in the connection pool).
     SqlConnectionString connectionString;
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+    std::unique_ptr<Async::IAsyncBackend> asyncBackend; // Async execution backend (null until EnableAsync()).
+#endif
 };
 
 SqlConnection::SqlConnection():
@@ -169,6 +176,27 @@ std::chrono::steady_clock::time_point SqlConnection::LastUsed() const noexcept
 {
     return m_data->lastUsed;
 }
+
+#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
+
+void SqlConnection::EnableAsync(Async::IExecutor& dbWorkers, Async::IResumeScheduler& resume)
+{
+    // TODO(async): once the native event backend lands, select it here via a per-connection
+    // capability probe (SQLGetInfo) and fall back to the thread-offload backend.
+    m_data->asyncBackend = std::make_unique<Async::ThreadOffloadBackend>(dbWorkers, resume);
+}
+
+bool SqlConnection::IsAsyncEnabled() const noexcept
+{
+    return m_data->asyncBackend != nullptr;
+}
+
+Async::IAsyncBackend& SqlConnection::AsyncBackend() const
+{
+    return *m_data->asyncBackend;
+}
+
+#endif
 
 void SqlConnection::SetPostConnectedHook(std::function<void(SqlConnection&)> hook)
 {
