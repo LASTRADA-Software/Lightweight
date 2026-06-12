@@ -143,6 +143,28 @@ struct SqlDataBinder<SqlTime>
             stmt, column, SQL_PARAM_INPUT, SQL_C_TYPE_TIME, SQL_TYPE_TIME, 0, 0, (SQLPOINTER) &value.sqlValue, 0, nullptr);
     }
 
+    /// Binds an array of times as an input parameter for native (row-wise or column-wise) batch
+    /// execution. @p values points at the first element; the driver strides by the statement's
+    /// SQL_ATTR_PARAM_BIND_TYPE. @p indicators optionally supplies per-row NULL flags.
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN BatchInputParameter(SQLHSTMT stmt,
+                                                                  SQLUSMALLINT column,
+                                                                  SqlTime const* values,
+                                                                  size_t /*rowCount*/,
+                                                                  SqlDataBinderCallback& /*cb*/,
+                                                                  SQLLEN* indicators = nullptr) noexcept
+    {
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                SQL_C_TYPE_TIME,
+                                SQL_TYPE_TIME,
+                                0,
+                                0,
+                                (SQLPOINTER) &values->sqlValue,
+                                sizeof(values->sqlValue),
+                                indicators);
+    }
+
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, SqlTime* result, SQLLEN* indicator, SqlDataBinderCallback& /*cb*/) noexcept
     {
@@ -164,6 +186,9 @@ struct SqlDataBinder<SqlTime>
                            value.sqlValue.fraction);
     }
 };
+
+template <>
+inline constexpr bool SqlIsNativeRowBindableValue<SqlTime> = true;
 
 } // namespace Lightweight
 

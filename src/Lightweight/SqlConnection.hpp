@@ -137,6 +137,18 @@ class SqlConnection final
     /// Retrieves a query formatter suitable for the SQL server being connected.
     [[nodiscard]] SqlQueryFormatter const& QueryFormatter() const noexcept;
 
+    /// @brief Whether this connection's ODBC driver supports native parameter-array binding
+    /// (`SQL_ATTR_PARAMSET_SIZE` > 1) for batched row-wise execution.
+    ///
+    /// The batched `SqlStatement::ExecuteBatch(rows, accessors...)` consults this to decide whether it
+    /// may submit the whole batch in a single row-wise `SQLExecute`, or must fall back to a single
+    /// prepare followed by consecutive per-row executes. This is a driver/backend capability — not a
+    /// SQL-dialect concern — so it belongs to the connection, which knows both the server type and the
+    /// driver name (either of which a future carve-out can branch on).
+    ///
+    /// @return `true` if the driver honours parameter arrays.
+    [[nodiscard]] bool SupportsNativeRowBatch() const noexcept;
+
     /// Creates a new query builder for the given table, compatible with the current connection.
     ///
     /// @param table The table to query.
@@ -215,6 +227,24 @@ inline std::string const& SqlConnection::DriverName() const noexcept
 inline SqlQueryFormatter const& SqlConnection::QueryFormatter() const noexcept
 {
     return *m_queryFormatter;
+}
+
+inline bool SqlConnection::SupportsNativeRowBatch() const noexcept
+{
+    // Native ODBC parameter-array binding (SQL_ATTR_PARAMSET_SIZE > 1) is a per-driver capability.
+    // Every backend Lightweight supports and tests against honours it; an unverified backend takes the
+    // always-correct per-row path rather than risk a driver that silently ignores the parameter array.
+    switch (ServerType())
+    {
+        case SqlServerType::MICROSOFT_SQL:
+        case SqlServerType::POSTGRESQL:
+        case SqlServerType::SQLITE:
+            return true;
+        case SqlServerType::MYSQL:
+        case SqlServerType::UNKNOWN:
+            return false;
+    }
+    return false;
 }
 
 } // namespace Lightweight

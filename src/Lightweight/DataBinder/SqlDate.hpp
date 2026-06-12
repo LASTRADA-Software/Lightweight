@@ -119,6 +119,28 @@ struct SqlDataBinder<SqlDate>
             stmt, column, SQL_PARAM_INPUT, SQL_C_TYPE_DATE, SQL_TYPE_DATE, 0, 0, (SQLPOINTER) &value.sqlValue, 0, nullptr);
     }
 
+    /// Binds an array of dates as an input parameter for native (row-wise or column-wise) batch
+    /// execution. @p values points at the first element; the driver strides by the statement's
+    /// SQL_ATTR_PARAM_BIND_TYPE. @p indicators optionally supplies per-row NULL flags.
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN BatchInputParameter(SQLHSTMT stmt,
+                                                                  SQLUSMALLINT column,
+                                                                  SqlDate const* values,
+                                                                  size_t /*rowCount*/,
+                                                                  SqlDataBinderCallback& /*cb*/,
+                                                                  SQLLEN* indicators = nullptr) noexcept
+    {
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                SQL_C_TYPE_DATE,
+                                SQL_TYPE_DATE,
+                                0,
+                                0,
+                                (SQLPOINTER) &values->sqlValue,
+                                sizeof(values->sqlValue),
+                                indicators);
+    }
+
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, SqlDate* result, SQLLEN* indicator, SqlDataBinderCallback& /*cb*/) noexcept
     {
@@ -136,5 +158,8 @@ struct SqlDataBinder<SqlDate>
         return std::format("{}", value);
     }
 };
+
+template <>
+inline constexpr bool SqlIsNativeRowBindableValue<SqlDate> = true;
 
 } // namespace Lightweight

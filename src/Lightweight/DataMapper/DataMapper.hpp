@@ -21,9 +21,11 @@
 #include <cassert>
 #include <concepts>
 #include <memory>
+#include <ranges>
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace Lightweight
 {
@@ -199,6 +201,28 @@ class DataMapper
     /// @return The primary key of the newly created record.
     template <typename Record>
     RecordPrimaryKeyType<Record> CreateExplicit(Record const& record);
+
+    /// @brief Batch-inserts a span of records with a single prepared statement.
+    ///
+    /// The INSERT is prepared once and the whole batch is submitted via
+    /// SqlStatement::ExecuteBatch(rows, accessors...), which uses native zero-copy row-wise array
+    /// binding when every inserted column is row-bindable (primitives, date/time/datetime, numeric, or
+    /// std::optional of a fixed non-numeric type) and the driver supports parameter arrays, otherwise a
+    /// prepare-once + per-row execute. This is dramatically faster than calling CreateExplicit() in a
+    /// loop (which re-prepares per row).
+    ///
+    /// @note Like CreateExplicit(), this does not write back primary keys, relations, or modified-state
+    /// onto the records; callers should treat the inserted records as write-only inputs. Auto-increment
+    /// primary keys are not retrieved.
+    ///
+    /// Accepts any contiguous, sized range of records (e.g. std::vector, std::array, std::span, or a C
+    /// array), so `dm.CreateAll(records)` works without an explicit std::span wrapper. Non-contiguous
+    /// ranges are rejected at compile time via static_assert (no implicit copy is made).
+    ///
+    /// @tparam Records A contiguous range whose element type is the record type to insert.
+    /// @param records The records to insert. An empty range is a no-op.
+    template <std::ranges::range Records>
+    void CreateAll(Records const& records);
 
     /// @brief Creates a copy of an existing record in the database.
     ///
@@ -406,6 +430,25 @@ class DataMapper
     /// @param record  The record to update. Only its modified fields are written to the database.
     template <typename Record>
     void Update(Record& record);
+
+    /// @brief Batch-updates a span of records with a single prepared statement.
+    ///
+    /// One UPDATE is prepared that writes **all** storable non-primary-key columns of the record,
+    /// matched on the primary key(s) (`UPDATE … SET <all non-PK columns> WHERE <pk> = ?`), and the whole
+    /// batch is submitted via SqlStatement::ExecuteBatch(rows, accessors...) — natively row-wise when
+    /// possible, otherwise prepare-once + per-row execute.
+    ///
+    /// @note Unlike Update(), which writes only the modified fields of a single record, this writes a
+    /// uniform set of columns for every row, because a single prepared statement must bind the same
+    /// columns for the whole batch. Per-row modified-state is therefore not consulted, and is not reset.
+    ///
+    /// Accepts any contiguous, sized range of records (see CreateAll), so `dm.UpdateAll(records)` works
+    /// without an explicit std::span wrapper. Non-contiguous ranges are rejected at compile time.
+    ///
+    /// @tparam Records A contiguous range whose element type is the record type to update (with a primary key).
+    /// @param records The records to update. An empty range is a no-op.
+    template <std::ranges::range Records>
+    void UpdateAll(Records const& records);
 
     /// Deletes the record from the database.
     ///
@@ -1385,6 +1428,100 @@ RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
     return CreateInternal<PrimaryKeySource::Record>(record);
 }
 
+namespace detail
+{
+    /// @brief Whether member field type @p FieldType is an insertable column for a batched CREATE
+    /// (bindable and not an auto-increment primary key). Single source of truth shared by the INSERT
+    /// column-list builder and the value-accessor builder, so the bound `?` count and the accessor count
+    /// cannot drift apart.
+    template <typename FieldType>
+    constexpr bool IsBatchInsertColumn = SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>;
+
+    /// @brief Whether @p FieldType is a SET column for a batched UPDATE (storable, non-primary-key).
+    template <typename FieldType>
+    constexpr bool IsBatchUpdateSetColumn = FieldWithStorage<FieldType> && !IsPrimaryKey<FieldType>;
+
+    /// @brief Whether @p FieldType is a WHERE (key) column for a batched UPDATE (a primary key).
+    template <typename FieldType>
+    constexpr bool IsBatchUpdateWhereColumn = IsPrimaryKey<FieldType>;
+
+    /// @brief Column accessor for batched DataMapper operations: maps a record to the value of its
+    /// I-th member field, returning a reference so the native row-wise batch path binds it in place.
+    template <std::size_t I>
+    struct FieldValueAccessor
+    {
+        template <typename Record>
+        decltype(auto) operator()(Record const& record) const
+        {
+            return Reflection::GetMemberAt<I>(record).Value();
+        }
+    };
+
+    /// Returns a one-element accessor tuple for member I when it is an insertable column (bindable and
+    /// not an auto-increment primary key), or an empty tuple otherwise — to be flattened via tuple_cat.
+    template <std::size_t I, typename Record>
+    auto MakeCreateColumnAccessor()
+    {
+        using FieldType = Reflection::MemberTypeOf<I, Record>;
+        if constexpr (IsBatchInsertColumn<FieldType>)
+            return std::tuple<FieldValueAccessor<I>> {};
+        else
+            return std::tuple<> {};
+    }
+
+    /// Accessor tuple for the SET clause of a batched UPDATE: storable, non-primary-key columns.
+    template <std::size_t I, typename Record>
+    auto MakeUpdateSetAccessor()
+    {
+        using FieldType = Reflection::MemberTypeOf<I, Record>;
+        if constexpr (IsBatchUpdateSetColumn<FieldType>)
+            return std::tuple<FieldValueAccessor<I>> {};
+        else
+            return std::tuple<> {};
+    }
+
+    /// Accessor tuple for the WHERE clause of a batched UPDATE: primary-key columns.
+    template <std::size_t I, typename Record>
+    auto MakeUpdateWhereAccessor()
+    {
+        using FieldType = Reflection::MemberTypeOf<I, Record>;
+        if constexpr (IsBatchUpdateWhereColumn<FieldType>)
+            return std::tuple<FieldValueAccessor<I>> {};
+        else
+            return std::tuple<> {};
+    }
+} // namespace detail
+
+template <std::ranges::range Records>
+void DataMapper::CreateAll(Records const& records)
+{
+    static_assert(std::ranges::contiguous_range<Records> && std::ranges::sized_range<Records>,
+                  "CreateAll requires a contiguous, sized range of records (e.g. std::vector, std::array, "
+                  "std::span, or a C array); native row-wise array binding needs the records laid out contiguously.");
+    using Record = std::remove_cvref_t<std::ranges::range_value_t<Records>>;
+    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+
+    ZoneScopedN("DataMapper::CreateAll");
+    ZoneTextObject(RecordTableName<Record>);
+
+    if (std::ranges::empty(records))
+        return;
+
+    // Build the INSERT once, with the same column set and order as CreateInternal().
+    auto query = _connection.Query(RecordTableName<Record>).Insert(nullptr);
+    Reflection::EnumerateMembers<Record>([&query]<auto I, typename FieldType>() {
+        if constexpr (detail::IsBatchInsertColumn<FieldType>)
+            query.Set(FieldNameAt<I, Record>, SqlWildcard);
+    });
+    _stmt.Prepare(query);
+
+    // Build one value accessor per bound column (same filter/order) and submit the whole batch.
+    [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+        std::apply([&](auto const&... accessors) { std::ignore = _stmt.ExecuteBatch(records, accessors...); },
+                   std::tuple_cat(detail::MakeCreateColumnAccessor<Is, Record>()...));
+    }(std::make_index_sequence<Reflection::CountMembers<Record>> {});
+}
+
 template <DataMapperOptions QueryOptions, typename Record>
 RecordPrimaryKeyType<Record> DataMapper::CreateCopyOf(Record const& originalRecord)
 {
@@ -1527,6 +1664,42 @@ void DataMapper::Update(Record& record)
     [[maybe_unused]] auto cursor = _stmt.Execute();
 
     SetModifiedState<ModifiedState::NotModified>(record);
+}
+
+template <std::ranges::range Records>
+void DataMapper::UpdateAll(Records const& records)
+{
+    static_assert(std::ranges::contiguous_range<Records> && std::ranges::sized_range<Records>,
+                  "UpdateAll requires a contiguous, sized range of records (e.g. std::vector, std::array, "
+                  "std::span, or a C array); native row-wise array binding needs the records laid out contiguously.");
+    using Record = std::remove_cvref_t<std::ranges::range_value_t<Records>>;
+    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
+    static_assert(HasPrimaryKey<Record>, "UpdateAll requires a record type with a primary key");
+
+    ZoneScopedN("DataMapper::UpdateAll");
+    ZoneTextObject(RecordTableName<Record>);
+
+    if (std::ranges::empty(records))
+        return;
+
+    // Build one UPDATE that writes all storable non-primary-key columns, matched on the primary key(s).
+    auto query = _connection.Query(RecordTableName<Record>).Update();
+    Reflection::EnumerateMembers<Record>([&query]<auto I, typename FieldType>() {
+        if constexpr (detail::IsBatchUpdateSetColumn<FieldType>)
+            query.Set(FieldNameAt<I, Record>, SqlWildcard);
+    });
+    Reflection::EnumerateMembers<Record>([&query]<auto I, typename FieldType>() {
+        if constexpr (detail::IsBatchUpdateWhereColumn<FieldType>)
+            std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
+    });
+    _stmt.Prepare(query);
+
+    // Accessor order must match the SQL parameter order: SET columns first, then the WHERE key(s).
+    [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+        std::apply([&](auto const&... accessors) { std::ignore = _stmt.ExecuteBatch(records, accessors...); },
+                   std::tuple_cat(detail::MakeUpdateSetAccessor<Is, Record>()...,
+                                  detail::MakeUpdateWhereAccessor<Is, Record>()...));
+    }(std::make_index_sequence<Reflection::CountMembers<Record>> {});
 }
 
 template <typename Record>

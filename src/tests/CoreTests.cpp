@@ -11,6 +11,10 @@
 #include <array>
 #include <cstdlib>
 #include <list>
+#include <optional>
+#include <span>
+#include <string>
+#include <vector>
 
 // NOLINTBEGIN(readability-container-size-empty)
 
@@ -369,6 +373,242 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatchNative", "[SqlStateme
     CHECK(cursor.GetColumn<int>(3) == 50'000);
 
     REQUIRE(!cursor.FetchRow());
+}
+
+namespace
+{
+// All-fixed-width row: eligible for native zero-copy row-wise batch binding.
+struct PlainBatchRow
+{
+    int64_t id {};
+    double value {};
+    int32_t count {};
+};
+
+// Fixed-width row with a nullable column. sizeof is a multiple of alignof(SQLLEN), so the optional
+// native row-wise path (with its row-strided indicator) applies.
+struct NullableBatchRow
+{
+    int64_t id {};
+    std::optional<int32_t> maybe {};
+};
+static_assert(sizeof(NullableBatchRow) % alignof(SQLLEN) == 0);
+
+// Row that contains a std::string column: always routed through the soft batch path.
+struct StringBatchRow
+{
+    int32_t id {};
+    std::string name;
+    std::optional<int32_t> maybe {};
+};
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch: row-major native (all fixed)", "[SqlStatement]")
+{
+    auto stmt = Lightweight::SqlStatement {};
+    stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("RowMajor")
+            .Column("Id", Lightweight::SqlColumnTypeDefinitions::Bigint {})
+            .Column("Value", Lightweight::SqlColumnTypeDefinitions::Real {})
+            .Column("Count", Lightweight::SqlColumnTypeDefinitions::Integer {});
+    });
+
+    stmt.Prepare(R"(INSERT INTO "RowMajor" ("Id", "Value", "Count") VALUES (?, ?, ?))");
+
+    auto const rows = std::array {
+        PlainBatchRow { .id = 1, .value = 1.5, .count = 10 },
+        PlainBatchRow { .id = 2, .value = 2.5, .count = 20 },
+        PlainBatchRow { .id = 3, .value = 3.5, .count = 30 },
+    };
+
+    (void) stmt.ExecuteBatch(
+        std::span { rows },
+        [](PlainBatchRow const& r) -> int64_t const& { return r.id; },
+        [](PlainBatchRow const& r) -> double const& { return r.value; },
+        [](PlainBatchRow const& r) -> int32_t const& { return r.count; });
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "Value", "Count" FROM "RowMajor" ORDER BY "Id")");
+    for (auto const& expected: rows)
+    {
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int64_t>(1) == expected.id);
+        CHECK_THAT(cursor.GetColumn<double>(2), Catch::Matchers::WithinAbs(expected.value, 0.000'001));
+        CHECK(cursor.GetColumn<int>(3) == expected.count);
+    }
+    REQUIRE(!cursor.FetchRow());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch: row-major native with optional", "[SqlStatement]")
+{
+    auto stmt = Lightweight::SqlStatement {};
+    stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("RowMajorOpt")
+            .Column("Id", Lightweight::SqlColumnTypeDefinitions::Bigint {})
+            .Column("Maybe", Lightweight::SqlColumnTypeDefinitions::Integer {}); // nullable by default
+    });
+
+    stmt.Prepare(R"(INSERT INTO "RowMajorOpt" ("Id", "Maybe") VALUES (?, ?))");
+
+    auto const rows = std::array {
+        NullableBatchRow { .id = 1, .maybe = 100 },
+        NullableBatchRow { .id = 2, .maybe = std::nullopt },
+        NullableBatchRow { .id = 3, .maybe = 300 },
+    };
+
+    (void) stmt.ExecuteBatch(
+        std::span { rows },
+        [](NullableBatchRow const& r) -> int64_t const& { return r.id; },
+        [](NullableBatchRow const& r) -> std::optional<int32_t> const& { return r.maybe; });
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "Maybe" FROM "RowMajorOpt" ORDER BY "Id")");
+    for (auto const& expected: rows)
+    {
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int64_t>(1) == expected.id);
+        CHECK(cursor.GetColumn<std::optional<int>>(2) == expected.maybe);
+    }
+    REQUIRE(!cursor.FetchRow());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch: row-major soft (string + optional)", "[SqlStatement]")
+{
+    auto stmt = Lightweight::SqlStatement {};
+    stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("RowMajorStr")
+            .Column("Id", Lightweight::SqlColumnTypeDefinitions::Integer {})
+            .Column("Name", Lightweight::SqlColumnTypeDefinitions::Varchar { 64 })
+            .Column("Maybe", Lightweight::SqlColumnTypeDefinitions::Integer {}); // nullable by default
+    });
+
+    stmt.Prepare(R"(INSERT INTO "RowMajorStr" ("Id", "Name", "Maybe") VALUES (?, ?, ?))");
+
+    auto rows = std::vector<StringBatchRow> {};
+    rows.push_back({ .id = 1, .name = "", .maybe = 11 }); // empty string
+    rows.push_back({ .id = 2, .name = "Alice", .maybe = std::nullopt });
+    rows.push_back({ .id = 3, .name = "a longer string value", .maybe = 33 });
+
+    (void) stmt.ExecuteBatch(
+        std::span<StringBatchRow const> { rows },
+        [](StringBatchRow const& r) -> int32_t const& { return r.id; },
+        [](StringBatchRow const& r) -> std::string const& { return r.name; },
+        [](StringBatchRow const& r) -> std::optional<int32_t> const& { return r.maybe; });
+
+    auto cursor = stmt.ExecuteDirect(R"(SELECT "Id", "Name", "Maybe" FROM "RowMajorStr" ORDER BY "Id")");
+    for (auto const& expected: rows)
+    {
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int>(1) == expected.id);
+        CHECK(cursor.GetColumn<std::string>(2) == expected.name);
+        CHECK(cursor.GetColumn<std::optional<int>>(3) == expected.maybe);
+    }
+    REQUIRE(!cursor.FetchRow());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch: row-major edge cases", "[SqlStatement]")
+{
+    auto stmt = Lightweight::SqlStatement {};
+    stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("RowMajorEdge")
+            .Column("Id", Lightweight::SqlColumnTypeDefinitions::Bigint {})
+            .Column("Value", Lightweight::SqlColumnTypeDefinitions::Real {})
+            .Column("Count", Lightweight::SqlColumnTypeDefinitions::Integer {});
+    });
+    stmt.Prepare(R"(INSERT INTO "RowMajorEdge" ("Id", "Value", "Count") VALUES (?, ?, ?))");
+
+    auto const idOf = [](PlainBatchRow const& r) -> int64_t const& {
+        return r.id;
+    };
+    auto const valueOf = [](PlainBatchRow const& r) -> double const& {
+        return r.value;
+    };
+    auto const countOf = [](PlainBatchRow const& r) -> int32_t const& {
+        return r.count;
+    };
+
+    SECTION("empty span is a no-op")
+    {
+        auto const empty = std::vector<PlainBatchRow> {};
+        (void) stmt.ExecuteBatch(std::span<PlainBatchRow const> { empty }, idOf, valueOf, countOf);
+        CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "RowMajorEdge")").value_or(-1) == 0);
+    }
+
+    SECTION("single-row batch")
+    {
+        auto const one = std::array { PlainBatchRow { .id = 7, .value = 7.5, .count = 70 } };
+        (void) stmt.ExecuteBatch(std::span { one }, idOf, valueOf, countOf);
+        CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "RowMajorEdge")").value_or(-1) == 1);
+    }
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch: native batch then single Execute reuse", "[SqlStatement]")
+{
+    // Regression: a native row-wise batch sets PARAMSET_SIZE / PARAM_BIND_TYPE on the handle; a
+    // subsequent re-Prepare + single Execute on the same statement must not inherit that state.
+    auto stmt = Lightweight::SqlStatement {};
+    stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("RowMajorReuse")
+            .Column("Id", Lightweight::SqlColumnTypeDefinitions::Bigint {})
+            .Column("Value", Lightweight::SqlColumnTypeDefinitions::Real {})
+            .Column("Count", Lightweight::SqlColumnTypeDefinitions::Integer {});
+    });
+
+    stmt.Prepare(R"(INSERT INTO "RowMajorReuse" ("Id", "Value", "Count") VALUES (?, ?, ?))");
+    auto const rows = std::array {
+        PlainBatchRow { .id = 1, .value = 1.5, .count = 10 },
+        PlainBatchRow { .id = 2, .value = 2.5, .count = 20 },
+    };
+    (void) stmt.ExecuteBatch(
+        std::span { rows },
+        [](PlainBatchRow const& r) -> int64_t const& { return r.id; },
+        [](PlainBatchRow const& r) -> double const& { return r.value; },
+        [](PlainBatchRow const& r) -> int32_t const& { return r.count; });
+
+    // Re-prepare and execute a single row; must insert exactly one row (not 2).
+    stmt.Prepare(R"(INSERT INTO "RowMajorReuse" ("Id", "Value", "Count") VALUES (?, ?, ?))");
+    (void) stmt.Execute(int64_t { 99 }, 9.5, 90);
+
+    CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "RowMajorReuse")").value_or(-1) == 3);
+    CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT "Count" FROM "RowMajorReuse" WHERE "Id" = 99)").value_or(-1) == 90);
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch: throwing native batch restores handle state", "[SqlStatement]")
+{
+    // Regression: if SQLExecute throws mid-batch, the row-wise PARAMSET_SIZE / PARAM_BIND_TYPE must still
+    // be restored (via the scope guard), so a later single Execute() on the same handle — without
+    // re-Prepare — inserts exactly one row instead of striding a single bind across rowCount param sets.
+    auto stmt = Lightweight::SqlStatement {};
+    stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("RowMajorThrow")
+            .PrimaryKey("Id", Lightweight::SqlColumnTypeDefinitions::Bigint {})
+            .Column("Value", Lightweight::SqlColumnTypeDefinitions::Real {})
+            .Column("Count", Lightweight::SqlColumnTypeDefinitions::Integer {});
+    });
+
+    // Seed Id = 2 so the batch below collides on the primary key and SQLExecute fails.
+    stmt.Prepare(R"(INSERT INTO "RowMajorThrow" ("Id", "Value", "Count") VALUES (?, ?, ?))");
+    (void) stmt.Execute(int64_t { 2 }, 2.5, 20);
+
+    stmt.Prepare(R"(INSERT INTO "RowMajorThrow" ("Id", "Value", "Count") VALUES (?, ?, ?))");
+    auto const rows = std::array {
+        PlainBatchRow { .id = 1, .value = 1.5, .count = 10 },
+        PlainBatchRow { .id = 2, .value = 9.9, .count = 99 }, // duplicate primary key -> violation
+        PlainBatchRow { .id = 3, .value = 3.5, .count = 30 },
+    };
+    auto const idOf = [](PlainBatchRow const& r) -> int64_t const& {
+        return r.id;
+    };
+    auto const valueOf = [](PlainBatchRow const& r) -> double const& {
+        return r.value;
+    };
+    auto const countOf = [](PlainBatchRow const& r) -> int32_t const& {
+        return r.count;
+    };
+    CHECK_THROWS_AS((void) stmt.ExecuteBatch(std::span { rows }, idOf, valueOf, countOf), Lightweight::SqlException);
+
+    // Same statement, still prepared; a single Execute WITHOUT re-Prepare must insert exactly one row.
+    (void) stmt.Execute(int64_t { 7 }, 7.5, 70);
+    CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "RowMajorThrow" WHERE "Id" = 7)").value_or(-1) == 1);
+    CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT "Count" FROM "RowMajorThrow" WHERE "Id" = 7)").value_or(-1) == 70);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect", "[SqlConnection]")

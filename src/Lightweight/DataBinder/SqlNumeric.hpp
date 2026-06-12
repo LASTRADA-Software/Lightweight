@@ -240,13 +240,18 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
                                     nullptr);
         }
 
+        // Bind with the type's compile-time Precision/Scale rather than value.sqlValue.precision/scale:
+        // the latter is 0 for a default-constructed (never-assigned) value. On the native row-wise batch
+        // path a single bind descriptor (taken from row 0) governs the whole array, so a default-constructed
+        // row 0 would otherwise mis-bind every row. The template constants are correct for every value of
+        // SqlNumeric<Precision, Scale> by definition (assign() always sets these same values).
         return SQLBindParameter(stmt,
                                 column,
                                 SQL_PARAM_INPUT,
                                 SQL_C_NUMERIC,
                                 SQL_NUMERIC,
-                                value.sqlValue.precision,
-                                value.sqlValue.scale,
+                                static_cast<SQLULEN>(Precision),
+                                static_cast<SQLSMALLINT>(Scale),
                                 (SQLPOINTER) &value,
                                 sizeof(value),
                                 nullptr);
@@ -291,6 +296,14 @@ struct SqlDataBinder<SqlNumeric<Precision, Scale>>
         return value.ToString();
     }
 };
+
+// SqlNumeric binds a fixed-width inline struct and is row-wise batchable for non-nullable columns. It
+// is flagged as numeric so the std::optional batch path excludes it (its contained value is not bound
+// at a uniform offset/representation across backends).
+template <std::size_t ThePrecision, std::size_t TheScale>
+inline constexpr bool SqlIsNativeRowBindableValue<SqlNumeric<ThePrecision, TheScale>> = true;
+template <std::size_t ThePrecision, std::size_t TheScale>
+inline constexpr bool SqlIsNumericValue<SqlNumeric<ThePrecision, TheScale>> = true;
 // clang-format off
 
 } // namespace Lightweight

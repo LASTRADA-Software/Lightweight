@@ -494,6 +494,12 @@ struct SqlBasicStringOperations<SqlFixedString<N, T, Mode>>
     }
 };
 
+// char-based fixed-capacity strings store their characters inline and can be bound zero-copy in a
+// native row-wise batch (via the AnsiString binder's BatchRowWiseInputParameter). Wide fixed strings
+// require encoding conversion and therefore use the soft batch path.
+template <std::size_t N, SqlFixedStringMode Mode>
+inline constexpr bool SqlIsNativeRowBindableValue<SqlFixedString<N, char, Mode>> = true;
+
 } // namespace Lightweight
 
 template <std::size_t N, typename T, Lightweight::SqlFixedStringMode P>

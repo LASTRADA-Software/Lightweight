@@ -10,7 +10,9 @@
 #include "../SqlServerType.hpp"
 
 #include <concepts>
+#include <cstddef>
 #include <functional>
+#include <optional>
 
 #include <sql.h>
 #include <sqlext.h>
@@ -73,6 +75,24 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
     /// @return A pointer to the first element of the indicator array.
     virtual SQLLEN* ProvideInputIndicators(size_t rowCount) = 0;
 
+    /// Provides a pointer to a contiguous, suitably aligned temporary byte buffer that remains valid
+    /// until the statement is executed.
+    ///
+    /// This is used by batch input parameter binders that need scratch storage whose lifetime must
+    /// outlive the bind call but not the execution — for example a row-strided NULL/length indicator
+    /// array used by native row-wise array binding of @c std::optional columns.
+    ///
+    /// @note The buffer contents are unspecified; the caller is responsible for initializing it.
+    /// @note The returned storage is aligned to at least @c alignof(std::max_align_t).
+    /// @note Row-wise callers request @c ~rowStride*rowCount bytes to hold only @c rowCount @c SQLLEN
+    /// indicators. This over-allocation is intrinsic to ODBC row-wise binding, which strides the
+    /// @c StrLen_or_IndPtr array by @c SQL_ATTR_PARAM_BIND_TYPE (the row stride) — there is no separate
+    /// indicator stride — so a tightly packed indicator array would require descriptor-level binding.
+    ///
+    /// @param byteCount The number of bytes to provide.
+    /// @return A pointer to the first byte of the buffer.
+    virtual std::byte* ProvideBatchStagingBuffer(std::size_t byteCount) = 0;
+
     /// @return The server type of the database.
     [[nodiscard]] virtual SqlServerType ServerType() const noexcept = 0;
 
@@ -94,6 +114,13 @@ struct SqlBasicStringOperations;
 
 namespace detail
 {
+
+    /// @brief Satisfied when @p T is the same type as at least one of @p Us.
+    ///
+    /// Mirrors @c Lightweight::detail::OneOf, but lives in the DataBinder layer so the low-level binder
+    /// headers can use it without reaching up to the higher-level Utils.hpp.
+    template <typename T, typename... Us>
+    concept IsAnyOf = (std::same_as<T, Us> || ...);
 
     // clang-format off
 template <typename T>
@@ -168,6 +195,37 @@ concept SqlInputParameterBatchBinder =
                 hStmt, column, std::declval<std::ranges::range_value_t<T>>(), cb)
         } -> std::same_as<SQLRETURN>;
     };
+
+/// @brief Opt-in trait marking a value type as bindable in a native ODBC row-wise parameter array.
+///
+/// A type qualifies when it is fixed-width, stored inline, bound via a plain @c SQLBindParameter with
+/// no per-call heap conversion, and identically across all supported backends — so its address can be
+/// handed to ODBC and strided by @c SQL_ATTR_PARAM_BIND_TYPE. The primary template is @c false; each
+/// eligible binder header specializes it to @c true (primitives, date/time/datetime, numeric).
+///
+/// @note @c SqlGuid is intentionally NOT marked: on SQLite it is bound via a per-value text conversion,
+/// which cannot be expressed as a zero-copy row-wise array — GUID columns use the soft batch path.
+template <typename T>
+inline constexpr bool SqlIsNativeRowBindableValue = false;
+
+/// @brief Opt-in trait marking a value type as an @c SqlNumeric specialization.
+///
+/// Numeric values are row-wise bindable, but @c std::optional<SqlNumeric> is not (the contained value
+/// is not bound at a uniform offset/representation across backends), so the optional batch path
+/// excludes them via this trait.
+template <typename T>
+inline constexpr bool SqlIsNumericValue = false;
+
+/// @brief Whether @p T is a @c std::optional specialization.
+///
+/// Defined locally rather than reusing @c Lightweight::IsSpecializationOf (Utils.hpp) or the DataMapper
+/// @c IsStdOptional (Field.hpp): this low-level binder header is deliberately kept free of dependencies on
+/// those higher-level headers, so it carries its own minimal optional traits.
+template <typename T>
+inline constexpr bool SqlIsStdOptional = false;
+
+template <typename T>
+inline constexpr bool SqlIsStdOptional<std::optional<T>> = true;
 
 template <typename T>
 concept SqlGetColumnNativeType =

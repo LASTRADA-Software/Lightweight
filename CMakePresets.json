@@ -32,7 +32,7 @@
             "name": "windows-cl-common",
             "hidden": true,
             "inherits": ["windows-common"],
-            "generator": "Visual Studio 17 2022",
+            "generator": "Visual Studio 18 2026",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "cl"
             }

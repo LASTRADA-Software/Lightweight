@@ -372,6 +372,57 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
                                 nullptr);
     }
 
+    /// Binds an array of timestamps as an input parameter for native (row-wise or column-wise) batch
+    /// execution. @p values points at the first element; the driver strides by the statement's
+    /// SQL_ATTR_PARAM_BIND_TYPE. @p indicators optionally supplies per-row NULL flags.
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN BatchInputParameter(SQLHSTMT stmt,
+                                                                  SQLUSMALLINT column,
+                                                                  SqlDateTime const* values,
+                                                                  size_t /*rowCount*/,
+                                                                  [[maybe_unused]] SqlDataBinderCallback& cb,
+                                                                  SQLLEN* indicators = nullptr) noexcept
+    {
+#if defined(_WIN32) || defined(_WIN64)
+        using namespace std::string_view_literals;
+        if (cb.ServerType() == SqlServerType::MICROSOFT_SQL && cb.DriverName() == "SQLSRV32.DLL"sv)
+        {
+            struct
+            {
+                SQLSMALLINT sqlType { SQL_TYPE_TIMESTAMP };
+                SQLULEN paramSize { 23 };
+                SQLSMALLINT decimalDigits { 3 };
+                SQLSMALLINT nullable {};
+            } hints;
+            auto const sqlDescribeParamResult =
+                SQLDescribeParam(stmt, column, &hints.sqlType, &hints.paramSize, &hints.decimalDigits, &hints.nullable);
+            if (SQL_SUCCEEDED(sqlDescribeParamResult))
+            {
+                return SQLBindParameter(stmt,
+                                        column,
+                                        SQL_PARAM_INPUT,
+                                        SQL_C_TIMESTAMP,
+                                        hints.sqlType,
+                                        hints.paramSize,
+                                        hints.decimalDigits,
+                                        (SQLPOINTER) &values->sqlValue,
+                                        sizeof(*values),
+                                        indicators);
+            }
+        }
+#endif
+
+        return SQLBindParameter(stmt,
+                                column,
+                                SQL_PARAM_INPUT,
+                                SQL_C_TIMESTAMP,
+                                SQL_TYPE_TIMESTAMP,
+                                27,
+                                7,
+                                (SQLPOINTER) &values->sqlValue,
+                                sizeof(*values),
+                                indicators);
+    }
+
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, SqlDateTime* result, SQLLEN* indicator, SqlDataBinderCallback& /*cb*/) noexcept
     {
@@ -394,5 +445,8 @@ struct LIGHTWEIGHT_API SqlDataBinder<SqlDateTime>
         return std::format("{}", value);
     }
 };
+
+template <>
+inline constexpr bool SqlIsNativeRowBindableValue<SqlDateTime> = true;
 
 } // namespace Lightweight

@@ -78,6 +78,7 @@ set(SOURCE_FILES
     PluginDiscoveryTests.cpp
     PluginIngestionTests.cpp
     SecretResolverTests.cpp
+    DataMapper/BatchTests.cpp
     DataMapper/CreateTests.cpp
     DataMapper/MiscTests.cpp
     DataMapper/NamingTests.cpp

@@ -23,11 +23,20 @@ struct SqlSimpleDataBinder
         return SQLBindParameter(stmt, column, SQL_PARAM_INPUT, TheCType, TheSqlType, 0, 0, (SQLPOINTER) &value, 0, nullptr);
     }
 
-    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN BatchInputParameter(
-        SQLHSTMT stmt, SQLUSMALLINT column, T const* values, size_t /*rowCount*/, SqlDataBinderCallback& /*cb*/) noexcept
+    /// Binds a contiguous (column-wise) or row-strided (row-wise) array of values as an input parameter.
+    ///
+    /// @param indicators Optional per-row NULL/length indicator array. Passed straight to ODBC as the
+    /// StrLen_or_IndPtr; defaults to nullptr (no NULLs). For row-wise binding the driver strides it by
+    /// the statement's SQL_ATTR_PARAM_BIND_TYPE, matching the value stride.
+    static LIGHTWEIGHT_FORCE_INLINE SQLRETURN BatchInputParameter(SQLHSTMT stmt,
+                                                                  SQLUSMALLINT column,
+                                                                  T const* values,
+                                                                  size_t /*rowCount*/,
+                                                                  SqlDataBinderCallback& /*cb*/,
+                                                                  SQLLEN* indicators = nullptr) noexcept
     {
         return SQLBindParameter(
-            stmt, column, SQL_PARAM_INPUT, TheCType, TheSqlType, 0, 0, (SQLPOINTER) values, sizeof(T), nullptr);
+            stmt, column, SQL_PARAM_INPUT, TheCType, TheSqlType, 0, 0, (SQLPOINTER) values, sizeof(T), indicators);
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(
@@ -58,8 +67,12 @@ struct Int64DataBinderHelper
                                                     Int64Type const& value,
                                                     SqlDataBinderCallback& cb) noexcept;
 
-    static LIGHTWEIGHT_API SQLRETURN BatchInputParameter(
-        SQLHSTMT stmt, SQLUSMALLINT column, Int64Type const* values, size_t rowCount, SqlDataBinderCallback& cb) noexcept;
+    static LIGHTWEIGHT_API SQLRETURN BatchInputParameter(SQLHSTMT stmt,
+                                                         SQLUSMALLINT column,
+                                                         Int64Type const* values,
+                                                         size_t rowCount,
+                                                         SqlDataBinderCallback& cb,
+                                                         SQLLEN* indicators = nullptr) noexcept;
 
     static LIGHTWEIGHT_API SQLRETURN OutputColumn(
         SQLHSTMT stmt, SQLUSMALLINT column, Int64Type* result, SQLLEN* indicator, SqlDataBinderCallback& cb) noexcept;
@@ -94,6 +107,21 @@ template <> struct SqlDataBinder<unsigned long long>: Int64DataBinderHelper<unsi
 #if defined(__APPLE__) // size_t is a different type on macOS
 template <> struct SqlDataBinder<std::size_t>: SqlSimpleDataBinder<std::size_t, SQL_C_SBIGINT, SqlColumnTypeDefinitions::Bigint {}> {};
 #endif
+
+// These fixed-width primitives bind via a plain SQLBindParameter and are eligible for native row-wise
+// batch binding (see SqlIsNativeRowBindableValue in Core.hpp). A single constrained partial
+// specialization, keyed on detail::IsAnyOf, covers them all.
+template <typename T>
+    requires detail::IsAnyOf<T, bool, char, int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t,
+                             float, double
+#if !defined(_WIN32) && !defined(__APPLE__)
+                             , long long, unsigned long long
+#endif
+#if defined(__APPLE__)
+                             , std::size_t
+#endif
+                             >
+inline constexpr bool SqlIsNativeRowBindableValue<T> = true;
 // clang-format on
 
 } // namespace Lightweight

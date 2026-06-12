@@ -3239,6 +3239,10 @@ TEST_CASE_METHOD(SqlTestFixture, "std::optional<T>::OutputColumn: nullptr result
         {
             return nullptr;
         }
+        std::byte* ProvideBatchStagingBuffer(std::size_t /*byteCount*/) override
+        {
+            return nullptr;
+        }
         [[nodiscard]] SqlServerType ServerType() const noexcept override
         {
             return SqlServerType::SQLITE;
