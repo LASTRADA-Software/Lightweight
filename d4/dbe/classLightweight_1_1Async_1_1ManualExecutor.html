@@ -327,7 +327,7 @@ template&lt;typename Predicate &gt; </div>
 </table>
 </div><div class="memdoc">
 <p>Pumps work until <code>predicate</code> returns true.</p>
-<p>Blocks the calling thread between work items, waking when new work is posted. The predicate must be cheap and must not acquire this executor's internal lock. This is the driver used by SyncWaitPumping for the single-threaded model.</p>
+<p>Blocks the calling thread between work items, waking when new work is posted. The predicate must be cheap and must not acquire this executor's internal lock. This is the driver used by <code>SyncWaitPumping</code> for the single-threaded model.</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">Predicate</td><td>A callable returning something contextually convertible to bool. </td></tr>

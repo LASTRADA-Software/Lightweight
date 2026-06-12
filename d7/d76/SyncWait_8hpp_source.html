@@ -341,7 +341,7 @@ $(document).ready(function(){initNavTree('d7/d76/SyncWait_8hpp_source.html','../
 <div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span><span class="comment">///</span></div>
 <div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span><span class="comment">/// Use this from non-coroutine code (e.g. @c main, tests) when the task resumes on a</span></div>
 <div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span><span class="comment">/// thread-backed scheduler. If the task resumes on a @ref ManualExecutor that only the</span></div>
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span><span class="comment">/// calling thread pumps, use @ref SyncWaitPumping instead to avoid a deadlock.</span></div>
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span><span class="comment">/// calling thread pumps, use @c SyncWaitPumping instead to avoid a deadlock.</span></div>
 <div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span><span class="comment">///</span></div>
 <div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span><span class="comment">/// @tparam T The task&#39;s result type.</span></div>
 <div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span><span class="comment">/// @param task The task to drive to completion (consumed).</span></div>
@@ -358,7 +358,7 @@ $(document).ready(function(){initNavTree('d7/d76/SyncWait_8hpp_source.html','../
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span><span class="comment"></span> </div>
 <div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span><span class="comment">/// Drives @p task to completion by pumping @p executor on the calling thread.</span></div>
 <div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span><span class="comment">///</span></div>
-<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span><span class="comment">/// This is the single-threaded counterpart to @ref SyncWait: rather than blocking, it runs</span></div>
+<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span><span class="comment">/// This is the single-threaded counterpart to @c SyncWait: rather than blocking, it runs</span></div>
 <div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span><span class="comment">/// the executor&#39;s queued work (including the task&#39;s resumption) until the task finishes.</span></div>
 <div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span><span class="comment">/// Intended for an app/event-loop thread and for deterministic tests using a</span></div>
 <div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span><span class="comment">/// @ref ManualExecutor.</span></div>

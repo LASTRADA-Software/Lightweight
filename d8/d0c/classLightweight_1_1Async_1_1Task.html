@@ -103,13 +103,19 @@ $(document).ready(function(){initNavTree('d8/d0c/classLightweight_1_1Async_1_1Ta
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:a1f9c9c115e47453068f3105b00c87d0c" id="r_a1f9c9c115e47453068f3105b00c87d0c"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#a1f9c9c115e47453068f3105b00c87d0c">promise_type</a> = detail::TaskPromise&lt; T &gt;</td></tr>
+<tr class="memdesc:a1f9c9c115e47453068f3105b00c87d0c"><td class="mdescLeft">&#160;</td><td class="mdescRight">The coroutine promise type required by the C++ coroutine machinery.  <br /></td></tr>
 <tr class="separator:a1f9c9c115e47453068f3105b00c87d0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae86bea26c59ca2299131f19c225ea696" id="r_ae86bea26c59ca2299131f19c225ea696"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#ae86bea26c59ca2299131f19c225ea696">Handle</a> = std::coroutine_handle&lt; promise_type &gt;</td></tr>
+<tr class="memitem:ae86bea26c59ca2299131f19c225ea696" id="r_ae86bea26c59ca2299131f19c225ea696"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#ae86bea26c59ca2299131f19c225ea696">Handle</a> = std::coroutine_handle&lt; <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#a1f9c9c115e47453068f3105b00c87d0c">promise_type</a> &gt;</td></tr>
+<tr class="memdesc:ae86bea26c59ca2299131f19c225ea696"><td class="mdescLeft">&#160;</td><td class="mdescRight">The typed coroutine handle owned by this <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a>.  <br /></td></tr>
 <tr class="separator:ae86bea26c59ca2299131f19c225ea696"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a702ce6d6e49d4f4ad0136da4bfdf5d5a" id="r_a702ce6d6e49d4f4ad0136da4bfdf5d5a"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#a702ce6d6e49d4f4ad0136da4bfdf5d5a">Task</a> (Handle handle) noexcept</td></tr>
+<tr class="memitem:aa43c8270f882af00cf49f966907600d8" id="r_aa43c8270f882af00cf49f966907600d8"><td class="memItemLeft" align="right" valign="top"><a id="aa43c8270f882af00cf49f966907600d8" name="aa43c8270f882af00cf49f966907600d8"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>Task</b> () noexcept=default</td></tr>
+<tr class="memdesc:aa43c8270f882af00cf49f966907600d8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs an empty <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a> that owns no coroutine. <br /></td></tr>
+<tr class="separator:aa43c8270f882af00cf49f966907600d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a702ce6d6e49d4f4ad0136da4bfdf5d5a" id="r_a702ce6d6e49d4f4ad0136da4bfdf5d5a"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#a702ce6d6e49d4f4ad0136da4bfdf5d5a">Task</a> (<a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#ae86bea26c59ca2299131f19c225ea696">Handle</a> handle) noexcept</td></tr>
 <tr class="separator:a702ce6d6e49d4f4ad0136da4bfdf5d5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aea5feb26b3d9da4b4e355d9cd375412c" id="r_aea5feb26b3d9da4b4e355d9cd375412c"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#aea5feb26b3d9da4b4e355d9cd375412c">Task</a> (<a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a> &amp;&amp;other) noexcept</td></tr>
 <tr class="separator:aea5feb26b3d9da4b4e355d9cd375412c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -125,7 +131,7 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:adaf1b753e7f02865227154251a38fff1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6d6d9ae50c57b4026b9cc30357a16c72" id="r_a6d6d9ae50c57b4026b9cc30357a16c72"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#a6d6d9ae50c57b4026b9cc30357a16c72">IsReady</a> () const noexcept</td></tr>
 <tr class="separator:a6d6d9ae50c57b4026b9cc30357a16c72"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a33ff3194bb2b7db7459bf6b354c2a6eb" id="r_a33ff3194bb2b7db7459bf6b354c2a6eb"><td class="memItemLeft" align="right" valign="top">Handle&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#a33ff3194bb2b7db7459bf6b354c2a6eb">GetHandle</a> () const noexcept</td></tr>
+<tr class="memitem:a33ff3194bb2b7db7459bf6b354c2a6eb" id="r_a33ff3194bb2b7db7459bf6b354c2a6eb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#ae86bea26c59ca2299131f19c225ea696">Handle</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#a33ff3194bb2b7db7459bf6b354c2a6eb">GetHandle</a> () const noexcept</td></tr>
 <tr class="separator:a33ff3194bb2b7db7459bf6b354c2a6eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a79761ad0bf2fd2ddf218b478f7c71d45" id="r_a79761ad0bf2fd2ddf218b478f7c71d45"><td class="memItemLeft" align="right" valign="top">auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#a79761ad0bf2fd2ddf218b478f7c71d45">operator co_await</a> () &amp;&amp;noexcept</td></tr>
 <tr class="separator:a79761ad0bf2fd2ddf218b478f7c71d45"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -133,7 +139,7 @@ Public Member Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><div class="compoundTemplParams">template&lt;typename T&gt;<br />
 class Lightweight::Async::Task&lt; T &gt;</div><p>A lazy, move-only C++23 coroutine task.</p>
-<p>A <code>Task&lt;T&gt;</code> represents an asynchronous computation that yields a value of type <code>T</code> (or nothing for <code>Task&lt;void&gt;</code>). It is <b>lazy</b> — the coroutine body does not start executing until the <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a> is <code>co_await-ed</code> by another coroutine or driven to completion by SyncWait / SyncWaitPumping. Awaiting uses symmetric transfer, so chains of awaits do not grow the stack. Exceptions thrown inside the body are captured and rethrown at the awaiting site (parity with the throwing synchronous API).</p>
+<p>A <code>Task&lt;T&gt;</code> represents an asynchronous computation that yields a value of type <code>T</code> (or nothing for <code>Task&lt;void&gt;</code>). It is <b>lazy</b> — the coroutine body does not start executing until the <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a> is <code>co_await-ed</code> by another coroutine or driven to completion by <code>SyncWait</code> / <code>SyncWaitPumping</code>. Awaiting uses symmetric transfer, so chains of awaits do not grow the stack. Exceptions thrown inside the body are captured and rethrown at the awaiting site (parity with the throwing synchronous API).</p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
     <tr><td class="paramname">T</td><td>The value type produced by the task (defaults to <code>void</code>). </td></tr>
@@ -157,7 +163,9 @@ template&lt;typename T &gt; </div>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00147">147</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
+<p>The coroutine promise type required by the C++ coroutine machinery. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00148">148</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
 
 </div>
 </div>
@@ -170,12 +178,14 @@ template&lt;typename T &gt; </div>
 template&lt;typename T &gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname">using <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Lightweight::Async::Task</a>&lt; T &gt;::Handle =  std::coroutine_handle&lt;promise_type&gt;</td>
+          <td class="memname">using <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Lightweight::Async::Task</a>&lt; T &gt;::Handle =  std::coroutine_handle&lt;<a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#a1f9c9c115e47453068f3105b00c87d0c">promise_type</a>&gt;</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00148">148</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
+<p>The typed coroutine handle owned by this <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a>. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00151">151</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
 
 </div>
 </div>
@@ -194,7 +204,7 @@ template&lt;typename T &gt; </div>
         <tr>
           <td class="memname"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Lightweight::Async::Task</a>&lt; T &gt;::Task </td>
           <td>(</td>
-          <td class="paramtype">Handle&#160;</td>
+          <td class="paramtype"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#ae86bea26c59ca2299131f19c225ea696">Handle</a>&#160;</td>
           <td class="paramname"><em>handle</em></td><td>)</td>
           <td></td>
         </tr>
@@ -205,8 +215,14 @@ template&lt;typename T &gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Adopts ownership of the coroutine identified by <code>handle</code> (used by the promise). </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">handle</td><td>The coroutine handle to take ownership of. </td></tr>
+  </table>
+  </dd>
+</dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00152">152</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00158">158</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
 
 </div>
 </div>
@@ -235,8 +251,14 @@ template&lt;typename T &gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Move-constructs from <code>other</code>, leaving it empty. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">other</td><td>The <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a> to move from. </td></tr>
+  </table>
+  </dd>
+</dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00157">157</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00165">165</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
 
 </div>
 </div>
@@ -265,7 +287,7 @@ template&lt;typename T &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00176">176</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00187">187</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
 
 </div>
 </div>
@@ -295,8 +317,15 @@ template&lt;typename T &gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Move-assigns from <code>other</code>, destroying any currently-owned coroutine first. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">other</td><td>The <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a> to move from. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A reference to this <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00162">162</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00173">173</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
 
 </div>
 </div>
@@ -326,7 +355,7 @@ template&lt;typename T &gt; </div>
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>true if this <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a> owns a coroutine frame. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00183">183</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00194">194</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
 
 </div>
 </div>
@@ -356,7 +385,7 @@ template&lt;typename T &gt; </div>
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>true if the <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a> is empty or has run to completion. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00189">189</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00200">200</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
 
 </div>
 </div>
@@ -372,7 +401,7 @@ template&lt;typename T &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">Handle <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Lightweight::Async::Task</a>&lt; T &gt;::GetHandle </td>
+          <td class="memname"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html#ae86bea26c59ca2299131f19c225ea696">Handle</a> <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Lightweight::Async::Task</a>&lt; T &gt;::GetHandle </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -386,7 +415,7 @@ template&lt;typename T &gt; </div>
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>the underlying coroutine handle (used by SyncWait and executors). </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00195">195</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00206">206</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
 
 </div>
 </div>
@@ -414,8 +443,9 @@ template&lt;typename T &gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
+<p>Awaits this <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a>: suspends the awaiting coroutine, runs this <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a>, and yields its result (or rethrows its exception) once it completes. </p><dl class="section return"><dt>Returns</dt><dd>An awaiter for this <a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Task</a>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00200">200</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d8/d91/Task_8hpp_source.html#l00214">214</a> of file <a class="el" href="../../d8/d91/Task_8hpp_source.html">Task.hpp</a>.</p>
 
 </div>
 </div>

@@ -1,5 +1,12 @@
 var NAVTREEINDEX4 =
 {
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#abd90cf0b647d60af5bb130b7fe162bd2":[13,0,0,30,4],
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ac391fe5ce2043b272fe4191b98e26f52":[13,0,0,30,3],
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ac89cf719251905b8e0af7f5ed4e42036":[13,0,0,30,0],
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#ad2b577cf0e7a7cc9eb671677b42cb914":[13,0,0,30,8],
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#aecb8ed9927ded35a8b35dd570bf53170":[13,0,0,30,2],
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#af7acc1d446fc49ea446f8ae20f58518c":[13,0,0,30,9],
+"d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html":[3],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#create-or-modife-database-schema":[3,0],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#example":[3,0,0],
 "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#example-1":[3,2,0],
@@ -242,12 +249,5 @@ var NAVTREEINDEX4 =
 "db/dad/classLightweight_1_1SqlStatement.html#af3606d3a07e9a9be93e49569946c176d":[13,0,0,69,23],
 "db/dad/classLightweight_1_1SqlStatement.html#afa0ad7b88db2f3ea8bc4dcb8f102c9d3":[13,0,0,69,31],
 "db/db6/classLightweight_1_1SqlBinary.html":[11,0,0],
-"db/db6/classLightweight_1_1SqlBinary.html#a85d83b4f584d4399449c1e58dfa75c76":[11,0,0,0],
-"db/db6/classLightweight_1_1SqlBinary.html#ae3e161b581dfc33b2bdfae68fc299df9":[11,0,0,1],
-"db/dca/classLightweight_1_1Async_1_1InlineExecutor.html":[13,0,0,0,4],
-"db/dca/classLightweight_1_1Async_1_1InlineExecutor.html#a263d2c5fd37ef7c07feccdeddf315fb3":[13,0,0,0,4,0],
-"db/dca/classLightweight_1_1Async_1_1InlineExecutor.html#a6090956e5d57a975246e070f0a5c0c70":[13,0,0,0,4,1],
-"db/dd1/SqlBackup_8hpp_source.html":[14,0,1,11],
-"db/df6/group__SqlMigration.html":[11,3],
-"db/df6/group__SqlMigration.html#ga32d47d81e5b99a703e522a33a54fdc74":[11,3,11]
+"db/db6/classLightweight_1_1SqlBinary.html#a85d83b4f584d4399449c1e58dfa75c76":[11,0,0,0]
 };

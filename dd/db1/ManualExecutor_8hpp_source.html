@@ -156,7 +156,7 @@ $(document).ready(function(){initNavTree('dd/db1/ManualExecutor_8hpp_source.html
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="comment">    ///</span></div>
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span><span class="comment">    /// Blocks the calling thread between work items, waking when new work is posted. The</span></div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span><span class="comment">    /// predicate must be cheap and must not acquire this executor&#39;s internal lock. This is</span></div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="comment">    /// the driver used by @ref SyncWaitPumping for the single-threaded model.</span></div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="comment">    /// the driver used by @c SyncWaitPumping for the single-threaded model.</span></div>
 <div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="comment">    ///</span></div>
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span><span class="comment">    /// @tparam Predicate A callable returning something contextually convertible to bool.</span></div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="comment">    /// @param predicate Stop condition, re-checked between work items.</span></div>
