@@ -164,31 +164,36 @@ $(document).ready(function(){initNavTree('dd/db1/ManualExecutor_8hpp_source.html
 <div class="foldopen" id="foldopen00063" data-start="{" data-end="}">
 <div class="line"><a id="l00063" name="l00063"></a><span class="lineno"><a class="line" href="../../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#ac072d5f776bd5a46f58abcc8597ef3f2">   63</a></span>    <span class="keywordtype">void</span> <a class="code hl_function" href="../../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#ac072d5f776bd5a46f58abcc8597ef3f2">RunUntil</a>(Predicate predicate)</div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>    {</div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>        <span class="keywordflow">while</span> (!predicate())</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>        {</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>            Work work;</div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>            {</div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>                std::unique_lock lock(_mutex);</div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>                _condition.wait(lock, [&amp;] { <span class="keywordflow">return</span> !_queue.empty() || _stopped || predicate(); });</div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>                <span class="keywordflow">if</span> (predicate() || _queue.empty())</div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>                    <span class="keywordflow">return</span>;</div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>                work = std::move(_queue.front());</div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>                _queue.pop_front();</div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>            }</div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>            work();</div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>        }</div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>    }</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>        <span class="comment">// NOTE: RunUntil deliberately ignores _stopped — it must pump strictly until the predicate</span></div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>        <span class="comment">// is satisfied (the awaited task completes). Honoring Stop() here would return early with</span></div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>        <span class="comment">// the predicate still false, causing the caller (SyncWaitPumping) to read an unfinished</span></div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>        <span class="comment">// result. _stopped governs Run() (the event-loop pump), not RunUntil.</span></div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>        <span class="keywordflow">while</span> (!predicate())</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>        {</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>            Work work;</div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>            {</div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>                std::unique_lock lock(_mutex);</div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>                _condition.wait(lock, [&amp;] { <span class="keywordflow">return</span> !_queue.empty() || predicate(); });</div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>                <span class="keywordflow">if</span> (predicate())</div>
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>                    <span class="keywordflow">return</span>;</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>                <span class="comment">// The wait guarantees the queue is non-empty here when the predicate is false.</span></div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>                work = std::move(_queue.front());</div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>                _queue.pop_front();</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>            }</div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>            work();</div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>        }</div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>    }</div>
 </div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span> </div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>    <span class="keyword">mutable</span> std::mutex _mutex;</div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>    std::condition_variable _condition;</div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>    std::deque&lt;Work&gt; _queue;</div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>    <span class="keywordtype">bool</span> _stopped = <span class="keyword">false</span>;</div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>};</div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>  <span class="keyword">private</span>:</div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>    <span class="keyword">mutable</span> std::mutex _mutex;</div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>    std::condition_variable _condition;</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>    std::deque&lt;Work&gt; _queue;</div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>    <span class="keywordtype">bool</span> _stopped = <span class="keyword">false</span>;</div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>};</div>
 </div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span> </div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>} <span class="comment">// namespace Lightweight::Async</span></div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span> </div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>} <span class="comment">// namespace Lightweight::Async</span></div>
 <div class="ttc" id="aclassLightweight_1_1Async_1_1IExecutor_html"><div class="ttname"><a href="../../d3/d75/classLightweight_1_1Async_1_1IExecutor.html">Lightweight::Async::IExecutor</a></div><div class="ttdef"><b>Definition</b> <a href="../../d4/d1a/Executor_8hpp_source.html#l00021">Executor.hpp:22</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1Async_1_1IResumeScheduler_html"><div class="ttname"><a href="../../df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html">Lightweight::Async::IResumeScheduler</a></div><div class="ttdef"><b>Definition</b> <a href="../../d4/d1a/Executor_8hpp_source.html#l00042">Executor.hpp:43</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1Async_1_1ManualExecutor_html"><div class="ttname"><a href="../../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html">Lightweight::Async::ManualExecutor</a></div><div class="ttdef"><b>Definition</b> <a href="../../dd/db1/ManualExecutor_8hpp_source.html#l00024">ManualExecutor.hpp:25</a></div></div>

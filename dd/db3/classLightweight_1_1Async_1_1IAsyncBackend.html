@@ -126,18 +126,13 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:af16af5750032dc8798380d359167f065"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a64ef8c995e4ed96b421f10144e9fe3c5" id="r_a64ef8c995e4ed96b421f10144e9fe3c5"><td class="memItemLeft" align="right" valign="top">virtual <a class="el" href="../../df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html">IResumeScheduler</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html#a64ef8c995e4ed96b421f10144e9fe3c5">ResumeScheduler</a> () noexcept=0</td></tr>
 <tr class="separator:a64ef8c995e4ed96b421f10144e9fe3c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afb093f452649933f5a90bf1ae75be86e" id="r_afb093f452649933f5a90bf1ae75be86e"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html#afb093f452649933f5a90bf1ae75be86e">IsNative</a> () const noexcept=0</td></tr>
-<tr class="separator:afb093f452649933f5a90bf1ae75be86e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Per-connection asynchronous execution backend.</p>
-<p>A backend owns (or references) the execution context used to run a connection's blocking ODBC work and to resume the awaiting coroutine. Two implementations exist:</p><ul>
-<li><a class="el" href="../../dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend.html">ThreadOffloadBackend</a> — portable; offloads to a worker thread. Always available.</li>
-<li>the native event backend (Windows + SQL Server) — selected per-connection when the driver advertises async-notification support.</li>
-</ul>
-<p>The backend is selected once per connection (see <code>MakeAsyncBackend</code>) and used by all of that connection's async methods. </p>
+<p>A backend owns (or references) the execution context used to run a connection's blocking ODBC work and to resume the awaiting coroutine. Currently the only implementation is <a class="el" href="../../dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend.html">ThreadOffloadBackend</a> (portable; offloads to a worker thread). A native event backend (Windows + SQL Server) is planned behind this same interface.</p>
+<p>The backend is selected once per connection (see <code>SqlConnection::EnableAsync</code>) and used by all of that connection's async methods. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d0/d69/Backend_8hpp_source.html#l00023">23</a> of file <a class="el" href="../../d0/d69/Backend_8hpp_source.html">Backend.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d0/d69/Backend_8hpp_source.html#l00022">22</a> of file <a class="el" href="../../d0/d69/Backend_8hpp_source.html">Backend.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="af16af5750032dc8798380d359167f065" name="af16af5750032dc8798380d359167f065"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af16af5750032dc8798380d359167f065">&#9670;&#160;</a></span>Strand()</h2>
@@ -192,34 +187,6 @@ Public Member Functions</h2></td></tr>
 <p>The scheduler used to resume coroutines after a blocking step completes (typically the application's run loop). </p>
 
 <p>Implemented in <a class="el" href="../../dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend.html#a641871c6ce42c70eb570e64a5b1adc7e">Lightweight::Async::ThreadOffloadBackend</a>.</p>
-
-</div>
-</div>
-<a id="afb093f452649933f5a90bf1ae75be86e" name="afb093f452649933f5a90bf1ae75be86e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afb093f452649933f5a90bf1ae75be86e">&#9670;&#160;</a></span>IsNative()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">virtual bool Lightweight::Async::IAsyncBackend::IsNative </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">pure virtual</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<dl class="section return"><dt>Returns</dt><dd>true if this backend uses native driver async I/O instead of thread offload. </dd></dl>
-
-<p>Implemented in <a class="el" href="../../dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend.html#a07ab69e30d3798624a1e867e7a76aeec">Lightweight::Async::ThreadOffloadBackend</a>.</p>
 
 </div>
 </div>

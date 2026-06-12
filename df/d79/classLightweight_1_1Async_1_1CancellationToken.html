@@ -106,15 +106,11 @@ Public Member Functions</h2></td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><b>CancellationToken</b> () noexcept=default</td></tr>
 <tr class="memdesc:a8602517fd55c6e7c082f3f4e948af502"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a non-cancellable token. <br /></td></tr>
 <tr class="separator:a8602517fd55c6e7c082f3f4e948af502"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae8cfae24478f1876cff265e9e2661ad1" id="r_ae8cfae24478f1876cff265e9e2661ad1"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d79/classLightweight_1_1Async_1_1CancellationToken.html#ae8cfae24478f1876cff265e9e2661ad1">CanBeCancelled</a> () const noexcept</td></tr>
-<tr class="separator:ae8cfae24478f1876cff265e9e2661ad1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a39d1bc20af29716362acd7fc004f3ab3" id="r_a39d1bc20af29716362acd7fc004f3ab3"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d79/classLightweight_1_1Async_1_1CancellationToken.html#a39d1bc20af29716362acd7fc004f3ab3">IsCancellationRequested</a> () const noexcept</td></tr>
 <tr class="separator:a39d1bc20af29716362acd7fc004f3ab3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a221d49f84a2df55286053bf1b95672cc" id="r_a221d49f84a2df55286053bf1b95672cc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d79/classLightweight_1_1Async_1_1CancellationToken.html#a221d49f84a2df55286053bf1b95672cc">Request</a> ()</td></tr>
-<tr class="memdesc:a221d49f84a2df55286053bf1b95672cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Requests cancellation and runs any registered callbacks exactly once.  <br /></td></tr>
-<tr class="separator:a221d49f84a2df55286053bf1b95672cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aefea5eb355184ba42bf4fc60791de013" id="r_aefea5eb355184ba42bf4fc60791de013"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d79/classLightweight_1_1Async_1_1CancellationToken.html#aefea5eb355184ba42bf4fc60791de013">OnCancel</a> (std::function&lt; void()&gt; callback)</td></tr>
-<tr class="separator:aefea5eb355184ba42bf4fc60791de013"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aea2c2279bc5634c636d54ec40e3614da" id="r_aea2c2279bc5634c636d54ec40e3614da"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../df/d79/classLightweight_1_1Async_1_1CancellationToken.html#aea2c2279bc5634c636d54ec40e3614da">Request</a> () noexcept</td></tr>
+<tr class="memdesc:aea2c2279bc5634c636d54ec40e3614da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Requests cancellation. Idempotent and thread-safe; a no-op on a non-cancellable token.  <br /></td></tr>
+<tr class="separator:aea2c2279bc5634c636d54ec40e3614da"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -123,9 +119,10 @@ Static Public Member Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>A cooperative cancellation token shared by value.</p>
-<p>A default-constructed token is <b>non-cancellable</b> (it never reports cancellation and allocates nothing) — this is the cheap default for async methods that are not given a token. Obtain a cancellable token via <a class="el" href="../../df/d79/classLightweight_1_1Async_1_1CancellationToken.html#a499294209cf5c0e2dffe2cf1be898309">Create</a>; copies share the same cancellation state, so a caller can keep one copy and <a class="el" href="../../df/d79/classLightweight_1_1Async_1_1CancellationToken.html#a221d49f84a2df55286053bf1b95672cc">Request</a> cancellation on the operation holding another. </p>
+<p>A default-constructed token is <b>non-cancellable</b> (it never reports cancellation and allocates nothing) — this is the cheap default for async methods that are not given a token. Obtain a cancellable token via <a class="el" href="../../df/d79/classLightweight_1_1Async_1_1CancellationToken.html#a499294209cf5c0e2dffe2cf1be898309">Create</a>; copies share the same cancellation state, so a caller can keep one copy and <a class="el" href="../../df/d79/classLightweight_1_1Async_1_1CancellationToken.html#aea2c2279bc5634c636d54ec40e3614da">Request</a> cancellation on the operation holding another.</p>
+<p>Cancellation is honored cooperatively: the offload runtime checks <a class="el" href="../../df/d79/classLightweight_1_1Async_1_1CancellationToken.html#a39d1bc20af29716362acd7fc004f3ab3">IsCancellationRequested</a> once before a step is dispatched and completes it with <a class="el" href="../../d3/dd5/classLightweight_1_1Async_1_1OperationCancelledError.html">OperationCancelledError</a> if set. A request that arrives after a step has begun running does not interrupt the in-flight blocking call. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html#l00033">33</a> of file <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html">CancellationToken.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html#l00034">34</a> of file <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html">CancellationToken.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a499294209cf5c0e2dffe2cf1be898309" name="a499294209cf5c0e2dffe2cf1be898309"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a499294209cf5c0e2dffe2cf1be898309">&#9670;&#160;</a></span>Create()</h2>
@@ -151,35 +148,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>a fresh, cancellable token backed by new shared state. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html">CancellationToken.hpp</a>.</p>
-
-</div>
-</div>
-<a id="ae8cfae24478f1876cff265e9e2661ad1" name="ae8cfae24478f1876cff265e9e2661ad1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae8cfae24478f1876cff265e9e2661ad1">&#9670;&#160;</a></span>CanBeCancelled()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">bool Lightweight::Async::CancellationToken::CanBeCancelled </td>
-          <td>(</td>
-          <td class="paramname"></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<dl class="section return"><dt>Returns</dt><dd>true if this token can ever transition to the cancelled state. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html#l00048">48</a> of file <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html">CancellationToken.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html#l00041">41</a> of file <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html">CancellationToken.hpp</a>.</p>
 
 </div>
 </div>
@@ -207,12 +176,12 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>true if cancellation has been requested. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html#l00054">54</a> of file <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html">CancellationToken.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html#l00049">49</a> of file <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html">CancellationToken.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a221d49f84a2df55286053bf1b95672cc" name="a221d49f84a2df55286053bf1b95672cc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a221d49f84a2df55286053bf1b95672cc">&#9670;&#160;</a></span>Request()</h2>
+<a id="aea2c2279bc5634c636d54ec40e3614da" name="aea2c2279bc5634c636d54ec40e3614da"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aea2c2279bc5634c636d54ec40e3614da">&#9670;&#160;</a></span>Request()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -229,50 +198,14 @@ Static Public Member Functions</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
-<p>Requests cancellation and runs any registered callbacks exactly once. </p>
+<p>Requests cancellation. Idempotent and thread-safe; a no-op on a non-cancellable token. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html#l00060">60</a> of file <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html">CancellationToken.hpp</a>.</p>
-
-</div>
-</div>
-<a id="aefea5eb355184ba42bf4fc60791de013" name="aefea5eb355184ba42bf4fc60791de013"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aefea5eb355184ba42bf4fc60791de013">&#9670;&#160;</a></span>OnCancel()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">void Lightweight::Async::CancellationToken::OnCancel </td>
-          <td>(</td>
-          <td class="paramtype">std::function&lt; void()&gt;&#160;</td>
-          <td class="paramname"><em>callback</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Registers <code>callback</code> to run when cancellation is requested.</p>
-<p>If cancellation has already been requested, the callback runs immediately on the calling thread. On a non-cancellable token the callback is dropped.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">callback</td><td>The callback to invoke on cancellation (consumed). </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p class="definition">Definition at line <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html#l00082">82</a> of file <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html">CancellationToken.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html#l00055">55</a> of file <a class="el" href="../../d2/df7/CancellationToken_8hpp_source.html">CancellationToken.hpp</a>.</p>
 
 </div>
 </div>

@@ -15,10 +15,9 @@ var searchData=
   ['isloaded_12',['IsLoaded',['../df/d63/classLightweight_1_1HasOneThrough.html#ad1c8894f124db4b45117abafe918e51f',1,'Lightweight::HasOneThrough']]],
   ['islocked_13',['IsLocked',['../d3/de6/classLightweight_1_1SqlScopedLock.html#a2c85e873e5b5a5c6b59260514d9e7138',1,'Lightweight::SqlScopedLock']]],
   ['ismodified_14',['ismodified',['../d0/df7/classLightweight_1_1BelongsTo.html#a760ee5ea51fd3c714f26a1d1f3366a37',1,'Lightweight::BelongsTo::IsModified()'],['../de/d61/classLightweight_1_1DataMapper.html#a14f4830a73bb932956d1d66f8f1ef69f',1,'Lightweight::DataMapper::IsModified()'],['../d2/dd0/structLightweight_1_1Field.html#a4296163dab8a3ce341e2b52a18c7c7b7',1,'Lightweight::Field::IsModified()']]],
-  ['isnative_15',['isnative',['../dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html#afb093f452649933f5a90bf1ae75be86e',1,'Lightweight::Async::IAsyncBackend::IsNative()'],['../dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend.html#a07ab69e30d3798624a1e867e7a76aeec',1,'Lightweight::Async::ThreadOffloadBackend::IsNative()']]],
-  ['isnull_16',['IsNull',['../df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021',1,'Lightweight::SqlVariant']]],
-  ['isopen_17',['isopen',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#aca980f73de141baddf5d6ad7189fe932',1,'Lightweight::Zip::ZipArchive::IsOpen()'],['../d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a7628d304d8e4d1d9c0633d621a20e900',1,'Lightweight::Zip::ZipEntry::IsOpen()']]],
-  ['isprepared_18',['IsPrepared',['../db/dad/classLightweight_1_1SqlStatement.html#a8d0e75bc859cfc55a99d41b8907d77bd',1,'Lightweight::SqlStatement']]],
-  ['isready_19',['IsReady',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#a6d6d9ae50c57b4026b9cc30357a16c72',1,'Lightweight::Async::Task']]],
-  ['isvalid_20',['IsValid',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#adaf1b753e7f02865227154251a38fff1',1,'Lightweight::Async::Task']]]
+  ['isnull_15',['IsNull',['../df/d3f/structLightweight_1_1SqlVariant.html#a9a77d3cabe4f40396af1803e41c6b021',1,'Lightweight::SqlVariant']]],
+  ['isopen_16',['isopen',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#aca980f73de141baddf5d6ad7189fe932',1,'Lightweight::Zip::ZipArchive::IsOpen()'],['../d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html#a7628d304d8e4d1d9c0633d621a20e900',1,'Lightweight::Zip::ZipEntry::IsOpen()']]],
+  ['isprepared_17',['IsPrepared',['../db/dad/classLightweight_1_1SqlStatement.html#a8d0e75bc859cfc55a99d41b8907d77bd',1,'Lightweight::SqlStatement']]],
+  ['isready_18',['IsReady',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#a6d6d9ae50c57b4026b9cc30357a16c72',1,'Lightweight::Async::Task']]],
+  ['isvalid_19',['IsValid',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#adaf1b753e7f02865227154251a38fff1',1,'Lightweight::Async::Task']]]
 ];

@@ -168,17 +168,28 @@ Single-threaded vs multi-threaded</h1>
 </div><!-- fragment --><p>In a real event loop you would instead call <code>appLoop.Run()</code> (or <code>Drain()</code> / <code>RunOne()</code>) from your loop tick, and start coroutines without blocking.</p>
 <p><b>Multi-threaded.</b> Use a pool and let coroutines resume on worker threads (resume scheduler = the pool). Acquire a connection without blocking via <code>Pool::AcquireAsync</code>:</p>
 <div class="fragment"><div class="line"><a class="code hl_class" href="../../d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor.html">Async::ThreadPoolExecutor</a> dbWorkers { 8 };</div>
-<div class="line"><a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">DataMapperPool</a> pool; <span class="comment">// or Pool&lt;YourConfig&gt;{}</span></div>
 <div class="line"> </div>
-<div class="line"><a class="code hl_class" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Async::Task&lt;std::optional&lt;User&gt;</a>&gt; Fetch(<a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">DataMapperPool</a>&amp; pool, <a class="code hl_struct" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a> <span class="keywordtype">id</span>)</div>
+<div class="line"><span class="comment">// Back-pressure (suspend-on-exhaustion) requires the BoundedWait strategy; the default</span></div>
+<div class="line"><span class="comment">// DataMapperPool uses BoundedOverflow, which never suspends (see the note below).</span></div>
+<div class="line"><span class="keyword">using </span>BoundedPool = <a class="code hl_class" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a>&lt;<a class="code hl_struct" href="../../df/d1a/structLightweight_1_1PoolConfig.html">PoolConfig</a> { .<a class="code hl_variable" href="../../df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4">initialSize</a> = 4, .maxSize = 8,</div>
+<div class="line">                                      .growthStrategy = GrowthStrategy::BoundedWait }&gt;;</div>
+<div class="line">BoundedPool pool;</div>
+<div class="line"> </div>
+<div class="line"><a class="code hl_class" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Async::Task&lt;std::optional&lt;User&gt;</a>&gt; Fetch(BoundedPool&amp; pool, <a class="code hl_struct" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a> <span class="keywordtype">id</span>)</div>
 <div class="line">{</div>
-<div class="line">    <span class="keyword">auto</span> dm = <span class="keyword">co_await</span> pool.AcquireAsync(dbWorkers, dbWorkers); <span class="comment">// suspends, never blocks</span></div>
+<div class="line">    <span class="keyword">auto</span> dm = <span class="keyword">co_await</span> pool.AcquireAsync(dbWorkers, dbWorkers); <span class="comment">// suspends when at capacity, never blocks</span></div>
 <div class="line">    <span class="keyword">co_return</span> <span class="keyword">co_await</span> dm-&gt;QuerySingleAsync&lt;User&gt;(id);</div>
 <div class="line">    <span class="comment">// dm returns to the pool when the coroutine ends</span></div>
 <div class="line">}</div>
-<div class="ttc" id="aclassLightweight_1_1Pool_html"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html">Lightweight::Pool</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00061">Pool.hpp:62</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1Pool_html"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html">Lightweight::Pool</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00062">Pool.hpp:63</a></div></div>
+<div class="ttc" id="astructLightweight_1_1PoolConfig_html"><div class="ttname"><a href="../../df/d1a/structLightweight_1_1PoolConfig.html">Lightweight::PoolConfig</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00045">Pool.hpp:46</a></div></div>
+<div class="ttc" id="astructLightweight_1_1PoolConfig_html_a8ff366daa9e0eb6c99e5a1e3fc5ec8d4"><div class="ttname"><a href="../../df/d1a/structLightweight_1_1PoolConfig.html#a8ff366daa9e0eb6c99e5a1e3fc5ec8d4">Lightweight::PoolConfig::initialSize</a></div><div class="ttdeci">size_t initialSize</div><div class="ttdoc">Initial number of data mappers to pre-create and store in the pool, must be less than or equal to max...</div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00048">Pool.hpp:48</a></div></div>
 <div class="ttc" id="astructLightweight_1_1SqlGuid_html"><div class="ttname"><a href="../../df/d7c/structLightweight_1_1SqlGuid.html">Lightweight::SqlGuid</a></div><div class="ttdef"><b>Definition</b> <a href="../../d9/dc2/SqlGuid_8hpp_source.html#l00019">SqlGuid.hpp:20</a></div></div>
-</div><!-- fragment --><p>When the pool is exhausted, <code>AcquireAsync</code> suspends the coroutine and resumes it once another caller returns a connection — no thread is parked.</p>
+</div><!-- fragment --><p><code>AcquireAsync</code> never blocks the calling thread; its back-pressure behavior depends on the pool's growth strategy:</p>
+<ul>
+<li>**<code>BoundedWait</code>** — when the pool is at <code>maxSize</code>, <code>AcquireAsync</code> <em>suspends</em> the coroutine and resumes it once another caller returns a connection. No thread is parked.</li>
+<li>**<code>BoundedOverflow</code>** (the <b>default</b> <code>DataMapperPool</code>) and **<code>UnboundedGrow</code>** — never suspend: if no idle connection is available a fresh one is created (matching the synchronous <code>Acquire</code>). Under load this can open an unbounded number of connections, so choose <code>BoundedWait</code> when you need back-pressure.</li>
+</ul>
 <h1><a class="anchor" id="transactions"></a>
 Transactions</h1>
 <p><code>AsyncSqlTransaction</code> is the one distinct async type (a transaction is a scoped object):</p>
@@ -192,7 +203,7 @@ Transactions</h1>
 <div class="line">    <span class="keyword">co_await</span> dm.UpdateAsync(to);</div>
 <div class="line">    <span class="keyword">co_await</span> tx.CommitAsync();      <span class="comment">// or co_await tx.RollbackAsync();</span></div>
 <div class="line">}</div>
-<div class="ttc" id="aclassLightweight_1_1Async_1_1AsyncSqlTransaction_html"><div class="ttname"><a href="../../d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html">Lightweight::Async::AsyncSqlTransaction</a></div><div class="ttdef"><b>Definition</b> <a href="../../d5/df5/AsyncSqlTransaction_8hpp_source.html#l00036">AsyncSqlTransaction.hpp:37</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1Async_1_1AsyncSqlTransaction_html"><div class="ttname"><a href="../../d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html">Lightweight::Async::AsyncSqlTransaction</a></div><div class="ttdef"><b>Definition</b> <a href="../../d5/df5/AsyncSqlTransaction_8hpp_source.html#l00042">AsyncSqlTransaction.hpp:43</a></div></div>
 </div><!-- fragment --><p>Always <code>co_await CommitAsync()</code> / <code>RollbackAsync()</code> explicitly. The destructor only performs a best-effort <em>synchronous</em> finalization if the transaction is still open.</p>
 <h1><a class="anchor" id="cancellation"></a>
 Cancellation</h1>
