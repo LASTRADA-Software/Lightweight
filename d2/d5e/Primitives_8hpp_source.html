@@ -210,24 +210,21 @@ $(document).ready(function(){initNavTree('d2/d5e/Primitives_8hpp_source.html','.
 <div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span> </div>
 <div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span><span class="comment">// These fixed-width primitives bind via a plain SQLBindParameter and are eligible for native row-wise</span></div>
 <div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span><span class="comment">// batch binding (see SqlIsNativeRowBindableValue in Core.hpp). A single constrained partial</span></div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span><span class="comment">// specialization covers them all. std::same_as is used rather than detail::OneOf so this low-level</span></div>
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span><span class="comment">// binder header does not have to include Utils.hpp (which transitively pulls in reflection-cpp).</span></div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>    <span class="keyword">requires</span>(std::same_as&lt;T, bool&gt; || std::same_as&lt;T, char&gt; || std::same_as&lt;T, int8_t&gt; || std::same_as&lt;T, uint8_t&gt;</div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>             || std::same_as&lt;T, int16_t&gt; || std::same_as&lt;T, uint16_t&gt; || std::same_as&lt;T, int32_t&gt;</div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>             || std::same_as&lt;T, uint32_t&gt; || std::same_as&lt;T, int64_t&gt; || std::same_as&lt;T, uint64_t&gt;</div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>             || std::same_as&lt;T, float&gt; || std::same_as&lt;T, double&gt;</div>
-<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span><span class="preprocessor">#if !defined(_WIN32) &amp;&amp; !defined(__APPLE__)</span></div>
-<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>             || std::same_as&lt;T, long long&gt; || std::same_as&lt;T, unsigned long long&gt;</div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span><span class="comment">// specialization, keyed on detail::IsAnyOf, covers them all.</span></div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>    <span class="keyword">requires</span> detail::IsAnyOf&lt;T, bool, char, int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t,</div>
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>                             float, <span class="keywordtype">double</span></div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span><span class="preprocessor">#if !defined(_WIN32) &amp;&amp; !defined(__APPLE__)</span></div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>                             , <span class="keywordtype">long</span> long, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span></div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span><span class="preprocessor">#if defined(__APPLE__)</span></div>
+<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>                             , std::size_t</div>
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span><span class="preprocessor">#if defined(__APPLE__)</span></div>
-<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>             || std::same_as&lt;T, std::size_t&gt;</div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>    )</div>
-<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsNativeRowBindableValue&lt;T&gt; = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span><span class="comment">// clang-format on</span></div>
-<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span> </div>
-<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>                             &gt;</div>
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span><span class="keyword">inline</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> SqlIsNativeRowBindableValue&lt;T&gt; = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span><span class="comment">// clang-format on</span></div>
+<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span> </div>
+<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>} <span class="comment">// namespace Lightweight</span></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
