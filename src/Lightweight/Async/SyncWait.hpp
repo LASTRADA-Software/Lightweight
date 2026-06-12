@@ -241,7 +241,7 @@ namespace detail
 ///
 /// Use this from non-coroutine code (e.g. @c main, tests) when the task resumes on a
 /// thread-backed scheduler. If the task resumes on a @ref ManualExecutor that only the
-/// calling thread pumps, use @ref SyncWaitPumping instead to avoid a deadlock.
+/// calling thread pumps, use @c SyncWaitPumping instead to avoid a deadlock.
 ///
 /// @tparam T The task's result type.
 /// @param task The task to drive to completion (consumed).
@@ -258,7 +258,7 @@ T SyncWait(Task<T> task)
 
 /// Drives @p task to completion by pumping @p executor on the calling thread.
 ///
-/// This is the single-threaded counterpart to @ref SyncWait: rather than blocking, it runs
+/// This is the single-threaded counterpart to @c SyncWait: rather than blocking, it runs
 /// the executor's queued work (including the task's resumption) until the task finishes.
 /// Intended for an app/event-loop thread and for deterministic tests using a
 /// @ref ManualExecutor.

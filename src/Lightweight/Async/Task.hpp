@@ -135,7 +135,7 @@ namespace detail
 /// A @c Task<T> represents an asynchronous computation that yields a value of type @c T
 /// (or nothing for @c Task<void>). It is @b lazy — the coroutine body does not start
 /// executing until the Task is @c co_await-ed by another coroutine or driven to completion
-/// by @ref SyncWait / @ref SyncWaitPumping. Awaiting uses symmetric transfer, so chains of
+/// by @c SyncWait / @c SyncWaitPumping. Awaiting uses symmetric transfer, so chains of
 /// awaits do not grow the stack. Exceptions thrown inside the body are captured and
 /// rethrown at the awaiting site (parity with the throwing synchronous API).
 ///
@@ -144,21 +144,32 @@ template <typename T>
 class [[nodiscard]] Task
 {
   public:
+    /// The coroutine promise type required by the C++ coroutine machinery.
     using promise_type = detail::TaskPromise<T>;
+
+    /// The typed coroutine handle owned by this Task.
     using Handle = std::coroutine_handle<promise_type>;
 
+    /// Constructs an empty Task that owns no coroutine.
     Task() noexcept = default;
 
+    /// Adopts ownership of the coroutine identified by @p handle (used by the promise).
+    /// @param handle The coroutine handle to take ownership of.
     explicit Task(Handle handle) noexcept:
         _handle { handle }
     {
     }
 
+    /// Move-constructs from @p other, leaving it empty.
+    /// @param other The Task to move from.
     Task(Task&& other) noexcept:
         _handle { std::exchange(other._handle, {}) }
     {
     }
 
+    /// Move-assigns from @p other, destroying any currently-owned coroutine first.
+    /// @param other The Task to move from.
+    /// @return A reference to this Task.
     Task& operator=(Task&& other) noexcept
     {
         if (this != &other)
@@ -197,6 +208,9 @@ class [[nodiscard]] Task
         return _handle;
     }
 
+    /// Awaits this Task: suspends the awaiting coroutine, runs this Task, and yields its result
+    /// (or rethrows its exception) once it completes.
+    /// @return An awaiter for this Task.
     auto operator co_await() && noexcept
     {
         struct Awaiter

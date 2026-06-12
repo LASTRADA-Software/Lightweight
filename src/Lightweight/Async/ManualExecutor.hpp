@@ -55,7 +55,7 @@ class LIGHTWEIGHT_API ManualExecutor final: public IExecutor, public IResumeSche
     ///
     /// Blocks the calling thread between work items, waking when new work is posted. The
     /// predicate must be cheap and must not acquire this executor's internal lock. This is
-    /// the driver used by @ref SyncWaitPumping for the single-threaded model.
+    /// the driver used by @c SyncWaitPumping for the single-threaded model.
     ///
     /// @tparam Predicate A callable returning something contextually convertible to bool.
     /// @param predicate Stop condition, re-checked between work items.
