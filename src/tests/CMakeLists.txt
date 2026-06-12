@@ -70,6 +70,12 @@ if(LIGHTWEIGHT_HAS_STDEXEC)
 endif()
 
 set(SOURCE_FILES
+    Async/TaskTests.cpp
+    Async/ExecutorTests.cpp
+    Async/OffloadTests.cpp
+    Async/AsyncDbTests.cpp
+    Async/AsyncPoolTests.cpp
+    Async/AsyncTransactionTests.cpp
     ConfigProfileStoreTests.cpp
     CoreTests.cpp
     CxxModelPrinterTests.cpp
