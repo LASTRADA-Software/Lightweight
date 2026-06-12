@@ -22,18 +22,18 @@ namespace detail
     /// without a continuation (e.g. a detached/root task).
     struct TaskFinalAwaiter
     {
-        [[nodiscard]] static bool await_ready() noexcept
+        [[nodiscard]] bool await_ready() const noexcept
         {
             return false;
         }
 
         template <typename Promise>
-        [[nodiscard]] static std::coroutine_handle<> await_suspend(std::coroutine_handle<Promise> coro) noexcept
+        [[nodiscard]] std::coroutine_handle<> await_suspend(std::coroutine_handle<Promise> coro) const noexcept
         {
             return coro.promise().Continuation();
         }
 
-        static void await_resume() noexcept {}
+        void await_resume() const noexcept {}
     };
 
     /// Shared promise machinery for @ref Task independent of the result type.
@@ -41,12 +41,12 @@ namespace detail
     {
       public:
         /// Tasks are lazy: the body does not run until the Task is awaited (or driven by SyncWait).
-        [[nodiscard]] static std::suspend_always initial_suspend() noexcept
+        [[nodiscard]] std::suspend_always initial_suspend() noexcept
         {
             return {};
         }
 
-        [[nodiscard]] static TaskFinalAwaiter final_suspend() noexcept
+        [[nodiscard]] TaskFinalAwaiter final_suspend() noexcept
         {
             return {};
         }
@@ -67,7 +67,7 @@ namespace detail
         std::coroutine_handle<> _continuation {};
     };
 
-    /// Promise type for @ref Task<T> with a non-void result.
+    /// Promise type for @c Task<T> with a non-void result.
     ///
     /// @tparam T The value type produced by the coroutine.
     template <typename T>
@@ -103,7 +103,7 @@ namespace detail
         std::variant<std::monostate, T, std::exception_ptr> _result;
     };
 
-    /// Promise specialization for @ref Task<void>.
+    /// Promise specialization for @c Task<void>.
     template <>
     class TaskPromise<void> final: public TaskPromiseBase
     {

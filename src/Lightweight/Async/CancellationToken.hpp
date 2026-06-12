@@ -61,7 +61,7 @@ class CancellationToken
     {
         if (!_state)
             return;
-        std::vector<std::move_only_function<void()>> callbacks;
+        std::vector<std::function<void()>> callbacks;
         {
             std::scoped_lock const lock(_state->mutex);
             if (_state->cancelled.exchange(true, std::memory_order_acq_rel))
@@ -79,7 +79,7 @@ class CancellationToken
     /// calling thread. On a non-cancellable token the callback is dropped.
     ///
     /// @param callback The callback to invoke on cancellation (consumed).
-    void OnCancel(std::move_only_function<void()> callback)
+    void OnCancel(std::function<void()> callback)
     {
         if (!_state)
             return;
@@ -100,7 +100,7 @@ class CancellationToken
     {
         std::atomic<bool> cancelled { false };
         std::mutex mutex;
-        std::vector<std::move_only_function<void()>> callbacks;
+        std::vector<std::function<void()>> callbacks;
     };
 
     std::shared_ptr<State> _state;

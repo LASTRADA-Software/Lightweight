@@ -45,6 +45,7 @@ Checks: >-
   performance-*,
   readability-*,
   -readability-avoid-unconditional-preprocessor-if,
+  -readability-convert-member-functions-to-static,
   -readability-braces-around-statements,
   -readability-else-after-return,
   -readability-identifier-length,

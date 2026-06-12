@@ -5,6 +5,8 @@
 #include "../DataMapper/Entities.hpp"
 // clang-format on
 
+#include "AsyncTestUtils.hpp"
+
 #include <Lightweight/Async/AsyncSqlTransaction.hpp>
 #include <Lightweight/Async/ManualExecutor.hpp>
 #include <Lightweight/Async/SyncWait.hpp>
@@ -27,14 +29,15 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.Transaction: committed work is persisted
     dm.CreateTables<Person>();
 
     auto const id = SqlGuid::Create();
-    auto task = [&]() -> Task<void> {
-        AsyncSqlTransaction tx { dm.Connection() };
-        co_await tx.BeginAsync();
-        auto person = Person { .id = id, .name = "Committed", .age = 1 };
-        co_await dm.CreateAsync(person);
-        co_await tx.CommitAsync();
-    }();
-    SyncWaitPumping(std::move(task), appLoop);
+    RunPumped(
+        [&]() -> Task<void> {
+            AsyncSqlTransaction tx { dm.Connection() };
+            co_await tx.BeginAsync();
+            auto person = Person { .id = id, .name = "Committed", .age = 1 };
+            co_await dm.CreateAsync(person);
+            co_await tx.CommitAsync();
+        },
+        appLoop);
 
     auto const fetched = SyncWaitPumping(dm.QuerySingleAsync<Person>(id), appLoop);
     CHECK(fetched.has_value());
@@ -49,14 +52,15 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.Transaction: rolled back work is discard
     dm.CreateTables<Person>();
 
     auto const id = SqlGuid::Create();
-    auto task = [&]() -> Task<void> {
-        AsyncSqlTransaction tx { dm.Connection() };
-        co_await tx.BeginAsync();
-        auto person = Person { .id = id, .name = "RolledBack", .age = 1 };
-        co_await dm.CreateAsync(person);
-        co_await tx.RollbackAsync();
-    }();
-    SyncWaitPumping(std::move(task), appLoop);
+    RunPumped(
+        [&]() -> Task<void> {
+            AsyncSqlTransaction tx { dm.Connection() };
+            co_await tx.BeginAsync();
+            auto person = Person { .id = id, .name = "RolledBack", .age = 1 };
+            co_await dm.CreateAsync(person);
+            co_await tx.RollbackAsync();
+        },
+        appLoop);
 
     auto const fetched = SyncWaitPumping(dm.QuerySingleAsync<Person>(id), appLoop);
     CHECK_FALSE(fetched.has_value());

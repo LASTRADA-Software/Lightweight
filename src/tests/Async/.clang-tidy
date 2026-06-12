@@ -1,0 +1,11 @@
+# The async tests intentionally drive capturing lambda-coroutines. Such a lambda is normally a
+# lifetime footgun (its closure is not copied into the coroutine frame), which is exactly what
+# `cppcoreguidelines-avoid-capturing-lambda-coroutines` guards against. Here, however, every such
+# coroutine is driven through RunPumped/RunBlocking (see AsyncTestUtils.hpp), which keep the
+# closure alive for the whole run — a pattern clang-tidy cannot see. Disabling the two coroutine
+# checks for the test sources keeps the tests readable; the library code under src/Lightweight
+# keeps both checks fully enforced.
+InheritParentConfig: true
+Checks: >
+  -cppcoreguidelines-avoid-capturing-lambda-coroutines,
+  -cppcoreguidelines-avoid-reference-coroutine-parameters

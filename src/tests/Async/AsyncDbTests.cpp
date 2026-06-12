@@ -5,6 +5,8 @@
 #include "../DataMapper/Entities.hpp"
 // clang-format on
 
+#include "AsyncTestUtils.hpp"
+
 #include <Lightweight/Async/ManualExecutor.hpp>
 #include <Lightweight/Async/SyncWait.hpp>
 #include <Lightweight/Async/ThreadPoolExecutor.hpp>
@@ -31,21 +33,20 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.DataMapper: CRUD via coroutines", "[Asyn
     auto person = Person { .id = SqlGuid::Create(), .name = "Alice", .age = 30 };
     SyncWaitPumping(dm.CreateAsync(person), appLoop);
 
-    auto fetched = SyncWaitPumping(dm.QuerySingleAsync<Person>(person.id.Value()), appLoop);
-    REQUIRE(fetched.has_value());
-    CHECK(fetched->name == person.name);
+    auto const fetched = SyncWaitPumping(dm.QuerySingleAsync<Person>(person.id.Value()), appLoop);
+    CHECK(RequireValue(fetched).name == person.name);
 
-    fetched->name = "Alicia";
-    SyncWaitPumping(dm.UpdateAsync(*fetched), appLoop);
+    auto updated = RequireValue(fetched);
+    updated.name = "Alicia";
+    SyncWaitPumping(dm.UpdateAsync(updated), appLoop);
 
-    auto reFetched = SyncWaitPumping(dm.QuerySingleAsync<Person>(person.id.Value()), appLoop);
-    REQUIRE(reFetched.has_value());
-    CHECK(reFetched->name == fetched->name);
+    auto const reFetched = SyncWaitPumping(dm.QuerySingleAsync<Person>(person.id.Value()), appLoop);
+    CHECK(RequireValue(reFetched).name == updated.name);
 
-    auto const deleted = SyncWaitPumping(dm.DeleteAsync(*reFetched), appLoop);
+    auto const deleted = SyncWaitPumping(dm.DeleteAsync(RequireValue(reFetched)), appLoop);
     CHECK(deleted == 1);
 
-    auto gone = SyncWaitPumping(dm.QuerySingleAsync<Person>(person.id.Value()), appLoop);
+    auto const gone = SyncWaitPumping(dm.QuerySingleAsync<Person>(person.id.Value()), appLoop);
     CHECK_FALSE(gone.has_value());
 }
 
@@ -65,6 +66,6 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.DataMapper: QueryAsync returns multiple 
     }
 
     auto const all =
-        SyncWaitPumping(dm.QueryAsync<Person>("SELECT \"id\", \"name\", \"is_active\", \"age\" FROM \"Person\""), appLoop);
+        SyncWaitPumping(dm.QueryAsync<Person>(R"(SELECT "id", "name", "is_active", "age" FROM "Person")"), appLoop);
     CHECK(all.size() == 5);
 }

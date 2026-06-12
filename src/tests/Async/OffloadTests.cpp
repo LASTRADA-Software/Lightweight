@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "AsyncTestUtils.hpp"
+
 #include <Lightweight/Async/Async.hpp>
 #include <Lightweight/Async/Backend.hpp>
 #include <Lightweight/Async/ManualExecutor.hpp>
@@ -25,16 +27,16 @@ TEST_CASE("Async.Async offloads work and resumes on the app thread", "[Async][Of
     std::thread::id workerThread {};
     std::thread::id resumeThread {};
 
-    auto task = [&]() -> Task<int> {
-        int const value = co_await Async(strand, appLoop, [&]() -> int {
-            workerThread = std::this_thread::get_id();
-            return 21;
-        });
-        resumeThread = std::this_thread::get_id();
-        co_return value * 2;
-    }();
-
-    int const result = SyncWaitPumping(std::move(task), appLoop);
+    int const result = RunPumped(
+        [&]() -> Task<int> {
+            int const value = co_await Async(strand, appLoop, [&]() -> int {
+                workerThread = std::this_thread::get_id();
+                return 21;
+            });
+            resumeThread = std::this_thread::get_id();
+            co_return value * 2;
+        },
+        appLoop);
 
     CHECK(result == 42);
     CHECK(workerThread != mainThread); // the blocking closure ran on a worker thread
@@ -47,11 +49,12 @@ TEST_CASE("Async.Async propagates exceptions from offloaded work", "[Async][Offl
     ManualExecutor appLoop;
     StrandExecutor strand { dbWorkers };
 
-    auto task = [&]() -> Task<int> {
-        co_return co_await Async(strand, appLoop, []() -> int { throw std::runtime_error("boom"); });
-    }();
-
-    CHECK_THROWS_AS(SyncWaitPumping(std::move(task), appLoop), std::runtime_error);
+    CHECK_THROWS_AS(RunPumped(
+                        [&]() -> Task<int> {
+                            co_return co_await Async(strand, appLoop, []() -> int { throw std::runtime_error("boom"); });
+                        },
+                        appLoop),
+                    std::runtime_error);
 }
 
 TEST_CASE("Async.Async honors cancellation requested before dispatch", "[Async][Offload]")
@@ -64,11 +67,9 @@ TEST_CASE("Async.Async honors cancellation requested before dispatch", "[Async][
     token.Request(); // cancel up-front
 
     bool ran = false;
-    auto task = [&]() -> Task<void> {
-        co_await Async(strand, appLoop, [&ran] { ran = true; }, token);
-    }();
-
-    CHECK_THROWS_AS(SyncWaitPumping(std::move(task), appLoop), OperationCancelledError);
+    CHECK_THROWS_AS(
+        RunPumped([&]() -> Task<void> { co_await Async(strand, appLoop, [&ran] { ran = true; }, token); }, appLoop),
+        OperationCancelledError);
     CHECK_FALSE(ran); // cancelled before the closure ran
 }
 
@@ -79,9 +80,5 @@ TEST_CASE("Async.RunAsync via ThreadOffloadBackend", "[Async][Offload]")
     ThreadOffloadBackend backend { dbWorkers, appLoop };
     CHECK_FALSE(backend.IsNative());
 
-    auto task = [&]() -> Task<int> {
-        co_return co_await RunAsync(backend, [] { return 100; });
-    }();
-
-    CHECK(SyncWaitPumping(std::move(task), appLoop) == 100);
+    CHECK(RunPumped([&]() -> Task<int> { co_return co_await RunAsync(backend, [] { return 100; }); }, appLoop) == 100);
 }

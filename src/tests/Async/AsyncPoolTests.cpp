@@ -5,6 +5,8 @@
 #include "../DataMapper/Entities.hpp"
 // clang-format on
 
+#include "AsyncTestUtils.hpp"
+
 #include <Lightweight/Async/ManualExecutor.hpp>
 #include <Lightweight/Async/SyncWait.hpp>
 #include <Lightweight/Async/Task.hpp>
@@ -34,12 +36,12 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync acquires, queries and
         dm.Create(person);
     }
 
-    auto task = [&]() -> Task<std::optional<Person>> {
-        auto dm = co_await pool.AcquireAsync(dbWorkers, appLoop);
-        co_return co_await dm->QuerySingleAsync<Person>(id);
-    }();
-
-    auto const result = SyncWaitPumping(std::move(task), appLoop);
+    auto const result = RunPumped(
+        [&]() -> Task<std::optional<Person>> {
+            auto dm = co_await pool.AcquireAsync(dbWorkers, appLoop);
+            co_return co_await dm->QuerySingleAsync<Person>(id);
+        },
+        appLoop);
     REQUIRE(result.has_value());
     CHECK(pool.IdleCount() == 2); // the acquired mapper was returned to the pool
 }
@@ -55,16 +57,17 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync suspends until a mapp
     CHECK(pool.IdleCount() == 0);
 
     bool acquired = false;
-    auto task = [&]() -> Task<void> {
-        auto dm = co_await pool.AcquireAsync(dbWorkers, appLoop);
-        acquired = true;
-        co_return;
-    }();
 
     // Releasing the held mapper while the coroutine is suspended hands it straight to the waiter.
     appLoop.Post([&holder] { holder.reset(); });
 
-    SyncWaitPumping(std::move(task), appLoop);
+    RunPumped(
+        [&]() -> Task<void> {
+            auto dm = co_await pool.AcquireAsync(dbWorkers, appLoop);
+            acquired = true;
+            co_return;
+        },
+        appLoop);
     CHECK(acquired);
     CHECK(pool.IdleCount() == 1);
 }

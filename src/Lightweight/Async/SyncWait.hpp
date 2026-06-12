@@ -57,24 +57,24 @@ namespace detail
       public:
         SyncWaitTask<T> get_return_object() noexcept;
 
-        static std::suspend_always initial_suspend() noexcept
+        std::suspend_always initial_suspend() noexcept
         {
             return {};
         }
 
-        static auto final_suspend() noexcept
+        auto final_suspend() noexcept
         {
             struct FinalAwaiter
             {
-                [[nodiscard]] static bool await_ready() noexcept
+                [[nodiscard]] bool await_ready() const noexcept
                 {
                     return false;
                 }
-                static void await_suspend(std::coroutine_handle<SyncWaitPromise> coro) noexcept
+                void await_suspend(std::coroutine_handle<SyncWaitPromise> coro) const noexcept
                 {
                     coro.promise().Signal();
                 }
-                static void await_resume() noexcept {}
+                void await_resume() const noexcept {}
             };
             return FinalAwaiter {};
         }
@@ -122,24 +122,24 @@ namespace detail
       public:
         SyncWaitTask<void> get_return_object() noexcept;
 
-        static std::suspend_always initial_suspend() noexcept
+        std::suspend_always initial_suspend() noexcept
         {
             return {};
         }
 
-        static auto final_suspend() noexcept
+        auto final_suspend() noexcept
         {
             struct FinalAwaiter
             {
-                [[nodiscard]] static bool await_ready() noexcept
+                [[nodiscard]] bool await_ready() const noexcept
                 {
                     return false;
                 }
-                static void await_suspend(std::coroutine_handle<SyncWaitPromise> coro) noexcept
+                void await_suspend(std::coroutine_handle<SyncWaitPromise> coro) const noexcept
                 {
                     coro.promise().Signal();
                 }
-                static void await_resume() noexcept {}
+                void await_resume() const noexcept {}
             };
             return FinalAwaiter {};
         }

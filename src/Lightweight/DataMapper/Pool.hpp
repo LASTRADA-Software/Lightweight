@@ -284,7 +284,7 @@ class Pool
         Async::IResumeScheduler& resume;
         std::unique_ptr<DataMapper> acquired {};
 
-        [[nodiscard]] static bool await_ready() noexcept
+        [[nodiscard]] bool await_ready() const noexcept
         {
             return false;
         }

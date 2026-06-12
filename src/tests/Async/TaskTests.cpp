@@ -94,11 +94,15 @@ TEST_CASE("Async.Task: deep symmetric-transfer chain does not overflow the stack
 TEST_CASE("Async.Task: lazy — body does not run until awaited", "[Async][Task]")
 {
     bool ran = false;
-    auto task = [&ran]() -> Async::Task<int> {
+    // Name the closure so it outlives the coroutine: a temporary lambda-coroutine that captures
+    // would dangle once destroyed, because its body runs later (inside SyncWait).
+    auto makeTask = [&ran]() -> Async::Task<int> {
         ran = true;
         co_return 7;
-    }();
+    };
+    auto task = makeTask();
     CHECK_FALSE(ran); // lazy: nothing has executed yet
-    CHECK(Async::SyncWait(std::move(task)) == 7);
+    auto const result = Async::SyncWait(std::move(task));
+    CHECK(result == 7);
     CHECK(ran);
 }

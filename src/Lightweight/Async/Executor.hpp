@@ -7,8 +7,12 @@
 namespace Lightweight::Async
 {
 
-/// A move-only unit of deferred work scheduled on an @ref IExecutor.
-using Work = std::move_only_function<void()>;
+/// A unit of deferred work scheduled on an @ref IExecutor.
+///
+/// @c std::function (rather than @c std::move_only_function) is used so the async layer builds
+/// with standard libraries that do not yet provide the latter; every work item the library posts
+/// is a small, copyable closure.
+using Work = std::function<void()>;
 
 /// Interface for an executor that runs posted work items.
 ///
@@ -34,7 +38,7 @@ class IExecutor
 ///
 /// Kept separate from @ref IExecutor::Post so resumption can be expressed as a bare
 /// coroutine handle, which lets implementations avoid wrapping every resume in a
-/// @ref Work allocation on hot paths.
+/// @c Work allocation on hot paths.
 class IResumeScheduler
 {
   public:
