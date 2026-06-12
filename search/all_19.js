@@ -190,7 +190,7 @@ var searchData=
   ['supported_20compression_20methods_187',['5.1 Supported Compression Methods',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md51-supported-compression-methods',1,'']]],
   ['supported_20databases_188',['supported databases',['../index.html#supported-databases',1,'Supported databases'],['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#supported-databases-1',1,'Supported Databases']]],
   ['supported_20platforms_189',['Supported platforms',['../index.html#supported-platforms',1,'']]],
-  ['supportsnativerowbatch_190',['SupportsNativeRowBatch',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8a939730ac73fd68e68753138599e26b',1,'Lightweight::SqlQueryFormatter']]],
+  ['supportsnativerowbatch_190',['SupportsNativeRowBatch',['../da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5',1,'Lightweight::SqlConnection']]],
   ['sv_191',['sv',['../d7/d13/structLightweight_1_1SqlRealName.html#a29fb9edfde8a0f55e37e22f61ef14508',1,'Lightweight::SqlRealName']]],
   ['system_192',['system',['../d5/dc4/dbtool.html#plugin-system',1,'Plugin System'],['../index.html#using-sqlite-for-testing-on-windows-operating-system',1,'Using SQLite for testing on Windows operating system']]],
   ['systems_193',['SQLite ODBC driver installation on other operating systems',['../index.html#sqlite-odbc-driver-installation-on-other-operating-systems',1,'']]]

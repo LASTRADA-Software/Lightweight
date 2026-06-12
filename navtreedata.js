@@ -224,7 +224,7 @@ var NAVTREEINDEX =
 "d2/dd0/structLightweight_1_1Field.html#aaf257a679d7d4340a4514a567f03a27a",
 "d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fca12d868c18cb29bf58f02b504be9033fd",
 "d7/d53/structLightweight_1_1SqlTime.html#a13ab046cdb242b02223e8b6eeecae855",
-"d9/de1/structLightweight_1_1SqlDate.html#afe238c510db9a86dc6aac51196e8e3f1",
+"d9/de5/SqlLogger_8hpp_source.html",
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html",
 "df/d1a/structLightweight_1_1PoolConfig.html"
 ];

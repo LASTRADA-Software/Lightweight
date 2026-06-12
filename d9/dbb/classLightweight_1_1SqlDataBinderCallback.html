@@ -301,7 +301,9 @@ The indicators must remain valid until the statement is executed.</dd></dl>
 <p>This is used by batch input parameter binders that need scratch storage whose lifetime must outlive the bind call but not the execution — for example a row-strided NULL/length indicator array used by native row-wise array binding of <code>std::optional</code> columns.</p>
 <dl class="section note"><dt>Note</dt><dd>The buffer contents are unspecified; the caller is responsible for initializing it. </dd>
 <dd>
-The returned storage is aligned to at least <code>alignof(std::max_align_t)</code>.</dd></dl>
+The returned storage is aligned to at least <code>alignof(std::max_align_t)</code>. </dd>
+<dd>
+Row-wise callers request <code>~rowStride*rowCount</code> bytes to hold only <code>rowCount</code> <code>SQLLEN</code> indicators. This over-allocation is intrinsic to ODBC row-wise binding, which strides the <code>StrLen_or_IndPtr</code> array by <code>SQL_ATTR_PARAM_BIND_TYPE</code> (the row stride) — there is no separate indicator stride — so a tightly packed indicator array would require descriptor-level binding.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">byteCount</td><td>The number of bytes to provide. </td></tr>

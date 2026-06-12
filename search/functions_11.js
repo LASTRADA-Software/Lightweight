@@ -73,6 +73,6 @@ var searchData=
   ['str_70',['str',['../d7/d9a/classLightweight_1_1SqlDynamicString.html#a4a0c6c200f33201682f2567bad3c53f1',1,'Lightweight::SqlDynamicString::str()'],['../de/dae/classLightweight_1_1SqlFixedString.html#a406155892924b437d84c627ea2b750cd',1,'Lightweight::SqlFixedString::str()']]],
   ['stringliteral_71',['stringliteral',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a150a177da7cc5510ebd3f5461b555b4e',1,'Lightweight::SqlQueryFormatter::StringLiteral(std::string_view value) const noexcept=0'],['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#af7b245464e7f0324ccbe281451c1399f',1,'Lightweight::SqlQueryFormatter::StringLiteral(char value) const noexcept=0']]],
   ['substr_72',['substr',['../d7/d9a/classLightweight_1_1SqlDynamicString.html#aa67b9eff101d2fdca8a6a563bbe31609',1,'Lightweight::SqlDynamicString::substr()'],['../de/dae/classLightweight_1_1SqlFixedString.html#a9da9b618656a2afc3a7748d302dc06e5',1,'Lightweight::SqlFixedString::substr()']]],
-  ['supportsnativerowbatch_73',['SupportsNativeRowBatch',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8a939730ac73fd68e68753138599e26b',1,'Lightweight::SqlQueryFormatter']]],
+  ['supportsnativerowbatch_73',['SupportsNativeRowBatch',['../da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5',1,'Lightweight::SqlConnection']]],
   ['sv_74',['sv',['../d7/d13/structLightweight_1_1SqlRealName.html#a29fb9edfde8a0f55e37e22f61ef14508',1,'Lightweight::SqlRealName']]]
 ];

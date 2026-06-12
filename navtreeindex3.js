@@ -145,12 +145,12 @@ var NAVTREEINDEX3 =
 "d8/dec/Delete_8hpp_source.html":[13,0,1,4,1],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html":[12,0,0,56],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a150a177da7cc5510ebd3f5461b555b4e":[12,0,0,56,8],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595":[12,0,0,56,28],
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1aade87023f69d63e86f4aca06a97595":[12,0,0,56,27],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a1dcb7e54bfcc84b7995643cd35a43c53":[12,0,0,56,3],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a28d630a4ecd3bb5946d20de498d95176":[12,0,0,56,11],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2a8b5bd4208f5b50cb9e4e4e8cbc3922":[12,0,0,56,1],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2ec073a60fd4242445ce990a1840ccfe":[12,0,0,56,4],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6":[12,0,0,56,29],
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a2f3e6e88b1fb6af51bf4d0d65c5a52e6":[12,0,0,56,28],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4259cbd0861534246ce81a9494caf032":[12,0,0,56,26],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a6cdc65b4e3d20ca7105abe72ecfdd5b9":[12,0,0,56,16],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a725b026c92dcdf60b1a0ed60dc5b9a81":[12,0,0,56,19],
@@ -158,7 +158,6 @@ var NAVTREEINDEX3 =
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a80866f04bd1bd068047791469b570aa9":[12,0,0,56,7],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8513eaca58ba6015cecfd88973c18d4b":[12,0,0,56,25],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a89a3e81449d4a55aec87f793adc3bb4f":[12,0,0,56,18],
-"d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8a939730ac73fd68e68753138599e26b":[12,0,0,56,27],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9b5cc394c01daeccdafb032bd2da9003":[12,0,0,56,24],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#a9d7c9b20efff3182019134922431f9dd":[12,0,0,56,21],
 "d8/df7/classLightweight_1_1SqlQueryFormatter.html#aa1f92ce1316d440b0f318c9b57807bd8":[12,0,0,56,17],
@@ -249,5 +248,6 @@ var NAVTREEINDEX3 =
 "d9/de1/structLightweight_1_1SqlDate.html#abb63b8190ca89408601b6b10e58b7c9d":[10,0,1,0],
 "d9/de1/structLightweight_1_1SqlDate.html#ac22e4292f9c821d76c65c2dcd76ec3d2":[10,0,1,10],
 "d9/de1/structLightweight_1_1SqlDate.html#ac8926c16c74e11a1467098a40b13e552":[10,0,1,9],
-"d9/de1/structLightweight_1_1SqlDate.html#acbb3cb3b332956f35ba25c25d6dc34b5":[10,0,1,6]
+"d9/de1/structLightweight_1_1SqlDate.html#acbb3cb3b332956f35ba25c25d6dc34b5":[10,0,1,6],
+"d9/de1/structLightweight_1_1SqlDate.html#afe238c510db9a86dc6aac51196e8e3f1":[10,0,1,5]
 };
