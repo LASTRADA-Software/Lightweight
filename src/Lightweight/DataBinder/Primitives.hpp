@@ -110,20 +110,17 @@ template <> struct SqlDataBinder<std::size_t>: SqlSimpleDataBinder<std::size_t, 
 
 // These fixed-width primitives bind via a plain SQLBindParameter and are eligible for native row-wise
 // batch binding (see SqlIsNativeRowBindableValue in Core.hpp). A single constrained partial
-// specialization covers them all. std::same_as is used rather than detail::OneOf so this low-level
-// binder header does not have to include Utils.hpp (which transitively pulls in reflection-cpp).
+// specialization, keyed on detail::IsAnyOf, covers them all.
 template <typename T>
-    requires(std::same_as<T, bool> || std::same_as<T, char> || std::same_as<T, int8_t> || std::same_as<T, uint8_t>
-             || std::same_as<T, int16_t> || std::same_as<T, uint16_t> || std::same_as<T, int32_t>
-             || std::same_as<T, uint32_t> || std::same_as<T, int64_t> || std::same_as<T, uint64_t>
-             || std::same_as<T, float> || std::same_as<T, double>
+    requires detail::IsAnyOf<T, bool, char, int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t,
+                             float, double
 #if !defined(_WIN32) && !defined(__APPLE__)
-             || std::same_as<T, long long> || std::same_as<T, unsigned long long>
+                             , long long, unsigned long long
 #endif
 #if defined(__APPLE__)
-             || std::same_as<T, std::size_t>
+                             , std::size_t
 #endif
-    )
+                             >
 inline constexpr bool SqlIsNativeRowBindableValue<T> = true;
 // clang-format on
 

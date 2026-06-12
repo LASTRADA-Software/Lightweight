@@ -115,6 +115,13 @@ struct SqlBasicStringOperations;
 namespace detail
 {
 
+    /// @brief Satisfied when @p T is the same type as at least one of @p Us.
+    ///
+    /// Mirrors @c Lightweight::detail::OneOf, but lives in the DataBinder layer so the low-level binder
+    /// headers can use it without reaching up to the higher-level Utils.hpp.
+    template <typename T, typename... Us>
+    concept IsAnyOf = (std::same_as<T, Us> || ...);
+
     // clang-format off
 template <typename T>
 concept HasGetStringAndGetLength = requires(T const& t) {
