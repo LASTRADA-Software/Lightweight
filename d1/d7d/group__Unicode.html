@@ -105,8 +105,6 @@ Functions</h2></td></tr>
 <tr class="separator:ga89bd79809fec27653916a0f51baf77be"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaeea1897cf07830f0e79a3ebff15b15ef" id="r_gaeea1897cf07830f0e79a3ebff15b15ef"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::u8string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#gaeea1897cf07830f0e79a3ebff15b15ef">Lightweight::ToUtf8</a> (std::u16string_view u16InputString)</td></tr>
 <tr class="separator:gaeea1897cf07830f0e79a3ebff15b15ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:gab0d7bfa1c9f79dc19db447d34d1633c9" id="r_gab0d7bfa1c9f79dc19db447d34d1633c9"><td class="memItemLeft" align="right" valign="top">std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#gab0d7bfa1c9f79dc19db447d34d1633c9">Lightweight::ToUtf8String</a> (std::u16string_view u16InputString)</td></tr>
-<tr class="separator:gab0d7bfa1c9f79dc19db447d34d1633c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:gaee8090ec2956bd8e4e95942db455d314" id="r_gaee8090ec2956bd8e4e95942db455d314"><td class="memTemplParams" colspan="2">template&lt;typename T &gt; <br />
 requires (std::same_as&lt;T, wchar_t&gt; &amp;&amp; sizeof(wchar_t) == 2)</td></tr>
 <tr class="memitem:gaee8090ec2956bd8e4e95942db455d314"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE std::u8string&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d1/d7d/group__Unicode.html#gaee8090ec2956bd8e4e95942db455d314">Lightweight::ToUtf8</a> (std::basic_string_view&lt; T &gt; u16InputString)</td></tr>
@@ -152,7 +150,7 @@ requires std::same_as&lt;T, char32_t&gt; || (std::same_as&lt;T, wchar_t&gt; &amp
 </div><div class="memdoc">
 <p>Converts from UTF-32 to UTF-8. </p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00236">Lightweight::ToUtf8()</a>, and <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00225">Lightweight::ToUtf8String()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00224">Lightweight::ToUtf8()</a>.</p>
 
 </div>
 </div>
@@ -172,38 +170,6 @@ requires std::same_as&lt;T, char32_t&gt; || (std::same_as&lt;T, wchar_t&gt; &amp
       </table>
 </div><div class="memdoc">
 <p>Converts from UTF-16 to UTF-8. </p>
-
-</div>
-</div>
-<a id="gab0d7bfa1c9f79dc19db447d34d1633c9" name="gab0d7bfa1c9f79dc19db447d34d1633c9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#gab0d7bfa1c9f79dc19db447d34d1633c9">&#9670;&#160;</a></span>ToUtf8String()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">std::string Lightweight::ToUtf8String </td>
-          <td>(</td>
-          <td class="paramtype">std::u16string_view&#160;</td>
-          <td class="paramname"><em>u16InputString</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Converts from UTF-16 to UTF-8, returned as a plain std::string holding the UTF-8 bytes.</p>
-<p>Byte-identical to <a class="el" href="../../d1/d7d/group__Unicode.html#ga89bd79809fec27653916a0f51baf77be">ToUtf8()</a>; convenience for the many call sites that carry UTF-8 in std::string and would otherwise repeat the reinterpret_cast copy. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00225">225</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
-
-<p class="reference">References <a class="el" href="../../d1/d7d/group__Unicode.html#ga89bd79809fec27653916a0f51baf77be">Lightweight::ToUtf8()</a>.</p>
 
 </div>
 </div>
@@ -235,7 +201,7 @@ requires (std::same_as&lt;T, wchar_t&gt; &amp;&amp; sizeof(wchar_t) == 2)</div>
 </div><div class="memdoc">
 <p>Converts from UTF-16 (as wchar_t) to UTF-8. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00236">236</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00224">224</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d1/d7d/group__Unicode.html#ga89bd79809fec27653916a0f51baf77be">Lightweight::ToUtf8()</a>.</p>
 
@@ -261,7 +227,7 @@ requires std::same_as&lt;T, char32_t&gt; || (std::same_as&lt;T, wchar_t&gt; &amp
 </div><div class="memdoc">
 <p>Converts from UTF-32 to UTF-16. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00256">256</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00244">244</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
 
 </div>
 </div>
@@ -322,7 +288,7 @@ template&lt;typename T  = std::u32string&gt; </div>
 </div><div class="memdoc">
 <p>Converts from UTF-8 to UTF-32. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00292">292</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00280">280</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
 
 </div>
 </div>
@@ -345,7 +311,7 @@ template&lt;typename T  = std::u32string&gt; </div>
 </div><div class="memdoc">
 <p>Converts from UTF-16 to UTF-32. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00304">304</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00292">292</a> of file <a class="el" href="../../df/dcd/UnicodeConverter_8hpp_source.html">UnicodeConverter.hpp</a>.</p>
 
 </div>
 </div>
