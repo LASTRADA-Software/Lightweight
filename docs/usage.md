@@ -131,10 +131,11 @@ void CRUD(DataMapper& dm)
 To insert or update many records efficiently, use `CreateAll` and `UpdateAll`. They prepare a single
 statement once and submit the whole batch, preferring native ODBC row-wise array binding (one
 `SQLExecute`, zero-copy) when every column is a fixed-width type — primitives, `SqlDate`/`SqlTime`/
-`SqlDateTime`, `SqlNumeric`, or `std::optional` of a fixed non-numeric type — and the driver supports
-parameter arrays. Records with variable-length columns (e.g. `std::string`) transparently fall back to
-a prepare-once + per-row execute, which is still far cheaper than calling `Create`/`CreateExplicit` in
-a loop (those re-prepare per row).
+`SqlDateTime`, `SqlNumeric`, inline fixed-capacity strings (`SqlAnsiString`/`SqlFixedString`), or
+`std::optional` of a fixed non-numeric type (including nullable fixed-capacity strings) — and the driver
+supports parameter arrays. Records with variable-length columns (e.g. `std::string`) transparently fall
+back to a prepare-once + per-row execute, which is still far cheaper than calling `Create`/`CreateExplicit`
+in a loop (those re-prepare per row).
 
 ```cpp
 void BulkInsert(DataMapper& dm, std::vector<Person> const& people)

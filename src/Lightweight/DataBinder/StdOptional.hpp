@@ -14,6 +14,20 @@
 namespace Lightweight
 {
 
+namespace detail
+{
+    /// Whether @p T's binder exposes an optional-aware row-wise batch binder
+    /// (@c BatchRowWiseInputParameterOptional). True for length-bearing inline inner types
+    /// (fixed-capacity strings), which need a per-row length indicator; false for plain fixed-width inner
+    /// types (primitives, date/time), which carry only a NULL indicator and bind via
+    /// @c BatchInputParameter.
+    template <typename T>
+    concept SqlHasOptionalRowWiseBatchBinder = requires(
+        SQLHSTMT stmt, SQLUSMALLINT column, std::optional<T> const* elem0, std::size_t rowCount, SqlDataBinderCallback& cb) {
+        SqlDataBinder<T>::BatchRowWiseInputParameterOptional(stmt, column, elem0, rowCount, rowCount, cb);
+    };
+} // namespace detail
+
 template <typename T>
 struct SqlDataBinder<std::optional<T>>
 {
@@ -35,16 +49,18 @@ struct SqlDataBinder<std::optional<T>>
     /// Binds an optional column of a native row-wise batch zero-copy, supplying per-row NULL-ness via a
     /// temporary row-strided indicator buffer.
     ///
-    /// The contained value of each row's @c std::optional<T> is bound in place (no copy); the driver
-    /// strides by the statement's @c SQL_ATTR_PARAM_BIND_TYPE (== @p rowStride). For rows whose optional
-    /// is disengaged the indicator is set to @c SQL_NULL_DATA so the (indeterminate) value bytes are
-    /// ignored — the value storage is never dereferenced as a @c T, only its address is taken.
+    /// Dispatches on the inner type @p T:
+    /// - Length-bearing inline types (fixed-capacity strings): delegates to @p T's binder, which fills
+    ///   the per-row length-or-@c SQL_NULL_DATA indicator and binds the inline character buffers.
+    /// - Plain fixed-width types (primitives, date/time): the contained value of each row is bound in
+    ///   place (no copy); the driver strides by the statement's @c SQL_ATTR_PARAM_BIND_TYPE (== @p
+    ///   rowStride). For rows whose optional is disengaged the indicator is @c SQL_NULL_DATA so the
+    ///   (indeterminate) value bytes are ignored — the value storage is never dereferenced as a @c T,
+    ///   only its address is taken.
     ///
     /// @note PRE (guaranteed by the caller): the statement is in row-wise binding mode with
     /// @c SQL_ATTR_PARAM_BIND_TYPE == @p rowStride, and @c rowStride % alignof(SQLLEN) == 0 so the
     /// indicator slots at @c i*rowStride stay aligned and non-overlapping.
-    /// @note Only provided for fixed-width @c T whose binder offers @c BatchInputParameter (primitives,
-    /// date/time/datetime, GUID). Variable-length / numeric @c T route through the soft path instead.
     ///
     /// @param stmt The ODBC statement handle.
     /// @param column The 1-based parameter column index.
@@ -60,30 +76,39 @@ struct SqlDataBinder<std::optional<T>>
                                                 std::size_t rowCount,
                                                 SqlDataBinderCallback& cb) noexcept
     {
-        // Offset of the contained value within std::optional<T> (0 on all known standard libraries,
-        // but computed robustly so the address arithmetic below does not bake in that assumption).
-        OptionalValue const probe { T {} };
-        auto const valueOffset = static_cast<std::size_t>(reinterpret_cast<std::byte const*>(std::addressof(*probe))
-                                                          - reinterpret_cast<std::byte const*>(std::addressof(probe)));
-
-        // Row-strided indicator buffer: ODBC reads the indicator for row i at base + i*rowStride. The
-        // optionals themselves are embedded in the row structs, so they are also addressed at
-        // sourceBytes + i*rowStride (NOT elem0[i], which would stride by sizeof(std::optional<T>)).
-        auto const* sourceBytes = reinterpret_cast<std::byte const*>(elem0);
-        auto* const indicatorBytes = cb.ProvideBatchStagingBuffer(((rowCount - 1) * rowStride) + sizeof(SQLLEN));
-        for (auto const i: std::views::iota(std::size_t { 0 }, rowCount))
+        if constexpr (detail::SqlHasOptionalRowWiseBatchBinder<T>)
         {
-            // The optional and its indicator slot for row i both live at offset i*rowStride (row-wise).
-            auto const& optional = *reinterpret_cast<OptionalValue const*>(sourceBytes + (i * rowStride));
-            auto* const indicatorSlot = reinterpret_cast<SQLLEN*>(indicatorBytes + (i * rowStride));
-            *indicatorSlot = optional.has_value() ? SQLLEN { 0 } : SQLLEN { SQL_NULL_DATA };
+            // Length-bearing inline inner type (fixed-capacity string): its binder owns the
+            // NULL-or-length indicator fill and the zero-copy bind.
+            return SqlDataBinder<T>::BatchRowWiseInputParameterOptional(stmt, column, elem0, rowStride, rowCount, cb);
         }
+        else
+        {
+            // Offset of the contained value within std::optional<T> (0 on all known standard libraries,
+            // but computed robustly so the address arithmetic below does not bake in that assumption).
+            OptionalValue const probe { T {} };
+            auto const valueOffset = static_cast<std::size_t>(reinterpret_cast<std::byte const*>(std::addressof(*probe))
+                                                              - reinterpret_cast<std::byte const*>(std::addressof(probe)));
 
-        // Zero-copy value bind: point at row 0's contained value; T's batch binder issues the
-        // SQLBindParameter (taking only the address, never forming a T& to possibly-disengaged storage).
-        auto const* valueBase = reinterpret_cast<T const*>(reinterpret_cast<std::byte const*>(elem0) + valueOffset);
-        return SqlDataBinder<T>::BatchInputParameter(
-            stmt, column, valueBase, rowCount, cb, reinterpret_cast<SQLLEN*>(indicatorBytes));
+            // Row-strided indicator buffer: ODBC reads the indicator for row i at base + i*rowStride. The
+            // optionals themselves are embedded in the row structs, so they are also addressed at
+            // sourceBytes + i*rowStride (NOT elem0[i], which would stride by sizeof(std::optional<T>)).
+            auto const* sourceBytes = reinterpret_cast<std::byte const*>(elem0);
+            auto* const indicatorBytes = cb.ProvideBatchStagingBuffer(((rowCount - 1) * rowStride) + sizeof(SQLLEN));
+            for (auto const i: std::views::iota(std::size_t { 0 }, rowCount))
+            {
+                // The optional and its indicator slot for row i both live at offset i*rowStride (row-wise).
+                auto const& optional = *reinterpret_cast<OptionalValue const*>(sourceBytes + (i * rowStride));
+                auto* const indicatorSlot = reinterpret_cast<SQLLEN*>(indicatorBytes + (i * rowStride));
+                *indicatorSlot = optional.has_value() ? SQLLEN { 0 } : SQLLEN { SQL_NULL_DATA };
+            }
+
+            // Zero-copy value bind: point at row 0's contained value; T's batch binder issues the
+            // SQLBindParameter (taking only the address, never forming a T& to possibly-disengaged storage).
+            auto const* valueBase = reinterpret_cast<T const*>(reinterpret_cast<std::byte const*>(elem0) + valueOffset);
+            return SqlDataBinder<T>::BatchInputParameter(
+                stmt, column, valueBase, rowCount, cb, reinterpret_cast<SQLLEN*>(indicatorBytes));
+        }
     }
 
     static LIGHTWEIGHT_FORCE_INLINE SQLRETURN OutputColumn(

@@ -1439,6 +1439,21 @@ RecordPrimaryKeyType<Record> DataMapper::CreateExplicit(Record const& record)
 
 namespace detail
 {
+    /// @brief Whether member field type @p FieldType is an insertable column for a batched CREATE
+    /// (bindable and not an auto-increment primary key). Single source of truth shared by the INSERT
+    /// column-list builder and the value-accessor builder, so the bound `?` count and the accessor count
+    /// cannot drift apart.
+    template <typename FieldType>
+    constexpr bool IsBatchInsertColumn = SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>;
+
+    /// @brief Whether @p FieldType is a SET column for a batched UPDATE (storable, non-primary-key).
+    template <typename FieldType>
+    constexpr bool IsBatchUpdateSetColumn = FieldWithStorage<FieldType> && !IsPrimaryKey<FieldType>;
+
+    /// @brief Whether @p FieldType is a WHERE (key) column for a batched UPDATE (a primary key).
+    template <typename FieldType>
+    constexpr bool IsBatchUpdateWhereColumn = IsPrimaryKey<FieldType>;
+
     /// @brief Column accessor for batched DataMapper operations: maps a record to the value of its
     /// I-th member field, returning a reference so the native row-wise batch path binds it in place.
     template <std::size_t I>
@@ -1457,7 +1472,7 @@ namespace detail
     auto MakeCreateColumnAccessor()
     {
         using FieldType = Reflection::MemberTypeOf<I, Record>;
-        if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
+        if constexpr (IsBatchInsertColumn<FieldType>)
             return std::tuple<FieldValueAccessor<I>> {};
         else
             return std::tuple<> {};
@@ -1468,7 +1483,7 @@ namespace detail
     auto MakeUpdateSetAccessor()
     {
         using FieldType = Reflection::MemberTypeOf<I, Record>;
-        if constexpr (FieldWithStorage<FieldType> && !IsPrimaryKey<FieldType>)
+        if constexpr (IsBatchUpdateSetColumn<FieldType>)
             return std::tuple<FieldValueAccessor<I>> {};
         else
             return std::tuple<> {};
@@ -1479,7 +1494,7 @@ namespace detail
     auto MakeUpdateWhereAccessor()
     {
         using FieldType = Reflection::MemberTypeOf<I, Record>;
-        if constexpr (IsPrimaryKey<FieldType>)
+        if constexpr (IsBatchUpdateWhereColumn<FieldType>)
             return std::tuple<FieldValueAccessor<I>> {};
         else
             return std::tuple<> {};
@@ -1512,7 +1527,7 @@ void DataMapper::CreateAllSpan(std::span<Record const> records)
     // Build the INSERT once, with the same column set and order as CreateInternal().
     auto query = _connection.Query(RecordTableName<Record>).Insert(nullptr);
     Reflection::EnumerateMembers<Record>([&query]<auto I, typename FieldType>() {
-        if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
+        if constexpr (detail::IsBatchInsertColumn<FieldType>)
             query.Set(FieldNameAt<I, Record>, SqlWildcard);
     });
     _stmt.Prepare(query);
@@ -1695,11 +1710,11 @@ void DataMapper::UpdateAllSpan(std::span<Record const> records)
     // Build one UPDATE that writes all storable non-primary-key columns, matched on the primary key(s).
     auto query = _connection.Query(RecordTableName<Record>).Update();
     Reflection::EnumerateMembers<Record>([&query]<auto I, typename FieldType>() {
-        if constexpr (FieldWithStorage<FieldType> && !IsPrimaryKey<FieldType>)
+        if constexpr (detail::IsBatchUpdateSetColumn<FieldType>)
             query.Set(FieldNameAt<I, Record>, SqlWildcard);
     });
     Reflection::EnumerateMembers<Record>([&query]<auto I, typename FieldType>() {
-        if constexpr (IsPrimaryKey<FieldType>)
+        if constexpr (detail::IsBatchUpdateWhereColumn<FieldType>)
             std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
     });
     _stmt.Prepare(query);

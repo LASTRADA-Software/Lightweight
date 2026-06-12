@@ -9,6 +9,7 @@
 
 #include <cstddef>
 #include <deque>
+#include <format>
 #include <vector>
 
 namespace Lightweight
@@ -72,6 +73,52 @@ void SqlStatement::ClearBatchIndicators()
     m_data->batchIndicators.shrink_to_fit();
     m_data->batchStagingBuffers.clear();
     m_data->batchStagingBuffers.shrink_to_fit();
+}
+
+void SqlStatement::ResetParameterArrayBinding() noexcept
+{
+    // Restore single-row, column-bound parameter binding (the ODBC default). Invoked from Prepare() and,
+    // via a scope guard, after a native row-wise batch — including the exception path, which is why this
+    // is noexcept and ignores the return codes (resetting to defaults on a live handle does not
+    // meaningfully fail, and a cleanup running during stack unwinding must never throw).
+    // clang-format off
+    // NOLINTNEXTLINE(performance-no-int-to-ptr)
+    SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) 1, 0);
+    SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0);
+    SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, nullptr, 0);
+    SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMS_PROCESSED_PTR, nullptr, 0);
+    // clang-format on
+}
+
+void SqlStatement::RequireExecuteSucceededOrNoData(SQLRETURN result, std::source_location sourceLocation) const
+{
+    // A searched UPDATE/DELETE that matched no rows returns SQL_NO_DATA (per the ODBC spec): the
+    // statement executed, it simply changed nothing. Treat it as success, matching Execute().
+    if (result != SQL_NO_DATA && result != SQL_SUCCESS && result != SQL_SUCCESS_WITH_INFO)
+        throw SqlException(SqlErrorInfo::FromStatementHandle(m_hStmt), sourceLocation);
+}
+
+void SqlStatement::RequireSuccessfulBatchExecute(SQLRETURN result,
+                                                 SQLULEN processedCount,
+                                                 SQLULEN expectedCount,
+                                                 std::source_location sourceLocation) const
+{
+    RequireExecuteSucceededOrNoData(result, sourceLocation);
+
+    // Guard against a driver that silently honours fewer parameter sets than requested. The caller
+    // initialises processedCount to expectedCount, so a driver that ignores SQL_ATTR_PARAMS_PROCESSED_PTR
+    // never trips this; only one that reports a short count does.
+    if (SQL_SUCCEEDED(result) && processedCount != expectedCount)
+        throw SqlException(
+            SqlErrorInfo {
+                .nativeErrorCode = 0,
+                .sqlState = "HY000",
+                .message = std::format("Native row-wise batch processed {} of {} parameter sets; the ODBC "
+                                       "driver did not honour the full parameter array.",
+                                       processedCount,
+                                       expectedCount),
+            },
+            sourceLocation);
 }
 
 void SqlStatement::PlanPostExecuteCallback(std::function<void()>&& cb)
@@ -202,12 +249,7 @@ void SqlStatement::Prepare(std::string_view query) &
     // handle. SqlStatement handles are reused (e.g. by DataMapper) across single and batched executes;
     // without this reset a subsequent single Execute() would inherit a stale PARAMSET_SIZE and a
     // dangling row-wise PARAM_BIND_OFFSET_PTR/PARAM_BIND_TYPE.
-    // clang-format off
-    // NOLINTNEXTLINE(performance-no-int-to-ptr)
-    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) 1, 0));
-    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0));
-    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, nullptr, 0));
-    // clang-format on
+    ResetParameterArrayBinding();
 
     // Unbinds the columns, if any
     RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));

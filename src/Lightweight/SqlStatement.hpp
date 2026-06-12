@@ -188,7 +188,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     /// The native row-wise path is taken when every column value type is row-bindable
     /// (@c SqlNativeRowBindableValue, or @c std::optional of such a non-numeric type), every accessor
     /// returns an lvalue reference, the row stride satisfies the indicator-alignment requirement, and the
-    /// driver advertises parameter-array support (@ref SqlQueryFormatter::SupportsNativeRowBatch). A
+    /// driver advertises parameter-array support (@ref SqlConnection::SupportsNativeRowBatch). A
     /// per-row runtime stride check guards against accessors that are not constant-offset subobjects.
     /// Otherwise the soft path is used, which correctly binds every supported type (strings, binary,
     /// variant, @c std::optional of any type, …) one row at a time.
@@ -308,6 +308,20 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     LIGHTWEIGHT_API SQLLEN* ProvideInputIndicators(size_t rowCount) override;
     LIGHTWEIGHT_API std::byte* ProvideBatchStagingBuffer(std::size_t byteCount) override;
     LIGHTWEIGHT_API void ClearBatchIndicators();
+    /// Restores single-row, column-bound parameter binding (the ODBC default). @c noexcept so it can run
+    /// from a scope guard on the native-batch exception path.
+    LIGHTWEIGHT_API void ResetParameterArrayBinding() noexcept;
+    /// Throws unless @p result is a success code or @c SQL_NO_DATA (a searched UPDATE/DELETE that matched
+    /// no rows). Mirrors @c Execute() so the batch execute paths tolerate zero-row updates.
+    LIGHTWEIGHT_API void RequireExecuteSucceededOrNoData(
+        SQLRETURN result, std::source_location sourceLocation = std::source_location::current()) const;
+    /// Native-batch execute check: tolerates @c SQL_NO_DATA and, on success, verifies the driver
+    /// processed all @p expectedCount parameter sets (guards against silent partial array execution).
+    LIGHTWEIGHT_API void RequireSuccessfulBatchExecute(
+        SQLRETURN result,
+        SQLULEN processedCount,
+        SQLULEN expectedCount,
+        std::source_location sourceLocation = std::source_location::current()) const;
     LIGHTWEIGHT_API void RequireIndicators();
     LIGHTWEIGHT_API SQLLEN* GetIndicatorForColumn(SQLUSMALLINT column) noexcept;
 
@@ -959,7 +973,7 @@ SqlResultCursor SqlStatement::ExecuteBatch(Rows const& rows, ColumnAccessors con
         };
         bool const rowStrideOk = rowCount < 2 || (accessorStrideMatchesRow(accessors) && ...);
 
-        if (m_connection->QueryFormatter().SupportsNativeRowBatch() && rowStrideOk)
+        if (m_connection->SupportsNativeRowBatch() && rowStrideOk)
             return ExecuteBatchNativeRowWise(rows, accessors...);
     }
 
@@ -977,6 +991,19 @@ SqlResultCursor SqlStatement::ExecuteBatchNativeRowWise(Rows const& rows, Column
     ZoneValue(rowCount);
     auto const* rowData = std::ranges::data(rows);
 
+    // Optimistic init: a driver that ignores SQL_ATTR_PARAMS_PROCESSED_PTR leaves this == rowCount, so the
+    // post-execute completeness check never false-trips on such a driver.
+    SQLULEN processedCount = rowCount;
+
+    // Restore single-row binding and release scratch buffers on EVERY exit — success or exception — so a
+    // throwing bind/execute can never leave the handle in a stale multi-paramset/row-wise state for a
+    // later reuse (e.g. a single Execute() without re-Prepare). Installed before the attributes are set,
+    // so a failure mid-setup is unwound too.
+    auto const restoreParameterBinding = detail::Finally([this] {
+        ResetParameterArrayBinding();
+        ClearBatchIndicators();
+    });
+
     // Row-wise array binding: the driver strides every bound value and indicator pointer by sizeof(RowElem).
     // clang-format off
     // NOLINTNEXTLINE(performance-no-int-to-ptr)
@@ -985,8 +1012,8 @@ SqlResultCursor SqlStatement::ExecuteBatchNativeRowWise(Rows const& rows, Column
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, (SQLPOINTER) sizeof(RowElem), 0));
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, nullptr, 0));
     RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_OPERATION_PTR, SQL_PARAM_PROCEED, 0));
+    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMS_PROCESSED_PTR, &processedCount, 0));
     // clang-format on
-    ClearBatchIndicators();
 
     SQLUSMALLINT column = 0;
     auto const bindColumn = [&](auto const& accessor) {
@@ -1003,17 +1030,11 @@ SqlResultCursor SqlStatement::ExecuteBatchNativeRowWise(Rows const& rows, Column
     (bindColumn(accessors), ...);
 
     SqlLogger::GetLogger().OnExecuteBatch();
-    RequireSuccess(SQLExecute(m_hStmt));
+    // Capture the result before reading processedCount: SQLExecute updates it via the bound pointer, and
+    // function-argument evaluation order is unspecified.
+    auto const executeResult = SQLExecute(m_hStmt);
+    RequireSuccessfulBatchExecute(executeResult, processedCount, static_cast<SQLULEN>(rowCount));
     ProcessPostExecuteCallbacks();
-
-    // Restore single-row binding so a subsequent reuse of this handle (without re-Prepare) is unaffected.
-    // clang-format off
-    // NOLINTNEXTLINE(performance-no-int-to-ptr)
-    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER) 1, 0));
-    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, 0));
-    RequireSuccess(SQLSetStmtAttr(m_hStmt, SQL_ATTR_PARAM_BIND_OFFSET_PTR, nullptr, 0));
-    // clang-format on
-    ClearBatchIndicators();
 
     return SqlResultCursor { *this };
 }
@@ -1037,7 +1058,7 @@ SqlResultCursor SqlStatement::ExecuteBatchSoftRowMajor(Rows const& rows, ColumnA
               m_hStmt, column, accessors(row), *this))),
          ...);
         SqlLogger::GetLogger().OnExecute(m_preparedQuery);
-        RequireSuccess(SQLExecute(m_hStmt));
+        RequireExecuteSucceededOrNoData(SQLExecute(m_hStmt));
         ProcessPostExecuteCallbacks();
     }
 

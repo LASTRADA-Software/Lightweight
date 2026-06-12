@@ -571,6 +571,46 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch: native batch then s
     CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT "Count" FROM "RowMajorReuse" WHERE "Id" = 99)").value_or(-1) == 90);
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "SqlStatement.ExecuteBatch: throwing native batch restores handle state", "[SqlStatement]")
+{
+    // Regression: if SQLExecute throws mid-batch, the row-wise PARAMSET_SIZE / PARAM_BIND_TYPE must still
+    // be restored (via the scope guard), so a later single Execute() on the same handle — without
+    // re-Prepare — inserts exactly one row instead of striding a single bind across rowCount param sets.
+    auto stmt = Lightweight::SqlStatement {};
+    stmt.MigrateDirect([](Lightweight::SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("RowMajorThrow")
+            .PrimaryKey("Id", Lightweight::SqlColumnTypeDefinitions::Bigint {})
+            .Column("Value", Lightweight::SqlColumnTypeDefinitions::Real {})
+            .Column("Count", Lightweight::SqlColumnTypeDefinitions::Integer {});
+    });
+
+    // Seed Id = 2 so the batch below collides on the primary key and SQLExecute fails.
+    stmt.Prepare(R"(INSERT INTO "RowMajorThrow" ("Id", "Value", "Count") VALUES (?, ?, ?))");
+    (void) stmt.Execute(int64_t { 2 }, 2.5, 20);
+
+    stmt.Prepare(R"(INSERT INTO "RowMajorThrow" ("Id", "Value", "Count") VALUES (?, ?, ?))");
+    auto const rows = std::array {
+        PlainBatchRow { .id = 1, .value = 1.5, .count = 10 },
+        PlainBatchRow { .id = 2, .value = 9.9, .count = 99 }, // duplicate primary key -> violation
+        PlainBatchRow { .id = 3, .value = 3.5, .count = 30 },
+    };
+    auto const idOf = [](PlainBatchRow const& r) -> int64_t const& {
+        return r.id;
+    };
+    auto const valueOf = [](PlainBatchRow const& r) -> double const& {
+        return r.value;
+    };
+    auto const countOf = [](PlainBatchRow const& r) -> int32_t const& {
+        return r.count;
+    };
+    CHECK_THROWS_AS((void) stmt.ExecuteBatch(std::span { rows }, idOf, valueOf, countOf), Lightweight::SqlException);
+
+    // Same statement, still prepared; a single Execute WITHOUT re-Prepare must insert exactly one row.
+    (void) stmt.Execute(int64_t { 7 }, 7.5, 70);
+    CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "RowMajorThrow" WHERE "Id" = 7)").value_or(-1) == 1);
+    CHECK(stmt.ExecuteDirectScalar<int>(R"(SELECT "Count" FROM "RowMajorThrow" WHERE "Id" = 7)").value_or(-1) == 70);
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "SqlConnection: manual connect", "[SqlConnection]")
 {
     auto conn = Lightweight::SqlConnection { std::nullopt };

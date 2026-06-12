@@ -84,6 +84,10 @@ class LIGHTWEIGHT_API SqlDataBinderCallback
     ///
     /// @note The buffer contents are unspecified; the caller is responsible for initializing it.
     /// @note The returned storage is aligned to at least @c alignof(std::max_align_t).
+    /// @note Row-wise callers request @c ~rowStride*rowCount bytes to hold only @c rowCount @c SQLLEN
+    /// indicators. This over-allocation is intrinsic to ODBC row-wise binding, which strides the
+    /// @c StrLen_or_IndPtr array by @c SQL_ATTR_PARAM_BIND_TYPE (the row stride) — there is no separate
+    /// indicator stride — so a tightly packed indicator array would require descriptor-level binding.
     ///
     /// @param byteCount The number of bytes to provide.
     /// @return A pointer to the first byte of the buffer.
@@ -205,8 +209,11 @@ inline constexpr bool SqlIsNativeRowBindableValue = false;
 template <typename T>
 inline constexpr bool SqlIsNumericValue = false;
 
-/// @brief Whether @p T is a @c std::optional specialization. Distinct name from any DataMapper trait to
-/// avoid one-definition-rule clashes when both headers are included.
+/// @brief Whether @p T is a @c std::optional specialization.
+///
+/// Defined locally rather than reusing @c Lightweight::IsSpecializationOf (Utils.hpp) or the DataMapper
+/// @c IsStdOptional (Field.hpp): this low-level binder header is deliberately kept free of dependencies on
+/// those higher-level headers, so it carries its own minimal optional traits.
 template <typename T>
 inline constexpr bool SqlIsStdOptional = false;
 

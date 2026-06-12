@@ -189,18 +189,6 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
         return false;
     }
 
-    /// @brief Whether the backend's ODBC driver supports native parameter-array binding
-    /// (`SQL_ATTR_PARAMSET_SIZE` > 1) for batched row-wise execution.
-    ///
-    /// Defaults to `true`; the batched `SqlStatement::ExecuteBatch(rows, accessors...)` consults this
-    /// to decide whether it may submit the whole batch in a single row-wise `SQLExecute`, or must fall
-    /// back to a single prepare followed by consecutive per-row executes. Override and return `false`
-    /// for a dialect whose driver cannot honour parameter arrays.
-    [[nodiscard]] virtual bool SupportsNativeRowBatch() const noexcept
-    {
-        return true;
-    }
-
     /// @brief Builds the canonical foreign-key constraint name for a set of columns.
     ///
     /// Produces `FK_<table>_<col1>[_<col2>…]`. A single-column FK collapses to
