@@ -220,22 +220,6 @@ inline constexpr bool SqlIsStdOptional = false;
 template <typename T>
 inline constexpr bool SqlIsStdOptional<std::optional<T>> = true;
 
-/// @brief The contained value type of a @c std::optional (or @p T itself when not an optional).
-template <typename T>
-struct SqlOptionalInner
-{
-    using type = T; ///< @p T itself, since @p T is not a @c std::optional.
-};
-
-template <typename T>
-struct SqlOptionalInner<std::optional<T>>
-{
-    using type = T; ///< The value type contained in the @c std::optional.
-};
-
-template <typename T>
-using SqlOptionalInnerType = typename SqlOptionalInner<T>::type;
-
 template <typename T>
 concept SqlGetColumnNativeType =
     requires(SQLHSTMT hStmt, SQLUSMALLINT column, T* result, SQLLEN* indicator, SqlDataBinderCallback const& cb) {

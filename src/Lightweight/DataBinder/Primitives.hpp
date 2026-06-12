@@ -109,26 +109,22 @@ template <> struct SqlDataBinder<std::size_t>: SqlSimpleDataBinder<std::size_t, 
 #endif
 
 // These fixed-width primitives bind via a plain SQLBindParameter and are eligible for native row-wise
-// batch binding (see SqlIsNativeRowBindableValue in Core.hpp).
-template <> inline constexpr bool SqlIsNativeRowBindableValue<bool> = true;
-template <> inline constexpr bool SqlIsNativeRowBindableValue<char> = true;
-template <> inline constexpr bool SqlIsNativeRowBindableValue<int8_t> = true;
-template <> inline constexpr bool SqlIsNativeRowBindableValue<uint8_t> = true;
-template <> inline constexpr bool SqlIsNativeRowBindableValue<int16_t> = true;
-template <> inline constexpr bool SqlIsNativeRowBindableValue<uint16_t> = true;
-template <> inline constexpr bool SqlIsNativeRowBindableValue<int32_t> = true;
-template <> inline constexpr bool SqlIsNativeRowBindableValue<uint32_t> = true;
-template <> inline constexpr bool SqlIsNativeRowBindableValue<int64_t> = true;
-template <> inline constexpr bool SqlIsNativeRowBindableValue<uint64_t> = true;
-template <> inline constexpr bool SqlIsNativeRowBindableValue<float> = true;
-template <> inline constexpr bool SqlIsNativeRowBindableValue<double> = true;
+// batch binding (see SqlIsNativeRowBindableValue in Core.hpp). A single constrained partial
+// specialization covers them all. std::same_as is used rather than detail::OneOf so this low-level
+// binder header does not have to include Utils.hpp (which transitively pulls in reflection-cpp).
+template <typename T>
+    requires(std::same_as<T, bool> || std::same_as<T, char> || std::same_as<T, int8_t> || std::same_as<T, uint8_t>
+             || std::same_as<T, int16_t> || std::same_as<T, uint16_t> || std::same_as<T, int32_t>
+             || std::same_as<T, uint32_t> || std::same_as<T, int64_t> || std::same_as<T, uint64_t>
+             || std::same_as<T, float> || std::same_as<T, double>
 #if !defined(_WIN32) && !defined(__APPLE__)
-template <> inline constexpr bool SqlIsNativeRowBindableValue<long long> = true;
-template <> inline constexpr bool SqlIsNativeRowBindableValue<unsigned long long> = true;
+             || std::same_as<T, long long> || std::same_as<T, unsigned long long>
 #endif
 #if defined(__APPLE__)
-template <> inline constexpr bool SqlIsNativeRowBindableValue<std::size_t> = true;
+             || std::same_as<T, std::size_t>
 #endif
+    )
+inline constexpr bool SqlIsNativeRowBindableValue<T> = true;
 // clang-format on
 
 } // namespace Lightweight

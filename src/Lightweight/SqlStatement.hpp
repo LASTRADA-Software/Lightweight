@@ -827,7 +827,7 @@ concept SqlNativeRowBindableValue = SqlIsNativeRowBindableValue<V>;
 /// offset/representation across backends and therefore use the soft path).
 template <typename V>
 concept SqlOptionalRowBindable =
-    SqlIsStdOptional<V> && SqlNativeRowBindableValue<SqlOptionalInnerType<V>> && !SqlIsNumericValue<SqlOptionalInnerType<V>>;
+    SqlIsStdOptional<V> && SqlNativeRowBindableValue<typename V::value_type> && !SqlIsNumericValue<typename V::value_type>;
 
 /// @brief A column value type usable on the native row-wise batch path — either a row-bindable fixed
 /// value or a row-bindable optional of one.

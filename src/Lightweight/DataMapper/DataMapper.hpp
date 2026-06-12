@@ -22,7 +22,6 @@
 #include <concepts>
 #include <memory>
 #include <ranges>
-#include <span>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -577,14 +576,6 @@ class DataMapper
         Record const& record,
         std::optional<std::conditional_t<std::is_void_v<RecordPrimaryKeyType<Record>>, int, RecordPrimaryKeyType<Record>>>
             pkOverride = std::nullopt);
-
-    /// @brief Core implementation of CreateAll() operating on a contiguous span of records.
-    template <typename Record>
-    void CreateAllSpan(std::span<Record const> records);
-
-    /// @brief Core implementation of UpdateAll() operating on a contiguous span of records.
-    template <typename Record>
-    void UpdateAllSpan(std::span<Record const> records);
 
     SqlConnection _connection;
     SqlStatement _stmt;
@@ -1510,18 +1501,10 @@ void DataMapper::CreateAll(Records const& records)
     using Record = std::remove_cvref_t<std::ranges::range_value_t<Records>>;
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
-    CreateAllSpan(std::span<Record const> { std::ranges::data(records), std::ranges::size(records) });
-}
-
-template <typename Record>
-void DataMapper::CreateAllSpan(std::span<Record const> records)
-{
-    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-
     ZoneScopedN("DataMapper::CreateAll");
     ZoneTextObject(RecordTableName<Record>);
 
-    if (records.empty())
+    if (std::ranges::empty(records))
         return;
 
     // Build the INSERT once, with the same column set and order as CreateInternal().
@@ -1691,20 +1674,12 @@ void DataMapper::UpdateAll(Records const& records)
                   "std::span, or a C array); native row-wise array binding needs the records laid out contiguously.");
     using Record = std::remove_cvref_t<std::ranges::range_value_t<Records>>;
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-
-    UpdateAllSpan(std::span<Record const> { std::ranges::data(records), std::ranges::size(records) });
-}
-
-template <typename Record>
-void DataMapper::UpdateAllSpan(std::span<Record const> records)
-{
-    static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     static_assert(HasPrimaryKey<Record>, "UpdateAll requires a record type with a primary key");
 
     ZoneScopedN("DataMapper::UpdateAll");
     ZoneTextObject(RecordTableName<Record>);
 
-    if (records.empty())
+    if (std::ranges::empty(records))
         return;
 
     // Build one UPDATE that writes all storable non-primary-key columns, matched on the primary key(s).
