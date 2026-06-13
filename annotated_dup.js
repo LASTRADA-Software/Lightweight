@@ -1,20 +1,6 @@
 var annotated_dup =
 [
     [ "Lightweight", null, [
-      [ "Async", null, [
-        [ "AsyncSqlTransaction", "d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html", "d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction" ],
-        [ "CancellationToken", "df/d79/classLightweight_1_1Async_1_1CancellationToken.html", "df/d79/classLightweight_1_1Async_1_1CancellationToken" ],
-        [ "IAsyncBackend", "dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html", "dd/db3/classLightweight_1_1Async_1_1IAsyncBackend" ],
-        [ "IExecutor", "d3/d75/classLightweight_1_1Async_1_1IExecutor.html", "d3/d75/classLightweight_1_1Async_1_1IExecutor" ],
-        [ "InlineExecutor", "db/dca/classLightweight_1_1Async_1_1InlineExecutor.html", "db/dca/classLightweight_1_1Async_1_1InlineExecutor" ],
-        [ "IResumeScheduler", "df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html", "df/db1/classLightweight_1_1Async_1_1IResumeScheduler" ],
-        [ "ManualExecutor", "d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html", "d4/dbe/classLightweight_1_1Async_1_1ManualExecutor" ],
-        [ "OperationCancelledError", "d3/dd5/classLightweight_1_1Async_1_1OperationCancelledError.html", null ],
-        [ "StrandExecutor", "dc/d8e/classLightweight_1_1Async_1_1StrandExecutor.html", "dc/d8e/classLightweight_1_1Async_1_1StrandExecutor" ],
-        [ "Task", "d8/d0c/classLightweight_1_1Async_1_1Task.html", "d8/d0c/classLightweight_1_1Async_1_1Task" ],
-        [ "ThreadOffloadBackend", "dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend.html", "dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend" ],
-        [ "ThreadPoolExecutor", "d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor.html", "d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor" ]
-      ] ],
       [ "SqlAlterTableCommands", null, [
         [ "AddColumnIfNotExists", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists" ],
         [ "DropColumnIfExists", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists.html", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists" ],

@@ -456,9 +456,9 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>        <span class="keyword">using </span>OptionalType = std::optional&lt;AnsiStringType&gt;;</div>
 <div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span> </div>
 <div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>        <span class="comment">// Offset of the contained string within the optional (computed robustly, not assumed 0).</span></div>
-<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>        <span class="comment">// Computed through integer addresses rather than pointer subtraction: the two pointers address</span></div>
-<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>        <span class="comment">// distinct objects (the optional and its contained value), so a direct pointer subtraction</span></div>
-<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>        <span class="comment">// would be undefined behavior.</span></div>
+<div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>        <span class="comment">// The offset is derived from the integer addresses rather than via pointer subtraction: the</span></div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>        <span class="comment">// contained value and the optional are distinct objects, so `byte* - byte*` would be undefined</span></div>
+<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>        <span class="comment">// behaviour, whereas subtracting their `std::uintptr_t` addresses is well-defined here.</span></div>
 <div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>        OptionalType <span class="keyword">const</span> probe { AnsiStringType {} };</div>
 <div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>        <span class="keyword">auto</span> <span class="keyword">const</span> valueOffset = <span class="keyword">reinterpret_cast&lt;</span>std::uintptr_t<span class="keyword">&gt;</span>(std::addressof(*probe))</div>
 <div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>                                 - <span class="keyword">reinterpret_cast&lt;</span>std::uintptr_t<span class="keyword">&gt;</span>(std::addressof(probe));</div>

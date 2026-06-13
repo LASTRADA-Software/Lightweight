@@ -139,9 +139,9 @@ $(document).ready(function(){initNavTree('d3/d0c/CxxModelPrinter_8hpp_source.htm
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span> </div>
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>    std::string ToString(std::string_view modelNamespace);</div>
 <div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span> </div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>    std::string TableIncludes() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>    [[nodiscard]] std::string TableIncludes() <span class="keyword">const</span>;</div>
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span> </div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>    std::string AliasTableName(std::string_view name) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>    [[nodiscard]] std::string AliasTableName(std::string_view name) <span class="keyword">const</span>;</div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span> </div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>    [[nodiscard]] std::expected&lt;void, std::string&gt; PrintCumulativeHeaderFile(</div>
 <div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>        std::filesystem::path <span class="keyword">const</span>&amp; outputDirectory, std::filesystem::path <span class="keyword">const</span>&amp; cumulativeHeaderFile);</div>
@@ -150,7 +150,7 @@ $(document).ready(function(){initNavTree('d3/d0c/CxxModelPrinter_8hpp_source.htm
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span> </div>
 <div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>    std::string HeaderFileForTheTable(std::string_view modelNamespace, std::string <span class="keyword">const</span>&amp; tableName);</div>
 <div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span> </div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>    std::string Example(SqlSchema::Table <span class="keyword">const</span>&amp; table) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>    [[nodiscard]] std::string Example(SqlSchema::Table <span class="keyword">const</span>&amp; table) <span class="keyword">const</span>;</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span> </div>
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>    <span class="keyword">auto</span> StripSuffix(std::string name) -&gt; std::string;</div>
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span> </div>
@@ -167,8 +167,8 @@ $(document).ready(function(){initNavTree('d3/d0c/CxxModelPrinter_8hpp_source.htm
 <div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>                                UnicodeTextColumnOverrides <span class="keyword">const</span>&amp; unicodeTextColumnOverrides,</div>
 <div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>                                <span class="keywordtype">size_t</span> sqlFixedStringMaxSize);</div>
 <div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span> </div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>    std::optional&lt;std::string&gt; MapColumnNameOverride(SqlSchema::FullyQualifiedTableName <span class="keyword">const</span>&amp; tableName,</div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>                                                     std::string <span class="keyword">const</span>&amp; columnName) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>    [[nodiscard]] std::optional&lt;std::string&gt; MapColumnNameOverride(SqlSchema::FullyQualifiedTableName <span class="keyword">const</span>&amp; tableName,</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>                                                                   std::string <span class="keyword">const</span>&amp; columnName) <span class="keyword">const</span>;</div>
 <div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span> </div>
 <div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>    <span class="keywordtype">void</span> ResolveOrderAndPrintTable(std::vector&lt;SqlSchema::Table&gt; <span class="keyword">const</span>&amp; tables);</div>
 <div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span> </div>
