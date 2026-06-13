@@ -8,14 +8,41 @@
 
 #include <algorithm>
 #include <charconv>
+#include <cstdlib>
 #include <cstring>
 #include <format>
+#include <string>
+#include <type_traits>
 #include <variant>
 
 namespace Lightweight::detail
 {
 
 using namespace SqlBackup;
+
+/// Parses a numeric value from [first, last) into @p out.
+/// @note Floating-point types use strtod (not std::from_chars, whose float overloads are unavailable
+/// before macOS 26 in libc++); integral types use std::from_chars.
+template <typename T>
+void ParseNumeric(char const* first, char const* last, T& out)
+{
+    if constexpr (std::is_floating_point_v<T>)
+    {
+        // strtod needs a NUL-terminated buffer; batch cells are not guaranteed to be.
+        auto const text = std::string(first, last);
+        char* end = nullptr;
+        if constexpr (std::is_same_v<T, float>)
+            out = std::strtof(text.c_str(), &end);
+        else if constexpr (std::is_same_v<T, long double>)
+            out = std::strtold(text.c_str(), &end);
+        else
+            out = static_cast<T>(std::strtod(text.c_str(), &end));
+    }
+    else
+    {
+        std::from_chars(first, last, out);
+    }
+}
 
 /// A column in a batch.
 struct BatchColumn
@@ -100,7 +127,7 @@ struct TypedBatchColumn: BatchColumn
                                 PushNull();
                             else
                             {
-                                std::from_chars(s.data(), s.data() + s.size(), v);
+                                ParseNumeric(s.data(), s.data() + s.size(), v);
                                 data.push_back(v);
                                 indicators.push_back(sizeof(T));
                             }
@@ -183,7 +210,7 @@ struct NumericBatchColumn: TypedBatchColumn<T, CType, SqlType>
                     else
                     {
                         T v {};
-                        std::from_chars(arg.data(), arg.data() + arg.size(), v);
+                        ParseNumeric(arg.data(), arg.data() + arg.size(), v);
                         this->data.push_back(v);
                         this->indicators.push_back(sizeof(T));
                     }

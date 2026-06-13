@@ -14,7 +14,9 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cerrno>
 #include <cstdio>
+#include <cstdlib>
 #include <expected>
 #include <filesystem>
 #include <fstream>
@@ -1754,10 +1756,13 @@ std::expected<std::size_t, std::string> ParseSizeWithSuffix(std::string_view siz
     if (numEnd == 0)
         return std::unexpected { std::format("Invalid size '{}': must start with a number", sizeStr) };
 
-    double value = 0;
-    auto const numPart = sizeStr.substr(0, numEnd);
-    auto const [ptr, ec] = std::from_chars(numPart.data(), numPart.data() + numPart.size(), value);
-    if (ec != std::errc {} || ptr != numPart.data() + numPart.size())
+    // strtod, not std::from_chars: the latter's float overloads are unavailable before macOS 26 in libc++.
+    // Copy to a NUL-terminated string; `end` must reach the string end (mirrors the from_chars ptr/ec check).
+    auto const numPart = std::string { sizeStr.substr(0, numEnd) };
+    char* end = nullptr;
+    errno = 0;
+    double const value = std::strtod(numPart.c_str(), &end);
+    if (end != numPart.c_str() + numPart.size() || errno == ERANGE)
         return std::unexpected { std::format("Invalid size '{}': invalid number", sizeStr) };
 
     // Parse suffix
