@@ -8,6 +8,7 @@
 
 #include <cassert>
 #include <format>
+#include <span>
 #include <string>
 
 namespace Lightweight
@@ -72,14 +73,18 @@ class SqlDynamicBinary final
     {
     }
 #if !defined(LIGHTWEIGHT_CXX26_REFLECTION)
-    /// Constructs a fixed-size string from a string view.
-    LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicBinary(std::basic_string_view<value_type> s) noexcept:
-        _base { static_cast<uint8_t const*>(s.data()), static_cast<uint8_t const*>(s.data() + s.size()) }
+    /// Constructs the binary payload from a contiguous span of bytes.
+    ///
+    /// @note `std::span` is used in place of `std::basic_string_view<value_type>` because the latter is
+    /// ill-formed for `uint8_t` on conforming standard libraries (libc++): `std::char_traits` is only
+    /// specialised for the character types, not `unsigned char`.
+    LIGHTWEIGHT_FORCE_INLINE constexpr SqlDynamicBinary(std::span<value_type const> s) noexcept:
+        _base { s.data(), s.data() + s.size() }
     {
     }
 
-    /// Retrieves a string view of the string.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::basic_string_view<value_type> ToStringView() const noexcept
+    /// Retrieves a read-only span over the stored bytes.
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::span<value_type const> ToStringView() const noexcept
     {
         return { _base.data(), _base.size() };
     }

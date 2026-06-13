@@ -39,9 +39,9 @@ class CxxModelPrinter
 
     std::string ToString(std::string_view modelNamespace);
 
-    std::string TableIncludes() const;
+    [[nodiscard]] std::string TableIncludes() const;
 
-    std::string AliasTableName(std::string_view name) const;
+    [[nodiscard]] std::string AliasTableName(std::string_view name) const;
 
     [[nodiscard]] std::expected<void, std::string> PrintCumulativeHeaderFile(
         std::filesystem::path const& outputDirectory, std::filesystem::path const& cumulativeHeaderFile);
@@ -50,7 +50,7 @@ class CxxModelPrinter
 
     std::string HeaderFileForTheTable(std::string_view modelNamespace, std::string const& tableName);
 
-    std::string Example(SqlSchema::Table const& table) const;
+    [[nodiscard]] std::string Example(SqlSchema::Table const& table) const;
 
     auto StripSuffix(std::string name) -> std::string;
 
@@ -67,8 +67,8 @@ class CxxModelPrinter
                                 UnicodeTextColumnOverrides const& unicodeTextColumnOverrides,
                                 size_t sqlFixedStringMaxSize);
 
-    std::optional<std::string> MapColumnNameOverride(SqlSchema::FullyQualifiedTableName const& tableName,
-                                                     std::string const& columnName) const;
+    [[nodiscard]] std::optional<std::string> MapColumnNameOverride(SqlSchema::FullyQualifiedTableName const& tableName,
+                                                                   std::string const& columnName) const;
 
     void ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> const& tables);
 

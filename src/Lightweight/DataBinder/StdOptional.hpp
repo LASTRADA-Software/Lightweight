@@ -6,6 +6,7 @@
 #include "SqlNullValue.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <ranges>
@@ -86,9 +87,12 @@ struct SqlDataBinder<std::optional<T>>
         {
             // Offset of the contained value within std::optional<T> (0 on all known standard libraries,
             // but computed robustly so the address arithmetic below does not bake in that assumption).
+            // Derived from the integer addresses rather than via pointer subtraction: the contained value
+            // and the optional are distinct objects, so `byte* - byte*` would be undefined behaviour, whereas
+            // subtracting their `std::uintptr_t` addresses is well-defined here.
             OptionalValue const probe { T {} };
-            auto const valueOffset = static_cast<std::size_t>(reinterpret_cast<std::byte const*>(std::addressof(*probe))
-                                                              - reinterpret_cast<std::byte const*>(std::addressof(probe)));
+            auto const valueOffset = reinterpret_cast<std::uintptr_t>(std::addressof(*probe))
+                                     - reinterpret_cast<std::uintptr_t>(std::addressof(probe));
 
             // Row-strided indicator buffer: ODBC reads the indicator for row i at base + i*rowStride. The
             // optionals themselves are embedded in the row structs, so they are also addressed at

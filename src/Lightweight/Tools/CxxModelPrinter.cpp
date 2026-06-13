@@ -405,11 +405,11 @@ void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> co
 {
     std::unordered_map<size_t, std::optional<int>> numberOfForeignKeys;
 #if !defined(__cpp_lib_ranges_enumerate)
-    int index { -1 };
+    size_t index = 0;
     for (auto const& table: tables)
     {
-        ++index;
         numberOfForeignKeys[index] = static_cast<int>(table.foreignKeys.size());
+        ++index;
     }
 #else
     for (auto const& [index, table]: std::views::enumerate(tables))
@@ -419,7 +419,7 @@ void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> co
     auto const updateForeignKeyCountAfterPrinted = [&](auto const& tablePrinted) {
 #if !defined(__cpp_lib_ranges_enumerate)
         int index { -1 };
-        for (auto const table: tables)
+        for (auto const& table: tables)
         {
             ++index;
             auto const idx = static_cast<size_t>(index);
@@ -452,7 +452,7 @@ void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> co
     {
 #if !defined(__cpp_lib_ranges_enumerate)
         int index { -1 };
-        for (auto const table: tables)
+        for (auto const& table: tables)
         {
             ++index;
             auto const idx = static_cast<size_t>(index);
@@ -473,17 +473,8 @@ void CxxModelPrinter::ResolveOrderAndPrintTable(std::vector<SqlSchema::Table> co
                 // if we do NOT have them, we need to print this table anyway since
                 // there is some circular dependency that we cannot resolve
                 bool found = false;
-#if !defined(__cpp_lib_ranges_enumerate)
-                int otherIndex { -1 };
-                for (auto const& otherTable: tables)
+                for (auto const otherIdx: std::views::iota(static_cast<size_t>(0), tables.size()))
                 {
-                    ++otherIndex;
-                    auto const otherIdx = static_cast<size_t>(otherIndex);
-#else
-                for (auto const [otherIndex, otherTable]: std::views::enumerate(tables))
-                {
-                    auto const otherIdx = static_cast<size_t>(otherIndex);
-#endif
                     if (numberOfForeignKeys[otherIdx] == 0)
                         found = true;
                 }

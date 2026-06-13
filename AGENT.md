@@ -129,6 +129,37 @@ cmake --build --preset clangcl-debug
 
 ## Testing
 
+### ODBC driver prerequisite (one-time setup)
+
+The tests connect through ODBC, so the **driver named in the connection string must be registered** with the
+driver manager. The default connection string (used by `ctest` and by `LightweightTest` with no `--test-env`) is
+`DRIVER=SQLite3;Database=test.db`, which requires a driver registered under the exact name **`SQLite3`** in
+`odbcinst.ini`. Installing the driver package (e.g. `brew install sqliteodbc`) ships the shared library but does
+**not** register that name — so a fresh checkout fails at connect with:
+
+```
+Failed to connect to the database: 01000 (0) - [unixODBC][Driver Manager]Can't open lib 'SQLite3' : file not found
+```
+
+Register it once (idempotent). On macOS / Homebrew:
+
+```sh
+# Locate the driver shared library (Apple Silicon shown; Intel uses /usr/local/lib)
+SQLITE_ODBC=$(brew --prefix)/lib/libsqlite3odbc.dylib
+printf '[SQLite3]\nDescription=SQLite3 ODBC Driver\nDriver=%s\nSetup=%s\nThreading=2\n' \
+  "$SQLITE_ODBC" "$SQLITE_ODBC" > /tmp/sqlite3-odbc.ini
+odbcinst -i -d -f /tmp/sqlite3-odbc.ini    # writes to $(odbcinst -j | grep DRIVERS)
+odbcinst -q -d                              # verify: [SQLite3] now listed
+```
+
+On Debian/Ubuntu the `libsqliteodbc` package registers the `SQLite3` name automatically; if not, point `Driver=`
+at `libsqlite3odbc.so` the same way. Verify with `odbcinst -q -d` — the `[SQLite3]` stanza must be present before
+running `ctest --preset clang-debug`. (To bypass the registry entirely, set
+`ODBC_CONNECTION_STRING="DRIVER=/full/path/to/libsqlite3odbc.dylib;Database=test.db"`, but registering the name is
+preferred so the project default works unchanged.)
+
+### Running the suite
+
 Catch2 tests live in `src/tests/` and produce a single `LightweightTest` binary. Database selection is parameterised:
 
 ```sh

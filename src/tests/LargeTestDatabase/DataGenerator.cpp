@@ -318,7 +318,7 @@ void PopulateDatabase(Light::DataMapper& dm,
     // 1. Create Users
     for (size_t i = 0; i < config.userCount; ++i)
     {
-        auto const userId = static_cast<int64_t>(i + 1);
+        auto const userId = static_cast<int64_t>(i) + 1;
         auto const firstNameStr = std::string(FirstNames[i % FirstNames.size()]);
         auto const lastNameStr = std::string(LastNames[(i / FirstNames.size()) % LastNames.size()]);
 
@@ -378,7 +378,7 @@ void PopulateDatabase(Light::DataMapper& dm,
 
     for (size_t i = 0; i < config.productCount; ++i)
     {
-        auto const categoryId = static_cast<uint64_t>((i % config.categoryCount) + 1);
+        auto const categoryId = static_cast<uint64_t>(i % config.categoryCount) + 1;
         auto const productName = rng.GenerateProductName(static_cast<int64_t>(i));
 
         // Create a minimal category record just to satisfy BelongsTo
@@ -433,7 +433,7 @@ void PopulateDatabase(Light::DataMapper& dm,
     for (size_t i = 0; i < config.productTagCount; ++i)
     {
         auto const productId = productIds[i % productIds.size()];
-        auto const tagId = static_cast<uint64_t>((i % config.tagCount) + 1);
+        auto const tagId = static_cast<uint64_t>(i % config.tagCount) + 1;
 
         LargeDb_Product prodRef;
         prodRef.id = productId;
@@ -455,7 +455,7 @@ void PopulateDatabase(Light::DataMapper& dm,
 
     for (size_t i = 0; i < config.orderCount; ++i)
     {
-        auto const userId = static_cast<uint64_t>((i % config.userCount) + 1);
+        auto const userId = static_cast<uint64_t>(i % config.userCount) + 1;
 
         LargeDb_User userRef;
         userRef.id = userId;
@@ -519,7 +519,7 @@ void PopulateDatabase(Light::DataMapper& dm,
     // 9. Create Reviews
     for (size_t i = 0; i < config.reviewCount; ++i)
     {
-        auto const userId = static_cast<uint64_t>((i % config.userCount) + 1);
+        auto const userId = static_cast<uint64_t>(i % config.userCount) + 1;
         auto const productId = productIds[i % productIds.size()];
 
         LargeDb_User userRef;
@@ -566,7 +566,7 @@ void PopulateDatabase(Light::DataMapper& dm,
         // Assign to a user (with some anonymous activities)
         if (rng.NextBool(0.9))
         {
-            auto const userId = static_cast<uint64_t>((i % config.userCount) + 1);
+            auto const userId = static_cast<uint64_t>(i % config.userCount) + 1;
             LargeDb_User userRef;
             userRef.id = userId;
             log.user = userRef;
@@ -597,7 +597,7 @@ void PopulateDatabase(Light::DataMapper& dm,
     // 12. Create Articles
     for (size_t i = 0; i < config.articleCount; ++i)
     {
-        auto const userId = static_cast<uint64_t>((i % config.userCount) + 1);
+        auto const userId = static_cast<uint64_t>(i % config.userCount) + 1;
 
         LargeDb_User userRef;
         userRef.id = userId;
