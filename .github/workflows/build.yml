@@ -465,7 +465,9 @@ jobs:
     # run Docker, so only the natively-installable SQLite backend is exercised
     # here; MSSQL/PostgreSQL stay covered by the Linux/Windows matrices.
     name: "macOS (Homebrew LLVM, SQLite)"
-    runs-on: macos-14
+    # Newest available runner; we don't target old macOS. (Doesn't relax libc++
+    # availability gates like float std::from_chars, which needs macOS 26.)
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v6
       - name: Fetch tags
