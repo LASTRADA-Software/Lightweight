@@ -38,16 +38,13 @@ struct SqlDateTime
     /// Return the current date and time in UTC.
     [[nodiscard]] static LIGHTWEIGHT_FORCE_INLINE SqlDateTime NowUTC() noexcept
     {
-        // `std::chrono::utc_clock` is part of the C++20 chrono extensions and is only available when the
-        // standard library reports `__cpp_lib_chrono >= 201907` (e.g. libc++ disables it when its time-zone
-        // database is not built in, which is the case for the Homebrew toolchain on macOS). `system_clock`
-        // already represents Unix time (UTC, no leap seconds), so it is the correct portable fallback for the
-        // `SqlDateTime` value, which is itself a `system_clock::time_point`.
-    #if defined(__cpp_lib_chrono) && __cpp_lib_chrono >= 201907L
-        return SqlDateTime { std::chrono::system_clock::time_point { std::chrono::utc_clock::now().time_since_epoch() } };
-    #else
+        // `std::chrono::system_clock` already represents Unix time (UTC, no leap seconds) and is what
+        // `SqlDateTime` stores, so it yields the correct UTC value directly and identically on every
+        // platform. We deliberately avoid `utc_clock::now().time_since_epoch()` here: it counts leap
+        // seconds, so reinterpreting that duration as a `system_clock::time_point` would shift the value
+        // ~27s into the future, and `utc_clock` is unavailable on libc++ without a built-in tz database
+        // (the Homebrew toolchain on macOS) — both branches would otherwise disagree.
         return SqlDateTime { std::chrono::system_clock::now() };
-    #endif
     }
 #endif
 

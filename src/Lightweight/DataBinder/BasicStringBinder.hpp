@@ -355,13 +355,8 @@ struct SqlDataBinder<AnsiStringType>
     {
         using OptionalType = std::optional<AnsiStringType>;
 
-        // Offset of the contained string within the optional (computed robustly, not assumed 0).
-        // The offset is derived from the integer addresses rather than via pointer subtraction: the
-        // contained value and the optional are distinct objects, so `byte* - byte*` would be undefined
-        // behaviour, whereas subtracting their `std::uintptr_t` addresses is well-defined here.
-        OptionalType const probe { AnsiStringType {} };
-        auto const valueOffset = reinterpret_cast<std::uintptr_t>(std::addressof(*probe))
-                                 - reinterpret_cast<std::uintptr_t>(std::addressof(probe));
+        // Offset of the contained string within the optional (see detail::OptionalValueOffset).
+        auto const valueOffset = detail::OptionalValueOffset<AnsiStringType>();
 
         auto const* sourceBytes = reinterpret_cast<std::byte const*>(elem0);
         auto* const indicatorBytes = cb.ProvideBatchStagingBuffer(((rowCount - 1) * rowStride) + sizeof(SQLLEN));

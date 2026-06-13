@@ -11,7 +11,9 @@
 
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
+#include <memory>
 #include <optional>
 
 #include <sql.h>
@@ -121,6 +123,23 @@ namespace detail
     /// headers can use it without reaching up to the higher-level Utils.hpp.
     template <typename T, typename... Us>
     concept IsAnyOf = (std::same_as<T, Us> || ...);
+
+    /// @brief Byte offset of the contained value within a @c std::optional<T>.
+    ///
+    /// Used by the row-wise batch binders to address the inner value of each row's optional in place. The
+    /// offset is 0 on all known standard libraries, but is computed rather than assumed so the address
+    /// arithmetic does not bake in that assumption. It is derived from the integer addresses of a probe
+    /// optional and its contained value (rather than @c byte* subtraction) to keep the computation defined.
+    ///
+    /// @tparam T The contained value type.
+    /// @return The offset, in bytes, of the contained value within the optional.
+    template <typename T>
+    [[nodiscard]] inline std::size_t OptionalValueOffset() noexcept
+    {
+        std::optional<T> const probe { T {} };
+        return static_cast<std::size_t>(reinterpret_cast<std::uintptr_t>(std::addressof(*probe))
+                                        - reinterpret_cast<std::uintptr_t>(std::addressof(probe)));
+    }
 
     // clang-format off
 template <typename T>

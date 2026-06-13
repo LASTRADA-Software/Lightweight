@@ -10,11 +10,11 @@
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlSchema.hpp>
 #include <Lightweight/SqlScopedLock.hpp>
+#include <Lightweight/Utils.hpp>
 
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <expected>
@@ -1756,14 +1756,13 @@ std::expected<std::size_t, std::string> ParseSizeWithSuffix(std::string_view siz
     if (numEnd == 0)
         return std::unexpected { std::format("Invalid size '{}': must start with a number", sizeStr) };
 
-    // strtod, not std::from_chars: the latter's float overloads are unavailable before macOS 26 in libc++.
-    // Copy to a NUL-terminated string; `end` must reach the string end (mirrors the from_chars ptr/ec check).
-    auto const numPart = std::string { sizeStr.substr(0, numEnd) };
-    char* end = nullptr;
-    errno = 0;
-    double const value = std::strtod(numPart.c_str(), &end);
-    if (end != numPart.c_str() + numPart.size() || errno == ERANGE)
+    // Locale-independent, error-reporting float parse (std::from_chars' float overloads are unavailable
+    // before macOS 26 in libc++); see Lightweight::detail::ParseFloat.
+    auto const numPart = sizeStr.substr(0, numEnd);
+    auto const parsed = Lightweight::detail::ParseFloat<double>(numPart.data(), numPart.data() + numPart.size());
+    if (!parsed)
         return std::unexpected { std::format("Invalid size '{}': invalid number", sizeStr) };
+    double const value = *parsed;
 
     // Parse suffix
     std::string suffix(sizeStr.substr(numEnd));

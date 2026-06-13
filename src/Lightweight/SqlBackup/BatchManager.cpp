@@ -4,13 +4,14 @@
 #include "../DataBinder/SqlGuid.hpp"
 #include "../DataBinder/SqlTime.hpp"
 #include "../SqlColumnTypeDefinitions.hpp"
+#include "../Utils.hpp"
 #include "BatchManager.hpp"
 
 #include <algorithm>
 #include <charconv>
-#include <cstdlib>
 #include <cstring>
 #include <format>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <variant>
@@ -20,23 +21,17 @@ namespace Lightweight::detail
 
 using namespace SqlBackup;
 
-/// Parses a numeric value from [first, last) into @p out.
-/// @note Floating-point types use strtod (not std::from_chars, whose float overloads are unavailable
-/// before macOS 26 in libc++); integral types use std::from_chars.
+/// Parses a numeric value from [first, last) into @p out, leaving @p out unchanged on a parse failure.
+/// @note Floating-point types use the locale-independent, error-reporting Lightweight::detail::ParseFloat
+/// helper (std::from_chars' float overloads are unavailable before macOS 26 in libc++); integral types use
+/// std::from_chars directly.
 template <typename T>
 void ParseNumeric(char const* first, char const* last, T& out)
 {
     if constexpr (std::is_floating_point_v<T>)
     {
-        // strtod needs a NUL-terminated buffer; batch cells are not guaranteed to be.
-        auto const text = std::string(first, last);
-        char* end = nullptr;
-        if constexpr (std::is_same_v<T, float>)
-            out = std::strtof(text.c_str(), &end);
-        else if constexpr (std::is_same_v<T, long double>)
-            out = std::strtold(text.c_str(), &end);
-        else
-            out = static_cast<T>(std::strtod(text.c_str(), &end));
+        if (auto const parsed = ParseFloat<T>(first, last))
+            out = *parsed;
     }
     else
     {

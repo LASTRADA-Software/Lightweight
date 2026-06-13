@@ -105,7 +105,9 @@ template <> struct SqlDataBinder<long long>: Int64DataBinderHelper<long long, SQ
 template <> struct SqlDataBinder<unsigned long long>: Int64DataBinderHelper<unsigned long long, SQL_C_UBIGINT> {};
 #endif
 #if defined(__APPLE__) // size_t is a different type on macOS
-template <> struct SqlDataBinder<std::size_t>: SqlSimpleDataBinder<std::size_t, SQL_C_SBIGINT, SQL_BIGINT, SqlColumnTypeDefinitions::Bigint {}> {};
+// std::size_t is unsigned, so bind it with the unsigned C type (matching SqlDataBinder<uint64_t> above);
+// SQL_C_SBIGINT would sign-corrupt values above INT64_MAX.
+template <> struct SqlDataBinder<std::size_t>: SqlSimpleDataBinder<std::size_t, SQL_C_UBIGINT, SQL_BIGINT, SqlColumnTypeDefinitions::Bigint {}> {};
 #endif
 
 // These fixed-width primitives bind via a plain SQLBindParameter and are eligible for native row-wise
