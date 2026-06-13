@@ -7,6 +7,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <optional>
+#include <stdexcept>
 
 // Helpers for driving a coroutine to completion in tests.
 //
@@ -38,5 +39,10 @@ template <typename T>
 T const& RequireValue(std::optional<T> const& value)
 {
     REQUIRE(value.has_value());
-    return value.value();
+    // The REQUIRE above already aborts the test on a disengaged optional, but clang-tidy's
+    // bugprone-unchecked-optional-access does not model Catch2's REQUIRE; the explicit has_value()
+    // guard makes the dereference provably safe to static analysis.
+    if (!value.has_value())
+        throw std::logic_error { "RequireValue: optional is disengaged" };
+    return *value;
 }

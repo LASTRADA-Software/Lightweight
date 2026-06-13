@@ -7,6 +7,7 @@
 
 #include <exception>
 #include <optional>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -62,7 +63,14 @@ namespace detail
             if (_error)
                 std::rethrow_exception(_error);
             if constexpr (!std::is_void_v<Result>)
+            {
+                // Run() always either emplaces _value or stores into _error; reaching here with a
+                // disengaged optional would be a broken invariant. The explicit check both documents
+                // that invariant and lets static analysis see the access as guarded.
+                if (!_value.has_value())
+                    throw std::logic_error { "OffloadAwaitable: result missing without an error" };
                 return std::move(*_value);
+            }
         }
 
       private:
