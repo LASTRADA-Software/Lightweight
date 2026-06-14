@@ -211,6 +211,16 @@ class SqlConnection final
     /// @param resume The scheduler used to resume coroutines after a blocking step completes.
     LIGHTWEIGHT_API void EnableAsync(Async::IExecutor& dbWorkers, Async::IResumeScheduler& resume);
 
+    /// Enables the asynchronous API on this connection using an explicitly provided backend.
+    ///
+    /// This is the dependency-injection seam behind the convenience overload above: callers and
+    /// tests can supply any @ref Async::IAsyncBackend implementation (a fake/inline backend for
+    /// tests, or a future native event backend) instead of the default thread-offload backend.
+    /// The same in-flight / lifetime constraints as the convenience overload apply.
+    ///
+    /// @param backend The async execution backend to install (consumed); must not be null.
+    LIGHTWEIGHT_API void EnableAsync(std::unique_ptr<Async::IAsyncBackend> backend);
+
     /// Tears down the asynchronous backend, returning the connection to a non-async state.
     ///
     /// Called by the connection pool when a mapper is returned, so a recycled connection never

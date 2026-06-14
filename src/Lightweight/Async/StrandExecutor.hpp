@@ -3,10 +3,9 @@
 
 #include "../Api.hpp"
 #include "Executor.hpp"
+#include "WorkQueue.hpp"
 
-#include <deque>
 #include <memory>
-#include <mutex>
 
 namespace Lightweight::Async
 {
@@ -42,13 +41,12 @@ class LIGHTWEIGHT_API StrandExecutor final: public IExecutor, public IResumeSche
 
   private:
     /// Mutable strand state, heap-allocated so in-flight drain closures can keep it alive
-    /// independently of the @c StrandExecutor wrapper's lifetime.
+    /// independently of the @c StrandExecutor wrapper's lifetime. The serialized FIFO and its
+    /// drain-active flag live in @ref detail::WorkQueue, which guards both under one lock.
     struct State
     {
         IExecutor& underlying; ///< Borrowed executor that runs the serialized work.
-        std::mutex mutex;
-        std::deque<Work> pending;
-        bool running = false; ///< true while a drain closure is scheduled/running.
+        detail::WorkQueue queue;
 
         explicit State(IExecutor& underlyingExecutor) noexcept:
             underlying { underlyingExecutor }

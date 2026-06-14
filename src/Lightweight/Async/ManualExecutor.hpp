@@ -3,11 +3,10 @@
 
 #include "../Api.hpp"
 #include "Executor.hpp"
+#include "WorkQueue.hpp"
 
-#include <condition_variable>
+#include <atomic>
 #include <cstddef>
-#include <deque>
-#include <mutex>
 
 namespace Lightweight::Async
 {
@@ -65,28 +64,20 @@ class LIGHTWEIGHT_API ManualExecutor final: public IExecutor, public IResumeSche
         // NOTE: RunUntil deliberately ignores _stopped — it must pump strictly until the predicate
         // is satisfied (the awaited task completes). Honoring Stop() here would return early with
         // the predicate still false, causing the caller (SyncWaitPumping) to read an unfinished
-        // result. _stopped governs Run() (the event-loop pump), not RunUntil.
+        // result. _stopped governs Run() (the event-loop pump), not RunUntil. The wake condition is
+        // the predicate alone; wakeups are delivered by the work posted to the queue.
         while (!predicate())
         {
             Work work;
-            {
-                std::unique_lock lock(_mutex);
-                _condition.wait(lock, [&] { return !_queue.empty() || predicate(); });
-                if (predicate())
-                    return;
-                // The wait guarantees the queue is non-empty here when the predicate is false.
-                work = std::move(_queue.front());
-                _queue.pop_front();
-            }
+            if (!_queue.WaitAndPop(work, predicate))
+                return;
             work();
         }
     }
 
   private:
-    mutable std::mutex _mutex;
-    std::condition_variable _condition;
-    std::deque<Work> _queue;
-    bool _stopped = false;
+    detail::WorkQueue _queue;
+    std::atomic<bool> _stopped { false }; ///< Set by Stop(); read by Run()'s wake condition.
 };
 
 } // namespace Lightweight::Async

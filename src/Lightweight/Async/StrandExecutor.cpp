@@ -14,17 +14,9 @@ StrandExecutor::StrandExecutor(IExecutor& underlying):
 
 void StrandExecutor::Post(Work work)
 {
-    bool scheduleDrain = false;
-    {
-        std::scoped_lock const lock(_state->mutex);
-        _state->pending.push_back(std::move(work));
-        if (!_state->running)
-        {
-            _state->running = true;
-            scheduleDrain = true;
-        }
-    }
-    if (scheduleDrain)
+    // Enqueue and, if no drain is currently active, claim it and schedule one. The claim is made
+    // under the queue's lock (atomically with the push), closing the push-vs-end-drain race.
+    if (_state->queue.PushAndClaimDrain(std::move(work)))
         ScheduleDrain(_state);
 }
 
@@ -40,21 +32,9 @@ void StrandExecutor::ScheduleDrain(std::shared_ptr<State> state)
     // StrandExecutor wrapper if it is destroyed or replaced while the drain is still running.
     IExecutor& underlying = state->underlying;
     underlying.Post([state = std::move(state)] {
-        while (true)
-        {
-            Work work;
-            {
-                std::scoped_lock const lock(state->mutex);
-                if (state->pending.empty())
-                {
-                    state->running = false;
-                    return;
-                }
-                work = std::move(state->pending.front());
-                state->pending.pop_front();
-            }
+        Work work;
+        while (state->queue.PopOrEndDrain(work))
             work();
-        }
     });
 }
 

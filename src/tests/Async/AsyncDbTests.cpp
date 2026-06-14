@@ -7,7 +7,10 @@
 
 #include "AsyncTestUtils.hpp"
 
+#include <Lightweight/Async/Backend.hpp>
+#include <Lightweight/Async/Executor.hpp>
 #include <Lightweight/Async/ManualExecutor.hpp>
+#include <Lightweight/Async/StrandExecutor.hpp>
 #include <Lightweight/Async/SyncWait.hpp>
 #include <Lightweight/Async/ThreadPoolExecutor.hpp>
 #include <Lightweight/DataMapper/DataMapper.hpp>
@@ -15,11 +18,51 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <memory>
 #include <ranges>
 #include <stdexcept>
 
 using namespace Lightweight;
 using namespace Lightweight::Async;
+
+namespace
+{
+/// A minimal IAsyncBackend that runs offload and resume inline on the calling thread. Exercises the
+/// dependency-injection seam SqlConnection::EnableAsync(std::unique_ptr<IAsyncBackend>).
+class InlineBackend final: public IAsyncBackend
+{
+  public:
+    [[nodiscard]] StrandExecutor& Strand() noexcept override
+    {
+        return _strand;
+    }
+
+    [[nodiscard]] IResumeScheduler& ResumeScheduler() noexcept override
+    {
+        return _inlineExecutor;
+    }
+
+  private:
+    InlineExecutor _inlineExecutor;
+    StrandExecutor _strand { _inlineExecutor };
+};
+} // namespace
+
+TEST_CASE_METHOD(SqlTestFixture, "Async.DataMapper: a custom IAsyncBackend can be injected", "[Async][DataMapper]")
+{
+    DataMapper dm;
+    dm.Connection().EnableAsync(std::make_unique<InlineBackend>());
+    CHECK(dm.Connection().IsAsyncEnabled());
+    dm.CreateTables<Person>();
+
+    // With a fully-inline backend the work runs synchronously, so SyncWait does not deadlock.
+    auto const id = SqlGuid::Create();
+    auto person = Person { .id = id, .name = "Injected", .age = 7 };
+    SyncWait(dm.CreateAsync(person));
+
+    auto const fetched = SyncWait(dm.QuerySingleAsync<Person>(id));
+    CHECK(RequireValue(fetched).name.Value() == "Injected");
+}
 
 TEST_CASE_METHOD(SqlTestFixture, "Async.DataMapper: CRUD via coroutines", "[Async][DataMapper]")
 {

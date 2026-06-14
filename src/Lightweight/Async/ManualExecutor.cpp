@@ -9,11 +9,7 @@ namespace Lightweight::Async
 
 void ManualExecutor::Post(Work work)
 {
-    {
-        std::scoped_lock const lock(_mutex);
-        _queue.push_back(std::move(work));
-    }
-    _condition.notify_one();
+    _queue.Push(std::move(work));
 }
 
 void ManualExecutor::Resume(std::coroutine_handle<> handle)
@@ -24,13 +20,8 @@ void ManualExecutor::Resume(std::coroutine_handle<> handle)
 bool ManualExecutor::RunOne()
 {
     Work work;
-    {
-        std::scoped_lock const lock(_mutex);
-        if (_queue.empty())
-            return false;
-        work = std::move(_queue.front());
-        _queue.pop_front();
-    }
+    if (!_queue.TryPop(work))
+        return false;
     work();
     return true;
 }
@@ -45,34 +36,24 @@ std::size_t ManualExecutor::Drain()
 
 void ManualExecutor::Run()
 {
-    while (true)
-    {
-        Work work;
-        {
-            std::unique_lock lock(_mutex);
-            _condition.wait(lock, [this] { return !_queue.empty() || _stopped; });
-            if (_queue.empty())
-                return;
-            work = std::move(_queue.front());
-            _queue.pop_front();
-        }
+    // Pump until Stop() is requested and the queue has drained. _stopped is the wake condition; the
+    // queue's WaitAndPop still hands back any items already queued before returning false.
+    Work work;
+    while (_queue.WaitAndPop(work, [this] { return _stopped.load(std::memory_order_acquire); }))
         work();
-    }
 }
 
 void ManualExecutor::Stop()
 {
-    {
-        std::scoped_lock const lock(_mutex);
-        _stopped = true;
-    }
-    _condition.notify_all();
+    // Publish the stop flag before waking, so a pumper blocked in Run() observes it (WorkQueue::Wake
+    // takes the lock first to avoid a lost wakeup).
+    _stopped.store(true, std::memory_order_release);
+    _queue.Wake();
 }
 
 std::size_t ManualExecutor::PendingCount() const
 {
-    std::scoped_lock const lock(_mutex);
-    return _queue.size();
+    return _queue.Size();
 }
 
 } // namespace Lightweight::Async

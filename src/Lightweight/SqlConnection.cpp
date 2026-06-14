@@ -177,7 +177,12 @@ void SqlConnection::EnableAsync(Async::IExecutor& dbWorkers, Async::IResumeSched
 {
     // TODO(async): once the native event backend lands, select it here via a per-connection
     // capability probe (SQLGetInfo) and fall back to the thread-offload backend.
-    m_data->asyncBackend = std::make_unique<Async::ThreadOffloadBackend>(dbWorkers, resume);
+    EnableAsync(std::make_unique<Async::ThreadOffloadBackend>(dbWorkers, resume));
+}
+
+void SqlConnection::EnableAsync(std::unique_ptr<Async::IAsyncBackend> backend)
+{
+    m_data->asyncBackend = std::move(backend);
 }
 
 bool SqlConnection::IsAsyncEnabled() const noexcept
