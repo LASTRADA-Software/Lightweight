@@ -69,6 +69,7 @@ var NAVTREEINDEX2 =
 "d5/de7/SqlTime_8hpp_source.html":[14,0,1,1,14],
 "d5/df5/AsyncSqlTransaction_8hpp_source.html":[14,0,1,0,1],
 "d5/df9/SqlConnection_8hpp_source.html":[14,0,1,14],
+"d5/dfe/WorkQueue_8hpp_source.html":[14,0,1,0,13],
 "d6/d1b/structLightweight_1_1SqlNumeric.html":[11,0,8],
 "d6/d1b/structLightweight_1_1SqlNumeric.html#a00f609c884ae1a3ab84575c4748d08a7":[11,0,8,10],
 "d6/d1b/structLightweight_1_1SqlNumeric.html#a1392e30ae9feb0ae5f7f5e42e6394734":[11,0,8,7],
@@ -248,6 +249,5 @@ var NAVTREEINDEX2 =
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#af7cae59fb07a3ddfa5a01758a7ab11ac":[11,4,3,41],
 "d7/d12/PostgreSqlFormatter_8hpp_source.html":[14,0,1,3,0],
 "d7/d13/structLightweight_1_1SqlRealName.html":[13,0,0,60],
-"d7/d13/structLightweight_1_1SqlRealName.html#a13a14e15745651ea04fe1842bab4b501":[13,0,0,60,8],
-"d7/d13/structLightweight_1_1SqlRealName.html#a1fa62b5e33b8961307b5176d581bfb78":[13,0,0,60,3]
+"d7/d13/structLightweight_1_1SqlRealName.html#a13a14e15745651ea04fe1842bab4b501":[13,0,0,60,8]
 };

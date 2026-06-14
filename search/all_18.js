@@ -68,7 +68,7 @@ var searchData=
   ['rollback_65',['rollback',['../d0/ddc/classLightweight_1_1SqlTransaction.html#a6ed3f7b26252e7d105675187cd37d71b',1,'Lightweight::SqlTransaction::Rollback()'],['../d2/da6/sql-migrations.html#rollback',1,'Rollback']]],
   ['rollback_20timestamp_66',['rollback &lt;TIMESTAMP&gt;',['../d5/dc4/dbtool.html#rollback-timestamp',1,'']]],
   ['rollback_20to_20timestamp_67',['rollback-to &lt;TIMESTAMP&gt;',['../d5/dc4/dbtool.html#rollback-to-timestamp',1,'']]],
-  ['rollbackasync_68',['RollbackAsync',['../d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html#a34eaa45b7dd0244663721e1f7ec6362f',1,'Lightweight::Async::AsyncSqlTransaction']]],
+  ['rollbackasync_68',['RollbackAsync',['../d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html#a5430f0c5810ab33b97a296d31985e0df',1,'Lightweight::Async::AsyncSqlTransaction']]],
   ['row_20columns_20in_20order_69',['Query Result Row Columns in Order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
   ['row_20retrieval_20via_20structs_70',['Simple row retrieval via structs',['../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#simple-row-retrieval-via-structs',1,'']]],
   ['rowcount_71',['rowcount',['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#aa96489eada966b8294d4cc0e950cdbc3',1,'Lightweight::SqlBackup::ColumnBatch::rowCount'],['../d9/dfa/structLightweight_1_1SqlBackup_1_1TableInfo.html#a92351f3189fe1adade98ccec8d21a6b2',1,'Lightweight::SqlBackup::TableInfo::rowCount']]],

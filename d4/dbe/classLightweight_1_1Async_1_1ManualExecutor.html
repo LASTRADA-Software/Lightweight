@@ -175,7 +175,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>Stop</b> ()</td></tr>
 <div class="textblock"><p>An executor that runs work only when explicitly pumped by the owning thread.</p>
 <p>This is the "app thread" / event-loop resume target for the single-threaded model: blocking ODBC work is offloaded to a <a class="el" href="../../d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor.html">ThreadPoolExecutor</a>, and the coroutine's continuation is posted back here so that all user-visible coroutine logic resumes on the one thread that drives this executor (via <a class="el" href="../../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a91a62e9ccc6d98486fc872a0ab4fdbfd">Run</a>, <a class="el" href="../../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a2fd277633504e8fb2257f493649cc002">Drain</a>, <a class="el" href="../../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a75c169314113fd8e98804a5f5cb13336">RunOne</a> or <a class="el" href="../../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#ac072d5f776bd5a46f58abcc8597ef3f2">RunUntil</a>). All members are thread-safe to call; the pumping members (<a class="el" href="../../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a91a62e9ccc6d98486fc872a0ab4fdbfd">Run</a> / <a class="el" href="../../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a2fd277633504e8fb2257f493649cc002">Drain</a> / <a class="el" href="../../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a75c169314113fd8e98804a5f5cb13336">RunOne</a> / <a class="el" href="../../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#ac072d5f776bd5a46f58abcc8597ef3f2">RunUntil</a>) are intended for a single consumer thread. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../dd/db1/ManualExecutor_8hpp_source.html#l00024">24</a> of file <a class="el" href="../../dd/db1/ManualExecutor_8hpp_source.html">ManualExecutor.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../dd/db1/ManualExecutor_8hpp_source.html#l00023">23</a> of file <a class="el" href="../../dd/db1/ManualExecutor_8hpp_source.html">ManualExecutor.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a25d59bf8efd379b162e12834247dbb9e" name="a25d59bf8efd379b162e12834247dbb9e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a25d59bf8efd379b162e12834247dbb9e">&#9670;&#160;</a></span>Post()</h2>
@@ -341,7 +341,7 @@ template&lt;typename Predicate &gt; </div>
   </dd>
 </dl>
 
-<p class="definition">Definition at line <a class="el" href="../../dd/db1/ManualExecutor_8hpp_source.html#l00063">63</a> of file <a class="el" href="../../dd/db1/ManualExecutor_8hpp_source.html">ManualExecutor.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../dd/db1/ManualExecutor_8hpp_source.html#l00062">62</a> of file <a class="el" href="../../dd/db1/ManualExecutor_8hpp_source.html">ManualExecutor.hpp</a>.</p>
 
 </div>
 </div>

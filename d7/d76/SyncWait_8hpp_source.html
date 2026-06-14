@@ -394,10 +394,15 @@ $(document).ready(function(){initNavTree('d7/d76/SyncWait_8hpp_source.html','../
 <div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>    <span class="keyword">auto</span> driver = detail::MakeSyncWaitTask&lt;T&gt;(std::move(task));</div>
 <div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>    driver.Start(signal);</div>
 <div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>    executor.RunUntil([&amp;signal] { <span class="keywordflow">return</span> signal.IsSet(); });</div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>    <span class="keywordflow">return</span> driver.Promise().Take();</div>
-<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>}</div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span> </div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>} <span class="comment">// namespace Lightweight::Async</span></div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>    <span class="comment">// RunUntil returns as soon as the completion flag is observed, but Set() may still be mid-execution</span></div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>    <span class="comment">// on the resuming thread (it raises the flag and nudges the waker before its trailing</span></div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>    <span class="comment">// _semaphore.release()). Acquire the semaphore — release() is the last statement of Set() — so the</span></div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>    <span class="comment">// local `signal` is not destroyed while Set() is still touching it. Mirrors SyncWait&#39;s handshake.</span></div>
+<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>    signal.Wait();</div>
+<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>    <span class="keywordflow">return</span> driver.Promise().Take();</div>
+<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>}</div>
+<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span> </div>
+<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>} <span class="comment">// namespace Lightweight::Async</span></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

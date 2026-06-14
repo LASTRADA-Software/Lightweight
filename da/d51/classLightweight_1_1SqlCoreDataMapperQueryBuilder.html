@@ -170,7 +170,7 @@ Protected Member Functions</h2></td></tr>
 <div class="textblock"><div class="compoundTemplParams">template&lt;typename Record, typename Derived, <a class="el" href="../../d3/db2/structLightweight_1_1DataMapperOptions.html">DataMapperOptions</a> QueryOptions = {}&gt;<br />
 class Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;</div><p>Main API for mapping records to C++ from the database using high level C++ syntax. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00047">47</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00046">46</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="aaebf198c4d7c903a2828d1bd74178f03" name="aaebf198c4d7c903a2828d1bd74178f03"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aaebf198c4d7c903a2828d1bd74178f03">&#9670;&#160;</a></span>SqlCoreDataMapperQueryBuilder()</h2>
@@ -210,7 +210,7 @@ template&lt;typename Record , typename Derived , <a class="el" href="../../d3/db
 
 <p>Constructs a query builder with the given data mapper and field list. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00850">850</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00855">855</a> of file <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html">DataMapper.hpp</a>.</p>
 
 </div>
 </div>
@@ -241,7 +241,7 @@ template&lt;typename Record , typename Derived , <a class="el" href="../../d3/db
 </div><div class="memdoc">
 <p>Executes a SELECT 1 ... query and returns true if a record exists We do not provide db specific syntax to check this but reuse the <a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html#adcb7950729dbb1030a0a6341927f9c40" title="Executes a SELECT query for the first record found and returns it.">First()</a> implementation </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00081">81</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00080">80</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -272,7 +272,7 @@ template&lt;typename Record , typename Derived , <a class="el" href="../../d3/db
 
 <p>Executes a SELECT COUNT query and returns the number of records found. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00087">87</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00086">86</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -303,7 +303,7 @@ template&lt;typename Record , typename Derived , <a class="el" href="../../d3/db
 
 <p>Executes a SELECT query and returns all records found. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00093">93</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00092">92</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -334,7 +334,7 @@ template&lt;typename Record , typename Derived , <a class="el" href="../../d3/db
 
 <p>Executes a DELETE query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00099">99</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00098">98</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -378,10 +378,10 @@ requires std::is_member_object_pointer_v&lt;decltype(<a class="el" href="../../d
 <div class="line"><span class="keyword">auto</span> <span class="keyword">const</span> ages = dm.<a class="code hl_function" href="../../de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747">Query</a>&lt;Person&gt;()</div>
 <div class="line">                    .OrderBy(FieldNameOf&lt;&amp;Person::age&gt;, SqlResultOrdering::ASCENDING)</div>
 <div class="line">                    .All&lt;&amp;Person::age&gt;();</div>
-<div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00090">DataMapper.hpp:91</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00091">DataMapper.hpp:92</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1DataMapper_html_af1c52aba8ccacf105070b0ecfea7c747"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html#af1c52aba8ccacf105070b0ecfea7c747">Lightweight::DataMapper::Query</a></div><div class="ttdeci">std::vector&lt; Record &gt; Query(SqlSelectQueryBuilder::ComposedQuery const &amp;selectQuery, InputParameters &amp;&amp;... inputParameters)</div></div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00122">122</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00121">121</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -426,7 +426,7 @@ requires (sizeof...(ReferencedFields) &gt;= 2)</div>
 <div class="line">                    .OrderBy(FieldNameOf&lt;&amp;Person::age&gt;, SqlResultOrdering::ASCENDING)</div>
 <div class="line">                    .All&lt;&amp;Person::name, &amp;Person::age&gt;();</div>
 </div><!-- fragment --> 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00142">142</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00141">141</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -457,7 +457,7 @@ template&lt;typename Record , typename Derived , <a class="el" href="../../d3/db
 
 <p>Executes a SELECT query for the first record found and returns it. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00148">148</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00147">147</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -498,7 +498,7 @@ requires std::is_member_object_pointer_v&lt;decltype(<a class="el" href="../../d
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>an optional value of the type of the field, or an empty optional if no record was found. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00164">164</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00163">163</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -539,7 +539,7 @@ requires (sizeof...(ReferencedFields) &gt;= 2)</div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>an optional record with only the specified fields populated, or an empty optional if no record was found. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00176">176</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00175">175</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -571,7 +571,7 @@ template&lt;typename Record , typename Derived , <a class="el" href="../../d3/db
 
 <p>Executes a SELECT query for the first n records found and returns them. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00182">182</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00181">181</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -605,7 +605,7 @@ template&lt;auto... ReferencedFields&gt; </div>
 
 <p>Executes a SELECT query for the first n records with only the specified fields populated. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00189">189</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00188">188</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -647,7 +647,7 @@ template&lt;typename Record , typename Derived , <a class="el" href="../../d3/db
 
 <p>Executes a SELECT query for a range of records and returns them. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00195">195</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00194">194</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>
@@ -691,7 +691,7 @@ template&lt;auto... ReferencedFields&gt; </div>
 
 <p>Executes a SELECT query for a range of records with only the specified fields populated. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00202">202</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html#l00201">201</a> of file <a class="el" href="../../df/db7/QueryBuilders_8hpp_source.html">QueryBuilders.hpp</a>.</p>
 
 </div>
 </div>

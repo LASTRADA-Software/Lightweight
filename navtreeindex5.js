@@ -1,5 +1,7 @@
 var NAVTREEINDEX5 =
 {
+"db/dad/classLightweight_1_1SqlStatement.html#ac394d28a45e9b10a2edb1cdf0037281e":[13,0,0,69,26],
+"db/dad/classLightweight_1_1SqlStatement.html#aca574aabad03fc30adc6f52bb935cf2c":[13,0,0,69,38],
 "db/dad/classLightweight_1_1SqlStatement.html#ade0634f2250c8cd5c1128a30823279e5":[13,0,0,69,8],
 "db/dad/classLightweight_1_1SqlStatement.html#ae3ff62232ea5a9561c0189a0fc204525":[13,0,0,69,2],
 "db/dad/classLightweight_1_1SqlStatement.html#af3606d3a07e9a9be93e49569946c176d":[13,0,0,69,23],
@@ -118,8 +120,9 @@ var NAVTREEINDEX5 =
 "dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#ae323751c667fa84bef366866e65ea0e3":[11,4,2,3],
 "dd/d97/classLightweight_1_1SqlJoinConditionBuilder.html#ae90e99aad161896fdfbe8659a3985bcb":[11,4,2,2],
 "dd/da7/conceptLightweight_1_1FieldWithStorage.html":[11,2,1],
+"dd/da9/DataMapperAsync_8hpp_source.html":[14,0,1,0,4],
 "dd/dad/SqlText_8hpp_source.html":[14,0,1,1,13],
-"dd/db1/ManualExecutor_8hpp_source.html":[14,0,1,0,6],
+"dd/db1/ManualExecutor_8hpp_source.html":[14,0,1,0,7],
 "dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html":[13,0,0,0,2],
 "dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html#a64ef8c995e4ed96b421f10144e9fe3c5":[13,0,0,0,2,1],
 "dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html#af16af5750032dc8798380d359167f065":[13,0,0,0,2,0],
@@ -246,8 +249,5 @@ var NAVTREEINDEX5 =
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#aa69bce960ab6b67f3a39750799754c4e":[11,4,0,11],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#ad9d7e0290e84a1b8560e32a9f37d5a1f":[11,4,0,7],
 "de/da0/classLightweight_1_1SqlQueryBuilder.html#adeb820498dd1bc9a5c575244e1bdf853":[11,4,0,9],
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#af144019a618b92754fdc3879e226632d":[11,4,0,3],
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#af7ef6f1c5540f6aba2f607f81c7938ec":[11,4,0,2],
-"de/dae/classLightweight_1_1SqlFixedString.html":[11,0,5],
-"de/dae/classLightweight_1_1SqlFixedString.html#a021d0c5162ff98269d291649eabb8198":[11,0,5,12]
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#af144019a618b92754fdc3879e226632d":[11,4,0,3]
 };
