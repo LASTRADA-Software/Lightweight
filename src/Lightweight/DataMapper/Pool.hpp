@@ -1,21 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "../Async/Executor.hpp"
+#include "../Async/Task.hpp"
 #include "DataMapper.hpp"
 
+#include <cassert>
 #include <condition_variable>
+#include <coroutine>
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <vector>
-
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
-    #include "../Async/Executor.hpp"
-    #include "../Async/Task.hpp"
-
-    #include <cassert>
-    #include <coroutine>
-    #include <deque>
-#endif
 
 namespace Lightweight
 {
@@ -125,11 +121,9 @@ class Pool
     void Return(std::unique_ptr<DataMapper> dm) noexcept
         requires(Config.growthStrategy == GrowthStrategy::UnboundedGrow)
     {
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
         // Drop any async backend so a recycled connection never carries references to executors
         // that may have been destroyed; the next AcquireAsync re-enables it fresh.
         dm->Connection().DisableAsync();
-#endif
         std::scoped_lock lock(_mutex);
         _idleDataMappers.push_back(std::move(dm));
     }
@@ -139,17 +133,14 @@ class Pool
     void Return(std::unique_ptr<DataMapper> dm) noexcept
         requires(Config.growthStrategy == GrowthStrategy::BoundedWait)
     {
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
         // Drop any async backend before the mapper is idled or handed to a waiter, so a recycled
         // connection never carries references to (possibly destroyed) executors; a waiter's
         // AcquireAsync re-enables it fresh.
         dm->Connection().DisableAsync();
         AsyncWaiter waiter;
         bool haveAsyncWaiter = false;
-#endif
         {
             std::scoped_lock lock(_mutex);
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
             if (!_asyncWaiters.empty())
             {
                 waiter = _asyncWaiters.front();
@@ -158,19 +149,16 @@ class Pool
                 haveAsyncWaiter = true;
             }
             else
-#endif
             {
                 _idleDataMappers.push_back(std::move(dm));
                 --_checkedOut;
             }
         }
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
         if (haveAsyncWaiter)
         {
             waiter.resume->Resume(waiter.handle); // resume outside the lock to avoid re-entrancy
             return;
         }
-#endif
         _cv.notify_one();
     }
 
@@ -178,11 +166,9 @@ class Pool
     void Return(std::unique_ptr<DataMapper> dm) noexcept
         requires(Config.growthStrategy == GrowthStrategy::BoundedOverflow)
     {
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
         // Drop any async backend so a recycled connection never carries references to executors
         // that may have been destroyed; the next AcquireAsync re-enables it fresh.
         dm->Connection().DisableAsync();
-#endif
         std::scoped_lock lock(_mutex);
         if (_idleDataMappers.size() < Config.maxSize)
             _idleDataMappers.push_back(std::move(dm));
@@ -203,12 +189,10 @@ class Pool
     /// which may leak resources if not handled properly.
     ~Pool() noexcept
     {
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
         // A coroutine still parked in AcquireAsync when the pool dies would leak its frame: we
         // cannot safely resume or destroy a frame the pool does not own. Drive such tasks to
         // completion before destroying the pool.
         assert(_asyncWaiters.empty() && "Pool destroyed with coroutines still parked in AcquireAsync");
-#endif
     }
 
     Pool(Pool const&) = delete;
@@ -264,7 +248,6 @@ class Pool
         return PooledDataMapper(*this, std::move(dm));
     }
 
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
     /// Asynchronously acquires a DataMapper from the pool without blocking the calling thread.
     ///
     /// If the pool is exhausted (BoundedWait at capacity), the awaiting coroutine is suspended and
@@ -280,7 +263,6 @@ class Pool
         // Forward to a coroutine taking pointers (coroutines must not take reference parameters).
         return AcquireAsyncImpl(&dbWorkers, &resume);
     }
-#endif
 
 #if defined(BUILD_TESTS)
     [[nodiscard]] size_t IdleCount() noexcept
@@ -291,7 +273,6 @@ class Pool
 #endif
 
   private:
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
     /// A suspended coroutine waiting for a DataMapper to become available.
     struct AsyncWaiter
     {
@@ -388,15 +369,12 @@ class Pool
         pooled->Connection().EnableAsync(*dbWorkers, *resume);
         co_return std::move(pooled);
     }
-#endif
 
     std::mutex _mutex;
     std::condition_variable _cv;
     std::vector<std::unique_ptr<DataMapper>> _idleDataMappers;
     size_t _checkedOut {};
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
     std::deque<AsyncWaiter> _asyncWaiters;
-#endif
 };
 
 // Default pool configuration, configurable via CMake options:

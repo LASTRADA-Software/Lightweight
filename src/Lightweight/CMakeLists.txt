@@ -4,10 +4,6 @@ else()
     set(LIGHTWEIGHT_LIBRARY_TYPE STATIC)
 endif()
 
-# C++23 coroutine async API (Task, executors, async ODBC methods). Opt-out to compile the
-# entire async surface (and its <coroutine> cost) out of the library.
-option(LIGHTWEIGHT_ENABLE_ASYNC "Build the C++23 coroutine async API" ON)
-
 # DataMapper pool configuration
 set(LIGHTWEIGHT_POOL_INITIAL_SIZE "4" CACHE STRING "Initial number of pre-created DataMappers in the global pool")
 set(LIGHTWEIGHT_POOL_MAX_SIZE "16" CACHE STRING "Maximum pool size (used by BoundedWait and BoundedOverflow)")
@@ -144,29 +140,28 @@ set(SOURCE_FILES
     Zip/ZipEntry.cpp
 )
 
-if(LIGHTWEIGHT_ENABLE_ASYNC)
-    list(APPEND HEADER_FILES
-        Async/Task.hpp
-        Async/SyncWait.hpp
-        Async/CancellationToken.hpp
-        Async/Executor.hpp
-        Async/ThreadPoolExecutor.hpp
-        Async/StrandExecutor.hpp
-        Async/ManualExecutor.hpp
-        Async/Async.hpp
-        Async/Backend.hpp
-        Async/ThreadOffloadBackend.hpp
-        Async/Fwd.hpp
-        Async/AsyncSqlTransaction.hpp
-        Async/DataMapperAsync.inl
-    )
-    list(APPEND SOURCE_FILES
-        Async/ThreadPoolExecutor.cpp
-        Async/StrandExecutor.cpp
-        Async/ManualExecutor.cpp
-        Async/AsyncSqlTransaction.cpp
-    )
-endif()
+# C++23 coroutine async API (Task, executors, async ODBC methods) — a first-class part of the library.
+list(APPEND HEADER_FILES
+    Async/Task.hpp
+    Async/SyncWait.hpp
+    Async/CancellationToken.hpp
+    Async/Executor.hpp
+    Async/ThreadPoolExecutor.hpp
+    Async/StrandExecutor.hpp
+    Async/ManualExecutor.hpp
+    Async/Async.hpp
+    Async/Backend.hpp
+    Async/ThreadOffloadBackend.hpp
+    Async/Fwd.hpp
+    Async/AsyncSqlTransaction.hpp
+    Async/DataMapperAsync.inl
+)
+list(APPEND SOURCE_FILES
+    Async/ThreadPoolExecutor.cpp
+    Async/StrandExecutor.cpp
+    Async/ManualExecutor.cpp
+    Async/AsyncSqlTransaction.cpp
+)
 
 add_library(Lightweight ${LIGHTWEIGHT_LIBRARY_TYPE})
 
@@ -193,10 +188,6 @@ target_compile_definitions(Lightweight PUBLIC
     LIGHTWEIGHT_POOL_MAX_SIZE=${LIGHTWEIGHT_POOL_MAX_SIZE}
     LIGHTWEIGHT_POOL_GROWTH_STRATEGY=${LIGHTWEIGHT_POOL_GROWTH_STRATEGY}
 )
-
-if(LIGHTWEIGHT_ENABLE_ASYNC)
-    target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_ENABLE_ASYNC=1)
-endif()
 
 add_library(LightweightTools STATIC)
 add_library(Lightweight::Tools ALIAS LightweightTools)

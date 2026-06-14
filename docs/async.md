@@ -199,5 +199,4 @@ API would throw.
 
 ## Build
 
-The async API is built by default. To compile it (and its `<coroutine>` cost) out entirely,
-configure with `-DLIGHTWEIGHT_ENABLE_ASYNC=OFF`.
+The async API is a first-class part of the library — always built, no configuration required.

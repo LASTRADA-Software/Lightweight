@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "../Async/Backend.hpp"
 #include "../SqlConnection.hpp"
 #include "../SqlQueryFormatter.hpp"
 #include "../SqlStatement.hpp"
@@ -9,10 +10,6 @@
 #include "BelongsTo.hpp"
 #include "Field.hpp"
 #include "Record.hpp"
-
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
-    #include "../Async/Backend.hpp"
-#endif
 
 #include <cstdint>
 

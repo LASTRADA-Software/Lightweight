@@ -400,7 +400,6 @@ class DataMapper
         return SqlAllFieldsQueryBuilder<Record, QueryOptions>(*this, BuildFullyQualifiedFieldList<Record>());
     }
 
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
     /// Asynchronous counterpart of @ref Query: returns an async query builder for @p Record.
     ///
     /// The builder offers the exact same fluent DSL (`Where`, `OrderBy`, `GroupBy`, joins, …) as the
@@ -426,7 +425,6 @@ class DataMapper
         return SqlAllFieldsQueryBuilder<Record, QueryOptions, SqlQueryExecutionMode::Asynchronous>(
             *this, BuildFullyQualifiedFieldList<Record>());
     }
-#endif
 
     /// Returns a SqlQueryBuilder using the default query formatter.
     ///
@@ -534,7 +532,6 @@ class DataMapper
     template <typename T>
     [[nodiscard]] std::optional<T> Execute(std::string_view sqlQueryString);
 
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
     // --------------------------------------------------------------------------------------------
     // Asynchronous (C++23 coroutine) API.
     //
@@ -570,7 +567,6 @@ class DataMapper
     /// Asynchronously loads @p record's relations. @see LoadRelations.
     template <typename Record>
     [[nodiscard]] Async::Task<void> LoadRelationsAsync(Record& record);
-#endif
 
   private:
     /// Builds the comma-separated, fully-qualified (`"Table"."Column"`) field list for @p Record.
@@ -844,11 +840,9 @@ template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 template <typename Finisher>
 auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::RunFinisher(Finisher finisher)
 {
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
     if constexpr (Derived::QueryExecution == SqlQueryExecutionMode::Asynchronous)
         return Async::RunAsync(_dm.Connection().AsyncBackend(), std::move(finisher));
     else
-#endif
         return finisher();
 }
 
@@ -2780,6 +2774,4 @@ std::optional<T> DataMapper::Execute(std::string_view sqlQueryString)
 
 } // namespace Lightweight
 
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
-    #include "../Async/DataMapperAsync.inl"
-#endif
+#include "../Async/DataMapperAsync.inl"

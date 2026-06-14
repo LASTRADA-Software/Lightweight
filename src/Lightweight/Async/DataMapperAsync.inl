@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 // Out-of-line definitions for DataMapper's asynchronous (coroutine) methods.
-// This file is included at the end of DataMapper/DataMapper.hpp when LIGHTWEIGHT_ENABLE_ASYNC is on.
+// This file is included unconditionally at the end of DataMapper/DataMapper.hpp.
 //
 // Each method offloads the existing synchronous DataMapper method to the connection's async backend
 // (a worker thread, serialized per connection via a strand) and resumes the awaiting coroutine on the

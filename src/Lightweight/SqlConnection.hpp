@@ -7,14 +7,11 @@
 #endif
 
 #include "Api.hpp"
+#include "Async/Fwd.hpp"
 #include "SqlConnectInfo.hpp"
 #include "SqlError.hpp"
 #include "SqlLogger.hpp"
 #include "SqlServerType.hpp"
-
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
-    #include "Async/Fwd.hpp"
-#endif
 
 #include <atomic>
 #include <chrono>
@@ -197,7 +194,6 @@ class SqlConnection final
     LIGHTWEIGHT_API void RequireSuccess(SQLRETURN sqlResult,
                                         std::source_location sourceLocation = std::source_location::current()) const;
 
-#if defined(LIGHTWEIGHT_ENABLE_ASYNC)
     /// Enables coroutine-based asynchronous methods on this connection.
     ///
     /// Wires the connection to an injected execution context: blocking ODBC work is offloaded to
@@ -231,7 +227,6 @@ class SqlConnection final
     /// @throws std::logic_error if async has not been enabled (programmer error, fail-fast).
     /// @return The async backend used by this connection's async methods.
     [[nodiscard]] LIGHTWEIGHT_API Async::IAsyncBackend& AsyncBackend() const;
-#endif
 
   private:
     /// Ensures ODBC handles are allocated. Called by Connect() methods.
