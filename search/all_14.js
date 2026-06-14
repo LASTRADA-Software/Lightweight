@@ -14,12 +14,13 @@ var searchData=
   ['next_11',['What&apos;s Next',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#whats-next',1,'']]],
   ['nonunique_12',['NonUnique',['../d6/daa/group__QueryBuilder.html#gga17470447b60d4554d19d30e877645d07a40fd8860f93339c96fc54abffc1f7594',1,'Lightweight']]],
   ['not_13',['Not',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a70eca9201efb0d7311b20cef6ef4db34',1,'Lightweight::SqlWhereClauseBuilder']]],
-  ['now_14',['Now',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a1fda36e61fa3eed7869cda1f456ee27a',1,'Lightweight::SqlDateTime']]],
-  ['nowutc_15',['NowUTC',['../d6/dfa/structLightweight_1_1SqlDateTime.html#ab39a3e35e5b4cbffe0dfb0c377bd287d',1,'Lightweight::SqlDateTime']]],
-  ['null_20handling_20tt_20n_20tt_16',['3.4 Null Handling (&lt;tt&gt;&quot;n&quot;&lt;/tt&gt;)',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md34-null-handling-n',1,'']]],
-  ['nullable_17',['nullable',['../dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#a782c413681d6e9b9918c5d4643ccba09',1,'Lightweight::SqlAlterTableCommands::AddColumnIfNotExists::nullable'],['../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#aad8cbeca3421d47c96c54ee1d43860d0',1,'Lightweight::SqlMigration::MigrationManager::ColumnUpgradeEntry::nullable'],['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10',1,'Lightweight::SqlRawColumnMetadata::nullable']]],
-  ['nullindicators_18',['nullIndicators',['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#a074a838190de09219aa9b08ae5a931db',1,'Lightweight::SqlBackup::ColumnBatch']]],
-  ['nulllogger_19',['NullLogger',['../db/dfd/classLightweight_1_1SqlLogger.html#a2bf0dba43c73124eba0f6b0a01ce82b5',1,'Lightweight::SqlLogger']]],
-  ['numcolumnsaffected_20',['NumColumnsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c',1,'Lightweight::SqlResultCursor']]],
-  ['numrowsaffected_21',['NumRowsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586',1,'Lightweight::SqlResultCursor']]]
+  ['not_20true_20async_20odbc_14',['Why offloading (and not &quot;true&quot; async ODBC)',['../db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#why-offloading-and-not-true-async-odbc',1,'']]],
+  ['now_15',['Now',['../d6/dfa/structLightweight_1_1SqlDateTime.html#a1fda36e61fa3eed7869cda1f456ee27a',1,'Lightweight::SqlDateTime']]],
+  ['nowutc_16',['NowUTC',['../d6/dfa/structLightweight_1_1SqlDateTime.html#ab39a3e35e5b4cbffe0dfb0c377bd287d',1,'Lightweight::SqlDateTime']]],
+  ['null_20handling_20tt_20n_20tt_17',['3.4 Null Handling (&lt;tt&gt;&quot;n&quot;&lt;/tt&gt;)',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md34-null-handling-n',1,'']]],
+  ['nullable_18',['nullable',['../dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#a782c413681d6e9b9918c5d4643ccba09',1,'Lightweight::SqlAlterTableCommands::AddColumnIfNotExists::nullable'],['../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#aad8cbeca3421d47c96c54ee1d43860d0',1,'Lightweight::SqlMigration::MigrationManager::ColumnUpgradeEntry::nullable'],['../da/d07/structLightweight_1_1SqlRawColumnMetadata.html#a9437efb270ef1560d5cd08a1275d6d10',1,'Lightweight::SqlRawColumnMetadata::nullable']]],
+  ['nullindicators_19',['nullIndicators',['../d1/d6f/structLightweight_1_1SqlBackup_1_1ColumnBatch.html#a074a838190de09219aa9b08ae5a931db',1,'Lightweight::SqlBackup::ColumnBatch']]],
+  ['nulllogger_20',['NullLogger',['../db/dfd/classLightweight_1_1SqlLogger.html#a2bf0dba43c73124eba0f6b0a01ce82b5',1,'Lightweight::SqlLogger']]],
+  ['numcolumnsaffected_21',['NumColumnsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c',1,'Lightweight::SqlResultCursor']]],
+  ['numrowsaffected_22',['NumRowsAffected',['../d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586',1,'Lightweight::SqlResultCursor']]]
 ];
