@@ -82,6 +82,12 @@ class LIGHTWEIGHT_API AsyncSqlTransaction
     [[nodiscard]] Task<void> RollbackAsync(CancellationToken token = {});
 
   private:
+    /// Runs @p finalize (SqlTransaction::Commit or ::Rollback) on the open transaction via the
+    /// connection strand, then clears it. Shared by CommitAsync/RollbackAsync.
+    /// @param finalize The finalizing member function to invoke.
+    /// @param token Optional cancellation token.
+    [[nodiscard]] Task<void> FinalizeAsync(void (SqlTransaction::*finalize)(), CancellationToken token);
+
     SqlConnection* _connection;
     std::optional<SqlTransaction> _transaction;
 };

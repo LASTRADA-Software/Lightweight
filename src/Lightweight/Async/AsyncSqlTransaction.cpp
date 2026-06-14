@@ -65,32 +65,28 @@ Task<void> AsyncSqlTransaction::BeginAsync(SqlTransactionMode defaultMode,
         std::move(token));
 }
 
-Task<void> AsyncSqlTransaction::CommitAsync(CancellationToken token)
+Task<void> AsyncSqlTransaction::FinalizeAsync(void (SqlTransaction::*finalize)(), CancellationToken token)
 {
     return RunAsync(
         _connection->AsyncBackend(),
-        [this] {
+        [this, finalize] {
             if (_transaction)
             {
-                _transaction->Commit();
+                ((*_transaction).*finalize)();
                 _transaction.reset();
             }
         },
         std::move(token));
 }
 
+Task<void> AsyncSqlTransaction::CommitAsync(CancellationToken token)
+{
+    return FinalizeAsync(&SqlTransaction::Commit, std::move(token));
+}
+
 Task<void> AsyncSqlTransaction::RollbackAsync(CancellationToken token)
 {
-    return RunAsync(
-        _connection->AsyncBackend(),
-        [this] {
-            if (_transaction)
-            {
-                _transaction->Rollback();
-                _transaction.reset();
-            }
-        },
-        std::move(token));
+    return FinalizeAsync(&SqlTransaction::Rollback, std::move(token));
 }
 
 } // namespace Lightweight::Async
