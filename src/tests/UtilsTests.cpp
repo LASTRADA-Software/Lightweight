@@ -13,9 +13,12 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
+#include <clocale>
 #include <filesystem>
 #include <format>
 #include <limits>
+#include <optional>
+#include <string_view>
 #include <type_traits>
 #include <variant>
 
@@ -765,4 +768,56 @@ TEST_CASE("SqlLogger::NullLogger swallows all events without writing", "[SqlLogg
     logger.SetLoggingSink();
     // The null logger ignores all events, even with a sink installed — it never calls into the sink.
     CHECK(captured.empty());
+}
+
+namespace
+{
+/// Convenience wrapper to call detail::ParseFloat on a string_view.
+template <typename T>
+std::optional<T> ParseFloatSv(std::string_view text)
+{
+    return Lightweight::detail::ParseFloat<T>(text.data(), text.data() + text.size());
+}
+} // namespace
+
+TEST_CASE("detail::ParseFloat parses valid finite values", "[Utils][ParseFloat]")
+{
+    CHECK(ParseFloatSv<double>("3.14") == 3.14);
+    CHECK(ParseFloatSv<double>("-2.5") == -2.5);
+    CHECK(ParseFloatSv<double>("0") == 0.0);
+    CHECK(ParseFloatSv<double>("42") == 42.0);
+    CHECK(ParseFloatSv<float>("1.5") == 1.5F);
+    CHECK(ParseFloatSv<double>("1e3") == 1000.0);
+}
+
+TEST_CASE("detail::ParseFloat rejects malformed and partial input", "[Utils][ParseFloat]")
+{
+    // Whole-token requirement: trailing garbage is rejected (mirrors std::from_chars' ptr==last check),
+    // unlike a bare std::strtod which would silently accept the leading numeric prefix.
+    CHECK(ParseFloatSv<double>("abc") == std::nullopt);
+    CHECK(ParseFloatSv<double>("12abc") == std::nullopt);
+    CHECK(ParseFloatSv<double>("") == std::nullopt);
+    CHECK(ParseFloatSv<double>("1.2.3") == std::nullopt);
+}
+
+TEST_CASE("detail::ParseFloat reports out-of-range values as failure", "[Utils][ParseFloat]")
+{
+    // A value that overflows the target type must NOT be silently turned into +inf; the helper reports
+    // failure so the caller can leave its value untouched.
+    CHECK(ParseFloatSv<double>("1e99999") == std::nullopt);
+    CHECK(ParseFloatSv<float>("1e99999") == std::nullopt);
+}
+
+TEST_CASE("detail::ParseFloat is locale-independent", "[Utils][ParseFloat]")
+{
+    // The decimal point is always '.', regardless of the active LC_NUMERIC. Try to switch to a
+    // comma-decimal locale; if it is installed on the host, parsing of "1.5" must still yield 1.5.
+    if (std::setlocale(LC_NUMERIC, "de_DE.UTF-8") != nullptr || std::setlocale(LC_NUMERIC, "de_DE") != nullptr)
+    {
+        CHECK(ParseFloatSv<double>("1.5") == 1.5);
+        CHECK(ParseFloatSv<double>("1234.5") == 1234.5);
+        std::setlocale(LC_NUMERIC, "C");
+    }
+    else
+        SUCCEED("comma-decimal locale not installed on this host; skipping");
 }

@@ -904,10 +904,10 @@ inline bool IsGithubActions()
     char envBuffer[32] {};
     size_t requiredCount = 0;
     return getenv_s(&requiredCount, envBuffer, sizeof(envBuffer), "GITHUB_ACTIONS") == 0
-           && std::string_view(envBuffer) == "true" == 0;
+           && std::string_view(envBuffer) == "true";
 #else
-    return std::getenv("GITHUB_ACTIONS") != nullptr
-           && std::string_view(std::getenv("GITHUB_ACTIONS")) == "true"; // NOLINT(clang-analyzer-core.NonNullParamChecker)
+    auto const* const githubActions = std::getenv("GITHUB_ACTIONS");
+    return githubActions != nullptr && std::string_view(githubActions) == "true";
 #endif
 }
 

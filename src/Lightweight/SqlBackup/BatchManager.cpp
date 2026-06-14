@@ -4,18 +4,40 @@
 #include "../DataBinder/SqlGuid.hpp"
 #include "../DataBinder/SqlTime.hpp"
 #include "../SqlColumnTypeDefinitions.hpp"
+#include "../Utils.hpp"
 #include "BatchManager.hpp"
 
 #include <algorithm>
 #include <charconv>
 #include <cstring>
 #include <format>
+#include <optional>
+#include <string>
+#include <type_traits>
 #include <variant>
 
 namespace Lightweight::detail
 {
 
 using namespace SqlBackup;
+
+/// Parses a numeric value from [first, last) into @p out, leaving @p out unchanged on a parse failure.
+/// @note Floating-point types use the locale-independent, error-reporting Lightweight::detail::ParseFloat
+/// helper (std::from_chars' float overloads are unavailable before macOS 26 in libc++); integral types use
+/// std::from_chars directly.
+template <typename T>
+void ParseNumeric(char const* first, char const* last, T& out)
+{
+    if constexpr (std::is_floating_point_v<T>)
+    {
+        if (auto const parsed = ParseFloat<T>(first, last))
+            out = *parsed;
+    }
+    else
+    {
+        std::from_chars(first, last, out);
+    }
+}
 
 /// A column in a batch.
 struct BatchColumn
@@ -100,7 +122,7 @@ struct TypedBatchColumn: BatchColumn
                                 PushNull();
                             else
                             {
-                                std::from_chars(s.data(), s.data() + s.size(), v);
+                                ParseNumeric(s.data(), s.data() + s.size(), v);
                                 data.push_back(v);
                                 indicators.push_back(sizeof(T));
                             }
@@ -183,7 +205,7 @@ struct NumericBatchColumn: TypedBatchColumn<T, CType, SqlType>
                     else
                     {
                         T v {};
-                        std::from_chars(arg.data(), arg.data() + arg.size(), v);
+                        ParseNumeric(arg.data(), arg.data() + arg.size(), v);
                         this->data.push_back(v);
                         this->indicators.push_back(sizeof(T));
                     }

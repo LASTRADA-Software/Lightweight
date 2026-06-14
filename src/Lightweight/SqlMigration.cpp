@@ -1381,7 +1381,7 @@ size_t MigrationManager::ApplyPendingMigrations(ExecuteCallback const& feedbackC
 
 #if !defined(__cpp_lib_ranges_enumerate)
     int index { -1 };
-    for (auto& migration: pendingMigrations)
+    for (auto const& migration: pendingMigrations)
     {
         ++index;
 #else
@@ -1407,7 +1407,7 @@ size_t MigrationManager::ApplyPendingMigrationsUpTo(MigrationTimestamp targetInc
 
 #if !defined(__cpp_lib_ranges_enumerate)
     int index { -1 };
-    for (auto& migration: pendingMigrations)
+    for (auto const& migration: pendingMigrations)
     {
         ++index;
 #else

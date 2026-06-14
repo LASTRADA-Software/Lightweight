@@ -7,12 +7,30 @@
 #include <reflection-cpp/reflection.hpp>
 
 #include <algorithm>
+#include <array>
+#include <cerrno>
+#include <charconv>
+#include <cstdlib>
+#include <optional>
 #include <ranges>
 #include <source_location>
+#include <string>
 #include <string_view>
+#include <system_error>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
+
+// libc++ exposes the locale-aware strtod_l / newlocale family via <xlocale.h>; glibc declares them in
+// <stdlib.h>/<locale.h>. We only need them on the fallback path below (no float std::from_chars).
+#if !(defined(__cpp_lib_to_chars) && __cpp_lib_to_chars >= 201611L)
+    #include <clocale>
+    #if defined(__APPLE__)
+        #include <xlocale.h>
+    #else
+        #include <locale.h>
+    #endif
+#endif
 
 #include <sql.h>
 
@@ -44,6 +62,69 @@ namespace detail
             }
         };
         return Finally { std::forward<decltype(cleanupRoutine)>(cleanupRoutine) };
+    }
+
+    /// Parses a floating-point value from the character range @c [first, last) in a locale-independent way.
+    ///
+    /// This is the single, shared replacement for @c std::from_chars on floating-point types, which is
+    /// unavailable on libc++ before macOS 26. Unlike a bare @c std::strtod it neither depends on the active
+    /// @c LC_NUMERIC locale nor silently accepts trailing garbage, so it round-trips the @c '.' decimal point
+    /// the library always emits regardless of the host locale.
+    ///
+    /// @tparam T A floating-point type (@c float, @c double, or @c long double).
+    /// @param first Pointer to the first character of the numeric text.
+    /// @param last Pointer one past the last character of the numeric text.
+    /// @return The parsed value, or @c std::nullopt if the text is not a complete, in-range number.
+    template <typename T>
+        requires std::is_floating_point_v<T>
+    [[nodiscard]] inline std::optional<T> ParseFloat(char const* first, char const* last) noexcept
+    {
+        if (first == last)
+            return std::nullopt;
+#if defined(__cpp_lib_to_chars) && __cpp_lib_to_chars >= 201611L
+        // std::from_chars is locale-independent, allocation-free, and reports both partial parses (ptr) and
+        // range errors (ec) — the preferred path wherever the float overloads exist.
+        T value {};
+        auto const [ptr, ec] = std::from_chars(first, last, value);
+        if (ec != std::errc {} || ptr != last)
+            return std::nullopt;
+        return value;
+#else
+        // libc++ fallback: strtod_l with a persistent "C" locale gives locale-independent parsing; from_chars
+        // float overloads are unavailable here. Copy into a NUL-terminated buffer (the range need not be) and
+        // require the parse to consume all of it (mirrors the from_chars ptr==last check). On-stack for the
+        // common short numeric text; only the rare over-long token allocates.
+        static ::locale_t const cLocale = ::newlocale(LC_NUMERIC_MASK, "C", static_cast<::locale_t>(nullptr));
+        auto const length = static_cast<std::size_t>(last - first);
+        std::array<char, 64> stackBuffer {};
+        std::string heapBuffer;
+        char const* text = nullptr;
+        if (length < stackBuffer.size())
+        {
+            std::ranges::copy(first, last, stackBuffer.begin());
+            stackBuffer[length] = '\0';
+            text = stackBuffer.data();
+        }
+        else
+        {
+            heapBuffer.assign(first, last);
+            text = heapBuffer.c_str();
+        }
+
+        char* parseEnd = nullptr;
+        errno = 0;
+        T value {};
+        if constexpr (std::is_same_v<T, float>)
+            value = ::strtof_l(text, &parseEnd, cLocale);
+        else if constexpr (std::is_same_v<T, long double>)
+            value = ::strtold_l(text, &parseEnd, cLocale);
+        else
+            value = static_cast<T>(::strtod_l(text, &parseEnd, cLocale));
+
+        if (errno == ERANGE || parseEnd != text + length)
+            return std::nullopt;
+        return value;
+#endif
     }
 
     // is_specialization_of<> is inspired by:

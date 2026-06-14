@@ -456,6 +456,83 @@ jobs:
           }
 
   # }}}
+  # {{{ macOS
+  macos:
+    # macOS coverage for the Homebrew-LLVM / libc++ toolchain, which differs in
+    # non-obvious ways from the Linux libstdc++ and Windows MSVC STLs (e.g.
+    # libc++ has no <stacktrace>, gates utc_clock behind its tz database, and
+    # rejects std::char_traits<unsigned char>). GitHub's macOS runners cannot
+    # run Docker, so only the natively-installable SQLite backend is exercised
+    # here; MSSQL/PostgreSQL stay covered by the Linux/Windows matrices.
+    name: "macOS (Homebrew LLVM, SQLite)"
+    # Newest available runner; we don't target old macOS. (Doesn't relax libc++
+    # availability gates like float std::from_chars, which needs macOS 26.)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Fetch tags
+        # cmake/Version.cmake derives the project version from the latest `v*`
+        # git tag; actions/checkout does a shallow clone without tags.
+        run: git fetch --prune --unshallow --tags
+      - name: "Install dependencies (Homebrew)"
+        # llvm@${{ env.CLANG_TOOLS_VERSION }} pins the same major Clang the rest
+        # of the project targets, so libc++/C++23 behaviour matches local dev
+        # (the runner's stock AppleClang would diverge under the warning set).
+        run: |
+          brew update
+          brew install \
+            llvm@${{ env.CLANG_TOOLS_VERSION }} \
+            cmake ninja catch2 yaml-cpp libzip unixodbc sqliteodbc
+      - name: "Register the SQLite3 ODBC driver"
+        # Homebrew's sqliteodbc ships the driver dylib but does not register it
+        # with unixODBC. Register BOTH names the test suite uses on non-Windows:
+        # `SQLite3 ODBC Driver` (scripts/tests/.test-env.yml `sqlite3` key, used
+        # by `LightweightTest --test-env=sqlite3`) and `SQLite3` (the default
+        # string baked into the binary and into the DbToolIntegrationTest ctest,
+        # see src/tests/CMakeLists.txt). One dylib, two stanzas.
+        run: |
+          set -ex
+          SQLITE_ODBC="$(brew --prefix)/lib/libsqlite3odbc.dylib"
+          test -f "$SQLITE_ODBC"
+          {
+            printf '[SQLite3 ODBC Driver]\nDescription=SQLite3 ODBC Driver\nDriver=%s\nSetup=%s\nThreading=2\n\n' \
+              "$SQLITE_ODBC" "$SQLITE_ODBC"
+            printf '[SQLite3]\nDescription=SQLite3 ODBC Driver\nDriver=%s\nSetup=%s\nThreading=2\n' \
+              "$SQLITE_ODBC" "$SQLITE_ODBC"
+          } > "$RUNNER_TEMP/sqlite3-odbc.ini"
+          odbcinst -i -d -f "$RUNNER_TEMP/sqlite3-odbc.ini"
+          odbcinst -q -d
+      - name: "Configure"
+        # Reuse the Darwin-capable clang-debug preset but disable the checks the
+        # macOS leg should not re-run: clang-tidy and the sanitizers are already
+        # covered by the Linux jobs, and PEDANTIC_COMPILER=OFF drops the
+        # warning block + -Werror (which is gated on it). A dedicated -B dir
+        # keeps this independent of the preset's own binaryDir.
+        run: |
+          set -ex
+          LLVM="$(brew --prefix llvm@${{ env.CLANG_TOOLS_VERSION }})"
+          cmake --preset clang-debug -B out/build/macos-ci \
+                -D CMAKE_CXX_COMPILER="$LLVM/bin/clang++" \
+                -D CMAKE_C_COMPILER="$LLVM/bin/clang" \
+                -D ENABLE_TIDY=OFF \
+                -D PEDANTIC_COMPILER=OFF \
+                -D PEDANTIC_COMPILER_WERROR=OFF \
+                -D ENABLE_SANITIZER_ADDRESS=OFF \
+                -D ENABLE_SANITIZER_UNDEFINED=OFF
+      - name: "Build"
+        run: cmake --build out/build/macos-ci --parallel "$(sysctl -n hw.ncpu)"
+      - name: "Install Python YAML"
+        # Needed by test_dbtool.py (and harmless for ctest); the macOS runner's
+        # python is externally managed, so --break-system-packages is required.
+        run: python3 -m pip install --break-system-packages --disable-pip-version-check pyyaml
+      - name: "Run tests (SQLite via ctest)"
+        # ctest runs both LightweightTest (default `DRIVER=SQLite3` connection)
+        # and DbToolIntegrationTest (the test_dbtool.py suite, also `SQLite3`).
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: ctest --test-dir out/build/macos-ci --output-on-failure
+
+  # }}}
   # {{{ Ubuntu build CC matrix
   ubuntu_build_cc_matrix:
     strategy:

@@ -233,8 +233,19 @@ else()
     target_compile_options(Lightweight PUBLIC ${ODBC_CFLAGS})
     target_link_libraries(Lightweight PUBLIC ${ODBC_LDFLAGS})
 
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        target_link_libraries(Lightweight PUBLIC stdc++exp) # GCC >= 14
+    # libstdc++ (GCC >= 14, and Clang when configured with -stdlib=libstdc++) ships the experimental
+    # runtime bits for <stacktrace>/std::print in a separate `stdc++exp` library that must be linked
+    # explicitly. libc++ (the default for Clang on macOS) does not provide this library, so a blanket
+    # "GNU or Clang" link breaks there with `ld: library 'stdc++exp' not found`. Probe for the library
+    # instead of guessing from the compiler id, so it is linked exactly when it exists.
+    include(CheckCXXSourceCompiles)
+    set(CMAKE_REQUIRED_LIBRARIES_SAVED "${CMAKE_REQUIRED_LIBRARIES}")
+    set(CMAKE_REQUIRED_LIBRARIES stdc++exp)
+    check_cxx_source_compiles("int main() { return 0; }" LIGHTWEIGHT_HAVE_STDCXXEXP)
+    set(CMAKE_REQUIRED_LIBRARIES "${CMAKE_REQUIRED_LIBRARIES_SAVED}")
+    unset(CMAKE_REQUIRED_LIBRARIES_SAVED)
+    if(LIGHTWEIGHT_HAVE_STDCXXEXP)
+        target_link_libraries(Lightweight PUBLIC stdc++exp)
     endif()
 
     # Find library libuuid via pkg-config, and if available, link against it

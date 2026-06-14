@@ -84,11 +84,8 @@ struct SqlDataBinder<std::optional<T>>
         }
         else
         {
-            // Offset of the contained value within std::optional<T> (0 on all known standard libraries,
-            // but computed robustly so the address arithmetic below does not bake in that assumption).
-            OptionalValue const probe { T {} };
-            auto const valueOffset = static_cast<std::size_t>(reinterpret_cast<std::byte const*>(std::addressof(*probe))
-                                                              - reinterpret_cast<std::byte const*>(std::addressof(probe)));
+            // Offset of the contained value within std::optional<T> (see detail::OptionalValueOffset).
+            auto const valueOffset = detail::OptionalValueOffset<T>();
 
             // Row-strided indicator buffer: ODBC reads the indicator for row i at base + i*rowStride. The
             // optionals themselves are embedded in the row structs, so they are also addressed at

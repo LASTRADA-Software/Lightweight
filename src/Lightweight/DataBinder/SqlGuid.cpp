@@ -47,7 +47,14 @@ SqlGuid SqlGuid::Create() noexcept
 #elif __has_include(<uuid/uuid.h>)
 
     uuid_t uuid {};
+    // `uuid_generate_time_safe` is a libuuid (util-linux) extension that additionally reports whether a
+    // synchronized, collision-safe source was used; macOS' `<uuid/uuid.h>` only ships `uuid_generate_time`.
+    // The generated UUID is equally valid either way, and the caller does not consume the safety result.
+    #if defined(__APPLE__)
+    uuid_generate_time(uuid);
+    #else
     uuid_generate_time_safe(uuid);
+    #endif
     std::memcpy(guid.data, uuid, sizeof(uuid));
 
 #else

@@ -10,11 +10,13 @@
 #include <Lightweight/SqlMigration.hpp>
 #include <Lightweight/SqlSchema.hpp>
 #include <Lightweight/SqlScopedLock.hpp>
+#include <Lightweight/Utils.hpp>
 
 #include <algorithm>
 #include <array>
 #include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <expected>
 #include <filesystem>
 #include <fstream>
@@ -1754,11 +1756,13 @@ std::expected<std::size_t, std::string> ParseSizeWithSuffix(std::string_view siz
     if (numEnd == 0)
         return std::unexpected { std::format("Invalid size '{}': must start with a number", sizeStr) };
 
-    double value = 0;
+    // Locale-independent, error-reporting float parse (std::from_chars' float overloads are unavailable
+    // before macOS 26 in libc++); see Lightweight::detail::ParseFloat.
     auto const numPart = sizeStr.substr(0, numEnd);
-    auto const [ptr, ec] = std::from_chars(numPart.data(), numPart.data() + numPart.size(), value);
-    if (ec != std::errc {} || ptr != numPart.data() + numPart.size())
+    auto const parsed = Lightweight::detail::ParseFloat<double>(numPart.data(), numPart.data() + numPart.size());
+    if (!parsed)
         return std::unexpected { std::format("Invalid size '{}': invalid number", sizeStr) };
+    double const value = *parsed;
 
     // Parse suffix
     std::string suffix(sizeStr.substr(numEnd));
