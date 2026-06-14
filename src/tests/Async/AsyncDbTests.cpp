@@ -111,8 +111,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.DataMapper: QueryAsync builder finishers
     {
         auto const age = SyncWaitPumping(
             dm.QueryAsync<Person>().Where(FieldNameOf<Member(Person::age)>, "=", 23).First<Member(Person::age)>(), appLoop);
-        REQUIRE(age.has_value());
-        CHECK(age.value() == 23);
+        CHECK(RequireValue(age) == 23);
     }
 
     SECTION("First() by primary key agrees with QuerySingleAsync")
@@ -121,15 +120,15 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.DataMapper: QueryAsync builder finishers
         dm.Create(known);
 
         // The QuerySingleAsync shorthand and the builder's First() finisher must return the same record.
-        auto const viaSingle = SyncWaitPumping(dm.QuerySingleAsync<Person>(known.id.Value()), appLoop);
-        auto const viaBuilder = SyncWaitPumping(
+        auto const singleResult = SyncWaitPumping(dm.QuerySingleAsync<Person>(known.id.Value()), appLoop);
+        auto const builderResult = SyncWaitPumping(
             dm.QueryAsync<Person>().Where(FieldNameOf<Member(Person::id)>, "=", known.id.Value()).First(), appLoop);
+        auto const& viaSingle = RequireValue(singleResult);
+        auto const& viaBuilder = RequireValue(builderResult);
 
-        REQUIRE(viaSingle.has_value());
-        REQUIRE(viaBuilder.has_value());
-        CHECK(viaSingle->name.Value() == "Zoe");
-        CHECK(viaBuilder->name.Value() == viaSingle->name.Value());
-        CHECK(viaBuilder->age.Value() == viaSingle->age.Value());
+        CHECK(viaSingle.name.Value() == "Zoe");
+        CHECK(viaBuilder.name.Value() == viaSingle.name.Value());
+        CHECK(viaBuilder.age.Value() == viaSingle.age.Value());
     }
 }
 

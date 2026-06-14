@@ -575,7 +575,7 @@ class DataMapper
   private:
     /// Builds the comma-separated, fully-qualified (`"Table"."Column"`) field list for @p Record.
     ///
-    /// Shared by @ref Query and @ref QueryAsync so the SELECT projection is produced in exactly one place.
+    /// Shared by @c Query and @c QueryAsync so the SELECT projection is produced in exactly one place.
     ///
     /// @tparam Record The record type whose members are enumerated.
     /// @return The field list usable as the projection of a SELECT statement.

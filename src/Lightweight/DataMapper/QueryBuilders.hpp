@@ -272,7 +272,7 @@ class [[nodiscard]] SqlCoreDataMapperQueryBuilder: public SqlBasicSelectQueryBui
 /// @ingroup DataMapper
 ///
 /// @tparam Execution Whether the finisher methods execute synchronously or asynchronously.
-///         @ref DataMapper::Query selects @c Synchronous, @ref DataMapper::QueryAsync selects
+///         @c DataMapper::Query selects @c Synchronous, @c DataMapper::QueryAsync selects
 ///         @c Asynchronous; the rest of the fluent builder is identical for both.
 template <typename Record,
           DataMapperOptions QueryOptions,
