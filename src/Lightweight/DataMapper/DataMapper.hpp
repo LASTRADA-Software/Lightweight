@@ -907,7 +907,6 @@ void SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::DeleteImpl()
                                          this->_query.searchCondition.condition);
 
     stmt.Prepare(query);
-    stmt.Prepare(query);
     [[maybe_unused]] auto cursor = stmt.ExecuteWithVariants(_boundInputs);
 }
 
