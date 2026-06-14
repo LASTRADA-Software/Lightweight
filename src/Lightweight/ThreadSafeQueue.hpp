@@ -16,7 +16,7 @@ namespace Lightweight
 /// and dequeue items. Consumers block on WaitAndPop until an item is available
 /// or the queue is marked as finished.
 ///
-/// It is a thin facade over @ref detail::BlockingQueue (the shared blocking-FIFO primitive), so the
+/// It is a thin facade over @c detail::BlockingQueue (the shared blocking-FIFO primitive), so the
 /// locking/wait logic lives in exactly one place rather than being duplicated here and in the async
 /// layer's @c WorkQueue.
 ///
