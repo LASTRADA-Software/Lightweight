@@ -34,24 +34,29 @@ AsyncSqlTransaction::~AsyncSqlTransaction()
         // connection. Block the destroying thread until the strand has run it. (Must not be called
         // from within a strand op on this same connection — nor while resuming on the same worker pool
         // that backs this connection's strand — or this would wait on a strand it is itself blocking.)
+        std::binary_semaphore done { 0 };
+        bool posted = false;
         try
         {
-            std::binary_semaphore done { 0 };
             _connection->AsyncBackend().Strand().Post([this, &done] {
                 _transaction.reset(); // ~SqlTransaction is noexcept; finalizes per the configured mode
                 done.release();
             });
-            done.acquire();
+            posted = true;
         }
         catch (...)
         {
-            // A destructor is implicitly noexcept, so an exception escaping here (e.g. std::bad_alloc
-            // from Strand().Post allocating its work item) would call std::terminate. A throwing Post
-            // never enqueued the work, so nothing can be in flight on the strand — finalize directly.
+            // Only a pre-enqueue Post failure reaches here (a failed drain-schedule is recovered inline,
+            // so an enqueued Post never throws), meaning nothing is in flight — finalize directly.
             SqlLogger::GetLogger().OnWarning(
                 "AsyncSqlTransaction: strand-routed finalization failed; finalizing on the destroying thread.");
             _transaction.reset();
         }
+
+        // Wait outside the try so a throwing acquire() can't drive the catch into a second reset that
+        // would race the strand's reset; a successful Post guarantees the closure releases `done`.
+        if (posted)
+            done.acquire();
     }
     else
     {

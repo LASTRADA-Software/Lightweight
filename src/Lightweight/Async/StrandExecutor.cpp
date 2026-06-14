@@ -16,8 +16,22 @@ void StrandExecutor::Post(Work work)
 {
     // Enqueue and, if no drain is currently active, claim it and schedule one. The claim is made
     // under the queue's lock (atomically with the push), closing the push-vs-end-drain race.
-    if (_state->queue.PushAndClaimDrain(std::move(work)))
+    if (!_state->queue.PushAndClaimDrain(std::move(work)))
+        return;
+
+    // We hold the drain claim now. If scheduling fails (e.g. bad_alloc), the item is already queued, so
+    // letting it throw would leave the claim stuck true and wedge the strand forever. Recover by draining
+    // inline: we still hold the claim, so it stays serialized, and PopOrEndDrain clears it when empty.
+    try
+    {
         ScheduleDrain(_state);
+    }
+    catch (...)
+    {
+        Work item;
+        while (_state->queue.PopOrEndDrain(item))
+            item();
+    }
 }
 
 void StrandExecutor::Resume(std::coroutine_handle<> handle)
