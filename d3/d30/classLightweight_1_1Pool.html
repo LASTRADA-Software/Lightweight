@@ -109,8 +109,8 @@ Classes</h2></td></tr>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a1cff9d7548fefc8b80a32c15b75dfaeb" id="r_a1cff9d7548fefc8b80a32c15b75dfaeb"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d30/classLightweight_1_1Pool.html#a1cff9d7548fefc8b80a32c15b75dfaeb">Pool</a> ()</td></tr>
 <tr class="separator:a1cff9d7548fefc8b80a32c15b75dfaeb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a33074cde6ef2e6fd95658e3447a2be71" id="r_a33074cde6ef2e6fd95658e3447a2be71"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d30/classLightweight_1_1Pool.html#a33074cde6ef2e6fd95658e3447a2be71">~Pool</a> () noexcept</td></tr>
-<tr class="separator:a33074cde6ef2e6fd95658e3447a2be71"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afea07a60853e40fdf6ad5db4e857fc86" id="r_afea07a60853e40fdf6ad5db4e857fc86"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d30/classLightweight_1_1Pool.html#afea07a60853e40fdf6ad5db4e857fc86">~Pool</a> () noexcept=default</td></tr>
+<tr class="separator:afea07a60853e40fdf6ad5db4e857fc86"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2a9fcb48c18a35b1329589e07673a0f5" id="r_a2a9fcb48c18a35b1329589e07673a0f5"><td class="memItemLeft" align="right" valign="top"><a id="a2a9fcb48c18a35b1329589e07673a0f5" name="a2a9fcb48c18a35b1329589e07673a0f5"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>Pool</b> (<a class="el" href="../../d3/d30/classLightweight_1_1Pool.html">Pool</a> const &amp;)=delete</td></tr>
 <tr class="separator:a2a9fcb48c18a35b1329589e07673a0f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -127,14 +127,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:ab88d9cb504f2ccbe155f0b8b2b7a0197"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a56fdfc02e3f33e88840e66dbe3491f0a" id="r_a56fdfc02e3f33e88840e66dbe3491f0a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d30/classLightweight_1_1Pool.html#a56fdfc02e3f33e88840e66dbe3491f0a">Acquire</a> ()</td></tr>
 <tr class="separator:a56fdfc02e3f33e88840e66dbe3491f0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8dbac8744491b8abbc8f350c9b8db626" id="r_a8dbac8744491b8abbc8f350c9b8db626"><td class="memItemLeft" align="right" valign="top"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Async::Task</a>&lt; <a class="el" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d3/d30/classLightweight_1_1Pool.html#a8dbac8744491b8abbc8f350c9b8db626">AcquireAsync</a> (<a class="el" href="../../d3/d75/classLightweight_1_1Async_1_1IExecutor.html">Async::IExecutor</a> &amp;dbWorkers, <a class="el" href="../../df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html">Async::IResumeScheduler</a> &amp;resume)</td></tr>
-<tr class="separator:a8dbac8744491b8abbc8f350c9b8db626"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html">PoolConfig</a> Config&gt;<br />
 class Lightweight::Pool&lt; Config &gt;</div><p>A thread-safe pool of <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a> instances with the policy configured by the <a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html">PoolConfig</a> template parameter. The pool allows acquiring and returning <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a> instances, and manages the lifecycle of these instances according to the specified growth strategy. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00059">59</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00053">53</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a1cff9d7548fefc8b80a32c15b75dfaeb" name="a1cff9d7548fefc8b80a32c15b75dfaeb"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1cff9d7548fefc8b80a32c15b75dfaeb">&#9670;&#160;</a></span>Pool()</h2>
@@ -162,12 +160,12 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 </div><div class="memdoc">
 <p>Default constructor that pre-creates the initial number of data mappers and stores them in the pool No other constructors are provided, as the pool is configured at compile time via the template parameter </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00196">196</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00147">147</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
-<a id="a33074cde6ef2e6fd95658e3447a2be71" name="a33074cde6ef2e6fd95658e3447a2be71"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a33074cde6ef2e6fd95658e3447a2be71">&#9670;&#160;</a></span>~Pool()</h2>
+<a id="afea07a60853e40fdf6ad5db4e857fc86" name="afea07a60853e40fdf6ad5db4e857fc86"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afea07a60853e40fdf6ad5db4e857fc86">&#9670;&#160;</a></span>~Pool()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -186,13 +184,11 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">noexcept</span></span>  </td>
+<span class="mlabels"><span class="mlabel">default</span><span class="mlabel">noexcept</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Destructor. The pool manages the lifecycle of the idle data mappers; be aware that any acquired data mappers not returned to the pool are destroyed when the pool is destroyed, which may leak resources if not handled properly. </p>
-
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00206">206</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p>Default destructor, the pool manages the lifecycle of the data mappers, so no special cleanup is needed bug be aware that any acquired data mappers that are not returned to the pool will be destroyed when the pool is destroyed, which may lead to resource leaks if not handled properly </p>
 
 </div>
 </div>
@@ -223,7 +219,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 </div><div class="memdoc">
 <p>Function to acquire a data mapper from the pool, the behavior of this function depends on the growth strategy this is a specific implementation for the BoundedWait strategy, which blocks until a data mapper is available if the pool is at maximum capacity </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00225">225</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00167">167</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>
@@ -253,57 +249,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 </div><div class="memdoc">
 <p>Function to acquire a data mapper from the pool, the behavior of this function depends on the growth strategy this is a specific implementation for the strategies that do not block, which always creates a new data mapper if the pool is empty, regardless of the maximum capacity </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00254">254</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
-
-</div>
-</div>
-<a id="a8dbac8744491b8abbc8f350c9b8db626" name="a8dbac8744491b8abbc8f350c9b8db626"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8dbac8744491b8abbc8f350c9b8db626">&#9670;&#160;</a></span>AcquireAsync()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.html">PoolConfig</a> Config&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Async::Task</a>&lt; <a class="el" href="../../de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html">PooledDataMapper</a> &gt; <a class="el" href="../../d3/d30/classLightweight_1_1Pool.html">Lightweight::Pool</a>&lt; Config &gt;::AcquireAsync </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="../../d3/d75/classLightweight_1_1Async_1_1IExecutor.html">Async::IExecutor</a> &amp;&#160;</td>
-          <td class="paramname"><em>dbWorkers</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="../../df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html">Async::IResumeScheduler</a> &amp;&#160;</td>
-          <td class="paramname"><em>resume</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<p>Asynchronously acquires a <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a> from the pool without blocking the calling thread.</p>
-<p>If the pool is exhausted (BoundedWait at capacity), the awaiting coroutine is suspended and resumed — via <code>resume</code> — when a mapper is returned, rather than parking a thread. The acquired mapper's connection is wired for async via <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#afd6064e6446d7bc609fd0fea94ad0fd7">SqlConnection::EnableAsync</a>(<code>dbWorkers</code>, <code>resume</code>), so the caller can immediately co_await its async methods.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">dbWorkers</td><td>The worker pool used to run the acquired mapper's blocking ODBC calls. </td></tr>
-    <tr><td class="paramname">resume</td><td>The scheduler used to resume coroutines (typically the app run loop). </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>A Task yielding a pooled <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a>. </dd></dl>
-
-<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00280">280</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d0f/Pool_8hpp_source.html#l00196">196</a> of file <a class="el" href="../../df/d0f/Pool_8hpp_source.html">Pool.hpp</a>.</p>
 
 </div>
 </div>

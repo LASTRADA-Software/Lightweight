@@ -136,7 +136,7 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d51/classLightweight_1_1SqlCoreDataMapperQueryBuilder.html">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html">Lightweight::SqlAllFieldsQueryBuilder&lt; Record, QueryOptions, Execution &gt;</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html">Lightweight::SqlAllFieldsQueryBuilder&lt; Record, QueryOptions &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a query builder that retrieves all fields of a record.  <a href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -265,7 +265,7 @@ template&lt;typename Record &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00178">178</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02630">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01631">Lightweight::DataMapper::Create()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02541">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01542">Lightweight::DataMapper::Create()</a>.</p>
 
 </div>
 </div>
@@ -387,7 +387,9 @@ template&lt;std::size_t I, typename Record &gt; </div>
 
 <p>Returns the SQL field name of the given field index in the record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00255">255</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00251">251</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01052">Lightweight::SqlCoreDataMapperQueryBuilder&lt; Record, Derived, QueryOptions &gt;::Range()</a>.</p>
 
 </div>
 </div>
@@ -415,7 +417,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Holds the SQL tabl ename for the given record type. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00261">261</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00257">257</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00854">Lightweight::SqlWhereClauseBuilder&lt; Derived &gt;::InnerJoin()</a>.</p>
 
@@ -450,7 +452,7 @@ template&lt;auto ReferencedField&gt; </div>
 <div class="line"> </div>
 <div class="line">    .columnName = FieldNameOf&lt;ReferencedField&gt;,</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__DataMapper_html_ga2bf8fa94d9c5b41f9a1045395403ccab"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">Lightweight::RecordTableName</a></div><div class="ttdeci">constexpr std::string_view RecordTableName</div><div class="ttdoc">Holds the SQL tabl ename for the given record type.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00261">Utils.hpp:261</a></div></div>
+<div class="ttc" id="agroup__DataMapper_html_ga2bf8fa94d9c5b41f9a1045395403ccab"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">Lightweight::RecordTableName</a></div><div class="ttdeci">constexpr std::string_view RecordTableName</div><div class="ttdoc">Holds the SQL tabl ename for the given record type.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00257">Utils.hpp:257</a></div></div>
 </div><!-- fragment -->
 <p>Holds the fully qualified column reference (table + column) for the given field. </p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
@@ -464,7 +466,7 @@ template&lt;auto ReferencedField&gt; </div>
 <div class="line"><span class="keyword">static_assert</span>(ref.columnName == <span class="stringliteral">&quot;id&quot;</span>);</div>
 </div><!-- fragment --><p>The result is an <code><a class="el" href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html" title="SqlQualifiedTableColumnName represents a column name qualified with a table name.">SqlQualifiedTableColumnName</a></code> accepted by every column-name entry point in the builder (<code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a></code>, <code>Fields</code>, <code>Where</code>, <code>OrderBy</code>, <code>GroupBy</code>, <code>Aggregate::*</code>, joins). The builder applies the quoting. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00337">337</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00333">333</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
 </div>
 </div>
