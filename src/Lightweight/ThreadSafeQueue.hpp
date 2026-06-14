@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include <condition_variable>
-#include <deque>
-#include <mutex>
+#include "BlockingQueue.hpp"
+
+#include <cstddef>
+#include <utility>
 
 namespace Lightweight
 {
@@ -14,6 +15,10 @@ namespace Lightweight
 /// This queue allows multiple producer and consumer threads to safely enqueue
 /// and dequeue items. Consumers block on WaitAndPop until an item is available
 /// or the queue is marked as finished.
+///
+/// It is a thin facade over @ref detail::BlockingQueue (the shared blocking-FIFO primitive), so the
+/// locking/wait logic lives in exactly one place rather than being duplicated here and in the async
+/// layer's @c WorkQueue.
 ///
 /// @tparam T The type of items stored in the queue.
 template <typename T>
@@ -25,11 +30,7 @@ class ThreadSafeQueue
     /// @param item The item to push onto the queue.
     void Push(T item)
     {
-        {
-            std::scoped_lock lock(_mutex);
-            _queue.push_back(std::move(item));
-        }
-        _condition.notify_one();
+        _queue.Push(std::move(item));
     }
 
     /// Blocks until an item is available or the queue is finished.
@@ -42,13 +43,7 @@ class ThreadSafeQueue
     /// @return true if an item was successfully popped, false if the queue is finished and empty.
     bool WaitAndPop(T& item)
     {
-        std::unique_lock lock(_mutex);
-        _condition.wait(lock, [this] { return !_queue.empty() || _finished; });
-        if (_queue.empty())
-            return false;
-        item = std::move(_queue.front());
-        _queue.pop_front();
-        return true;
+        return _queue.WaitAndPop(item);
     }
 
     /// Signals that no more items will be added.
@@ -57,11 +52,7 @@ class ThreadSafeQueue
     /// All waiting consumers will be notified.
     void MarkFinished()
     {
-        {
-            std::scoped_lock lock(_mutex);
-            _finished = true;
-        }
-        _condition.notify_all();
+        _queue.MarkFinished();
     }
 
     /// Checks if the queue is empty.
@@ -69,8 +60,7 @@ class ThreadSafeQueue
     /// @return true if the queue is currently empty.
     [[nodiscard]] bool Empty() const
     {
-        std::scoped_lock lock(_mutex);
-        return _queue.empty();
+        return _queue.Empty();
     }
 
     /// Returns the current size of the queue.
@@ -78,15 +68,11 @@ class ThreadSafeQueue
     /// @return The number of items currently in the queue.
     [[nodiscard]] size_t Size() const
     {
-        std::scoped_lock lock(_mutex);
-        return _queue.size();
+        return _queue.Size();
     }
 
   private:
-    std::deque<T> _queue;
-    mutable std::mutex _mutex;
-    std::condition_variable _condition;
-    bool _finished = false;
+    detail::BlockingQueue<T> _queue;
 };
 
 } // namespace Lightweight

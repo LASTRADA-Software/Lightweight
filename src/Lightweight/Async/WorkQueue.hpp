@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "../BlockingQueue.hpp"
 #include "Executor.hpp"
 
-#include <condition_variable>
 #include <cstddef>
-#include <deque>
-#include <mutex>
 #include <utility>
 
 namespace Lightweight::Async::detail
@@ -14,13 +12,13 @@ namespace Lightweight::Async::detail
 
 /// Thread-safe FIFO of @ref Work items shared by the manual and strand executors.
 ///
-/// It encapsulates the `std::mutex + std::condition_variable + std::deque<Work>` that
-/// @ref ManualExecutor and @ref StrandExecutor would otherwise each hand-roll. Each executor layers
-/// its own distinct scheduling on top of this one primitive:
+/// A thin facade over @ref Lightweight::detail::BlockingQueue (the shared blocking-FIFO primitive,
+/// also backing @c ThreadSafeQueue), exposing just the operations the async executors layer their
+/// scheduling on top of:
 ///  - @ref ManualExecutor blocks in @ref WaitAndPop, drains via @ref TryPop, and wakes blocked
 ///    pumpers via @ref Wake when its stop flag flips.
-///  - @ref StrandExecutor serializes a single drain via @ref PushAndClaimDrain / @ref PopOrEndDrain.
-///    The drain-active bookkeeping lives here so it is mutated under the @b same lock as the queue,
+///  - @ref StrandExecutor serializes a single drain via @ref PushAndClaimDrain / @ref PopOrEndDrain;
+///    the drain-active bookkeeping lives under the @b same lock as the queue (in the shared core),
 ///    which closes the push-vs-end-drain race without a second mutex.
 class WorkQueue
 {
@@ -28,11 +26,7 @@ class WorkQueue
     /// Enqueues @p work and notifies one blocked waiter.
     void Push(Work work)
     {
-        {
-            std::scoped_lock const lock(_mutex);
-            _queue.push_back(std::move(work));
-        }
-        _condition.notify_one();
+        _queue.Push(std::move(work));
     }
 
     /// Pops the front item without blocking.
@@ -40,12 +34,7 @@ class WorkQueue
     /// @return true if an item was popped; false if the queue was empty.
     bool TryPop(Work& out)
     {
-        std::scoped_lock const lock(_mutex);
-        if (_queue.empty())
-            return false;
-        out = std::move(_queue.front());
-        _queue.pop_front();
-        return true;
+        return _queue.TryPop(out);
     }
 
     /// Blocks until an item is available or @p wake returns true, then pops the front item.
@@ -59,13 +48,7 @@ class WorkQueue
     template <typename Wake>
     bool WaitAndPop(Work& out, Wake wake)
     {
-        std::unique_lock lock(_mutex);
-        _condition.wait(lock, [&] { return !_queue.empty() || wake(); });
-        if (_queue.empty())
-            return false;
-        out = std::move(_queue.front());
-        _queue.pop_front();
-        return true;
+        return _queue.WaitAndPop(out, std::move(wake));
     }
 
     /// Wakes all blocked waiters so they re-evaluate their wake condition.
@@ -75,17 +58,13 @@ class WorkQueue
     /// published (e.g. an atomic release store) before this call.
     void Wake()
     {
-        {
-            std::scoped_lock const lock(_mutex);
-        }
-        _condition.notify_all();
+        _queue.Wake();
     }
 
     /// @return the number of queued items.
     [[nodiscard]] std::size_t Size() const
     {
-        std::scoped_lock const lock(_mutex);
-        return _queue.size();
+        return _queue.Size();
     }
 
     /// Strand support: enqueues @p work and, if no drain is currently active, claims the drain.
@@ -95,12 +74,7 @@ class WorkQueue
     ///         false if a drain is already active and will pick up this item.
     bool PushAndClaimDrain(Work work)
     {
-        std::scoped_lock const lock(_mutex);
-        _queue.push_back(std::move(work));
-        if (_draining)
-            return false;
-        _draining = true;
-        return true;
+        return _queue.PushAndClaimDrain(std::move(work));
     }
 
     /// Strand support: pops the next item, or ends the drain when the queue is empty.
@@ -110,22 +84,11 @@ class WorkQueue
     ///         cleared under the lock so the next @ref PushAndClaimDrain re-schedules a drain).
     bool PopOrEndDrain(Work& out)
     {
-        std::scoped_lock const lock(_mutex);
-        if (_queue.empty())
-        {
-            _draining = false;
-            return false;
-        }
-        out = std::move(_queue.front());
-        _queue.pop_front();
-        return true;
+        return _queue.PopOrEndDrain(out);
     }
 
   private:
-    mutable std::mutex _mutex;
-    std::condition_variable _condition;
-    std::deque<Work> _queue;
-    bool _draining = false; ///< Strand-only: true while a single drain closure is scheduled/running.
+    Lightweight::detail::BlockingQueue<Work> _queue;
 };
 
 } // namespace Lightweight::Async::detail

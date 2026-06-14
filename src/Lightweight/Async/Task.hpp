@@ -67,26 +67,32 @@ namespace detail
         std::coroutine_handle<> _continuation {};
     };
 
-    /// Promise type for @c Task<T> with a non-void result.
+    /// Stores the outcome of a coroutine promise — either a produced value of type @c T or a captured
+    /// exception — and hands it back exactly once.
     ///
-    /// @tparam T The value type produced by the coroutine.
+    /// Shared by @ref TaskPromise and @c SyncWaitPromise so the value/exception plumbing (the variant,
+    /// the move-vs-copy @c return_value overloads, and the rethrow-or-move @ref Take) lives in one
+    /// place rather than being duplicated across each promise type and its @c void specialization.
+    ///
+    /// @tparam T The value type produced by the coroutine (use the @c void specialization for none).
     template <typename T>
-    class TaskPromise final: public TaskPromiseBase
+    class CoroutineResult
     {
       public:
-        Task<T> get_return_object() noexcept;
-
-        void unhandled_exception() noexcept
+        /// Captures the in-flight exception (call from @c promise.unhandled_exception()).
+        void SetException() noexcept
         {
             _result.template emplace<2>(std::current_exception());
         }
 
-        void return_value(T const& value)
+        /// Stores the produced value (call from @c promise.return_value()).
+        void SetValue(T const& value)
         {
             _result.template emplace<1>(value);
         }
 
-        void return_value(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+        /// Stores the produced value (call from @c promise.return_value()).
+        void SetValue(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
         {
             _result.template emplace<1>(std::move(value));
         }
@@ -103,19 +109,16 @@ namespace detail
         std::variant<std::monostate, T, std::exception_ptr> _result;
     };
 
-    /// Promise specialization for @c Task<void>.
+    /// @c void specialization of @ref CoroutineResult: stores only a possible exception.
     template <>
-    class TaskPromise<void> final: public TaskPromiseBase
+    class CoroutineResult<void>
     {
       public:
-        Task<void> get_return_object() noexcept;
-
-        void unhandled_exception() noexcept
+        /// Captures the in-flight exception (call from @c promise.unhandled_exception()).
+        void SetException() noexcept
         {
             _exception = std::current_exception();
         }
-
-        void return_void() noexcept {}
 
         /// Rethrows the captured exception, if any.
         void Take() const
@@ -126,6 +129,64 @@ namespace detail
 
       private:
         std::exception_ptr _exception {};
+    };
+
+    /// Promise type for @c Task<T> with a non-void result.
+    ///
+    /// @tparam T The value type produced by the coroutine.
+    template <typename T>
+    class TaskPromise final: public TaskPromiseBase
+    {
+      public:
+        Task<T> get_return_object() noexcept;
+
+        void unhandled_exception() noexcept
+        {
+            _result.SetException();
+        }
+
+        void return_value(T const& value)
+        {
+            _result.SetValue(value);
+        }
+
+        void return_value(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+        {
+            _result.SetValue(std::move(value));
+        }
+
+        /// Moves out the produced value, or rethrows the captured exception.
+        [[nodiscard]] T Take()
+        {
+            return _result.Take();
+        }
+
+      private:
+        CoroutineResult<T> _result;
+    };
+
+    /// Promise specialization for @c Task<void>.
+    template <>
+    class TaskPromise<void> final: public TaskPromiseBase
+    {
+      public:
+        Task<void> get_return_object() noexcept;
+
+        void unhandled_exception() noexcept
+        {
+            _result.SetException();
+        }
+
+        void return_void() noexcept {}
+
+        /// Rethrows the captured exception, if any.
+        void Take() const
+        {
+            _result.Take();
+        }
+
+      private:
+        CoroutineResult<void> _result;
     };
 
 } // namespace detail

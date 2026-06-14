@@ -7,7 +7,6 @@
 #include <functional>
 #include <semaphore>
 #include <type_traits>
-#include <variant>
 
 namespace Lightweight::Async
 {
@@ -61,59 +60,40 @@ namespace detail
     template <typename T>
     class SyncWaitTask;
 
-    /// Promise for the internal driver coroutine used by SyncWait.
+    /// Final-suspension awaiter for the SyncWait driver: raises the promise's completion signal once
+    /// the driver has fully suspended. Lifted to namespace scope (a local class may not have member
+    /// templates) so a single awaiter serves every @c SyncWaitPromise specialization.
+    struct SyncWaitFinalAwaiter
+    {
+        [[nodiscard]] bool await_ready() const noexcept
+        {
+            return false;
+        }
+        template <typename Promise>
+        void await_suspend(std::coroutine_handle<Promise> coro) const noexcept
+        {
+            coro.promise().Signal();
+        }
+        void await_resume() const noexcept {}
+    };
+
+    /// Shared machinery for the SyncWait driver promise, independent of the result type.
     ///
-    /// The completion signal is raised from the @c final_suspend awaiter (i.e. only once
-    /// the driver has fully suspended), so the blocking caller can safely destroy the
-    /// coroutine frame without racing the resuming thread.
-    template <typename T>
-    class SyncWaitPromise
+    /// Mirrors @c TaskPromiseBase: it owns the completion signal and the lazy/final-suspension
+    /// behavior, leaving only the result storage to the per-type specialization. The completion signal
+    /// is raised from the @c final_suspend awaiter (i.e. only once the driver has fully suspended), so
+    /// the blocking caller can safely destroy the coroutine frame without racing the resuming thread.
+    class SyncWaitPromiseBase
     {
       public:
-        SyncWaitTask<T> get_return_object() noexcept;
-
         std::suspend_always initial_suspend() noexcept
         {
             return {};
         }
 
-        auto final_suspend() noexcept
+        SyncWaitFinalAwaiter final_suspend() noexcept
         {
-            struct FinalAwaiter
-            {
-                [[nodiscard]] bool await_ready() const noexcept
-                {
-                    return false;
-                }
-                void await_suspend(std::coroutine_handle<SyncWaitPromise> coro) const noexcept
-                {
-                    coro.promise().Signal();
-                }
-                void await_resume() const noexcept {}
-            };
-            return FinalAwaiter {};
-        }
-
-        void unhandled_exception() noexcept
-        {
-            _result.template emplace<2>(std::current_exception());
-        }
-
-        void return_value(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
-        {
-            _result.template emplace<1>(std::move(value));
-        }
-
-        void return_value(T const& value)
-        {
-            _result.template emplace<1>(value);
-        }
-
-        [[nodiscard]] T Take()
-        {
-            if (_result.index() == 2)
-                std::rethrow_exception(std::get<2>(_result));
-            return std::move(std::get<1>(_result));
+            return {};
         }
 
         void Bind(SyncWaitEvent& signal) noexcept
@@ -128,63 +108,59 @@ namespace detail
 
       private:
         SyncWaitEvent* _event = nullptr;
-        std::variant<std::monostate, T, std::exception_ptr> _result;
+    };
+
+    /// Promise for the internal driver coroutine used by SyncWait (non-void result).
+    template <typename T>
+    class SyncWaitPromise final: public SyncWaitPromiseBase
+    {
+      public:
+        SyncWaitTask<T> get_return_object() noexcept;
+
+        void unhandled_exception() noexcept
+        {
+            _result.SetException();
+        }
+
+        void return_value(T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+        {
+            _result.SetValue(std::move(value));
+        }
+
+        void return_value(T const& value)
+        {
+            _result.SetValue(value);
+        }
+
+        [[nodiscard]] T Take()
+        {
+            return _result.Take();
+        }
+
+      private:
+        CoroutineResult<T> _result;
     };
 
     template <>
-    class SyncWaitPromise<void>
+    class SyncWaitPromise<void> final: public SyncWaitPromiseBase
     {
       public:
         SyncWaitTask<void> get_return_object() noexcept;
 
-        std::suspend_always initial_suspend() noexcept
-        {
-            return {};
-        }
-
-        auto final_suspend() noexcept
-        {
-            struct FinalAwaiter
-            {
-                [[nodiscard]] bool await_ready() const noexcept
-                {
-                    return false;
-                }
-                void await_suspend(std::coroutine_handle<SyncWaitPromise> coro) const noexcept
-                {
-                    coro.promise().Signal();
-                }
-                void await_resume() const noexcept {}
-            };
-            return FinalAwaiter {};
-        }
-
         void unhandled_exception() noexcept
         {
-            _exception = std::current_exception();
+            _result.SetException();
         }
 
         void return_void() noexcept {}
 
         void Take() const
         {
-            if (_exception)
-                std::rethrow_exception(_exception);
-        }
-
-        void Bind(SyncWaitEvent& signal) noexcept
-        {
-            _event = &signal;
-        }
-
-        void Signal() const noexcept
-        {
-            _event->Set();
+            _result.Take();
         }
 
       private:
-        SyncWaitEvent* _event = nullptr;
-        std::exception_ptr _exception {};
+        CoroutineResult<void> _result;
     };
 
     /// Internal RAII owner of the SyncWait driver coroutine.
