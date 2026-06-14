@@ -211,6 +211,7 @@ var NAVTREE =
       [ "Supported Databases", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#supported-databases-1", null ],
       [ "What's Next", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#whats-next", null ]
     ] ],
+    [ "Deprecated List", "da/d58/deprecated.html", null ],
     [ "Topics", "topics.html", "topics" ],
     [ "Concepts", "concepts.html", "concepts" ],
     [ "Classes", "annotated.html", [
@@ -235,11 +236,11 @@ var NAVTREEINDEX =
 "annotated.html",
 "d2/dd0/structLightweight_1_1Field.html#aaf257a679d7d4340a4514a567f03a27a",
 "d5/d1f/SqlDynamicString_8hpp_source.html",
-"d7/d13/structLightweight_1_1SqlRealName.html#a13a14e15745651ea04fe1842bab4b501",
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a842aa25ccb3ab6f600c3775f68e64871",
-"db/dad/classLightweight_1_1SqlStatement.html#ac19f8c92550b34319f2f7b48ec32c149",
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#af144019a618b92754fdc3879e226632d",
-"functions_t.html"
+"d7/d13/structLightweight_1_1SqlRealName.html",
+"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#a7d7b102126f4b2455df46e31906cb189",
+"db/dad/classLightweight_1_1SqlStatement.html#abe60fdd5ccc0a2c07cf183eac8d83cd2",
+"de/da0/classLightweight_1_1SqlQueryBuilder.html#ad9d7e0290e84a1b8560e32a9f37d5a1f",
+"functions_r.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
