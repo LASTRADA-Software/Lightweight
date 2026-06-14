@@ -87,6 +87,10 @@ Async::Task<void> Handle(DataMapper& dm)
 the only difference is the return type of the finisher. There is intentionally **no** `AllAsync()`
 next to `All()`.
 
+> Every async finisher returns a **lazy** `Task` that does nothing until it is `co_await`-ed — including
+> side-effecting ones like `Delete()`. Discarding the returned `Task` (e.g. `dm.QueryAsync<User>()…
+> .Delete();` without `co_await`) performs **no** work; the `[[nodiscard]]` attribute warns about it.
+
 ## Record-level async methods
 
 Operations that act on a record directly — and have no query-builder form — keep a dedicated
@@ -181,24 +185,39 @@ Async::Task<void> Transfer(DataMapper& dm)
 }
 ```
 
-Always `co_await CommitAsync()` / `RollbackAsync()` explicitly. If the transaction is still open when
-destroyed, the destructor finalizes it best-effort (per the configured mode — `COMMIT` by default,
-matching the synchronous `SqlTransaction`), routed through the connection's strand and blocking the
-destroying thread, so it never races an in-flight async op on the same connection. The connection
-must stay alive and async-enabled for the transaction's whole lifetime — do not destroy it or return
-the owning pooled `DataMapper` (which disables async) between `BeginAsync` and the finalizing call.
-A second `BeginAsync` without an intervening commit/rollback is a programmer error (`std::logic_error`).
+Always `co_await CommitAsync()` / `RollbackAsync()` explicitly. `CommitAsync` / `RollbackAsync` are a
+point of no return and are **not cancellable** (they take no token) — they always run to completion, so
+a rollback can never silently degrade into a commit. If the transaction is still open when destroyed,
+the destructor finalizes it best-effort (per the configured mode — `COMMIT` by default, matching the
+synchronous `SqlTransaction`), routed through the connection's strand and blocking the destroying
+thread, so it never races an in-flight async op on the same connection. The connection must stay alive
+and async-enabled for the transaction's whole lifetime — do not destroy it or return the owning pooled
+`DataMapper` (which disables async) between `BeginAsync` and the finalizing call. A second `BeginAsync`
+without an intervening commit/rollback is a programmer error (`std::logic_error`).
+
+> **Destruction blocks on the strand.** Because the open-at-destruction finalization is routed through
+> the connection's strand and blocks the destroying thread until it runs, do not let an open
+> `AsyncSqlTransaction` be destroyed on a thread the strand needs in order to make progress — e.g. from
+> inside another offloaded step on the same connection, or (in the multi-threaded model where the
+> resume scheduler *is* the worker pool backing the strand) while resuming on one of those workers. With
+> a single-worker pool that self-waits and deadlocks. Prefer explicit `CommitAsync`/`RollbackAsync` so
+> the destructor never has to finalize.
 
 ## Cancellation
 
-Async-runtime calls accept an optional `Async::CancellationToken`:
+Async-runtime calls (e.g. `BeginAsync`, the offloaded query/record methods) accept an optional
+`Async::CancellationToken`:
 
 ```cpp
 auto token = Async::CancellationToken::Create();
 // ... pass token where supported; token.Request() to cancel.
 ```
 
-A request before a step is dispatched completes that step with `Async::OperationCancelledError`.
+Cancellation is honored **only before a step is dispatched**: if the token is already requested when the
+step is about to run, it completes immediately with `Async::OperationCancelledError` and never occupies
+a DB worker. Once a step has begun running, the in-flight blocking ODBC call is **not** interrupted
+(there is no `SQLCancel` integration yet), so a late request only affects the next not-yet-dispatched
+step. Transaction finalization (`CommitAsync`/`RollbackAsync`) is deliberately exempt and never cancels.
 
 ## Errors
 

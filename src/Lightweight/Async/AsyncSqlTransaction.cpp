@@ -32,13 +32,26 @@ AsyncSqlTransaction::~AsyncSqlTransaction()
         // Route the finalization through the connection's strand so ~SqlTransaction touches the ODBC
         // handle only on the strand — never concurrently with another in-flight async op on this
         // connection. Block the destroying thread until the strand has run it. (Must not be called
-        // from within a strand op on this same connection: that would wait on its own strand.)
-        std::binary_semaphore done { 0 };
-        _connection->AsyncBackend().Strand().Post([this, &done] {
-            _transaction.reset(); // ~SqlTransaction is noexcept; finalizes per the configured mode
-            done.release();
-        });
-        done.acquire();
+        // from within a strand op on this same connection — nor while resuming on the same worker pool
+        // that backs this connection's strand — or this would wait on a strand it is itself blocking.)
+        try
+        {
+            std::binary_semaphore done { 0 };
+            _connection->AsyncBackend().Strand().Post([this, &done] {
+                _transaction.reset(); // ~SqlTransaction is noexcept; finalizes per the configured mode
+                done.release();
+            });
+            done.acquire();
+        }
+        catch (...)
+        {
+            // A destructor is implicitly noexcept, so an exception escaping here (e.g. std::bad_alloc
+            // from Strand().Post allocating its work item) would call std::terminate. A throwing Post
+            // never enqueued the work, so nothing can be in flight on the strand — finalize directly.
+            SqlLogger::GetLogger().OnWarning(
+                "AsyncSqlTransaction: strand-routed finalization failed; finalizing on the destroying thread.");
+            _transaction.reset();
+        }
     }
     else
     {
@@ -65,28 +78,29 @@ Task<void> AsyncSqlTransaction::BeginAsync(SqlTransactionMode defaultMode,
         std::move(token));
 }
 
-Task<void> AsyncSqlTransaction::FinalizeAsync(void (SqlTransaction::*finalize)(), CancellationToken token)
+Task<void> AsyncSqlTransaction::FinalizeAsync(void (SqlTransaction::*finalize)())
 {
-    return RunAsync(
-        _connection->AsyncBackend(),
-        [this, finalize] {
-            if (_transaction)
-            {
-                ((*_transaction).*finalize)();
-                _transaction.reset();
-            }
-        },
-        std::move(token));
+    // Finalization is a point of no return and is intentionally NOT cancellable: pass a non-cancellable
+    // token so the commit/rollback always runs to completion. Honoring cancellation here would abandon
+    // the step with the transaction still open, and the destructor would then finalize it with the
+    // configured default mode (COMMIT) — turning a cancelled RollbackAsync into a silent commit.
+    return RunAsync(_connection->AsyncBackend(), [this, finalize] {
+        if (_transaction)
+        {
+            ((*_transaction).*finalize)();
+            _transaction.reset();
+        }
+    });
 }
 
-Task<void> AsyncSqlTransaction::CommitAsync(CancellationToken token)
+Task<void> AsyncSqlTransaction::CommitAsync()
 {
-    return FinalizeAsync(&SqlTransaction::Commit, std::move(token));
+    return FinalizeAsync(&SqlTransaction::Commit);
 }
 
-Task<void> AsyncSqlTransaction::RollbackAsync(CancellationToken token)
+Task<void> AsyncSqlTransaction::RollbackAsync()
 {
-    return FinalizeAsync(&SqlTransaction::Rollback, std::move(token));
+    return FinalizeAsync(&SqlTransaction::Rollback);
 }
 
 } // namespace Lightweight::Async

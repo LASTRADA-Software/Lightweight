@@ -35,9 +35,15 @@ namespace Lightweight::Async
 /// connection's strand (and blocks the destroying thread until it completes) so it never touches the
 /// ODBC handle concurrently with another in-flight async operation on the same connection.
 ///
-/// @warning Do not destroy an open transaction from @e within a strand operation running on its own
-/// connection (e.g. from inside another offloaded step on that connection): the destructor's
-/// strand-serialized finalization would then wait on the very strand it is running on and deadlock.
+/// @warning The destructor's strand-serialized finalization blocks the destroying thread until the
+/// strand has run it, so do not destroy an open transaction from any thread that the strand needs in
+/// order to make progress. That includes (a) destroying it from @e within a strand operation on its own
+/// connection, and (b) — in the multi-threaded model where the resume scheduler @e is the worker pool
+/// that backs the connection's strand — letting it be destroyed while the coroutine is resuming on one
+/// of those worker threads (with a single-worker pool this self-waits and deadlocks). The connection
+/// and its injected executors must also outlive the transaction; tearing the worker pool down first
+/// leaves the finalization undrained and the destructor blocked. Prefer explicit
+/// @ref CommitAsync / @ref RollbackAsync so the destructor never has to finalize.
 ///
 /// @code
 /// auto tx = Async::AsyncSqlTransaction { dm.Connection() };
@@ -74,19 +80,21 @@ class LIGHTWEIGHT_API AsyncSqlTransaction
                                         CancellationToken token = {});
 
     /// Asynchronously commits the transaction.
-    /// @param token Optional cancellation token (checked before the step is dispatched).
-    [[nodiscard]] Task<void> CommitAsync(CancellationToken token = {});
+    /// @note Finalization is a point of no return and is intentionally @b not cancellable: it always
+    ///       runs to completion. (Abandoning it would leave the transaction open, and the destructor
+    ///       would then finalize it with the configured default mode.)
+    [[nodiscard]] Task<void> CommitAsync();
 
     /// Asynchronously rolls back the transaction.
-    /// @param token Optional cancellation token (checked before the step is dispatched).
-    [[nodiscard]] Task<void> RollbackAsync(CancellationToken token = {});
+    /// @note Finalization is a point of no return and is intentionally @b not cancellable: it always
+    ///       runs to completion (so a rollback never silently degrades into a commit-on-destruction).
+    [[nodiscard]] Task<void> RollbackAsync();
 
   private:
     /// Runs @p finalize (SqlTransaction::Commit or ::Rollback) on the open transaction via the
-    /// connection strand, then clears it. Shared by CommitAsync/RollbackAsync.
+    /// connection strand, then clears it. Shared by CommitAsync/RollbackAsync. Not cancellable.
     /// @param finalize The finalizing member function to invoke.
-    /// @param token Optional cancellation token.
-    [[nodiscard]] Task<void> FinalizeAsync(void (SqlTransaction::*finalize)(), CancellationToken token);
+    [[nodiscard]] Task<void> FinalizeAsync(void (SqlTransaction::*finalize)());
 
     SqlConnection* _connection;
     std::optional<SqlTransaction> _transaction;

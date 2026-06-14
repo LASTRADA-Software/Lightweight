@@ -27,10 +27,11 @@ class OperationCancelledError: public std::runtime_error
 /// state, so a caller can keep one copy and @ref Request cancellation on the operation
 /// holding another.
 ///
-/// Cancellation is honored cooperatively: the offload runtime checks @ref IsCancellationRequested
-/// once before a step is dispatched and completes it with @ref OperationCancelledError if set. A
-/// request that arrives after a step has begun running does not interrupt the in-flight blocking
-/// call.
+/// Cancellation is honored cooperatively and only @e before dispatch: the offload runtime checks
+/// @ref IsCancellationRequested before posting a step to the worker and, if set, completes it with
+/// @ref OperationCancelledError without ever occupying a worker. Once a step has begun running, the
+/// in-flight blocking ODBC call is @b not interrupted (there is no @c SQLCancel integration yet), so a
+/// request that arrives after dispatch only takes effect on the next not-yet-dispatched step.
 class CancellationToken
 {
   public:

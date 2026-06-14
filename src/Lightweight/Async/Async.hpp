@@ -52,6 +52,16 @@ namespace detail
 
         void await_suspend(std::coroutine_handle<> awaiting)
         {
+            // Honor cancellation *before* dispatching to the offload executor, so a pre-cancelled
+            // operation never occupies a DB worker at all (matching the "checked before the step is
+            // dispatched" contract). The cancellation is reported through the resume scheduler exactly
+            // as a normal completion would be, so the awaiting coroutine still resumes on the app thread.
+            if (_token.IsCancellationRequested())
+            {
+                _error = std::make_exception_ptr(OperationCancelledError {});
+                _resume.Resume(awaiting);
+                return;
+            }
             _offload.Post([this, awaiting]() mutable {
                 Run();
                 _resume.Resume(awaiting);

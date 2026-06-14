@@ -73,6 +73,31 @@ TEST_CASE("Async.Async honors cancellation requested before dispatch", "[Async][
     CHECK_FALSE(ran); // cancelled before the closure ran
 }
 
+TEST_CASE("Async.Async pre-cancelled work is never dispatched to the offload executor", "[Async][Offload]")
+{
+    // Regression: a token already requested before the await must complete the operation WITHOUT
+    // dispatching to the offload executor at all (so a pre-cancelled op never occupies a DB worker).
+    // We offload to an executor that silently drops every work item: under the fixed behavior the
+    // coroutine still resumes (via the resume scheduler) and throws OperationCancelledError, whereas
+    // posting the work to this executor would drop it and hang forever.
+    struct DroppingExecutor final: IExecutor
+    {
+        void Post(Work /*work*/) override {} // intentionally never runs anything
+    };
+
+    DroppingExecutor offload;
+    ManualExecutor appLoop;
+
+    auto token = CancellationToken::Create();
+    token.Request(); // cancel up-front
+
+    bool ran = false;
+    CHECK_THROWS_AS(
+        RunPumped([&]() -> Task<void> { co_await Async(offload, appLoop, [&ran] { ran = true; }, token); }, appLoop),
+        OperationCancelledError);
+    CHECK_FALSE(ran); // never dispatched, so the closure could not have run
+}
+
 TEST_CASE("Async.RunAsync via ThreadOffloadBackend", "[Async][Offload]")
 {
     ThreadPoolExecutor dbWorkers { 2 };
