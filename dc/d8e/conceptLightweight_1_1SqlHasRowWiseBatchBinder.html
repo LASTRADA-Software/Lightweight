@@ -104,12 +104,12 @@ $(document).ready(function(){initNavTree('dc/d8e/conceptLightweight_1_1SqlHasRow
 <div class="line">    <span class="keyword">requires</span>(SQLHSTMT stmt, SQLUSMALLINT column, V <span class="keyword">const</span>* elem0, std::size_t n, SqlDataBinderCallback&amp; cb) {</div>
 <div class="line">        { SqlDataBinder&lt;V&gt;::BatchRowWiseInputParameter(stmt, column, elem0, n, n, cb) } -&gt; std::same_as&lt;SQLRETURN&gt;;</div>
 <div class="line">    }</div>
-<div class="ttc" id="aconceptLightweight_1_1SqlHasRowWiseBatchBinder_html"><div class="ttname"><a href="../../dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html">Lightweight::SqlHasRowWiseBatchBinder</a></div><div class="ttdoc">Whether V's binder provides a row-wise batch entry point (BatchRowWiseInputParameter).</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l01021">SqlStatement.hpp:1021</a></div></div>
+<div class="ttc" id="aconceptLightweight_1_1SqlHasRowWiseBatchBinder_html"><div class="ttname"><a href="../../dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html">Lightweight::SqlHasRowWiseBatchBinder</a></div><div class="ttdoc">Whether V's binder provides a row-wise batch entry point (BatchRowWiseInputParameter).</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00844">SqlStatement.hpp:844</a></div></div>
 </div><!-- fragment --><a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Whether <code>V's</code> binder provides a row-wise batch entry point (<code>BatchRowWiseInputParameter</code>). </p>
 <p>Such types (e.g. <code>std::optional</code> of a fixed type, or inline fixed-capacity strings) need a temporary row-strided NULL/length indicator buffer, which in turn requires the row stride to keep <code>SQLLEN</code> indicator slots aligned. Plain indicator-free fixed values bind via <code>InputParameter</code> and do not satisfy this concept. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01021">1021</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00844">844</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
