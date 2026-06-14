@@ -84,9 +84,17 @@ class SqlDynamicBinary final
     }
 
     /// Retrieves a read-only span over the stored bytes.
-    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::span<value_type const> ToStringView() const noexcept
+    [[nodiscard]] LIGHTWEIGHT_FORCE_INLINE constexpr std::span<value_type const> Bytes() const noexcept
     {
         return { _base.data(), _base.size() };
+    }
+
+    /// @deprecated Use @ref Bytes(). Alias kept for source compatibility; the name is a misnomer since
+    /// this type holds raw bytes (a span), not text.
+    [[deprecated("use Bytes(); SqlDynamicBinary stores raw bytes, not text")]] [[nodiscard]]
+    LIGHTWEIGHT_FORCE_INLINE constexpr std::span<value_type const> ToStringView() const noexcept
+    {
+        return Bytes();
     }
 #endif
 
