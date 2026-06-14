@@ -1,6 +1,5 @@
 var NAVTREEINDEX4 =
 {
-"d9/de1/structLightweight_1_1SqlDate.html#a649f582462bd3257f353e570070ea36f":[11,0,1,8],
 "d9/de1/structLightweight_1_1SqlDate.html#abb63b8190ca89408601b6b10e58b7c9d":[11,0,1,0],
 "d9/de1/structLightweight_1_1SqlDate.html#ac22e4292f9c821d76c65c2dcd76ec3d2":[11,0,1,10],
 "d9/de1/structLightweight_1_1SqlDate.html#ac8926c16c74e11a1467098a40b13e552":[11,0,1,9],
@@ -249,5 +248,6 @@ var NAVTREEINDEX4 =
 "db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750a93cba07454f06a4a960172bbd6e2a435":[13,0,0,46,1,1],
 "db/dfd/classLightweight_1_1SqlLogger.html#aa6670d16a93f71b21831b76d057b3750abafd7322c6e97d25b6299b5d6fe8920b":[13,0,0,46,1,0],
 "db/dfd/classLightweight_1_1SqlLogger.html#aa68027bdaa8f1fde1e3feb1de44f985c":[13,0,0,46,11],
-"db/dfd/classLightweight_1_1SqlLogger.html#ab340e6fd29c7dc20244185b4faec7940":[13,0,0,46,15]
+"db/dfd/classLightweight_1_1SqlLogger.html#ab340e6fd29c7dc20244185b4faec7940":[13,0,0,46,15],
+"db/dfd/classLightweight_1_1SqlLogger.html#adaf22da58134c20ea7c4858cb06c3b9e":[13,0,0,46,12]
 };

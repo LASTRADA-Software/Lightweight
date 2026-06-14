@@ -145,7 +145,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>        <span class="comment">// Character C types NUL-terminate every SQLGetData transfer, consuming the last buffer</span></div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>        <span class="comment">// slot; SQL_C_BINARY transfers raw bytes WITHOUT a terminator, so every buffer slot holds</span></div>
 <div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>        <span class="comment">// data. Getting this wrong for binary loses the byte at each continuation boundary.</span></div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>        <span class="keyword">constexpr</span> <span class="keywordtype">size_t</span> NulChars = CType == SQL_C_BINARY ? 0 : 1;</div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>        <span class="keyword">constexpr</span> <span class="keywordtype">size_t</span> TrailingNulTerminators = CType == SQL_C_BINARY ? 0 : 1;</div>
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span> </div>
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>        *indicator = 0;</div>
 <div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span> </div>
@@ -169,17 +169,17 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>        }</div>
 <div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span> </div>
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>        <span class="keywordflow">if</span> (sqlResult == SQL_SUCCESS_WITH_INFO &amp;&amp; *indicator != SQL_NO_TOTAL</div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>            &amp;&amp; (<span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(*indicator) / <span class="keyword">sizeof</span>(CharType)) + NulChars &gt; result-&gt;size())</div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>            &amp;&amp; (<span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(*indicator) / <span class="keyword">sizeof</span>(CharType)) + TrailingNulTerminators &gt; result-&gt;size())</div>
 <div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>        {</div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>            <span class="comment">// Truncation with a known total. Note the NulChars term: a CHARACTER value whose</span></div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>            <span class="comment">// Truncation with a known total. Note the TrailingNulTerminators term: a CHARACTER value whose</span></div>
 <div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>            <span class="comment">// length exactly equals the buffer still truncates (the driver spends the last slot</span></div>
 <div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>            <span class="comment">// on the NUL terminator), so the continuation must run for indicator == buffer size.</span></div>
 <div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>            <span class="comment">// We have a truncation and the server knows how much data is left.</span></div>
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>            <span class="keyword">auto</span> <span class="keyword">const</span> totalCharCount = <span class="keyword">static_cast&lt;</span><span class="keywordtype">size_t</span><span class="keyword">&gt;</span>(*indicator) / <span class="keyword">sizeof</span>(CharType);</div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>            <span class="keyword">auto</span> <span class="keyword">const</span> charsWritten = result-&gt;size() - NulChars;</div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>            result-&gt;resize(totalCharCount + NulChars);</div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>            <span class="keyword">auto</span> <span class="keyword">const</span> charsWritten = result-&gt;size() - TrailingNulTerminators;</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>            result-&gt;resize(totalCharCount + TrailingNulTerminators);</div>
 <div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>            <span class="keyword">auto</span>* bufferCont = result-&gt;data() + charsWritten;</div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>            <span class="keyword">auto</span> <span class="keyword">const</span> bufferCharsAvailable = (totalCharCount + NulChars) - charsWritten;</div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>            <span class="keyword">auto</span> <span class="keyword">const</span> bufferCharsAvailable = (totalCharCount + TrailingNulTerminators) - charsWritten;</div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>            sqlResult = SQLGetData(</div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>                stmt, column, CType, bufferCont, <span class="keyword">static_cast&lt;</span>SQLLEN<span class="keyword">&gt;</span>(bufferCharsAvailable * <span class="keyword">sizeof</span>(CharType)), indicator);</div>
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>            <span class="keywordflow">if</span> (SQL_SUCCEEDED(sqlResult))</div>
@@ -191,7 +191,7 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>        <span class="keywordflow">while</span> (sqlResult == SQL_SUCCESS_WITH_INFO &amp;&amp; *indicator == SQL_NO_TOTAL)</div>
 <div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>        {</div>
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>            <span class="comment">// We have a truncation and the server does not know how much data is left.</span></div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>            writeIndex += result-&gt;size() - NulChars;</div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>            writeIndex += result-&gt;size() - TrailingNulTerminators;</div>
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>            result-&gt;resize(result-&gt;size() * 2);</div>
 <div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>            <span class="keyword">auto</span>* <span class="keyword">const</span> bufferStart = result-&gt;data() + writeIndex;</div>
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>            <span class="keywordtype">size_t</span> <span class="keyword">const</span> bufferCharsAvailable = result-&gt;size() - writeIndex;</div>
@@ -880,9 +880,9 @@ $(document).ready(function(){initNavTree('d6/dc2/BasicStringBinder_8hpp_source.h
 <div class="line"><a id="l00780" name="l00780"></a><span class="lineno">  780</span>};</div>
 <div class="line"><a id="l00781" name="l00781"></a><span class="lineno">  781</span> </div>
 <div class="line"><a id="l00782" name="l00782"></a><span class="lineno">  782</span>} <span class="comment">// namespace Lightweight</span></div>
-<div class="ttc" id="agroup__Unicode_html_ga61d085d38ec6689b3a3c7a153a85af09"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#ga61d085d38ec6689b3a3c7a153a85af09">Lightweight::ToUtf32</a></div><div class="ttdeci">T ToUtf32(std::u8string_view u8InputString)</div><div class="ttdef"><b>Definition</b> <a href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00292">UnicodeConverter.hpp:292</a></div></div>
+<div class="ttc" id="agroup__Unicode_html_ga61d085d38ec6689b3a3c7a153a85af09"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#ga61d085d38ec6689b3a3c7a153a85af09">Lightweight::ToUtf32</a></div><div class="ttdeci">T ToUtf32(std::u8string_view u8InputString)</div><div class="ttdef"><b>Definition</b> <a href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00280">UnicodeConverter.hpp:280</a></div></div>
 <div class="ttc" id="agroup__Unicode_html_ga89bd79809fec27653916a0f51baf77be"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#ga89bd79809fec27653916a0f51baf77be">Lightweight::ToUtf8</a></div><div class="ttdeci">LIGHTWEIGHT_API std::u8string ToUtf8(std::u32string_view u32InputString)</div></div>
-<div class="ttc" id="agroup__Unicode_html_gaaf5dbfcee3e69467bc1359226a9f6b2a"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#gaaf5dbfcee3e69467bc1359226a9f6b2a">Lightweight::ToUtf16</a></div><div class="ttdeci">std::u16string ToUtf16(std::basic_string_view&lt; T &gt; const u32InputString)</div><div class="ttdef"><b>Definition</b> <a href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00256">UnicodeConverter.hpp:256</a></div></div>
+<div class="ttc" id="agroup__Unicode_html_gaaf5dbfcee3e69467bc1359226a9f6b2a"><div class="ttname"><a href="../../d1/d7d/group__Unicode.html#gaaf5dbfcee3e69467bc1359226a9f6b2a">Lightweight::ToUtf16</a></div><div class="ttdeci">std::u16string ToUtf16(std::basic_string_view&lt; T &gt; const u32InputString)</div><div class="ttdef"><b>Definition</b> <a href="../../df/dcd/UnicodeConverter_8hpp_source.html#l00244">UnicodeConverter.hpp:244</a></div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

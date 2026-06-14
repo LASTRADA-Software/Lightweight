@@ -1,6 +1,5 @@
 var NAVTREEINDEX6 =
 {
-"de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#ab3f4130283fddc423a1911a3962e739c":[13,0,0,14,0,0],
 "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html#af18e106d18590f5e6b4f29a04389ecf5":[13,0,0,14,0,2],
 "de/dbb/StdString_8hpp_source.html":[14,0,1,0,17],
 "de/dd9/classLightweight_1_1SqlInsertQueryBuilder.html":[11,4,5],
