@@ -225,7 +225,12 @@ class SqlConnection final
     ///
     /// Called by the connection pool when a mapper is returned, so a recycled connection never
     /// carries a stale backend that references executors which may have been destroyed. Safe to
-    /// call when async was never enabled. Must not be called while async work is in flight.
+    /// call when async was never enabled.
+    ///
+    /// @warning Must not be called while async work is in flight on this connection: it destroys the
+    /// backend (and the strand/executors an outstanding offloaded step still references), which would
+    /// race the worker still touching the ODBC handle. Await every async operation on this connection
+    /// to completion before disabling (or before returning the owning pooled @c DataMapper).
     LIGHTWEIGHT_API void DisableAsync() noexcept;
 
     /// @return true if @ref EnableAsync has been called on this connection (and not yet disabled).
@@ -233,10 +238,13 @@ class SqlConnection final
 
     /// Retrieves the connection's asynchronous execution backend.
     ///
+    /// Non-const because using the backend schedules and serializes real ODBC work (via its strand and
+    /// resume scheduler), which is an observable mutation of the connection's execution state.
+    ///
     /// @pre @ref IsAsyncEnabled returns true.
     /// @throws std::logic_error if async has not been enabled (programmer error, fail-fast).
     /// @return The async backend used by this connection's async methods.
-    [[nodiscard]] LIGHTWEIGHT_API Async::IAsyncBackend& AsyncBackend() const;
+    [[nodiscard]] LIGHTWEIGHT_API Async::IAsyncBackend& AsyncBackend();
 
   private:
     /// Ensures ODBC handles are allocated. Called by Connect() methods.

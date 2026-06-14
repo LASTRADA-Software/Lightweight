@@ -3,6 +3,7 @@
 
 #include "../Async/Executor.hpp"
 #include "../Async/Task.hpp"
+#include "../SqlLogger.hpp"
 #include "DataMapper.hpp"
 
 #include <cassert>
@@ -120,13 +121,24 @@ class Pool
   private:
     struct AsyncWaiterNode; // defined below; referenced by ReturnLocked's signature.
 
+    /// Detaches the async backend from a returned mapper's connection before it is idled or handed
+    /// off, so a recycled connection never carries references to executors that may since have been
+    /// destroyed (the next @c AcquireAsync re-enables it fresh). Shared by every @c Return overload.
+    ///
+    /// @warning The caller must not return a mapper that still has an async operation in flight on it:
+    /// dropping the backend destroys the strand/executors an outstanding offloaded step references and
+    /// races the worker still touching the ODBC handle. Await every async op before returning.
+    /// @param dm The mapper whose connection's async backend is dropped.
+    static void DropAsyncBackend(DataMapper& dm) noexcept
+    {
+        dm.Connection().DisableAsync();
+    }
+
     /// always return the data mapper to the pool for this strategy
     void Return(std::unique_ptr<DataMapper> dm) noexcept
         requires(Config.growthStrategy == GrowthStrategy::UnboundedGrow)
     {
-        // Drop any async backend so a recycled connection never carries references to executors
-        // that may have been destroyed; the next AcquireAsync re-enables it fresh.
-        dm->Connection().DisableAsync();
+        DropAsyncBackend(*dm);
         std::scoped_lock lock(_mutex);
         _idleDataMappers.push_back(std::move(dm));
     }
@@ -136,10 +148,7 @@ class Pool
     void Return(std::unique_ptr<DataMapper> dm) noexcept
         requires(Config.growthStrategy == GrowthStrategy::BoundedWait)
     {
-        // Drop any async backend before the mapper is idled or handed to a waiter, so a recycled
-        // connection never carries references to (possibly destroyed) executors; a waiter's
-        // AcquireAsync re-enables it fresh.
-        dm->Connection().DisableAsync();
+        DropAsyncBackend(*dm);
         std::shared_ptr<AsyncWaiterNode> toResume;
         {
             std::scoped_lock const lock(_mutex);
@@ -182,9 +191,7 @@ class Pool
     void Return(std::unique_ptr<DataMapper> dm) noexcept
         requires(Config.growthStrategy == GrowthStrategy::BoundedOverflow)
     {
-        // Drop any async backend so a recycled connection never carries references to executors
-        // that may have been destroyed; the next AcquireAsync re-enables it fresh.
-        dm->Connection().DisableAsync();
+        DropAsyncBackend(*dm);
         std::scoped_lock lock(_mutex);
         if (_idleDataMappers.size() < Config.maxSize)
             _idleDataMappers.push_back(std::move(dm));
@@ -210,7 +217,13 @@ class Pool
         // pool — so destroying the pool out from under it is undefined. Drive every AcquireAsync task
         // to completion (or destroy it) before destroying the pool. The shared AsyncWaiterNode design
         // means a stale Return()/teardown never writes through freed bookkeeping, but a still-parked
-        // frame is intrinsically the caller's to finish; the assert flags violations in debug builds.
+        // frame is intrinsically the caller's to finish. The assert flags violations in debug builds;
+        // the log additionally surfaces the misuse in release builds (where the parked frame's later
+        // destruction would dereference this now-freed pool — a use-after-free the caller must avoid).
+        if (!_asyncWaiters.empty())
+            SqlLogger::GetLogger().OnWarning(
+                "Pool destroyed with coroutines still parked in AcquireAsync; the pool must outlive every "
+                "AcquireAsync task (drive each to completion or destroy it first). This is undefined behavior.");
         assert(_asyncWaiters.empty() && "Pool destroyed with coroutines still parked in AcquireAsync");
     }
 

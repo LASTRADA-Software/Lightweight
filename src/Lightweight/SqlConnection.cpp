@@ -190,7 +190,7 @@ bool SqlConnection::IsAsyncEnabled() const noexcept
     return m_data->asyncBackend != nullptr;
 }
 
-Async::IAsyncBackend& SqlConnection::AsyncBackend() const
+Async::IAsyncBackend& SqlConnection::AsyncBackend()
 {
     if (!m_data->asyncBackend)
         throw std::logic_error {
