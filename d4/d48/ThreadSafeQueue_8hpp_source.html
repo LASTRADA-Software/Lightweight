@@ -116,7 +116,7 @@ $(document).ready(function(){initNavTree('d4/d48/ThreadSafeQueue_8hpp_source.htm
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="comment">/// and dequeue items. Consumers block on WaitAndPop until an item is available</span></div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="comment">/// or the queue is marked as finished.</span></div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment">///</span></div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="comment">/// It is a thin facade over @ref detail::BlockingQueue (the shared blocking-FIFO primitive), so the</span></div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="comment">/// It is a thin facade over @c detail::BlockingQueue (the shared blocking-FIFO primitive), so the</span></div>
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="comment">/// locking/wait logic lives in exactly one place rather than being duplicated here and in the async</span></div>
 <div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="comment">/// layer&#39;s @c WorkQueue.</span></div>
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="comment">///</span></div>
