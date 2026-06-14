@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "../Async/Backend.hpp"
 #include "../SqlConnection.hpp"
 #include "../SqlQueryFormatter.hpp"
 #include "../SqlStatement.hpp"
@@ -312,7 +311,9 @@ class [[nodiscard]] SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecor
   private:
     using RecordType = std::tuple<FirstRecord, SecondRecord>;
     friend class DataMapper;
-    friend class SqlCoreDataMapperQueryBuilder<RecordType, SqlAllFieldsQueryBuilder<RecordType, QueryOptions, Execution>>;
+    friend class SqlCoreDataMapperQueryBuilder<RecordType,
+                                               SqlAllFieldsQueryBuilder<RecordType, QueryOptions, Execution>,
+                                               QueryOptions>;
 
     /// The execution mode (synchronous/asynchronous) read by the CRTP base to dispatch finishers.
     static constexpr SqlQueryExecutionMode QueryExecution = Execution;

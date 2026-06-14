@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "../Async/Backend.hpp"
 #include "../SqlConnection.hpp"
 #include "../SqlDataBinder.hpp"
 #include "../SqlLogger.hpp"
@@ -539,10 +540,14 @@ class DataMapper
     // worker thread, serialized per connection — and resumes the awaiting coroutine on the app's
     // resume scheduler. Call SqlConnection::EnableAsync(...) on the underlying connection (or use a
     // pool that stamps it) before invoking any of these. Definitions live in
-    // Async/DataMapperAsync.inl (included at the end of this header).
+    // Async/DataMapperAsync.hpp (included at the end of this header).
     //
-    // Methods taking a Record& / Record const& capture the record by reference: the caller must keep
-    // it alive and not touch it between the call and the co_await.
+    // Methods taking a Record& / Record const& capture the record BY REFERENCE, and dereference it
+    // on a worker thread when the returned Task is awaited. The caller must keep the record alive —
+    // and must not mutate or move it — for the entire duration of the co_await (i.e. until the
+    // awaiting coroutine resumes), not merely until the call returns. Destroying, moving, or mutating
+    // it before the co_await resumes is a use-after-free / data race. The idiomatic, safe form keeps
+    // the whole expression in the co_await: `co_await dm.UpdateAsync(record);`.
 
     /// Asynchronously inserts @p record, updating its primary key in place. @see Create.
     template <DataMapperOptions QueryOptions = {}, typename Record>
@@ -2774,4 +2779,4 @@ std::optional<T> DataMapper::Execute(std::string_view sqlQueryString)
 
 } // namespace Lightweight
 
-#include "../Async/DataMapperAsync.inl"
+#include "../Async/DataMapperAsync.hpp"

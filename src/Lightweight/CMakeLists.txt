@@ -146,6 +146,7 @@ list(APPEND HEADER_FILES
     Async/SyncWait.hpp
     Async/CancellationToken.hpp
     Async/Executor.hpp
+    Async/WorkQueue.hpp
     Async/ThreadPoolExecutor.hpp
     Async/StrandExecutor.hpp
     Async/ManualExecutor.hpp
@@ -154,7 +155,7 @@ list(APPEND HEADER_FILES
     Async/ThreadOffloadBackend.hpp
     Async/Fwd.hpp
     Async/AsyncSqlTransaction.hpp
-    Async/DataMapperAsync.inl
+    Async/DataMapperAsync.hpp
 )
 list(APPEND SOURCE_FILES
     Async/ThreadPoolExecutor.cpp
@@ -310,7 +311,6 @@ install(
     COMPONENT Development
     FILES_MATCHING
         PATTERN "*.hpp"
-        PATTERN "*.inl"
 )
 
 install(TARGETS Lightweight

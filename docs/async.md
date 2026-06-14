@@ -111,10 +111,14 @@ Available: `CreateAsync`, `QuerySingleAsync`, `UpdateAsync`, `DeleteAsync`, `Loa
 (plus the `QueryAsync<Record>()` builder above). `QuerySingleAsync<Record>(keys…)` is the async
 shorthand for a primary-key lookup; for any other query use the builder.
 
-> **Lifetime:** the record-level methods capture the record by reference, and the builder finishers
-> capture the builder by reference. Keep the operand alive across the `co_await` — the idiomatic way
-> is to keep the whole expression in the `co_await` (e.g. `co_await dm.QueryAsync<User>()…All();`),
-> and not to touch a referenced record between the call and the `co_await`.
+> **Lifetime (important):** the record-level methods capture the record **by reference**, and the
+> builder finishers capture the builder **by reference**. The captured operand is dereferenced on a
+> worker thread when the `Task` is awaited — so it must stay alive, and must not be moved or mutated,
+> for the **whole duration of the `co_await`** (until the coroutine resumes), not merely until the
+> call returns. Awaiting a builder temporary kept in a local
+> (`auto t = dm.QueryAsync<User>()…All(); co_await std::move(t);`) destroys the builder too early and
+> is a **use-after-free**. The idiomatic, safe form keeps the whole expression inside the `co_await`
+> (e.g. `co_await dm.QueryAsync<User>()…All();`).
 
 ## Single-threaded vs multi-threaded
 
@@ -177,8 +181,13 @@ Async::Task<void> Transfer(DataMapper& dm)
 }
 ```
 
-Always `co_await CommitAsync()` / `RollbackAsync()` explicitly. The destructor only performs a
-best-effort *synchronous* finalization if the transaction is still open.
+Always `co_await CommitAsync()` / `RollbackAsync()` explicitly. If the transaction is still open when
+destroyed, the destructor finalizes it best-effort (per the configured mode — `COMMIT` by default,
+matching the synchronous `SqlTransaction`), routed through the connection's strand and blocking the
+destroying thread, so it never races an in-flight async op on the same connection. The connection
+must stay alive and async-enabled for the transaction's whole lifetime — do not destroy it or return
+the owning pooled `DataMapper` (which disables async) between `BeginAsync` and the finalizing call.
+A second `BeginAsync` without an intervening commit/rollback is a programmer error (`std::logic_error`).
 
 ## Cancellation
 
