@@ -4,8 +4,10 @@ Lightweight exposes a C++23 coroutine API so applications can drive the database
 blocking their main thread — both single-threaded (one app/event-loop thread) and
 multi-threaded.
 
-The async methods are added **directly to the classes you already use** (`SqlConnection`,
+The async entry points are added **directly to the classes you already use** (`SqlConnection`,
 `DataMapper`, `Pool`), suffixed with `Async`; only `AsyncSqlTransaction` is a separate type.
+Queries go through the same fluent builder as the synchronous API — `QueryAsync<Record>()` returns
+a builder whose finishers yield a `Task` (see [Querying asynchronously](#querying-asynchronously)).
 The supporting runtime (`Task`, `SyncWait`, executors, backends) lives under
 `<Lightweight/Async/…>`.
 
@@ -53,33 +55,66 @@ DataMapper dm;
 dm.Connection().EnableAsync(dbWorkers, appLoop);
 ```
 
-## DataMapper async methods
+## Querying asynchronously
 
-Every common operation has an `…Async` counterpart returning a `Task`:
+Asynchronous queries use the **same fluent query builder** as synchronous ones — you just start the
+chain with `QueryAsync<Record>()` instead of `Query<Record>()`. Every finisher (`All()`, `First()`,
+`First(n)`, `Range()`, `Count()`, `Exist()`, `Delete()`, plus the field-projection variants such as
+`All<&User::name>()`) then returns a `Task` of its usual result instead of the result itself:
+
+```cpp
+Async::Task<void> Handle(DataMapper& dm)
+{
+    // Whole rows
+    auto everyone = co_await dm.QueryAsync<User>().All();                       // Task<std::vector<User>>
+
+    // Refine with the normal DSL, then pick a finisher
+    auto active = co_await dm.QueryAsync<User>()
+                            .Where(FieldNameOf<&User::is_active>, "=", true)
+                            .OrderBy(FieldNameOf<&User::name>, SqlResultOrdering::ASCENDING)
+                            .First(10);                                         // Task<std::vector<User>>
+
+    // Single record by primary key
+    auto loaded = co_await dm.QueryAsync<User>()
+                            .Where(FieldNameOf<&User::id>, "=", userId)
+                            .First();                                          // Task<std::optional<User>>
+
+    auto total = co_await dm.QueryAsync<User>().Count();                        // Task<std::size_t>
+}
+```
+
+`Query<Record>()` (synchronous) and `QueryAsync<Record>()` (asynchronous) are otherwise identical:
+the only difference is the return type of the finisher. There is intentionally **no** `AllAsync()`
+next to `All()`.
+
+## Record-level async methods
+
+Operations that act on a record directly — and have no query-builder form — keep a dedicated
+`…Async` counterpart returning a `Task`:
 
 ```cpp
 Async::Task<void> Handle(DataMapper& dm)
 {
     auto user = User { .name = "Alice" };
-    co_await dm.CreateAsync(user);                         // INSERT off-thread
+    co_await dm.CreateAsync(user);   // INSERT off-thread, fills the primary key
 
-    auto loaded = co_await dm.QuerySingleAsync<User>(user.id.Value());
-    if (loaded)
-        std::println("loaded {}", loaded->name.Value());
+    auto loaded = co_await dm.QuerySingleAsync<User>(user.id.Value()); // by-primary-key shorthand
+    user.name = "Alicia";
+    co_await dm.UpdateAsync(user);   // UPDATE off-thread
 
-    loaded->name = "Alicia";
-    co_await dm.UpdateAsync(*loaded);                      // UPDATE off-thread
-
-    auto everyone = co_await dm.QueryAsync<User>("SELECT \"id\", \"name\" FROM \"User\"");
-    co_await dm.DeleteAsync(*loaded);
+    co_await dm.LoadRelationsAsync(user);
+    co_await dm.DeleteAsync(user);
 }
 ```
 
-Available: `CreateAsync`, `QuerySingleAsync`, `QueryAsync`, `UpdateAsync`, `DeleteAsync`,
-`LoadRelationsAsync`.
+Available: `CreateAsync`, `QuerySingleAsync`, `UpdateAsync`, `DeleteAsync`, `LoadRelationsAsync`
+(plus the `QueryAsync<Record>()` builder above). `QuerySingleAsync<Record>(keys…)` is the async
+shorthand for a primary-key lookup; for any other query use the builder.
 
-> **Lifetime:** methods taking a record reference (`CreateAsync`, `UpdateAsync`, …) capture it by
-> reference. Keep the record alive and do not touch it between the call and the `co_await`.
+> **Lifetime:** the record-level methods capture the record by reference, and the builder finishers
+> capture the builder by reference. Keep the operand alive across the `co_await` — the idiomatic way
+> is to keep the whole expression in the `co_await` (e.g. `co_await dm.QueryAsync<User>()…All();`),
+> and not to touch a referenced record between the call and the `co_await`.
 
 ## Single-threaded vs multi-threaded
 
@@ -110,7 +145,7 @@ BoundedPool pool;
 Async::Task<std::optional<User>> Fetch(BoundedPool& pool, SqlGuid id)
 {
     auto dm = co_await pool.AcquireAsync(dbWorkers, dbWorkers); // suspends when at capacity, never blocks
-    co_return co_await dm->QuerySingleAsync<User>(id);
+    co_return co_await dm->QueryAsync<User>().Where(FieldNameOf<&User::id>, "=", id).First();
     // dm returns to the pool when the coroutine ends
 }
 ```

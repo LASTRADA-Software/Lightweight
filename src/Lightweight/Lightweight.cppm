@@ -88,6 +88,7 @@ using Lightweight::ReferencedFieldTypeOf;
 using Lightweight::RequireSuccess;
 using Lightweight::SqlAdvisoryLockHandler;
 using Lightweight::SqlAllFieldsQueryBuilder;
+using Lightweight::SqlQueryExecutionMode;
 using Lightweight::SqlAlterTableCommand;
 using Lightweight::SqlAlterTablePlan;
 using Lightweight::SqlAlterTableQueryBuilder;

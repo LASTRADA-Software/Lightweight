@@ -36,29 +36,6 @@ Async::Task<std::optional<Record>> DataMapper::QuerySingleAsync(PrimaryKeyTypes.
                            });
 }
 
-template <typename Record, typename... InputParameters>
-Async::Task<std::vector<Record>> DataMapper::QueryAsync(std::string_view sqlQueryString, InputParameters... inputParameters)
-{
-    return Async::RunAsync(_connection.AsyncBackend(),
-                           [this,
-                            query = std::string(sqlQueryString),
-                            ... inputParameters = std::move(inputParameters)]() mutable -> std::vector<Record> {
-                               return Query<Record>(query, std::move(inputParameters)...);
-                           });
-}
-
-template <typename Record, DataMapperOptions QueryOptions, typename... InputParameters>
-Async::Task<std::vector<Record>> DataMapper::QueryAsync(SqlSelectQueryBuilder::ComposedQuery selectQuery,
-                                                        InputParameters... inputParameters)
-{
-    return Async::RunAsync(_connection.AsyncBackend(),
-                           [this,
-                            selectQuery = std::move(selectQuery),
-                            ... inputParameters = std::move(inputParameters)]() mutable -> std::vector<Record> {
-                               return Query<Record, QueryOptions>(selectQuery, std::move(inputParameters)...);
-                           });
-}
-
 template <typename Record>
 Async::Task<void> DataMapper::UpdateAsync(Record& record)
 {
