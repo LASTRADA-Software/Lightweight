@@ -1,5 +1,6 @@
 var NAVTREEINDEX2 =
 {
+"d5/d3e/SqlServerFormatter_8hpp_source.html":[14,0,1,3,2],
 "d5/d4b/SqlAdvisoryLock_8hpp_source.html":[14,0,1,10],
 "d5/d5a/Album_8hpp_source.html":[14,0,0,0,0,0],
 "d5/d72/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1HardResetResult.html":[11,3,6,2],
@@ -248,6 +249,5 @@ var NAVTREEINDEX2 =
 "d7/d12/PostgreSqlFormatter_8hpp_source.html":[14,0,1,3,0],
 "d7/d13/structLightweight_1_1SqlRealName.html":[13,0,0,60],
 "d7/d13/structLightweight_1_1SqlRealName.html#a13a14e15745651ea04fe1842bab4b501":[13,0,0,60,8],
-"d7/d13/structLightweight_1_1SqlRealName.html#a1fa62b5e33b8961307b5176d581bfb78":[13,0,0,60,3],
-"d7/d13/structLightweight_1_1SqlRealName.html#a29fb9edfde8a0f55e37e22f61ef14508":[13,0,0,60,10]
+"d7/d13/structLightweight_1_1SqlRealName.html#a1fa62b5e33b8961307b5176d581bfb78":[13,0,0,60,3]
 };

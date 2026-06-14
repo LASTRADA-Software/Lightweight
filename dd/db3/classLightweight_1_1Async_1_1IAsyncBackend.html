@@ -130,7 +130,7 @@ Public Member Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Per-connection asynchronous execution backend.</p>
 <p>A backend owns (or references) the execution context used to run a connection's blocking ODBC work and to resume the awaiting coroutine. Currently the only implementation is <a class="el" href="../../dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend.html">ThreadOffloadBackend</a> (portable; offloads to a worker thread). A native event backend (Windows + SQL Server) is planned behind this same interface.</p>
-<p>The backend is selected once per connection (see <code>SqlConnection::EnableAsync</code>) and used by all of that connection's async methods. </p>
+<p>The backend is selected once per connection (see <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#afd6064e6446d7bc609fd0fea94ad0fd7">SqlConnection::EnableAsync</a></code>) and used by all of that connection's async methods. </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d0/d69/Backend_8hpp_source.html#l00022">22</a> of file <a class="el" href="../../d0/d69/Backend_8hpp_source.html">Backend.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
