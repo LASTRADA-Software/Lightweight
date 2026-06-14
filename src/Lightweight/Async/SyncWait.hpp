@@ -294,6 +294,11 @@ T SyncWaitPumping(Task<T> task, Executor& executor)
     auto driver = detail::MakeSyncWaitTask<T>(std::move(task));
     driver.Start(signal);
     executor.RunUntil([&signal] { return signal.IsSet(); });
+    // RunUntil returns as soon as the completion flag is observed, but Set() may still be mid-execution
+    // on the resuming thread (it raises the flag and nudges the waker before its trailing
+    // _semaphore.release()). Acquire the semaphore — release() is the last statement of Set() — so the
+    // local `signal` is not destroyed while Set() is still touching it. Mirrors SyncWait's handshake.
+    signal.Wait();
     return driver.Promise().Take();
 }
 
