@@ -5,9 +5,10 @@
 //
 // Core headers (SqlConnection, SqlStatement, DataMapper, Pool) include this to declare their
 // async member functions without pulling in <coroutine> or the full async runtime. The heavy
-// definitions are provided by the corresponding `.cpp` files and by the `Async/*.inl` template
-// bodies, which include the complete headers. @ref CancellationToken is included in full
-// because it is lightweight (no <coroutine>) and appears as a defaulted argument.
+// definitions are provided by the corresponding `.cpp` files and by the `Async/*.hpp` template
+// bodies (e.g. DataMapperAsync.hpp, Backend.hpp), which include the complete headers.
+// @ref CancellationToken is included in full because it is lightweight (no <coroutine>) and
+// appears as a defaulted argument.
 
 #include "CancellationToken.hpp"
 
