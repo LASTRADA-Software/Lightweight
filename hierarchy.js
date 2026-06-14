@@ -159,7 +159,7 @@ var hierarchy =
     [ "Lightweight::Zip::ZipArchive", "d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html", null ],
     [ "Lightweight::Zip::ZipEntry", "d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html", null ],
     [ "Lightweight::Zip::ZipError", "da/dd4/structLightweight_1_1Zip_1_1ZipError.html", null ],
-    [ "Lightweight::SqlWhereClauseBuilder< SqlAllFieldsQueryBuilder< Record, QueryOptions > >", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html", null ],
+    [ "Lightweight::SqlWhereClauseBuilder< SqlAllFieldsQueryBuilder< Record, QueryOptions, SqlQueryExecutionMode::Synchronous > >", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html", null ],
     [ "Lightweight::SqlWhereClauseBuilder< SqlDeleteQueryBuilder >", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html", [
       [ "Lightweight::SqlDeleteQueryBuilder", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html", null ]
     ] ],

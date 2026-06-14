@@ -191,7 +191,8 @@ var NAVTREE =
       [ "Why offloading (and not \"true\" async ODBC)", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#why-offloading-and-not-true-async-odbc", null ],
       [ "Concepts", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#concepts", null ],
       [ "Enabling async on a connection", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#enabling-async-on-a-connection", null ],
-      [ "DataMapper async methods", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#datamapper-async-methods", null ],
+      [ "Querying asynchronously", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#querying-asynchronously", null ],
+      [ "Record-level async methods", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#record-level-async-methods", null ],
       [ "Single-threaded vs multi-threaded", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#single-threaded-vs-multi-threaded", null ],
       [ "Transactions", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#transactions", null ],
       [ "Cancellation", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#cancellation", null ],
@@ -236,9 +237,9 @@ var NAVTREEINDEX =
 "d5/d4b/SqlAdvisoryLock_8hpp_source.html",
 "d7/d13/structLightweight_1_1SqlRealName.html#a3a0bfe418a06a96c9b4dde5d0c2680ca",
 "d9/dbb/classLightweight_1_1SqlDataBinderCallback.html#abd90cf0b647d60af5bb130b7fe162bd2",
-"db/db6/classLightweight_1_1SqlBinary.html#ae3e161b581dfc33b2bdfae68fc299df9",
-"de/dae/classLightweight_1_1SqlFixedString.html#a60be4a7928d045c7d1e907cf4ef0fdd9",
-"functions_vars_m.html"
+"db/db6/classLightweight_1_1SqlBinary.html#a85d83b4f584d4399449c1e58dfa75c76",
+"de/dae/classLightweight_1_1SqlFixedString.html#a50438c4dd3511d7dba129606f23950a8",
+"functions_vars_l.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

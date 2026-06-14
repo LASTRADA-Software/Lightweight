@@ -94,7 +94,7 @@ $(document).ready(function(){initNavTree('db/d5f/md__2home_2runner_2work_2Lightw
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p><a class="anchor" id="asynchronous-api-c23-coroutines"></a> Lightweight exposes a C++23 coroutine API so applications can drive the database without blocking their main thread — both single-threaded (one app/event-loop thread) and multi-threaded.</p>
-<p>The async methods are added <b>directly to the classes you already use</b> (<code>SqlConnection</code>, <code>DataMapper</code>, <code>Pool</code>), suffixed with <code>Async</code>; only <code>AsyncSqlTransaction</code> is a separate type. The supporting runtime (<code>Task</code>, <code>SyncWait</code>, executors, backends) lives under <code>&lt;Lightweight/Async/…&gt;</code>.</p>
+<p>The async entry points are added <b>directly to the classes you already use</b> (<code>SqlConnection</code>, <code>DataMapper</code>, <code>Pool</code>), suffixed with <code>Async</code>; only <code>AsyncSqlTransaction</code> is a separate type. Queries go through the same fluent builder as the synchronous API — <code>QueryAsync&lt;Record&gt;()</code> returns a builder whose finishers yield a <code>Task</code> (see <a class="el" href="../../db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#querying-asynchronously">Querying asynchronously</a>). The supporting runtime (<code>Task</code>, <code>SyncWait</code>, executors, backends) lives under <code>&lt;Lightweight/Async/…&gt;</code>.</p>
 <h1><a class="anchor" id="why-offloading-and-not-true-async-odbc"></a>
 Why offloading (and not "true" async ODBC)</h1>
 <p>ODBC's asynchronous execution is <b>not portable</b>: the PostgreSQL ODBC driver reports no async support at all, the SQLite ODBC driver is synchronous, and SQL Server's event-based async is effectively Windows-only. So Lightweight's portable model <b>offloads each blocking ODBC call to a worker thread and resumes your coroutine on a scheduler you choose</b>. With synchronous drivers there is no way to avoid blocking <em>some</em> thread — but it never has to be your app thread.</p>
@@ -137,28 +137,47 @@ Enabling async on a connection</h1>
 <div class="ttc" id="aclassLightweight_1_1Async_1_1ThreadPoolExecutor_html"><div class="ttname"><a href="../../d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor.html">Lightweight::Async::ThreadPoolExecutor</a></div><div class="ttdef"><b>Definition</b> <a href="../../de/dd3/ThreadPoolExecutor_8hpp_source.html#l00021">ThreadPoolExecutor.hpp:22</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1DataMapper_html"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html">Lightweight::DataMapper</a></div><div class="ttdoc">Main API for mapping records to and from the database using high level C++ syntax.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00090">DataMapper.hpp:91</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1DataMapper_html_a121ee55502ae3461f8773593a5342f5f"><div class="ttname"><a href="../../de/d61/classLightweight_1_1DataMapper.html#a121ee55502ae3461f8773593a5342f5f">Lightweight::DataMapper::Connection</a></div><div class="ttdeci">SqlConnection const &amp; Connection() const noexcept</div><div class="ttdoc">Returns the connection reference used by this data mapper.</div><div class="ttdef"><b>Definition</b> <a href="../../df/d4f/DataMapper_8hpp_source.html#l00144">DataMapper.hpp:144</a></div></div>
-</div><!-- fragment --><h1><a class="anchor" id="datamapper-async-methods"></a>
-DataMapper async methods</h1>
-<p>Every common operation has an <code>…Async</code> counterpart returning a <code>Task</code>:</p>
+</div><!-- fragment --><h1><a class="anchor" id="querying-asynchronously"></a>
+Querying asynchronously</h1>
+<p>Asynchronous queries use the <b>same fluent query builder</b> as synchronous ones — you just start the chain with <code>QueryAsync&lt;Record&gt;()</code> instead of <code>Query&lt;Record&gt;()</code>. Every finisher (<code>All()</code>, <code>First()</code>, <code>First(n)</code>, <code>Range()</code>, <code>Count()</code>, <code>Exist()</code>, <code>Delete()</code>, plus the field-projection variants such as <code>All&lt;&amp;User::name&gt;()</code>) then returns a <code>Task</code> of its usual result instead of the result itself:</p>
+<div class="fragment"><div class="line"><a class="code hl_class" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Async::Task&lt;void&gt;</a> Handle(<a class="code hl_class" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a>&amp; dm)</div>
+<div class="line">{</div>
+<div class="line">    <span class="comment">// Whole rows</span></div>
+<div class="line">    <span class="keyword">auto</span> everyone = <span class="keyword">co_await</span> dm.QueryAsync&lt;User&gt;().All();                       <span class="comment">// Task&lt;std::vector&lt;User&gt;&gt;</span></div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// Refine with the normal DSL, then pick a finisher</span></div>
+<div class="line">    <span class="keyword">auto</span> active = <span class="keyword">co_await</span> dm.QueryAsync&lt;User&gt;()</div>
+<div class="line">                            .Where(FieldNameOf&lt;&amp;User::is_active&gt;, <span class="stringliteral">&quot;=&quot;</span>, <span class="keyword">true</span>)</div>
+<div class="line">                            .OrderBy(FieldNameOf&lt;&amp;User::name&gt;, SqlResultOrdering::ASCENDING)</div>
+<div class="line">                            .First(10);                                         <span class="comment">// Task&lt;std::vector&lt;User&gt;&gt;</span></div>
+<div class="line"> </div>
+<div class="line">    <span class="comment">// Single record by primary key</span></div>
+<div class="line">    <span class="keyword">auto</span> loaded = <span class="keyword">co_await</span> dm.QueryAsync&lt;User&gt;()</div>
+<div class="line">                            .Where(FieldNameOf&lt;&amp;User::id&gt;, <span class="stringliteral">&quot;=&quot;</span>, userId)</div>
+<div class="line">                            .First();                                          <span class="comment">// Task&lt;std::optional&lt;User&gt;&gt;</span></div>
+<div class="line"> </div>
+<div class="line">    <span class="keyword">auto</span> total = <span class="keyword">co_await</span> dm.QueryAsync&lt;User&gt;().Count();                        <span class="comment">// Task&lt;std::size_t&gt;</span></div>
+<div class="line">}</div>
+<div class="ttc" id="aclassLightweight_1_1Async_1_1Task_html"><div class="ttname"><a href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Lightweight::Async::Task</a></div><div class="ttdef"><b>Definition</b> <a href="../../d8/d91/Task_8hpp_source.html#l00144">Task.hpp:145</a></div></div>
+</div><!-- fragment --><p><code>Query&lt;Record&gt;()</code> (synchronous) and <code>QueryAsync&lt;Record&gt;()</code> (asynchronous) are otherwise identical: the only difference is the return type of the finisher. There is intentionally <b>no</b> <code>AllAsync()</code> next to <code>All()</code>.</p>
+<h1><a class="anchor" id="record-level-async-methods"></a>
+Record-level async methods</h1>
+<p>Operations that act on a record directly — and have no query-builder form — keep a dedicated <code>…Async</code> counterpart returning a <code>Task</code>:</p>
 <div class="fragment"><div class="line"><a class="code hl_class" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Async::Task&lt;void&gt;</a> Handle(<a class="code hl_class" href="../../de/d61/classLightweight_1_1DataMapper.html">DataMapper</a>&amp; dm)</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">auto</span> user = User { .name = <span class="stringliteral">&quot;Alice&quot;</span> };</div>
-<div class="line">    <span class="keyword">co_await</span> dm.CreateAsync(user);                         <span class="comment">// INSERT off-thread</span></div>
+<div class="line">    <span class="keyword">co_await</span> dm.CreateAsync(user);   <span class="comment">// INSERT off-thread, fills the primary key</span></div>
 <div class="line"> </div>
-<div class="line">    <span class="keyword">auto</span> loaded = <span class="keyword">co_await</span> dm.QuerySingleAsync&lt;User&gt;(user.id.Value());</div>
-<div class="line">    <span class="keywordflow">if</span> (loaded)</div>
-<div class="line">        std::println(<span class="stringliteral">&quot;loaded {}&quot;</span>, loaded-&gt;name.Value());</div>
+<div class="line">    <span class="keyword">auto</span> loaded = <span class="keyword">co_await</span> dm.QuerySingleAsync&lt;User&gt;(user.id.Value()); <span class="comment">// by-primary-key shorthand</span></div>
+<div class="line">    user.name = <span class="stringliteral">&quot;Alicia&quot;</span>;</div>
+<div class="line">    <span class="keyword">co_await</span> dm.UpdateAsync(user);   <span class="comment">// UPDATE off-thread</span></div>
 <div class="line"> </div>
-<div class="line">    loaded-&gt;name = <span class="stringliteral">&quot;Alicia&quot;</span>;</div>
-<div class="line">    <span class="keyword">co_await</span> dm.UpdateAsync(*loaded);                      <span class="comment">// UPDATE off-thread</span></div>
-<div class="line"> </div>
-<div class="line">    <span class="keyword">auto</span> everyone = <span class="keyword">co_await</span> dm.QueryAsync&lt;User&gt;(<span class="stringliteral">&quot;SELECT \&quot;id\&quot;, \&quot;name\&quot; FROM \&quot;User\&quot;&quot;</span>);</div>
-<div class="line">    <span class="keyword">co_await</span> dm.DeleteAsync(*loaded);</div>
+<div class="line">    <span class="keyword">co_await</span> dm.LoadRelationsAsync(user);</div>
+<div class="line">    <span class="keyword">co_await</span> dm.DeleteAsync(user);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassLightweight_1_1Async_1_1Task_html"><div class="ttname"><a href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Lightweight::Async::Task</a></div><div class="ttdef"><b>Definition</b> <a href="../../d8/d91/Task_8hpp_source.html#l00144">Task.hpp:145</a></div></div>
-</div><!-- fragment --><p>Available: <code>CreateAsync</code>, <code>QuerySingleAsync</code>, <code>QueryAsync</code>, <code>UpdateAsync</code>, <code>DeleteAsync</code>, <code>LoadRelationsAsync</code>.</p>
+</div><!-- fragment --><p>Available: <code>CreateAsync</code>, <code>QuerySingleAsync</code>, <code>UpdateAsync</code>, <code>DeleteAsync</code>, <code>LoadRelationsAsync</code> (plus the <code>QueryAsync&lt;Record&gt;()</code> builder above). <code>QuerySingleAsync&lt;Record&gt;(keys…)</code> is the async shorthand for a primary-key lookup; for any other query use the builder.</p>
 <blockquote class="doxtable">
-<p>&zwj;<b>Lifetime:</b> methods taking a record reference (<code>CreateAsync</code>, <code>UpdateAsync</code>, …) capture it by reference. Keep the record alive and do not touch it between the call and the <code>co_await</code>. </p>
+<p>&zwj;<b>Lifetime:</b> the record-level methods capture the record by reference, and the builder finishers capture the builder by reference. Keep the operand alive across the <code>co_await</code> — the idiomatic way is to keep the whole expression in the <code>co_await</code> (e.g. <code>co_await dm.QueryAsync&lt;User&gt;()…All();</code>), and not to touch a referenced record between the call and the <code>co_await</code>. </p>
 </blockquote>
 <h1><a class="anchor" id="single-threaded-vs-multi-threaded"></a>
 Single-threaded vs multi-threaded</h1>
@@ -178,7 +197,7 @@ Single-threaded vs multi-threaded</h1>
 <div class="line"><a class="code hl_class" href="../../d8/d0c/classLightweight_1_1Async_1_1Task.html">Async::Task&lt;std::optional&lt;User&gt;</a>&gt; Fetch(BoundedPool&amp; pool, <a class="code hl_struct" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a> <span class="keywordtype">id</span>)</div>
 <div class="line">{</div>
 <div class="line">    <span class="keyword">auto</span> dm = <span class="keyword">co_await</span> pool.AcquireAsync(dbWorkers, dbWorkers); <span class="comment">// suspends when at capacity, never blocks</span></div>
-<div class="line">    <span class="keyword">co_return</span> <span class="keyword">co_await</span> dm-&gt;QuerySingleAsync&lt;User&gt;(id);</div>
+<div class="line">    <span class="keyword">co_return</span> <span class="keyword">co_await</span> dm-&gt;QueryAsync&lt;User&gt;().Where(FieldNameOf&lt;&amp;User::id&gt;, <span class="stringliteral">&quot;=&quot;</span>, <span class="keywordtype">id</span>).First();</div>
 <div class="line">    <span class="comment">// dm returns to the pool when the coroutine ends</span></div>
 <div class="line">}</div>
 <div class="ttc" id="aclassLightweight_1_1Pool_html"><div class="ttname"><a href="../../d3/d30/classLightweight_1_1Pool.html">Lightweight::Pool</a></div><div class="ttdef"><b>Definition</b> <a href="../../df/d0f/Pool_8hpp_source.html#l00062">Pool.hpp:63</a></div></div>
