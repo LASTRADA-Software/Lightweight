@@ -22,16 +22,22 @@ namespace Lightweight::Async
 /// operation is offloaded to the connection's async backend (a worker thread, serialized per
 /// connection) and the awaiting coroutine resumes on the app's resume scheduler.
 ///
-/// The underlying connection must have async enabled (SqlConnection::EnableAsync) before use.
-/// Always `co_await CommitAsync()` or `co_await RollbackAsync()` explicitly; the destructor only
-/// performs a best-effort *synchronous* finalization (per the configured mode) if the transaction
-/// is still open, which runs on the destroying thread and emits a warning via @c SqlLogger.
+/// The underlying connection must have async enabled (SqlConnection::EnableAsync) before use and
+/// must stay async-enabled and alive for the whole lifetime of the transaction: do not destroy the
+/// connection (or return the owning pooled DataMapper, which disables async) between @ref BeginAsync
+/// and the matching @ref CommitAsync / @ref RollbackAsync — the offloaded steps capture the
+/// connection by pointer and would otherwise fail (a clear @c std::logic_error from
+/// @c SqlConnection::AsyncBackend) or dangle.
 ///
-/// @warning Because that finalization touches the ODBC connection handle synchronously and *off*
-/// the connection's strand, you must finalize explicitly (`co_await CommitAsync()` /
-/// `RollbackAsync()`) and ensure no other async operation is in flight on the same connection
-/// before this object is destroyed. Destroying an open transaction while a strand operation runs
-/// concurrently on the same connection is a data race on the ODBC handle.
+/// Always `co_await CommitAsync()` or `co_await RollbackAsync()` explicitly. If the transaction is
+/// still open when destroyed, the destructor performs a best-effort finalization (per the configured
+/// mode) and emits a warning via @c SqlLogger. That finalization is itself routed through the
+/// connection's strand (and blocks the destroying thread until it completes) so it never touches the
+/// ODBC handle concurrently with another in-flight async operation on the same connection.
+///
+/// @warning Do not destroy an open transaction from @e within a strand operation running on its own
+/// connection (e.g. from inside another offloaded step on that connection): the destructor's
+/// strand-serialized finalization would then wait on the very strand it is running on and deadlock.
 ///
 /// @code
 /// auto tx = Async::AsyncSqlTransaction { dm.Connection() };
@@ -56,17 +62,24 @@ class LIGHTWEIGHT_API AsyncSqlTransaction
 
     /// Asynchronously begins the transaction (disables auto-commit).
     ///
-    /// @param defaultMode How an un-finalized transaction is closed on destruction.
+    /// @param defaultMode How an un-finalized transaction is closed on destruction. Defaults to
+    ///        @c COMMIT to match the synchronous @ref SqlTransaction, so porting sync code that
+    ///        relies on commit-on-scope-exit does not silently switch to rollback.
     /// @param isolationMode The transaction isolation level.
+    /// @param token Optional cancellation token (checked before the step is dispatched).
     /// @return A Task that completes once the transaction has begun.
-    [[nodiscard]] Task<void> BeginAsync(SqlTransactionMode defaultMode = SqlTransactionMode::ROLLBACK,
-                                        SqlIsolationMode isolationMode = SqlIsolationMode::DriverDefault);
+    /// @throws std::logic_error if a transaction is already open on this object (programmer error).
+    [[nodiscard]] Task<void> BeginAsync(SqlTransactionMode defaultMode = SqlTransactionMode::COMMIT,
+                                        SqlIsolationMode isolationMode = SqlIsolationMode::DriverDefault,
+                                        CancellationToken token = {});
 
     /// Asynchronously commits the transaction.
-    [[nodiscard]] Task<void> CommitAsync();
+    /// @param token Optional cancellation token (checked before the step is dispatched).
+    [[nodiscard]] Task<void> CommitAsync(CancellationToken token = {});
 
     /// Asynchronously rolls back the transaction.
-    [[nodiscard]] Task<void> RollbackAsync();
+    /// @param token Optional cancellation token (checked before the step is dispatched).
+    [[nodiscard]] Task<void> RollbackAsync(CancellationToken token = {});
 
   private:
     SqlConnection* _connection;

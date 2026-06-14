@@ -17,6 +17,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <stdexcept>
+
 using namespace Lightweight;
 using namespace Lightweight::Async;
 
@@ -64,4 +66,58 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.Transaction: rolled back work is discard
 
     auto const fetched = SyncWaitPumping(dm.QuerySingleAsync<Person>(id), appLoop);
     CHECK_FALSE(fetched.has_value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Async.Transaction: an open transaction commits by default on destruction",
+                 "[Async][Transaction]")
+{
+    ThreadPoolExecutor dbWorkers { 1 };
+    ManualExecutor appLoop;
+    DataMapper dm;
+    dm.Connection().EnableAsync(dbWorkers, appLoop);
+    dm.CreateTables<Person>();
+
+    auto const id = SqlGuid::Create();
+    RunPumped(
+        [&]() -> Task<void> {
+            AsyncSqlTransaction tx { dm.Connection() };
+            co_await tx.BeginAsync(); // default mode is COMMIT, matching the synchronous SqlTransaction
+            auto person = Person { .id = id, .name = "DefaultCommit", .age = 1 };
+            co_await dm.CreateAsync(person);
+            // No explicit Commit/Rollback: ~AsyncSqlTransaction finalizes through the strand using the
+            // configured default mode (COMMIT), so the work must be persisted.
+        },
+        appLoop);
+
+    auto const fetched = SyncWaitPumping(dm.QuerySingleAsync<Person>(id), appLoop);
+    CHECK(fetched.has_value());
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Async.Transaction: a second BeginAsync without finalizing throws", "[Async][Transaction]")
+{
+    ThreadPoolExecutor dbWorkers { 1 };
+    ManualExecutor appLoop;
+    DataMapper dm;
+    dm.Connection().EnableAsync(dbWorkers, appLoop);
+    dm.CreateTables<Person>();
+
+    bool threw = false;
+    RunPumped(
+        [&]() -> Task<void> {
+            AsyncSqlTransaction tx { dm.Connection() };
+            co_await tx.BeginAsync();
+            try
+            {
+                co_await tx.BeginAsync(); // already open -> std::logic_error surfaced at the co_await
+            }
+            catch (std::logic_error const&)
+            {
+                threw = true;
+            }
+            co_await tx.RollbackAsync();
+        },
+        appLoop);
+
+    CHECK(threw);
 }
