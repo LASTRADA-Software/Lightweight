@@ -17,7 +17,9 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <atomic>
 #include <optional>
+#include <thread>
 
 using namespace Lightweight;
 using namespace Lightweight::Async;
@@ -154,4 +156,44 @@ TEST_CASE_METHOD(SqlTestFixture,
         CHECK(pool.IdleCount() == 0);
     }
     CHECK(pool.IdleCount() == 1);
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Async.Pool: a blocking Acquire parked before an async waiter is served first (FIFO fairness)",
+                 "[Async][Pool]")
+{
+    // Regression for async-over-sync starvation: a sync Acquire() parked BEFORE an AcquireAsync() waiter
+    // must be served first (FIFO). Before the fix async waiters were always preferred and the blocked
+    // Acquire() was never notified, so it could wait forever.
+    ThreadPoolExecutor dbWorkers { 1 };
+    ManualExecutor appLoop;
+    auto pool = Pool<PoolConfig { .initialSize = 1, .maxSize = 1, .growthStrategy = GrowthStrategy::BoundedWait }>();
+
+    std::optional holder { pool.Acquire() }; // exhaust the pool (checked-out == maxSize)
+    CHECK(pool.IdleCount() == 0);
+
+    // (1) A synchronous Acquire() on a background thread parks FIRST.
+    std::atomic<bool> syncAcquired { false };
+    std::thread blocking { [&] {
+        auto mapper = pool.Acquire(); // blocks until a mapper is handed to it
+        syncAcquired.store(true, std::memory_order_release);
+        // `mapper` is returned to the pool at scope exit, which then fulfills the async waiter below.
+    } };
+    while (pool.WaiterCount() < 1) // deterministically wait until the sync Acquire() has parked
+        std::this_thread::yield();
+
+    // (2) An AcquireAsync() waiter parks SECOND, so the FIFO order is [sync, async].
+    auto asyncTask = pool.AcquireAsync(dbWorkers, appLoop);
+    asyncTask.GetHandle().resume();     // run the body until it parks on the exhausted pool
+    REQUIRE_FALSE(asyncTask.IsReady()); // suspended (parked)
+    REQUIRE(pool.WaiterCount() == 2);
+
+    // (3) Return the held mapper. FIFO hands it to the EARLIER (synchronous) waiter, not the async one.
+    holder.reset();
+    blocking.join(); // returns only once the synchronous Acquire() was actually served
+    CHECK(syncAcquired.load(std::memory_order_acquire));
+
+    // The sync waiter's released mapper fulfilled the async waiter; drive its resumption to finish cleanly.
+    appLoop.Drain();
+    REQUIRE(asyncTask.IsReady());
 }
