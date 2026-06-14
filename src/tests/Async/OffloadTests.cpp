@@ -98,6 +98,37 @@ TEST_CASE("Async.Async pre-cancelled work is never dispatched to the offload exe
     CHECK_FALSE(ran); // never dispatched, so the closure could not have run
 }
 
+TEST_CASE("Async.Async honors cancellation requested after dispatch but before the work runs", "[Async][Offload]")
+{
+    // The token is cancelled after dispatch (await_suspend's pre-check already passed) but before the
+    // work runs, exercising the in-flight check in OffloadAwaitable::Run: it must throw without running _fn.
+    struct CancelThenRunExecutor final: IExecutor
+    {
+        CancellationToken token;
+
+        explicit CancelThenRunExecutor(CancellationToken cancellationToken) noexcept:
+            token { std::move(cancellationToken) }
+        {
+        }
+
+        void Post(Work work) override
+        {
+            token.Request();
+            work();
+        }
+    };
+
+    auto token = CancellationToken::Create();
+    CancelThenRunExecutor offload { token }; // shares the token, requests it from inside Post()
+    ManualExecutor appLoop;
+
+    bool ran = false;
+    CHECK_THROWS_AS(
+        RunPumped([&]() -> Task<void> { co_await Async(offload, appLoop, [&ran] { ran = true; }, token); }, appLoop),
+        OperationCancelledError);
+    CHECK_FALSE(ran); // Run() threw on the in-flight check before calling the user closure
+}
+
 TEST_CASE("Async.RunAsync via ThreadOffloadBackend", "[Async][Offload]")
 {
     ThreadPoolExecutor dbWorkers { 2 };
