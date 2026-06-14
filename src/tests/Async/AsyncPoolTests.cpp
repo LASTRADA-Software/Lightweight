@@ -122,3 +122,36 @@ TEST_CASE_METHOD(SqlTestFixture,
     }
     CHECK(pool.IdleCount() == 1);
 }
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Async.Pool: dropping a parked task after hand-off reclaims its mapper (no capacity leak)",
+                 "[Async][Pool]")
+{
+    ThreadPoolExecutor dbWorkers { 1 };
+    ManualExecutor appLoop;
+    auto pool = Pool<PoolConfig { .initialSize = 1, .maxSize = 1, .growthStrategy = GrowthStrategy::BoundedWait }>();
+
+    std::optional holder { pool.Acquire() }; // exhaust the pool (checked-out == maxSize)
+    CHECK(pool.IdleCount() == 0);
+
+    {
+        auto task = pool.AcquireAsync(dbWorkers, appLoop);
+        task.GetHandle().resume();     // park on the exhausted pool
+        REQUIRE_FALSE(task.IsReady()); // suspended (parked)
+
+        // Hand the mapper to the parked waiter. Return() schedules the resumption on appLoop but we
+        // deliberately do NOT pump it, so await_resume never runs: the task is dropped while it has
+        // already been handed (but not consumed) a mapper.
+        holder.reset();
+        REQUIRE_FALSE(task.IsReady()); // resumption still queued, not executed
+    } // task destroyed while "fulfilled" -> destructor must reclaim the handed-off mapper
+
+    // The handed-off mapper is reclaimed and the BoundedWait checked-out count released, so the pool
+    // is usable again. (Before the fix the count leaked and the Acquire() below would block forever.)
+    REQUIRE(pool.IdleCount() == 1);
+    {
+        auto reused = pool.Acquire();
+        CHECK(pool.IdleCount() == 0);
+    }
+    CHECK(pool.IdleCount() == 1);
+}

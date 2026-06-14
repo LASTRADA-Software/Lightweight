@@ -8,6 +8,7 @@
 #include <cassert>
 #include <condition_variable>
 #include <coroutine>
+#include <cstdint>
 #include <deque>
 #include <memory>
 #include <mutex>
@@ -117,6 +118,8 @@ class Pool
     };
 
   private:
+    struct AsyncWaiterNode; // defined below; referenced by ReturnLocked's signature.
+
     /// always return the data mapper to the pool for this strategy
     void Return(std::unique_ptr<DataMapper> dm) noexcept
         requires(Config.growthStrategy == GrowthStrategy::UnboundedGrow)
@@ -137,29 +140,42 @@ class Pool
         // connection never carries references to (possibly destroyed) executors; a waiter's
         // AcquireAsync re-enables it fresh.
         dm->Connection().DisableAsync();
-        AsyncWaiter waiter;
-        bool haveAsyncWaiter = false;
+        std::shared_ptr<AsyncWaiterNode> toResume;
         {
-            std::scoped_lock lock(_mutex);
-            if (!_asyncWaiters.empty())
+            std::scoped_lock const lock(_mutex);
+            toResume = ReturnLocked(std::move(dm));
+        }
+        // Resume outside the lock to avoid re-entrancy (the resumed coroutine may call back into the pool).
+        if (toResume)
+            toResume->resume->Resume(toResume->handle);
+    }
+
+    /// Hands @p dm to the next parked async waiter (transferring the checked-out count) or idles it.
+    ///
+    /// @pre @c _mutex is held by the caller.
+    /// @param dm The mapper to return; its async backend must already be disabled.
+    /// @return The waiter node that was handed the mapper and must be resumed by the caller @e after
+    ///         releasing @c _mutex, or @c nullptr if the mapper was returned to the idle set.
+    std::shared_ptr<AsyncWaiterNode> ReturnLocked(std::unique_ptr<DataMapper> dm) noexcept
+        requires(Config.growthStrategy == GrowthStrategy::BoundedWait)
+    {
+        while (!_asyncWaiters.empty())
+        {
+            auto node = _asyncWaiters.front();
+            _asyncWaiters.pop_front();
+            // _asyncWaiters only ever holds parked nodes (an awaitable de-registers itself on
+            // abandonment), but guard defensively before handing off.
+            if (node->state == AsyncWaiterNode::State::Parked)
             {
-                waiter = _asyncWaiters.front();
-                _asyncWaiters.pop_front();
-                *waiter.slot = std::move(dm); // hand off ownership; _checkedOut stays (transferred to the waiter)
-                haveAsyncWaiter = true;
-            }
-            else
-            {
-                _idleDataMappers.push_back(std::move(dm));
-                --_checkedOut;
+                node->state = AsyncWaiterNode::State::Fulfilled;
+                node->mapper = std::move(dm); // hand off ownership; _checkedOut stays (transferred)
+                return node;
             }
         }
-        if (haveAsyncWaiter)
-        {
-            waiter.resume->Resume(waiter.handle); // resume outside the lock to avoid re-entrancy
-            return;
-        }
+        _idleDataMappers.push_back(std::move(dm));
+        --_checkedOut;
         _cv.notify_one();
+        return nullptr;
     }
 
     /// for bounded overflow strategy, only return to pool if we have capacity, otherwise just destroy the data mapper
@@ -189,9 +205,12 @@ class Pool
     /// which may leak resources if not handled properly.
     ~Pool() noexcept
     {
-        // A coroutine still parked in AcquireAsync when the pool dies would leak its frame: we
-        // cannot safely resume or destroy a frame the pool does not own. Drive such tasks to
-        // completion before destroying the pool.
+        // A coroutine still parked in AcquireAsync owns its own frame, which the pool can neither
+        // resume (it has no mapper to give it) nor destroy, and it holds a reference back to this
+        // pool — so destroying the pool out from under it is undefined. Drive every AcquireAsync task
+        // to completion (or destroy it) before destroying the pool. The shared AsyncWaiterNode design
+        // means a stale Return()/teardown never writes through freed bookkeeping, but a still-parked
+        // frame is intrinsically the caller's to finish; the assert flags violations in debug builds.
         assert(_asyncWaiters.empty() && "Pool destroyed with coroutines still parked in AcquireAsync");
     }
 
@@ -273,25 +292,42 @@ class Pool
 #endif
 
   private:
-    /// A suspended coroutine waiting for a DataMapper to become available.
-    struct AsyncWaiter
+    /// A suspended AcquireAsync coroutine waiting for a DataMapper to become available.
+    ///
+    /// Heap-allocated and co-owned (via @c std::shared_ptr) by the pool's @c _asyncWaiters queue and
+    /// the suspended @ref AsyncAcquireAwaitable. Keeping the handed-off mapper and the liveness
+    /// @c state in this node — rather than via a pointer into the coroutine frame — lets @ref Return
+    /// hand off and the awaitable's destructor coordinate purely through node state under @c _mutex,
+    /// never dereferencing a frame that may have been destroyed.
+    struct AsyncWaiterNode
     {
+        /// Liveness of the waiter, transitioned only under @c Pool::_mutex.
+        enum class State : std::uint8_t
+        {
+            Parked,    ///< Suspended and registered in @c _asyncWaiters, awaiting a mapper.
+            Fulfilled, ///< Return handed it a mapper (in @c mapper) and scheduled its resumption.
+            Abandoned, ///< The awaiting task was destroyed (or its mapper consumed); inert.
+        };
+
         std::coroutine_handle<> handle {};
         Async::IResumeScheduler* resume = nullptr;
-        std::unique_ptr<DataMapper>* slot = nullptr;
+        std::unique_ptr<DataMapper> mapper {}; ///< Filled by Return on hand-off; lives outside the frame.
+        State state = State::Parked;
     };
 
     /// Awaitable that acquires a DataMapper, suspending only when the pool is at capacity.
     ///
     /// Non-copyable/non-movable: it is constructed in place in the co_await expression and lives in
-    /// the coroutine frame. The destructor de-registers a still-parked waiter so that destroying a
-    /// suspended AcquireAsync task does not leave a dangling entry in pool._asyncWaiters.
+    /// the coroutine frame. When it has to suspend it registers a shared @ref AsyncWaiterNode in
+    /// pool._asyncWaiters; the node (not a pointer into this frame) carries the handed-off mapper and
+    /// the liveness state, so Return() and this awaitable's destructor coordinate safely under the
+    /// pool mutex even across threads.
     struct AsyncAcquireAwaitable
     {
         Pool& pool;
         Async::IResumeScheduler& resume;
-        std::unique_ptr<DataMapper> acquired {};
-        bool parked = false; ///< true while this awaitable's waiter sits in pool._asyncWaiters.
+        std::unique_ptr<DataMapper> acquired {};  ///< Mapper obtained without suspending (idle/fresh).
+        std::shared_ptr<AsyncWaiterNode> node {}; ///< Set only while parked; shared with the pool.
 
         AsyncAcquireAwaitable(Pool& poolRef, Async::IResumeScheduler& resumeRef) noexcept:
             pool { poolRef },
@@ -304,19 +340,48 @@ class Pool
         AsyncAcquireAwaitable(AsyncAcquireAwaitable&&) = delete;
         AsyncAcquireAwaitable& operator=(AsyncAcquireAwaitable&&) = delete;
 
-        /// De-registers a still-parked waiter if the awaiting coroutine is destroyed before it is
-        /// resumed (e.g. the AcquireAsync task is dropped/cancelled). Without this, a later Return()
-        /// would write through a dangling slot pointer and resume a destroyed coroutine.
+        /// Cleans up if the awaiting coroutine is destroyed before it consumes its mapper.
         ///
-        /// Race-free for the single-threaded pump model (Return and cancellation run on the same
-        /// thread). In the multi-threaded resume model a suspended AcquireAsync task must not be
-        /// destroyed from a thread other than the one returning mappers.
+        /// Under pool._mutex: if still parked, de-registers the node so a later Return() never hands
+        /// off to a dead frame. If Return() already handed off a mapper (Fulfilled) that await_resume
+        /// never consumed, reclaims it into the pool so the BoundedWait checked-out count is not
+        /// leaked (possibly handing it straight to the next waiter, resumed after the lock is released).
+        ///
+        /// @warning A task that has already been handed a mapper must still be driven to completion:
+        /// the resumption Return() scheduled cannot be cancelled, so a coroutine frame with a pending
+        /// resumption must not be freed (do not destroy such a task concurrently with, or right after,
+        /// the hand-off). Likewise the pool must outlive every task acquired from it.
         ~AsyncAcquireAwaitable()
         {
-            if (!parked)
+            if (!node)
                 return;
-            std::scoped_lock const lock(pool._mutex);
-            std::erase_if(pool._asyncWaiters, [this](AsyncWaiter const& w) { return w.slot == &acquired; });
+            std::shared_ptr<AsyncWaiterNode> toResume;
+            {
+                std::scoped_lock const lock(pool._mutex);
+                switch (node->state)
+                {
+                    case AsyncWaiterNode::State::Parked:
+                        // Never fulfilled: remove ourselves so Return() won't hand off to a dead frame.
+                        // Parking never incremented _checkedOut, so there is nothing to release.
+                        node->state = AsyncWaiterNode::State::Abandoned;
+                        std::erase(pool._asyncWaiters, node);
+                        break;
+                    case AsyncWaiterNode::State::Fulfilled:
+                        // Handed a mapper but the task is dropped before consuming it: reclaim it,
+                        // releasing this acquisition's checked-out count so the pool does not leak.
+                        node->state = AsyncWaiterNode::State::Abandoned;
+                        if constexpr (Config.growthStrategy == GrowthStrategy::BoundedWait)
+                        {
+                            if (node->mapper)
+                                toResume = pool.ReturnLocked(std::move(node->mapper));
+                        }
+                        break;
+                    case AsyncWaiterNode::State::Abandoned:
+                        break;
+                }
+            }
+            if (toResume)
+                toResume->resume->Resume(toResume->handle);
         }
 
         [[nodiscard]] bool await_ready() const noexcept
@@ -342,8 +407,10 @@ class Pool
             {
                 if (pool._checkedOut >= Config.maxSize)
                 {
-                    pool._asyncWaiters.push_back(AsyncWaiter { handle, &resume, &acquired });
-                    parked = true;
+                    node = std::make_shared<AsyncWaiterNode>();
+                    node->handle = handle;
+                    node->resume = &resume;
+                    pool._asyncWaiters.push_back(node);
                     return true; // suspend until a mapper is returned
                 }
                 ++pool._checkedOut;
@@ -354,7 +421,11 @@ class Pool
 
         std::unique_ptr<DataMapper> await_resume() noexcept
         {
-            parked = false;
+            // If we suspended, Return() placed the mapper in the shared node; take it here (on the
+            // resuming thread, with no concurrent access per the destruction contract). That leaves
+            // node->mapper empty, so the destructor treats the node as already consumed.
+            if (node)
+                return std::move(node->mapper);
             return std::move(acquired);
         }
     };
@@ -374,7 +445,7 @@ class Pool
     std::condition_variable _cv;
     std::vector<std::unique_ptr<DataMapper>> _idleDataMappers;
     size_t _checkedOut {};
-    std::deque<AsyncWaiter> _asyncWaiters;
+    std::deque<std::shared_ptr<AsyncWaiterNode>> _asyncWaiters;
 };
 
 // Default pool configuration, configurable via CMake options:
