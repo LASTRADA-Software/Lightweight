@@ -400,7 +400,7 @@ class DataMapper
         return SqlAllFieldsQueryBuilder<Record, QueryOptions>(*this, BuildFullyQualifiedFieldList<Record>());
     }
 
-    /// Asynchronous counterpart of @ref Query: returns an async query builder for @p Record.
+    /// Asynchronous counterpart of @c Query — returns an async query builder for @p Record.
     ///
     /// The builder offers the exact same fluent DSL (`Where`, `OrderBy`, `GroupBy`, joins, …) as the
     /// synchronous one; its finisher methods (`All()`, `First()`, `First(n)`, `Range()`, `Count()`,
