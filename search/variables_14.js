@@ -5,6 +5,5 @@ var searchData=
   ['whereexpression_2',['whereexpression',['../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a4ba3ee45a117b2883222f58f6606bbbb',1,'Lightweight::SqlUpdateDataPlan::whereExpression'],['../d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a0a13f6feba23b295778a7517bd9fc457',1,'Lightweight::SqlDeleteDataPlan::whereExpression']]],
   ['whereop_3',['whereop',['../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#ad6ac77aebdac142a100fe41d746fca54',1,'Lightweight::SqlUpdateDataPlan::whereOp'],['../d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a12c99a15d0f64b3c5b9a1015c29cef84',1,'Lightweight::SqlDeleteDataPlan::whereOp']]],
   ['wherevalue_4',['wherevalue',['../d4/db0/structLightweight_1_1SqlUpdateDataPlan.html#a308a8fc35020d61bb42ec5733e425f4f',1,'Lightweight::SqlUpdateDataPlan::whereValue'],['../d2/d72/structLightweight_1_1SqlDeleteDataPlan.html#a8e30d14cbde38ffc82f6a713be4ed89d',1,'Lightweight::SqlDeleteDataPlan::whereValue']]],
-  ['widthlookup_5',['widthLookup',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a72202fddb710d0fd35f5135ddcf97c7b',1,'Lightweight::MigrationRenderContext']]],
-  ['workerarchivebytes_6',['workerArchiveBytes',['../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a11b8c4dc97bf4360601e9834bf6db463',1,'Lightweight::SqlBackup::BackupSettings']]]
+  ['widthlookup_5',['widthLookup',['../d4/d23/structLightweight_1_1MigrationRenderContext.html#a72202fddb710d0fd35f5135ddcf97c7b',1,'Lightweight::MigrationRenderContext']]]
 ];
