@@ -3,7 +3,7 @@
 
 #include "../Api.hpp"
 #include "Executor.hpp"
-#include "WorkQueue.hpp"
+#include "detail/SerialWorkQueue.hpp"
 
 #include <cstddef>
 #include <stop_token>
@@ -76,7 +76,7 @@ class LIGHTWEIGHT_API ManualExecutor final: public IExecutor, public IResumeSche
     }
 
   private:
-    detail::WorkQueue _queue;
+    detail::PumpQueue _queue;
     std::stop_source _stopSource; ///< Requested by Stop(); read by Run()'s wake condition.
 };
 

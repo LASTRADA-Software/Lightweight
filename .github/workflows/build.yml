@@ -28,6 +28,8 @@ env:
   CTEST_OUTPUT_ON_FAILURE: 1
   SCCACHE_GHA_ENABLED: "true"
   CLANG_TOOLS_VERSION: "22"
+  # stdexec is resolved via CPM on the non-vcpkg (Linux/macOS) legs; cache the clone across configures.
+  CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm-cache
 
 jobs:
   # {{{ Common checks
@@ -108,7 +110,7 @@ jobs:
           which clang-tidy-${{ env.CLANG_TOOLS_VERSION }}
           which run-clang-tidy-${{ env.CLANG_TOOLS_VERSION }}
       - name: "install dependencies"
-        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14 libtbb-dev libzip-dev
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev gcc-14 libzip-dev
       - name: "cmake"
         run: |
           cmake --preset clang-debug \
@@ -562,7 +564,7 @@ jobs:
           CC_VERSION=$( echo "${{ matrix.compiler }}" | awk '{ print $2; }')
           echo "CC_VERSION=${CC_VERSION}" >> "$GITHUB_OUTPUT"
       - name: "install dependencies"
-        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libtbb-dev libzip-dev
+        run: sudo apt install -y cmake ninja-build catch2 unixodbc-dev sqlite3 libsqlite3-dev libsqliteodbc uuid-dev libyaml-cpp-dev libzip-dev
       - name: Install GCC
         if: ${{ startsWith(matrix.compiler, 'GCC') }}
         run: sudo apt install -y g++-${{ steps.extract_matrix.outputs.CC_VERSION }}

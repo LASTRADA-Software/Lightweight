@@ -146,7 +146,7 @@ list(APPEND HEADER_FILES
     Async/SyncWait.hpp
     Async/CancellationToken.hpp
     Async/Executor.hpp
-    Async/WorkQueue.hpp
+    Async/detail/SerialWorkQueue.hpp
     Async/ThreadPoolExecutor.hpp
     Async/StrandExecutor.hpp
     Async/ManualExecutor.hpp
@@ -215,6 +215,12 @@ target_include_directories(Lightweight PUBLIC
 target_link_libraries(Lightweight PUBLIC reflection-cpp::reflection-cpp)
 target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>)
 
+# stdexec (C++26 executors) backs the async layer's thread pool (see Async/ThreadPoolExecutor.cpp,
+# which is the only TU that includes the stdexec headers — the public headers stay stdexec-free via
+# a pimpl). Linked PUBLIC so downstream code can write std::execution senders that interop with
+# Lightweight's Async::Task without separately locating stdexec.
+target_link_libraries(Lightweight PUBLIC STDEXEC::stdexec)
+
 if(LIGHTWEIGHT_ENABLE_TRACY)
     target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_TRACY_ENABLED)
     target_link_libraries(Lightweight PUBLIC Tracy::TracyClient)
@@ -228,6 +234,22 @@ if(MSVC)
         endif()
         target_compile_options(Lightweight PRIVATE ${_pedantic_flags})
         unset(_pedantic_flags)
+    endif()
+    # The following two mitigations apply to the real `cl` driver only. clang-cl has a conforming
+    # preprocessor by default and routes SYSTEM includes through /imsvc (which already silences
+    # stdexec's header warnings), so it rejects both flags as unused under -Werror.
+    if(NOT CLANG_CL)
+        # stdexec requires MSVC's conforming preprocessor; without /Zc:preprocessor its config macros
+        # misfire (e.g. __VA_OPT__ handling), so sender adaptors like stdexec::starts_on fail to
+        # declare. stdexec's own interface advertises this flag, but it does not reliably propagate
+        # through the SYSTEM-include normalization, so set it explicitly on every TU of this target.
+        target_compile_options(Lightweight PRIVATE /Zc:preprocessor)
+        # stdexec ships as SYSTEM (/external:I) includes, but `cl` only silences external-header
+        # warnings when the external warning level is lowered — /external:I alone is a no-op under
+        # /WX. Lower it for this target only, so the project's own /W4 /WX still covers our headers.
+        if(PEDANTIC_COMPILER AND PEDANTIC_COMPILER_WERROR)
+            target_compile_options(Lightweight PRIVATE /experimental:external /external:W0)
+        endif()
     endif()
     # When building Lightweight as a DLL on MSVC, classes that legitimately expose
     # STL members (`std::string`, `std::vector`, `std::filesystem::path`, …) or
@@ -253,6 +275,16 @@ else()
         endif()
         target_compile_options(Lightweight PRIVATE ${_pedantic_flags})
         unset(_pedantic_flags)
+        # -isystem (from stdexec's SYSTEM includes) suppresses header-origin warnings, but warnings
+        # attributed to deep sender/coroutine template instantiations surface against this target.
+        # Demote exactly the diagnostics stdexec is known to trip under -Werror (the set the async
+        # tests already proved necessary); scoped narrowly to Lightweight.
+        target_compile_options(Lightweight PRIVATE
+            -Wno-error=empty-body
+            -Wno-error=missing-declarations
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-error=newline-eof>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-error=macro-redefined>
+        )
     endif()
     target_compile_options(Lightweight PUBLIC ${ODBC_CFLAGS})
     target_link_libraries(Lightweight PUBLIC ${ODBC_LDFLAGS})

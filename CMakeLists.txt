@@ -104,6 +104,78 @@ else()
     )
 endif()
 
+# stdexec (NVIDIA's reference implementation of std::execution / P2300 — the C++26 executors).
+# Mandatory, first-class PUBLIC dependency of the Lightweight async layer. Resolve via
+# find_package (a sufficiently new system/vcpkg install) first, falling back to CPM exactly like
+# reflection-cpp/libzip. stdexec's core (static_thread_pool, async_scope, run_loop, schedulers) is
+# header-only and does NOT need TBB — TBB is only used by stdexec's parallel algorithms.
+#
+# Single source of truth for the stdexec version. LIGHTWEIGHT_STDEXEC_GIT_TAG is the CPM
+# fallback tag; LIGHTWEIGHT_STDEXEC_MIN_VERSION is the floor find_package must satisfy, kept in
+# lockstep so anything older than the CPM tag's API contract is rejected. The minimum exists
+# because the stdexec 0.8.0 that current vcpkg baselines ship has a broken static_thread_pool
+# execution domain on MSVC (its domain lacks `apply_sender`, so sync_wait / spawn / start_detached
+# do not compile against the pool) and predates the `starts_on` adaptor; 0.9.0+ fixes this. That
+# is also why stdexec is deliberately NOT listed in vcpkg.json: installing the 0.8.0 port would
+# put its headers on the global vcpkg include path ahead of the CPM copy and shadow it. find_package
+# still prefers a usable system/vcpkg stdexec when one is present; once a vcpkg baseline ships a
+# new-enough port, re-add it to vcpkg.json and it is used automatically with no other change.
+set(LIGHTWEIGHT_STDEXEC_GIT_TAG "nvhpc-25.09" CACHE STRING
+    "Git tag/branch of NVIDIA/stdexec fetched via CPM when no suitable system/vcpkg package is found")
+set(LIGHTWEIGHT_STDEXEC_MIN_VERSION "0.9.0" CACHE STRING
+    "Minimum stdexec version accepted from find_package (older has a broken static_thread_pool domain on MSVC)")
+
+set(STDEXEC_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+set(STDEXEC_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(STDEXEC_ENABLE_TBB     OFF CACHE BOOL "" FORCE)
+
+find_package(stdexec ${LIGHTWEIGHT_STDEXEC_MIN_VERSION} CONFIG QUIET)
+if(stdexec_FOUND)
+    message(STATUS "stdexec ${stdexec_VERSION} found via find_package (vcpkg/system)")
+else()
+    message(STATUS "stdexec (>= ${LIGHTWEIGHT_STDEXEC_MIN_VERSION}) not found, "
+                   "downloading ${LIGHTWEIGHT_STDEXEC_GIT_TAG} via CPM...")
+    CPMAddPackage(
+        NAME stdexec
+        GITHUB_REPOSITORY NVIDIA/stdexec
+        GIT_TAG ${LIGHTWEIGHT_STDEXEC_GIT_TAG}
+        EXCLUDE_FROM_ALL YES
+        SYSTEM YES
+    )
+    # stdexec's own `system_context` target inherits this project's pedantic flags under
+    # EXCLUDE_FROM_ALL; demote the warnings it triggers so PEDANTIC_COMPILER_WERROR builds it.
+    # (CPM build-from-source path only — the vcpkg/system path ships a prebuilt config package.)
+    if(TARGET system_context)
+        target_compile_options(system_context PRIVATE
+            $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-error=empty-body>
+            $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-error=missing-declarations>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-error=newline-eof>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-error=macro-redefined>
+        )
+    endif()
+endif()
+
+# Treat stdexec's headers as SYSTEM includes for every consumer, on both resolution paths. On
+# GCC/Clang this maps to -isystem and suppresses header-origin warnings under -Werror; on MSVC it
+# maps to /external:I (see the /external:W0 mitigation on the Lightweight target). Idempotent if
+# the includes are already SYSTEM.
+if(TARGET STDEXEC::stdexec)
+    get_target_property(_stdexec_aliased STDEXEC::stdexec ALIASED_TARGET)
+    if(_stdexec_aliased)
+        set(_stdexec_tgt ${_stdexec_aliased})
+    else()
+        set(_stdexec_tgt STDEXEC::stdexec)
+    endif()
+    get_target_property(_stdexec_incs ${_stdexec_tgt} INTERFACE_INCLUDE_DIRECTORIES)
+    if(_stdexec_incs)
+        set_property(TARGET ${_stdexec_tgt} APPEND PROPERTY
+            INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${_stdexec_incs})
+    endif()
+    unset(_stdexec_incs)
+    unset(_stdexec_tgt)
+    unset(_stdexec_aliased)
+endif()
+
 # Tracy profiler (optional). Prefer vcpkg (`vcpkg install lightweight[tracy]`),
 # fall back to CPM for non-vcpkg builds.
 if(LIGHTWEIGHT_ENABLE_TRACY)

@@ -3,7 +3,7 @@
 
 #include "../Api.hpp"
 #include "Executor.hpp"
-#include "WorkQueue.hpp"
+#include "detail/SerialWorkQueue.hpp"
 
 #include <memory>
 
@@ -42,11 +42,11 @@ class LIGHTWEIGHT_API StrandExecutor final: public IExecutor, public IResumeSche
   private:
     /// Mutable strand state, heap-allocated so in-flight drain closures can keep it alive
     /// independently of the @c StrandExecutor wrapper's lifetime. The serialized FIFO and its
-    /// drain-active flag live in @ref detail::WorkQueue, which guards both under one lock.
+    /// drain-active flag live in @ref detail::SerialDrainQueue, which guards both under one lock.
     struct State
     {
         IExecutor& underlying; ///< Borrowed executor that runs the serialized work.
-        detail::WorkQueue queue;
+        detail::SerialDrainQueue queue;
 
         explicit State(IExecutor& underlyingExecutor) noexcept:
             underlying { underlyingExecutor }

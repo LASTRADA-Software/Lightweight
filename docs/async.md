@@ -280,3 +280,21 @@ task directly; route its continuation through the same adapter to keep it on the
 ## Build
 
 The async API is a first-class part of the library — always built, no configuration required.
+
+The executor internals run on [NVIDIA stdexec](https://github.com/NVIDIA/stdexec), the reference
+implementation of `std::execution` (P2300 — the C++26 executors). `ThreadPoolExecutor` is an
+`exec::static_thread_pool` with each posted item spawned into an `exec::async_scope` (so its
+destructor drains every in-flight item before joining); `StrandExecutor` serializes work over that
+pool. stdexec is resolved automatically: `find_package(stdexec)` first (any sufficiently new
+system/vcpkg install, ≥ 0.9.0), falling back to CPM (`NVIDIA/stdexec`, tag `nvhpc-25.09`; the tag
+and minimum version live in `LIGHTWEIGHT_STDEXEC_GIT_TAG` / `LIGHTWEIGHT_STDEXEC_MIN_VERSION`). The
+stdexec headers are confined to a single translation unit behind a pimpl, so including Lightweight's
+headers does not pull stdexec into your build unless you want it.
+
+### Interop with `std::execution`
+
+`Async::Task<T>` is a plain coroutine awaitable, not a sender, so the two `sync_wait`s are distinct:
+use `Lightweight::Async::SyncWait(task)` to block on a `Task`, and `stdexec::sync_wait(sender)` to
+block on a sender. Because stdexec is linked publicly, downstream code can freely mix the two —
+schedule senders on your own `exec::static_thread_pool` and `co_await` a Lightweight `Task` from the
+same coroutine.

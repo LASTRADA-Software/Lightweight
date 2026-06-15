@@ -17,8 +17,7 @@ namespace Lightweight
 /// or the queue is marked as finished.
 ///
 /// It is a thin facade over @c detail::BlockingQueue (the shared blocking-FIFO primitive), so the
-/// locking/wait logic lives in exactly one place rather than being duplicated here and in the async
-/// layer's @c WorkQueue.
+/// locking/wait logic lives in exactly one place rather than being hand-rolled here.
 ///
 /// @tparam T The type of items stored in the queue.
 template <typename T>
