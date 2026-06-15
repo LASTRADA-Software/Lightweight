@@ -30,26 +30,10 @@ var hierarchy =
     [ "Lightweight::Field< Lightweight::SqlNumeric< 10, 2 >, Lightweight::SqlRealName { \"Total\" }>", "d2/dd0/structLightweight_1_1Field.html", null ],
     [ "Lightweight::Field< Lightweight::SqlNumeric< 10, 2 >, Lightweight::SqlRealName { \"UnitPrice\" }>", "d2/dd0/structLightweight_1_1Field.html", null ],
     [ "Lightweight::AliasedTableName", "d1/d0e/structLightweight_1_1AliasedTableName.html", null ],
-    [ "Lightweight::Async::AsyncSqlTransaction", "d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html", null ],
-    [ "Lightweight::Async::IAsyncBackend", "dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html", [
-      [ "Lightweight::Async::ThreadOffloadBackend", "dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend.html", null ]
-    ] ],
-    [ "Lightweight::Async::IExecutor", "d3/d75/classLightweight_1_1Async_1_1IExecutor.html", [
-      [ "Lightweight::Async::InlineExecutor", "db/dca/classLightweight_1_1Async_1_1InlineExecutor.html", null ],
-      [ "Lightweight::Async::ManualExecutor", "d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html", null ],
-      [ "Lightweight::Async::StrandExecutor", "dc/d8e/classLightweight_1_1Async_1_1StrandExecutor.html", null ],
-      [ "Lightweight::Async::ThreadPoolExecutor", "d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor.html", null ]
-    ] ],
-    [ "Lightweight::Async::IResumeScheduler", "df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html", [
-      [ "Lightweight::Async::InlineExecutor", "db/dca/classLightweight_1_1Async_1_1InlineExecutor.html", null ],
-      [ "Lightweight::Async::ManualExecutor", "d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html", null ],
-      [ "Lightweight::Async::StrandExecutor", "dc/d8e/classLightweight_1_1Async_1_1StrandExecutor.html", null ],
-      [ "Lightweight::Async::ThreadPoolExecutor", "d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor.html", null ]
-    ] ],
-    [ "Lightweight::Async::Task< T >", "d8/d0c/classLightweight_1_1Async_1_1Task.html", null ],
     [ "Lightweight::BelongsTo< TheReferencedField, ColumnNameOverrideString, Nullable >", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::DataMapper", "de/d61/classLightweight_1_1DataMapper.html", null ],
     [ "Lightweight::DataMapperOptions", "d3/db2/structLightweight_1_1DataMapperOptions.html", null ],
+    [ "Lightweight::Description< Record >", "de/d22/structLightweight_1_1Description.html", null ],
     [ "Lightweight::Field< T, P1, P2 >", "d2/dd0/structLightweight_1_1Field.html", null ],
     [ "Lightweight::HasMany< OtherRecord >", "da/df4/classLightweight_1_1HasMany.html", null ],
     [ "Lightweight::HasManyThrough< ReferencedRecordT, ThroughRecordT >", "de/d73/classLightweight_1_1HasManyThrough.html", null ],
@@ -60,6 +44,7 @@ var hierarchy =
     [ "Lightweight::Pool< Config >", "d3/d30/classLightweight_1_1Pool.html", null ],
     [ "Lightweight::Pool< Config >::PooledDataMapper", "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html", null ],
     [ "Lightweight::PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", null ],
+    [ "Lightweight::RecordMemberList< MemberPointers >", "d2/d94/structLightweight_1_1RecordMemberList.html", null ],
     [ "Lightweight::SqlAdvisoryLockHandler", "d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html", null ],
     [ "Lightweight::SqlAlterTableCommands::AddColumnIfNotExists", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html", null ],
     [ "Lightweight::SqlAlterTableCommands::DropColumnIfExists", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists.html", null ],
@@ -158,14 +143,13 @@ var hierarchy =
     [ "Lightweight::Zip::ZipArchive", "d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html", null ],
     [ "Lightweight::Zip::ZipEntry", "d6/d46/classLightweight_1_1Zip_1_1ZipEntry.html", null ],
     [ "Lightweight::Zip::ZipError", "da/dd4/structLightweight_1_1Zip_1_1ZipError.html", null ],
-    [ "Lightweight::SqlWhereClauseBuilder< SqlAllFieldsQueryBuilder< Record, QueryOptions, SqlQueryExecutionMode::Synchronous > >", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html", null ],
+    [ "Lightweight::SqlWhereClauseBuilder< SqlAllFieldsQueryBuilder< Record, QueryOptions > >", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html", null ],
     [ "Lightweight::SqlWhereClauseBuilder< SqlDeleteQueryBuilder >", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html", [
       [ "Lightweight::SqlDeleteQueryBuilder", "d1/d57/classLightweight_1_1SqlDeleteQueryBuilder.html", null ]
     ] ],
     [ "Lightweight::SqlWhereClauseBuilder< SqlSelectQueryBuilder >", "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html", null ],
     [ "std::exception", null, [
       [ "std::runtime_error", null, [
-        [ "Lightweight::Async::OperationCancelledError", "d3/dd5/classLightweight_1_1Async_1_1OperationCancelledError.html", null ],
         [ "Lightweight::SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html", null ],
         [ "Lightweight::SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html", null ]
       ] ]

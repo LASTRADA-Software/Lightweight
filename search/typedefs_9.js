@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['pointer_5ftype_0',['pointer_type',['../d7/d9a/classLightweight_1_1SqlDynamicString.html#a619e3ff26981f9e067c79b5a50166816',1,'Lightweight::SqlDynamicString::pointer_type'],['../de/dae/classLightweight_1_1SqlFixedString.html#a375eb7bde391d404bc26c416154046d0',1,'Lightweight::SqlFixedString::pointer_type']]],
-  ['promise_5ftype_1',['promise_type',['../d8/d0c/classLightweight_1_1Async_1_1Task.html#a1f9c9c115e47453068f3105b00c87d0c',1,'Lightweight::Async::Task']]]
+  ['recordmembertypeof_0',['RecordMemberTypeOf',['../d7/d2f/group__DataMapper.html#gaf8d513471d088e755ea2e628689086fb',1,'Lightweight']]],
+  ['referencedfieldtypeof_1',['ReferencedFieldTypeOf',['../d7/d2f/group__DataMapper.html#gaeebbb701afbe9efa3118910e348b4e61',1,'Lightweight']]],
+  ['referencedrecord_2',['referencedrecord',['../d0/df7/classLightweight_1_1BelongsTo.html#ae3deecf75fdd98c06884f76ce07f077b',1,'Lightweight::BelongsTo::ReferencedRecord'],['../da/df4/classLightweight_1_1HasMany.html#aa55567dd568d83b2bf1a17980f856553',1,'Lightweight::HasMany::ReferencedRecord'],['../de/d73/classLightweight_1_1HasManyThrough.html#af76d1ffc037c720dbec3a13d6aa2bb3b',1,'Lightweight::HasManyThrough::ReferencedRecord'],['../df/d63/classLightweight_1_1HasOneThrough.html#addf0d59cd5a9403b6fac56a00c340ad9',1,'Lightweight::HasOneThrough::ReferencedRecord']]],
+  ['referencedrecordlist_3',['referencedrecordlist',['../da/df4/classLightweight_1_1HasMany.html#a5a29a6068f166f0e54fb24c548fdb2bb',1,'Lightweight::HasMany::ReferencedRecordList'],['../de/d73/classLightweight_1_1HasManyThrough.html#a449b45f68f5a2303de48e650280ec808',1,'Lightweight::HasManyThrough::ReferencedRecordList']]]
 ];

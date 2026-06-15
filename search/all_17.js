@@ -7,12 +7,9 @@ var searchData=
   ['query_20result_20row_20columns_20in_20order_4',['Query Result Row Columns in Order',['../d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#query-result-row-columns-in-order',1,'']]],
   ['query_20results_20to_20a_20simple_20struct_5',['Mapping query results to a simple struct',['../index.html#mapping-query-results-to-a-simple-struct',1,'']]],
   ['query_20to_20multiple_20struct_6',['Mapping query to multiple struct',['../index.html#mapping-query-to-multiple-struct',1,'']]],
-  ['queryas_7',['queryas',['../db/dad/classLightweight_1_1SqlStatement.html#a1a71ae6cfe36477d1b0e2632e50312ef',1,'Lightweight::SqlStatement::QueryAs()'],['../da/da8/classLightweight_1_1SqlConnection.html#a4165425040fb439fdbfc44efdad7f550',1,'Lightweight::SqlConnection::QueryAs()']]],
-  ['queryasync_8',['QueryAsync',['../de/d61/classLightweight_1_1DataMapper.html#ab5212501c86b9d469e4ffae6c3a45264',1,'Lightweight::DataMapper']]],
-  ['queryformatter_9',['QueryFormatter',['../da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32',1,'Lightweight::SqlConnection']]],
-  ['querying_20asynchronously_10',['Querying asynchronously',['../db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#querying-asynchronously',1,'']]],
-  ['querylastinsertid_11',['QueryLastInsertId',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ae5c1899d98fac7ec8340f1cd0cfeae1a',1,'Lightweight::SqlQueryFormatter']]],
-  ['queryserverversion_12',['QueryServerVersion',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8513eaca58ba6015cecfd88973c18d4b',1,'Lightweight::SqlQueryFormatter']]],
-  ['querysingle_13',['QuerySingle',['../de/d61/classLightweight_1_1DataMapper.html#a8a3bba1c99cbcff0f62611141fd1c219',1,'Lightweight::DataMapper']]],
-  ['querysingleasync_14',['QuerySingleAsync',['../de/d61/classLightweight_1_1DataMapper.html#a491f414bc1e2179dd7bad850142a2c89',1,'Lightweight::DataMapper']]]
+  ['queryas_7',['queryas',['../db/dad/classLightweight_1_1SqlStatement.html#a1a71ae6cfe36477d1b0e2632e50312ef',1,'Lightweight::SqlStatement::QueryAs()'],['../da/da8/classLightweight_1_1SqlConnection.html#a4165425040fb439fdbfc44efdad7f550',1,'Lightweight::SqlConnection::QueryAs(std::string_view const &amp;table, std::string_view const &amp;tableAlias) const']]],
+  ['queryformatter_8',['QueryFormatter',['../da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32',1,'Lightweight::SqlConnection']]],
+  ['querylastinsertid_9',['QueryLastInsertId',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ae5c1899d98fac7ec8340f1cd0cfeae1a',1,'Lightweight::SqlQueryFormatter']]],
+  ['queryserverversion_10',['QueryServerVersion',['../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8513eaca58ba6015cecfd88973c18d4b',1,'Lightweight::SqlQueryFormatter']]],
+  ['querysingle_11',['QuerySingle',['../de/d61/classLightweight_1_1DataMapper.html#a8a3bba1c99cbcff0f62611141fd1c219',1,'Lightweight::DataMapper']]]
 ];

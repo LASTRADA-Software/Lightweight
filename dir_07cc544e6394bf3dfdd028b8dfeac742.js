@@ -1,6 +1,5 @@
 var dir_07cc544e6394bf3dfdd028b8dfeac742 =
 [
-    [ "Async", "dir_ecfaae8a45938684577693db3462ec86.html", "dir_ecfaae8a45938684577693db3462ec86" ],
     [ "DataBinder", "dir_6f1d6fa2b219487ffef8a5d5282640f4.html", "dir_6f1d6fa2b219487ffef8a5d5282640f4" ],
     [ "DataMapper", "dir_928313e3f834eaf7c2b65386b629cfde.html", "dir_928313e3f834eaf7c2b65386b629cfde" ],
     [ "QueryFormatter", "dir_20a36fc8a4949d7efb0c8c5bf02352ee.html", "dir_20a36fc8a4949d7efb0c8c5bf02352ee" ],
@@ -9,7 +8,7 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "Tools", "dir_4beb59c78768ffa1a54c55803c4c35c2.html", "dir_4beb59c78768ffa1a54c55803c4c35c2" ],
     [ "Zip", "dir_02b8df35666f4569a051687d37d57615.html", "dir_02b8df35666f4569a051687d37d57615" ],
     [ "Api.hpp", "d1/de4/Api_8hpp_source.html", null ],
-    [ "BlockingQueue.hpp", "d0/d59/BlockingQueue_8hpp_source.html", null ],
+    [ "Description.hpp", "d1/dbc/Description_8hpp_source.html", null ],
     [ "Lightweight.hpp", "d3/d69/Lightweight_8hpp_source.html", null ],
     [ "SqlAdvisoryLock.hpp", "d5/d4b/SqlAdvisoryLock_8hpp_source.html", null ],
     [ "SqlBackup.hpp", "db/dd1/SqlBackup_8hpp_source.html", null ],

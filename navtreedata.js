@@ -187,21 +187,6 @@ var NAVTREE =
       [ "Best Practices", "d2/da6/sql-migrations.html#best-practices-1", null ],
       [ "See Also", "d2/da6/sql-migrations.html#see-also-1", null ]
     ] ],
-    [ "Asynchronous API (C++23 coroutines)", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html", [
-      [ "Why offloading (and not \"true\" async ODBC)", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#why-offloading-and-not-true-async-odbc", null ],
-      [ "Concepts", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#concepts", null ],
-      [ "Enabling async on a connection", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#enabling-async-on-a-connection", null ],
-      [ "Querying asynchronously", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#querying-asynchronously", null ],
-      [ "Record-level async methods", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#record-level-async-methods", null ],
-      [ "Single-threaded vs multi-threaded", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#single-threaded-vs-multi-threaded", null ],
-      [ "Transactions", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#transactions", null ],
-      [ "Cancellation", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#cancellation", null ],
-      [ "Errors", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#errors", null ],
-      [ "Integrating with an external event loop / coroutine runtime", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#integrating-with-an-external-event-loop--coroutine-runtime", null ],
-      [ "Build", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#build", [
-        [ "Interop with <tt>std::execution</tt>", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#interop-with-stdexecution", null ]
-      ] ]
-    ] ],
     [ "Announcing Lightweight: Zero-overhead C++23 ODBC wrapper", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html", [
       [ "</blockquote>", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#blockquote", null ],
       [ "Low-Level API: SqlStatement & SqlConnection", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#low-level-api-sqlstatement--sqlconnection", [
@@ -214,7 +199,6 @@ var NAVTREE =
       [ "Supported Databases", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#supported-databases-1", null ],
       [ "What's Next", "d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#whats-next", null ]
     ] ],
-    [ "Deprecated List", "da/d58/deprecated.html", null ],
     [ "Topics", "topics.html", "topics" ],
     [ "Concepts", "concepts.html", "concepts" ],
     [ "Classes", "annotated.html", [
@@ -237,13 +221,12 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#aaf257a679d7d4340a4514a567f03a27a",
-"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aee69f4c93ebeb28785f120395d66ab75",
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#af48b66cbec56b1d08aff286efa67a30b",
-"d9/dbb/classLightweight_1_1SqlDataBinderCallback.html",
-"db/dad/classLightweight_1_1SqlStatement.html#a9cc4145826d8674fe8500b8cd8d46927",
-"de/da0/classLightweight_1_1SqlQueryBuilder.html#a4a0f2b9056d0afaa3e6ae3fbd3f55516",
-"functions_p.html"
+"d2/dd0/structLightweight_1_1Field.html#aa876b52918921b2f6ca26ed2f83ec312",
+"d5/db5/structLightweight_1_1SqlBackup_1_1Progress.html#af3e84864298e18e83f13b0ad84ded7fc",
+"d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25",
+"d9/de1/structLightweight_1_1SqlDate.html#a2fdc23d50db21a969a5e79dab932ec51",
+"dc/d47/structLightweight_1_1SqlRawSqlPlan.html",
+"de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#ab7a7ef460d0a27d3104beb9c89757d28"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
