@@ -17,7 +17,7 @@ namespace Lightweight::detail
 /// locking/wait logic lives in exactly one place: @ref Push enqueues and wakes a consumer, @ref
 /// WaitAndPop blocks until an item is available or the queue is finished, and @ref MarkFinished
 /// drains-then-stops. (The async executors deliberately do not share this primitive — they own
-/// the smaller, purpose-built queues in @c Async/detail/SerialWorkQueue.hpp.)
+/// the smaller, purpose-built queues in @c Async/detail/ExecutorQueues.hpp.)
 ///
 /// @tparam T The element type stored in the queue.
 template <typename T>

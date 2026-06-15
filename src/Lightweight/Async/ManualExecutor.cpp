@@ -47,7 +47,7 @@ void ManualExecutor::Run()
 void ManualExecutor::Stop()
 {
     // Publish the stop request before waking, so a pumper blocked in Run() observes it
-    // (WorkQueue::Wake takes the lock first to avoid a lost wakeup). std::stop_source's request_stop()
+    // (PumpQueue::Wake takes the lock first to avoid a lost wakeup). std::stop_source's request_stop()
     // establishes the necessary happens-before with stop_requested() observed under the queue lock.
     _stopSource.request_stop();
     _queue.Wake();

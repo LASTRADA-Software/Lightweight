@@ -28,7 +28,8 @@ class LIGHTWEIGHT_API ThreadPoolExecutor final: public IExecutor, public IResume
     /// Constructs the pool and starts @p threadCount worker threads.
     ///
     /// @param threadCount Number of worker threads to start (must be >= 1).
-    /// @throws std::invalid_argument if @p threadCount is 0.
+    /// @throws std::invalid_argument if @p threadCount is 0 or exceeds the supported maximum
+    ///         (@c std::uint32_t, the width the underlying stdexec pool accepts).
     explicit ThreadPoolExecutor(std::size_t threadCount);
 
     ThreadPoolExecutor(ThreadPoolExecutor const&) = delete;
@@ -37,12 +38,19 @@ class LIGHTWEIGHT_API ThreadPoolExecutor final: public IExecutor, public IResume
     ThreadPoolExecutor& operator=(ThreadPoolExecutor&&) = delete;
 
     /// Waits for all in-flight work to drain, then stops and joins the worker threads.
+    ///
+    /// @note Must not be invoked from one of this pool's own worker threads (i.e. the pool must
+    ///       outlive every coroutine that can resume on it). The drain blocks the calling thread,
+    ///       so destroying the pool from a thread it owns would deadlock — the same constraint the
+    ///       previous join-based teardown had.
     ~ThreadPoolExecutor() override;
 
     void Post(Work work) override;
     void Resume(std::coroutine_handle<> handle) override;
 
-    /// @return the number of worker threads.
+    /// @return the configured worker count (the value passed to the constructor).
+    /// @note This is the requested count, not a live count of OS threads; it is fixed for the
+    ///       pool's lifetime and does not reflect any internal clamping the scheduler might apply.
     [[nodiscard]] std::size_t ThreadCount() const noexcept
     {
         return _threadCount;

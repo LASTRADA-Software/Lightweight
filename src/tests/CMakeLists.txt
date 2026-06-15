@@ -25,25 +25,15 @@ endif()
 
 target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES})
 
+# AsynchronousTests.cpp includes stdexec headers directly. Link the shared compat target (root
+# CMakeLists) so its SYSTEM includes, /Zc:preprocessor, /external:W0 and -Wno-error demotions apply
+# here too — Lightweight links stdexec PRIVATE, so it no longer arrives transitively. Harmless for
+# the stdexec-free test TUs.
+target_link_libraries(LightweightTest PRIVATE lightweight_stdexec_compat)
+
 if(MSVC)
     target_compile_options(LightweightTest PRIVATE /bigobj)
-    # cl-only stdexec mitigations (clang-cl rejects both as unused — see src/Lightweight/CMakeLists.txt).
-    if(NOT CLANG_CL)
-        # AsynchronousTests.cpp includes stdexec headers directly, which need MSVC's conforming
-        # preprocessor (its config macros misfire under the legacy preprocessor). The other test TUs
-        # only see the stdexec-free public headers, so this is harmless for them.
-        target_compile_options(LightweightTest PRIVATE /Zc:preprocessor)
-        # stdexec headers are SYSTEM (/external:I) includes; lower the external warning level so they
-        # do not trip the test target's warnings (mirrors the Lightweight target).
-        target_compile_options(LightweightTest PRIVATE /experimental:external /external:W0)
-    endif()
 endif()
-
-# AsynchronousTests.cpp includes stdexec headers directly; demote the diagnostics stdexec trips
-# under -Werror. Guarded off MSVC, where these GCC/Clang flags are not recognized.
-set_source_files_properties(DataMapper/AsynchronousTests.cpp PROPERTIES
-    COMPILE_OPTIONS "$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-error=empty-body>;$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-error=missing-declarations>;$<$<CXX_COMPILER_ID:Clang>:-Wno-error=newline-eof>;$<$<CXX_COMPILER_ID:Clang>:-Wno-error=macro-redefined>"
-)
 
 set(SOURCE_FILES
     ConfigProfileStoreTests.cpp

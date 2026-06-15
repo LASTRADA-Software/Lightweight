@@ -75,23 +75,37 @@ TEST_CASE("Async.StrandExecutor preserves FIFO order of posted work", "[Async][E
 TEST_CASE("Async.StrandExecutor state outlives the wrapper while a drain is in flight", "[Async][Executor][stdexec]")
 {
     // The strand's State is held by a shared_ptr that each scheduled drain closure copies, so work
-    // already posted still completes even if the StrandExecutor wrapper is destroyed immediately
-    // afterwards (e.g. SqlConnection::EnableAsync replacing a backend, or a transaction finalizing).
+    // already posted still completes even if the StrandExecutor wrapper is destroyed while the drain
+    // is still running (e.g. SqlConnection::EnableAsync replacing a backend, or a transaction
+    // finalizing). To actually exercise that lifetime-extension path (and not merely have the drain
+    // finish before the wrapper is destroyed), the first posted closure blocks on `release` until
+    // after the wrapper has been destroyed, pinning the drain in flight across destruction.
     ThreadPoolExecutor pool(2);
     constexpr int Iterations = 200;
     std::atomic<int> ran { 0 };
+    std::latch started { 1 }; ///< the gating drain closure has begun running
+    std::latch release { 1 }; ///< opened only after the wrapper is destroyed
     std::latch done { Iterations };
     {
         StrandExecutor strand { pool };
-        for ([[maybe_unused]] auto const _: std::views::iota(0, Iterations))
+        strand.Post([&] {
+            started.count_down();
+            release.wait(); // keep this drain in flight until the wrapper below is gone
+            ran.fetch_add(1, std::memory_order_relaxed);
+            done.count_down();
+        });
+        for ([[maybe_unused]] auto const _: std::views::iota(1, Iterations))
         {
             strand.Post([&ran, &done] {
                 ran.fetch_add(1, std::memory_order_relaxed);
                 done.count_down();
             });
         }
-        // strand wrapper destroyed here; the in-flight drain closure keeps the shared State alive.
+        started.wait(); // ensure the drain closure is running before we destroy the wrapper
+        // strand wrapper destroyed here, with the drain still blocked in `release.wait()`; the
+        // in-flight drain closure's shared_ptr copy must keep State alive for the remaining items.
     }
+    release.count_down(); // let the pinned drain (and the rest of the FIFO) complete
     done.wait();
     CHECK(ran.load() == Iterations);
 }

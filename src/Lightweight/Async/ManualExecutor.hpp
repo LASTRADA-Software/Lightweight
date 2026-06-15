@@ -3,7 +3,7 @@
 
 #include "../Api.hpp"
 #include "Executor.hpp"
-#include "detail/SerialWorkQueue.hpp"
+#include "detail/ExecutorQueues.hpp"
 
 #include <cstddef>
 #include <stop_token>

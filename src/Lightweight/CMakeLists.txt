@@ -146,7 +146,7 @@ list(APPEND HEADER_FILES
     Async/SyncWait.hpp
     Async/CancellationToken.hpp
     Async/Executor.hpp
-    Async/detail/SerialWorkQueue.hpp
+    Async/detail/ExecutorQueues.hpp
     Async/ThreadPoolExecutor.hpp
     Async/StrandExecutor.hpp
     Async/ManualExecutor.hpp
@@ -217,10 +217,10 @@ target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:nlohmann_json::nlohm
 
 # stdexec (C++26 executors) backs the async layer's thread pool. Async/ThreadPoolExecutor.cpp is the
 # only TU that includes the stdexec headers — the public headers stay stdexec-free via a pimpl — so
-# stdexec is a BUILD-time-only usage requirement: the wrapper genex propagates its include dirs and
-# compile flags to in-tree consumers (e.g. the test target, which includes stdexec directly) but
-# keeps it out of the installed/exported interface (an installed Lightweight needs no stdexec).
-target_link_libraries(Lightweight PUBLIC $<BUILD_INTERFACE:STDEXEC::stdexec>)
+# stdexec is a BUILD-time-only, PRIVATE usage requirement. lightweight_stdexec_compat (root
+# CMakeLists) carries the SYSTEM includes + compiler workarounds; the BUILD_INTERFACE genex keeps it
+# out of the installed/exported interface (an installed Lightweight needs no stdexec).
+target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:lightweight_stdexec_compat>)
 
 if(LIGHTWEIGHT_ENABLE_TRACY)
     target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_TRACY_ENABLED)
@@ -236,22 +236,8 @@ if(MSVC)
         target_compile_options(Lightweight PRIVATE ${_pedantic_flags})
         unset(_pedantic_flags)
     endif()
-    # The following two mitigations apply to the real `cl` driver only. clang-cl has a conforming
-    # preprocessor by default and routes SYSTEM includes through /imsvc (which already silences
-    # stdexec's header warnings), so it rejects both flags as unused under -Werror.
-    if(NOT CLANG_CL)
-        # stdexec requires MSVC's conforming preprocessor; without /Zc:preprocessor its config macros
-        # misfire (e.g. __VA_OPT__ handling), so sender adaptors like stdexec::starts_on fail to
-        # declare. stdexec's own interface advertises this flag, but it does not reliably propagate
-        # through the SYSTEM-include normalization, so set it explicitly on every TU of this target.
-        target_compile_options(Lightweight PRIVATE /Zc:preprocessor)
-        # stdexec ships as SYSTEM (/external:I) includes, but `cl` only silences external-header
-        # warnings when the external warning level is lowered — /external:I alone is a no-op under
-        # /WX. Lower it for this target only, so the project's own /W4 /WX still covers our headers.
-        if(PEDANTIC_COMPILER AND PEDANTIC_COMPILER_WERROR)
-            target_compile_options(Lightweight PRIVATE /experimental:external /external:W0)
-        endif()
-    endif()
+    # (stdexec's cl mitigations — /Zc:preprocessor and /external:W0 — are carried by
+    # lightweight_stdexec_compat, linked above.)
     # When building Lightweight as a DLL on MSVC, classes that legitimately expose
     # STL members (`std::string`, `std::vector`, `std::filesystem::path`, …) or
     # derive from header-only interfaces trigger C4251 / C4275. Both warnings are
@@ -276,16 +262,8 @@ else()
         endif()
         target_compile_options(Lightweight PRIVATE ${_pedantic_flags})
         unset(_pedantic_flags)
-        # -isystem (from stdexec's SYSTEM includes) suppresses header-origin warnings, but warnings
-        # attributed to deep sender/coroutine template instantiations surface against this target.
-        # Demote exactly the diagnostics stdexec is known to trip under -Werror (the set the async
-        # tests already proved necessary); scoped narrowly to Lightweight.
-        target_compile_options(Lightweight PRIVATE
-            -Wno-error=empty-body
-            -Wno-error=missing-declarations
-            $<$<CXX_COMPILER_ID:Clang>:-Wno-error=newline-eof>
-            $<$<CXX_COMPILER_ID:Clang>:-Wno-error=macro-redefined>
-        )
+        # (stdexec's GCC/Clang -Wno-error demotions are carried by lightweight_stdexec_compat,
+        # linked above.)
     endif()
     target_compile_options(Lightweight PUBLIC ${ODBC_CFLAGS})
     target_link_libraries(Lightweight PUBLIC ${ODBC_LDFLAGS})

@@ -286,15 +286,19 @@ implementation of `std::execution` (P2300 — the C++26 executors). `ThreadPoolE
 `exec::static_thread_pool` with each posted item spawned into an `exec::async_scope` (so its
 destructor drains every in-flight item before joining); `StrandExecutor` serializes work over that
 pool. stdexec is resolved automatically: `find_package(stdexec)` first (any sufficiently new
-system/vcpkg install, ≥ 0.9.0), falling back to CPM (`NVIDIA/stdexec`, tag `nvhpc-26.05`; the tag
-and minimum version live in `LIGHTWEIGHT_STDEXEC_GIT_TAG` / `LIGHTWEIGHT_STDEXEC_MIN_VERSION`). The
-stdexec headers are confined to a single translation unit behind a pimpl, so including Lightweight's
-headers does not pull stdexec into your build unless you want it.
+system/vcpkg install — the build checks `stdexec_VERSION` against `LIGHTWEIGHT_STDEXEC_MIN_VERSION`,
+≥ 0.9.0), falling back to CPM (`NVIDIA/stdexec`, tag `nvhpc-26.05`; the tag and minimum version live
+in `LIGHTWEIGHT_STDEXEC_GIT_TAG` / `LIGHTWEIGHT_STDEXEC_MIN_VERSION`). The stdexec headers are
+confined to a single translation unit behind a pimpl, so including Lightweight's headers never pulls
+stdexec in — and an installed Lightweight links it `PRIVATE`/build-only, so stdexec is not part of
+the exported interface at all.
 
 ### Interop with `std::execution`
 
 `Async::Task<T>` is a plain coroutine awaitable, not a sender, so the two `sync_wait`s are distinct:
 use `Lightweight::Async::SyncWait(task)` to block on a `Task`, and `stdexec::sync_wait(sender)` to
-block on a sender. Because stdexec is linked publicly, downstream code can freely mix the two —
-schedule senders on your own `exec::static_thread_pool` and `co_await` a Lightweight `Task` from the
-same coroutine.
+block on a sender. The two integrate freely — schedule senders on your own `exec::static_thread_pool`
+and `co_await` a Lightweight `Task` from the same coroutine. Note that stdexec is a *build-time*
+dependency of Lightweight, not part of its installed/exported interface: to mix senders in your own
+code, depend on stdexec directly (`find_package(stdexec)` / link `STDEXEC::stdexec`) — do not rely on
+Lightweight to provide its headers transitively.
