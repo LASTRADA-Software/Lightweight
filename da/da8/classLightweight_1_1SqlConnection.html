@@ -211,6 +211,16 @@ LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>SetLa
 LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><b>RequireSuccess</b> (SQLRETURN sqlResult, std::source_location sourceLocation=std::source_location::current()) const</td></tr>
 <tr class="memdesc:a0938e714f9d74d7e64e080ad23161201"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks the result of an SQL operation, and throws an exception if it is not successful. <br /></td></tr>
 <tr class="separator:a0938e714f9d74d7e64e080ad23161201"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afd6064e6446d7bc609fd0fea94ad0fd7" id="r_afd6064e6446d7bc609fd0fea94ad0fd7"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#afd6064e6446d7bc609fd0fea94ad0fd7">EnableAsync</a> (<a class="el" href="../../d3/d75/classLightweight_1_1Async_1_1IExecutor.html">Async::IExecutor</a> &amp;dbWorkers, <a class="el" href="../../df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html">Async::IResumeScheduler</a> &amp;resume)</td></tr>
+<tr class="separator:afd6064e6446d7bc609fd0fea94ad0fd7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acb0f99439f457fbd454e3bda1acaae19" id="r_acb0f99439f457fbd454e3bda1acaae19"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#acb0f99439f457fbd454e3bda1acaae19">EnableAsync</a> (std::unique_ptr&lt; <a class="el" href="../../dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html">Async::IAsyncBackend</a> &gt; backend)</td></tr>
+<tr class="separator:acb0f99439f457fbd454e3bda1acaae19"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1b9ddca76bdd9131c68c24a67b9fc13c" id="r_a1b9ddca76bdd9131c68c24a67b9fc13c"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a1b9ddca76bdd9131c68c24a67b9fc13c">DisableAsync</a> () noexcept</td></tr>
+<tr class="separator:a1b9ddca76bdd9131c68c24a67b9fc13c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a85f5e74fcdd175d0e6812e1668b9d729" id="r_a85f5e74fcdd175d0e6812e1668b9d729"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a85f5e74fcdd175d0e6812e1668b9d729">IsAsyncEnabled</a> () const noexcept</td></tr>
+<tr class="separator:a85f5e74fcdd175d0e6812e1668b9d729"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a93ccf2f65cb117c8ef34cac8be750d90" id="r_a93ccf2f65cb117c8ef34cac8be750d90"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html">Async::IAsyncBackend</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a93ccf2f65cb117c8ef34cac8be750d90">AsyncBackend</a> ()</td></tr>
+<tr class="separator:a93ccf2f65cb117c8ef34cac8be750d90"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -236,7 +246,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a connection to a SQL database. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00039">39</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00040">40</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="ab5a9e94571f9e9296b2ce65036f75184" name="ab5a9e94571f9e9296b2ce65036f75184"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab5a9e94571f9e9296b2ce65036f75184">&#9670;&#160;</a></span>SqlConnection() <span class="overload">[1/2]</span></h2>
@@ -352,7 +362,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>Retrieves the connection ID. </p>
 <p>This is a unique identifier for the connection, which is useful for debugging purposes. Note, this ID will not change if the connection is moved nor when it is reused via the connection pool. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00090">90</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00091">91</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -451,9 +461,9 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the type of the server. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00217">217</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00270">270</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01304">Lightweight::DataMapper::CreateTable()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01901">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01983">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01843">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01757">Lightweight::DataMapper::QuerySingle()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00232">SupportsNativeRowBatch()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01392">Lightweight::DataMapper::CreateTable()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01989">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02071">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01931">Lightweight::DataMapper::Query()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01845">Lightweight::DataMapper::QuerySingle()</a>, and <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00285">SupportsNativeRowBatch()</a>.</p>
 
 </div>
 </div>
@@ -482,7 +492,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the name of the driver used for this connection. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00222">222</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00275">275</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 </div>
 </div>
@@ -511,9 +521,9 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves a query formatter suitable for the SQL server being connected. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00227">227</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00280">280</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00419">Lightweight::DataMapper::Query()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l01121">Lightweight::SqlStatement::MigrateDirect()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00436">Lightweight::DataMapper::Query()</a>.</p>
 
 </div>
 </div>
@@ -544,9 +554,9 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 <p>The batched <code>SqlStatement::ExecuteBatch(rows, accessors...)</code> consults this to decide whether it may submit the whole batch in a single row-wise <code>SQLExecute</code>, or must fall back to a single prepare followed by consecutive per-row executes. This is a driver/backend capability — not a SQL-dialect concern — so it belongs to the connection, which knows both the server type and the driver name (either of which a future carve-out can branch on).</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the driver honours parameter arrays. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00232">232</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00285">285</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00217">ServerType()</a>.</p>
+<p class="reference">References <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00270">ServerType()</a>.</p>
 
 </div>
 </div>
@@ -573,7 +583,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
   </dd>
 </dl>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01496">Lightweight::DataMapper::CreateAll()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01706">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00464">Lightweight::DataMapper::FromTable()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01757">Lightweight::DataMapper::QuerySingle()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01597">Lightweight::DataMapper::Update()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01670">Lightweight::DataMapper::UpdateAll()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01584">Lightweight::DataMapper::CreateAll()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01794">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l00481">Lightweight::DataMapper::FromTable()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01845">Lightweight::DataMapper::QuerySingle()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01685">Lightweight::DataMapper::Update()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01758">Lightweight::DataMapper::UpdateAll()</a>.</p>
 
 </div>
 </div>
@@ -638,9 +648,156 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>Retrieves the native handle. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00181">181</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html#l00182">182</a> of file <a class="el" href="../../d5/df9/SqlConnection_8hpp_source.html">SqlConnection.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../d0/ddc/classLightweight_1_1SqlTransaction.html#a0bd596d2a637709abc81b396c7b2ce70">Lightweight::SqlTransaction::TryCommit()</a>.</p>
+
+</div>
+</div>
+<a id="afd6064e6446d7bc609fd0fea94ad0fd7" name="afd6064e6446d7bc609fd0fea94ad0fd7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afd6064e6446d7bc609fd0fea94ad0fd7">&#9670;&#160;</a></span>EnableAsync() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API void Lightweight::SqlConnection::EnableAsync </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="../../d3/d75/classLightweight_1_1Async_1_1IExecutor.html">Async::IExecutor</a> &amp;&#160;</td>
+          <td class="paramname"><em>dbWorkers</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="../../df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html">Async::IResumeScheduler</a> &amp;&#160;</td>
+          <td class="paramname"><em>resume</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Enables coroutine-based asynchronous methods on this connection.</p>
+<p>Wires the connection to an injected execution context: blocking ODBC work is offloaded to <code>dbWorkers</code> (serialized per connection so the ODBC handle is only ever used by one thread at a time) and the awaiting coroutine is resumed via <code>resume</code> (typically the application's run loop). A native driver-async backend is selected when the driver advertises support; otherwise the portable thread-offload backend is used.</p>
+<p>Both executors must outlive this connection and every coroutine driven through it. Must not be called while asynchronous operations are in flight on this connection (it replaces the backend); the connection pool calls <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a1b9ddca76bdd9131c68c24a67b9fc13c">DisableAsync</a> on return so each re-acquire is a fresh enable rather than a live replacement.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">dbWorkers</td><td>The worker-thread pool used to run blocking ODBC calls. </td></tr>
+    <tr><td class="paramname">resume</td><td>The scheduler used to resume coroutines after a blocking step completes. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="acb0f99439f457fbd454e3bda1acaae19" name="acb0f99439f457fbd454e3bda1acaae19"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acb0f99439f457fbd454e3bda1acaae19">&#9670;&#160;</a></span>EnableAsync() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API void Lightweight::SqlConnection::EnableAsync </td>
+          <td>(</td>
+          <td class="paramtype">std::unique_ptr&lt; <a class="el" href="../../dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html">Async::IAsyncBackend</a> &gt;&#160;</td>
+          <td class="paramname"><em>backend</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Enables the asynchronous API on this connection using an explicitly provided backend.</p>
+<p>This is the dependency-injection seam behind the convenience overload above: callers and tests can supply any <a class="el" href="../../dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html">Async::IAsyncBackend</a> implementation (a fake/inline backend for tests, or a future native event backend) instead of the default thread-offload backend. The same in-flight / lifetime constraints as the convenience overload apply.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">backend</td><td>The async execution backend to install (consumed); must not be null. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a1b9ddca76bdd9131c68c24a67b9fc13c" name="a1b9ddca76bdd9131c68c24a67b9fc13c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1b9ddca76bdd9131c68c24a67b9fc13c">&#9670;&#160;</a></span>DisableAsync()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API void Lightweight::SqlConnection::DisableAsync </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Tears down the asynchronous backend, returning the connection to a non-async state.</p>
+<p>Called by the connection pool when a mapper is returned, so a recycled connection never carries a stale backend that references executors which may have been destroyed. Safe to call when async was never enabled.</p>
+<dl class="section warning"><dt>Warning</dt><dd>Must not be called while async work is in flight on this connection: it destroys the backend (and the strand/executors an outstanding offloaded step still references), which would race the worker still touching the ODBC handle. Await every async operation on this connection to completion before disabling (or before returning the owning pooled <code><a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a></code>). </dd></dl>
+
+</div>
+</div>
+<a id="a85f5e74fcdd175d0e6812e1668b9d729" name="a85f5e74fcdd175d0e6812e1668b9d729"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a85f5e74fcdd175d0e6812e1668b9d729">&#9670;&#160;</a></span>IsAsyncEnabled()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API bool Lightweight::SqlConnection::IsAsyncEnabled </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<dl class="section return"><dt>Returns</dt><dd>true if <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#afd6064e6446d7bc609fd0fea94ad0fd7">EnableAsync</a> has been called on this connection (and not yet disabled). </dd></dl>
+
+</div>
+</div>
+<a id="a93ccf2f65cb117c8ef34cac8be750d90" name="a93ccf2f65cb117c8ef34cac8be750d90"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a93ccf2f65cb117c8ef34cac8be750d90">&#9670;&#160;</a></span>AsyncBackend()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html">Async::IAsyncBackend</a> &amp; Lightweight::SqlConnection::AsyncBackend </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Retrieves the connection's asynchronous execution backend.</p>
+<p>Non-const because using the backend schedules and serializes real ODBC work (via its strand and resume scheduler), which is an observable mutation of the connection's execution state.</p>
+<dl class="section pre"><dt>Precondition</dt><dd><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a85f5e74fcdd175d0e6812e1668b9d729">IsAsyncEnabled</a> returns true. </dd></dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">std::logic_error</td><td>if async has not been enabled (programmer error, fail-fast). </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The async backend used by this connection's async methods. </dd></dl>
+
+<p class="reference">Referenced by <a class="el" href="../../dd/da9/DataMapperAsync_8hpp_source.html#l00024">Lightweight::DataMapper::CreateAsync()</a>, <a class="el" href="../../dd/da9/DataMapperAsync_8hpp_source.html#l00046">Lightweight::DataMapper::DeleteAsync()</a>, <a class="el" href="../../dd/da9/DataMapperAsync_8hpp_source.html#l00052">Lightweight::DataMapper::LoadRelationsAsync()</a>, <a class="el" href="../../dd/da9/DataMapperAsync_8hpp_source.html#l00031">Lightweight::DataMapper::QuerySingleAsync()</a>, and <a class="el" href="../../dd/da9/DataMapperAsync_8hpp_source.html#l00040">Lightweight::DataMapper::UpdateAsync()</a>.</p>
 
 </div>
 </div>
