@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <filesystem>
 #include <set>
 #include <string>
@@ -94,7 +95,13 @@ class LIGHTWEIGHT_API WorkerChunkArchive
     // Backing store for the current archive's entries: libzip defers reading sources until
     // zip_close, so the chunk bytes must outlive every Add until Seal(). Owned here and handed
     // to libzip as non-owning buffers (freep=0); released once Seal() has closed the archive.
-    std::vector<std::string> m_currentBuffers;
+    //
+    // MUST be a std::deque, not a std::vector: libzip retains a raw pointer into each element
+    // (emplace_back's returned reference). std::vector reallocates on growth and moves its
+    // elements, which for small-string-optimized entries relocates the character data itself and
+    // dangles libzip's pointer — silently corrupting small chunks. std::deque keeps element
+    // references valid across emplace_back, so the pointers stay live until Seal()/clear().
+    std::deque<std::string> m_currentBuffers;
     unsigned m_rotationIndex = 0;
 
     std::vector<std::filesystem::path> m_sealed;

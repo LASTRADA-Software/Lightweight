@@ -514,3 +514,34 @@ TEST_CASE_METHOD(SqlTestFixture, "RowArrayCursor round-trips multibyte UTF-8 str
         CHECK((name.has_value() && name.value() == names[i]));
     }
 }
+
+// A value wider than the array cursor's bound buffer must FAIL LOUDLY, not be silently clamped:
+// the bulk fetch path sizes each character buffer from SQLDescribeCol's declared column width, and a
+// driver that hands back a longer value (truncation) would otherwise produce a half-row and corrupt
+// the backup. SQLite is the only backend that lets us provoke this cleanly — it does not enforce
+// VARCHAR(N), so a value far longer than the declared width is stored intact yet the cursor still
+// sizes its buffer to N. GetString must throw rather than return the clamped prefix.
+TEST_CASE_METHOD(SqlTestFixture, "RowArrayCursor throws on a value truncated to the bound buffer", "[batchfetch]")
+{
+    auto stmt = SqlStatement {};
+    // MSSQL/PostgreSQL enforce the declared width (the over-long INSERT would itself fail), so the
+    // truncation-on-read scenario can only arise on SQLite's non-enforcing dynamic typing.
+    if (stmt.Connection().ServerType() != SqlServerType::SQLITE)
+        SKIP();
+
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+        migration.CreateTable("BatchFetchTruncate")
+            .PrimaryKey("Id", SqlColumnTypeDefinitions::Bigint {})
+            .Column("Name", SqlColumnTypeDefinitions::Varchar { 4 });
+    });
+    // 200 ASCII bytes into a VARCHAR(4): SQLite stores it verbatim, but the cursor binds a 4-char
+    // buffer, so the driver reports a length far beyond it on fetch.
+    std::string const oversized(200, 'x');
+    stmt.Prepare(R"(INSERT INTO "BatchFetchTruncate" ("Id", "Name") VALUES (?, ?))");
+    (void) stmt.Execute(std::int64_t { 1 }, oversized);
+
+    auto cursor = stmt.ExecuteBatchFetch(R"(SELECT "Id", "Name" FROM "BatchFetchTruncate")"sv, 8);
+    auto const fetched = cursor.FetchArray();
+    REQUIRE(fetched == 1);
+    CHECK_THROWS_AS((void) cursor.GetString(0, 2), std::runtime_error);
+}

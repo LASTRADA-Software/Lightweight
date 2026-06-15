@@ -1433,6 +1433,36 @@ TEST_CASE_METHOD(SqlTestFixture, "Unicode round-trip across binders", "[SqlDataB
         REQUIRE(reader.FetchRow());
         CHECK(reader.GetColumn<std::wstring>(1) == L"Hello \U0001F601 World"s);
     }
+
+    SECTION("narrow std::string read-back preserves UTF-8 bytes")
+    {
+        // Pins the regression fixed alongside this section: the ANSI std::string binder used to read
+        // narrow columns via SQL_C_CHAR, which psqlODBC on Windows transcodes to cp1252 — so a stored
+        // "café €" came back mangled (caf? ?). The read path now mirrors the write path (SQL_C_WCHAR
+        // + UTF-8 conversion) on PostgreSQL. The other backends already round-tripped these bytes and
+        // must keep doing so.
+        auto const utf8Value = "caf\xC3\xA9 \xE2\x82\xAC"s; // "café €" as UTF-8 bytes
+        stmt.Prepare(stmt.Query("UnicodeRoundTrip").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(utf8Value);
+
+        SECTION("GetColumn<std::string>")
+        {
+            stmt.Prepare(stmt.Query("UnicodeRoundTrip").Select().Field("value").All());
+            auto reader = stmt.Execute();
+            REQUIRE(reader.FetchRow());
+            CHECK(reader.GetColumn<std::string>(1) == utf8Value);
+        }
+
+        SECTION("BindOutputColumns with std::string")
+        {
+            stmt.Prepare(stmt.Query("UnicodeRoundTrip").Select().Field("value").All());
+            auto reader = stmt.Execute();
+            std::string actual;
+            reader.BindOutputColumns(&actual);
+            REQUIRE(reader.FetchRow());
+            CHECK(actual == utf8Value);
+        }
+    }
 }
 
 struct UnicodeAcrossDynamicStringTypes

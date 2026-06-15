@@ -284,22 +284,17 @@ TEST_CASE("TableIsArrayFetchable accepts only the safe simple-column type set", 
         CHECK_FALSE(TableIsArrayFetchable(t, SqlServerType::SQLITE));
     }
 
-    SECTION("Date/DateTime/Timestamp columns are array-fetchable on MSSQL/PG (native structs) but "
-            "not on SQLite (described as text)")
+    SECTION("Date/DateTime/Timestamp (temporal) columns are array-fetchable (P6: native structs)")
     {
-        // SQLite has no native temporal type: its ODBC driver describes a DATE/DATETIME column as
-        // text, so the array cursor would bind it as SQL_C_CHAR while the decode path calls
-        // GetDate/GetTimestamp — a bound-type mismatch. Temporal columns therefore stay on the
-        // single-row path on SQLite (which binds SQL_C_TYPE_TIMESTAMP and lets the driver convert).
         SqlSchema::Table t;
         t.name = "Temporal";
         t.columns.push_back(makeColumn("id", Integer {}));
         t.columns.push_back(makeColumn("d", Date {}));
         t.columns.push_back(makeColumn("when", DateTime {}));
         t.columns.push_back(makeColumn("at", Timestamp {}));
+        CHECK(TableIsArrayFetchable(t, SqlServerType::SQLITE));
         CHECK(TableIsArrayFetchable(t, SqlServerType::MICROSOFT_SQL));
         CHECK(TableIsArrayFetchable(t, SqlServerType::POSTGRESQL));
-        CHECK_FALSE(TableIsArrayFetchable(t, SqlServerType::SQLITE));
     }
 
     SECTION("a Guid column is array-fetchable on MSSQL/PG (SQL_C_GUID) but not on SQLite (text)")

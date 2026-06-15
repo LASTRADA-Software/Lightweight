@@ -135,6 +135,7 @@ set(SOURCE_FILES
     SqlBackup/SqlBackupIndexTests.cpp
     SqlBackup/ProductionReadinessTests.cpp
     dbtool/StandardProgressManagerTests.cpp
+    dbtool/BackupDiffTests.cpp
     UnicodeConverterTests.cpp
     Utils.cpp
     UtilsTests.cpp

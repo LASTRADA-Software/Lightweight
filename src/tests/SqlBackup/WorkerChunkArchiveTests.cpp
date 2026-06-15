@@ -13,6 +13,7 @@
 #endif
 
 #include <filesystem>
+#include <format>
 #include <map>
 #include <optional>
 #include <string>
@@ -71,6 +72,36 @@ std::map<std::string, std::pair<std::string, zip_int32_t>> ReadArchive(std::file
 }
 
 } // namespace
+
+TEST_CASE("WorkerChunkArchive round-trips many small entries without buffer-relocation corruption", "[workerarchive]")
+{
+    // Regression: Add() hands libzip a NON-owning pointer into the backing buffer and libzip only
+    // reads it at Seal()/zip_close. The backing store must keep every element's address stable
+    // across subsequent Adds. With a std::vector<std::string> backing store, growth reallocates and
+    // moves the elements; for small-string-optimized entries that relocates the character data
+    // itself, dangling libzip's pointer and silently corrupting the small chunks. This adds far more
+    // small (SSO-sized), distinct entries than any initial capacity so the backing store must grow
+    // many times — every entry must still round-trip byte-for-byte.
+    TempDir const dir;
+    auto archive = WorkerChunkArchive { dir.path, 0, /*rotationBytes=*/100 * 1024 * 1024, CompressionMethod::Deflate, 1 };
+
+    constexpr int Count = 512;
+    std::map<std::string, std::string> expected;
+    for (int i = 0; i < Count; ++i)
+    {
+        auto const name = std::format("data/t/{:04}_00.msgpack", i);
+        auto const payload = std::format("v{}", i); // tiny, SSO-sized, and distinct per entry
+        expected.emplace(name, payload);
+        archive.Add(name, payload);
+    }
+    archive.Seal();
+
+    REQUIRE(archive.SealedArchives().size() == 1);
+    auto const entries = ReadArchive(archive.SealedArchives().front());
+    REQUIRE(entries.size() == expected.size());
+    for (auto const& [name, payload]: expected)
+        CHECK(entries.at(name).first == payload);
+}
 
 TEST_CASE("WorkerChunkArchive seals compressed entries that round-trip", "[workerarchive]")
 {

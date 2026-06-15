@@ -65,13 +65,6 @@ bool TableIsArrayFetchable(SqlSchema::Table const& table, SqlServerType serverTy
     // SQL_C_GUID bytes (MSSQL uniqueidentifier, PostgreSQL uuid). SQLite stores GUIDs as text and
     // its single-row path goes through TryParse — it stays single-row there.
     bool const guidIsNative = serverType == SqlServerType::POSTGRESQL || serverType == SqlServerType::MICROSOFT_SQL;
-    // Date/DateTime/Timestamp are admitted to the native SQL_DATE_STRUCT / SQL_TIMESTAMP_STRUCT
-    // array bind only where SQLDescribeCol reports SQL_TYPE_DATE / SQL_TYPE_TIMESTAMP (MSSQL,
-    // PostgreSQL). SQLite has no native temporal type: its ODBC driver describes a DATE/DATETIME
-    // column as text, so the array cursor would bind it as SQL_C_CHAR while the decode path calls
-    // GetDate/GetTimestamp — a BoundType mismatch that throws. SQLite temporal columns therefore
-    // stay on the single-row path (which binds SQL_C_TYPE_TIMESTAMP and lets the driver convert).
-    bool const temporalIsNative = serverType == SqlServerType::POSTGRESQL || serverType == SqlServerType::MICROSOFT_SQL;
 
     auto const isSafe = [&](SqlSchema::Column const& column) {
         return std::visit(
@@ -80,7 +73,9 @@ bool TableIsArrayFetchable(SqlSchema::Table const& table, SqlServerType serverTy
                 // Integer family, Real, Bool -> bound as int64/double; Varchar/Char/Decimal ->
                 // bound as text matching the single-row path's string decode; NVarchar/NChar (P6)
                 // -> bound as SQL_C_WCHAR and converted through the same ToUtf8 as the single-row
-                // u16string read. Text is intentionally NOT here: TableHasLobColumn classifies
+                // u16string read; Date/DateTime/Timestamp (P6) -> native SQL_DATE_STRUCT /
+                // SQL_TIMESTAMP_STRUCT array binds formatted via the same std::format as the
+                // single-row read. Text is intentionally NOT here: TableHasLobColumn classifies
                 // every Text column as a LOB (it uses SqlDynamicBinary today), so a Text column
                 // always falls through to the LOB guard below regardless — keeping it out of this
                 // set avoids implying otherwise.
@@ -88,8 +83,6 @@ bool TableIsArrayFetchable(SqlSchema::Table const& table, SqlServerType serverTy
                     return timeIsText;
                 else if constexpr (std::is_same_v<T, Guid>)
                     return guidIsNative;
-                else if constexpr (IsAnyOf<T, Date, DateTime, Timestamp>)
-                    return temporalIsNative;
                 else
                     return IsAnyOf<T,
                                    Integer,
@@ -102,7 +95,10 @@ bool TableIsArrayFetchable(SqlSchema::Table const& table, SqlServerType serverTy
                                    Char,
                                    Decimal,
                                    NVarchar,
-                                   NChar>;
+                                   NChar,
+                                   Date,
+                                   DateTime,
+                                   Timestamp>;
             },
             column.type);
     };
@@ -210,8 +206,15 @@ ChunkPlan PlanChunks(std::vector<SqlSchema::Table> const& tables,
             state.totalRows.store(estimateMinus1 == std::numeric_limits<uint64_t>::max()
                                       ? std::numeric_limits<size_t>::max()
                                       : static_cast<size_t>(estimateMinus1) + 1);
+#if !defined(__cpp_lib_ranges_enumerate)
+            int64_t windowIndex { -1 };
+            for (auto const& window: windows)
+            {
+                ++windowIndex;
+#else
             for (auto const& [windowIndex, window]: windows | std::views::enumerate)
             {
+#endif
                 auto const& [lo, hi] = window;
                 plan.chunks.emplace_back(Chunk {
                     .table = &table,

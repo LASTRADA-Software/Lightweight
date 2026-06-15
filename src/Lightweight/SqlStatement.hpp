@@ -482,6 +482,20 @@ class [[nodiscard]] SqlResultCursor
     SqlStatement* m_stmt;
 };
 
+/// @brief Thrown by RowArrayCursor's constructor when the executed result set cannot be fixed-stride
+/// array-bound.
+///
+/// Raised for an unbounded/LOB or over-wide character column (e.g. a column the driver reports
+/// as SQL_LONGVARCHAR with no size, common for SQLite's dynamically-typed columns), or a query that
+/// produced no result columns. It is a precondition signal, not a database error, so callers that
+/// use bulk array-fetch purely as an optimization should catch it and fall back to the single-row
+/// path. Distinct from SqlException so transient-error retry logic does not mistake it for one.
+class RowArrayCursorUnsupported: public std::runtime_error
+{
+  public:
+    using std::runtime_error::runtime_error;
+};
+
 /// @brief A cursor that fetches result rows in bulk (ODBC row-array binding) for fast column reads.
 ///
 /// Created via @ref SqlStatement::ExecuteBatchFetch. Instead of issuing one SQLGetData per cell,
@@ -494,7 +508,7 @@ class [[nodiscard]] SqlResultCursor
 ///  - floating SQL types (SQL_REAL, SQL_FLOAT, SQL_DOUBLE) are bound as SQL_C_DOUBLE;
 ///  - all other types (char/varchar/decimal/date/time/timestamp/numeric/...) are bound as
 ///    SQL_C_CHAR with a per-column buffer sized from the reported column size (plus a margin,
-///    capped at @ref MaxCharColumnBytes).
+///    capped at @ref RowArrayCursor::MaxCharColumnBytes).
 ///
 /// LOB / unbounded columns (the driver reports column size 0 or an absurdly large size) are
 /// rejected: constructing the cursor throws std::runtime_error. Such columns must use the

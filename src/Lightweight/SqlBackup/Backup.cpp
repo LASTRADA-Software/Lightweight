@@ -721,6 +721,35 @@ void ProcessChunkBackup(BackupContext& ctx, SqlConnection& conn, detail::Chunk c
         }
     };
 
+    // Runs one chunk's query, preferring the bulk array-fetch path for array-fetchable tables but
+    // transparently falling back to the proven single-row path when the cursor cannot be built.
+    // The planner classifies a table as array-fetchable from its schema, yet a driver can still
+    // describe a column in a way the fixed-stride cursor cannot bind — notably SQLite, whose dynamic
+    // typing makes SQLDescribeCol report some columns as unbounded LONGVARCHAR. RowArrayCursor throws
+    // RowArrayCursorUnsupported from its constructor, BEFORE any row is fetched or any chunk flushed,
+    // so falling back here is safe (no partial output) and keeps the backup correct rather than
+    // failing the whole table on a misclassification.
+    auto const runChunk = [&](std::string const& selectQuery) {
+        if (chunk.arrayFetchable)
+        {
+            try
+            {
+                processQueryBatched(selectQuery);
+                return;
+            }
+            catch (RowArrayCursorUnsupported const& e)
+            {
+                ctx.progress.Update(
+                    { .state = Progress::State::Warning,
+                      .tableName = tableName,
+                      .currentRows = state.processedRows.load(),
+                      .totalRows = totalRows,
+                      .message = std::format("Table not bulk-fetchable ({}); using single-row path", e.what()) });
+            }
+        }
+        processQuery(selectQuery);
+    };
+
     if (usePkRange)
     {
         // One chunk == one plan-time window [chunk.lo, chunk.hi]; other windows of this table run
@@ -738,11 +767,9 @@ void ProcessChunkBackup(BackupContext& ctx, SqlConnection& conn, detail::Chunk c
                     selectQuery = BuildSelectQueryWithPkRange(
                         conn.ServerType(), table.schema, tableName, table.columns, chunk.pkColumn, chunk.lo, chunk.hi);
                 }
-                // Array-fetch simple-column tables; everything else keeps the proven single-row path.
-                if (chunk.arrayFetchable)
-                    processQueryBatched(selectQuery);
-                else
-                    processQuery(selectQuery);
+                // Array-fetch simple-column tables; everything else (and any table the cursor can't
+                // bind) keeps the proven single-row path.
+                runChunk(selectQuery);
                 break;
             }
             catch (SqlException const& e)
@@ -792,7 +819,7 @@ void ProcessChunkBackup(BackupContext& ctx, SqlConnection& conn, detail::Chunk c
             selectQuery = BuildSelectQueryWithOffset(
                 formatter, conn.ServerType(), table.schema, tableName, table.columns, table.primaryKeys, processedRows);
         }
-        processQueryBatched(selectQuery);
+        runChunk(selectQuery);
     }
     else
     {

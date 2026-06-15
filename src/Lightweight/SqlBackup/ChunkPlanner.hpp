@@ -138,15 +138,11 @@ struct ChunkPlan
 ///                                                              single-row path uses the native
 ///                                                              SqlTime struct instead, so Time
 ///                                                              stays single-row there),
-///   - Date / DateTime / Timestamp, on PostgreSQL/MSSQL only  (native SQL_DATE_STRUCT /
+///   - Date / DateTime / Timestamp                             (P6: native SQL_DATE_STRUCT /
 ///                                                              SQL_TIMESTAMP_STRUCT array binds,
 ///                                                              formatted via the same std::format
 ///                                                              as the single-row SqlDate /
-///                                                              SqlDateTime reads; SQLite describes
-///                                                              temporal columns as text, so the
-///                                                              native-struct decode would mismatch
-///                                                              the bound type — they stay
-///                                                              single-row there).
+///                                                              SqlDateTime reads).
 ///
 /// Guid, Text, and binary/LOB columns are still EXCLUDED: Guid array decode is pending a P6
 /// follow-up task, and Text/binary are LOBs that cannot be fixed-stride array-bound at all.

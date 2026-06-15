@@ -548,7 +548,7 @@ RowArrayCursor::RowArrayCursor(SqlStatement& stmt, std::size_t arrayDepth):
     SQLSMALLINT numColumns = 0;
     m_stmt->RequireSuccess(SQLNumResultCols(hStmt, &numColumns));
     if (numColumns <= 0)
-        throw std::runtime_error { "RowArrayCursor: query produced no result columns" };
+        throw RowArrayCursorUnsupported { "RowArrayCursor: query produced no result columns" };
 
     m_columns.reserve(static_cast<std::size_t>(numColumns));
 
@@ -602,7 +602,7 @@ RowArrayCursor::RowArrayCursor(SqlStatement& stmt, std::size_t arrayDepth):
             // count; SQL_C_WCHAR buffers count bytes at 2 bytes per UTF-16 code unit (plus a NUL).
             // The LOB/oversize rejection mirrors the narrow path's character-count semantics.
             if (columnSize == 0 || columnSize >= MaxCharColumnBytes)
-                throw std::runtime_error {
+                throw RowArrayCursorUnsupported {
                     "RowArrayCursor: column is unbounded (LOB) or too wide for fixed-stride bulk fetch"
                 };
             boundColumn.type = BoundType::WChar;
@@ -623,7 +623,7 @@ RowArrayCursor::RowArrayCursor(SqlStatement& stmt, std::size_t arrayDepth):
             // varchar(8000) becomes ~32 KB per row. At high arrayDepth that is a known memory
             // tradeoff (arrayDepth * 32 KB) accepted in exchange for correct multibyte round-trips.
             if (columnSize == 0 || columnSize >= MaxCharColumnBytes)
-                throw std::runtime_error {
+                throw RowArrayCursorUnsupported {
                     "RowArrayCursor: column is unbounded (LOB) or too wide for fixed-stride bulk fetch"
                 };
             boundColumn.type = BoundType::Char;
