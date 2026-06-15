@@ -538,6 +538,194 @@ def main():
             print(f"status error message did not mention 'No migrations registered':\n{no_plugin_result.stderr}")
             sys.exit(1)
 
+    # The diff sections below stand up two disposable SQLite files with the
+    # Python sqlite3 module and drive `dbtool diff` over the SQLite ODBC driver,
+    # so they exercise the full CLI path (arg parsing, profile resolution,
+    # connection handling, schema introspection, schema + data diff,
+    # rendering) end-to-end. They run regardless of --test-env because the
+    # diff command's value proposition is cross-engine and SQLite is the
+    # cheapest harness; the [SqlSchemaDiff] / [SqlDataDiff] Catch2 suites
+    # provide the per-engine coverage on top.
+    import sqlite3 as _sqlite3
+
+    def _seed_users_db(path, rows):
+        conn = _sqlite3.connect(path)
+        try:
+            conn.execute("DROP TABLE IF EXISTS users")
+            conn.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
+            conn.executemany("INSERT INTO users (id, name) VALUES (?, ?)", rows)
+            conn.commit()
+        finally:
+            conn.close()
+
+    def _sqlite_cs(path):
+        # The SQLite ODBC driver name is bracketed because it contains spaces;
+        # this matches the format the Catch2 fixtures use (SqlDataDiffTests.cpp:52).
+        return f"DRIVER={{SQLite3 ODBC Driver}};Database={path}"
+
+    print("--- 14. dbtool diff: identical databases exit 0 and report no differences ---")
+    with tempfile.TemporaryDirectory() as diff_tmpdir:
+        a = os.path.join(diff_tmpdir, "a.sqlite")
+        b = os.path.join(diff_tmpdir, "b.sqlite")
+        seed = [(1, "alice"), (2, "bob")]
+        _seed_users_db(a, seed)
+        _seed_users_db(b, seed)
+
+        # The diff command opens its own connections from positional args; no
+        # --connection-string or --plugins-dir needed (and they would be ignored).
+        same_result = run_command(
+            [args.dbtool, "diff", _sqlite_cs(a), _sqlite_cs(b), "--no-color", "--quiet"],
+            check=False,
+        )
+        if same_result.returncode != 0:
+            print(f"diff of identical DBs unexpectedly returned {same_result.returncode}:\n"
+                  f"STDOUT:\n{same_result.stdout}\nSTDERR:\n{same_result.stderr}")
+            sys.exit(1)
+        if "(schemas match)" not in same_result.stdout:
+            print(f"diff of identical DBs did not report '(schemas match)':\n{same_result.stdout}")
+            sys.exit(1)
+        # Data diff section must either be absent (empty dataDiffs) or report a match —
+        # never a row-level diff for byte-identical inputs.
+        if "changed" in same_result.stdout or "only in" in same_result.stdout:
+            print(f"diff of identical DBs surfaced row-level differences:\n{same_result.stdout}")
+            sys.exit(1)
+
+    print("--- 15. dbtool diff: row-value drift surfaces as a 'changed' cell with exit 1 ---")
+    with tempfile.TemporaryDirectory() as diff_tmpdir:
+        a = os.path.join(diff_tmpdir, "a.sqlite")
+        b = os.path.join(diff_tmpdir, "b.sqlite")
+        _seed_users_db(a, [(1, "alice"), (2, "bob")])
+        _seed_users_db(b, [(1, "alice"), (2, "BOB")])  # row 2 differs in the value column
+
+        diff_result = run_command(
+            [args.dbtool, "diff", _sqlite_cs(a), _sqlite_cs(b), "--no-color", "--quiet"],
+            check=False,
+        )
+        if diff_result.returncode != 1:
+            print(f"diff with row drift expected exit 1, got {diff_result.returncode}:\n"
+                  f"STDOUT:\n{diff_result.stdout}\nSTDERR:\n{diff_result.stderr}")
+            sys.exit(1)
+        # The data-diff section must name the table, the diverging column, and both values.
+        for needle in ("Data diff: users", "changed", "name", "bob", "BOB"):
+            if needle not in diff_result.stdout:
+                print(f"diff output missing expected fragment {needle!r}:\n{diff_result.stdout}")
+                sys.exit(1)
+
+    print("--- 16. dbtool diff: row-only-on-one-side is reported as 'only in A' / 'only in B' ---")
+    with tempfile.TemporaryDirectory() as diff_tmpdir:
+        a = os.path.join(diff_tmpdir, "a.sqlite")
+        b = os.path.join(diff_tmpdir, "b.sqlite")
+        _seed_users_db(a, [(1, "alice"), (2, "bob")])
+        _seed_users_db(b, [(1, "alice")])  # row 2 only on A
+
+        only_result = run_command(
+            [args.dbtool, "diff", _sqlite_cs(a), _sqlite_cs(b), "--no-color", "--quiet"],
+            check=False,
+        )
+        if only_result.returncode != 1:
+            print(f"diff with one-sided row expected exit 1, got {only_result.returncode}:\n"
+                  f"STDOUT:\n{only_result.stdout}\nSTDERR:\n{only_result.stderr}")
+            sys.exit(1)
+        if "only in A" not in only_result.stdout:
+            print(f"diff did not report 'only in A' for the extra row on side A:\n{only_result.stdout}")
+            sys.exit(1)
+
+    print("--- 17. dbtool diff --schema-only suppresses the data diff section ---")
+    with tempfile.TemporaryDirectory() as diff_tmpdir:
+        a = os.path.join(diff_tmpdir, "a.sqlite")
+        b = os.path.join(diff_tmpdir, "b.sqlite")
+        _seed_users_db(a, [(1, "alice")])
+        _seed_users_db(b, [(1, "ALICE")])  # would differ at the row level
+
+        schema_only_result = run_command(
+            [args.dbtool, "diff", _sqlite_cs(a), _sqlite_cs(b),
+             "--schema-only", "--no-color", "--quiet"],
+            check=False,
+        )
+        # Schema matches → exit 0 regardless of data drift in this mode.
+        if schema_only_result.returncode != 0:
+            print(f"--schema-only with matching schemas expected exit 0, got {schema_only_result.returncode}:\n"
+                  f"STDOUT:\n{schema_only_result.stdout}\nSTDERR:\n{schema_only_result.stderr}")
+            sys.exit(1)
+        if "Data diff:" in schema_only_result.stdout:
+            print(f"--schema-only unexpectedly emitted a data-diff section:\n{schema_only_result.stdout}")
+            sys.exit(1)
+
+    print("--- 18. dbtool diff: a default profile's `schema:` must not leak into raw connection strings ---")
+    # Regression: a default profile carrying `schema: dbo` (typical for SQL-Server
+    # operators) used to leak into the introspection queries on both sides, so
+    # diff'ing two raw SQLite connection strings would issue `PRAGMA "dbo".table_info(...)`
+    # and SQLite would reply "unknown database 'dbo'". The schema diff is keyed
+    # by table name only — the default profile's schema must not be applied as
+    # a filter when the user is comparing two raw connection strings.
+    with tempfile.TemporaryDirectory() as diff_tmpdir:
+        a = os.path.join(diff_tmpdir, "a.sqlite")
+        b = os.path.join(diff_tmpdir, "b.sqlite")
+        _seed_users_db(a, [(1, "alice")])
+        _seed_users_db(b, [(1, "ALICE")])
+        cfg_path = os.path.join(diff_tmpdir, "dbtool.yml")
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            f.write(
+                "defaultProfile: leaky\n"
+                "profiles:\n"
+                "  leaky:\n"
+                "    schema: dbo\n"
+                "    connectionString: \"DRIVER=SQLite3;Database=unused.db\"\n"
+            )
+
+        leak_result = run_command(
+            [args.dbtool, "--config", cfg_path, "diff",
+             _sqlite_cs(a), _sqlite_cs(b), "--no-color", "--quiet"],
+            check=False,
+        )
+        # Expect exit 1 (data differs) — anything else (especially exit 1 with an
+        # "unknown database 'dbo'" error) indicates the `schema: dbo` from the
+        # default profile leaked into the SQLite introspection path.
+        if leak_result.returncode != 1:
+            print(f"diff with default `schema: dbo` profile expected exit 1, got {leak_result.returncode}:\n"
+                  f"STDOUT:\n{leak_result.stdout}\nSTDERR:\n{leak_result.stderr}")
+            sys.exit(1)
+        if "unknown database" in leak_result.stderr or "unknown database" in leak_result.stdout:
+            print(f"diff leaked `dbo` schema into SQLite introspection — regression:\n"
+                  f"STDOUT:\n{leak_result.stdout}\nSTDERR:\n{leak_result.stderr}")
+            sys.exit(1)
+        if "Data diff: users" not in leak_result.stdout:
+            print(f"diff under a default profile did not surface the expected row drift:\n{leak_result.stdout}")
+            sys.exit(1)
+
+    print("--- 19. dbtool diff: bad connection string surfaces a clear error ---")
+    with tempfile.TemporaryDirectory() as diff_tmpdir:
+        a = os.path.join(diff_tmpdir, "a.sqlite")
+        _seed_users_db(a, [(1, "alice")])
+
+        bad_result = run_command(
+            [args.dbtool, "diff",
+             _sqlite_cs(a),
+             "DRIVER={Nonexistent ODBC Driver};Database=/dev/null",
+             "--no-color", "--quiet"],
+            check=False,
+        )
+        # Any non-zero exit is acceptable; we only care that it does NOT exit 0
+        # (which would silently mask a connection failure).
+        if bad_result.returncode == 0:
+            print(f"diff against an unreachable driver unexpectedly exited 0:\n"
+                  f"STDOUT:\n{bad_result.stdout}\nSTDERR:\n{bad_result.stderr}")
+            sys.exit(1)
+
+    print("--- 20. dbtool diff: missing positional argument is rejected ---")
+    missing_arg_result = run_command(
+        [args.dbtool, "diff", _sqlite_cs("anywhere.sqlite")],
+        check=False,
+    )
+    if missing_arg_result.returncode == 0:
+        print(f"diff with only one source unexpectedly exited 0:\n"
+              f"STDOUT:\n{missing_arg_result.stdout}\nSTDERR:\n{missing_arg_result.stderr}")
+        sys.exit(1)
+    if "two source arguments" not in missing_arg_result.stderr:
+        print(f"diff with missing source did not mention 'two source arguments':\n"
+              f"STDERR:\n{missing_arg_result.stderr}")
+        sys.exit(1)
+
     print("SUCCESS")
 
 

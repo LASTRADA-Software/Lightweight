@@ -93,6 +93,8 @@ set(SOURCE_FILES
     MigrationReflectionTests.cpp
     QueryBuilderTests.cpp
     QueryFormatterTests.cpp
+    SqlDataDiffTests.cpp
+    SqlSchemaDiffTests.cpp
     SqlErrorDetectionTests.cpp
     SqlGuidTests.cpp
     SqlLoggerTests.cpp
