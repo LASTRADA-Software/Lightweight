@@ -56,9 +56,9 @@ namespace detail
     constexpr std::optional<size_t> FindPrimaryKeyIndex()
     {
         static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-        if constexpr (I < Reflection::CountMembers<Record>)
+        if constexpr (I < RecordMemberCount<Record>)
         {
-            if constexpr (IsPrimaryKey<Reflection::MemberTypeOf<I, Record>>)
+            if constexpr (IsPrimaryKey<RecordMemberTypeOf<I, Record>>)
                 return { I };
             else
                 return FindPrimaryKeyIndex<I + 1, Record>();
@@ -79,7 +79,7 @@ decltype(auto) RecordPrimaryKeyOf(Record&& record)
 {
     // static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
     // static_assert(RecordPrimaryKeyIndex<Record> != static_cast<size_t>(-1), "Record must have a primary key");
-    return Reflection::GetMemberAt<RecordPrimaryKeyIndex<std::remove_cvref_t<Record>>>(std::forward<Record>(record));
+    return GetRecordMemberAt<RecordPrimaryKeyIndex<std::remove_cvref_t<Record>>>(std::forward<Record>(record));
 }
 
 namespace details
@@ -92,10 +92,10 @@ namespace details
     };
 
     template <typename Record>
-        requires(RecordPrimaryKeyIndex<Record> < Reflection::CountMembers<Record>)
+        requires(RecordPrimaryKeyIndex<Record> < RecordMemberCount<Record>)
     struct RecordPrimaryKeyTypeHelper<Record>
     {
-        using type = Reflection::MemberTypeOf<RecordPrimaryKeyIndex<Record>, Record>::ValueType;
+        using type = RecordMemberTypeOf<RecordPrimaryKeyIndex<Record>, Record>::ValueType;
     };
 
 } // namespace details
@@ -108,8 +108,8 @@ using RecordPrimaryKeyType = details::RecordPrimaryKeyTypeHelper<Record>::type;
 template <typename Record, typename TargetMappable>
 void MapFromRecordFields(Record&& record, TargetMappable& target)
 {
-    Reflection::EnumerateMembers(std::forward<Record>(record), [&]<std::size_t I>(auto const& field) {
-        using MemberType = Reflection::MemberTypeOf<I, Record>;
+    EnumerateRecordMembers(std::forward<Record>(record), [&]<std::size_t I>(auto const& field) {
+        using MemberType = RecordMemberTypeOf<I, Record>;
         static_assert(IsField<MemberType>, "Record member must be a Field<> type");
         static_assert(std::is_assignable_v<decltype(target[I]), decltype(field.Value())>,
                       "Target must support operator[] with the field type");
@@ -135,7 +135,7 @@ concept FieldWithStorage = requires(T const& field, T& mutableField) {
 /// @ingroup DataMapper
 template <typename Record>
 constexpr size_t RecordStorageFieldCount =
-    Reflection::FoldMembers<Record>(size_t { 0 }, []<size_t I, typename Field>(size_t const accum) constexpr {
+    FoldRecordMembers<Record>(size_t { 0 }, []<size_t I, typename Field>(size_t const accum) constexpr {
         if constexpr (FieldWithStorage<Field>)
             return accum + 1;
         else
@@ -149,7 +149,7 @@ namespace detail
 {
 
     template <auto Test, typename T>
-    constexpr bool CheckFieldProperty = Reflection::FoldMembers<T>(false, []<size_t I, typename Field>(bool const accum) {
+    constexpr bool CheckFieldProperty = FoldRecordMembers<T>(false, []<size_t I, typename Field>(bool const accum) {
         if constexpr (Test.template operator()<Field>())
             return true;
         else
@@ -181,7 +181,7 @@ inline LIGHTWEIGHT_FORCE_INLINE RecordPrimaryKeyType<Record> GetPrimaryKeyField(
     static_assert(HasPrimaryKey<Record>, "Record must have a primary key");
 
     auto result = RecordPrimaryKeyType<Record> {};
-    Reflection::EnumerateMembers(record, [&]<size_t I, typename FieldType>(FieldType const& field) {
+    EnumerateRecordMembers(record, [&]<size_t I, typename FieldType>(FieldType const& field) {
         // std::same_as<typename FieldType::ValueType, RecordPrimaryKeyType<Record>>condition is for the case where there are
         // multiple primary keys, we want to return the first one
         if constexpr (IsField<FieldType>)

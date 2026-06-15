@@ -5,9 +5,11 @@
 #include "Track.hpp"
 
 #if !defined(LIGHTWEIGHT_BUILD_MODULES)
-#include <Lightweight/DataMapper/DataMapper.hpp>
+    #include <Lightweight/DataMapper/DataMapper.hpp>
 #endif
 
+#include <array>
+#include <string_view>
 
 struct Invoiceline final
 {
@@ -20,3 +22,16 @@ struct Invoiceline final
     Light::Field<int32_t, Light::SqlRealName { "Quantity" }> Quantity;
 };
 
+template <>
+struct Lightweight::Description<Invoiceline>
+{
+    static constexpr std::size_t FieldCount = 5;
+    using Members = Lightweight::RecordMemberList<&Invoiceline::InvoiceLineId,
+                                                  &Invoiceline::InvoiceId,
+                                                  &Invoiceline::TrackId,
+                                                  &Invoiceline::UnitPrice,
+                                                  &Invoiceline::Quantity>;
+    static constexpr std::array<std::string_view, 5> FieldNames = {
+        "InvoiceLineId", "InvoiceId", "TrackId", "UnitPrice", "Quantity"
+    };
+};

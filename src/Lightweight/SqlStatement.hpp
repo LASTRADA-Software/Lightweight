@@ -594,8 +594,8 @@ class SqlRowIterator
         {
             auto res = T {};
 
-            Reflection::EnumerateMembers(res, [this]<size_t I>(auto&& value) {
-                auto tmp = _cursor->GetColumn<typename Reflection::MemberTypeOf<I, value_type>::ValueType>(I + 1);
+            EnumerateRecordMembers(res, [this]<size_t I>(auto&& value) {
+                auto tmp = _cursor->GetColumn<typename RecordMemberTypeOf<I, value_type>::ValueType>(I + 1);
                 value = tmp;
             });
 
@@ -719,12 +719,12 @@ void SqlStatement::BindOutputColumnsToRecord(Records*... records)
     RequireIndicators();
 
     SQLUSMALLINT i = 0;
-    ((Reflection::EnumerateMembers(*records,
-                                   [this, &i]<size_t I, typename FieldType>(FieldType& value) {
-                                       ++i;
-                                       RequireSuccess(SqlDataBinder<FieldType>::OutputColumn(
-                                           m_hStmt, i, &value, GetIndicatorForColumn(i), *this));
-                                   })),
+    ((EnumerateRecordMembers(*records,
+                             [this, &i]<size_t I, typename FieldType>(FieldType& value) {
+                                 ++i;
+                                 RequireSuccess(SqlDataBinder<FieldType>::OutputColumn(
+                                     m_hStmt, i, &value, GetIndicatorForColumn(i), *this));
+                             })),
      ...);
 }
 

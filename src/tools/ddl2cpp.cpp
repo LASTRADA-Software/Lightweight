@@ -109,6 +109,8 @@ struct Configuration
     bool suppressWarnings = false;
     bool generateExample = false;
     FormatType formatType = FormatType::preserve;
+    bool generateInstantiations = false;
+    std::string instantiationTargetName = "LightweightEntities";
 
     bool showHelpAndExit = false;
 };
@@ -174,6 +176,14 @@ void PrintHelp(std::string_view programName)
     std::println("  --naming-convention STR Naming convention for aliases");
     std::println("                          [none, snake_case, camelCase]");
     std::println("  --no-warnings           Suppresses warnings");
+    std::println("  --generate-instantiations");
+    std::println("                          Emit `extern template` declarations plus one explicit-");
+    std::println("                          instantiation .cpp per record and a CMakeLists.txt that builds");
+    std::println("                          them into a library, so consuming code does not re-instantiate");
+    std::println("                          the DataMapper relation machinery (faster compiles).");
+    std::println("  --instantiation-target-name STR");
+    std::println("                          CMake library target name for the instantiations");
+    std::println("                          (default: LightweightEntities).");
     std::println("  --help, -h              Display this information");
     std::println("");
 }
@@ -239,6 +249,16 @@ std::expected<void, std::string> ParseArguments(int argc, char const* argv[], Co
         else if (argv[i] == "--no-warnings"sv)
         {
             config.suppressWarnings = true;
+        }
+        else if (argv[i] == "--generate-instantiations"sv)
+        {
+            config.generateInstantiations = true;
+        }
+        else if (argv[i] == "--instantiation-target-name"sv)
+        {
+            if (++i >= argc)
+                return std::unexpected("Missing instantiation target name");
+            config.instantiationTargetName = argv[i];
         }
         else if (argv[i] == "--help"sv || argv[i] == "-h"sv)
         {
@@ -516,6 +536,8 @@ int main(int argc, char const* argv[])
         .unicodeTextColumnOverrides = config.unicodeTextColumnOverrides,
         .suppressWarnings = config.suppressWarnings,
         .sqlFixedStringMaxSize = config.sqlFixedStringMaxSize,
+        .generateInstantiations = config.generateInstantiations,
+        .instantiationTargetName = config.instantiationTargetName,
     } };
 
     TimedExecution("Resolving Order and print tables", [&] { cxxModelPrinter.ResolveOrderAndPrintTable(tables); });

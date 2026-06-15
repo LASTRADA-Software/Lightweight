@@ -2,9 +2,11 @@
 #pragma once
 
 #if !defined(LIGHTWEIGHT_BUILD_MODULES)
-#include <Lightweight/DataMapper/DataMapper.hpp>
+    #include <Lightweight/DataMapper/DataMapper.hpp>
 #endif
 
+#include <array>
+#include <string_view>
 
 struct Employee final
 {
@@ -27,3 +29,27 @@ struct Employee final
     Light::Field<std::optional<Light::SqlDynamicUtf16String<60>>, Light::SqlRealName { "Email" }> Email;
 };
 
+template <>
+struct Lightweight::Description<Employee>
+{
+    static constexpr std::size_t FieldCount = 15;
+    using Members = Lightweight::RecordMemberList<&Employee::EmployeeId,
+                                                  &Employee::LastName,
+                                                  &Employee::FirstName,
+                                                  &Employee::Title,
+                                                  &Employee::ReportsTo,
+                                                  &Employee::BirthDate,
+                                                  &Employee::HireDate,
+                                                  &Employee::Address,
+                                                  &Employee::City,
+                                                  &Employee::State,
+                                                  &Employee::Country,
+                                                  &Employee::PostalCode,
+                                                  &Employee::Phone,
+                                                  &Employee::Fax,
+                                                  &Employee::Email>;
+    static constexpr std::array<std::string_view, 15> FieldNames = { "EmployeeId", "LastName",  "FirstName", "Title",
+                                                                     "ReportsTo",  "BirthDate", "HireDate",  "Address",
+                                                                     "City",       "State",     "Country",   "PostalCode",
+                                                                     "Phone",      "Fax",       "Email" };
+};

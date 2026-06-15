@@ -128,6 +128,9 @@ TEST_CASE("CxxModelPrinter: simple table with default settings", "[CxxModelPrint
         #include <Lightweight/DataMapper/DataMapper.hpp>
         #endif
 
+        #include <array>
+        #include <string_view>
+
         namespace Test
         {
 
@@ -138,6 +141,14 @@ TEST_CASE("CxxModelPrinter: simple table with default settings", "[CxxModelPrint
         };
 
         } // end namespace Test
+
+        template <>
+        struct Lightweight::Description<Test::test>
+        {
+            static constexpr std::size_t FieldCount = 2;
+            using Members = Lightweight::RecordMemberList<&Test::test::id, &Test::test::name>;
+            static constexpr std::array<std::string_view, 2> FieldNames = { "id", "name" };
+        };
     )cpp"));
 }
 
@@ -360,6 +371,39 @@ TEST_CASE("CxxModelPrinter: table with primary key and several columns", "[CxxMo
     CHECK(output.contains("balance"));
     CHECK(output.contains("Light::SqlAnsiString<50>"));
     CHECK(output.contains("Light::SqlNumeric<10, 2>"));
+}
+
+TEST_CASE("CxxModelPrinter: emits Description for a keyed table with a relation", "[CxxModelPrinter]")
+{
+    using namespace Lightweight::SqlColumnTypeDefinitions;
+    CxxModelPrinter::Config config;
+    config.makeAliases = true;
+    CxxModelPrinter printer { config };
+
+    printer.PrintTable(Lightweight::SqlSchema::Table {
+        .schema = "",
+        .name = "orders",
+        .columns = {
+            Lightweight::SqlSchema::Column { .name = "id", .type = Integer {}, .isNullable = false, .isPrimaryKey = true },
+            Lightweight::SqlSchema::Column {
+                .name = "customer_id", .type = Integer {}, .isNullable = false, .isForeignKey = true },
+        },
+        .foreignKeys = { Lightweight::SqlSchema::ForeignKeyConstraint {
+            .foreignKey = { .table = { .catalog = "", .schema = "", .table = "orders" }, .columns = { "customer_id" } },
+            .primaryKey = { .table = { .catalog = "", .schema = "", .table = "customers" }, .columns = { "id" } },
+        } },
+        .primaryKeys = { "id" },
+    });
+
+    auto const output = printer.ToString("Models");
+
+    // The descriptor specializes the Lightweight customization point at global scope (qualified name)...
+    CHECK(output.contains("struct Lightweight::Description<Models::Orders>"));
+    CHECK(output.contains("static constexpr std::size_t FieldCount = 2;"));
+    // ...carries one pointer-to-member per field, in order (the FK becomes the relation member `customer`)...
+    CHECK(output.contains("using Members = Lightweight::RecordMemberList<&Models::Orders::id, &Models::Orders::customer>;"));
+    // ...and the resolved SQL column names, where the relation keeps its real foreign-key column name.
+    CHECK(output.contains(R"(FieldNames = { "id", "customer_id" };)"));
 }
 
 TEST_CASE("CxxModelPrinter::ResolveOrderAndPrintTable: orders by foreign-key dependencies", "[CxxModelPrinter]")

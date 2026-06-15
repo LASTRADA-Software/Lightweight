@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Api.hpp"
+#include "Description.hpp"
 
 #include <reflection-cpp/reflection.hpp>
 
@@ -234,13 +235,22 @@ namespace detail
     template <std::size_t I, typename Record>
     consteval std::string_view FieldNameAt()
     {
-        using FieldType = Reflection::MemberTypeOf<I, Record>;
-
-        if constexpr (!std::string_view(ColumnNameOverride<FieldType>).empty())
+        // Prefer the pre-baked SQL column name from a generated descriptor (avoids the
+        // expensive MangledName-based MemberNameOf evaluation); fall back to reflection.
+        if constexpr (HasDescription<Record>)
         {
-            return FieldType::ColumnNameOverride;
+            return Description<Record>::FieldNames[I];
         }
-        return Reflection::MemberNameOf<I, Record>;
+        else
+        {
+            using FieldType = Reflection::MemberTypeOf<I, Record>;
+
+            if constexpr (!std::string_view(ColumnNameOverride<FieldType>).empty())
+            {
+                return FieldType::ColumnNameOverride;
+            }
+            return Reflection::MemberNameOf<I, Record>;
+        }
     }
 } // namespace detail
 
