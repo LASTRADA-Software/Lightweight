@@ -115,7 +115,7 @@ $(document).ready(function(){initNavTree('de/dd3/ThreadPoolExecutor_8hpp_source.
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="comment">/// This is the default &quot;DB worker&quot; offload target: blocking ODBC calls are posted here and</span></div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="comment">/// executed on a worker thread while the awaiting coroutine is suspended. The pool is built on</span></div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="comment">/// stdexec&#39;s @c exec::static_thread_pool (the C++26 @c std::execution scheduler model); each posted</span></div>
-<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment">/// @ref Work item is spawned as a @c schedule|then sender into an @c exec::async_scope so the</span></div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment">/// @c Work item is spawned as a @c schedule|then sender into an @c exec::async_scope so the</span></div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span><span class="comment">/// destructor can wait for every in-flight item to finish, draining and joining. The pool must</span></div>
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="comment">/// therefore outlive every coroutine that can resume on it.</span></div>
 <div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="comment">///</span></div>
