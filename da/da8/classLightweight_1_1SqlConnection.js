@@ -28,10 +28,5 @@ var classLightweight_1_1SqlConnection =
     [ "NativeHandle", "da/da8/classLightweight_1_1SqlConnection.html#ad72f0aad1bc6075e7a91bd29d0ac3e2f", null ],
     [ "LastUsed", "da/da8/classLightweight_1_1SqlConnection.html#ad02b8090e26e09ac511f37aad3a277df", null ],
     [ "SetLastUsed", "da/da8/classLightweight_1_1SqlConnection.html#a7f4f112f86b9fd3fa94d171ddb449324", null ],
-    [ "RequireSuccess", "da/da8/classLightweight_1_1SqlConnection.html#a0938e714f9d74d7e64e080ad23161201", null ],
-    [ "EnableAsync", "da/da8/classLightweight_1_1SqlConnection.html#afd6064e6446d7bc609fd0fea94ad0fd7", null ],
-    [ "EnableAsync", "da/da8/classLightweight_1_1SqlConnection.html#acb0f99439f457fbd454e3bda1acaae19", null ],
-    [ "DisableAsync", "da/da8/classLightweight_1_1SqlConnection.html#a1b9ddca76bdd9131c68c24a67b9fc13c", null ],
-    [ "IsAsyncEnabled", "da/da8/classLightweight_1_1SqlConnection.html#a85f5e74fcdd175d0e6812e1668b9d729", null ],
-    [ "AsyncBackend", "da/da8/classLightweight_1_1SqlConnection.html#a93ccf2f65cb117c8ef34cac8be750d90", null ]
+    [ "RequireSuccess", "da/da8/classLightweight_1_1SqlConnection.html#a0938e714f9d74d7e64e080ad23161201", null ]
 ];
