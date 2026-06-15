@@ -388,7 +388,7 @@ template&lt;<a class="el" href="../../df/d1a/structLightweight_1_1PoolConfig.htm
 </table>
 </div><div class="memdoc">
 <p>Asynchronously acquires a <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a> using the executors previously set via <a class="el" href="../../d3/d30/classLightweight_1_1Pool.html#ad0b73779e3b92479684324ca2e6b9bf6">SetAsyncExecutors</a>, without blocking the calling thread.</p>
-<p>Equivalent to AcquireAsync(IExecutor&amp;, IResumeScheduler&amp;) with the pool's stored executors; use the explicit-argument overload to override them for a single call.</p>
+<p>Equivalent to the explicit-argument <a class="el" href="../../d3/d30/classLightweight_1_1Pool.html#a8dbac8744491b8abbc8f350c9b8db626">AcquireAsync</a> overload with the pool's stored executors; pass the executors to that overload to override them for a single call.</p>
 <dl class="section return"><dt>Returns</dt><dd>A Task yielding a pooled <a class="el" href="../../de/d61/classLightweight_1_1DataMapper.html" title="Main API for mapping records to and from the database using high level C++ syntax.">DataMapper</a>. </dd></dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
