@@ -15,7 +15,7 @@ namespace Lightweight::Async
 /// This is the default "DB worker" offload target: blocking ODBC calls are posted here and
 /// executed on a worker thread while the awaiting coroutine is suspended. The pool is built on
 /// stdexec's @c exec::static_thread_pool (the C++26 @c std::execution scheduler model); each posted
-/// @ref Work item is spawned as a @c schedule|then sender into an @c exec::async_scope so the
+/// @c Work item is spawned as a @c schedule|then sender into an @c exec::async_scope so the
 /// destructor can wait for every in-flight item to finish, draining and joining. The pool must
 /// therefore outlive every coroutine that can resume on it.
 ///

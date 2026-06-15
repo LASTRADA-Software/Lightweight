@@ -15,13 +15,12 @@ namespace Lightweight::Async::detail
 /// Single-consumer blocking FIFO of @ref Work items used by @ref ManualExecutor.
 ///
 /// @ref ManualExecutor is a @e resume target, not an offloader: the coroutine continuations it
-/// receives run directly on the thread that pumps it (@ref ManualExecutor::Run / @ref
-/// ManualExecutor::Drain / @ref ManualExecutor::RunOne / @ref ManualExecutor::RunUntil), never on
-/// stdexec. (Blocking work is offloaded elsewhere, to a @ref ThreadPoolExecutor.) That pump still
-/// needs a tiny thread-safe queue a single owning thread can block on (@ref WaitAndPop), step
-/// (@ref TryPop), and be woken from (@ref Wake) when its stop flag flips. stdexec's @c run_loop
-/// cannot express the predicate-gated @c RunUntil pump that @c SyncWaitPumping relies on, so this
-/// stays hand-rolled.
+/// receives run directly on the thread that pumps it (its @c Run / @c Drain / @c RunOne / @c RunUntil
+/// members), never on stdexec. (Blocking work is offloaded elsewhere, to a @ref ThreadPoolExecutor.)
+/// That pump still needs a tiny thread-safe queue a single owning thread can block on
+/// (@ref WaitAndPop), step (@ref TryPop), and be woken from (@ref Wake) when its stop flag flips.
+/// stdexec's @c run_loop cannot express the predicate-gated @c RunUntil pump that @c SyncWaitPumping
+/// relies on, so this stays hand-rolled.
 ///
 /// This is deliberately a focused subset of the former shared @c BlockingQueue — no MPMC
 /// completion flag, no strand bookkeeping — keeping exactly the operations the pump needs.
