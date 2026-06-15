@@ -1,6 +1,19 @@
 var annotated_dup =
 [
     [ "Lightweight", null, [
+      [ "Async", null, [
+        [ "AsyncSqlTransaction", "d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html", "d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction" ],
+        [ "IAsyncBackend", "dd/db3/classLightweight_1_1Async_1_1IAsyncBackend.html", "dd/db3/classLightweight_1_1Async_1_1IAsyncBackend" ],
+        [ "IExecutor", "d3/d75/classLightweight_1_1Async_1_1IExecutor.html", "d3/d75/classLightweight_1_1Async_1_1IExecutor" ],
+        [ "InlineExecutor", "db/dca/classLightweight_1_1Async_1_1InlineExecutor.html", "db/dca/classLightweight_1_1Async_1_1InlineExecutor" ],
+        [ "IResumeScheduler", "df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html", "df/db1/classLightweight_1_1Async_1_1IResumeScheduler" ],
+        [ "ManualExecutor", "d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html", "d4/dbe/classLightweight_1_1Async_1_1ManualExecutor" ],
+        [ "OperationCancelledError", "d3/dd5/classLightweight_1_1Async_1_1OperationCancelledError.html", null ],
+        [ "StrandExecutor", "dc/d8e/classLightweight_1_1Async_1_1StrandExecutor.html", "dc/d8e/classLightweight_1_1Async_1_1StrandExecutor" ],
+        [ "Task", "d8/d0c/classLightweight_1_1Async_1_1Task.html", "d8/d0c/classLightweight_1_1Async_1_1Task" ],
+        [ "ThreadOffloadBackend", "dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend.html", "dc/d4a/classLightweight_1_1Async_1_1ThreadOffloadBackend" ],
+        [ "ThreadPoolExecutor", "d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor.html", "d4/d1e/classLightweight_1_1Async_1_1ThreadPoolExecutor" ]
+      ] ],
       [ "SqlAlterTableCommands", null, [
         [ "AddColumnIfNotExists", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists" ],
         [ "DropColumnIfExists", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists.html", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists" ],
@@ -56,7 +69,6 @@ var annotated_dup =
       [ "MigrationRenderContext", "d4/d23/structLightweight_1_1MigrationRenderContext.html", "d4/d23/structLightweight_1_1MigrationRenderContext" ],
       [ "Pool", "d3/d30/classLightweight_1_1Pool.html", "d3/d30/classLightweight_1_1Pool" ],
       [ "PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", "df/d1a/structLightweight_1_1PoolConfig" ],
-      [ "RowArrayCursorUnsupported", "de/d9f/classLightweight_1_1RowArrayCursorUnsupported.html", null ],
       [ "SqlAdvisoryLockHandler", "d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html", "d4/d61/classLightweight_1_1SqlAdvisoryLockHandler" ],
       [ "SqlAllFieldsQueryBuilder", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ],
       [ "SqlAlterTablePlan", "dd/d75/structLightweight_1_1SqlAlterTablePlan.html", "dd/d75/structLightweight_1_1SqlAlterTablePlan" ],
