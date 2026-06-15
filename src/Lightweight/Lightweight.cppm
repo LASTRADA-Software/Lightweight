@@ -233,7 +233,6 @@ namespace Async
     // C++23 coroutine async API (first-class, always built). Mirrors <Lightweight/Async/*.hpp>.
     using Lightweight::Async::Async;
     using Lightweight::Async::AsyncSqlTransaction;
-    using Lightweight::Async::CancellationToken;
     using Lightweight::Async::IAsyncBackend;
     using Lightweight::Async::IExecutor;
     using Lightweight::Async::InlineExecutor;

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include <atomic>
-#include <memory>
 #include <stdexcept>
 
 namespace Lightweight::Async
@@ -19,53 +17,20 @@ class OperationCancelledError: public std::runtime_error
     }
 };
 
-/// A cooperative cancellation token shared by value.
+/// @file
+/// Cooperative cancellation for the async layer is expressed with the standard @c std::stop_token.
 ///
-/// A default-constructed token is @b non-cancellable (it never reports cancellation and
-/// allocates nothing) — this is the cheap default for async methods that are not given a
-/// token. Obtain a cancellable token via @ref Create; copies share the same cancellation
-/// state, so a caller can keep one copy and @ref Request cancellation on the operation
-/// holding another.
+/// Async methods accept an optional @c std::stop_token (defaulted to @c {}). A default-constructed
+/// token has no associated stop-state — it is @b non-cancellable (@c stop_requested() and
+/// @c stop_possible() are always false) and allocates nothing, the cheap default for callers that
+/// do not pass one. To cancel, a caller holds a @c std::stop_source, passes @c source.get_token()
+/// where supported, and calls @c source.request_stop().
 ///
 /// Cancellation is honored cooperatively and only @e before dispatch: the offload runtime checks
-/// @ref IsCancellationRequested before posting a step to the worker and, if set, completes it with
-/// @ref OperationCancelledError without ever occupying a worker. Once a step has begun running, the
-/// in-flight blocking ODBC call is @b not interrupted (there is no @c SQLCancel integration yet), so a
-/// request that arrives after dispatch only takes effect on the next not-yet-dispatched step.
-class CancellationToken
-{
-  public:
-    /// Constructs a non-cancellable token.
-    CancellationToken() noexcept = default;
-
-    /// @return a fresh, cancellable token backed by new shared state.
-    [[nodiscard]] static CancellationToken Create()
-    {
-        CancellationToken token;
-        token._state = std::make_shared<State>();
-        return token;
-    }
-
-    /// @return true if cancellation has been requested.
-    [[nodiscard]] bool IsCancellationRequested() const noexcept
-    {
-        return _state && _state->cancelled.load(std::memory_order_acquire);
-    }
-
-    /// Requests cancellation. Idempotent and thread-safe; a no-op on a non-cancellable token.
-    void Request() noexcept
-    {
-        if (_state)
-            _state->cancelled.store(true, std::memory_order_release);
-    }
-
-  private:
-    struct State
-    {
-        std::atomic<bool> cancelled { false };
-    };
-
-    std::shared_ptr<State> _state;
-};
+/// @c stop_requested() before posting a step to the worker and, if set, completes it with
+/// @ref Lightweight::Async::OperationCancelledError without ever occupying a worker. Once a step has
+/// begun running, the in-flight blocking ODBC call is @b not interrupted (there is no @c SQLCancel
+/// integration yet), so a request that arrives after dispatch only takes effect on the next
+/// not-yet-dispatched step.
 
 } // namespace Lightweight::Async

@@ -13,6 +13,7 @@
 #include <deque>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <vector>
 
 namespace Lightweight
@@ -297,6 +298,44 @@ class Pool
         return AcquireAsyncImpl(&dbWorkers, &resume);
     }
 
+    /// Configures the executors that the no-argument @ref AcquireAsync() overload wires acquired
+    /// mappers for, so async consumers of this pool no longer repeat the executors at every call.
+    ///
+    /// This is opt-in and scoped to the pool: only pools configured this way hand out async-enabled
+    /// mappers via the no-arg overload; synchronous @ref Acquire and connections outside the pool are
+    /// unaffected. Unlike a process-global default, the executors' lifetime is tied to this pool,
+    /// which already must outlive every acquirer.
+    ///
+    /// @warning @p dbWorkers and @p resume must outlive this pool's async use (the same contract the
+    ///          explicit-argument @ref AcquireAsync overload already implies). Only references are
+    ///          retained. Intended to be called once during setup, before any concurrent
+    ///          @ref AcquireAsync(); it is not synchronized against in-flight acquirers.
+    /// @param dbWorkers The worker pool used to run acquired mappers' blocking ODBC calls.
+    /// @param resume The scheduler used to resume coroutines (typically the app run loop).
+    void SetAsyncExecutors(Async::IExecutor& dbWorkers, Async::IResumeScheduler& resume) noexcept
+    {
+        _asyncDbWorkers = &dbWorkers;
+        _asyncResume = &resume;
+    }
+
+    /// Asynchronously acquires a DataMapper using the executors previously set via
+    /// @ref SetAsyncExecutors, without blocking the calling thread.
+    ///
+    /// Equivalent to the explicit-argument @ref AcquireAsync overload with the pool's stored
+    /// executors; pass the executors to that overload to override them for a single call.
+    ///
+    /// @return A Task yielding a pooled DataMapper.
+    /// @throws std::logic_error if @ref SetAsyncExecutors has not been called on this pool.
+    [[nodiscard]] Async::Task<PooledDataMapper> AcquireAsync()
+    {
+        if (!_asyncDbWorkers || !_asyncResume)
+            throw std::logic_error {
+                "Pool::AcquireAsync(): no async executors configured; call Pool::SetAsyncExecutors(...) first "
+                "or use the explicit AcquireAsync(dbWorkers, resume) overload."
+            };
+        return AcquireAsyncImpl(_asyncDbWorkers, _asyncResume);
+    }
+
 #if defined(BUILD_TESTS)
     [[nodiscard]] size_t IdleCount() noexcept
     {
@@ -483,6 +522,10 @@ class Pool
     std::mutex _mutex;
     std::vector<std::unique_ptr<DataMapper>> _idleDataMappers;
     size_t _checkedOut {};
+    /// Executors used by the no-argument @ref AcquireAsync() overload; set via @ref SetAsyncExecutors.
+    /// Null until configured. Only references are held; they must outlive the pool's async use.
+    Async::IExecutor* _asyncDbWorkers = nullptr;
+    Async::IResumeScheduler* _asyncResume = nullptr;
     /// FIFO of parked acquirers (sync @ref Acquire threads and async @ref AcquireAsync coroutines) in
     /// arrival order. Each sync waiter owns its CV inside its @ref WaiterNode, so no shared CV is needed.
     std::deque<std::shared_ptr<WaiterNode>> _waiters;

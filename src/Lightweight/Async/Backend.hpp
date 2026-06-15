@@ -5,6 +5,7 @@
 #include "Executor.hpp"
 #include "StrandExecutor.hpp"
 
+#include <stop_token>
 #include <utility>
 
 namespace Lightweight::Async
@@ -48,10 +49,10 @@ class IAsyncBackend
 /// @tparam F A callable invocable with no arguments.
 /// @param backend The connection's async backend.
 /// @param fn The synchronous operation to run (consumed).
-/// @param token Optional cancellation token.
+/// @param token Optional cancellation token (a default-constructed @c std::stop_token is non-cancellable).
 /// @return A Task producing @p fn's result.
 template <typename F>
-[[nodiscard]] Task<detail::OffloadResult<F>> RunAsync(IAsyncBackend& backend, F fn, CancellationToken token = {})
+[[nodiscard]] Task<detail::OffloadResult<F>> RunAsync(IAsyncBackend& backend, F fn, std::stop_token token = {})
 {
     return Async(backend.Strand(), backend.ResumeScheduler(), std::move(fn), std::move(token));
 }

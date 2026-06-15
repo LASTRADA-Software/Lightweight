@@ -150,13 +150,21 @@ using BoundedPool = Pool<PoolConfig { .initialSize = 4, .maxSize = 8,
                                       .growthStrategy = GrowthStrategy::BoundedWait }>;
 BoundedPool pool;
 
+// Configure the pool's executors once. The two arguments are the offload executor (where blocking
+// ODBC runs) and the resume scheduler (where coroutines continue) — here both are the worker pool,
+// so coroutines resume on a pool thread.
+pool.SetAsyncExecutors(dbWorkers, dbWorkers);
+
 Async::Task<std::optional<User>> Fetch(BoundedPool& pool, SqlGuid id)
 {
-    auto dm = co_await pool.AcquireAsync(dbWorkers, dbWorkers); // suspends when at capacity, never blocks
+    auto dm = co_await pool.AcquireAsync(); // suspends when at capacity, never blocks
     co_return co_await dm->QueryAsync<User>().Where(FieldNameOf<&User::id>, "=", id).First();
     // dm returns to the pool when the coroutine ends
 }
 ```
+
+If you prefer to pass the executors per call (or to override the configured ones for a single
+acquire), the explicit overload `pool.AcquireAsync(offload, resume)` remains available.
 
 `AcquireAsync` never blocks the calling thread; its back-pressure behavior depends on the pool's
 growth strategy:
@@ -206,11 +214,13 @@ without an intervening commit/rollback is a programmer error (`std::logic_error`
 ## Cancellation
 
 Async-runtime calls (e.g. `BeginAsync`, the offloaded query/record methods) accept an optional
-`Async::CancellationToken`:
+`std::stop_token`. A default-constructed token is non-cancellable, so omit it when you do not need
+cancellation. To cancel, hold a `std::stop_source` and pass its token:
 
 ```cpp
-auto token = Async::CancellationToken::Create();
-// ... pass token where supported; token.Request() to cancel.
+std::stop_source source;
+auto token = source.get_token();
+// ... pass token where supported; source.request_stop() to cancel.
 ```
 
 Cancellation is honored **only before a step is dispatched**: if the token is already requested when the
@@ -224,6 +234,48 @@ step. Transaction finalization (`CommitAsync`/`RollbackAsync`) is deliberately e
 Exceptions thrown by the underlying synchronous call (e.g. `SqlException`) are captured on the
 worker and **re-thrown at the `co_await` site on the resume thread** — exactly as the synchronous
 API would throw.
+
+## Integrating with an external event loop / coroutine runtime
+
+Lightweight's async layer coexists with another coroutine runtime — a GUI framework, an HTTP
+server, your own event loop — in the **same executable** without any special arrangement.
+`Async::Task` and any other library's task type are distinct, namespaced types, and C++ coroutine
+state is per-promise-type, so there is nothing global to clash and no linker conflict. The thing
+that actually matters when two runtimes share a process is **thread affinity**: you usually want
+Lightweight's database coroutines to resume on *your* loop's thread rather than spin up a second
+loop.
+
+That seam is already abstracted behind two small, public, dependency-injected interfaces in
+`<Lightweight/Async/Executor.hpp>`:
+
+- `Async::IExecutor` — *where blocking ODBC work runs* (the offload target).
+- `Async::IResumeScheduler` — *where a coroutine resumes* after a blocking step completes.
+
+The library only ever holds references to these; it never owns a loop. To resume Lightweight
+coroutines on a host event loop, implement `IResumeScheduler` as a thin adapter that posts the
+resume onto that loop:
+
+```cpp
+// Adapter: resume Lightweight coroutines on the host GUI/event loop.
+struct HostLoopScheduler final: Lightweight::Async::IResumeScheduler
+{
+    HostEventLoop& loop;
+    void Resume(std::coroutine_handle<> handle) override
+    {
+        loop.Post([handle] { handle.resume(); }); // hop onto the host loop's thread
+    }
+};
+
+HostLoopScheduler resumeOnHostLoop { myLoop };
+connection.EnableAsync(dbWorkerPool, resumeOnHostLoop);
+// or, for a pool:  pool.SetAsyncExecutors(dbWorkerPool, resumeOnHostLoop);
+```
+
+Now database coroutines resume on the host thread, the host keeps owning its loop, and no second
+pump is needed. If the host already has a worker pool, it can additionally implement `IExecutor`
+and be passed as the offload target, so the whole process shares a single pool. Because
+`Async::Task` is a plain awaitable, a coroutine in the other runtime can `co_await` a Lightweight
+task directly; route its continuation through the same adapter to keep it on the host thread.
 
 ## Build
 

@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <optional>
+#include <stdexcept>
 #include <thread>
 
 using namespace Lightweight;
@@ -46,6 +47,45 @@ TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync acquires, queries and
         appLoop);
     REQUIRE(result.has_value());
     CHECK(pool.IdleCount() == 2); // the acquired mapper was returned to the pool
+}
+
+TEST_CASE_METHOD(SqlTestFixture,
+                 "Async.Pool: SetAsyncExecutors lets the no-argument AcquireAsync wire mappers",
+                 "[Async][Pool]")
+{
+    ThreadPoolExecutor dbWorkers { 2 };
+    ManualExecutor appLoop;
+    auto pool = Pool<PoolConfig { .initialSize = 2, .maxSize = 4, .growthStrategy = GrowthStrategy::BoundedOverflow }>();
+
+    // Configure the executors once; callers then use the no-argument AcquireAsync().
+    pool.SetAsyncExecutors(dbWorkers, appLoop);
+
+    auto const id = SqlGuid::Create();
+    {
+        DataMapper dm;
+        dm.CreateTables<Person>();
+        auto person = Person { .id = id, .name = "Carol", .age = 41 };
+        dm.Create(person);
+    }
+
+    auto const result = RunPumped(
+        [&]() -> Task<std::optional<Person>> {
+            auto dm = co_await pool.AcquireAsync(); // uses the pool's configured executors
+            CHECK(dm->Connection().IsAsyncEnabled());
+            co_return co_await dm->QuerySingleAsync<Person>(id);
+        },
+        appLoop);
+    REQUIRE(result.has_value());
+    CHECK(pool.IdleCount() == 2); // the acquired mapper was returned to the pool
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: no-argument AcquireAsync without SetAsyncExecutors throws", "[Async][Pool]")
+{
+    auto pool = Pool<PoolConfig { .initialSize = 1, .maxSize = 2, .growthStrategy = GrowthStrategy::BoundedOverflow }>();
+
+    // The no-argument overload is a precondition-checking factory: it throws before producing a Task
+    // when no executors have been configured, rather than handing back an unusable coroutine.
+    CHECK_THROWS_AS((void) pool.AcquireAsync(), std::logic_error);
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Async.Pool: AcquireAsync suspends until a mapper is returned", "[Async][Pool]")

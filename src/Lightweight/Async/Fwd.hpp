@@ -7,10 +7,10 @@
 // async member functions without pulling in <coroutine> or the full async runtime. The heavy
 // definitions are provided by the corresponding `.cpp` files and by the `Async/*.hpp` template
 // bodies (e.g. DataMapperAsync.hpp, Backend.hpp), which include the complete headers.
-// @ref CancellationToken is included in full because it is lightweight (no <coroutine>) and
-// appears as a defaulted argument.
+// <stop_token> is included in full because it is lightweight (no <coroutine>) and the cancellation
+// token (a @c std::stop_token) appears as a defaulted argument on async declarations.
 
-#include "CancellationToken.hpp"
+#include <stop_token>
 
 namespace Lightweight::Async
 {

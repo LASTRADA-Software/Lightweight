@@ -36,18 +36,20 @@ std::size_t ManualExecutor::Drain()
 
 void ManualExecutor::Run()
 {
-    // Pump until Stop() is requested and the queue has drained. _stopped is the wake condition; the
-    // queue's WaitAndPop still hands back any items already queued before returning false.
+    // Pump until Stop() is requested and the queue has drained. The stop request is the wake
+    // condition; the queue's WaitAndPop still hands back any items already queued before returning
+    // false.
     Work work;
-    while (_queue.WaitAndPop(work, [this] { return _stopped.load(std::memory_order_acquire); }))
+    while (_queue.WaitAndPop(work, [this] { return _stopSource.stop_requested(); }))
         work();
 }
 
 void ManualExecutor::Stop()
 {
-    // Publish the stop flag before waking, so a pumper blocked in Run() observes it (WorkQueue::Wake
-    // takes the lock first to avoid a lost wakeup).
-    _stopped.store(true, std::memory_order_release);
+    // Publish the stop request before waking, so a pumper blocked in Run() observes it
+    // (WorkQueue::Wake takes the lock first to avoid a lost wakeup). std::stop_source's request_stop()
+    // establishes the necessary happens-before with stop_requested() observed under the queue lock.
+    _stopSource.request_stop();
     _queue.Wake();
 }
 

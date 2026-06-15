@@ -13,6 +13,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <stdexcept>
+#include <stop_token>
 #include <thread>
 
 using namespace Lightweight::Async;
@@ -63,8 +64,9 @@ TEST_CASE("Async.Async honors cancellation requested before dispatch", "[Async][
     ManualExecutor appLoop;
     StrandExecutor strand { dbWorkers };
 
-    auto token = CancellationToken::Create();
-    token.Request(); // cancel up-front
+    std::stop_source source;
+    source.request_stop(); // cancel up-front
+    auto token = source.get_token();
 
     bool ran = false;
     CHECK_THROWS_AS(
@@ -88,8 +90,9 @@ TEST_CASE("Async.Async pre-cancelled work is never dispatched to the offload exe
     DroppingExecutor offload;
     ManualExecutor appLoop;
 
-    auto token = CancellationToken::Create();
-    token.Request(); // cancel up-front
+    std::stop_source source;
+    source.request_stop(); // cancel up-front
+    auto token = source.get_token();
 
     bool ran = false;
     CHECK_THROWS_AS(
@@ -104,22 +107,23 @@ TEST_CASE("Async.Async honors cancellation requested after dispatch but before t
     // work runs, exercising the in-flight check in OffloadAwaitable::Run: it must throw without running _fn.
     struct CancelThenRunExecutor final: IExecutor
     {
-        CancellationToken token;
+        std::stop_source source;
 
-        explicit CancelThenRunExecutor(CancellationToken cancellationToken) noexcept:
-            token { std::move(cancellationToken) }
+        explicit CancelThenRunExecutor(std::stop_source cancelSource) noexcept:
+            source { std::move(cancelSource) }
         {
         }
 
         void Post(Work work) override
         {
-            token.Request();
+            source.request_stop();
             work();
         }
     };
 
-    auto token = CancellationToken::Create();
-    CancelThenRunExecutor offload { token }; // shares the token, requests it from inside Post()
+    std::stop_source source;
+    CancelThenRunExecutor offload { source }; // shares the stop-state, requests it from inside Post()
+    auto token = source.get_token();
     ManualExecutor appLoop;
 
     bool ran = false;
@@ -127,6 +131,33 @@ TEST_CASE("Async.Async honors cancellation requested after dispatch but before t
         RunPumped([&]() -> Task<void> { co_await Async(offload, appLoop, [&ran] { ran = true; }, token); }, appLoop),
         OperationCancelledError);
     CHECK_FALSE(ran); // Run() threw on the in-flight check before calling the user closure
+}
+
+TEST_CASE("Async.Async with a non-cancellable default stop_token runs the work normally", "[Async][Offload]")
+{
+    // A default-constructed std::stop_token has no associated stop-state (stop_requested() is always
+    // false), so it must never short-circuit the offloaded work — the cheap default for callers that
+    // do not need cancellation.
+    ThreadPoolExecutor dbWorkers { 1 };
+    ManualExecutor appLoop;
+    StrandExecutor strand { dbWorkers };
+
+    bool ran = false;
+    int const result = RunPumped(
+        [&]() -> Task<int> {
+            co_return co_await Async(
+                strand,
+                appLoop,
+                [&ran]() -> int {
+                    ran = true;
+                    return 5;
+                },
+                std::stop_token {});
+        },
+        appLoop);
+
+    CHECK(ran);
+    CHECK(result == 5);
 }
 
 TEST_CASE("Async.RunAsync via ThreadOffloadBackend", "[Async][Offload]")

@@ -91,10 +91,10 @@ TEST_CASE("Async.ManualExecutor RunUntil stops on predicate", "[Async][Executor]
 
 TEST_CASE("Async.ManualExecutor RunUntil pumps to completion even after Stop", "[Async][Executor]")
 {
-    // Regression: RunUntil must ignore _stopped and pump until the predicate is satisfied, so a
-    // SyncWaitPumping over a stopped executor never returns an unfinished result.
+    // Regression: RunUntil must ignore the stop request and pump until the predicate is satisfied, so
+    // a SyncWaitPumping over a stopped executor never returns an unfinished result.
     ManualExecutor executor;
-    executor.Stop(); // sets _stopped (intended for Run(), not RunUntil)
+    executor.Stop(); // requests stop (intended for Run(), not RunUntil)
     bool done = false;
     executor.Post([&done] { done = true; });
     executor.RunUntil([&done] { return done; });

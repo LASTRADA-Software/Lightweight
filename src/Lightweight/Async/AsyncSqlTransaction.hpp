@@ -6,6 +6,7 @@
 #include "Fwd.hpp"
 
 #include <optional>
+#include <stop_token>
 
 namespace Lightweight
 {
@@ -72,12 +73,13 @@ class LIGHTWEIGHT_API AsyncSqlTransaction
     ///        @c COMMIT to match the synchronous @ref SqlTransaction, so porting sync code that
     ///        relies on commit-on-scope-exit does not silently switch to rollback.
     /// @param isolationMode The transaction isolation level.
-    /// @param token Optional cancellation token (checked before the step is dispatched).
+    /// @param token Optional cancellation token (a default-constructed @c std::stop_token is
+    ///        non-cancellable; cancellation is checked before the step is dispatched).
     /// @return A Task that completes once the transaction has begun.
     /// @throws std::logic_error if a transaction is already open on this object (programmer error).
     [[nodiscard]] Task<void> BeginAsync(SqlTransactionMode defaultMode = SqlTransactionMode::COMMIT,
                                         SqlIsolationMode isolationMode = SqlIsolationMode::DriverDefault,
-                                        CancellationToken token = {});
+                                        std::stop_token token = {});
 
     /// Asynchronously commits the transaction.
     /// @note Finalization is a point of no return and is intentionally @b not cancellable: it always

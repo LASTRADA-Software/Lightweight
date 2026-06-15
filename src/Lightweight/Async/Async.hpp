@@ -8,6 +8,7 @@
 #include <exception>
 #include <optional>
 #include <stdexcept>
+#include <stop_token>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -31,7 +32,7 @@ namespace detail
       public:
         using Result = OffloadResult<F>;
 
-        OffloadAwaitable(IExecutor& offload, IResumeScheduler& resume, F fn, CancellationToken token):
+        OffloadAwaitable(IExecutor& offload, IResumeScheduler& resume, F fn, std::stop_token token):
             _offload { offload },
             _resume { resume },
             _fn { std::move(fn) },
@@ -56,7 +57,7 @@ namespace detail
             // operation never occupies a DB worker at all (matching the "checked before the step is
             // dispatched" contract). The cancellation is reported through the resume scheduler exactly
             // as a normal completion would be, so the awaiting coroutine still resumes on the app thread.
-            if (_token.IsCancellationRequested())
+            if (_token.stop_requested())
             {
                 _error = std::make_exception_ptr(OperationCancelledError {});
                 _resume.Resume(awaiting);
@@ -88,7 +89,7 @@ namespace detail
         {
             try
             {
-                if (_token.IsCancellationRequested())
+                if (_token.stop_requested())
                     throw OperationCancelledError {};
                 if constexpr (std::is_void_v<Result>)
                     _fn();
@@ -104,7 +105,7 @@ namespace detail
         IExecutor& _offload;
         IResumeScheduler& _resume;
         F _fn;
-        CancellationToken _token;
+        std::stop_token _token;
         std::conditional_t<std::is_void_v<Result>, std::monostate, std::optional<Result>> _value {};
         std::exception_ptr _error {};
     };
@@ -138,13 +139,13 @@ namespace detail
 /// @param offload The executor to run @p fn on.
 /// @param resume The scheduler used to resume the awaiting coroutine.
 /// @param fn The blocking callable (consumed).
-/// @param token Optional cancellation token.
+/// @param token Optional cancellation token (a default-constructed @c std::stop_token is non-cancellable).
 /// @return A Task producing @p fn's result.
 template <typename F>
 [[nodiscard]] Task<detail::OffloadResult<F>> Async(IExecutor& offload,
                                                    IResumeScheduler& resume,
                                                    F fn,
-                                                   CancellationToken token = {})
+                                                   std::stop_token token = {})
 {
     return detail::RunOffloadTask(detail::OffloadAwaitable<F> { offload, resume, std::move(fn), std::move(token) });
 }

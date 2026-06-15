@@ -7,6 +7,7 @@
 
 #include <semaphore>
 #include <stdexcept>
+#include <stop_token>
 #include <utility>
 
 namespace Lightweight::Async
@@ -68,7 +69,7 @@ AsyncSqlTransaction::~AsyncSqlTransaction()
 
 Task<void> AsyncSqlTransaction::BeginAsync(SqlTransactionMode defaultMode,
                                            SqlIsolationMode isolationMode,
-                                           CancellationToken token)
+                                           std::stop_token token)
 {
     return RunAsync(
         _connection->AsyncBackend(),

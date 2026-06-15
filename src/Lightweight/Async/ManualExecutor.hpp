@@ -5,8 +5,8 @@
 #include "Executor.hpp"
 #include "WorkQueue.hpp"
 
-#include <atomic>
 #include <cstddef>
+#include <stop_token>
 
 namespace Lightweight::Async
 {
@@ -61,11 +61,11 @@ class LIGHTWEIGHT_API ManualExecutor final: public IExecutor, public IResumeSche
     template <typename Predicate>
     void RunUntil(Predicate predicate)
     {
-        // NOTE: RunUntil deliberately ignores _stopped — it must pump strictly until the predicate
-        // is satisfied (the awaited task completes). Honoring Stop() here would return early with
-        // the predicate still false, causing the caller (SyncWaitPumping) to read an unfinished
-        // result. _stopped governs Run() (the event-loop pump), not RunUntil. The wake condition is
-        // the predicate alone; wakeups are delivered by the work posted to the queue.
+        // NOTE: RunUntil deliberately ignores the stop request — it must pump strictly until the
+        // predicate is satisfied (the awaited task completes). Honoring Stop() here would return early
+        // with the predicate still false, causing the caller (SyncWaitPumping) to read an unfinished
+        // result. The stop request governs Run() (the event-loop pump), not RunUntil. The wake
+        // condition is the predicate alone; wakeups are delivered by the work posted to the queue.
         while (!predicate())
         {
             Work work;
@@ -77,7 +77,7 @@ class LIGHTWEIGHT_API ManualExecutor final: public IExecutor, public IResumeSche
 
   private:
     detail::WorkQueue _queue;
-    std::atomic<bool> _stopped { false }; ///< Set by Stop(); read by Run()'s wake condition.
+    std::stop_source _stopSource; ///< Requested by Stop(); read by Run()'s wake condition.
 };
 
 } // namespace Lightweight::Async
