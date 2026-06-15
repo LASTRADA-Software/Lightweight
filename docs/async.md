@@ -286,7 +286,7 @@ implementation of `std::execution` (P2300 — the C++26 executors). `ThreadPoolE
 `exec::static_thread_pool` with each posted item spawned into an `exec::async_scope` (so its
 destructor drains every in-flight item before joining); `StrandExecutor` serializes work over that
 pool. stdexec is resolved automatically: `find_package(stdexec)` first (any sufficiently new
-system/vcpkg install, ≥ 0.9.0), falling back to CPM (`NVIDIA/stdexec`, tag `nvhpc-25.09`; the tag
+system/vcpkg install, ≥ 0.9.0), falling back to CPM (`NVIDIA/stdexec`, tag `nvhpc-26.05`; the tag
 and minimum version live in `LIGHTWEIGHT_STDEXEC_GIT_TAG` / `LIGHTWEIGHT_STDEXEC_MIN_VERSION`). The
 stdexec headers are confined to a single translation unit behind a pimpl, so including Lightweight's
 headers does not pull stdexec into your build unless you want it.

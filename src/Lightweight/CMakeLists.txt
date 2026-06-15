@@ -215,11 +215,12 @@ target_include_directories(Lightweight PUBLIC
 target_link_libraries(Lightweight PUBLIC reflection-cpp::reflection-cpp)
 target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>)
 
-# stdexec (C++26 executors) backs the async layer's thread pool (see Async/ThreadPoolExecutor.cpp,
-# which is the only TU that includes the stdexec headers — the public headers stay stdexec-free via
-# a pimpl). Linked PUBLIC so downstream code can write std::execution senders that interop with
-# Lightweight's Async::Task without separately locating stdexec.
-target_link_libraries(Lightweight PUBLIC STDEXEC::stdexec)
+# stdexec (C++26 executors) backs the async layer's thread pool. Async/ThreadPoolExecutor.cpp is the
+# only TU that includes the stdexec headers — the public headers stay stdexec-free via a pimpl — so
+# stdexec is a BUILD-time-only usage requirement: the wrapper genex propagates its include dirs and
+# compile flags to in-tree consumers (e.g. the test target, which includes stdexec directly) but
+# keeps it out of the installed/exported interface (an installed Lightweight needs no stdexec).
+target_link_libraries(Lightweight PUBLIC $<BUILD_INTERFACE:STDEXEC::stdexec>)
 
 if(LIGHTWEIGHT_ENABLE_TRACY)
     target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_TRACY_ENABLED)

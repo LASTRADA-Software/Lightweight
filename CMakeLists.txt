@@ -120,7 +120,7 @@ endif()
 # put its headers on the global vcpkg include path ahead of the CPM copy and shadow it. find_package
 # still prefers a usable system/vcpkg stdexec when one is present; once a vcpkg baseline ships a
 # new-enough port, re-add it to vcpkg.json and it is used automatically with no other change.
-set(LIGHTWEIGHT_STDEXEC_GIT_TAG "nvhpc-25.09" CACHE STRING
+set(LIGHTWEIGHT_STDEXEC_GIT_TAG "nvhpc-26.05" CACHE STRING
     "Git tag/branch of NVIDIA/stdexec fetched via CPM when no suitable system/vcpkg package is found")
 set(LIGHTWEIGHT_STDEXEC_MIN_VERSION "0.9.0" CACHE STRING
     "Minimum stdexec version accepted from find_package (older has a broken static_thread_pool domain on MSVC)")
