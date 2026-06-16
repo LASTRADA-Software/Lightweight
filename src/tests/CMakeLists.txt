@@ -111,6 +111,7 @@ list(APPEND SOURCE_FILES
     Async/AsyncPoolTests.cpp
     Async/AsyncTransactionTests.cpp
     Async/StdexecBackingTests.cpp
+    Async/SenderTests.cpp
 )
 
 target_sources(LightweightTest PRIVATE ${SOURCE_FILES})

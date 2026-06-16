@@ -295,10 +295,38 @@ the exported interface at all.
 
 ### Interop with `std::execution`
 
-`Async::Task<T>` is a plain coroutine awaitable, not a sender, so the two `sync_wait`s are distinct:
-use `Lightweight::Async::SyncWait(task)` to block on a `Task`, and `stdexec::sync_wait(sender)` to
-block on a sender. The two integrate freely — schedule senders on your own `exec::static_thread_pool`
-and `co_await` a Lightweight `Task` from the same coroutine. Note that stdexec is a *build-time*
-dependency of Lightweight, not part of its installed/exported interface: to mix senders in your own
-code, depend on stdexec directly (`find_package(stdexec)` / link `STDEXEC::stdexec`) — do not rely on
-Lightweight to provide its headers transitively.
+`Async::Task<T>` is a plain coroutine awaitable. You can `co_await` it directly from another
+coroutine, drive it with `Lightweight::Async::SyncWait(task)`, or — to flow it into an stdexec
+sender pipeline — adapt it with `Async::AsSender(task)`:
+
+```cpp
+#include <Lightweight/Async/Sender.hpp>   // opt-in; pulls in <stdexec/execution.hpp>
+#include <stdexec/execution.hpp>
+
+// Any Task<T> becomes a sender; compose it with then / let_value / when_all / sync_wait:
+auto user = stdexec::sync_wait(
+    Async::AsSender(dm.QueryAsync<User>().Where(FieldNameOf<&User::id>, "=", id).First())
+    | stdexec::then([](std::optional<User> u) { return u.value_or(User {}); }));
+```
+
+`AsSender` maps the Task's outcome onto stdexec's completion channels: a produced value completes
+`set_value`, a thrown `OperationCancelledError` completes `set_stopped` (matching the cancellation
+contract above), and any other exception completes `set_error` carrying a `std::exception_ptr`. The
+Task stays lazy — nothing runs until the resulting sender is started (e.g. by `sync_wait` or an
+enclosing sender). Because the sender advertises a stopped channel, `stdexec::sync_wait` returns a
+`std::optional` that is disengaged only on cancellation.
+
+`Async::SyncWait(task)` and `stdexec::sync_wait(sender)` remain distinct entry points — use the
+former on a bare `Task`, the latter on a sender (including one produced by `AsSender`).
+
+> **Lifetime in sender pipelines.** The record-/builder-lifetime rule above still applies: the
+> operand a record-level async method (e.g. `UpdateAsync`) captures must outlive the whole
+> `co_await`. When chaining with `let_value`, mutate the stage's argument *in place* (it is kept
+> alive for the child sender) and pass a reference to it, rather than a local that dies when the
+> `let_value` callback returns. See `src/examples/todo/main.cpp` for a worked example.
+
+stdexec is a *build-time* dependency of Lightweight, not part of its installed/exported interface, and
+`Async/Sender.hpp` is the one public header that includes the stdexec headers — it is intentionally
+**not** included by `<Lightweight/Lightweight.hpp>` or the C++20 module. To use senders (or this
+bridge) in your own code, depend on stdexec directly (`find_package(stdexec)` / link
+`STDEXEC::stdexec`) — do not rely on Lightweight to provide its headers transitively.
