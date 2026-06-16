@@ -10,6 +10,8 @@
 //     Async::AsSender(...), then composed with stdexec::then / when_all and driven by
 //     stdexec::sync_wait. The DB coroutines resume on the worker pool (multi-threaded model), so the
 //     blocking sync_wait on main() never has to pump anything.
+//   * Adding a todo is idempotent: re-adding an existing title does not duplicate it, it just makes
+//     sure that item is unchecked again.
 //   * Default backend is a local SQLite3 file (todo.db); override with ODBC_CONNECTION_STRING.
 
 #include <Lightweight/Async/Sender.hpp>
@@ -121,10 +123,25 @@ int main()
     dm.Connection().EnableAsync(dbWorkers, dbWorkers);
 
     auto const addTodo = [&](std::string_view title) {
+        // Idempotent add: look the title up first (as a sender pipeline). If it already exists, just
+        // make sure it is unchecked — re-adding an item "un-does" it rather than creating a duplicate;
+        // otherwise insert a fresh row. The two outcomes use different async methods (UpdateAsync vs
+        // CreateAsync, whose senders have different types), so we branch in host code after the lookup
+        // rather than inside a single let_value.
+        auto existing =
+            std::get<0>(UnwrapSyncWait(stdexec::sync_wait(Async::AsSender(dm.QueryAsync<Todo>() // by-title lookup
+                                                                              .Where(FieldNameOf<&Todo::title>, "=", title)
+                                                                              .First()))));
+        if (existing.has_value())
+        {
+            existing->done = false; // already present — just ensure it is unchecked
+            UnwrapSyncWait(stdexec::sync_wait(Async::AsSender(dm.UpdateAsync(*existing))));
+            std::println("kept #{} (unchecked): {}", existing->id.Value(), title);
+            return;
+        }
         auto todo = Todo {};
         todo.title = Light::SqlAnsiString<256> { title };
-        // AsSender turns the CreateAsync Task into a sender; its value channel carries the new primary
-        // key, which sync_wait hands back as a single-element tuple.
+        // AsSender's value channel carries the new primary key, returned as a single-element tuple.
         auto const [newId] = UnwrapSyncWait(stdexec::sync_wait(Async::AsSender(dm.CreateAsync(todo))));
         std::println("added #{}: {}", newId, title);
     };
@@ -169,6 +186,12 @@ int main()
     std::println("concurrent counts agree: {} == {}", a, b);
 
     markDone(2);
+    listTodos();
+
+    // Re-adding an existing title does not duplicate it — it just makes sure the item is unchecked
+    // again. "write docs" was checked above, so this un-checks it; the list afterwards shows no
+    // duplicate row and an empty checkbox.
+    addTodo("write docs");
     listTodos();
 
     return 0;
