@@ -78,15 +78,6 @@ var NAVTREE =
       [ "How <tt>SqlVariant</tt> decides which alternative to fill", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#how-sqlvariant-decides-which-alternative-to-fill", null ],
       [ "Driver-specific connection-string requirements", "de/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2data-binder.html#driver-specific-connection-string-requirements", null ]
     ] ],
-    [ "SQL Backup: How It Works", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html", [
-      [ "Overview", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#overview", null ],
-      [ "Pipeline phases", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#pipeline-phases", null ],
-      [ "Memory and disk profile", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#memory-and-disk-profile", null ],
-      [ "Fault tolerance", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#fault-tolerance", null ],
-      [ "Consistency caveats (online backup)", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#consistency-caveats-online-backup", null ],
-      [ "Tuning", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#tuning", null ],
-      [ "See also", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#see-also", null ]
-    ] ],
     [ "Lightweight SQL Backup File Format", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html", [
       [ "1. Archive Structure", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md1-archive-structure", null ],
       [ "2. Metadata Manifest (<tt>metadata.json</tt>)", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md2-metadata-manifest-metadatajson", [
@@ -111,7 +102,7 @@ var NAVTREE =
       ] ]
     ] ],
     [ "dbtool - Database Management CLI", "d5/dc4/dbtool.html", [
-      [ "Overview", "d5/dc4/dbtool.html#overview-1", null ],
+      [ "Overview", "d5/dc4/dbtool.html#overview", null ],
       [ "Installation", "d5/dc4/dbtool.html#installation", [
         [ "Pre-built installers", "d5/dc4/dbtool.html#pre-built-installers", null ],
         [ "Building from source", "d5/dc4/dbtool.html#building-from-source", null ],
@@ -138,8 +129,7 @@ var NAVTREE =
       ] ],
       [ "Backup & Restore", "d5/dc4/dbtool.html#backup--restore", [
         [ "backup", "d5/dc4/dbtool.html#backup", null ],
-        [ "restore", "d5/dc4/dbtool.html#restore", null ],
-        [ "backup-diff", "d5/dc4/dbtool.html#backup-diff", null ]
+        [ "restore", "d5/dc4/dbtool.html#restore", null ]
       ] ],
       [ "Command-Line Options Reference", "d5/dc4/dbtool.html#command-line-options-reference", [
         [ "Size Suffixes", "d5/dc4/dbtool.html#size-suffixes", null ]
@@ -159,7 +149,7 @@ var NAVTREE =
         [ "Checksum Mismatches", "d5/dc4/dbtool.html#checksum-mismatches", null ],
         [ "Lock Acquisition Failed", "d5/dc4/dbtool.html#lock-acquisition-failed", null ]
       ] ],
-      [ "See Also", "d5/dc4/dbtool.html#see-also-1", null ]
+      [ "See Also", "d5/dc4/dbtool.html#see-also", null ]
     ] ],
     [ "SQL Migrations", "d2/da6/sql-migrations.html", [
       [ "Introduction", "d2/da6/sql-migrations.html#introduction-1", null ],
@@ -195,7 +185,7 @@ var NAVTREE =
         [ "Concurrency Control", "d2/da6/sql-migrations.html#concurrency-control", null ]
       ] ],
       [ "Best Practices", "d2/da6/sql-migrations.html#best-practices-1", null ],
-      [ "See Also", "d2/da6/sql-migrations.html#see-also-2", null ]
+      [ "See Also", "d2/da6/sql-migrations.html#see-also-1", null ]
     ] ],
     [ "Asynchronous API (C++23 coroutines)", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html", [
       [ "Why offloading (and not \"true\" async ODBC)", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#why-offloading-and-not-true-async-odbc", null ],
@@ -247,13 +237,13 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"d2/dd0/structLightweight_1_1Field.html#aaf257a679d7d4340a4514a567f03a27a",
-"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aee69f4c93ebeb28785f120395d66ab75",
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aef966cbcd0888b69b5bbf542e014b2a0",
-"d9/d80/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1PlanFoldingResult_1_1TableState.html#a14c5641bee4fb83cbdff804c876ebc04",
-"db/dad/classLightweight_1_1SqlStatement.html#a2f51e2e203c890b25312deadcad244b1",
-"de/d73/classLightweight_1_1HasManyThrough.html",
-"functions_func_c.html"
+"d2/dd0/structLightweight_1_1Field.html#a8429602c0af011bde772fa07baa6243e",
+"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#abc42e76bbbae288ae9b6f214cbe4a4d0",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ad63ee3002c9921bfb053c5b611d6511b",
+"d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database",
+"db/dad/classLightweight_1_1SqlStatement.html#a58e8f4ae7628ba211beb819a428df717",
+"de/d73/classLightweight_1_1HasManyThrough.html#ab368d68c37288b5a10b47dd1f286d4af",
+"functions_func_v.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

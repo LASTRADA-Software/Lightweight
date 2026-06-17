@@ -50,6 +50,7 @@ var hierarchy =
     [ "Lightweight::BelongsTo< TheReferencedField, ColumnNameOverrideString, Nullable >", "d0/df7/classLightweight_1_1BelongsTo.html", null ],
     [ "Lightweight::DataMapper", "de/d61/classLightweight_1_1DataMapper.html", null ],
     [ "Lightweight::DataMapperOptions", "d3/db2/structLightweight_1_1DataMapperOptions.html", null ],
+    [ "Lightweight::Description< Record >", "de/d22/structLightweight_1_1Description.html", null ],
     [ "Lightweight::Field< T, P1, P2 >", "d2/dd0/structLightweight_1_1Field.html", null ],
     [ "Lightweight::HasMany< OtherRecord >", "da/df4/classLightweight_1_1HasMany.html", null ],
     [ "Lightweight::HasManyThrough< ReferencedRecordT, ThroughRecordT >", "de/d73/classLightweight_1_1HasManyThrough.html", null ],
@@ -60,7 +61,7 @@ var hierarchy =
     [ "Lightweight::Pool< Config >", "d3/d30/classLightweight_1_1Pool.html", null ],
     [ "Lightweight::Pool< Config >::PooledDataMapper", "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html", null ],
     [ "Lightweight::PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", null ],
-    [ "Lightweight::RowArrayCursor", "da/d6c/classLightweight_1_1RowArrayCursor.html", null ],
+    [ "Lightweight::RecordMemberList< MemberPointers >", "d2/d94/structLightweight_1_1RecordMemberList.html", null ],
     [ "Lightweight::SqlAdvisoryLockHandler", "d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html", null ],
     [ "Lightweight::SqlAlterTableCommands::AddColumnIfNotExists", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html", null ],
     [ "Lightweight::SqlAlterTableCommands::DropColumnIfExists", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists.html", null ],
@@ -167,7 +168,6 @@ var hierarchy =
     [ "std::exception", null, [
       [ "std::runtime_error", null, [
         [ "Lightweight::Async::OperationCancelledError", "d3/dd5/classLightweight_1_1Async_1_1OperationCancelledError.html", null ],
-        [ "Lightweight::RowArrayCursorUnsupported", "de/d9f/classLightweight_1_1RowArrayCursorUnsupported.html", null ],
         [ "Lightweight::SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html", null ],
         [ "Lightweight::SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html", null ]
       ] ]

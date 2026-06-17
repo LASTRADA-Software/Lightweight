@@ -110,6 +110,9 @@ Concepts</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">concept &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../dd/da7/conceptLightweight_1_1FieldWithStorage.html">Lightweight::FieldWithStorage</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">concept &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d93/conceptLightweight_1_1HasDescription.html">Lightweight::HasDescription</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Satisfied when a Description specialization exists for the given record type. <br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Classes</h2></td></tr>
@@ -139,6 +142,12 @@ Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html">Lightweight::SqlAllFieldsQueryBuilder&lt; Record, QueryOptions, Execution &gt;</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a query builder that retrieves all fields of a record.  <a href="../../d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d2/d94/structLightweight_1_1RecordMemberList.html">Lightweight::RecordMemberList&lt; MemberPointers &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compile-time list of a record's members, stored as pointers-to-member.  <a href="../../d2/d94/structLightweight_1_1RecordMemberList.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d22/structLightweight_1_1Description.html">Lightweight::Description&lt; Record &gt;</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Customization point providing pre-computed reflection metadata for a record type.  <a href="../../de/d22/structLightweight_1_1Description.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
@@ -150,12 +159,36 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ga7b2f2210747ec11d91a0d694b4c34b25"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga7b2f2210747ec11d91a0d694b4c34b25">Lightweight::SqlElements</a> = std::integer_sequence&lt; size_t, Ints... &gt;</td></tr>
 <tr class="memdesc:ga7b2f2210747ec11d91a0d694b4c34b25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Represents a sequence of indexes that can be used alongside Query() to retrieve only part of the record.  <br /></td></tr>
 <tr class="separator:ga7b2f2210747ec11d91a0d694b4c34b25"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf8d513471d088e755ea2e628689086fb" id="r_gaf8d513471d088e755ea2e628689086fb"><td class="memTemplParams" colspan="2">template&lt;std::size_t I, typename Record &gt; </td></tr>
+<tr class="memitem:gaf8d513471d088e755ea2e628689086fb"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaf8d513471d088e755ea2e628689086fb">Lightweight::RecordMemberTypeOf</a> = detail::RecordMemberTypeOfDispatch&lt; I, std::remove_cvref_t&lt; Record &gt;, HasDescription&lt; Record &gt; &gt;::type</td></tr>
+<tr class="memdesc:gaf8d513471d088e755ea2e628689086fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of the member at index <code>I</code> — from the descriptor if present, else via reflection.  <br /></td></tr>
+<tr class="separator:gaf8d513471d088e755ea2e628689086fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:ga0690ab017d7ae25c81a0889a6385ba33" id="r_ga0690ab017d7ae25c81a0889a6385ba33"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
 <tr class="memitem:ga0690ab017d7ae25c81a0889a6385ba33"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE RecordPrimaryKeyType&lt; Record &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33">Lightweight::GetPrimaryKeyField</a> (Record const &amp;record) noexcept</td></tr>
 <tr class="separator:ga0690ab017d7ae25c81a0889a6385ba33"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga3803a99a6793b7b2dcd55824b002fc69" id="r_ga3803a99a6793b7b2dcd55824b002fc69"><td class="memTemplParams" colspan="2">template&lt;std::size_t I, typename Record &gt; </td></tr>
+<tr class="memitem:ga3803a99a6793b7b2dcd55824b002fc69"><td class="memTemplItemLeft" align="right" valign="top">constexpr decltype(auto)&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga3803a99a6793b7b2dcd55824b002fc69">Lightweight::GetRecordMemberAt</a> (Record &amp;&amp;record)</td></tr>
+<tr class="memdesc:ga3803a99a6793b7b2dcd55824b002fc69"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a reference to the member at index <code>I</code> — from the descriptor if present, else via reflection.  <br /></td></tr>
+<tr class="separator:ga3803a99a6793b7b2dcd55824b002fc69"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaf264bb64d0d2c57aac9a058e4b9a2865" id="r_gaf264bb64d0d2c57aac9a058e4b9a2865"><td class="memTemplParams" colspan="2">template&lt;typename Record , typename Callable &gt; </td></tr>
+<tr class="memitem:gaf264bb64d0d2c57aac9a058e4b9a2865"><td class="memTemplItemLeft" align="right" valign="top">constexpr void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaf264bb64d0d2c57aac9a058e4b9a2865">Lightweight::EnumerateRecordMembers</a> (Record &amp;record, Callable &amp;&amp;callable)</td></tr>
+<tr class="memdesc:gaf264bb64d0d2c57aac9a058e4b9a2865"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invokes <code>callable</code> as <code>callable&lt;I&gt;(member)</code> for each member of <code>record</code>.  <br /></td></tr>
+<tr class="separator:gaf264bb64d0d2c57aac9a058e4b9a2865"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga04a45404bac144fc1e6e60af1954cd32" id="r_ga04a45404bac144fc1e6e60af1954cd32"><td class="memTemplParams" colspan="2">template&lt;typename ElementMask , typename Record , typename Callable &gt; </td></tr>
+<tr class="memitem:ga04a45404bac144fc1e6e60af1954cd32"><td class="memTemplItemLeft" align="right" valign="top">constexpr void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga04a45404bac144fc1e6e60af1954cd32">Lightweight::EnumerateRecordMembers</a> (Record &amp;record, Callable &amp;&amp;callable)</td></tr>
+<tr class="memdesc:ga04a45404bac144fc1e6e60af1954cd32"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invokes <code>callable</code> as <code>callable&lt;I&gt;(member)</code> for each member selected by <code>ElementMask</code>.  <br /></td></tr>
+<tr class="separator:ga04a45404bac144fc1e6e60af1954cd32"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gaed659f3e0250fbf17e02847b27900b1d" id="r_gaed659f3e0250fbf17e02847b27900b1d"><td class="memTemplParams" colspan="2">template&lt;typename Record , typename Callable &gt; </td></tr>
+<tr class="memitem:gaed659f3e0250fbf17e02847b27900b1d"><td class="memTemplItemLeft" align="right" valign="top">constexpr void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#gaed659f3e0250fbf17e02847b27900b1d">Lightweight::EnumerateRecordMembers</a> (Callable &amp;&amp;callable)</td></tr>
+<tr class="memdesc:gaed659f3e0250fbf17e02847b27900b1d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invokes <code>callable</code> as <code>callable&lt;I, MemberType&gt;()</code> for each member of <code>Record</code>.  <br /></td></tr>
+<tr class="separator:gaed659f3e0250fbf17e02847b27900b1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga2975e6fdc555f7eb9883bee6f207d064" id="r_ga2975e6fdc555f7eb9883bee6f207d064"><td class="memTemplParams" colspan="2">template&lt;typename Record , typename Callable , typename ResultType &gt; </td></tr>
+<tr class="memitem:ga2975e6fdc555f7eb9883bee6f207d064"><td class="memTemplItemLeft" align="right" valign="top">constexpr ResultType&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga2975e6fdc555f7eb9883bee6f207d064">Lightweight::FoldRecordMembers</a> (ResultType initialValue, Callable const &amp;callable)</td></tr>
+<tr class="memdesc:ga2975e6fdc555f7eb9883bee6f207d064"><td class="mdescLeft">&#160;</td><td class="mdescRight">Folds over a record's members as <code>result = callable&lt;I, MemberType&gt;(result)</code>.  <br /></td></tr>
+<tr class="separator:ga2975e6fdc555f7eb9883bee6f207d064"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -170,6 +203,10 @@ Variables</h2></td></tr>
 <tr class="memitem:ga1e58d42e8c42aa174027b744d8eb78e0"><td class="memTemplItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga1e58d42e8c42aa174027b744d8eb78e0">Lightweight::HasAutoIncrementPrimaryKey</a></td></tr>
 <tr class="memdesc:ga1e58d42e8c42aa174027b744d8eb78e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Tests if the given record type does contain an auto increment primary key.  <br /></td></tr>
 <tr class="separator:ga1e58d42e8c42aa174027b744d8eb78e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga655897a10b9ec0b5c558b0c91b20ff2a" id="r_ga655897a10b9ec0b5c558b0c91b20ff2a"><td class="memTemplParams" colspan="2">template&lt;typename Record &gt; </td></tr>
+<tr class="memitem:ga655897a10b9ec0b5c558b0c91b20ff2a"><td class="memTemplItemLeft" align="right" valign="top">constexpr std::size_t&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga655897a10b9ec0b5c558b0c91b20ff2a">Lightweight::RecordMemberCount</a></td></tr>
+<tr class="memdesc:ga655897a10b9ec0b5c558b0c91b20ff2a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of members in a record — from the descriptor if present, else via reflection.  <br /></td></tr>
+<tr class="separator:ga655897a10b9ec0b5c558b0c91b20ff2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga6b1b90405a8cf10bbb8fd88789543f24" id="r_ga6b1b90405a8cf10bbb8fd88789543f24"><td class="memTemplParams" colspan="2">template&lt;std::size_t I, typename Record &gt; </td></tr>
 <tr class="memitem:ga6b1b90405a8cf10bbb8fd88789543f24"><td class="memTemplItemLeft" align="right" valign="top">constexpr std::string_view&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d7/d2f/group__DataMapper.html#ga6b1b90405a8cf10bbb8fd88789543f24">Lightweight::FieldNameAt</a> = detail::FieldNameAt&lt;I, Record&gt;()</td></tr>
 <tr class="memdesc:ga6b1b90405a8cf10bbb8fd88789543f24"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the SQL field name of the given field index in the record.  <br /></td></tr>
@@ -235,6 +272,26 @@ template&lt;size_t... Ints&gt; </div>
 
 </div>
 </div>
+<a id="gaf8d513471d088e755ea2e628689086fb" name="gaf8d513471d088e755ea2e628689086fb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf8d513471d088e755ea2e628689086fb">&#9670;&#160;</a></span>RecordMemberTypeOf</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::size_t I, typename Record &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="../../d7/d2f/group__DataMapper.html#gaf8d513471d088e755ea2e628689086fb">Lightweight::RecordMemberTypeOf</a> = typedef detail::RecordMemberTypeOfDispatch&lt;I, std::remove_cvref_t&lt;Record&gt;, HasDescription&lt;Record&gt; &gt;::type</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Type of the member at index <code>I</code> — from the descriptor if present, else via reflection. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00162">162</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+
+</div>
+</div>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="ga0690ab017d7ae25c81a0889a6385ba33" name="ga0690ab017d7ae25c81a0889a6385ba33"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga0690ab017d7ae25c81a0889a6385ba33">&#9670;&#160;</a></span>GetPrimaryKeyField()</h2>
@@ -265,7 +322,205 @@ template&lt;typename Record &gt; </div>
 
 <p class="definition">Definition at line <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00178">178</a> of file <a class="el" href="../../d3/d6b/Record_8hpp_source.html">Record.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02629">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01630">Lightweight::DataMapper::Create()</a>.</p>
+<p class="reference">References <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00181">Lightweight::EnumerateRecordMembers()</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02627">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01628">Lightweight::DataMapper::Create()</a>.</p>
+
+</div>
+</div>
+<a id="ga3803a99a6793b7b2dcd55824b002fc69" name="ga3803a99a6793b7b2dcd55824b002fc69"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga3803a99a6793b7b2dcd55824b002fc69">&#9670;&#160;</a></span>GetRecordMemberAt()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::size_t I, typename Record &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr decltype(auto) Lightweight::GetRecordMemberAt </td>
+          <td>(</td>
+          <td class="paramtype">Record &amp;&amp;&#160;</td>
+          <td class="paramname"><em>record</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a reference to the member at index <code>I</code> — from the descriptor if present, else via reflection. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00167">167</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+
+</div>
+</div>
+<a id="gaf264bb64d0d2c57aac9a058e4b9a2865" name="gaf264bb64d0d2c57aac9a058e4b9a2865"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaf264bb64d0d2c57aac9a058e4b9a2865">&#9670;&#160;</a></span>EnumerateRecordMembers() <span class="overload">[1/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record , typename Callable &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr void Lightweight::EnumerateRecordMembers </td>
+          <td>(</td>
+          <td class="paramtype">Record &amp;&#160;</td>
+          <td class="paramname"><em>record</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Callable &amp;&amp;&#160;</td>
+          <td class="paramname"><em>callable</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Invokes <code>callable</code> as <code>callable&lt;I&gt;(member)</code> for each member of <code>record</code>. </p>
+<p>Mirrors <code>Reflection::EnumerateMembers(object, callable)</code> but reads the descriptor when present, avoiding the aggregate-decomposition (<code>ToTuple</code>) instantiation. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00181">181</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+
+<p class="reference">Referenced by <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02627">Lightweight::DataMapper::ConfigureRelationAutoLoading()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01792">Lightweight::DataMapper::Delete()</a>, <a class="el" href="../../d3/d6b/Record_8hpp_source.html#l00178">Lightweight::GetPrimaryKeyField()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02491">Lightweight::DataMapper::LoadRelations()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02546">Lightweight::DataMapper::SetId()</a>, <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l02114">Lightweight::DataMapper::SetModifiedState()</a>, and <a class="el" href="../../df/d4f/DataMapper_8hpp_source.html#l01683">Lightweight::DataMapper::Update()</a>.</p>
+
+</div>
+</div>
+<a id="ga04a45404bac144fc1e6e60af1954cd32" name="ga04a45404bac144fc1e6e60af1954cd32"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga04a45404bac144fc1e6e60af1954cd32">&#9670;&#160;</a></span>EnumerateRecordMembers() <span class="overload">[2/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename ElementMask , typename Record , typename Callable &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr void Lightweight::EnumerateRecordMembers </td>
+          <td>(</td>
+          <td class="paramtype">Record &amp;&#160;</td>
+          <td class="paramname"><em>record</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Callable &amp;&amp;&#160;</td>
+          <td class="paramname"><em>callable</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Invokes <code>callable</code> as <code>callable&lt;I&gt;(member)</code> for each member selected by <code>ElementMask</code>. </p>
+<p>Mirrors <code>Reflection::EnumerateMembers&lt;ElementMask&gt;(object, callable)</code> (partial-column queries) but reads the descriptor when present. <code>ElementMask</code> is a <code>std::integer_sequence&lt;std::size_t, ...&gt;</code>. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00195">195</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+
+</div>
+</div>
+<a id="gaed659f3e0250fbf17e02847b27900b1d" name="gaed659f3e0250fbf17e02847b27900b1d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#gaed659f3e0250fbf17e02847b27900b1d">&#9670;&#160;</a></span>EnumerateRecordMembers() <span class="overload">[3/3]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record , typename Callable &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr void Lightweight::EnumerateRecordMembers </td>
+          <td>(</td>
+          <td class="paramtype">Callable &amp;&amp;&#160;</td>
+          <td class="paramname"><em>callable</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Invokes <code>callable</code> as <code>callable&lt;I, MemberType&gt;()</code> for each member of <code>Record</code>. </p>
+<p>Mirrors <code>Reflection::EnumerateMembers&lt;Object&gt;(callable)</code> but reads the descriptor when present. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00209">209</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+
+</div>
+</div>
+<a id="ga2975e6fdc555f7eb9883bee6f207d064" name="ga2975e6fdc555f7eb9883bee6f207d064"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga2975e6fdc555f7eb9883bee6f207d064">&#9670;&#160;</a></span>FoldRecordMembers()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record , typename Callable , typename ResultType &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr ResultType Lightweight::FoldRecordMembers </td>
+          <td>(</td>
+          <td class="paramtype">ResultType&#160;</td>
+          <td class="paramname"><em>initialValue</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Callable const &amp;&#160;</td>
+          <td class="paramname"><em>callable</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Folds over a record's members as <code>result = callable&lt;I, MemberType&gt;(result)</code>. </p>
+<p>Mirrors <code>Reflection::FoldMembers&lt;Object&gt;(initialValue, callable)</code> but reads the descriptor when present. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00222">222</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
 
 </div>
 </div>
@@ -292,7 +547,7 @@ template&lt;typename Record &gt; </div>
 </table>
 </div><div class="memdoc">
 <b>Initial value:</b><div class="fragment"><div class="line">=</div>
-<div class="line">    Reflection::FoldMembers&lt;Record&gt;(<span class="keywordtype">size_t</span> { 0 }, []&lt;<span class="keywordtype">size_t</span> I, <span class="keyword">typename</span> <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>&gt;(<span class="keywordtype">size_t</span> <span class="keyword">const</span> accum) <span class="keyword">constexpr</span> {</div>
+<div class="line">    FoldRecordMembers&lt;Record&gt;(<span class="keywordtype">size_t</span> { 0 }, []&lt;<span class="keywordtype">size_t</span> I, <span class="keyword">typename</span> <a class="code hl_struct" href="../../d2/dd0/structLightweight_1_1Field.html">Field</a>&gt;(<span class="keywordtype">size_t</span> <span class="keyword">const</span> accum) <span class="keyword">constexpr</span> {</div>
 <div class="line">        <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (<a class="code hl_concept" href="../../dd/da7/conceptLightweight_1_1FieldWithStorage.html">FieldWithStorage&lt;Field&gt;</a>)</div>
 <div class="line">            <span class="keywordflow">return</span> accum + 1;</div>
 <div class="line">        <span class="keywordflow">else</span></div>
@@ -363,6 +618,41 @@ template&lt;typename T &gt; </div>
 
 </div>
 </div>
+<a id="ga655897a10b9ec0b5c558b0c91b20ff2a" name="ga655897a10b9ec0b5c558b0c91b20ff2a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ga655897a10b9ec0b5c558b0c91b20ff2a">&#9670;&#160;</a></span>RecordMemberCount</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;typename Record &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr std::size_t Lightweight::RecordMemberCount</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">constexpr</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<b>Initial value:</b><div class="fragment"><div class="line">= []() <span class="keyword">constexpr</span> {</div>
+<div class="line">    <span class="keywordflow">if</span> <span class="keyword">constexpr</span> (<a class="code hl_concept" href="../../d2/d93/conceptLightweight_1_1HasDescription.html">HasDescription&lt;Record&gt;</a>)</div>
+<div class="line">        <span class="keywordflow">return</span> Description&lt;std::remove_cvref_t&lt;Record&gt;&gt;::FieldCount;</div>
+<div class="line">    <span class="keywordflow">else</span></div>
+<div class="line">        <span class="keywordflow">return</span> Reflection::CountMembers&lt;Record&gt;;</div>
+<div class="line">}()</div>
+<div class="ttc" id="aconceptLightweight_1_1HasDescription_html"><div class="ttname"><a href="../../d2/d93/conceptLightweight_1_1HasDescription.html">Lightweight::HasDescription</a></div><div class="ttdoc">Satisfied when a Description specialization exists for the given record type.</div><div class="ttdef"><b>Definition</b> <a href="../../d1/dbc/Description_8hpp_source.html#l00128">Description.hpp:128</a></div></div>
+</div><!-- fragment -->
+<p>Number of members in a record — from the descriptor if present, else via reflection. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/dbc/Description_8hpp_source.html#l00152">152</a> of file <a class="el" href="../../d1/dbc/Description_8hpp_source.html">Description.hpp</a>.</p>
+
+</div>
+</div>
 <a id="ga6b1b90405a8cf10bbb8fd88789543f24" name="ga6b1b90405a8cf10bbb8fd88789543f24"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ga6b1b90405a8cf10bbb8fd88789543f24">&#9670;&#160;</a></span>FieldNameAt</h2>
 
@@ -387,7 +677,7 @@ template&lt;std::size_t I, typename Record &gt; </div>
 
 <p>Returns the SQL field name of the given field index in the record. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00251">251</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00261">261</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
 </div>
 </div>
@@ -415,7 +705,7 @@ template&lt;typename Record &gt; </div>
 
 <p>Holds the SQL tabl ename for the given record type. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00257">257</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00267">267</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
 <p class="reference">Referenced by <a class="el" href="../../db/d83/SqlQuery_2Core_8hpp_source.html#l00854">Lightweight::SqlWhereClauseBuilder&lt; Derived &gt;::InnerJoin()</a>.</p>
 
@@ -450,7 +740,7 @@ template&lt;auto ReferencedField&gt; </div>
 <div class="line"> </div>
 <div class="line">    .columnName = FieldNameOf&lt;ReferencedField&gt;,</div>
 <div class="line">}</div>
-<div class="ttc" id="agroup__DataMapper_html_ga2bf8fa94d9c5b41f9a1045395403ccab"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">Lightweight::RecordTableName</a></div><div class="ttdeci">constexpr std::string_view RecordTableName</div><div class="ttdoc">Holds the SQL tabl ename for the given record type.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00257">Utils.hpp:257</a></div></div>
+<div class="ttc" id="agroup__DataMapper_html_ga2bf8fa94d9c5b41f9a1045395403ccab"><div class="ttname"><a href="../../d7/d2f/group__DataMapper.html#ga2bf8fa94d9c5b41f9a1045395403ccab">Lightweight::RecordTableName</a></div><div class="ttdeci">constexpr std::string_view RecordTableName</div><div class="ttdoc">Holds the SQL tabl ename for the given record type.</div><div class="ttdef"><b>Definition</b> <a href="../../d7/d09/Utils_8hpp_source.html#l00267">Utils.hpp:267</a></div></div>
 </div><!-- fragment -->
 <p>Holds the fully qualified column reference (table + column) for the given field. </p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
@@ -464,7 +754,7 @@ template&lt;auto ReferencedField&gt; </div>
 <div class="line"><span class="keyword">static_assert</span>(ref.columnName == <span class="stringliteral">&quot;id&quot;</span>);</div>
 </div><!-- fragment --><p>The result is an <code><a class="el" href="../../db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html" title="SqlQualifiedTableColumnName represents a column name qualified with a table name.">SqlQualifiedTableColumnName</a></code> accepted by every column-name entry point in the builder (<code><a class="el" href="../../d2/dd0/structLightweight_1_1Field.html" title="Represents a single column in a table.">Field</a></code>, <code>Fields</code>, <code>Where</code>, <code>OrderBy</code>, <code>GroupBy</code>, <code>Aggregate::*</code>, joins). The builder applies the quoting. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00333">333</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00343">343</a> of file <a class="el" href="../../d7/d09/Utils_8hpp_source.html">Utils.hpp</a>.</p>
 
 </div>
 </div>
