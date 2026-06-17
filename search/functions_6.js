@@ -28,7 +28,8 @@ var searchData=
   ['getpending_25',['GetPending',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a5f02a99faee92eb68b52a9cb49876c0e',1,'Lightweight::SqlMigration::MigrationManager']]],
   ['getplan_26',['getplan',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() const &amp;'],['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a503a9d905ab222a68bb4fcbec1510154',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() &amp;&amp;']]],
   ['getprimarykeyfield_27',['GetPrimaryKeyField',['../d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33',1,'Lightweight']]],
-  ['getstepindex_28',['GetStepIndex',['../d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#ae719f328736efcdb1e98ad53a6dbe6dd',1,'Lightweight::SqlMigration::MigrationException']]],
-  ['gettimestamp_29',['GetTimestamp',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e',1,'Lightweight::SqlMigration::MigrationBase']]],
-  ['gettitle_30',['GetTitle',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0',1,'Lightweight::SqlMigration::MigrationBase']]]
+  ['getrecordmemberat_28',['GetRecordMemberAt',['../d7/d2f/group__DataMapper.html#ga3803a99a6793b7b2dcd55824b002fc69',1,'Lightweight']]],
+  ['getstepindex_29',['GetStepIndex',['../d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#ae719f328736efcdb1e98ad53a6dbe6dd',1,'Lightweight::SqlMigration::MigrationException']]],
+  ['gettimestamp_30',['GetTimestamp',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e',1,'Lightweight::SqlMigration::MigrationBase']]],
+  ['gettitle_31',['GetTitle',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0',1,'Lightweight::SqlMigration::MigrationBase']]]
 ];
