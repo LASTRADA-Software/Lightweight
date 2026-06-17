@@ -6,9 +6,11 @@
 #include "Mediatype.hpp"
 
 #if !defined(LIGHTWEIGHT_BUILD_MODULES)
-#include <Lightweight/DataMapper/DataMapper.hpp>
+    #include <Lightweight/DataMapper/DataMapper.hpp>
 #endif
 
+#include <array>
+#include <string_view>
 
 struct Track final
 {
@@ -25,3 +27,20 @@ struct Track final
     Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "UnitPrice" }> UnitPrice;
 };
 
+template <>
+struct Lightweight::Description<Track>
+{
+    static constexpr std::size_t FieldCount = 9;
+    using Members = Lightweight::RecordMemberList<&Track::TrackId,
+                                                  &Track::Name,
+                                                  &Track::AlbumId,
+                                                  &Track::MediaTypeId,
+                                                  &Track::GenreId,
+                                                  &Track::Composer,
+                                                  &Track::Milliseconds,
+                                                  &Track::Bytes,
+                                                  &Track::UnitPrice>;
+    static constexpr std::array<std::string_view, 9> FieldNames = { "TrackId",      "Name",    "AlbumId",
+                                                                    "MediaTypeId",  "GenreId", "Composer",
+                                                                    "Milliseconds", "Bytes",   "UnitPrice" };
+};

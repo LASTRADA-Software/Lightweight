@@ -297,19 +297,19 @@ inline LIGHTWEIGHT_FORCE_INLINE SqlSelectQueryBuilder& SqlSelectQueryBuilder::Fi
 {
     if constexpr (sizeof...(MoreRecords) == 0)
     {
-        Reflection::EnumerateMembers<FirstRecord>(
+        EnumerateRecordMembers<FirstRecord>(
             [&]<size_t FieldIndex, typename FieldType>() { Field(FieldNameAt<FieldIndex, FirstRecord>); });
     }
     else
     {
-        Reflection::EnumerateMembers<FirstRecord>([&]<size_t FieldIndex, typename FieldType>() {
+        EnumerateRecordMembers<FirstRecord>([&]<size_t FieldIndex, typename FieldType>() {
             Field(SqlQualifiedTableColumnName {
                 .tableName = RecordTableName<FirstRecord>,
                 .columnName = FieldNameAt<FieldIndex, FirstRecord>,
             });
         });
 
-        (Reflection::EnumerateMembers<MoreRecords>([&]<size_t FieldIndex, typename FieldType>() {
+        (EnumerateRecordMembers<MoreRecords>([&]<size_t FieldIndex, typename FieldType>() {
              Field(SqlQualifiedTableColumnName {
                  .tableName = RecordTableName<MoreRecords>,
                  .columnName = FieldNameAt<FieldIndex, MoreRecords>,

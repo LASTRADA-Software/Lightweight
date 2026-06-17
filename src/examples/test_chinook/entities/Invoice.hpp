@@ -7,6 +7,9 @@
     #include <Lightweight/DataMapper/DataMapper.hpp>
 #endif
 
+#include <array>
+#include <string_view>
+
 struct Invoice final
 {
     static constexpr std::string_view TableName = "Invoice";
@@ -21,4 +24,22 @@ struct Invoice final
     Light::Field<std::optional<Light::SqlDynamicUtf16String<10>>, Light::SqlRealName { "BillingPostalCode" }>
         BillingPostalCode;
     Light::Field<Light::SqlNumeric<10, 2>, Light::SqlRealName { "Total" }> Total;
+};
+
+template <>
+struct Lightweight::Description<Invoice>
+{
+    static constexpr std::size_t FieldCount = 9;
+    using Members = Lightweight::RecordMemberList<&Invoice::InvoiceId,
+                                                  &Invoice::CustomerId,
+                                                  &Invoice::InvoiceDate,
+                                                  &Invoice::BillingAddress,
+                                                  &Invoice::BillingCity,
+                                                  &Invoice::BillingState,
+                                                  &Invoice::BillingCountry,
+                                                  &Invoice::BillingPostalCode,
+                                                  &Invoice::Total>;
+    static constexpr std::array<std::string_view, 9> FieldNames = { "InvoiceId",      "CustomerId",        "InvoiceDate",
+                                                                    "BillingAddress", "BillingCity",       "BillingState",
+                                                                    "BillingCountry", "BillingPostalCode", "Total" };
 };

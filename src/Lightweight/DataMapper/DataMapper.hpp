@@ -584,7 +584,7 @@ class DataMapper
     [[nodiscard]] static std::string BuildFullyQualifiedFieldList()
     {
         std::string fields;
-        Reflection::EnumerateMembers<Record>([&fields]<size_t I, typename Field>() {
+        EnumerateRecordMembers<Record>([&fields]<size_t I, typename Field>() {
             if (!fields.empty())
                 fields += ", ";
             fields += '"';
@@ -699,7 +699,7 @@ namespace detail
             return true;
 
         bool result = true;
-        Reflection::EnumerateMembers<Record>([&result]<size_t I, typename Field>() {
+        EnumerateRecordMembers<Record>([&result]<size_t I, typename Field>() {
             if constexpr (IsField<Field>)
             {
                 if constexpr (detail::OneOf<typename Field::ValueType,
@@ -722,21 +722,20 @@ namespace detail
     template <typename Record>
     void BindAllOutputColumnsWithOffset(SqlResultCursor& reader, Record& record, SQLUSMALLINT startOffset)
     {
-        Reflection::EnumerateMembers(record,
-                                     [reader = &reader, i = startOffset]<size_t I, typename Field>(Field& field) mutable {
-                                         if constexpr (IsField<Field>)
-                                         {
-                                             reader->BindOutputColumn(i++, &field.MutableValue());
-                                         }
-                                         else if constexpr (IsBelongsTo<Field>)
-                                         {
-                                             reader->BindOutputColumn(i++, &field.MutableValue());
-                                         }
-                                         else if constexpr (SqlOutputColumnBinder<Field>)
-                                         {
-                                             reader->BindOutputColumn(i++, &field);
-                                         }
-                                     });
+        EnumerateRecordMembers(record, [reader = &reader, i = startOffset]<size_t I, typename Field>(Field& field) mutable {
+            if constexpr (IsField<Field>)
+            {
+                reader->BindOutputColumn(i++, &field.MutableValue());
+            }
+            else if constexpr (IsBelongsTo<Field>)
+            {
+                reader->BindOutputColumn(i++, &field.MutableValue());
+            }
+            else if constexpr (SqlOutputColumnBinder<Field>)
+            {
+                reader->BindOutputColumn(i++, &field);
+            }
+        });
     }
 
     template <typename Record>
@@ -751,7 +750,7 @@ namespace detail
     template <typename ElementMask, typename Record>
     void GetAllColumns(SqlResultCursor& reader, Record& record, SQLUSMALLINT indexFromQuery = 0)
     {
-        Reflection::EnumerateMembers<ElementMask>(
+        EnumerateRecordMembers<ElementMask>(
             record, [reader = &reader, &indexFromQuery]<size_t I, typename Field>(Field& field) mutable {
                 ++indexFromQuery;
                 if constexpr (IsField<Field>)
@@ -775,7 +774,7 @@ namespace detail
     template <typename Record>
     void GetAllColumns(SqlResultCursor& reader, Record& record, SQLUSMALLINT indexFromQuery = 0)
     {
-        return GetAllColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>, Record>(
+        return GetAllColumns<std::make_integer_sequence<size_t, RecordMemberCount<Record>>, Record>(
             reader, record, indexFromQuery);
     }
 
@@ -785,7 +784,7 @@ namespace detail
     {
         auto& [firstRecord, secondRecord] = record;
 
-        Reflection::EnumerateMembers(firstRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
+        EnumerateRecordMembers(firstRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
             if constexpr (IsField<Field>)
             {
                 if constexpr (Field::IsOptional)
@@ -802,23 +801,22 @@ namespace detail
             }
         });
 
-        Reflection::EnumerateMembers(secondRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
+        EnumerateRecordMembers(secondRecord, [reader = &reader]<size_t I, typename Field>(Field& field) mutable {
             if constexpr (IsField<Field>)
             {
                 if constexpr (Field::IsOptional)
                     field.MutableValue() = reader->GetNullableColumn<typename Field::ValueType::value_type>(
-                        Reflection::CountMembers<FirstRecord> + I + 1);
+                        RecordMemberCount<FirstRecord> + I + 1);
                 else
                     field.MutableValue() =
-                        reader->GetColumn<typename Field::ValueType>(Reflection::CountMembers<FirstRecord> + I + 1);
+                        reader->GetColumn<typename Field::ValueType>(RecordMemberCount<FirstRecord> + I + 1);
             }
             else if constexpr (SqlGetColumnNativeType<Field>)
             {
                 if constexpr (Field::IsOptional)
-                    field =
-                        reader->GetNullableColumn<typename Field::BaseType>(Reflection::CountMembers<FirstRecord> + I + 1);
+                    field = reader->GetNullableColumn<typename Field::BaseType>(RecordMemberCount<FirstRecord> + I + 1);
                 else
-                    field = reader->GetColumn<Field>(Reflection::CountMembers<FirstRecord> + I + 1);
+                    field = reader->GetColumn<Field>(RecordMemberCount<FirstRecord> + I + 1);
             }
         });
     }
@@ -1310,7 +1308,7 @@ void SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>, QueryOption
         if (canSafelyBindAll)
         {
             detail::BindAllOutputColumnsWithOffset(reader, firstRecord, 1);
-            detail::BindAllOutputColumnsWithOffset(reader, secondRecord, 1 + Reflection::CountMembers<FirstRecord>);
+            detail::BindAllOutputColumnsWithOffset(reader, secondRecord, 1 + RecordMemberCount<FirstRecord>);
         }
 
         if (!reader.FetchRow())
@@ -1412,7 +1410,7 @@ template <typename Record>
 std::optional<RecordPrimaryKeyType<Record>> DataMapper::GenerateAutoAssignPrimaryKey(Record const& record)
 {
     std::optional<RecordPrimaryKeyType<Record>> result;
-    Reflection::EnumerateMembers(
+    EnumerateRecordMembers(
         record, [this, &result]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
             if constexpr (IsField<PrimaryKeyType> && IsPrimaryKey<PrimaryKeyType>
                           && detail::IsAutoAssignPrimaryKeyField<PrimaryKeyType>::value)
@@ -1460,7 +1458,7 @@ RecordPrimaryKeyType<Record> DataMapper::CreateInternal(
             query.Set(FieldNameOf<el>, SqlWildcard);
     }
 #else
-    Reflection::EnumerateMembers(record, [&query]<auto I, typename FieldType>(FieldType const& /*field*/) {
+    EnumerateRecordMembers(record, [&query]<auto I, typename FieldType>(FieldType const& /*field*/) {
         if constexpr (SqlInputParameterBinder<FieldType> && !IsAutoIncrementPrimaryKey<FieldType>)
             query.Set(FieldNameAt<I, Record>, SqlWildcard);
     });
@@ -1541,7 +1539,7 @@ namespace detail
         template <typename Record>
         decltype(auto) operator()(Record const& record) const
         {
-            return Reflection::GetMemberAt<I>(record).Value();
+            return GetRecordMemberAt<I>(record).Value();
         }
     };
 
@@ -1550,7 +1548,7 @@ namespace detail
     template <std::size_t I, typename Record>
     auto MakeCreateColumnAccessor()
     {
-        using FieldType = Reflection::MemberTypeOf<I, Record>;
+        using FieldType = RecordMemberTypeOf<I, Record>;
         if constexpr (IsBatchInsertColumn<FieldType>)
             return std::tuple<FieldValueAccessor<I>> {};
         else
@@ -1561,7 +1559,7 @@ namespace detail
     template <std::size_t I, typename Record>
     auto MakeUpdateSetAccessor()
     {
-        using FieldType = Reflection::MemberTypeOf<I, Record>;
+        using FieldType = RecordMemberTypeOf<I, Record>;
         if constexpr (IsBatchUpdateSetColumn<FieldType>)
             return std::tuple<FieldValueAccessor<I>> {};
         else
@@ -1572,7 +1570,7 @@ namespace detail
     template <std::size_t I, typename Record>
     auto MakeUpdateWhereAccessor()
     {
-        using FieldType = Reflection::MemberTypeOf<I, Record>;
+        using FieldType = RecordMemberTypeOf<I, Record>;
         if constexpr (IsBatchUpdateWhereColumn<FieldType>)
             return std::tuple<FieldValueAccessor<I>> {};
         else
@@ -1597,7 +1595,7 @@ void DataMapper::CreateAll(Records const& records)
 
     // Build the INSERT once, with the same column set and order as CreateInternal().
     auto query = _connection.Query(RecordTableName<Record>).Insert(nullptr);
-    Reflection::EnumerateMembers<Record>([&query]<auto I, typename FieldType>() {
+    EnumerateRecordMembers<Record>([&query]<auto I, typename FieldType>() {
         if constexpr (detail::IsBatchInsertColumn<FieldType>)
             query.Set(FieldNameAt<I, Record>, SqlWildcard);
     });
@@ -1607,7 +1605,7 @@ void DataMapper::CreateAll(Records const& records)
     [&]<std::size_t... Is>(std::index_sequence<Is...>) {
         std::apply([&](auto const&... accessors) { std::ignore = _stmt.ExecuteBatch(records, accessors...); },
                    std::tuple_cat(detail::MakeCreateColumnAccessor<Is, Record>()...));
-    }(std::make_index_sequence<Reflection::CountMembers<Record>> {});
+    }(std::make_index_sequence<RecordMemberCount<Record>> {});
 }
 
 template <DataMapperOptions QueryOptions, typename Record>
@@ -1705,12 +1703,12 @@ void DataMapper::Update(Record& record)
         }
     }
 #else
-    Reflection::CallOnMembersWithoutName(record, [&query]<size_t I, typename FieldType>(FieldType const& field) {
+    EnumerateRecordMembers(record, [&query]<size_t I, typename FieldType>(FieldType const& field) {
         if (field.IsModified())
             query.Set(FieldNameAt<I, Record>, SqlWildcard);
         // for some reason compiler do not want to properly deduce FieldType, so here we
         // directly infer the type from the Record type and index
-        if constexpr (IsPrimaryKey<Reflection::MemberTypeOf<I, Record>>)
+        if constexpr (IsPrimaryKey<RecordMemberTypeOf<I, Record>>)
             std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
     });
 #endif
@@ -1737,14 +1735,14 @@ void DataMapper::Update(Record& record)
     }
 #else
     // Bind the SET clause
-    Reflection::CallOnMembersWithoutName(record, [this, &i]<size_t I, typename FieldType>(FieldType const& field) {
+    EnumerateRecordMembers(record, [this, &i]<size_t I, typename FieldType>(FieldType const& field) {
         if (field.IsModified())
             _stmt.BindInputParameter(i++, field.Value(), FieldNameAt<I, Record>);
     });
 
     // Bind the WHERE clause
-    Reflection::CallOnMembersWithoutName(record, [this, &i]<size_t I, typename FieldType>(FieldType const& field) {
-        if constexpr (IsPrimaryKey<Reflection::MemberTypeOf<I, Record>>)
+    EnumerateRecordMembers(record, [this, &i]<size_t I, typename FieldType>(FieldType const& field) {
+        if constexpr (IsPrimaryKey<RecordMemberTypeOf<I, Record>>)
             _stmt.BindInputParameter(i++, field.Value(), FieldNameAt<I, Record>);
     });
 #endif
@@ -1772,11 +1770,11 @@ void DataMapper::UpdateAll(Records const& records)
 
     // Build one UPDATE that writes all storable non-primary-key columns, matched on the primary key(s).
     auto query = _connection.Query(RecordTableName<Record>).Update();
-    Reflection::EnumerateMembers<Record>([&query]<auto I, typename FieldType>() {
+    EnumerateRecordMembers<Record>([&query]<auto I, typename FieldType>() {
         if constexpr (detail::IsBatchUpdateSetColumn<FieldType>)
             query.Set(FieldNameAt<I, Record>, SqlWildcard);
     });
-    Reflection::EnumerateMembers<Record>([&query]<auto I, typename FieldType>() {
+    EnumerateRecordMembers<Record>([&query]<auto I, typename FieldType>() {
         if constexpr (detail::IsBatchUpdateWhereColumn<FieldType>)
             std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
     });
@@ -1787,7 +1785,7 @@ void DataMapper::UpdateAll(Records const& records)
         std::apply([&](auto const&... accessors) { std::ignore = _stmt.ExecuteBatch(records, accessors...); },
                    std::tuple_cat(detail::MakeUpdateSetAccessor<Is, Record>()...,
                                   detail::MakeUpdateWhereAccessor<Is, Record>()...));
-    }(std::make_index_sequence<Reflection::CountMembers<Record>> {});
+    }(std::make_index_sequence<RecordMemberCount<Record>> {});
 }
 
 template <typename Record>
@@ -1809,8 +1807,8 @@ std::size_t DataMapper::Delete(Record const& record)
             std::ignore = query.Where(FieldNameOf<el>, SqlWildcard);
     }
 #else
-    Reflection::CallOnMembersWithoutName(record, [&query]<size_t I, typename FieldType>(FieldType const& /*field*/) {
-        if constexpr (IsPrimaryKey<Reflection::MemberTypeOf<I, Record>>)
+    EnumerateRecordMembers(record, [&query]<size_t I, typename FieldType>(FieldType const& /*field*/) {
+        if constexpr (IsPrimaryKey<RecordMemberTypeOf<I, Record>>)
             std::ignore = query.Where(FieldNameAt<I, Record>, SqlWildcard);
     });
 #endif
@@ -1829,11 +1827,11 @@ std::size_t DataMapper::Delete(Record const& record)
     }
 #else
     // Bind the WHERE clause
-    Reflection::CallOnMembersWithoutName(
-        record, [this, i = SQLSMALLINT { 1 }]<size_t I, typename FieldType>(FieldType const& field) mutable {
-            if constexpr (IsPrimaryKey<Reflection::MemberTypeOf<I, Record>>)
-                _stmt.BindInputParameter(i++, field.Value(), FieldNameAt<I, Record>);
-        });
+    EnumerateRecordMembers(record,
+                           [this, i = SQLSMALLINT { 1 }]<size_t I, typename FieldType>(FieldType const& field) mutable {
+                               if constexpr (IsPrimaryKey<RecordMemberTypeOf<I, Record>>)
+                                   _stmt.BindInputParameter(i++, field.Value(), FieldNameAt<I, Record>);
+                           });
 #endif
 
     auto cursor = _stmt.Execute();
@@ -1855,7 +1853,7 @@ std::optional<Record> DataMapper::QuerySingle(PrimaryKeyTypes&&... primaryKeys)
     // first storage field via the returned Builder&, then reuse that pointer.
     auto selectStarter = _connection.Query(RecordTableName<Record>).Select();
     SqlSelectQueryBuilder* queryBuilder = nullptr;
-    Reflection::EnumerateMembers<Record>([&]<size_t I, typename FieldType>() {
+    EnumerateRecordMembers<Record>([&]<size_t I, typename FieldType>() {
         if constexpr (FieldWithStorage<FieldType>)
         {
             if (queryBuilder == nullptr)
@@ -1895,7 +1893,7 @@ std::optional<Record> DataMapper::QuerySingle(SqlSelectQueryBuilder selectQuery,
     ZoneScopedN("DataMapper::QuerySingle(Builder)");
     ZoneTextObject(RecordTableName<Record>);
 
-    Reflection::EnumerateMembers<Record>([&]<size_t I, typename FieldType>() {
+    EnumerateRecordMembers<Record>([&]<size_t I, typename FieldType>() {
         if constexpr (FieldWithStorage<FieldType>)
             selectQuery.Field(SqlQualifiedTableColumnName { RecordTableName<Record>, FieldNameAt<I, Record> });
     });
@@ -2003,7 +2001,7 @@ std::vector<std::tuple<First, Second, Rest...>> DataMapper::Query(SqlSelectQuery
         if constexpr (I > 0)
         {
             [&]<size_t... Indices>(std::index_sequence<Indices...>) {
-                ((Indices < I ? (offset += Reflection::CountMembers<std::tuple_element_t<Indices, Tuple>>) : 0), ...);
+                ((Indices < I ? (offset += RecordMemberCount<std::tuple_element_t<Indices, Tuple>>) : 0), ...);
             }(std::make_index_sequence<I> {});
         }
         return offset;
@@ -2118,7 +2116,7 @@ void DataMapper::SetModifiedState(Record& record) noexcept
     static_assert(!std::is_const_v<Record>);
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
-    Reflection::EnumerateMembers(record, []<size_t I, typename FieldType>(FieldType& field) {
+    EnumerateRecordMembers(record, []<size_t I, typename FieldType>(FieldType& field) {
         if constexpr (requires { field.SetModified(false); })
         {
             if constexpr (state == ModifiedState::Modified)
@@ -2134,7 +2132,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void CallOnPrimaryKey(Record& record, Callable c
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
-    Reflection::EnumerateMembers(record, [&]<size_t I, typename FieldType>(FieldType& field) {
+    EnumerateRecordMembers(record, [&]<size_t I, typename FieldType>(FieldType& field) {
         if constexpr (IsField<FieldType>)
         {
             if constexpr (FieldType::IsPrimaryKey)
@@ -2150,7 +2148,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void CallOnPrimaryKey(Callable const& callable)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
-    Reflection::EnumerateMembers<Record>([&]<size_t I, typename FieldType>() {
+    EnumerateRecordMembers<Record>([&]<size_t I, typename FieldType>() {
         if constexpr (IsField<FieldType>)
         {
             if constexpr (FieldType::IsPrimaryKey)
@@ -2166,7 +2164,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void CallOnBelongsTo(Callable const& callable)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
 
-    Reflection::EnumerateMembers<Record>([&]<size_t I, typename FieldType>() {
+    EnumerateRecordMembers<Record>([&]<size_t I, typename FieldType>() {
         if constexpr (IsBelongsTo<FieldType>)
         {
             return callable.template operator()<I, FieldType>();
@@ -2224,7 +2222,7 @@ void DataMapper::CallOnHasMany(Record& record, Callable const& callback)
         auto query = _connection.Query(RecordTableName<ReferencedRecord>)
                          .Select()
                          .Build([&](auto& query) {
-                             Reflection::EnumerateMembers<ReferencedRecord>(
+                             EnumerateRecordMembers<ReferencedRecord>(
                                  [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
                                      if constexpr (FieldWithStorage<ReferencedFieldType>)
                                      {
@@ -2244,7 +2242,7 @@ SqlSelectQueryBuilder DataMapper::BuildHasManySelectQuery()
     return _connection.Query(RecordTableName<OtherRecord>)
         .Select()
         .Build([](auto& q) {
-            Reflection::EnumerateMembers<OtherRecord>([&]<size_t I, typename F>() {
+            EnumerateRecordMembers<OtherRecord>([&]<size_t I, typename F>() {
                 if constexpr (FieldWithStorage<F>)
                     q.Field(FieldNameAt<I, OtherRecord>);
             });
@@ -2291,7 +2289,7 @@ void DataMapper::LoadHasOneThrough(Record& record, HasOneThrough<ReferencedRecor
                         _connection.Query(RecordTableName<ReferencedRecord>)
                             .Select()
                             .Build([&](auto& query) {
-                                Reflection::EnumerateMembers<ReferencedRecord>(
+                                EnumerateRecordMembers<ReferencedRecord>(
                                     [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
                                         if constexpr (FieldWithStorage<ReferencedFieldType>)
                                         {
@@ -2342,7 +2340,7 @@ std::shared_ptr<ReferencedRecord> DataMapper::LoadHasOneThroughByPK(PKValue cons
                     _connection.Query(RecordTableName<ReferencedRecord>)
                         .Select()
                         .Build([&](auto& query) {
-                            Reflection::EnumerateMembers<ReferencedRecord>(
+                            EnumerateRecordMembers<ReferencedRecord>(
                                 [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
                                     if constexpr (FieldWithStorage<ReferencedFieldType>)
                                     {
@@ -2383,21 +2381,21 @@ void DataMapper::CallOnHasManyThrough(Record& record, Callable const& callback)
     CallOnPrimaryKey(record, [&]<size_t PrimaryKeyIndex, typename PrimaryKeyType>(PrimaryKeyType const& primaryKeyField) {
         // Find the BelongsTo of ThroughRecord pointing to the PK of Record
         CallOnBelongsTo<ThroughRecord>([&]<size_t ThroughBelongsToRecordIndex, typename ThroughBelongsToRecordType>() {
-            using ThroughBelongsToRecordFieldType = Reflection::MemberTypeOf<ThroughBelongsToRecordIndex, ThroughRecord>;
+            using ThroughBelongsToRecordFieldType = RecordMemberTypeOf<ThroughBelongsToRecordIndex, ThroughRecord>;
             if constexpr (std::is_same_v<typename ThroughBelongsToRecordFieldType::ReferencedRecord, Record>)
             {
                 // Find the BelongsTo of ThroughRecord pointing to the PK of ReferencedRecord
                 CallOnBelongsTo<ThroughRecord>(
                     [&]<size_t ThroughBelongsToReferenceRecordIndex, typename ThroughBelongsToReferenceRecordType>() {
                         using ThroughBelongsToReferenceRecordFieldType =
-                            Reflection::MemberTypeOf<ThroughBelongsToReferenceRecordIndex, ThroughRecord>;
+                            RecordMemberTypeOf<ThroughBelongsToReferenceRecordIndex, ThroughRecord>;
                         if constexpr (std::is_same_v<typename ThroughBelongsToReferenceRecordFieldType::ReferencedRecord,
                                                      ReferencedRecord>)
                         {
                             auto query = _connection.Query(RecordTableName<ReferencedRecord>)
                                              .Select()
                                              .Build([&](auto& query) {
-                                                 Reflection::EnumerateMembers<ReferencedRecord>(
+                                                 EnumerateRecordMembers<ReferencedRecord>(
                                                      [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
                                                          if constexpr (FieldWithStorage<ReferencedFieldType>)
                                                          {
@@ -2434,21 +2432,21 @@ void DataMapper::CallOnHasManyThroughByPK(PKValue const& pkValue, Callable const
 
     // Find the BelongsTo of ThroughRecord pointing to the PK of Record
     CallOnBelongsTo<ThroughRecord>([&]<size_t ThroughBelongsToRecordIndex, typename ThroughBelongsToRecordType>() {
-        using ThroughBelongsToRecordFieldType = Reflection::MemberTypeOf<ThroughBelongsToRecordIndex, ThroughRecord>;
+        using ThroughBelongsToRecordFieldType = RecordMemberTypeOf<ThroughBelongsToRecordIndex, ThroughRecord>;
         if constexpr (std::is_same_v<typename ThroughBelongsToRecordFieldType::ReferencedRecord, Record>)
         {
             // Find the BelongsTo of ThroughRecord pointing to the PK of ReferencedRecord
             CallOnBelongsTo<ThroughRecord>(
                 [&]<size_t ThroughBelongsToReferenceRecordIndex, typename ThroughBelongsToReferenceRecordType>() {
                     using ThroughBelongsToReferenceRecordFieldType =
-                        Reflection::MemberTypeOf<ThroughBelongsToReferenceRecordIndex, ThroughRecord>;
+                        RecordMemberTypeOf<ThroughBelongsToReferenceRecordIndex, ThroughRecord>;
                     if constexpr (std::is_same_v<typename ThroughBelongsToReferenceRecordFieldType::ReferencedRecord,
                                                  ReferencedRecord>)
                     {
                         auto query = _connection.Query(RecordTableName<ReferencedRecord>)
                                          .Select()
                                          .Build([&](auto& query) {
-                                             Reflection::EnumerateMembers<ReferencedRecord>(
+                                             EnumerateRecordMembers<ReferencedRecord>(
                                                  [&]<size_t ReferencedFieldIndex, typename ReferencedFieldType>() {
                                                      if constexpr (FieldWithStorage<ReferencedFieldType>)
                                                      {
@@ -2522,7 +2520,7 @@ void DataMapper::LoadRelations(Record& record)
         }
     }
 #else
-    Reflection::EnumerateMembers(record, [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
+    EnumerateRecordMembers(record, [&]<size_t FieldIndex, typename FieldType>(FieldType& field) {
         if constexpr (IsBelongsTo<FieldType>)
         {
             field = LoadBelongsTo<FieldType>(field.Value());
@@ -2565,7 +2563,7 @@ inline LIGHTWEIGHT_FORCE_INLINE void DataMapper::SetId(Record& record, ValueType
         }
     }
 #else
-    Reflection::EnumerateMembers(record, [&]<size_t I, typename FieldType>(FieldType& field) {
+    EnumerateRecordMembers(record, [&]<size_t I, typename FieldType>(FieldType& field) {
         if constexpr (IsField<FieldType>)
         {
             if constexpr (FieldType::IsPrimaryKey)
@@ -2582,8 +2580,8 @@ template <typename Record, size_t InitialOffset>
 inline LIGHTWEIGHT_FORCE_INLINE Record& DataMapper::BindOutputColumns(Record& record, SqlResultCursor& cursor)
 {
     static_assert(DataMapperRecord<Record>, "Record must satisfy DataMapperRecord");
-    return BindOutputColumns<std::make_integer_sequence<size_t, Reflection::CountMembers<Record>>, Record, InitialOffset>(
-        record, cursor);
+    return BindOutputColumns<std::make_integer_sequence<size_t, RecordMemberCount<Record>>, Record, InitialOffset>(record,
+                                                                                                                   cursor);
 }
 
 template <typename ElementMask, typename Record, size_t InitialOffset>
@@ -2609,7 +2607,7 @@ Record& DataMapper::BindOutputColumns(Record& record, SqlResultCursor& cursor)
         }
     }
 #else
-    Reflection::EnumerateMembers<ElementMask>(
+    EnumerateRecordMembers<ElementMask>(
         record, [&cursor, i = SQLUSMALLINT { InitialOffset }]<size_t I, typename Field>(Field& field) mutable {
             if constexpr (IsField<Field>)
             {
@@ -2764,7 +2762,7 @@ void DataMapper::ConfigureRelationAutoLoading(Record& record)
         callback.template operator()<I, FieldType>(record.[:members[I]:]);
     });
 #else
-    Reflection::EnumerateMembers(record, callback);
+    EnumerateRecordMembers(record, callback);
 #endif
 }
 

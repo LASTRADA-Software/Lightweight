@@ -4,9 +4,11 @@
 #include "Employee.hpp"
 
 #if !defined(LIGHTWEIGHT_BUILD_MODULES)
-#include <Lightweight/DataMapper/DataMapper.hpp>
+    #include <Lightweight/DataMapper/DataMapper.hpp>
 #endif
 
+#include <array>
+#include <string_view>
 
 struct Customer final
 {
@@ -27,3 +29,25 @@ struct Customer final
     Light::BelongsTo<&Employee::EmployeeId, Light::SqlRealName { "SupportRepId" }, Light::SqlNullable::Null> SupportRepId;
 };
 
+template <>
+struct Lightweight::Description<Customer>
+{
+    static constexpr std::size_t FieldCount = 13;
+    using Members = Lightweight::RecordMemberList<&Customer::CustomerId,
+                                                  &Customer::FirstName,
+                                                  &Customer::LastName,
+                                                  &Customer::Company,
+                                                  &Customer::Address,
+                                                  &Customer::City,
+                                                  &Customer::State,
+                                                  &Customer::Country,
+                                                  &Customer::PostalCode,
+                                                  &Customer::Phone,
+                                                  &Customer::Fax,
+                                                  &Customer::Email,
+                                                  &Customer::SupportRepId>;
+    static constexpr std::array<std::string_view, 13> FieldNames = { "CustomerId",  "FirstName", "LastName", "Company",
+                                                                     "Address",     "City",      "State",    "Country",
+                                                                     "PostalCode",  "Phone",     "Fax",      "Email",
+                                                                     "SupportRepId" };
+};

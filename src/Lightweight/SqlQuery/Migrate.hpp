@@ -277,7 +277,7 @@ namespace detail
                 {
                     constexpr size_t referencedFieldIndex = []() constexpr -> size_t {
                         auto index = size_t(-1);
-                        Reflection::EnumerateMembers<typename FieldType::ReferencedRecord>(
+                        EnumerateRecordMembers<typename FieldType::ReferencedRecord>(
                             [&index]<size_t J, typename ReferencedFieldType>() constexpr -> void {
                                 if constexpr (IsField<ReferencedFieldType>)
                                     if constexpr (ReferencedFieldType::IsPrimaryKey)
@@ -301,7 +301,7 @@ namespace detail
             }
         }
 #else
-        Reflection::EnumerateMembers<Record>([&builder]<size_t I, typename FieldType>() {
+        EnumerateRecordMembers<Record>([&builder]<size_t I, typename FieldType>() {
             if constexpr (FieldWithStorage<FieldType>)
             {
                 if constexpr (IsAutoIncrementPrimaryKey<FieldType>)
@@ -315,7 +315,7 @@ namespace detail
                 {
                     constexpr size_t referencedFieldIndex = []() constexpr -> size_t {
                         auto index = size_t(-1);
-                        Reflection::EnumerateMembers<typename FieldType::ReferencedRecord>(
+                        EnumerateRecordMembers<typename FieldType::ReferencedRecord>(
                             [&index]<size_t J, typename ReferencedFieldType>() constexpr -> void {
                                 if constexpr (IsField<ReferencedFieldType>)
                                     if constexpr (ReferencedFieldType::IsPrimaryKey)

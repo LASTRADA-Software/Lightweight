@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "../Description.hpp"
+
 #include <reflection-cpp/reflection.hpp>
 
-#include <any>
-#include <iostream>
+#include <algorithm>
+#include <cstddef>
+#include <vector>
 
 namespace Lightweight
 {
@@ -22,10 +25,10 @@ struct DifferenceView
     template <typename Callback>
     void Iterate(Callback const& callback) noexcept
     {
-        Reflection::template_for<0, Reflection::CountMembers<Record>>([&]<auto I>() {
+        Reflection::template_for<0, RecordMemberCount<Record>>([&]<auto I>() {
             if (std::find(indexes.begin(), indexes.end(), I) != indexes.end())
             {
-                callback(Reflection::GetMemberAt<I>(*lhs), Reflection::GetMemberAt<I>(*rhs));
+                callback(GetRecordMemberAt<I>(*lhs), GetRecordMemberAt<I>(*rhs));
             }
         });
     }

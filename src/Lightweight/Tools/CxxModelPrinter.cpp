@@ -196,9 +196,12 @@ std::string CxxModelPrinter::AliasTableName(std::string_view name) const
 
 void CxxModelPrinter::PrintToFiles(std::string_view modelNamespace, std::string_view outputDirectory)
 {
+    std::vector<std::string> instantiationSources;
+
     for (auto const& [tableName, definition]: _definitions)
     {
-        auto const fileName = std::format("{}/{}.hpp", outputDirectory, AliasTableName(tableName));
+        auto const headerBase = AliasTableName(tableName);
+        auto const fileName = std::format("{}/{}.hpp", outputDirectory, headerBase);
         auto file = std::ofstream(fileName);
         if (!file)
         {
@@ -206,7 +209,122 @@ void CxxModelPrinter::PrintToFiles(std::string_view modelNamespace, std::string_
             continue;
         }
         file << HeaderFileForTheTable(modelNamespace, tableName);
+
+        if (!_config.generateInstantiations)
+            continue;
+
+        auto const sourceName = std::format("{}.cpp", headerBase);
+        auto sourceFile = std::ofstream(std::format("{}/{}", outputDirectory, sourceName));
+        if (!sourceFile)
+        {
+            std::println("Failed to create file {}/{}.", outputDirectory, sourceName);
+            continue;
+        }
+        sourceFile << InstantiationSourceFor(modelNamespace, std::format("{}.hpp", headerBase), definition);
+        instantiationSources.emplace_back(sourceName);
     }
+
+    if (_config.generateInstantiations && !instantiationSources.empty())
+        WriteInstantiationCMakeLists(outputDirectory, instantiationSources);
+}
+
+void CxxModelPrinter::WriteInstantiationCMakeLists(std::string_view outputDirectory,
+                                                   std::vector<std::string> instantiationSources) const
+{
+    std::ranges::sort(instantiationSources);
+
+    auto const cmakePath = std::format("{}/CMakeLists.txt", outputDirectory);
+    auto cmake = std::ofstream(cmakePath);
+    if (!cmake)
+    {
+        std::println("Failed to create file {}.", cmakePath);
+        return;
+    }
+
+    auto const& target = _config.instantiationTargetName;
+    cmake << "# File is automatically generated using ddl2cpp.\n"
+             "# Builds the explicit template instantiations for the generated records so that consuming\n"
+             "# translation units (which see the matching `extern template`) don't re-instantiate the\n"
+             "# DataMapper relation machinery. Link this target and add this directory's parent to your\n"
+             "# include path, then include the generated headers as usual.\n\n";
+    cmake << std::format("add_library({} STATIC\n", target);
+    for (auto const& source: instantiationSources)
+        cmake << std::format("    {}\n", source);
+    cmake << ")\n";
+    cmake << std::format("target_compile_features({} PUBLIC cxx_std_23)\n", target);
+    cmake << std::format("target_link_libraries({} PUBLIC Lightweight::Lightweight)\n", target);
+    cmake << std::format("target_include_directories({} PUBLIC ${{CMAKE_CURRENT_SOURCE_DIR}})\n", target);
+}
+
+std::string CxxModelPrinter::RecordDescriptorFor(std::string_view modelNamespace, TableInfo const& info)
+{
+    if (info.structName.empty() || info.members.empty())
+        return {};
+
+    auto const qualifiedName =
+        modelNamespace.empty() ? info.structName : std::format("{}::{}", modelNamespace, info.structName);
+
+    std::string memberPointers;
+    std::string fieldNames;
+    for (auto const& [memberId, sqlName]: info.members)
+    {
+        if (!memberPointers.empty())
+        {
+            memberPointers += ", ";
+            fieldNames += ", ";
+        }
+        memberPointers += std::format("&{}::{}", qualifiedName, memberId);
+        fieldNames += std::format("\"{}\"", sqlName);
+    }
+
+    return std::format("template <>\n"
+                       "struct Lightweight::Description<{0}>\n"
+                       "{{\n"
+                       "    static constexpr std::size_t FieldCount = {1};\n"
+                       "    using Members = Lightweight::RecordMemberList<{2}>;\n"
+                       "    static constexpr std::array<std::string_view, {1}> FieldNames = {{ {3} }};\n"
+                       "}};\n",
+                       qualifiedName,
+                       info.members.size(),
+                       memberPointers,
+                       fieldNames);
+}
+
+std::string CxxModelPrinter::ExternTemplateDeclarationFor(std::string_view modelNamespace, TableInfo const& info)
+{
+    if (info.structName.empty())
+        return {};
+
+    auto const qualifiedName =
+        modelNamespace.empty() ? info.structName : std::format("{}::{}", modelNamespace, info.structName);
+
+    // ConfigureRelationAutoLoading is the entry point through which the entire (recursive) relation
+    // machinery is reached, so declaring it `extern template` keeps that whole closure out of every
+    // consuming translation unit; it is instantiated exactly once in the matching .cpp below.
+    return std::format("#if !defined(LIGHTWEIGHT_BUILD_MODULES)\n"
+                       "extern template void Lightweight::DataMapper::ConfigureRelationAutoLoading<{0}>({0}&);\n"
+                       "#endif\n",
+                       qualifiedName);
+}
+
+std::string CxxModelPrinter::InstantiationSourceFor(std::string_view modelNamespace,
+                                                    std::string const& headerFileName,
+                                                    TableInfo const& info)
+{
+    if (info.structName.empty())
+        return {};
+
+    auto const qualifiedName =
+        modelNamespace.empty() ? info.structName : std::format("{}::{}", modelNamespace, info.structName);
+
+    return std::format("// File is automatically generated using ddl2cpp.\n"
+                       "#include \"{1}\"\n"
+                       "\n"
+                       "#if !defined(LIGHTWEIGHT_BUILD_MODULES)\n"
+                       "template void Lightweight::DataMapper::ConfigureRelationAutoLoading<{0}>({0}&);\n"
+                       "#endif\n",
+                       qualifiedName,
+                       headerFileName);
 }
 
 std::string CxxModelPrinter::HeaderFileForTheTable(std::string_view modelNamespace,
@@ -228,6 +346,10 @@ std::string CxxModelPrinter::HeaderFileForTheTable(std::string_view modelNamespa
     output << "#include <Lightweight/DataMapper/DataMapper.hpp>\n";
     output << "#endif\n";
     output << "\n";
+    // Needed by the Description specialization emitted below (not exported by the module).
+    output << "#include <array>\n";
+    output << "#include <string_view>\n";
+    output << "\n";
 
     if (!modelNamespace.empty())
         output << std::format("namespace {}\n{{\n", modelNamespace);
@@ -236,6 +358,16 @@ std::string CxxModelPrinter::HeaderFileForTheTable(std::string_view modelNamespa
     output << _definitions[tableName].text.str();
     if (!modelNamespace.empty())
         output << std::format("}} // end namespace {}\n", modelNamespace);
+
+    // Emit the Description<> specialization at global scope so the DataMapper reads
+    // pre-baked metadata instead of evaluating reflection (dramatically faster to compile).
+    if (auto descriptor = RecordDescriptorFor(modelNamespace, _definitions[tableName]); !descriptor.empty())
+        output << '\n' << descriptor;
+
+    // Keep the heavy relation machinery out of consuming TUs (defined once in the matching .cpp).
+    if (_config.generateInstantiations)
+        if (auto externDecl = ExternTemplateDeclarationFor(modelNamespace, _definitions[tableName]); !externDecl.empty())
+            output << '\n' << externDecl;
 
     return output.str();
 }
@@ -520,7 +652,8 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
         return false;
     };
 
-    definition.text << std::format("struct {} final\n", aliasTableName(table.name));
+    definition.structName = aliasTableName(table.name);
+    definition.text << std::format("struct {} final\n", definition.structName);
     definition.text << std::format("{{\n");
     definition.text << aliasRealTableName(table.name);
 
@@ -556,6 +689,7 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
                                 FormatName(StripSuffix(foreignKey.foreignKey.columns.at(0)), _config.formatType)) };
                         })
                         .value();
+                auto const emittedName = uniqueMemberNameBuilder.DeclareName(relationName);
                 definition.text << std::format(
                     "    Light::BelongsTo<&{}{}{}> {};\n",
                     [&] {
@@ -569,7 +703,8 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
                         else
                             return ""sv;
                     }(),
-                    uniqueMemberNameBuilder.DeclareName(relationName));
+                    emittedName);
+                definition.members.emplace_back(emittedName, column.name);
                 definition.requiredTables.emplace_back(std::move(foreignTableName));
                 ++_numberOfForeignKeysListed;
                 continue;
@@ -579,11 +714,10 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
 
         if (column.isPrimaryKey)
         {
-            definition.text << std::format("    Light::Field<{}{}{}> {};",
-                                           type,
-                                           primaryKeyPart(),
-                                           aliasName(column.name),
-                                           uniqueMemberNameBuilder.DeclareName(memberName));
+            auto const emittedName = uniqueMemberNameBuilder.DeclareName(memberName);
+            definition.members.emplace_back(emittedName, column.name);
+            definition.text << std::format(
+                "    Light::Field<{}{}{}> {};", type, primaryKeyPart(), aliasName(column.name), emittedName);
             if (column.isForeignKey)
                 definition.text << " // NB: This is also a foreign key";
             definition.text << "\n";
@@ -591,8 +725,9 @@ void CxxModelPrinter::PrintTable(SqlSchema::Table const& table)
         }
 
         // Fallback: Handle the column as a regular field.
-        definition.text << std::format(
-            "    Light::Field<{}{}> {};", type, aliasName(column.name), uniqueMemberNameBuilder.DeclareName(memberName));
+        auto const emittedName = uniqueMemberNameBuilder.DeclareName(memberName);
+        definition.members.emplace_back(emittedName, column.name);
+        definition.text << std::format("    Light::Field<{}{}> {};", type, aliasName(column.name), emittedName);
         if (column.isForeignKey)
             definition.text << std::format(" // NB: This is also a foreign key");
         definition.text << '\n';
