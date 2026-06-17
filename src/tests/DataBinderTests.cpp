@@ -327,6 +327,40 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlVariant: SqlTime", "[SqlDataBinder],[SqlVar
     CHECK(result.IsNull());
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "GetColumn at the exact internal buffer boundary", "[SqlDataBinder]")
+{
+    // The chunked SQLGetData reader starts with a 255-char buffer. A value whose length EXACTLY
+    // fills that buffer still truncates for character types (the driver spends the final slot on
+    // the NUL terminator), so the continuation fetch must run for indicator == buffer size —
+    // a strict '>' comparison silently loses the last character.
+    auto stmt = SqlStatement {};
+    stmt.MigrateDirect(
+        [](auto& migration) { migration.CreateTable("Test").Column("Value", SqlColumnTypeDefinitions::NVarchar { 300 }); });
+
+    for (auto const length: { std::size_t { 254 }, std::size_t { 255 }, std::size_t { 256 } })
+    {
+        auto const expected = std::string(length, 'x');
+        (void) stmt.ExecuteDirect(stmt.Query("Test").Delete());
+        stmt.Prepare(stmt.Query("Test").Insert().Set("Value", SqlWildcard));
+        (void) stmt.Execute(expected);
+
+        {
+            auto cursor = stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
+            (void) cursor.FetchRow();
+            auto const narrow = cursor.GetNullableColumn<std::string>(1);
+            REQUIRE(narrow.has_value());
+            CHECK(narrow->size() == length);
+        }
+        {
+            auto cursor = stmt.ExecuteDirect(stmt.Query("Test").Select().Field("Value").All());
+            (void) cursor.FetchRow();
+            auto const wide = cursor.GetNullableColumn<std::u16string>(1);
+            REQUIRE(wide.has_value());
+            CHECK(wide->size() == length);
+        }
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "InputParameter and GetColumn for very large values", "[SqlDataBinder]")
 {
     auto stmt = SqlStatement {};
@@ -1398,6 +1432,36 @@ TEST_CASE_METHOD(SqlTestFixture, "Unicode round-trip across binders", "[SqlDataB
         auto reader = stmt.Execute();
         REQUIRE(reader.FetchRow());
         CHECK(reader.GetColumn<std::wstring>(1) == L"Hello \U0001F601 World"s);
+    }
+
+    SECTION("narrow std::string read-back preserves UTF-8 bytes")
+    {
+        // Pins the regression fixed alongside this section: the ANSI std::string binder used to read
+        // narrow columns via SQL_C_CHAR, which psqlODBC on Windows transcodes to cp1252 — so a stored
+        // "café €" came back mangled (caf? ?). The read path now mirrors the write path (SQL_C_WCHAR
+        // + UTF-8 conversion) on PostgreSQL. The other backends already round-tripped these bytes and
+        // must keep doing so.
+        auto const utf8Value = "caf\xC3\xA9 \xE2\x82\xAC"s; // "café €" as UTF-8 bytes
+        stmt.Prepare(stmt.Query("UnicodeRoundTrip").Insert().Set("value", SqlWildcard));
+        std::ignore = stmt.Execute(utf8Value);
+
+        SECTION("GetColumn<std::string>")
+        {
+            stmt.Prepare(stmt.Query("UnicodeRoundTrip").Select().Field("value").All());
+            auto reader = stmt.Execute();
+            REQUIRE(reader.FetchRow());
+            CHECK(reader.GetColumn<std::string>(1) == utf8Value);
+        }
+
+        SECTION("BindOutputColumns with std::string")
+        {
+            stmt.Prepare(stmt.Query("UnicodeRoundTrip").Select().Field("value").All());
+            auto reader = stmt.Execute();
+            std::string actual;
+            reader.BindOutputColumns(&actual);
+            REQUIRE(reader.FetchRow());
+            CHECK(actual == utf8Value);
+        }
     }
 }
 

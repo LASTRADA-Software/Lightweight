@@ -128,7 +128,12 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
                                       return "TEXT";
                                   return std::format("VARCHAR({})", type.size);
                               },
-                              [](Real const&) -> std::string { return "REAL"; },
+                              [](Real const& type) -> std::string {
+                                  // PostgreSQL REAL is float4; a Real with precision > 24 (e.g. an
+                                  // introspected double-precision/float(53) column) must round-trip
+                                  // as DOUBLE PRECISION or restore silently narrows it to float32.
+                                  return type.precision > 24 ? "DOUBLE PRECISION" : "REAL";
+                              },
                               [](Smallint const&) -> std::string { return "SMALLINT"; },
                               [](Text const&) -> std::string { return "TEXT"; },
                               [](Time const&) -> std::string { return "TIME"; },

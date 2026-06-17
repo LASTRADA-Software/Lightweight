@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // NOLINTBEGIN(bugprone-unchecked-optional-access) - Catch2 REQUIRE macro checks optionals
 
+#include "../../Lightweight/SqlBackup/Backup.hpp"
 #include "../Utils.hpp"
 
 #include <Lightweight/DataBinder/SqlDate.hpp>
@@ -23,11 +24,13 @@
     #pragma clang diagnostic pop
 #endif
 
+#include <atomic>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <mutex>
 
 using namespace Lightweight;
@@ -130,6 +133,135 @@ TEST_CASE("SqlBackup: Backup and Restore", "[SqlBackup]")
 
         VerifyDatabase();
     }
+}
+
+TEST_CASE("DeleteStaleSubChunks removes stale window entries and checksums", "[SqlBackup]")
+{
+    auto const archiveDir = std::filesystem::path { "stale_chunks_archive_dir" };
+    std::filesystem::remove_all(archiveDir);
+    std::filesystem::create_directories(archiveDir);
+    auto const dirCleanup = std::shared_ptr<void> { nullptr, [&](void*) {
+                                                       std::error_code ec;
+                                                       std::filesystem::remove_all(archiveDir, ec);
+                                                   } };
+
+    auto archive =
+        SqlBackup::detail::WorkerChunkArchive { archiveDir, 0, 1024 * 1024, SqlBackup::CompressionMethod::Deflate, 1 };
+    for (auto const subId: { 0, 1, 2 })
+        archive.Add(std::format("data/t/0001_{:02}.msgpack", subId), "x");
+
+    std::mutex zipMutex;
+    std::mutex checksumMutex;
+    std::map<std::string, std::string> checksums { { "data/t/0001_00.msgpack", "a" },
+                                                   { "data/t/0001_01.msgpack", "b" },
+                                                   { "data/t/0001_02.msgpack", "c" } };
+    LambdaProgressManager pm { [](auto&&) {} };
+    SqlConnectionString const cs {};
+    SqlBackup::RetrySettings const retry {};
+    SqlBackup::BackupSettings const settings {};
+    std::string const schema {};
+    SqlBackup::detail::BackupContext ctx { .zip = nullptr,
+                                           .zipMutex = zipMutex,
+                                           .progress = pm,
+                                           .connectionString = cs,
+                                           .schema = schema,
+                                           .checksums = &checksums,
+                                           .checksumMutex = &checksumMutex,
+                                           .retrySettings = retry,
+                                           .backupSettings = settings };
+
+    // Final attempt wrote 1 sub-chunk; an earlier attempt had written 3 -> delete ids 1 and 2.
+    SqlBackup::detail::DeleteStaleSubChunks(archive, ctx, "t", /*windowIndex=*/0, /*firstStale=*/1, /*end=*/3);
+    archive.Seal();
+
+    REQUIRE(archive.SealedArchives().size() == 1);
+    int err = 0;
+    zip_t* sealed = zip_open(archive.SealedArchives().front().string().c_str(), ZIP_RDONLY, &err);
+    REQUIRE(sealed != nullptr);
+    CHECK(zip_name_locate(sealed, "data/t/0001_00.msgpack", 0) >= 0);
+    CHECK(zip_name_locate(sealed, "data/t/0001_01.msgpack", 0) < 0);
+    CHECK(zip_name_locate(sealed, "data/t/0001_02.msgpack", 0) < 0);
+    zip_close(sealed);
+
+    CHECK(checksums.contains("data/t/0001_00.msgpack"));
+    CHECK_FALSE(checksums.contains("data/t/0001_01.msgpack"));
+    CHECK_FALSE(checksums.contains("data/t/0001_02.msgpack"));
+}
+
+TEST_CASE("SqlBackup: multi-window PK-range table backs up in parallel and restores", "[SqlBackup]")
+{
+    ScopedFileRemoved const backupFileCleaner { BackupFile };
+
+    // 25 rows with rowsPerChunk=10 -> CappedWindowWidth gives 3 windows -> 3 parallel chunks.
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) {
+            migration.DropTableIfExists("multi_chunk");
+            migration.CreateTable("multi_chunk")
+                .PrimaryKey("id", SqlColumnTypeDefinitions::Integer {})
+                .Column("content", SqlColumnTypeDefinitions::Varchar { 64 });
+        });
+        stmt.Prepare("INSERT INTO multi_chunk (id, content) VALUES (?, ?)");
+        for (int i = 1; i <= 25; ++i)
+            (void) stmt.Execute(i, std::format("row{}", i));
+    }
+
+    std::atomic<int> errors { 0 };
+    LambdaProgressManager pm { [&](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+        {
+            ++errors;
+            std::cerr << "Backup Error: " << p.message << "\n";
+        }
+    } };
+    auto backupSettings = SqlBackup::BackupSettings {};
+    backupSettings.rowsPerChunk = 10;
+    REQUIRE_NOTHROW(SqlBackup::Backup(BackupFile, GetConnectionString(), 4, pm, {}, "multi_chunk", {}, backupSettings));
+    CHECK(errors.load() == 0);
+
+    // Temp chunk files are removed once the archive is closed.
+    CHECK_FALSE(std::filesystem::exists(std::filesystem::path { BackupFile.string() + ".tmp" }));
+
+    // The archive must contain one file per window (3 windows, each below the chunk byte threshold).
+    {
+        int err = 0;
+        zip_t* zip = zip_open(BackupFile.string().c_str(), ZIP_RDONLY, &err);
+        REQUIRE(zip != nullptr);
+        size_t windowFiles = 0;
+        for (zip_int64_t i = 0, n = zip_get_num_entries(zip, 0); i < n; ++i)
+        {
+            std::string const name = zip_get_name(zip, static_cast<zip_uint64_t>(i), 0);
+            if (name.starts_with("data/multi_chunk/"))
+                ++windowFiles;
+        }
+        zip_close(zip);
+        CHECK(windowFiles == 3);
+    }
+
+    // Drop and restore; all 25 rows must come back.
+    {
+        SqlConnection conn;
+        conn.Connect(GetConnectionString());
+        SqlStatement stmt { conn };
+        stmt.MigrateDirect([](SqlMigrationQueryBuilder& migration) { migration.DropTable("multi_chunk"); });
+    }
+    LambdaProgressManager restorePm { [&](SqlBackup::Progress const& p) {
+        if (p.state == SqlBackup::Progress::State::Error)
+        {
+            ++errors;
+            std::cerr << "Restore Error: " << p.message << "\n";
+        }
+    } };
+    REQUIRE_NOTHROW(SqlBackup::Restore(BackupFile, GetConnectionString(), 4, restorePm));
+    CHECK(errors.load() == 0);
+
+    SqlConnection conn;
+    conn.Connect(GetConnectionString());
+    SqlStatement stmt { conn };
+    REQUIRE(stmt.ExecuteDirectScalar<long long>("SELECT COUNT(*) FROM multi_chunk") == 25);
+    REQUIRE(stmt.ExecuteDirectScalar<std::string>("SELECT content FROM multi_chunk WHERE id = 17") == "row17");
 }
 
 namespace

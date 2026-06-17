@@ -14,6 +14,8 @@
 
 #if defined(LIGHTWEIGHT_TRACY_ENABLED)
     #include <tracy/Tracy.hpp>
+
+    #define TracySetThreadName(name) ::tracy::SetThreadName(name)
 #else
     // No-op stubs. Each macro consumes ALL of its arguments via `(void) (...)`
     // so call sites can pass locals (e.g. a sanitized SQL string, or a
@@ -44,6 +46,7 @@
     #define TracyMessageC(text, size, color) (((void) (text)), ((void) (size)), ((void) (color)))
     #define TracyMessageLC(text, color)      (((void) (text)), ((void) (color)))
     #define TracyAppInfo(text, size)         (((void) (text)), ((void) (size)))
+    #define TracySetThreadName(name)         ((void) sizeof(name))
 #endif
 
 // Convenience wrapper for the very common `ZoneText(s.data(), s.size())`

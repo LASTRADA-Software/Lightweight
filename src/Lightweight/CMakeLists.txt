@@ -112,11 +112,14 @@ set(SOURCE_FILES
 
     SqlBackup/Backup.cpp
     SqlBackup/BatchManager.cpp
+    SqlBackup/ChunkPlanner.cpp
     SqlBackup/Common.cpp
+    SqlBackup/ConnectionPool.cpp
     SqlBackup/MsgPackChunkFormats.cpp
     SqlBackup/Restore.cpp
     SqlBackup/SqlBackup.cpp
     SqlBackup/TableFilter.cpp
+    SqlBackup/WorkerChunkArchive.cpp
 
     SqlConnectInfo.cpp
     SqlConnection.cpp

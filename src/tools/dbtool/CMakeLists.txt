@@ -1,17 +1,21 @@
 add_library(dbtool_lib STATIC
+    BackupDiff.cpp
+    BackupDiff.hpp
     StandardProgressManager.cpp
     StandardProgressManager.hpp
 )
 
-target_link_libraries(dbtool_lib PUBLIC Lightweight tools_shared)
-
-add_executable(dbtool main.cpp)
+# BackupDiff reads zip archives directly, so dbtool_lib needs libzip. Kept PUBLIC so both the
+# dbtool executable and the test target (which links dbtool_lib) resolve the dependency.
 if(WIN32)
     find_package(libzip CONFIG REQUIRED)
-    target_link_libraries(dbtool PRIVATE dbtool_lib libzip::zip)
+    target_link_libraries(dbtool_lib PUBLIC Lightweight tools_shared libzip::zip)
 else()
-    target_link_libraries(dbtool PRIVATE dbtool_lib zip)
+    target_link_libraries(dbtool_lib PUBLIC Lightweight tools_shared zip)
 endif()
+
+add_executable(dbtool main.cpp)
+target_link_libraries(dbtool PRIVATE dbtool_lib)
 
 install(TARGETS dbtool
     RUNTIME_DEPENDENCY_SET dbtool_deps

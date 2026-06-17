@@ -58,6 +58,7 @@ message(STATUS "Doxygen found: ${DOXYGEN_EXECUTABLE}")
     "${PROJECT_SOURCE_DIR}/docs/sqlquery.md"
     "${PROJECT_SOURCE_DIR}/docs/best-practices.md"
     "${PROJECT_SOURCE_DIR}/docs/data-binder.md"
+    "${PROJECT_SOURCE_DIR}/docs/sql-backup.md"
     "${PROJECT_SOURCE_DIR}/docs/sql-backup-format.md"
     "${PROJECT_SOURCE_DIR}/docs/dbtool.md"
     "${PROJECT_SOURCE_DIR}/docs/sql-migrations.md"

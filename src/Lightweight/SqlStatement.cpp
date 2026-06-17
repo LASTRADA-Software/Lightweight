@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "DataBinder/SqlRawColumn.hpp"
+#include "DataBinder/UnicodeConverter.hpp"
 #include "SqlOdbcWide.hpp"
 #include "SqlQuery.hpp"
 #include "SqlStatement.hpp"
 #include "TracyProfiler.hpp"
 #include "Utils.hpp"
 
+#include <algorithm>
 #include <cstddef>
+#include <cstring>
 #include <deque>
 #include <format>
+#include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace Lightweight
@@ -36,6 +41,28 @@ static auto MakeUnexpected(SqlErrorInfo info, std::source_location location)
     SqlLogger::GetLogger().OnError(info, location);
     return std::unexpected { std::move(info) };
 }
+
+namespace
+{
+    /// Packs an integral ODBC statement-attribute value into the SQLPOINTER ABI slot.
+    ///
+    /// @c SQLSetStmtAttr takes its value argument as @c SQLPOINTER. For attributes whose value is an
+    /// integer (e.g. @c SQL_ATTR_ROW_ARRAY_SIZE, @c SQL_ATTR_ROW_BIND_TYPE), ODBC's documented
+    /// convention is to pass the integer in the pointer slot. We copy the bit-pattern with
+    /// @c std::memcpy instead of @c reinterpret_cast so there is no integer-to-pointer conversion to
+    /// reason about (and clang-tidy's @c performance-no-int-to-ptr has nothing to flag).
+    ///
+    /// @param value The integral attribute value to convey to ODBC.
+    /// @return A @c SQLPOINTER carrying the same bit-pattern as @p value.
+    [[nodiscard]] SQLPOINTER OdbcIntAttr(SQLULEN value) noexcept
+    {
+        static_assert(sizeof(SQLPOINTER) >= sizeof(SQLULEN),
+                      "SQLPOINTER must be wide enough to carry an integral ODBC attribute value");
+        SQLPOINTER ptr = nullptr;
+        std::memcpy(static_cast<void*>(&ptr), &value, sizeof(value));
+        return ptr;
+    }
+} // namespace
 
 void SqlStatement::RequireIndicators()
 {
@@ -355,6 +382,34 @@ SqlResultCursor SqlStatement::ExecuteBatch(std::span<SqlRawColumn const> columns
     return SqlResultCursor { *this };
 }
 
+RowArrayCursor SqlStatement::ExecuteBatchFetch(std::string_view query, std::size_t arrayDepth)
+{
+    ZoneScopedN("SqlStatement::ExecuteBatchFetch");
+    ZoneTextObject(query);
+    ZoneValue(arrayDepth);
+
+    if (arrayDepth == 0)
+        throw std::invalid_argument { "arrayDepth must be greater than zero" };
+
+    m_preparedQuery.clear();
+    m_numColumns.reset();
+
+    RequireSuccess(SQLFreeStmt(m_hStmt, SQL_UNBIND));
+
+    m_data->inputIndicators.clear();
+    m_data->batchIndicators.clear();
+
+    SqlLogger::GetLogger().OnExecuteDirect(query);
+
+    // Execute via the W entry point — see the rationale above SQLPrepareW in Prepare().
+    auto wQuery = detail::OdbcWideArg { query };
+    auto const rc = SQLExecDirectW(m_hStmt, wQuery.data(), static_cast<SQLINTEGER>(wQuery.buffer.size()));
+    if (rc != SQL_NO_DATA)
+        RequireSuccess(rc);
+
+    return RowArrayCursor { *this, arrayDepth };
+}
+
 // Retrieves the number of rows affected by the last query.
 size_t SqlStatement::NumRowsAffected() const
 {
@@ -434,5 +489,394 @@ SqlQueryBuilder SqlStatement::QueryAs(std::string_view const& table, std::string
 {
     return Connection().QueryAs(table, tableAlias);
 }
+
+// {{{ RowArrayCursor
+
+namespace
+{
+    // Maps the SQL data type reported by SQLDescribeCol onto one of the three fixed-stride bound
+    // representations. Integer SQL types collapse to int64, floating types to double, and
+    // everything else is read textually via SQL_C_CHAR.
+    constexpr bool IsIntegerSqlType(SQLSMALLINT sqlType) noexcept
+    {
+        switch (sqlType)
+        {
+            case SQL_BIT:
+            case SQL_TINYINT:
+            case SQL_SMALLINT:
+            case SQL_INTEGER:
+            case SQL_BIGINT:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    constexpr bool IsFloatingSqlType(SQLSMALLINT sqlType) noexcept
+    {
+        switch (sqlType)
+        {
+            case SQL_REAL:
+            case SQL_FLOAT:
+            case SQL_DOUBLE:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    constexpr bool IsWideCharSqlType(SQLSMALLINT sqlType) noexcept
+    {
+        switch (sqlType)
+        {
+            case SQL_WCHAR:
+            case SQL_WVARCHAR:
+            case SQL_WLONGVARCHAR:
+                return true;
+            default:
+                return false;
+        }
+    }
+} // namespace
+
+RowArrayCursor::RowArrayCursor(SqlStatement& stmt, std::size_t arrayDepth):
+    m_stmt { &stmt },
+    m_arrayDepth { arrayDepth }
+{
+    SQLHSTMT const hStmt = m_stmt->NativeHandle();
+
+    SQLSMALLINT numColumns = 0;
+    m_stmt->RequireSuccess(SQLNumResultCols(hStmt, &numColumns));
+    if (numColumns <= 0)
+        throw RowArrayCursorUnsupported { "RowArrayCursor: query produced no result columns" };
+
+    m_columns.reserve(static_cast<std::size_t>(numColumns));
+
+    for (auto const i: std::views::iota(SQLUSMALLINT(1), static_cast<SQLUSMALLINT>(numColumns + 1)))
+    {
+        SQLSMALLINT sqlType = 0;
+        SQLULEN columnSize = 0;
+        SQLSMALLINT decimalDigits = 0;
+        SQLSMALLINT nullable = 0;
+        SQLSMALLINT nameLen = 0;
+        SQLWCHAR nameBuffer[256] = {};
+        m_stmt->RequireSuccess(SQLDescribeColW(hStmt,
+                                               i,
+                                               nameBuffer,
+                                               static_cast<SQLSMALLINT>(std::size(nameBuffer)),
+                                               &nameLen,
+                                               &sqlType,
+                                               &columnSize,
+                                               &decimalDigits,
+                                               &nullable));
+
+        BoundColumn boundColumn;
+        if (IsIntegerSqlType(sqlType))
+        {
+            boundColumn.type = BoundType::Int64;
+            boundColumn.elementWidth = sizeof(std::int64_t);
+        }
+        else if (IsFloatingSqlType(sqlType))
+        {
+            boundColumn.type = BoundType::Double;
+            boundColumn.elementWidth = sizeof(double);
+        }
+        else if (sqlType == SQL_TYPE_DATE || sqlType == SQL_DATE)
+        {
+            boundColumn.type = BoundType::Date;
+            boundColumn.elementWidth = sizeof(SQL_DATE_STRUCT);
+        }
+        else if (sqlType == SQL_TYPE_TIMESTAMP || sqlType == SQL_TIMESTAMP)
+        {
+            boundColumn.type = BoundType::Timestamp;
+            boundColumn.elementWidth = sizeof(SQL_TIMESTAMP_STRUCT);
+        }
+        else if (sqlType == SQL_GUID)
+        {
+            boundColumn.type = BoundType::Guid;
+            boundColumn.elementWidth = sizeof(SQLGUID);
+        }
+        else if (IsWideCharSqlType(sqlType))
+        {
+            // Wide (UTF-16) character columns: SQLDescribeCol reports the maximum *character*
+            // count; SQL_C_WCHAR buffers count bytes at 2 bytes per UTF-16 code unit (plus a NUL).
+            // The LOB/oversize rejection mirrors the narrow path's character-count semantics.
+            if (columnSize == 0 || columnSize >= MaxCharColumnBytes)
+                throw RowArrayCursorUnsupported {
+                    "RowArrayCursor: column is unbounded (LOB) or too wide for fixed-stride bulk fetch"
+                };
+            boundColumn.type = BoundType::WChar;
+            boundColumn.elementWidth = (static_cast<std::size_t>(columnSize) + 1) * sizeof(SQLWCHAR);
+        }
+        else
+        {
+            // Character (and textual representations of decimal/date/time) columns. SQLDescribeCol
+            // reports the maximum *character* count, but we bind as SQL_C_CHAR which counts *bytes*.
+            // Multibyte/UTF-8 data (e.g. German umlauts) is wider in bytes than in characters, so a
+            // buffer sized by character count would silently truncate. We therefore allocate the
+            // UTF-8 worst case of 4 bytes per character (plus a NUL terminator).
+            //
+            // The LOB/unbounded rejection keeps its original *character*-count threshold semantics:
+            // a reported size of 0 means the driver could not bound the column (LOB / unbounded),
+            // and a size >= MaxCharColumnBytes is treated as too wide for fixed-stride bulk fetch.
+            // A legitimately bounded column such as varchar(255) becomes 255*4+1 = 1021 bytes; a
+            // varchar(8000) becomes ~32 KB per row. At high arrayDepth that is a known memory
+            // tradeoff (arrayDepth * 32 KB) accepted in exchange for correct multibyte round-trips.
+            if (columnSize == 0 || columnSize >= MaxCharColumnBytes)
+                throw RowArrayCursorUnsupported {
+                    "RowArrayCursor: column is unbounded (LOB) or too wide for fixed-stride bulk fetch"
+                };
+            boundColumn.type = BoundType::Char;
+            boundColumn.elementWidth = (static_cast<std::size_t>(columnSize) * 4) + 1;
+        }
+
+        m_columns.emplace_back(std::move(boundColumn));
+    }
+
+    // Adapt the depth to the per-cursor memory budget: a wide row (many or large character
+    // columns) binds fewer rows per round-trip instead of multiplying its width by the full
+    // requested depth (the footprint otherwise grows with workers x columns x depth and has been
+    // observed to exhaust physical RAM on wide production schemas).
+    {
+        auto rowWidth = std::size_t { 0 };
+        for (auto const& column: m_columns)
+            rowWidth += column.elementWidth + sizeof(SQLLEN); // value stride + length indicator
+        auto const budgetDepth = MemoryBudgetBytes / std::max<std::size_t>(rowWidth, 1);
+        auto const minDepth = std::min(MinArrayDepth, m_arrayDepth); // never raise above the request
+        m_arrayDepth = std::clamp(budgetDepth, minDepth, m_arrayDepth);
+    }
+
+    m_rowStatus.resize(m_arrayDepth);
+    for (auto& column: m_columns)
+    {
+        column.buffer.assign(column.elementWidth * m_arrayDepth, char {});
+        column.indicators.assign(m_arrayDepth, SQLLEN {});
+    }
+
+    // Configure row-array (column-wise) fetching on the statement handle. These attributes take
+    // integral values conveyed through the SQLPOINTER slot (see OdbcIntAttr).
+    m_stmt->RequireSuccess(SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_BIND_TYPE, OdbcIntAttr(SQL_BIND_BY_COLUMN), 0));
+    m_stmt->RequireSuccess(SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, OdbcIntAttr(m_arrayDepth), 0));
+    m_stmt->RequireSuccess(SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_STATUS_PTR, m_rowStatus.data(), 0));
+    m_stmt->RequireSuccess(SQLSetStmtAttr(hStmt, SQL_ATTR_ROWS_FETCHED_PTR, &m_rowsFetched, 0));
+
+    // Bind each column to its contiguous buffer + indicator array.
+    for (auto const i: std::views::iota(std::size_t { 0 }, m_columns.size()))
+    {
+        auto& column = m_columns[i];
+        SQLSMALLINT cType = SQL_C_CHAR;
+        SQLLEN bufferLength = 0;
+        switch (column.type)
+        {
+            case BoundType::Int64:
+                cType = SQL_C_SBIGINT;
+                bufferLength = 0; // fixed-size C type: ODBC ignores buffer length
+                break;
+            case BoundType::Double:
+                cType = SQL_C_DOUBLE;
+                bufferLength = 0;
+                break;
+            case BoundType::Char:
+                cType = SQL_C_CHAR;
+                bufferLength = static_cast<SQLLEN>(column.elementWidth);
+                break;
+            case BoundType::WChar:
+                cType = SQL_C_WCHAR;
+                bufferLength = static_cast<SQLLEN>(column.elementWidth);
+                break;
+            case BoundType::Date:
+                cType = SQL_C_TYPE_DATE;
+                bufferLength = 0; // fixed-size C type: ODBC ignores buffer length
+                break;
+            case BoundType::Timestamp:
+                cType = SQL_C_TYPE_TIMESTAMP;
+                bufferLength = 0;
+                break;
+            case BoundType::Guid:
+                cType = SQL_C_GUID;
+                bufferLength = 0;
+                break;
+        }
+        m_stmt->RequireSuccess(SQLBindCol(
+            hStmt, static_cast<SQLUSMALLINT>(i + 1), cType, column.buffer.data(), bufferLength, column.indicators.data()));
+    }
+}
+
+void RowArrayCursor::ResetStatementState() noexcept
+{
+    if (!m_stmt)
+        return;
+
+    // Restore the statement handle to a single-row, unbound state so it can be safely reused for
+    // another query. Failures here are non-fatal (best-effort cleanup), so we don't go through
+    // RequireSuccess which would throw.
+    SQLHSTMT const hStmt = m_stmt->NativeHandle();
+    SQLFreeStmt(hStmt, SQL_UNBIND);
+    SQLFreeStmt(hStmt, SQL_CLOSE);
+    SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_ARRAY_SIZE, OdbcIntAttr(1), 0);
+    SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_BIND_TYPE, OdbcIntAttr(SQL_BIND_BY_COLUMN), 0);
+    SQLSetStmtAttr(hStmt, SQL_ATTR_ROW_STATUS_PTR, nullptr, 0);
+    SQLSetStmtAttr(hStmt, SQL_ATTR_ROWS_FETCHED_PTR, nullptr, 0);
+}
+
+RowArrayCursor::~RowArrayCursor() noexcept
+{
+    ResetStatementState();
+}
+
+std::size_t RowArrayCursor::FetchArray()
+{
+    ZoneScopedN("RowArrayCursor::FetchArray");
+
+    m_rowsFetched = 0;
+    auto const rc = SQLFetchScroll(m_stmt->NativeHandle(), SQL_FETCH_NEXT, 0);
+    if (rc == SQL_NO_DATA)
+    {
+        m_lastFetched = 0;
+        return 0;
+    }
+    if (!SQL_SUCCEEDED(rc))
+        m_stmt->RequireSuccess(rc);
+
+    // SQL_SUCCESS_WITH_INFO is acceptable: it can flag e.g. truncation of one cell, but the row
+    // count in m_rowsFetched is still valid. The bounded-column guard in the constructor keeps
+    // fixed-stride columns from truncating in practice.
+    m_lastFetched = static_cast<std::size_t>(m_rowsFetched);
+    return m_lastFetched;
+}
+
+std::size_t RowArrayCursor::ColumnCount() const noexcept
+{
+    return m_columns.size();
+}
+
+std::size_t RowArrayCursor::ArrayDepth() const noexcept
+{
+    return m_arrayDepth;
+}
+
+char const* RowArrayCursor::CheckedCell(std::size_t rowInBatch,
+                                        SQLUSMALLINT column,
+                                        BoundType expected,
+                                        char const* accessorName) const
+{
+    if (rowInBatch >= m_lastFetched)
+        throw std::out_of_range { std::format(
+            "RowArrayCursor: rowInBatch {} >= rowsFetched {}", rowInBatch, m_lastFetched) };
+    auto const& boundColumn = m_columns.at(column - 1);
+    if (boundColumn.type != expected)
+        throw std::logic_error { std::format("RowArrayCursor::{} called on a mismatched column binding", accessorName) };
+    if (boundColumn.indicators[rowInBatch] == SQL_NULL_DATA)
+        return nullptr;
+    return boundColumn.buffer.data() + (rowInBatch * boundColumn.elementWidth);
+}
+
+std::optional<std::int64_t> RowArrayCursor::GetI64(std::size_t rowInBatch, SQLUSMALLINT column) const
+{
+    auto const* cell = CheckedCell(rowInBatch, column, BoundType::Int64, "GetI64");
+    if (!cell)
+        return std::nullopt;
+    std::int64_t value = 0;
+    std::memcpy(&value, cell, sizeof(value));
+    return value;
+}
+
+std::optional<double> RowArrayCursor::GetF64(std::size_t rowInBatch, SQLUSMALLINT column) const
+{
+    auto const* cell = CheckedCell(rowInBatch, column, BoundType::Double, "GetF64");
+    if (!cell)
+        return std::nullopt;
+    double value = 0.0;
+    std::memcpy(&value, cell, sizeof(value));
+    return value;
+}
+
+std::optional<std::string> RowArrayCursor::GetString(std::size_t rowInBatch, SQLUSMALLINT column) const
+{
+    if (rowInBatch >= m_lastFetched)
+        throw std::out_of_range { std::format(
+            "RowArrayCursor: rowInBatch {} >= rowsFetched {}", rowInBatch, m_lastFetched) };
+    auto const& boundColumn = m_columns.at(column - 1);
+    if (boundColumn.type != BoundType::Char && boundColumn.type != BoundType::WChar)
+        throw std::logic_error { "RowArrayCursor::GetString called on a non-character column" };
+
+    auto const indicator = boundColumn.indicators[rowInBatch];
+    if (indicator == SQL_NULL_DATA)
+        return std::nullopt;
+
+    if (boundColumn.type == BoundType::WChar)
+    {
+        // The indicator carries the value's byte length; the buffer holds UTF-16 code units. A
+        // value wider than the bound buffer was truncated by the driver (indicator > usable width,
+        // or SQL_NO_TOTAL when the driver can't report the full length). Silently clamping it would
+        // write a half-row into the backup, so we fail loudly instead. The constructor sizes the
+        // buffer to the column's full declared width, so this cannot fire for a legitimately
+        // bounded column — reaching it means the column is wider than SQLDescribeCol reported.
+        auto const usableUnits = (boundColumn.elementWidth / sizeof(char16_t)) - 1;
+        if (indicator < 0 || std::cmp_greater(indicator, usableUnits * sizeof(char16_t)))
+            throw std::runtime_error { std::format(
+                "RowArrayCursor::GetString: value in column {} was truncated during bulk fetch "
+                "(indicator byte length {}, buffer holds {} code units); aborting to avoid a corrupt backup",
+                column,
+                indicator,
+                usableUnits) };
+        auto const units = static_cast<std::size_t>(indicator) / sizeof(char16_t);
+        auto const* cell =
+            reinterpret_cast<char16_t const*>(boundColumn.buffer.data() + (rowInBatch * boundColumn.elementWidth));
+        // GetString hands back UTF-8 bytes in a std::string (an opaque byte container for callers
+        // such as the backup serializer); convert UTF-16 -> UTF-8 (std::u8string) then alias the bytes.
+        auto const utf8 = ToUtf8(std::u16string_view { cell, units });
+        return std::string { reinterpret_cast<char const*>(utf8.data()), utf8.size() };
+    }
+
+    // The indicator carries the byte length of the value (excluding the NUL terminator). As above,
+    // a value wider than the usable buffer width was truncated — fail loudly rather than corrupt
+    // the backup with a clamped value.
+    auto const usableWidth = boundColumn.elementWidth - 1;
+    if (indicator < 0 || std::cmp_greater(indicator, usableWidth))
+        throw std::runtime_error { std::format(
+            "RowArrayCursor::GetString: value in column {} was truncated during bulk fetch "
+            "(indicator byte length {}, buffer holds {} bytes); aborting to avoid a corrupt backup",
+            column,
+            indicator,
+            usableWidth) };
+    char const* const cell = boundColumn.buffer.data() + (rowInBatch * boundColumn.elementWidth);
+    return std::string { cell, static_cast<std::size_t>(indicator) };
+}
+
+std::optional<SqlDate> RowArrayCursor::GetDate(std::size_t rowInBatch, SQLUSMALLINT column) const
+{
+    auto const* cell = CheckedCell(rowInBatch, column, BoundType::Date, "GetDate");
+    if (!cell)
+        return std::nullopt;
+    SqlDate value;
+    std::memcpy(&value.sqlValue, cell, sizeof(value.sqlValue));
+    return value;
+}
+
+std::optional<SqlDateTime> RowArrayCursor::GetTimestamp(std::size_t rowInBatch, SQLUSMALLINT column) const
+{
+    auto const* cell = CheckedCell(rowInBatch, column, BoundType::Timestamp, "GetTimestamp");
+    if (!cell)
+        return std::nullopt;
+    SqlDateTime value;
+    std::memcpy(&value.sqlValue, cell, sizeof(value.sqlValue));
+    return value;
+}
+
+std::optional<SqlGuid> RowArrayCursor::GetGuid(std::size_t rowInBatch, SQLUSMALLINT column) const
+{
+    auto const* cell = CheckedCell(rowInBatch, column, BoundType::Guid, "GetGuid");
+    if (!cell)
+        return std::nullopt;
+    // The cell holds the driver-filled SQLGUID; SqlGuid::data carries the same raw 16 bytes the
+    // single-row SQLGetData(SQL_C_GUID) fill produces, so to_string yields identical text.
+    SqlGuid value;
+    static_assert(sizeof(value.data) == sizeof(SQLGUID));
+    std::memcpy(value.data, cell, sizeof(value.data));
+    return value;
+}
+
+// }}} RowArrayCursor
 
 } // namespace Lightweight

@@ -334,6 +334,37 @@ dbtool restore --input backup.zip --schema new_schema
 dbtool restore --input backup.zip --filter-tables=Users,Products
 ```
 
+### backup-diff
+
+Compare the **data content** of two backup archives to detect silent data corruption — for
+example, to prove that a concurrent (multi-threaded) backup contains the same rows as a safe
+single-threaded baseline:
+
+```bash
+dbtool backup-diff --left backup_st.zip --right backup_mt.zip
+```
+
+This is a pure file comparison: it opens **no database connection**.
+
+The comparison is **order-independent**. Two backups of the same database can legitimately emit
+rows in a different order and split them into different chunks (different pagination, worker
+interleaving), so chunk-level checksums would diverge even when the data is identical. Instead,
+`backup-diff` compares the *multiset of rows* per table:
+
+- Tables present in only one archive are reported as a difference.
+- For each common table, every row is decoded from its `data/<table>/NNNN.msgpack` chunks,
+  serialized to a canonical, length-prefixed, type-tagged byte encoding (with an explicit NULL
+  marker so e.g. string `"12"` followed by int `3` can never collide with string `"123"`),
+  hashed with SHA-256, and counted into a `digest -> count` map. The two maps are then compared.
+  Only digests and counts are retained, so memory stays proportional to the number of *distinct*
+  rows — archives with millions of rows remain tractable. One table is processed at a time on
+  both sides; neither archive is held in memory in full.
+- For differing tables, the command reports the per-side row count, the number of rows present
+  only on each side, and up to three example differing row digests.
+
+It prints a summary line (`N tables compared, M identical, K differing`) and exits `0` when every
+common table is identical and both archives hold the same set of tables, or `1` otherwise.
+
 ## Command-Line Options Reference
 
 | Option | Description | Default |
@@ -344,6 +375,8 @@ dbtool restore --input backup.zip --filter-tables=Users,Products
 | `--plugins-dir <DIR>` | Directory to scan for migration plugins | `.` (current directory) |
 | `--output <FILE>` | Output file for backup | |
 | `--input <FILE>` | Input file for restore | |
+| `--left <FILE>` | First (baseline) backup archive for `backup-diff` | |
+| `--right <FILE>` | Second (candidate) backup archive for `backup-diff` | |
 | `--filter-tables <PATTERN>` | Table filter (wildcards supported) | `*` (all tables) |
 | `--jobs <N>` | Number of concurrent jobs | `1` |
 | `--compression <METHOD>` | Compression method for backup | `deflate` |

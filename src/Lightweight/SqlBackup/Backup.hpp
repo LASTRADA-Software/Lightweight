@@ -4,12 +4,19 @@
 
 #include "../SqlConnection.hpp"
 #include "../SqlSchema.hpp"
+#include "../SqlStatement.hpp"
 #include "../ThreadSafeQueue.hpp"
+#include "ChunkPlanner.hpp"
 #include "SqlBackup.hpp"
+#include "WorkerChunkArchive.hpp"
 
+#include <cstdint>
+#include <filesystem>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <string>
+#include <utility>
 
 #if defined(__clang__)
     #pragma clang diagnostic push
@@ -62,28 +69,50 @@ std::string BuildSelectQueryWithOffset(SqlQueryFormatter const& formatter,
                                        std::vector<std::string> const& primaryKeys,
                                        size_t offset);
 
-/// Processes a single table backup.
-///
-/// Reads all rows from the table and writes them to msgpack chunks in the ZIP archive.
-/// Handles retry logic for transient errors with offset-based resumption.
-///
-/// @param ctx The backup context.
-/// @param conn The database connection.
-/// @param table The table schema information.
-void ProcessTableBackup(BackupContext& ctx, SqlConnection& conn, SqlSchema::Table const& table);
+/// Queries the inclusive [MIN(pk), MAX(pk)] bounds of @p table's @p pkColumn.
+/// @param stmt The statement to execute the scalar queries on.
+/// @param table The table to inspect.
+/// @param pkColumn The single numeric primary-key column.
+/// @return The bounds, or std::nullopt if the table is empty.
+[[nodiscard]] LIGHTWEIGHT_API std::optional<std::pair<int64_t, int64_t>> QueryPkBounds(SqlStatement& stmt,
+                                                                                       SqlSchema::Table const& table,
+                                                                                       std::string const& pkColumn);
 
-/// Backup worker that processes tables from a thread-safe queue.
-///
-/// Workers block on the queue until a table is available or the queue is finished.
-/// This allows workers to start immediately and begin processing tables as soon
-/// as the schema producer pushes them.
-///
-/// Each worker receives a pre-created connection to avoid data races in the ODBC driver
-/// during concurrent connection establishment.
-///
-/// @param tableQueue The thread-safe queue of tables to process.
+/// Deletes stale window sub-chunk entries [firstStale, end) of @p tableName's window
+/// @p windowIndex from the worker's chunk archive (and their checksums). Used after a per-window
+/// retry produced fewer sub-chunks than an earlier attempt (live data drift), so restore never
+/// reads stale rows: names still in the worker's current archive are deleted outright, names
+/// already sealed are tombstoned so the finalize merge skips them.
+/// @param archive The worker's chunk archive the window's sub-chunks were written to.
+/// @param ctx The backup context (checksums map).
+/// @param tableName The (unsanitized) table name.
+/// @param windowIndex The plan-time window index.
+/// @param firstStale First stale sub-chunk id (== sub-chunk count of the final attempt).
+/// @param end One past the last sub-chunk id any attempt flushed.
+LIGHTWEIGHT_API void DeleteStaleSubChunks(WorkerChunkArchive& archive,
+                                          BackupContext& ctx,
+                                          std::string const& tableName,
+                                          uint32_t windowIndex,
+                                          size_t firstStale,
+                                          size_t end);
+
+/// Processes a single chunk (a bounded row-range of a table) into compressed msgpack chunk
+/// entries in the worker's chunk archive.
+/// @param ctx The backup context.
+/// @param conn The database connection for this worker (borrowed from the pool).
+/// @param chunk The chunk (table + row window) to process.
+/// @param archive The worker's private chunk archive.
+void ProcessChunkBackup(BackupContext& ctx, SqlConnection& conn, detail::Chunk const& chunk, WorkerChunkArchive& archive);
+
+/// Backup worker: pops chunks from the queue and processes them on its borrowed connection,
+/// writing compressed chunk entries into its private archive (sealed before returning).
+/// @param chunkQueue The thread-safe queue of chunks to process.
 /// @param ctx The backup context.
 /// @param conn The database connection for this worker.
-void BackupWorker(ThreadSafeQueue<SqlSchema::Table>& tableQueue, BackupContext ctx, SqlConnection& conn);
+/// @param archive The worker's private chunk archive.
+void ChunkWorker(ThreadSafeQueue<detail::Chunk>& chunkQueue,
+                 BackupContext ctx,
+                 SqlConnection& conn,
+                 WorkerChunkArchive& archive);
 
 } // namespace Lightweight::SqlBackup::detail

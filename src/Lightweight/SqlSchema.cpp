@@ -3,6 +3,7 @@
 #include "SqlColumnTypeDefinitions.hpp"
 #include "SqlError.hpp"
 #include "SqlOdbcWide.hpp"
+#include "SqlQueryFormatter.hpp"
 #include "SqlSchema.hpp"
 #include "SqlStatement.hpp"
 
@@ -10,8 +11,12 @@
 #include <cassert>
 #include <cctype>
 #include <charconv>
+#include <cstdint>
 #include <exception>
+#include <map>
+#include <optional>
 #include <set>
+#include <utility>
 
 #include <sql.h>
 #include <sqlext.h>
@@ -638,242 +643,898 @@ namespace
         return {};
     }
 
+    // ============================================================================================
+    // Batched MSSQL schema introspection
+    //
+    // The legacy per-table path issues ~5 ODBC catalog round-trips per table. For databases with
+    // hundreds of tables this dominates the schema-read time. The batched path below answers the
+    // entire schema with a handful of whole-database sys.* queries and then drives the SAME
+    // EventHandler virtuals in the SAME order as the legacy loop, so downstream Table construction
+    // is identical by construction.
+    // ============================================================================================
+
+    /// SQL-escapes a literal by doubling single quotes (for safe inlining into a sys.* query).
+    [[nodiscard]] std::string EscapeSqlLiteral(std::string_view value)
+    {
+        auto result = std::string {};
+        result.reserve(value.size());
+        for (auto const ch: value)
+        {
+            if (ch == '\'')
+                result.push_back('\'');
+            result.push_back(ch);
+        }
+        return result;
+    }
+
+    /// One column as read from sys.columns + sys.types (+ default constraint).
+    struct MssqlColumnRow
+    {
+        std::string name;
+        std::string sysTypeName;
+        int maxLength = 0;
+        int precision = 0;
+        int scale = 0;
+        bool isNullable = true;
+        bool isIdentity = false;
+        std::string defaultValue;
+    };
+
+    /// All batched schema data, keyed by sys.objects.object_id.
+    struct MssqlSchemaData
+    {
+        std::map<int64_t, std::vector<MssqlColumnRow>> columnsByObject;
+        std::map<int64_t, std::vector<std::string>> primaryKeysByObject;
+        std::map<int64_t, std::vector<ForeignKeyConstraint>> foreignKeysFromByObject;
+        std::map<int64_t, std::vector<ForeignKeyConstraint>> externalForeignKeysByObject;
+        std::map<int64_t, std::vector<IndexDefinition>> indexesByObject;
+        std::map<int64_t, std::set<std::string>> uniqueColumnsByObject;
+        // (schema, table) -> object_id, to align the AllTables enumeration order with the maps.
+        std::map<std::pair<std::string, std::string>, int64_t> objectIdByName;
+    };
+
+    /// Reads (schema, name) -> object_id for all user tables, scoped to @p schema if non-empty.
+    void LoadMssqlTableObjectIds(SqlStatement& stmt, std::string_view schema, MssqlSchemaData& data)
+    {
+        auto const schemaFilter =
+            !schema.empty() ? std::format("WHERE s.name = '{}'", EscapeSqlLiteral(schema)) : std::string {};
+        auto const sql = std::format(R"(SELECT t.object_id, s.name, t.name
+                                        FROM sys.tables t
+                                        INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                                        {})",
+                                     schemaFilter);
+        auto cursor = stmt.ExecuteDirect(sql);
+        while (cursor.FetchRow())
+        {
+            auto const objectId = static_cast<int64_t>(cursor.GetColumn<int>(1));
+            auto schemaName = cursor.GetNullableColumn<std::string>(2).value_or("");
+            auto tableName = cursor.GetNullableColumn<std::string>(3).value_or("");
+            data.objectIdByName[{ std::move(schemaName), std::move(tableName) }] = objectId;
+        }
+    }
+
+    /// Query 1: columns + types + identity + default constraints, ordered by (object_id, column_id).
+    void LoadMssqlColumns(SqlStatement& stmt, std::string_view schema, MssqlSchemaData& data)
+    {
+        auto const schemaFilter = !schema.empty()
+                                      ? std::format("WHERE SCHEMA_NAME(t.schema_id) = '{}'", EscapeSqlLiteral(schema))
+                                      : std::string {};
+        auto const sql = std::format(R"(SELECT c.object_id,
+                                               c.column_id,
+                                               c.name,
+                                               ty.name,
+                                               CAST(c.max_length AS int),
+                                               CAST(c.precision AS int),
+                                               CAST(c.scale AS int),
+                                               CAST(c.is_nullable AS int),
+                                               CAST(c.is_identity AS int),
+                                               dc.definition
+                                        FROM sys.columns c
+                                        INNER JOIN sys.tables t ON c.object_id = t.object_id
+                                        INNER JOIN sys.types ty ON c.user_type_id = ty.user_type_id
+                                        LEFT JOIN sys.default_constraints dc
+                                               ON dc.parent_object_id = c.object_id
+                                              AND dc.parent_column_id = c.column_id
+                                        {}
+                                        ORDER BY c.object_id, c.column_id)",
+                                     schemaFilter);
+        auto cursor = stmt.ExecuteDirect(sql);
+        while (cursor.FetchRow())
+        {
+            auto const objectId = static_cast<int64_t>(cursor.GetColumn<int>(1));
+            auto row = MssqlColumnRow {
+                .name = cursor.GetNullableColumn<std::string>(3).value_or(""),
+                .sysTypeName = cursor.GetNullableColumn<std::string>(4).value_or(""),
+                .maxLength = cursor.GetNullableColumn<int>(5).value_or(0),
+                .precision = cursor.GetNullableColumn<int>(6).value_or(0),
+                .scale = cursor.GetNullableColumn<int>(7).value_or(0),
+                .isNullable = cursor.GetNullableColumn<int>(8).value_or(1) != 0,
+                .isIdentity = cursor.GetNullableColumn<int>(9).value_or(0) != 0,
+                .defaultValue = cursor.GetNullableColumn<std::string>(10).value_or(""),
+            };
+            data.columnsByObject[objectId].push_back(std::move(row));
+        }
+    }
+
+    /// Query 2: primary-key columns, ordered by (object_id, key_ordinal).
+    void LoadMssqlPrimaryKeys(SqlStatement& stmt, std::string_view schema, MssqlSchemaData& data)
+    {
+        auto const schemaFilter =
+            !schema.empty() ? std::format("AND SCHEMA_NAME(t.schema_id) = '{}'", EscapeSqlLiteral(schema)) : std::string {};
+        auto const sql = std::format(R"(SELECT i.object_id, c.name, ic.key_ordinal
+                                        FROM sys.indexes i
+                                        INNER JOIN sys.tables t ON i.object_id = t.object_id
+                                        INNER JOIN sys.index_columns ic
+                                               ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+                                        INNER JOIN sys.columns c
+                                               ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+                                        WHERE i.is_primary_key = 1 {}
+                                        ORDER BY i.object_id, ic.key_ordinal)",
+                                     schemaFilter);
+        auto cursor = stmt.ExecuteDirect(sql);
+        while (cursor.FetchRow())
+        {
+            auto const objectId = static_cast<int64_t>(cursor.GetColumn<int>(1));
+            auto name = cursor.GetNullableColumn<std::string>(2).value_or("");
+            if (!name.empty())
+                data.primaryKeysByObject[objectId].push_back(std::move(name));
+        }
+    }
+
+    /// Query 3: foreign keys. Each constraint yields an OnForeignKey entry for the parent (child)
+    /// table and an OnExternalForeignKey entry for the referenced (primary) table.
+    void LoadMssqlForeignKeys(SqlStatement& stmt, std::string_view database, std::string_view schema, MssqlSchemaData& data)
+    {
+        auto const schemaFilter = !schema.empty()
+                                      ? std::format("WHERE SCHEMA_NAME(pt.schema_id) = '{}'", EscapeSqlLiteral(schema))
+                                      : std::string {};
+        // One row per (constraint, column position). Composite keys span multiple rows; group by
+        // fk.object_id and order by constraint_column_id to reconstruct column order.
+        auto const sql = std::format(R"(SELECT fk.object_id,
+                                               pt.object_id,
+                                               SCHEMA_NAME(pt.schema_id),
+                                               pt.name,
+                                               pc.name,
+                                               rt.object_id,
+                                               SCHEMA_NAME(rt.schema_id),
+                                               rt.name,
+                                               rc.name,
+                                               fkc.constraint_column_id
+                                        FROM sys.foreign_keys fk
+                                        INNER JOIN sys.foreign_key_columns fkc ON fkc.constraint_object_id = fk.object_id
+                                        INNER JOIN sys.tables pt ON fk.parent_object_id = pt.object_id
+                                        INNER JOIN sys.tables rt ON fk.referenced_object_id = rt.object_id
+                                        INNER JOIN sys.columns pc
+                                               ON pc.object_id = fkc.parent_object_id
+                                              AND pc.column_id = fkc.parent_column_id
+                                        INNER JOIN sys.columns rc
+                                               ON rc.object_id = fkc.referenced_object_id
+                                              AND rc.column_id = fkc.referenced_column_id
+                                        {}
+                                        ORDER BY fk.object_id, fkc.constraint_column_id)",
+                                     schemaFilter);
+        auto cursor = stmt.ExecuteDirect(sql);
+
+        struct FkAccumulator
+        {
+            int64_t parentObjectId = 0;
+            int64_t referencedObjectId = 0;
+            FullyQualifiedTableName parentTable;
+            FullyQualifiedTableName referencedTable;
+            std::vector<std::string> parentColumns;
+            std::vector<std::string> referencedColumns;
+        };
+        // Keyed by the FK constraint's own object_id (unique per constraint). Insertion order is
+        // tracked so emission follows fk.object_id / constraint_column_id order, matching the
+        // legacy driver-reported ordering as closely as the catalog allows.
+        auto byConstraint = std::map<int64_t, FkAccumulator> {};
+        auto constraintOrder = std::vector<int64_t> {};
+        while (cursor.FetchRow())
+        {
+            // Read EVERY column once, in strict ascending order. The MS SQL Server ODBC driver
+            // retrieves unbound columns via SQLGetData, which forbids reading a lower column index
+            // after a higher one — reading col 5 (parent column) after cols 6-8 (referenced table)
+            // raised 07009 "Invalid Descriptor Index". Pull all fields into locals first, then group.
+            auto const fkObjectId = static_cast<int64_t>(cursor.GetColumn<int>(1));
+            auto const parentObjectId = static_cast<int64_t>(cursor.GetNullableColumn<int>(2).value_or(0));
+            auto parentSchema = cursor.GetNullableColumn<std::string>(3).value_or("");
+            auto parentTableName = cursor.GetNullableColumn<std::string>(4).value_or("");
+            auto parentColumn = cursor.GetNullableColumn<std::string>(5).value_or("");
+            auto const referencedObjectId = static_cast<int64_t>(cursor.GetNullableColumn<int>(6).value_or(0));
+            auto referencedSchema = cursor.GetNullableColumn<std::string>(7).value_or("");
+            auto referencedTableName = cursor.GetNullableColumn<std::string>(8).value_or("");
+            auto referencedColumn = cursor.GetNullableColumn<std::string>(9).value_or("");
+
+            if (!byConstraint.contains(fkObjectId))
+            {
+                constraintOrder.push_back(fkObjectId);
+                auto& acc = byConstraint[fkObjectId];
+                acc.parentObjectId = parentObjectId;
+                acc.parentTable = FullyQualifiedTableName {
+                    .catalog = std::string(database),
+                    .schema = std::move(parentSchema),
+                    .table = std::move(parentTableName),
+                };
+                acc.referencedObjectId = referencedObjectId;
+                acc.referencedTable = FullyQualifiedTableName {
+                    .catalog = std::string(database),
+                    .schema = std::move(referencedSchema),
+                    .table = std::move(referencedTableName),
+                };
+            }
+            auto& acc = byConstraint[fkObjectId];
+            acc.parentColumns.push_back(std::move(parentColumn));
+            acc.referencedColumns.push_back(std::move(referencedColumn));
+        }
+
+        for (auto const fkObjectId: constraintOrder)
+        {
+            auto const& acc = byConstraint.at(fkObjectId);
+            auto constraint = ForeignKeyConstraint {
+                .foreignKey = { .table = acc.parentTable, .columns = acc.parentColumns },
+                .primaryKey = { .table = acc.referencedTable, .columns = acc.referencedColumns },
+            };
+            // OnForeignKey is emitted on the parent (child) table; OnExternalForeignKey on the
+            // referenced (primary) table.
+            data.foreignKeysFromByObject[acc.parentObjectId].push_back(constraint);
+            data.externalForeignKeysByObject[acc.referencedObjectId].push_back(std::move(constraint));
+        }
+
+        // NOTE: foreign-key array order is canonicalized downstream (see CanonicalizeForeignKeys,
+        // applied in OnTableEnd of both the production and comparison event handlers), so we do NOT
+        // try to reproduce SQLForeignKeys' collation-dependent row order here. FK creation is
+        // order-independent on restore; a single canonical order makes backup output deterministic
+        // regardless of driver/collation and avoids matching SQL Server's collation in C++.
+    }
+
+    /// Query 4: non-PK indexes. Mirrors AllIndexesMssql but whole-DB: the per-table `WHERE t.name`
+    /// filter is removed and t.object_id added so rows can be grouped by (object_id, index_name).
+    void LoadMssqlIndexes(SqlStatement& stmt, std::string_view schema, MssqlSchemaData& data)
+    {
+        auto const schemaFilter =
+            !schema.empty() ? std::format("AND SCHEMA_NAME(t.schema_id) = '{}'", EscapeSqlLiteral(schema)) : std::string {};
+        auto const sql = std::format(R"(SELECT t.object_id,
+                                               i.name AS index_name,
+                                               CAST(i.is_unique AS int) AS is_unique,
+                                               c.name AS column_name,
+                                               CAST(ic.key_ordinal AS int) AS key_ordinal
+                                        FROM sys.indexes i
+                                        INNER JOIN sys.tables t ON i.object_id = t.object_id
+                                        INNER JOIN sys.index_columns ic
+                                               ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+                                        INNER JOIN sys.columns c
+                                               ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+                                        WHERE i.is_primary_key = 0
+                                          AND i.is_unique_constraint = 0
+                                          AND i.type > 0
+                                          AND ic.is_included_column = 0
+                                          {}
+                                        ORDER BY t.object_id, i.name, ic.key_ordinal)",
+                                     schemaFilter);
+        auto cursor = stmt.ExecuteDirect(sql);
+
+        struct IndexInfo
+        {
+            bool isUnique = false;
+            std::vector<std::pair<int, std::string>> columns; // (key_ordinal, column_name)
+        };
+        // Index names are NOT unique across tables, so key by (object_id, index_name).
+        auto byKey = std::map<std::pair<int64_t, std::string>, IndexInfo> {};
+        auto order = std::vector<std::pair<int64_t, std::string>> {};
+        while (cursor.FetchRow())
+        {
+            auto const objectId = static_cast<int64_t>(cursor.GetColumn<int>(1));
+            auto name = cursor.GetNullableColumn<std::string>(2).value_or("");
+            auto const isUnique = cursor.GetNullableColumn<int>(3).value_or(0) != 0;
+            auto column = cursor.GetNullableColumn<std::string>(4).value_or("");
+            auto const ordinal = cursor.GetNullableColumn<int>(5).value_or(0);
+            auto const key = std::pair<int64_t, std::string> { objectId, name };
+            if (!byKey.contains(key))
+                order.push_back(key);
+            auto& info = byKey[key];
+            info.isUnique = isUnique;
+            info.columns.emplace_back(ordinal, std::move(column));
+        }
+
+        for (auto const& key: order)
+        {
+            auto info = std::move(byKey.at(key));
+            std::ranges::sort(info.columns, [](auto const& a, auto const& b) { return a.first < b.first; });
+            auto cols = std::vector<std::string> {};
+            cols.reserve(info.columns.size());
+            for (auto& [_, col]: info.columns)
+                cols.push_back(std::move(col));
+
+            // Skip indexes whose column set exactly matches the table's primary key (case-insensitive,
+            // same count) — those are implicit PK indexes the cross-engine reader treats separately.
+            auto const pkIt = data.primaryKeysByObject.find(key.first);
+            auto const& primaryKeys = pkIt != data.primaryKeysByObject.end() ? pkIt->second : std::vector<std::string> {};
+            bool const matchesPk =
+                cols.size() == primaryKeys.size() && std::ranges::equal(cols, primaryKeys, [](auto const& a, auto const& b) {
+                    return std::ranges::equal(a, b, [](char c1, char c2) {
+                        return std::tolower(static_cast<unsigned char>(c1)) == std::tolower(static_cast<unsigned char>(c2));
+                    });
+                });
+            if (matchesPk)
+                continue;
+
+            data.indexesByObject[key.first].push_back(IndexDefinition {
+                .name = key.second,
+                .columns = std::move(cols),
+                .isUnique = info.isUnique,
+            });
+        }
+    }
+
+    /// Query 5: single-column unique indexes -> per-column isUnique membership. Matches the legacy
+    /// AllUniqueColumns rule (only single-column unique indexes contribute).
+    void LoadMssqlUniqueColumns(SqlStatement& stmt, std::string_view schema, MssqlSchemaData& data)
+    {
+        auto const schemaFilter =
+            !schema.empty() ? std::format("AND SCHEMA_NAME(t.schema_id) = '{}'", EscapeSqlLiteral(schema)) : std::string {};
+        auto const sql = std::format(R"(SELECT t.object_id, i.index_id, c.name
+                                        FROM sys.indexes i
+                                        INNER JOIN sys.tables t ON i.object_id = t.object_id
+                                        INNER JOIN sys.index_columns ic
+                                               ON ic.object_id = i.object_id AND ic.index_id = i.index_id
+                                        INNER JOIN sys.columns c
+                                               ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+                                        WHERE i.is_unique = 1 {}
+                                        ORDER BY t.object_id, i.index_id)",
+                                     schemaFilter);
+        auto cursor = stmt.ExecuteDirect(sql);
+
+        // Collect columns per (object_id, index_id); keep only single-column unique indexes.
+        struct UniqueIndexAccumulator
+        {
+            int64_t objectId = 0;
+            std::vector<std::string> columns;
+        };
+        auto byIndex = std::map<std::pair<int64_t, int>, UniqueIndexAccumulator> {};
+        while (cursor.FetchRow())
+        {
+            auto const objectId = static_cast<int64_t>(cursor.GetColumn<int>(1));
+            auto const indexId = cursor.GetNullableColumn<int>(2).value_or(0);
+            auto column = cursor.GetNullableColumn<std::string>(3).value_or("");
+            auto& acc = byIndex[{ objectId, indexId }];
+            acc.objectId = objectId;
+            if (!column.empty())
+                acc.columns.push_back(std::move(column));
+        }
+        for (auto const& [_, acc]: byIndex)
+        {
+            if (acc.columns.size() == 1)
+                data.uniqueColumnsByObject[acc.objectId].insert(acc.columns.front());
+        }
+    }
+
 } // namespace
 
-// NOLINTNEXTLINE(readability-function-cognitive-complexity)
+namespace detail
+{
+    namespace
+    {
+        // LOB sentinel sizes: the MS SQL Server ODBC driver reports these COLUMN_SIZE values via
+        // SQLColumns for max/LOB types, and the legacy reader stores them verbatim. To stay
+        // byte-identical we reproduce the same magic sizes for text/varchar(max)/image and for
+        // ntext/nvarchar(max). (sys.columns.max_length is just -1 for all of these, so the type
+        // name plus the -1 sentinel is what selects the LOB form.)
+        constexpr std::size_t LobSizeNonUnicode = 2147483647; // text, varchar(max), image, varbinary(max)
+        constexpr std::size_t LobSizeUnicode = 1073741823;    // ntext, nvarchar(max)
+
+        // sys.columns.max_length is in BYTES. max_length == -1 is the MAX/LOB sentinel, which the
+        // legacy path represents as size == 0.
+        std::size_t MssqlByteSize(int maxLength) noexcept
+        {
+            return maxLength < 0 ? 0 : static_cast<std::size_t>(maxLength);
+        }
+        // For the N-types (nchar/nvarchar/ntext) the logical character count is half the byte size.
+        std::size_t MssqlCharSize(int maxLength) noexcept
+        {
+            return maxLength < 0 ? 0 : static_cast<std::size_t>(maxLength) / 2;
+        }
+
+        // Integral / boolean. Returns std::nullopt if sysTypeName is not in this category.
+        std::optional<SqlColumnTypeDefinition> MssqlIntegralType(std::string_view sysTypeName)
+        {
+            using namespace SqlColumnTypeDefinitions;
+            if (sysTypeName == "int")
+                return Integer {};
+            if (sysTypeName == "bigint")
+                return Bigint {};
+            if (sysTypeName == "smallint")
+                return Smallint {};
+            if (sysTypeName == "tinyint")
+                return Tinyint {};
+            if (sysTypeName == "bit")
+                return Bool {};
+            return std::nullopt;
+        }
+
+        // Exact / approximate numeric.
+        std::optional<SqlColumnTypeDefinition> MssqlNumericType(std::string_view sysTypeName,
+                                                                detail::MssqlColumnMetrics metrics)
+        {
+            using namespace SqlColumnTypeDefinitions;
+            // decimal/numeric carry their (precision, scale) from sys.columns; money/smallmoney
+            // are fixed-scale decimals where sys.columns reports precision 19/10 and scale 4.
+            if (sysTypeName == "decimal" || sysTypeName == "numeric" || sysTypeName == "money"
+                || sysTypeName == "smallmoney")
+                return Decimal { .precision = static_cast<std::size_t>(metrics.precision < 0 ? 0 : metrics.precision),
+                                 .scale = static_cast<std::size_t>(metrics.scale < 0 ? 0 : metrics.scale) };
+            // float/real both collapse to Real{53} to match the legacy MSSQL float fixup
+            // (SqlSchema.cpp), which hard-codes precision 53 regardless of the declared width.
+            if (sysTypeName == "float" || sysTypeName == "real")
+                return Real { .precision = 53 };
+            return std::nullopt;
+        }
+
+        // Character (Unicode and non-Unicode).
+        std::optional<SqlColumnTypeDefinition> MssqlCharacterType(std::string_view sysTypeName, int maxLength)
+        {
+            using namespace SqlColumnTypeDefinitions;
+            bool const isMax = maxLength < 0;
+            // Non-Unicode (size in bytes == characters).
+            if (sysTypeName == "char")
+                return Char { .size = MssqlByteSize(maxLength) };
+            // varchar(max) (max_length == -1) is a LOB: the driver reports COLUMN_SIZE 2147483647.
+            if (sysTypeName == "varchar")
+                return Varchar { .size = isMax ? LobSizeNonUnicode : MssqlByteSize(maxLength) };
+            // text is always a LOB; legacy maps SQL_LONGVARCHAR -> Varchar{2147483647}.
+            if (sysTypeName == "text")
+                return Varchar { .size = LobSizeNonUnicode };
+            // Unicode (size in characters == bytes / 2).
+            if (sysTypeName == "nchar")
+                return NChar { .size = MssqlCharSize(maxLength) };
+            // nvarchar(max) is a LOB: the driver reports COLUMN_SIZE 1073741823.
+            if (sysTypeName == "nvarchar")
+                return NVarchar { .size = isMax ? LobSizeUnicode : MssqlCharSize(maxLength) };
+            if (sysTypeName == "ntext")
+                return NVarchar { .size = LobSizeUnicode };
+            return std::nullopt;
+        }
+
+        // Binary.
+        std::optional<SqlColumnTypeDefinition> MssqlBinaryType(std::string_view sysTypeName, int maxLength)
+        {
+            using namespace SqlColumnTypeDefinitions;
+            if (sysTypeName == "binary")
+                return Binary { .size = MssqlByteSize(maxLength) };
+            // varbinary(max) is a LOB: the driver reports COLUMN_SIZE 2147483647.
+            if (sysTypeName == "varbinary")
+                return VarBinary { .size = maxLength < 0 ? LobSizeNonUnicode : MssqlByteSize(maxLength) };
+            if (sysTypeName == "image")
+                return VarBinary { .size = LobSizeNonUnicode };
+            return std::nullopt;
+        }
+
+        // Identifiers / temporal.
+        std::optional<SqlColumnTypeDefinition> MssqlIdentifierOrTemporalType(std::string_view sysTypeName, int maxLength)
+        {
+            using namespace SqlColumnTypeDefinitions;
+            if (sysTypeName == "uniqueidentifier")
+                return Guid {};
+            if (sysTypeName == "date")
+                return Date {};
+            if (sysTypeName == "time")
+                return Time {};
+            if (sysTypeName == "datetime" || sysTypeName == "datetime2" || sysTypeName == "smalldatetime"
+                || sysTypeName == "datetimeoffset")
+                return DateTime {};
+            // rowversion is the modern alias for timestamp; both are 8-byte binary stamps.
+            if (sysTypeName == "timestamp" || sysTypeName == "rowversion")
+                return VarBinary { .size = MssqlByteSize(maxLength) };
+            return std::nullopt;
+        }
+    } // namespace
+
+    SqlColumnTypeDefinition MakeColumnTypeFromMssqlSysType(std::string_view sysTypeName, MssqlColumnMetrics metrics)
+    {
+        using namespace SqlColumnTypeDefinitions;
+
+        if (auto type = MssqlIntegralType(sysTypeName))
+            return *type;
+        if (auto type = MssqlNumericType(sysTypeName, metrics))
+            return *type;
+        if (auto type = MssqlCharacterType(sysTypeName, metrics.maxLength))
+            return *type;
+        if (auto type = MssqlBinaryType(sysTypeName, metrics.maxLength))
+            return *type;
+        if (auto type = MssqlIdentifierOrTemporalType(sysTypeName, metrics.maxLength))
+            return *type;
+
+        // Unknown / unmapped: fall back to a sized Varchar so callers still get a usable type.
+        return Varchar { .size = MssqlByteSize(metrics.maxLength) };
+    }
+
+    namespace
+    {
+        // Builds each Column for one table from its batched sys.columns rows and emits it through the
+        // handler, applying the same primary-key / foreign-key / unique flags the legacy per-table
+        // path sets. Extracted from ReadAllTablesBatchedMssql to keep that loop's complexity bounded.
+        void EmitMssqlColumns(std::vector<MssqlColumnRow> const& columnRows,
+                              std::vector<std::string> const& primaryKeys,
+                              std::vector<ForeignKeyConstraint> const& foreignKeys,
+                              std::set<std::string> const& uniqueColumns,
+                              EventHandler& eventHandler)
+        {
+            auto const matchesColumn = [](Column const& column) {
+                return [&column](ForeignKeyConstraint const& fk) {
+                    return std::ranges::contains(fk.foreignKey.columns, column.name);
+                };
+            };
+
+            for (auto const& columnRow: columnRows)
+            {
+                auto column = Column {};
+                column.name = columnRow.name;
+                column.dialectDependantTypeString = columnRow.sysTypeName;
+                column.type = MakeColumnTypeFromMssqlSysType(
+                    columnRow.sysTypeName,
+                    { .maxLength = columnRow.maxLength, .precision = columnRow.precision, .scale = columnRow.scale });
+                column.isNullable = columnRow.isNullable;
+                column.defaultValue = columnRow.defaultValue;
+                column.isPrimaryKey = std::ranges::contains(primaryKeys, column.name);
+                column.isUnique = uniqueColumns.contains(column.name);
+                column.isAutoIncrement = columnRow.isIdentity;
+                column.isForeignKey = std::ranges::any_of(foreignKeys, matchesColumn(column));
+                if (auto const p = std::ranges::find_if(foreignKeys, matchesColumn(column)); p != foreignKeys.end())
+                    column.foreignKeyConstraint = *p;
+                eventHandler.OnColumn(column);
+            }
+        }
+
+        // Emits one table's primary keys, foreign keys, indexes, and columns through the handler,
+        // looking each set up by object id in the pre-loaded MssqlSchemaData. Extracted from
+        // ReadAllTablesBatchedMssql so that loop stays under the cognitive-complexity threshold.
+        // Returns false if the handler vetoed the table via OnTable (caller skips it).
+        bool EmitMssqlTable(MssqlSchemaData const& data,
+                            TableWithSchema const& tableEntry,
+                            std::string_view schema,
+                            EventHandler& eventHandler)
+        {
+            auto const& tableName = tableEntry.name;
+            auto const tableSchema = tableEntry.schema.empty() ? std::string(schema) : tableEntry.schema;
+
+            // Harmless on MSSQL, kept to mirror the legacy loop exactly.
+            if (tableName == "sqlite_sequence")
+                return false;
+            if (!eventHandler.OnTable(tableSchema, tableName))
+                return false;
+
+            auto const objectIdIt = data.objectIdByName.find({ tableSchema, tableName });
+            auto const objectId = objectIdIt != data.objectIdByName.end() ? objectIdIt->second : int64_t { 0 };
+
+            // Looks up @p byObject[objectId], returning a reference to a shared empty fallback when the
+            // table has no entry (so callers always get a valid const reference).
+            auto const lookupOr = [objectId](auto const& byObject, auto const& fallback) -> auto const& {
+                auto const it = byObject.find(objectId);
+                return it != byObject.end() ? it->second : fallback;
+            };
+            static auto const emptyKeys = std::vector<std::string> {};
+            static auto const emptyForeignKeys = std::vector<ForeignKeyConstraint> {};
+            static auto const emptyIndexes = std::vector<IndexDefinition> {};
+            static auto const emptyUnique = std::set<std::string> {};
+
+            auto const& primaryKeys = lookupOr(data.primaryKeysByObject, emptyKeys);
+            eventHandler.OnPrimaryKeys(tableName, primaryKeys);
+
+            auto const& foreignKeys = lookupOr(data.foreignKeysFromByObject, emptyForeignKeys);
+            for (auto const& foreignKey: foreignKeys)
+                eventHandler.OnForeignKey(foreignKey);
+            for (auto const& foreignKey: lookupOr(data.externalForeignKeysByObject, emptyForeignKeys))
+                eventHandler.OnExternalForeignKey(foreignKey);
+
+            eventHandler.OnIndexes(lookupOr(data.indexesByObject, emptyIndexes));
+
+            auto const& uniqueColumns = lookupOr(data.uniqueColumnsByObject, emptyUnique);
+            auto const columnsIt = data.columnsByObject.find(objectId);
+            if (columnsIt != data.columnsByObject.end())
+                EmitMssqlColumns(columnsIt->second, primaryKeys, foreignKeys, uniqueColumns, eventHandler);
+
+            eventHandler.OnTableEnd();
+            return true;
+        }
+    } // namespace
+
+    void ReadAllTablesBatchedMssql(SqlStatement& stmt,
+                                   std::string_view database,
+                                   std::string_view schema,
+                                   EventHandler& eventHandler)
+    {
+        ZoneScopedN("SqlSchema::ReadAllTablesBatchedMssql");
+        if (!schema.empty())
+            ZoneTextObject(schema);
+
+        // Enumerate tables in exactly the same order as the legacy path (SQLTables).
+        auto const tablesWithSchema = AllTables(stmt, database, schema);
+
+        auto tableNames = std::vector<std::string> {};
+        tableNames.reserve(tablesWithSchema.size());
+        for (auto const& t: tablesWithSchema)
+            tableNames.emplace_back(t.name);
+        eventHandler.OnTables(tableNames);
+
+        // Run the whole-database catalog queries once.
+        auto data = MssqlSchemaData {};
+        LoadMssqlTableObjectIds(stmt, schema, data);
+        LoadMssqlColumns(stmt, schema, data);
+        LoadMssqlPrimaryKeys(stmt, schema, data);
+        LoadMssqlForeignKeys(stmt, database, schema, data);
+        LoadMssqlIndexes(stmt, schema, data);
+        LoadMssqlUniqueColumns(stmt, schema, data);
+
+        for (auto const& tableEntry: tablesWithSchema)
+            EmitMssqlTable(data, tableEntry, schema, eventHandler);
+    }
+
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+    void ReadAllTablesLegacy(SqlStatement& stmt,
+                             std::string_view database,
+                             std::string_view schema,
+                             EventHandler& eventHandler)
+    {
+        ZoneScopedN("SqlSchema::ReadAllTablesLegacy");
+        if (!schema.empty())
+            ZoneTextObject(schema);
+
+        auto const tablesWithSchema = AllTables(stmt, database, schema);
+
+        // Extract just table names for the EventHandler interface
+        std::vector<std::string> tableNames;
+        tableNames.reserve(tablesWithSchema.size());
+        for (auto const& t: tablesWithSchema)
+            tableNames.emplace_back(t.name);
+
+        eventHandler.OnTables(tableNames);
+
+        for (auto const& tableEntry: tablesWithSchema)
+        {
+            auto const& tableName = tableEntry.name;
+            // Use the discovered schema, or fall back to the requested schema
+            auto const& tableSchema = tableEntry.schema.empty() ? std::string(schema) : tableEntry.schema;
+
+            if (tableName == "sqlite_sequence")
+                continue;
+
+            if (!eventHandler.OnTable(tableSchema, tableName))
+                continue;
+
+            auto const fullyQualifiedTableName = FullyQualifiedTableName {
+                .catalog = std::string(database),
+                .schema = tableSchema,
+                .table = tableName,
+            };
+
+            auto const primaryKeys = AllPrimaryKeys(stmt, fullyQualifiedTableName);
+            eventHandler.OnPrimaryKeys(tableName, primaryKeys);
+
+            auto const uniqueColumns = AllUniqueColumns(stmt, fullyQualifiedTableName);
+            auto const identityColumns = AllIdentityColumns(stmt, fullyQualifiedTableName);
+
+            std::vector<ForeignKeyConstraint> const foreignKeys = AllForeignKeysFrom(stmt, fullyQualifiedTableName);
+            std::vector<ForeignKeyConstraint> const incomingForeignKeys = AllForeignKeysTo(stmt, fullyQualifiedTableName);
+
+            for (auto const& foreignKey: foreignKeys)
+                eventHandler.OnForeignKey(foreignKey);
+
+            for (auto const& foreignKey: incomingForeignKeys)
+                eventHandler.OnExternalForeignKey(foreignKey);
+
+            auto const indexes = AllIndexes(stmt, fullyQualifiedTableName, primaryKeys);
+            eventHandler.OnIndexes(indexes);
+
+            auto columnStmt = SqlStatement { stmt.Connection() };
+            auto wDatabase = OdbcWideArg { database };
+            auto wTableSchema = OdbcWideArg { tableSchema };
+            auto wTableName = OdbcWideArg { tableName };
+            auto const sqlResult = SQLColumnsW(columnStmt.NativeHandle(),
+                                               wDatabase.data(),
+                                               wDatabase.length(),
+                                               wTableSchema.data(),
+                                               wTableSchema.length(),
+                                               wTableName.data(),
+                                               wTableName.length(),
+                                               nullptr /* column name */,
+                                               0 /* column name length */);
+            if (!SQL_SUCCEEDED(sqlResult))
+                throw std::runtime_error(std::format("SQLColumns failed: {}", columnStmt.LastError()));
+
+            // ODBC SQLColumns() should return 18 columns per the spec.
+            // However, some drivers may return fewer columns. Track the actual column count
+            // to avoid accessing non-existent columns which causes ODBC errors.
+            auto columnCursor = SqlResultCursor(columnStmt);
+            auto const numColumns = columnCursor.NumColumnsAffected();
+
+            Column column;
+
+            while (columnCursor.FetchRow())
+            {
+                // std::cerr << "DEBUG: FetchRow success for " << tableName << "\n";
+                int type = 0;
+                try
+                {
+                    column.name = columnCursor.GetNullableColumn<std::string>(4).value_or("");
+                    type = columnCursor.GetColumn<int>(5); // DATA_TYPE
+                    column.dialectDependantTypeString = columnCursor.GetNullableColumn<std::string>(6).value_or("");
+                    // COLUMN_SIZE (column 7) can be negative for some drivers (e.g., PostgreSQL returns -4 for BYTEA)
+                    // to indicate "unknown" size. Treat negative values as 0.
+                    auto const rawSize = columnCursor.GetColumn<int>(7);
+                    column.size = rawSize > 0 ? static_cast<size_t>(rawSize) : 0;
+
+                    // 8 - bufferLength
+                    column.decimalDigits = numColumns >= 9 ? columnCursor.GetNullableColumn<uint16_t>(9).value_or(0) : 0;
+                }
+                catch (std::exception const&)
+                {
+                    // std::cerr << "DEBUG: Exception reading column meta for table " << tableName << ": " << e.what() <<
+                    // "\n";
+                    continue;
+                }
+
+                // 10 - NUM_PREC_RADIX
+                // 11 - NULLABLE
+                if (numColumns >= 11)
+                {
+                    try
+                    {
+                        column.isNullable = columnCursor.GetColumn<bool>(11);
+                    }
+                    catch (std::exception&)
+                    {
+                        column.isNullable = true;
+                    }
+                }
+                else
+                {
+                    column.isNullable = true;
+                }
+
+                // 12 - REMARKS
+                // 13 - COLUMN_DEF
+                if (numColumns >= 13)
+                {
+                    try
+                    {
+                        column.defaultValue = columnCursor.GetNullableColumn<std::string>(13).value_or("");
+                    }
+                    catch (std::exception&)
+                    {
+                        column.defaultValue = {};
+                    }
+                }
+                else
+                {
+                    column.defaultValue = {};
+                }
+
+                if (auto cType = MakeColumnTypeFromNative(type, column.size, column.decimalDigits); cType.has_value())
+                    column.type = *cType;
+                else
+                {
+                    SqlLogger::GetLogger().OnError(SqlError::UNSUPPORTED_TYPE);
+                    throw std::runtime_error(std::format("Unsupported data type: {}", type));
+                }
+
+                try
+                {
+                    // some special handling of weird types
+                    if (column.dialectDependantTypeString == "money")
+                    {
+                        // 0.123 -> decimalDigits = 3 size = 4
+                        // 100.123 -> decimalDigits = 3  size = 6
+                        column.size = column.decimalDigits;
+                        column.decimalDigits = SQL_MAX_NUMERIC_LEN;
+                    }
+                    else if (column.dialectDependantTypeString == "float" || column.dialectDependantTypeString == "FLOAT"
+                             || column.dialectDependantTypeString == "real" || column.dialectDependantTypeString == "REAL")
+                    {
+                        column.type = SqlColumnTypeDefinitions::Real { .precision = 53 };
+                        // column.size = 15; // Try letting it be default (from SQLColumns or 0)
+                    }
+                    // PostgreSQL ODBC driver reports BOOLEAN as VARCHAR - handle it specially
+                    else if (column.dialectDependantTypeString == "bool")
+                    {
+                        column.type = SqlColumnTypeDefinitions::Bool {};
+                    }
+                    // SQLite is dynamically typed; the ODBC driver reports columns declared as
+                    // `DECIMAL(p, s)` as SQL_VARCHAR (so they fall into the Varchar branch
+                    // above). Recover the canonical Decimal by parsing the dialect type string
+                    // when it carries `(p, s)`. Drivers that reported the column as SQL_DECIMAL/
+                    // SQL_NUMERIC already produced a Decimal — leave those untouched, and don't
+                    // collapse a parenless `numeric` to `Decimal(0,0)`.
+                    else if ((column.dialectDependantTypeString.starts_with("DECIMAL")
+                              || column.dialectDependantTypeString.starts_with("decimal")
+                              || column.dialectDependantTypeString.starts_with("NUMERIC")
+                              || column.dialectDependantTypeString.starts_with("numeric"))
+                             && column.dialectDependantTypeString.contains('('))
+                    {
+                        auto precision = std::size_t {};
+                        auto scale = std::size_t {};
+                        auto const open = column.dialectDependantTypeString.find('(');
+                        auto const close = column.dialectDependantTypeString.find(')', open);
+                        if (close != std::string::npos)
+                        {
+                            auto const inner =
+                                std::string_view { column.dialectDependantTypeString }.substr(open + 1, close - open - 1);
+                            auto parseSize = [](std::string_view sv) -> std::size_t {
+                                while (!sv.empty() && std::isspace(static_cast<unsigned char>(sv.front())))
+                                    sv.remove_prefix(1);
+                                while (!sv.empty() && std::isspace(static_cast<unsigned char>(sv.back())))
+                                    sv.remove_suffix(1);
+                                auto value = std::size_t {};
+                                auto const result = std::from_chars(sv.data(), sv.data() + sv.size(), value);
+                                return result.ec == std::errc {} ? value : 0;
+                            };
+                            auto const comma = inner.find(',');
+                            if (comma != std::string_view::npos)
+                            {
+                                precision = parseSize(inner.substr(0, comma));
+                                scale = parseSize(inner.substr(comma + 1));
+                            }
+                            else
+                            {
+                                precision = parseSize(inner);
+                            }
+                        }
+                        column.type = SqlColumnTypeDefinitions::Decimal { .precision = precision, .scale = scale };
+                    }
+                }
+                // NOLINTNEXTLINE(bugprone-empty-catch) - intentionally ignoring column type detection errors
+                catch (std::exception&)
+                {
+                }
+
+                // accumulated properties
+                column.isPrimaryKey = std::ranges::contains(primaryKeys, column.name);
+                column.isUnique = std::ranges::contains(uniqueColumns, column.name);
+                column.isAutoIncrement = std::ranges::contains(identityColumns, column.name);
+                // column.isForeignKey = ...;
+                column.isForeignKey = std::ranges::any_of(foreignKeys, [&column](ForeignKeyConstraint const& fk) {
+                    return std::ranges::contains(fk.foreignKey.columns, column.name);
+                });
+                if (auto const p = std::ranges::find_if(foreignKeys,
+                                                        [&column](ForeignKeyConstraint const& fk) {
+                                                            return std::ranges::contains(fk.foreignKey.columns, column.name);
+                                                        });
+                    p != foreignKeys.end())
+                {
+                    column.foreignKeyConstraint = *p;
+                }
+
+                eventHandler.OnColumn(column);
+            }
+
+            eventHandler.OnTableEnd();
+        }
+    }
+
+    void CanonicalizeForeignKeys(std::vector<ForeignKeyConstraint>& foreignKeys)
+    {
+        // Order by (foreignKey {table, columns}, primaryKey {table, columns}) — a total,
+        // driver-independent ordering. The comparator is passed explicitly because
+        // ForeignKeyConstraint provides only operator< (not the full std::totally_ordered set that
+        // std::ranges::sort's default projection requires). Each constraint within a table is unique
+        // on this key, so the order is deterministic.
+        std::ranges::sort(foreignKeys, [](ForeignKeyConstraint const& a, ForeignKeyConstraint const& b) { return a < b; });
+    }
+
+} // namespace detail
+
 void ReadAllTables(SqlStatement& stmt, std::string_view database, std::string_view schema, EventHandler& eventHandler)
 {
     ZoneScopedN("SqlSchema::ReadAllTables(EventHandler)");
     if (!schema.empty())
         ZoneTextObject(schema);
-    auto const tablesWithSchema = AllTables(stmt, database, schema);
 
-    // Extract just table names for the EventHandler interface
-    std::vector<std::string> tableNames;
-    tableNames.reserve(tablesWithSchema.size());
-    for (auto const& t: tablesWithSchema)
-        tableNames.emplace_back(t.name);
-
-    eventHandler.OnTables(tableNames);
-
-    for (auto const& tableEntry: tablesWithSchema)
-    {
-        auto const& tableName = tableEntry.name;
-        // Use the discovered schema, or fall back to the requested schema
-        auto const& tableSchema = tableEntry.schema.empty() ? std::string(schema) : tableEntry.schema;
-
-        if (tableName == "sqlite_sequence")
-            continue;
-
-        if (!eventHandler.OnTable(tableSchema, tableName))
-            continue;
-
-        auto const fullyQualifiedTableName = FullyQualifiedTableName {
-            .catalog = std::string(database),
-            .schema = tableSchema,
-            .table = tableName,
-        };
-
-        auto const primaryKeys = AllPrimaryKeys(stmt, fullyQualifiedTableName);
-        eventHandler.OnPrimaryKeys(tableName, primaryKeys);
-
-        auto const uniqueColumns = AllUniqueColumns(stmt, fullyQualifiedTableName);
-        auto const identityColumns = AllIdentityColumns(stmt, fullyQualifiedTableName);
-
-        std::vector<ForeignKeyConstraint> const foreignKeys = AllForeignKeysFrom(stmt, fullyQualifiedTableName);
-        std::vector<ForeignKeyConstraint> const incomingForeignKeys = AllForeignKeysTo(stmt, fullyQualifiedTableName);
-
-        for (auto const& foreignKey: foreignKeys)
-            eventHandler.OnForeignKey(foreignKey);
-
-        for (auto const& foreignKey: incomingForeignKeys)
-            eventHandler.OnExternalForeignKey(foreignKey);
-
-        auto const indexes = AllIndexes(stmt, fullyQualifiedTableName, primaryKeys);
-        eventHandler.OnIndexes(indexes);
-
-        auto columnStmt = SqlStatement { stmt.Connection() };
-        auto wDatabase = OdbcWideArg { database };
-        auto wTableSchema = OdbcWideArg { tableSchema };
-        auto wTableName = OdbcWideArg { tableName };
-        auto const sqlResult = SQLColumnsW(columnStmt.NativeHandle(),
-                                           wDatabase.data(),
-                                           wDatabase.length(),
-                                           wTableSchema.data(),
-                                           wTableSchema.length(),
-                                           wTableName.data(),
-                                           wTableName.length(),
-                                           nullptr /* column name */,
-                                           0 /* column name length */);
-        if (!SQL_SUCCEEDED(sqlResult))
-            throw std::runtime_error(std::format("SQLColumns failed: {}", columnStmt.LastError()));
-
-        // ODBC SQLColumns() should return 18 columns per the spec.
-        // However, some drivers may return fewer columns. Track the actual column count
-        // to avoid accessing non-existent columns which causes ODBC errors.
-        auto columnCursor = SqlResultCursor(columnStmt);
-        auto const numColumns = columnCursor.NumColumnsAffected();
-
-        Column column;
-
-        while (columnCursor.FetchRow())
-        {
-            // std::cerr << "DEBUG: FetchRow success for " << tableName << "\n";
-            int type = 0;
-            try
-            {
-                column.name = columnCursor.GetNullableColumn<std::string>(4).value_or("");
-                type = columnCursor.GetColumn<int>(5); // DATA_TYPE
-                column.dialectDependantTypeString = columnCursor.GetNullableColumn<std::string>(6).value_or("");
-                // COLUMN_SIZE (column 7) can be negative for some drivers (e.g., PostgreSQL returns -4 for BYTEA)
-                // to indicate "unknown" size. Treat negative values as 0.
-                auto const rawSize = columnCursor.GetColumn<int>(7);
-                column.size = rawSize > 0 ? static_cast<size_t>(rawSize) : 0;
-
-                // 8 - bufferLength
-                column.decimalDigits = numColumns >= 9 ? columnCursor.GetNullableColumn<uint16_t>(9).value_or(0) : 0;
-            }
-            catch (std::exception const&)
-            {
-                // std::cerr << "DEBUG: Exception reading column meta for table " << tableName << ": " << e.what() << "\n";
-                continue;
-            }
-
-            // 10 - NUM_PREC_RADIX
-            // 11 - NULLABLE
-            if (numColumns >= 11)
-            {
-                try
-                {
-                    column.isNullable = columnCursor.GetColumn<bool>(11);
-                }
-                catch (std::exception&)
-                {
-                    column.isNullable = true;
-                }
-            }
-            else
-            {
-                column.isNullable = true;
-            }
-
-            // 12 - REMARKS
-            // 13 - COLUMN_DEF
-            if (numColumns >= 13)
-            {
-                try
-                {
-                    column.defaultValue = columnCursor.GetNullableColumn<std::string>(13).value_or("");
-                }
-                catch (std::exception&)
-                {
-                    column.defaultValue = {};
-                }
-            }
-            else
-            {
-                column.defaultValue = {};
-            }
-
-            if (auto cType = MakeColumnTypeFromNative(type, column.size, column.decimalDigits); cType.has_value())
-                column.type = *cType;
-            else
-            {
-                SqlLogger::GetLogger().OnError(SqlError::UNSUPPORTED_TYPE);
-                throw std::runtime_error(std::format("Unsupported data type: {}", type));
-            }
-
-            try
-            {
-                // some special handling of weird types
-                if (column.dialectDependantTypeString == "money")
-                {
-                    // 0.123 -> decimalDigits = 3 size = 4
-                    // 100.123 -> decimalDigits = 3  size = 6
-                    column.size = column.decimalDigits;
-                    column.decimalDigits = SQL_MAX_NUMERIC_LEN;
-                }
-                else if (column.dialectDependantTypeString == "float" || column.dialectDependantTypeString == "FLOAT"
-                         || column.dialectDependantTypeString == "real" || column.dialectDependantTypeString == "REAL")
-                {
-                    column.type = SqlColumnTypeDefinitions::Real { .precision = 53 };
-                    // column.size = 15; // Try letting it be default (from SQLColumns or 0)
-                }
-                // PostgreSQL ODBC driver reports BOOLEAN as VARCHAR - handle it specially
-                else if (column.dialectDependantTypeString == "bool")
-                {
-                    column.type = SqlColumnTypeDefinitions::Bool {};
-                }
-                // SQLite is dynamically typed; the ODBC driver reports columns declared as
-                // `DECIMAL(p, s)` as SQL_VARCHAR (so they fall into the Varchar branch
-                // above). Recover the canonical Decimal by parsing the dialect type string
-                // when it carries `(p, s)`. Drivers that reported the column as SQL_DECIMAL/
-                // SQL_NUMERIC already produced a Decimal — leave those untouched, and don't
-                // collapse a parenless `numeric` to `Decimal(0,0)`.
-                else if ((column.dialectDependantTypeString.starts_with("DECIMAL")
-                          || column.dialectDependantTypeString.starts_with("decimal")
-                          || column.dialectDependantTypeString.starts_with("NUMERIC")
-                          || column.dialectDependantTypeString.starts_with("numeric"))
-                         && column.dialectDependantTypeString.contains('('))
-                {
-                    auto precision = std::size_t {};
-                    auto scale = std::size_t {};
-                    auto const open = column.dialectDependantTypeString.find('(');
-                    auto const close = column.dialectDependantTypeString.find(')', open);
-                    if (close != std::string::npos)
-                    {
-                        auto const inner =
-                            std::string_view { column.dialectDependantTypeString }.substr(open + 1, close - open - 1);
-                        auto parseSize = [](std::string_view sv) -> std::size_t {
-                            while (!sv.empty() && std::isspace(static_cast<unsigned char>(sv.front())))
-                                sv.remove_prefix(1);
-                            while (!sv.empty() && std::isspace(static_cast<unsigned char>(sv.back())))
-                                sv.remove_suffix(1);
-                            auto value = std::size_t {};
-                            auto const result = std::from_chars(sv.data(), sv.data() + sv.size(), value);
-                            return result.ec == std::errc {} ? value : 0;
-                        };
-                        auto const comma = inner.find(',');
-                        if (comma != std::string_view::npos)
-                        {
-                            precision = parseSize(inner.substr(0, comma));
-                            scale = parseSize(inner.substr(comma + 1));
-                        }
-                        else
-                        {
-                            precision = parseSize(inner);
-                        }
-                    }
-                    column.type = SqlColumnTypeDefinitions::Decimal { .precision = precision, .scale = scale };
-                }
-            }
-            // NOLINTNEXTLINE(bugprone-empty-catch) - intentionally ignoring column type detection errors
-            catch (std::exception&)
-            {
-            }
-
-            // accumulated properties
-            column.isPrimaryKey = std::ranges::contains(primaryKeys, column.name);
-            column.isUnique = std::ranges::contains(uniqueColumns, column.name);
-            column.isAutoIncrement = std::ranges::contains(identityColumns, column.name);
-            // column.isForeignKey = ...;
-            column.isForeignKey = std::ranges::any_of(foreignKeys, [&column](ForeignKeyConstraint const& fk) {
-                return std::ranges::contains(fk.foreignKey.columns, column.name);
-            });
-            if (auto const p = std::ranges::find_if(foreignKeys,
-                                                    [&column](ForeignKeyConstraint const& fk) {
-                                                        return std::ranges::contains(fk.foreignKey.columns, column.name);
-                                                    });
-                p != foreignKeys.end())
-            {
-                column.foreignKeyConstraint = *p;
-            }
-
-            eventHandler.OnColumn(column);
-        }
-
-        eventHandler.OnTableEnd();
-    }
+    // For dialects with a batched whole-database introspection fast path (MS SQL Server),
+    // delegate to it. It drives the SAME EventHandler virtuals in the SAME order as the legacy
+    // per-table loop, so downstream Table construction is identical. All other dialects
+    // (SQLite, PostgreSQL) keep the per-table catalog path unchanged.
+    if (stmt.Connection().QueryFormatter().SupportsBatchedSchemaIntrospection())
+        detail::ReadAllTablesBatchedMssql(stmt, database, schema, eventHandler);
+    else
+        detail::ReadAllTablesLegacy(stmt, database, schema, eventHandler);
 }
 
 TableList ReadAllTables(SqlStatement& stmt,
@@ -968,6 +1629,12 @@ TableList ReadAllTables(SqlStatement& stmt,
                 return;
 
             auto& completedTable = tables.back();
+
+            // Normalize FK array order so backup metadata is deterministic regardless of which
+            // reader (legacy vs batched) and which driver/collation produced it. FK creation is
+            // order-independent on restore.
+            detail::CanonicalizeForeignKeys(completedTable.foreignKeys);
+            detail::CanonicalizeForeignKeys(completedTable.externalForeignKeys);
 
             // If a table-ready callback is provided, invoke it with the completed table
             if (tableReadyCallback)

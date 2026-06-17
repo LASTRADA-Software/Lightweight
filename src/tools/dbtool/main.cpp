@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "BackupDiff.hpp"
 #include "Lightweight/SqlConnectInfo.hpp"
 #include "StandardProgressManager.hpp"
 
@@ -15,16 +16,21 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <expected>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <print>
+#include <ranges>
 #include <set>
 #include <string>
+#include <type_traits>
 #include <unordered_set>
+#include <variant>
 #include <vector>
 
 #include <Config/ProfileStore.hpp>
@@ -167,6 +173,9 @@ void PrintUsage()
     std::println("                            Pass `-` (or omit the argument) to read the query from stdin.");
     std::println("  {}backup{} --output FILE     Backs up the database to a file", c.command, c.reset);
     std::println("  {}restore{} --input FILE     Restores the database from a file", c.command, c.reset);
+    std::println("  {}backup-diff{} --left A --right B  Compares the row data of two backup archives",
+                 c.command, c.reset);
+    std::println("                            (order-independent; no DB connection needed)");
     std::println("  {}resolve-secret{} {}<REF>{}   Prints a resolved secret to stdout (env:, file:, stdin:)",
                  c.command, c.reset, c.param, c.reset);
     std::println("  {}list-profiles{}            Lists profiles from the configuration file (see --config)",
@@ -194,6 +203,13 @@ void PrintUsage()
                  c.option, c.reset, c.param, c.reset);
     std::println("  {}--input{} {}<FILE>{}            Input file for restore",
                  c.option, c.reset, c.param, c.reset);
+    std::println("  {}--left{} {}<FILE>{}             First backup archive for backup-diff (baseline)",
+                 c.option, c.reset, c.param, c.reset);
+    std::println("  {}--right{} {}<FILE>{}            Second backup archive for backup-diff (candidate)",
+                 c.option, c.reset, c.param, c.reset);
+    std::println("  {}--ignore-table{} {}<NAME>{}     backup-diff: report but don't fail on this table (repeatable;",
+                 c.option, c.reset, c.param, c.reset);
+    std::println("                            for high-write tables that drift on a live DB)");
     std::println("  {}--filter-tables{} {}<PATTERN>{} Tables to backup/restore (default: {} for all)",
                  c.option, c.reset, c.param, c.reset, "*");
     std::println("                            Comma-separated, supports wildcards ({} and {})", "*", "?");
@@ -298,8 +314,13 @@ void PrintExamples()
     std::println("  {}dbtool restore --input backup.zip --schema-only{}", c.code, c.reset);
     std::println("");
 
+    std::println("  {}# Compare the data of two backup archives (detect silent corruption):{}", c.example, c.reset);
+    std::println("  {}dbtool backup-diff --left backup_st.zip --right backup_mt.zip{}", c.code, c.reset);
+    std::println("");
+
     std::println("  {}# List configured connection profiles (no DB connection needed):{}", c.example, c.reset);
     std::println("  {}dbtool list-profiles{}", c.code, c.reset);
+    std::println("");
     // clang-format on
 }
 
@@ -325,6 +346,9 @@ struct Options
     std::string profileName; ///< Named profile selected via --profile (empty = ProfileStore default)
     std::filesystem::path outputFile;
     std::filesystem::path inputFile;
+    std::filesystem::path leftFile;     ///< First archive for `backup-diff` (--left)
+    std::filesystem::path rightFile;    ///< Second archive for `backup-diff` (--right)
+    std::set<std::string> ignoreTables; ///< `backup-diff` tables to report-but-not-fail (--ignore-table)
     ProgressType progressType = ProgressType::Unicode;
     unsigned jobs = 1;
     unsigned maxRetries = 3; ///< Maximum retry attempts for transient errors
@@ -575,6 +599,36 @@ std::expected<Options, std::string> ParseArguments(int argc, char** argv)
             if (i + 1 >= argc)
                 return std::unexpected { "Error: --input requires an argument" };
             options.inputFile = argv[++i];
+        }
+        else if (arg == "--left")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --left requires an argument" };
+            options.leftFile = argv[++i];
+        }
+        else if (arg.starts_with("--left="))
+        {
+            options.leftFile = arg.substr(7);
+        }
+        else if (arg == "--right")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --right requires an argument" };
+            options.rightFile = argv[++i];
+        }
+        else if (arg.starts_with("--right="))
+        {
+            options.rightFile = arg.substr(8);
+        }
+        else if (arg == "--ignore-table")
+        {
+            if (i + 1 >= argc)
+                return std::unexpected { "Error: --ignore-table requires an argument" };
+            options.ignoreTables.insert(std::string { argv[++i] });
+        }
+        else if (arg.starts_with("--ignore-table="))
+        {
+            options.ignoreTables.insert(std::string { arg.substr(std::string_view { "--ignore-table=" }.size()) });
         }
         else if (arg == "--jobs")
         {
@@ -1846,6 +1900,9 @@ std::expected<Lightweight::SqlBackup::BackupSettings, std::string> ParseBackupSe
 
     settings.schemaOnly = options.schemaOnly;
 
+    // No longer has any effect (the MSSQL concurrency clamp was removed); kept until the field is deleted.
+    settings.forceMssqlConcurrency = std::getenv("LIGHTWEIGHT_BACKUP_FORCE_MSSQL_CONCURRENCY") != nullptr;
+
     return settings;
 }
 
@@ -2152,6 +2209,95 @@ int Restore(Options const& options)
     }
 
     return pm->ErrorCount() > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+namespace
+{
+
+    /// Renders BackupDiff's streamed per-table events to stdout — the console rendering that used to
+    /// live inside BackupDiff itself, now a dependency-injected observer so the diff engine stays
+    /// output-free and testable.
+    class ConsoleBackupDiffObserver final: public Tools::BackupDiffObserver
+    {
+      public:
+        void OnEvent(Tools::BackupDiffEvent const& event) override
+        {
+            using Kind = Tools::BackupDiffEvent::Kind;
+            auto const* const ignoredSuffix = event.ignored ? " (ignored)" : "";
+            switch (event.kind)
+            {
+                case Kind::OnlyInLeft:
+                    std::println("[{}] DIFFERENT: present only in left archive{}", event.table, ignoredSuffix);
+                    break;
+                case Kind::OnlyInRight:
+                    std::println("[{}] DIFFERENT: present only in right archive{}", event.table, ignoredSuffix);
+                    break;
+                case Kind::Identical:
+                    std::println("[{}] identical ({} rows)", event.table, event.leftRowCount);
+                    break;
+                case Kind::ReadError:
+                    std::println("[{}] ERROR: failed to read/decode chunk data (left ok={}, right ok={})",
+                                 event.table,
+                                 event.leftReadOk,
+                                 event.rightReadOk);
+                    break;
+                case Kind::Differing:
+                    std::println(
+                        "[{}] DIFFERENT: left={} rows, right={} rows; rows-only-in-left={}, rows-only-in-right={}{}",
+                        event.table,
+                        event.leftRowCount,
+                        event.rightRowCount,
+                        event.onlyInLeft,
+                        event.onlyInRight,
+                        ignoredSuffix);
+                    for (auto const& ex: event.leftExamples)
+                        std::println("    only-in-left  row digest: {}", ex);
+                    for (auto const& ex: event.rightExamples)
+                        std::println("    only-in-right row digest: {}", ex);
+                    break;
+            }
+        }
+    };
+
+} // namespace
+
+/// Implements the `backup-diff` command: compares the DATA CONTENT of two backup archives
+/// order-independently to detect silent data corruption. Pure file comparison — opens no DB
+/// connection — so it is dispatched in `main()` before `SetupConnectionString`, alongside
+/// `resolve-secret` / `list-profiles`.
+int BackupDiffCommand(Options const& options)
+{
+    if (options.leftFile.empty() || options.rightFile.empty())
+    {
+        std::println(std::cerr, "Error: backup-diff requires both --left <FILE> and --right <FILE>.");
+        return EXIT_FAILURE;
+    }
+
+    std::println("Comparing backup archives:");
+    std::println("  left  (baseline):  {}", options.leftFile.string());
+    std::println("  right (candidate): {}", options.rightFile.string());
+    std::println("");
+
+    ConsoleBackupDiffObserver observer;
+    auto const result = Tools::BackupDiff(options.leftFile, options.rightFile, options.ignoreTables, &observer);
+
+    if (!result.archivesReadable)
+    {
+        if (!result.leftReadable)
+            std::println(std::cerr, "Error: Failed to open backup archive: {}", options.leftFile.string());
+        if (!result.rightReadable)
+            std::println(std::cerr, "Error: Failed to open backup archive: {}", options.rightFile.string());
+        return EXIT_FAILURE;
+    }
+
+    std::println("");
+    std::println("{} tables compared, {} identical, {} differing ({} ignored)",
+                 result.comparedTables,
+                 result.identicalTables,
+                 result.differingTables,
+                 result.ignoredDifferences);
+
+    return result.differenceFound ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 /// @brief Reads a SQL query from the command argument or, when no argument was
@@ -2483,6 +2629,9 @@ int main(int argc, char** argv)
 
         if (options.command == "list-profiles")
             return ListProfiles(options);
+
+        if (options.command == "backup-diff")
+            return BackupDiffCommand(options);
 
         TraceBreadcrumb("main: setting up connection string");
         if (!SetupConnectionString(options.connectionString))
