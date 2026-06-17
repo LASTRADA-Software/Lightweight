@@ -166,6 +166,7 @@ var hierarchy =
     [ "std::exception", null, [
       [ "std::runtime_error", null, [
         [ "Lightweight::Async::OperationCancelledError", "d3/dd5/classLightweight_1_1Async_1_1OperationCancelledError.html", null ],
+        [ "Lightweight::RowArrayCursorUnsupported", "de/d9f/classLightweight_1_1RowArrayCursorUnsupported.html", null ],
         [ "Lightweight::SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html", null ],
         [ "Lightweight::SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html", null ]
       ] ]
