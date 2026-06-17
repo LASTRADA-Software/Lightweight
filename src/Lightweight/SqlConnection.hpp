@@ -7,6 +7,7 @@
 #endif
 
 #include "Api.hpp"
+#include "Async/Fwd.hpp"
 #include "SqlConnectInfo.hpp"
 #include "SqlError.hpp"
 #include "SqlLogger.hpp"
@@ -192,6 +193,58 @@ class SqlConnection final
     /// Checks the result of an SQL operation, and throws an exception if it is not successful.
     LIGHTWEIGHT_API void RequireSuccess(SQLRETURN sqlResult,
                                         std::source_location sourceLocation = std::source_location::current()) const;
+
+    /// Enables coroutine-based asynchronous methods on this connection.
+    ///
+    /// Wires the connection to an injected execution context: blocking ODBC work is offloaded to
+    /// @p dbWorkers (serialized per connection so the ODBC handle is only ever used by one thread
+    /// at a time) and the awaiting coroutine is resumed via @p resume (typically the application's
+    /// run loop). A native driver-async backend is selected when the driver advertises support;
+    /// otherwise the portable thread-offload backend is used.
+    ///
+    /// Both executors must outlive this connection and every coroutine driven through it.
+    /// Must not be called while asynchronous operations are in flight on this connection (it
+    /// replaces the backend); the connection pool calls @ref DisableAsync on return so each
+    /// re-acquire is a fresh enable rather than a live replacement.
+    ///
+    /// @param dbWorkers The worker-thread pool used to run blocking ODBC calls.
+    /// @param resume The scheduler used to resume coroutines after a blocking step completes.
+    LIGHTWEIGHT_API void EnableAsync(Async::IExecutor& dbWorkers, Async::IResumeScheduler& resume);
+
+    /// Enables the asynchronous API on this connection using an explicitly provided backend.
+    ///
+    /// This is the dependency-injection seam behind the convenience overload above: callers and
+    /// tests can supply any @ref Async::IAsyncBackend implementation (a fake/inline backend for
+    /// tests, or a future native event backend) instead of the default thread-offload backend.
+    /// The same in-flight / lifetime constraints as the convenience overload apply.
+    ///
+    /// @param backend The async execution backend to install (consumed); must not be null.
+    LIGHTWEIGHT_API void EnableAsync(std::unique_ptr<Async::IAsyncBackend> backend);
+
+    /// Tears down the asynchronous backend, returning the connection to a non-async state.
+    ///
+    /// Called by the connection pool when a mapper is returned, so a recycled connection never
+    /// carries a stale backend that references executors which may have been destroyed. Safe to
+    /// call when async was never enabled.
+    ///
+    /// @warning Must not be called while async work is in flight on this connection: it destroys the
+    /// backend (and the strand/executors an outstanding offloaded step still references), which would
+    /// race the worker still touching the ODBC handle. Await every async operation on this connection
+    /// to completion before disabling (or before returning the owning pooled @c DataMapper).
+    LIGHTWEIGHT_API void DisableAsync() noexcept;
+
+    /// @return true if @ref EnableAsync has been called on this connection (and not yet disabled).
+    [[nodiscard]] LIGHTWEIGHT_API bool IsAsyncEnabled() const noexcept;
+
+    /// Retrieves the connection's asynchronous execution backend.
+    ///
+    /// Non-const because using the backend schedules and serializes real ODBC work (via its strand and
+    /// resume scheduler), which is an observable mutation of the connection's execution state.
+    ///
+    /// @pre @ref IsAsyncEnabled returns true.
+    /// @throws std::logic_error if async has not been enabled (programmer error, fail-fast).
+    /// @return The async backend used by this connection's async methods.
+    [[nodiscard]] LIGHTWEIGHT_API Async::IAsyncBackend& AsyncBackend();
 
   private:
     /// Ensures ODBC handles are allocated. Called by Connect() methods.

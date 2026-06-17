@@ -25,6 +25,7 @@ Checks: >-
   cppcoreguidelines-*,
   cppcoreguidelines-*,
   -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-avoid-capturing-lambda-coroutines,
   -cppcoreguidelines-avoid-const-or-ref-data-members,
   -cppcoreguidelines-avoid-do-while,
   -cppcoreguidelines-avoid-magic-numbers,
@@ -45,6 +46,7 @@ Checks: >-
   performance-*,
   readability-*,
   -readability-avoid-unconditional-preprocessor-if,
+  -readability-convert-member-functions-to-static,
   -readability-braces-around-statements,
   -readability-else-after-return,
   -readability-identifier-length,
@@ -100,4 +102,4 @@ CheckOptions:
   - key:             readability-identifier-naming.FunctionCase
     value:           CamelCase
   - key:             readability-identifier-naming.FunctionIgnoredRegexp
-    value:           '^(main|begin|end|push_back|pop_back|data|str|get|size|length|resize|empty|clear|value|c_str|capacity|to_string|string_view|assign|at|reserve|substr|sv)$'
+    value:           '^(main|begin|end|push_back|pop_back|data|str|get|size|length|resize|empty|clear|value|c_str|capacity|to_string|string_view|assign|at|reserve|substr|sv|await_ready|await_suspend|await_resume|await_transform|initial_suspend|final_suspend|return_value|return_void|yield_value|unhandled_exception|get_return_object|start|connect)$'

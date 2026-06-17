@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include "Async/ThreadOffloadBackend.hpp"
 #include "DataBinder/UnicodeConverter.hpp"
 #include "SqlConnection.hpp"
 #include "SqlOdbcWide.hpp"
@@ -11,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <mutex>
+#include <stdexcept>
 
 #include <sql.h>
 
@@ -52,6 +54,7 @@ struct SqlConnection::Data
     std::chrono::steady_clock::time_point lastUsed; // Last time the connection was used (mostly interesting for
                                                     // idle connections in the connection pool).
     SqlConnectionString connectionString;
+    std::unique_ptr<Async::IAsyncBackend> asyncBackend; // Async execution backend (null until EnableAsync()).
 };
 
 SqlConnection::SqlConnection():
@@ -168,6 +171,37 @@ void SqlConnection::SetLastUsed(std::chrono::steady_clock::time_point lastUsed) 
 std::chrono::steady_clock::time_point SqlConnection::LastUsed() const noexcept
 {
     return m_data->lastUsed;
+}
+
+void SqlConnection::EnableAsync(Async::IExecutor& dbWorkers, Async::IResumeScheduler& resume)
+{
+    // TODO(async): once the native event backend lands, select it here via a per-connection
+    // capability probe (SQLGetInfo) and fall back to the thread-offload backend.
+    EnableAsync(std::make_unique<Async::ThreadOffloadBackend>(dbWorkers, resume));
+}
+
+void SqlConnection::EnableAsync(std::unique_ptr<Async::IAsyncBackend> backend)
+{
+    m_data->asyncBackend = std::move(backend);
+}
+
+bool SqlConnection::IsAsyncEnabled() const noexcept
+{
+    return m_data->asyncBackend != nullptr;
+}
+
+Async::IAsyncBackend& SqlConnection::AsyncBackend()
+{
+    if (!m_data->asyncBackend)
+        throw std::logic_error {
+            "SqlConnection::AsyncBackend(): asynchronous API used before EnableAsync() was called on this connection."
+        };
+    return *m_data->asyncBackend;
+}
+
+void SqlConnection::DisableAsync() noexcept
+{
+    m_data->asyncBackend.reset();
 }
 
 void SqlConnection::SetPostConnectedHook(std::function<void(SqlConnection&)> hook)

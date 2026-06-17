@@ -104,6 +104,111 @@ else()
     )
 endif()
 
+# Detect clang-cl (needed by the stdexec compat shim below, which must not pass cl-only flags to it).
+set(CLANG_CL FALSE)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    set(CLANG_CL TRUE)
+endif()
+
+# stdexec (NVIDIA's reference implementation of std::execution / P2300 — the C++26 executors).
+# Mandatory, first-class PUBLIC dependency of the Lightweight async layer. Resolve via
+# find_package (a sufficiently new system/vcpkg install) first, falling back to CPM exactly like
+# reflection-cpp/libzip. stdexec's core (static_thread_pool, async_scope, run_loop, schedulers) is
+# header-only and does NOT need TBB — TBB is only used by stdexec's parallel algorithms.
+#
+# Single source of truth for the stdexec version. LIGHTWEIGHT_STDEXEC_GIT_TAG is the CPM
+# fallback tag; LIGHTWEIGHT_STDEXEC_MIN_VERSION is the floor a system/vcpkg install must satisfy.
+# The minimum exists because the stdexec 0.8.0 that current vcpkg baselines ship has a broken
+# static_thread_pool execution domain on MSVC (its domain lacks `apply_sender`, so sync_wait /
+# spawn / start_detached do not compile against the pool) and predates the `starts_on` adaptor;
+# 0.9.0+ fixes this. That is also why stdexec is deliberately NOT listed in vcpkg.json: installing
+# the 0.8.0 port would put its headers on the global vcpkg include path ahead of the CPM copy and
+# shadow it. find_package still prefers a usable system/vcpkg stdexec when one is present; once a
+# vcpkg baseline ships a new-enough port, re-add it to vcpkg.json and it is used automatically.
+#
+# NOTE: the floor is checked MANUALLY against stdexec_VERSION rather than passed to find_package().
+# stdexec versions itself as 0.<paper-revision>.0 and its generated config-version file treats a
+# differing minor as incompatible, so `find_package(stdexec 0.9.0)` would REJECT a perfectly good
+# newer install (e.g. 0.11.0) and silently fall back to CPM. An unversioned find + an explicit
+# VERSION_LESS check engages a usable install instead of always cloning.
+set(LIGHTWEIGHT_STDEXEC_GIT_TAG "nvhpc-26.05" CACHE STRING
+    "Git tag/branch of NVIDIA/stdexec fetched via CPM when no suitable system/vcpkg package is found")
+set(LIGHTWEIGHT_STDEXEC_MIN_VERSION "0.9.0" CACHE STRING
+    "Minimum stdexec version accepted from find_package (older has a broken static_thread_pool domain on MSVC)")
+
+set(STDEXEC_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
+set(STDEXEC_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(STDEXEC_ENABLE_TBB     OFF CACHE BOOL "" FORCE)
+
+find_package(stdexec CONFIG QUIET)
+if(stdexec_FOUND AND stdexec_VERSION VERSION_LESS LIGHTWEIGHT_STDEXEC_MIN_VERSION)
+    message(STATUS "stdexec ${stdexec_VERSION} found but < ${LIGHTWEIGHT_STDEXEC_MIN_VERSION}; using CPM fallback")
+    set(stdexec_FOUND FALSE)
+endif()
+if(stdexec_FOUND)
+    message(STATUS "stdexec ${stdexec_VERSION} found via find_package (vcpkg/system)")
+else()
+    message(STATUS "stdexec (>= ${LIGHTWEIGHT_STDEXEC_MIN_VERSION}) not found, "
+                   "downloading ${LIGHTWEIGHT_STDEXEC_GIT_TAG} via CPM...")
+    CPMAddPackage(
+        NAME stdexec
+        GITHUB_REPOSITORY NVIDIA/stdexec
+        GIT_TAG ${LIGHTWEIGHT_STDEXEC_GIT_TAG}
+        EXCLUDE_FROM_ALL YES
+        SYSTEM YES
+    )
+endif()
+
+# Treat stdexec's headers as SYSTEM includes for every consumer, on both resolution paths. On
+# GCC/Clang this maps to -isystem and suppresses header-origin warnings under -Werror; on MSVC it
+# maps to /external:I (see the /external:W0 mitigation on the Lightweight target). Idempotent if
+# the includes are already SYSTEM.
+if(TARGET STDEXEC::stdexec)
+    get_target_property(_stdexec_aliased STDEXEC::stdexec ALIASED_TARGET)
+    if(_stdexec_aliased)
+        set(_stdexec_tgt ${_stdexec_aliased})
+    else()
+        set(_stdexec_tgt STDEXEC::stdexec)
+    endif()
+    get_target_property(_stdexec_incs ${_stdexec_tgt} INTERFACE_INCLUDE_DIRECTORIES)
+    if(_stdexec_incs)
+        set_property(TARGET ${_stdexec_tgt} APPEND PROPERTY
+            INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${_stdexec_incs})
+    endif()
+    unset(_stdexec_incs)
+    unset(_stdexec_tgt)
+    unset(_stdexec_aliased)
+endif()
+
+# Single source of truth for "how to compile a TU that includes stdexec". Both the Lightweight
+# library (its one stdexec-using TU, behind a pimpl) and the test target link this INTERFACE target
+# instead of STDEXEC::stdexec directly, so the SYSTEM includes AND the compiler workarounds below
+# live in exactly one place rather than being copy-pasted (and drifting) across CMakeLists files.
+#
+# The workarounds: stdexec's deep sender/coroutine templates trip a handful of -Werror / /WX
+# diagnostics at the point of instantiation in our own TU, which -isystem / /external:I do NOT
+# suppress (those only silence header-origin warnings). On `cl` stdexec also needs the conforming
+# preprocessor, and /external:I is a no-op under /WX unless the external warning level is lowered.
+add_library(lightweight_stdexec_compat INTERFACE)
+target_link_libraries(lightweight_stdexec_compat INTERFACE STDEXEC::stdexec)
+if(MSVC)
+    # clang-cl has a conforming preprocessor by default and routes SYSTEM includes through /imsvc,
+    # so it rejects both flags as unused under -Werror; apply them to the real `cl` driver only.
+    if(NOT CLANG_CL)
+        target_compile_options(lightweight_stdexec_compat INTERFACE /Zc:preprocessor)
+        if(PEDANTIC_COMPILER AND PEDANTIC_COMPILER_WERROR)
+            target_compile_options(lightweight_stdexec_compat INTERFACE /experimental:external /external:W0)
+        endif()
+    endif()
+elseif(PEDANTIC_COMPILER AND PEDANTIC_COMPILER_WERROR)
+    target_compile_options(lightweight_stdexec_compat INTERFACE
+        -Wno-error=empty-body
+        -Wno-error=missing-declarations
+        $<$<CXX_COMPILER_ID:Clang>:-Wno-error=newline-eof>
+        $<$<CXX_COMPILER_ID:Clang>:-Wno-error=macro-redefined>
+    )
+endif()
+
 # Tracy profiler (optional). Prefer vcpkg (`vcpkg install lightweight[tracy]`),
 # fall back to CPM for non-vcpkg builds.
 if(LIGHTWEIGHT_ENABLE_TRACY)
@@ -165,12 +270,6 @@ if(NOT WIN32)
         )
         # Note: CPM-built libzip already creates a `zip` target (libzip::zip is an alias to it)
     endif()
-endif()
-
-# Detect clang-cl
-set(CLANG_CL FALSE)
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
-    set(CLANG_CL TRUE)
 endif()
 
 if(NOT WIN32 AND NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)

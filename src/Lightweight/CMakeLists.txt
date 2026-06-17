@@ -140,6 +140,30 @@ set(SOURCE_FILES
     Zip/ZipEntry.cpp
 )
 
+# C++23 coroutine async API (Task, executors, async ODBC methods) — a first-class part of the library.
+list(APPEND HEADER_FILES
+    Async/Task.hpp
+    Async/SyncWait.hpp
+    Async/CancellationToken.hpp
+    Async/Executor.hpp
+    Async/detail/ExecutorQueues.hpp
+    Async/ThreadPoolExecutor.hpp
+    Async/StrandExecutor.hpp
+    Async/ManualExecutor.hpp
+    Async/Async.hpp
+    Async/Backend.hpp
+    Async/ThreadOffloadBackend.hpp
+    Async/Fwd.hpp
+    Async/AsyncSqlTransaction.hpp
+    Async/DataMapperAsync.hpp
+)
+list(APPEND SOURCE_FILES
+    Async/ThreadPoolExecutor.cpp
+    Async/StrandExecutor.cpp
+    Async/ManualExecutor.cpp
+    Async/AsyncSqlTransaction.cpp
+)
+
 add_library(Lightweight ${LIGHTWEIGHT_LIBRARY_TYPE})
 
 add_library(Lightweight::Lightweight ALIAS Lightweight)
@@ -191,6 +215,13 @@ target_include_directories(Lightweight PUBLIC
 target_link_libraries(Lightweight PUBLIC reflection-cpp::reflection-cpp)
 target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>)
 
+# stdexec (C++26 executors) backs the async layer's thread pool. Async/ThreadPoolExecutor.cpp is the
+# only TU that includes the stdexec headers — the public headers stay stdexec-free via a pimpl — so
+# stdexec is a BUILD-time-only, PRIVATE usage requirement. lightweight_stdexec_compat (root
+# CMakeLists) carries the SYSTEM includes + compiler workarounds; the BUILD_INTERFACE genex keeps it
+# out of the installed/exported interface (an installed Lightweight needs no stdexec).
+target_link_libraries(Lightweight PRIVATE $<BUILD_INTERFACE:lightweight_stdexec_compat>)
+
 if(LIGHTWEIGHT_ENABLE_TRACY)
     target_compile_definitions(Lightweight PUBLIC LIGHTWEIGHT_TRACY_ENABLED)
     target_link_libraries(Lightweight PUBLIC Tracy::TracyClient)
@@ -205,6 +236,8 @@ if(MSVC)
         target_compile_options(Lightweight PRIVATE ${_pedantic_flags})
         unset(_pedantic_flags)
     endif()
+    # (stdexec's cl mitigations — /Zc:preprocessor and /external:W0 — are carried by
+    # lightweight_stdexec_compat, linked above.)
     # When building Lightweight as a DLL on MSVC, classes that legitimately expose
     # STL members (`std::string`, `std::vector`, `std::filesystem::path`, …) or
     # derive from header-only interfaces trigger C4251 / C4275. Both warnings are
@@ -229,6 +262,8 @@ else()
         endif()
         target_compile_options(Lightweight PRIVATE ${_pedantic_flags})
         unset(_pedantic_flags)
+        # (stdexec's GCC/Clang -Wno-error demotions are carried by lightweight_stdexec_compat,
+        # linked above.)
     endif()
     target_compile_options(Lightweight PUBLIC ${ODBC_CFLAGS})
     target_link_libraries(Lightweight PUBLIC ${ODBC_LDFLAGS})
@@ -285,7 +320,8 @@ install(
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/Lightweight
     COMPONENT Development
-    FILES_MATCHING PATTERN "*.hpp"
+    FILES_MATCHING
+        PATTERN "*.hpp"
 )
 
 install(TARGETS Lightweight

@@ -2,6 +2,16 @@
 
 module;
 
+#include "Async/AsyncSqlTransaction.hpp"
+#include "Async/Backend.hpp"
+#include "Async/CancellationToken.hpp"
+#include "Async/Executor.hpp"
+#include "Async/ManualExecutor.hpp"
+#include "Async/StrandExecutor.hpp"
+#include "Async/SyncWait.hpp"
+#include "Async/Task.hpp"
+#include "Async/ThreadOffloadBackend.hpp"
+#include "Async/ThreadPoolExecutor.hpp"
 #include "DataBinder/SqlRawColumn.hpp"
 #include "DataMapper/QueryBuilders.hpp"
 #include "Lightweight.hpp"
@@ -164,6 +174,7 @@ using Lightweight::SqlPrimaryKeyType;
 using Lightweight::SqlQualifiedTableColumnName;
 using Lightweight::SqlQueryBuilder;
 using Lightweight::SqlQueryBuilderMode;
+using Lightweight::SqlQueryExecutionMode;
 using Lightweight::SqlQueryFormatter;
 using Lightweight::SqlQueryObject;
 using Lightweight::SqlRawColumn;
@@ -216,6 +227,26 @@ using Lightweight::Unwrap;
 using Lightweight::is_belongs_to;
 
 using Lightweight::operator<<;
+
+namespace Async
+{
+    // C++23 coroutine async API (first-class, always built). Mirrors <Lightweight/Async/*.hpp>.
+    using Lightweight::Async::Async;
+    using Lightweight::Async::AsyncSqlTransaction;
+    using Lightweight::Async::IAsyncBackend;
+    using Lightweight::Async::IExecutor;
+    using Lightweight::Async::InlineExecutor;
+    using Lightweight::Async::IResumeScheduler;
+    using Lightweight::Async::ManualExecutor;
+    using Lightweight::Async::OperationCancelledError;
+    using Lightweight::Async::RunAsync;
+    using Lightweight::Async::StrandExecutor;
+    using Lightweight::Async::SyncWait;
+    using Lightweight::Async::SyncWaitPumping;
+    using Lightweight::Async::Task;
+    using Lightweight::Async::ThreadOffloadBackend;
+    using Lightweight::Async::ThreadPoolExecutor;
+} // namespace Async
 
 namespace Aggregate
 {

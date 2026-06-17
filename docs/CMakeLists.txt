@@ -61,6 +61,7 @@ message(STATUS "Doxygen found: ${DOXYGEN_EXECUTABLE}")
     "${PROJECT_SOURCE_DIR}/docs/sql-backup-format.md"
     "${PROJECT_SOURCE_DIR}/docs/dbtool.md"
     "${PROJECT_SOURCE_DIR}/docs/sql-migrations.md"
+    "${PROJECT_SOURCE_DIR}/docs/async.md"
     "${PROJECT_SOURCE_DIR}/docs/announcement-reddit.md"
   )
   doxygen_add_docs(doc

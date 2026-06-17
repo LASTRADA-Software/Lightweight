@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "../Async/Backend.hpp"
 #include "../SqlConnection.hpp"
 #include "../SqlDataBinder.hpp"
 #include "../SqlLogger.hpp"
@@ -397,17 +398,33 @@ class DataMapper
     template <typename Record, DataMapperOptions QueryOptions = {}>
     SqlAllFieldsQueryBuilder<Record, QueryOptions> Query()
     {
-        std::string fields;
-        Reflection::EnumerateMembers<Record>([&fields]<size_t I, typename Field>() {
-            if (!fields.empty())
-                fields += ", ";
-            fields += '"';
-            fields += RecordTableName<Record>;
-            fields += "\".\"";
-            fields += FieldNameAt<I, Record>;
-            fields += '"';
-        });
-        return SqlAllFieldsQueryBuilder<Record, QueryOptions>(*this, std::move(fields));
+        return SqlAllFieldsQueryBuilder<Record, QueryOptions>(*this, BuildFullyQualifiedFieldList<Record>());
+    }
+
+    /// Asynchronous counterpart of @c Query — returns an async query builder for @p Record.
+    ///
+    /// The builder offers the exact same fluent DSL (`Where`, `OrderBy`, `GroupBy`, joins, …) as the
+    /// synchronous one; its finisher methods (`All()`, `First()`, `First(n)`, `Range()`, `Count()`,
+    /// `Exist()`, `Delete()`) return an @c Async::Task instead of the plain result, to be @c co_await -ed.
+    /// The connection must have been put into async mode via @c SqlConnection::EnableAsync first.
+    ///
+    /// @note The returned builder is a temporary; keep the whole chain in the @c co_await full-expression
+    ///       (e.g. `co_await dm.QueryAsync<Person>().Where(...).All();`) so it outlives the awaited task.
+    ///
+    /// @tparam Record       The record type to query and materialize.
+    /// @tparam QueryOptions A specialization of DataMapperOptions that controls query behavior.
+    /// @return An asynchronous query builder for the given Record type.
+    ///
+    /// @code
+    /// auto const records = co_await dm.QueryAsync<Person>()
+    ///                                 .Where(FieldNameOf<&Person::is_active>, "=", true)
+    ///                                 .All();
+    /// @endcode
+    template <typename Record, DataMapperOptions QueryOptions = {}>
+    SqlAllFieldsQueryBuilder<Record, QueryOptions, SqlQueryExecutionMode::Asynchronous> QueryAsync()
+    {
+        return SqlAllFieldsQueryBuilder<Record, QueryOptions, SqlQueryExecutionMode::Asynchronous>(
+            *this, BuildFullyQualifiedFieldList<Record>());
     }
 
     /// Returns a SqlQueryBuilder using the default query formatter.
@@ -516,7 +533,69 @@ class DataMapper
     template <typename T>
     [[nodiscard]] std::optional<T> Execute(std::string_view sqlQueryString);
 
+    // --------------------------------------------------------------------------------------------
+    // Asynchronous (C++23 coroutine) API.
+    //
+    // Each method offloads its synchronous counterpart to the connection's async backend — a
+    // worker thread, serialized per connection — and resumes the awaiting coroutine on the app's
+    // resume scheduler. Call SqlConnection::EnableAsync(...) on the underlying connection (or use a
+    // pool that stamps it) before invoking any of these. Definitions live in
+    // Async/DataMapperAsync.hpp (included at the end of this header).
+    //
+    // Methods taking a Record& / Record const& capture the record BY REFERENCE, and dereference it
+    // on a worker thread when the returned Task is awaited. The caller must keep the record alive —
+    // and must not mutate or move it — for the entire duration of the co_await (i.e. until the
+    // awaiting coroutine resumes), not merely until the call returns. Destroying, moving, or mutating
+    // it before the co_await resumes is a use-after-free / data race. The idiomatic, safe form keeps
+    // the whole expression in the co_await: `co_await dm.UpdateAsync(record);`.
+
+    /// Asynchronously inserts @p record, updating its primary key in place. @see Create.
+    template <DataMapperOptions QueryOptions = {}, typename Record>
+    [[nodiscard]] Async::Task<RecordPrimaryKeyType<Record>> CreateAsync(Record& record);
+
+    /// Asynchronously queries a single record by its primary key(s). @see QuerySingle.
+    ///
+    /// This is the asynchronous shorthand for a primary-key lookup; for anything else use the fluent
+    /// builder returned by QueryAsync<Record>() (whose finishers also return an Async::Task). Note there
+    /// is deliberately no QueryAsync(string)/QueryAsync(ComposedQuery) — that is what the builder is for.
+    template <typename Record, DataMapperOptions QueryOptions = {}, typename... PrimaryKeyTypes>
+    [[nodiscard]] Async::Task<std::optional<Record>> QuerySingleAsync(PrimaryKeyTypes... primaryKeys);
+
+    /// Asynchronously updates @p record's modified fields. @see Update.
+    template <typename Record>
+    [[nodiscard]] Async::Task<void> UpdateAsync(Record& record);
+
+    /// Asynchronously deletes @p record. @see Delete.
+    template <typename Record>
+    [[nodiscard]] Async::Task<std::size_t> DeleteAsync(Record const& record);
+
+    /// Asynchronously loads @p record's relations. @see LoadRelations.
+    template <typename Record>
+    [[nodiscard]] Async::Task<void> LoadRelationsAsync(Record& record);
+
   private:
+    /// Builds the comma-separated, fully-qualified (`"Table"."Column"`) field list for @p Record.
+    ///
+    /// Shared by @c Query and @c QueryAsync so the SELECT projection is produced in exactly one place.
+    ///
+    /// @tparam Record The record type whose members are enumerated.
+    /// @return The field list usable as the projection of a SELECT statement.
+    template <typename Record>
+    [[nodiscard]] static std::string BuildFullyQualifiedFieldList()
+    {
+        std::string fields;
+        Reflection::EnumerateMembers<Record>([&fields]<size_t I, typename Field>() {
+            if (!fields.empty())
+                fields += ", ";
+            fields += '"';
+            fields += RecordTableName<Record>;
+            fields += "\".\"";
+            fields += FieldNameAt<I, Record>;
+            fields += '"';
+        });
+        return fields;
+    }
+
     /// @brief Queries a single record from the database based on the given query.
     ///
     /// @param selectQuery The SQL select query to execute.
@@ -763,6 +842,16 @@ namespace detail
 } // namespace detail
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
+template <typename Finisher>
+auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::RunFinisher(Finisher finisher)
+{
+    if constexpr (Derived::QueryExecution == SqlQueryExecutionMode::Asynchronous)
+        return Async::RunAsync(_dm.Connection().AsyncBackend(), std::move(finisher));
+    else
+        return finisher();
+}
+
+template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 inline SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::SqlCoreDataMapperQueryBuilder(
     DataMapper& dm, std::string fields) noexcept:
     _dm { dm },
@@ -773,7 +862,7 @@ inline SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::SqlCoreData
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
-size_t SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Count()
+size_t SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::CountImpl()
 {
     auto stmt = SqlStatement { _dm.Connection() };
     stmt.Prepare(_formatter.SelectCount(this->_query.distinct,
@@ -788,7 +877,7 @@ size_t SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Count()
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
-bool SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Exist()
+bool SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::ExistImpl()
 {
     auto stmt = SqlStatement { _dm.Connection() };
 
@@ -808,7 +897,7 @@ bool SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Exist()
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
-void SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Delete()
+void SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::DeleteImpl()
 {
     auto stmt = SqlStatement { _dm.Connection() };
 
@@ -818,12 +907,11 @@ void SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Delete()
                                          this->_query.searchCondition.condition);
 
     stmt.Prepare(query);
-    stmt.Prepare(query);
     [[maybe_unused]] auto cursor = stmt.ExecuteWithVariants(_boundInputs);
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
-std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All()
+std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::AllImpl()
 {
 
     auto records = std::vector<Record> {};
@@ -860,7 +948,7 @@ template <auto Field>
 #else
     requires std::is_member_object_pointer_v<decltype(Field)>
 #endif
-auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All() -> std::vector<ReferencedFieldTypeOf<Field>>
+auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::AllImpl() -> std::vector<ReferencedFieldTypeOf<Field>>
 {
     using value_type = ReferencedFieldTypeOf<Field>;
     auto result = std::vector<value_type> {};
@@ -898,7 +986,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All() -> std:
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 template <auto... ReferencedFields>
     requires(sizeof...(ReferencedFields) >= 2)
-auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All() -> std::vector<Record>
+auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::AllImpl() -> std::vector<Record>
 {
     auto records = std::vector<Record> {};
     auto stmt = SqlStatement { _dm.Connection() };
@@ -939,7 +1027,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::All() -> std:
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
-std::optional<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First()
+std::optional<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::FirstImpl()
 {
     std::optional<Record> record {};
     auto stmt = SqlStatement { _dm.Connection() };
@@ -967,7 +1055,7 @@ template <auto Field>
 #else
     requires std::is_member_object_pointer_v<decltype(Field)>
 #endif
-auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First() -> std::optional<ReferencedFieldTypeOf<Field>>
+auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::FirstImpl() -> std::optional<ReferencedFieldTypeOf<Field>>
 {
     auto constexpr count = 1;
     auto stmt = SqlStatement { _dm.Connection() };
@@ -987,7 +1075,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First() -> st
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 template <auto... ReferencedFields>
     requires(sizeof...(ReferencedFields) >= 2)
-auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First() -> std::optional<Record>
+auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::FirstImpl() -> std::optional<Record>
 {
     auto optionalRecord = std::optional<Record> {};
 
@@ -1025,7 +1113,7 @@ auto SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First() -> st
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
-std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First(size_t n)
+std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::FirstImpl(size_t n)
 {
     auto records = std::vector<Record> {};
     auto stmt = SqlStatement { _dm.Connection() };
@@ -1049,7 +1137,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
 }
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
-std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Range(size_t offset, size_t limit)
+std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::RangeImpl(size_t offset, size_t limit)
 {
     auto records = std::vector<Record> {};
     auto stmt = SqlStatement { _dm.Connection() };
@@ -1078,7 +1166,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 template <auto... ReferencedFields>
-std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::Range(size_t offset, size_t limit)
+std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::RangeImpl(size_t offset, size_t limit)
 {
     auto records = std::vector<Record> {};
     auto stmt = SqlStatement { _dm.Connection() };
@@ -1131,7 +1219,7 @@ std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>
 
 template <typename Record, typename Derived, DataMapperOptions QueryOptions>
 template <auto... ReferencedFields>
-[[nodiscard]] std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::First(size_t n)
+[[nodiscard]] std::vector<Record> SqlCoreDataMapperQueryBuilder<Record, Derived, QueryOptions>::FirstImpl(size_t n)
 {
     auto records = std::vector<Record> {};
     auto stmt = SqlStatement { _dm.Connection() };
@@ -1177,10 +1265,10 @@ template <auto... ReferencedFields>
     return records;
 }
 
-template <typename Record, DataMapperOptions QueryOptions>
-void SqlAllFieldsQueryBuilder<Record, QueryOptions>::ReadResults(SqlServerType sqlServerType,
-                                                                 SqlResultCursor reader,
-                                                                 std::vector<Record>* records)
+template <typename Record, DataMapperOptions QueryOptions, SqlQueryExecutionMode Execution>
+void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResults(SqlServerType sqlServerType,
+                                                                            SqlResultCursor reader,
+                                                                            std::vector<Record>* records)
 {
     while (true)
     {
@@ -1193,18 +1281,18 @@ void SqlAllFieldsQueryBuilder<Record, QueryOptions>::ReadResults(SqlServerType s
     }
 }
 
-template <typename Record, DataMapperOptions QueryOptions>
-void SqlAllFieldsQueryBuilder<Record, QueryOptions>::ReadResult(SqlServerType sqlServerType,
-                                                                SqlResultCursor reader,
-                                                                std::optional<Record>* optionalRecord)
+template <typename Record, DataMapperOptions QueryOptions, SqlQueryExecutionMode Execution>
+void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResult(SqlServerType sqlServerType,
+                                                                           SqlResultCursor reader,
+                                                                           std::optional<Record>* optionalRecord)
 {
     Record& record = optionalRecord->emplace();
     if (!detail::ReadSingleResult(sqlServerType, reader, record))
         optionalRecord->reset();
 }
 
-template <typename FirstRecord, typename SecondRecord, DataMapperOptions QueryOptions>
-void SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>, QueryOptions>::ReadResults(
+template <typename FirstRecord, typename SecondRecord, DataMapperOptions QueryOptions, SqlQueryExecutionMode Execution>
+void SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>, QueryOptions, Execution>::ReadResults(
     SqlServerType sqlServerType, SqlResultCursor reader, std::vector<RecordType>* records)
 {
     while (true)
@@ -2689,3 +2777,5 @@ std::optional<T> DataMapper::Execute(std::string_view sqlQueryString)
 }
 
 } // namespace Lightweight
+
+#include "../Async/DataMapperAsync.hpp"

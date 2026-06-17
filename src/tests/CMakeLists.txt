@@ -1,35 +1,6 @@
-# Try to find TBB for stdexec support
-find_package(TBB QUIET)
-
-if(TBB_FOUND)
-    message(STATUS "TBB found - building with stdexec support")
-    set(LIGHTWEIGHT_HAS_STDEXEC ON)
-
-    set(STDEXEC_BUILD_TESTS OFF)
-    set(STDEXEC_BUILD_EXAMPLES OFF)
-    set(STDEXEC_ENABLE_TBB ON)
-
-    CPMAddPackage(
-      NAME stdexec
-      GITHUB_REPOSITORY NVIDIA/stdexec
-      GIT_TAG nvhpc-25.09
-      EXCLUDE_FROM_ALL YES
-    )
-
-    # Suppress warnings-as-errors for stdexec's own targets built with our pedantic flags
-    if(TARGET system_context)
-        target_compile_options(system_context PRIVATE
-            -Wno-error=empty-body
-            -Wno-error=missing-declarations
-            $<$<CXX_COMPILER_ID:Clang>:-Wno-error=newline-eof>
-            $<$<CXX_COMPILER_ID:Clang>:-Wno-error=macro-redefined>
-        )
-    endif()
-else()
-    message(STATUS "TBB not found - building without stdexec support (AsynchronousTests will be skipped)")
-    set(LIGHTWEIGHT_HAS_STDEXEC OFF)
-endif()
-
+# stdexec is now a mandatory PUBLIC dependency of the Lightweight library (resolved in the root
+# CMakeLists.txt via find_package/CPM), so it arrives transitively through Lightweight::Lightweight.
+# The async tests build unconditionally.
 find_package(Catch2 REQUIRED)
 
 add_executable(LightweightTest)
@@ -52,21 +23,16 @@ else()
     set(TEST_LIBRARIES ${TEST_LIBRARIES} odbc ${SQLITE3_LIBRARY}) # FIXME: should be PkgConfig::ODBC in Lightweight target already
 endif()
 
-if(LIGHTWEIGHT_HAS_STDEXEC)
-    target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES} STDEXEC::stdexec)
-else()
-    target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES})
-endif()
+target_link_libraries(LightweightTest PRIVATE ${TEST_LIBRARIES})
+
+# AsynchronousTests.cpp includes stdexec headers directly. Link the shared compat target (root
+# CMakeLists) so its SYSTEM includes, /Zc:preprocessor, /external:W0 and -Wno-error demotions apply
+# here too — Lightweight links stdexec PRIVATE, so it no longer arrives transitively. Harmless for
+# the stdexec-free test TUs.
+target_link_libraries(LightweightTest PRIVATE lightweight_stdexec_compat)
 
 if(MSVC)
     target_compile_options(LightweightTest PRIVATE /bigobj)
-endif()
-
-# some flags required to compile stdexec with pedantic settings
-if(LIGHTWEIGHT_HAS_STDEXEC)
-    set_source_files_properties(DataMapper/AsynchronousTests.cpp PROPERTIES
-        COMPILE_OPTIONS "-Wno-error=empty-body;-Wno-error=missing-declarations;$<$<CXX_COMPILER_ID:Clang>:-Wno-error=newline-eof>"
-    )
 endif()
 
 set(SOURCE_FILES
@@ -136,9 +102,17 @@ set(SOURCE_FILES
     Zip/ZipTests.cpp
 )
 
-if(LIGHTWEIGHT_HAS_STDEXEC)
-    list(APPEND SOURCE_FILES DataMapper/AsynchronousTests.cpp)
-endif()
+list(APPEND SOURCE_FILES
+    DataMapper/AsynchronousTests.cpp
+    Async/TaskTests.cpp
+    Async/ExecutorTests.cpp
+    Async/OffloadTests.cpp
+    Async/AsyncDbTests.cpp
+    Async/AsyncPoolTests.cpp
+    Async/AsyncTransactionTests.cpp
+    Async/StdexecBackingTests.cpp
+    Async/SenderTests.cpp
+)
 
 target_sources(LightweightTest PRIVATE ${SOURCE_FILES})
 
