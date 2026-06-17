@@ -10,7 +10,6 @@ var dir_07cc544e6394bf3dfdd028b8dfeac742 =
     [ "Zip", "dir_02b8df35666f4569a051687d37d57615.html", "dir_02b8df35666f4569a051687d37d57615" ],
     [ "Api.hpp", "d1/de4/Api_8hpp_source.html", null ],
     [ "BlockingQueue.hpp", "d0/d59/BlockingQueue_8hpp_source.html", null ],
-    [ "Description.hpp", "d1/dbc/Description_8hpp_source.html", null ],
     [ "Lightweight.hpp", "d3/d69/Lightweight_8hpp_source.html", null ],
     [ "SqlAdvisoryLock.hpp", "d5/d4b/SqlAdvisoryLock_8hpp_source.html", null ],
     [ "SqlBackup.hpp", "db/dd1/SqlBackup_8hpp_source.html", null ],

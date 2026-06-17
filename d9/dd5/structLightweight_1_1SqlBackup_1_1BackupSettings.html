@@ -111,9 +111,15 @@ Public Attributes</h2></td></tr>
 <tr class="separator:a433db0c5f6bf8d24dc11eec160e262b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad359ecfef33012f655714230699a4308" id="r_ad359ecfef33012f655714230699a4308"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ad359ecfef33012f655714230699a4308">chunkSizeBytes</a> = 10 * 1024 * 1024</td></tr>
 <tr class="separator:ad359ecfef33012f655714230699a4308"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae10e3a3fa9942cd75572e2a1815708a6" id="r_ae10e3a3fa9942cd75572e2a1815708a6"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#ae10e3a3fa9942cd75572e2a1815708a6">rowsPerChunk</a> = 100'000</td></tr>
+<tr class="separator:ae10e3a3fa9942cd75572e2a1815708a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a11b8c4dc97bf4360601e9834bf6db463" id="r_a11b8c4dc97bf4360601e9834bf6db463"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a11b8c4dc97bf4360601e9834bf6db463">workerArchiveBytes</a> = 256ULL * 1024 * 1024</td></tr>
+<tr class="separator:a11b8c4dc97bf4360601e9834bf6db463"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adec7c645281b65b2f005190ed3a3e5f7" id="r_adec7c645281b65b2f005190ed3a3e5f7"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#adec7c645281b65b2f005190ed3a3e5f7">schemaOnly</a> = false</td></tr>
 <tr class="memdesc:adec7c645281b65b2f005190ed3a3e5f7"><td class="mdescLeft">&#160;</td><td class="mdescRight">If true, only export schema metadata without backing up table data.  <br /></td></tr>
 <tr class="separator:adec7c645281b65b2f005190ed3a3e5f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3ea1463fd4e65e3fecd5d78642b224e9" id="r_a3ea1463fd4e65e3fecd5d78642b224e9"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d9/dd5/structLightweight_1_1SqlBackup_1_1BackupSettings.html#a3ea1463fd4e65e3fecd5d78642b224e9">forceMssqlConcurrency</a> = false</td></tr>
+<tr class="separator:a3ea1463fd4e65e3fecd5d78642b224e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Configuration for backup operations including compression and chunking. </p>
@@ -177,6 +183,40 @@ Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="ae10e3a3fa9942cd75572e2a1815708a6" name="ae10e3a3fa9942cd75572e2a1815708a6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae10e3a3fa9942cd75572e2a1815708a6">&#9670;&#160;</a></span>rowsPerChunk</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::size_t Lightweight::SqlBackup::BackupSettings::rowsPerChunk = 100'000</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Target rows per chunk window. Tables with a single numeric primary key are split into windows of about this many keys (subject to a per-table window cap) that are backed up in parallel by multiple workers. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00057">57</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a11b8c4dc97bf4360601e9834bf6db463" name="a11b8c4dc97bf4360601e9834bf6db463"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a11b8c4dc97bf4360601e9834bf6db463">&#9670;&#160;</a></span>workerArchiveBytes</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::size_t Lightweight::SqlBackup::BackupSettings::workerArchiveBytes = 256ULL * 1024 * 1024</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Uncompressed bytes each worker accumulates in its private temp archive before sealing it (the compression of that archive runs in the worker thread at that point, overlapped with the network-bound fetch). Bounds worker memory at about jobs x workerArchiveBytes and determines how many temp archives the finalize merge opens. Default: 256 MB. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00063">63</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+</div>
+</div>
 <a id="adec7c645281b65b2f005190ed3a3e5f7" name="adec7c645281b65b2f005190ed3a3e5f7"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#adec7c645281b65b2f005190ed3a3e5f7">&#9670;&#160;</a></span>schemaOnly</h2>
 
@@ -191,7 +231,24 @@ Public Attributes</h2></td></tr>
 
 <p>If true, only export schema metadata without backing up table data. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00055">55</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00066">66</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a3ea1463fd4e65e3fecd5d78642b224e9" name="a3ea1463fd4e65e3fecd5d78642b224e9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3ea1463fd4e65e3fecd5d78642b224e9">&#9670;&#160;</a></span>forceMssqlConcurrency</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Lightweight::SqlBackup::BackupSettings::forceMssqlConcurrency = false</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Deprecated no-op. Previously bypassed the MS SQL Server single-worker clamp; that clamp has been removed (all databases now back up multi-threaded), so this flag no longer has any effect. Retained temporarily to avoid an API/ABI break; pending removal. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html#l00071">71</a> of file <a class="el" href="../../d1/d69/SqlBackup_2SqlBackup_8hpp_source.html">SqlBackup.hpp</a>.</p>
 
 </div>
 </div>
