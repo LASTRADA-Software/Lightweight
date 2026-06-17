@@ -71,6 +71,8 @@ var annotated_dup =
       [ "Pool", "d3/d30/classLightweight_1_1Pool.html", "d3/d30/classLightweight_1_1Pool" ],
       [ "PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", "df/d1a/structLightweight_1_1PoolConfig" ],
       [ "RecordMemberList", "d2/d94/structLightweight_1_1RecordMemberList.html", "d2/d94/structLightweight_1_1RecordMemberList" ],
+      [ "RowArrayCursor", "da/d6c/classLightweight_1_1RowArrayCursor.html", "da/d6c/classLightweight_1_1RowArrayCursor" ],
+      [ "RowArrayCursorUnsupported", "de/d9f/classLightweight_1_1RowArrayCursorUnsupported.html", null ],
       [ "SqlAdvisoryLockHandler", "d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html", "d4/d61/classLightweight_1_1SqlAdvisoryLockHandler" ],
       [ "SqlAllFieldsQueryBuilder", "d8/d5d/classLightweight_1_1SqlAllFieldsQueryBuilder.html", null ],
       [ "SqlAlterTablePlan", "dd/d75/structLightweight_1_1SqlAlterTablePlan.html", "dd/d75/structLightweight_1_1SqlAlterTablePlan" ],

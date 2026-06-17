@@ -62,6 +62,7 @@ var hierarchy =
     [ "Lightweight::Pool< Config >::PooledDataMapper", "de/db1/classLightweight_1_1Pool_1_1PooledDataMapper.html", null ],
     [ "Lightweight::PoolConfig", "df/d1a/structLightweight_1_1PoolConfig.html", null ],
     [ "Lightweight::RecordMemberList< MemberPointers >", "d2/d94/structLightweight_1_1RecordMemberList.html", null ],
+    [ "Lightweight::RowArrayCursor", "da/d6c/classLightweight_1_1RowArrayCursor.html", null ],
     [ "Lightweight::SqlAdvisoryLockHandler", "d4/d61/classLightweight_1_1SqlAdvisoryLockHandler.html", null ],
     [ "Lightweight::SqlAlterTableCommands::AddColumnIfNotExists", "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html", null ],
     [ "Lightweight::SqlAlterTableCommands::DropColumnIfExists", "d1/d55/structLightweight_1_1SqlAlterTableCommands_1_1DropColumnIfExists.html", null ],
@@ -168,6 +169,7 @@ var hierarchy =
     [ "std::exception", null, [
       [ "std::runtime_error", null, [
         [ "Lightweight::Async::OperationCancelledError", "d3/dd5/classLightweight_1_1Async_1_1OperationCancelledError.html", null ],
+        [ "Lightweight::RowArrayCursorUnsupported", "de/d9f/classLightweight_1_1RowArrayCursorUnsupported.html", null ],
         [ "Lightweight::SqlRequireLoadedError", "da/df2/classLightweight_1_1SqlRequireLoadedError.html", null ],
         [ "Lightweight::SqlTransactionException", "d5/d19/classLightweight_1_1SqlTransactionException.html", null ]
       ] ]
