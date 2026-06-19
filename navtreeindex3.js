@@ -1,5 +1,6 @@
 var NAVTREEINDEX3 =
 {
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac8acfa239959c3a361aae62ddac1df04":[13,4,3,22],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#acbcd0741a62d955a0e7e56ec7f264499":[13,4,3,48],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ad63ee3002c9921bfb053c5b611d6511b":[13,4,3,1],
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aea2e7108ff6cdee35036d3e157f6bb90":[13,4,3,20],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241a5289bf157522a5cd34676f2777d27048":[13,3,1,0,1],
 "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241a9639e32cab248434a17ab32237cb3b71":[13,3,1,0,0],
 "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#add881a918e02ff27ec38f907f535b3ed":[13,3,1,3],
-"d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#adda47749398b0516fc00f9b23aee086f":[13,3,1,1],
-"d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#ae719f328736efcdb1e98ad53a6dbe6dd":[13,3,1,5]
+"d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#adda47749398b0516fc00f9b23aee086f":[13,3,1,1]
 };

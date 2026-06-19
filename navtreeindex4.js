@@ -1,5 +1,6 @@
 var NAVTREEINDEX4 =
 {
+"d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#ae719f328736efcdb1e98ad53a6dbe6dd":[13,3,1,5],
 "d9/d6b/Migrate_8hpp_source.html":[16,0,1,5,3],
 "d9/d6e/SqlStatement_8hpp_source.html":[16,0,1,30],
 "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html":[2],
@@ -248,6 +249,5 @@ var NAVTREEINDEX4 =
 "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a66b58e33428cc7a16fa1ca967e2db0a5":[13,4,9,4],
 "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a89072cc6f0d70a556d2a16a52ab698d7":[13,4,9,1],
 "db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#ac701438a61c7d2f150b24aa536e1779a":[13,4,9,2],
-"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#aef625c1fdddcae0cdb986548f30f2ff9":[13,4,9,0],
-"db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html":[13,4,23]
+"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#aef625c1fdddcae0cdb986548f30f2ff9":[13,4,9,0]
 };

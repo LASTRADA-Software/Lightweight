@@ -26,7 +26,7 @@
  <tbody>
  <tr id="projectrow">
   <td id="projectalign">
-   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20260522.0</span>
+   <div id="projectname">Lightweight<span id="projectnumber">&#160;0.20260617.0</span>
    </div>
   </td>
  </tr>
@@ -106,6 +106,8 @@ Public Types</h2></td></tr>
 <tr class="memitem:a8433646a803e35c67d9e8947ff8dedac" id="r_a8433646a803e35c67d9e8947ff8dedac"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a8433646a803e35c67d9e8947ff8dedac">value_type</a> = uint8_t</td></tr>
 <tr class="memdesc:a8433646a803e35c67d9e8947ff8dedac"><td class="mdescLeft">&#160;</td><td class="mdescRight">The element type of the binary data.  <br /></td></tr>
 <tr class="separator:a8433646a803e35c67d9e8947ff8dedac"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adf4b6263236199cfddffdec0071ca196" id="r_adf4b6263236199cfddffdec0071ca196"><td class="memItemLeft" align="right" valign="top">using&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#adf4b6263236199cfddffdec0071ca196">ByteView</a> = std::span&lt; <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a8433646a803e35c67d9e8947ff8dedac">value_type</a> const  &gt;</td></tr>
+<tr class="separator:adf4b6263236199cfddffdec0071ca196"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -144,13 +146,14 @@ LIGHTWEIGHT_FORCE_INLINE constexpr&#160;</td><td class="memItemRight" valign="bo
 <tr class="memitem:a04eaacb2c4add07c79e1a23857d4ac97" id="r_a04eaacb2c4add07c79e1a23857d4ac97"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a04eaacb2c4add07c79e1a23857d4ac97">SqlDynamicBinary</a> (<a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a8433646a803e35c67d9e8947ff8dedac">value_type</a> const *s, <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a8433646a803e35c67d9e8947ff8dedac">value_type</a> const *e) noexcept</td></tr>
 <tr class="memdesc:a04eaacb2c4add07c79e1a23857d4ac97"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a fixed-size string from a string pointer and end pointer.  <br /></td></tr>
 <tr class="separator:a04eaacb2c4add07c79e1a23857d4ac97"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad98fd66b5e7b01ec31545736a1c51c93" id="r_ad98fd66b5e7b01ec31545736a1c51c93"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#ad98fd66b5e7b01ec31545736a1c51c93">SqlDynamicBinary</a> (std::span&lt; <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a8433646a803e35c67d9e8947ff8dedac">value_type</a> const &gt; s) noexcept</td></tr>
-<tr class="separator:ad98fd66b5e7b01ec31545736a1c51c93"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad50d958307ae9a6bac74db88834ed6b4" id="r_ad50d958307ae9a6bac74db88834ed6b4"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr std::span&lt; <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a8433646a803e35c67d9e8947ff8dedac">value_type</a> const &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#ad50d958307ae9a6bac74db88834ed6b4">Bytes</a> () const noexcept</td></tr>
-<tr class="memdesc:ad50d958307ae9a6bac74db88834ed6b4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a read-only span over the stored bytes.  <br /></td></tr>
-<tr class="separator:ad50d958307ae9a6bac74db88834ed6b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a413932abb307e98fda3561b48845b8a4" id="r_a413932abb307e98fda3561b48845b8a4"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr std::span&lt; <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a8433646a803e35c67d9e8947ff8dedac">value_type</a> const &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a413932abb307e98fda3561b48845b8a4">ToStringView</a> () const noexcept</td></tr>
-<tr class="separator:a413932abb307e98fda3561b48845b8a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a28a42dcd460ddeac4b63e8a9468788fd" id="r_a28a42dcd460ddeac4b63e8a9468788fd"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a28a42dcd460ddeac4b63e8a9468788fd">SqlDynamicBinary</a> (<a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#adf4b6263236199cfddffdec0071ca196">ByteView</a> s) noexcept</td></tr>
+<tr class="memdesc:a28a42dcd460ddeac4b63e8a9468788fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs the binary payload from a contiguous view of bytes.  <br /></td></tr>
+<tr class="separator:a28a42dcd460ddeac4b63e8a9468788fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5c11396e3bbbbffdb52d579a522474bb" id="r_a5c11396e3bbbbffdb52d579a522474bb"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#adf4b6263236199cfddffdec0071ca196">ByteView</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a5c11396e3bbbbffdb52d579a522474bb">Bytes</a> () const noexcept</td></tr>
+<tr class="memdesc:a5c11396e3bbbbffdb52d579a522474bb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieves a read-only view over the stored bytes.  <br /></td></tr>
+<tr class="separator:a5c11396e3bbbbffdb52d579a522474bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6482cb28a7ed2a8736cf92b52763ccc0" id="r_a6482cb28a7ed2a8736cf92b52763ccc0"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#adf4b6263236199cfddffdec0071ca196">ByteView</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a6482cb28a7ed2a8736cf92b52763ccc0">ToStringView</a> () const noexcept</td></tr>
+<tr class="separator:a6482cb28a7ed2a8736cf92b52763ccc0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aee78b327f7884746fd3b3450c85e51b0" id="r_aee78b327f7884746fd3b3450c85e51b0"><td class="memItemLeft" align="right" valign="top">constexpr auto&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#aee78b327f7884746fd3b3450c85e51b0">operator&lt;=&gt;</a> (<a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html">SqlDynamicBinary</a>&lt; N &gt; const &amp;other) const noexcept</td></tr>
 <tr class="separator:aee78b327f7884746fd3b3450c85e51b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8be485377bb798f1745de6ed03e4c9fb" id="r_a8be485377bb798f1745de6ed03e4c9fb"><td class="memItemLeft" align="right" valign="top">constexpr bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a8be485377bb798f1745de6ed03e4c9fb">operator==</a> (<a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html">SqlDynamicBinary</a>&lt; N &gt; const &amp;other) const noexcept</td></tr>
@@ -208,6 +211,26 @@ template&lt;std::size_t N&gt; </div>
 
 </div>
 </div>
+<a id="adf4b6263236199cfddffdec0071ca196" name="adf4b6263236199cfddffdec0071ca196"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adf4b6263236199cfddffdec0071ca196">&#9670;&#160;</a></span>ByteView</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;std::size_t N&gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname">using <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html">Lightweight::SqlDynamicBinary</a>&lt; N &gt;::ByteView =  std::span&lt;<a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a8433646a803e35c67d9e8947ff8dedac">value_type</a> const&gt;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Read-only view over the stored bytes.</p>
+<p>MSVC's STL is pinned to <code>std::basic_string_view</code> here: its <code>std::span</code> reverse iterator drags the legacy <code>std::iter_move</code> into overload resolution, which is then ambiguous with <code>std::ranges::enumerate_view</code>'s own <code>iter_move</code> in any translation unit that uses both. Other standard libraries keep <code>std::span</code> because <code>std::basic_string_view&lt;uint8_t&gt;</code> is ill-formed there (no <code>std::char_traits&lt;unsigned char&gt;</code>). </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00041">41</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+
+</div>
+</div>
 <h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a2ac16b3d4821ffe871c224d2d945bc12" name="a2ac16b3d4821ffe871c224d2d945bc12"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a2ac16b3d4821ffe871c224d2d945bc12">&#9670;&#160;</a></span>SqlDynamicBinary() <span class="overload">[1/4]</span></h2>
@@ -239,7 +262,7 @@ template&lt;std::size_t SourceSize&gt; </div>
 
 <p>Constructs a fixed-size string from a string literal. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00056">56</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
@@ -273,7 +296,7 @@ template&lt;std::size_t SourceSize&gt; </div>
 
 <p>Constructs the object from an initializer list of bytes. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00064">64</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00078">78</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
@@ -315,12 +338,12 @@ template&lt;std::size_t N&gt; </div>
 
 <p>Constructs a fixed-size string from a string pointer and end pointer. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00071">71</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00085">85</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
-<a id="ad98fd66b5e7b01ec31545736a1c51c93" name="ad98fd66b5e7b01ec31545736a1c51c93"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad98fd66b5e7b01ec31545736a1c51c93">&#9670;&#160;</a></span>SqlDynamicBinary() <span class="overload">[4/4]</span></h2>
+<a id="a28a42dcd460ddeac4b63e8a9468788fd" name="a28a42dcd460ddeac4b63e8a9468788fd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a28a42dcd460ddeac4b63e8a9468788fd">&#9670;&#160;</a></span>SqlDynamicBinary() <span class="overload">[4/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -333,7 +356,7 @@ template&lt;std::size_t N&gt; </div>
         <tr>
           <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html">Lightweight::SqlDynamicBinary</a>&lt; N &gt;::SqlDynamicBinary </td>
           <td>(</td>
-          <td class="paramtype">std::span&lt; <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a8433646a803e35c67d9e8947ff8dedac">value_type</a> const &gt;&#160;</td>
+          <td class="paramtype"><a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#adf4b6263236199cfddffdec0071ca196">ByteView</a>&#160;</td>
           <td class="paramname"><em>s</em></td><td>)</td>
           <td></td>
         </tr>
@@ -344,16 +367,16 @@ template&lt;std::size_t N&gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
-<p>Constructs the binary payload from a contiguous span of bytes.</p>
-<dl class="section note"><dt>Note</dt><dd><code>std::span</code> is used in place of <code>std::basic_string_view&lt;value_type&gt;</code> because the latter is ill-formed for <code>uint8_t</code> on conforming standard libraries (libc++): <code>std::char_traits</code> is only specialised for the character types, not <code>unsigned char</code>. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00081">81</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p>Constructs the binary payload from a contiguous view of bytes. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00091">91</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="ad50d958307ae9a6bac74db88834ed6b4" name="ad50d958307ae9a6bac74db88834ed6b4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad50d958307ae9a6bac74db88834ed6b4">&#9670;&#160;</a></span>Bytes()</h2>
+<a id="a5c11396e3bbbbffdb52d579a522474bb" name="a5c11396e3bbbbffdb52d579a522474bb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5c11396e3bbbbffdb52d579a522474bb">&#9670;&#160;</a></span>Bytes()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -364,7 +387,7 @@ template&lt;std::size_t N&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr std::span&lt; <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a8433646a803e35c67d9e8947ff8dedac">value_type</a> const  &gt; <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html">Lightweight::SqlDynamicBinary</a>&lt; N &gt;::Bytes </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#adf4b6263236199cfddffdec0071ca196">ByteView</a> <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html">Lightweight::SqlDynamicBinary</a>&lt; N &gt;::Bytes </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -377,16 +400,16 @@ template&lt;std::size_t N&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Retrieves a read-only span over the stored bytes. </p>
+<p>Retrieves a read-only view over the stored bytes. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00087">87</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00097">97</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
-<p class="reference">Referenced by <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00095">Lightweight::SqlDynamicBinary&lt; N &gt;::ToStringView()</a>.</p>
+<p class="reference">Referenced by <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00105">Lightweight::SqlDynamicBinary&lt; N &gt;::ToStringView()</a>.</p>
 
 </div>
 </div>
-<a id="a413932abb307e98fda3561b48845b8a4" name="a413932abb307e98fda3561b48845b8a4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a413932abb307e98fda3561b48845b8a4">&#9670;&#160;</a></span>ToStringView()</h2>
+<a id="a6482cb28a7ed2a8736cf92b52763ccc0" name="a6482cb28a7ed2a8736cf92b52763ccc0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6482cb28a7ed2a8736cf92b52763ccc0">&#9670;&#160;</a></span>ToStringView()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -397,7 +420,7 @@ template&lt;std::size_t N&gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr std::span&lt; <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a8433646a803e35c67d9e8947ff8dedac">value_type</a> const  &gt; <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html">Lightweight::SqlDynamicBinary</a>&lt; N &gt;::ToStringView </td>
+          <td class="memname">LIGHTWEIGHT_FORCE_INLINE constexpr <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#adf4b6263236199cfddffdec0071ca196">ByteView</a> <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html">Lightweight::SqlDynamicBinary</a>&lt; N &gt;::ToStringView </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -409,11 +432,11 @@ template&lt;std::size_t N&gt; </div>
   </tr>
 </table>
 </div><div class="memdoc">
-<dl class="deprecated"><dt><b><a class="el" href="../../da/d58/deprecated.html#_deprecated000001">Deprecated:</a></b></dt><dd>Use <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#ad50d958307ae9a6bac74db88834ed6b4">Bytes()</a>. Alias kept for source compatibility; the name is a misnomer since this type holds raw bytes (a span), not text. </dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="../../da/d58/deprecated.html#_deprecated000001">Deprecated:</a></b></dt><dd>Use <a class="el" href="../../d6/db6/classLightweight_1_1SqlDynamicBinary.html#a5c11396e3bbbbffdb52d579a522474bb">Bytes()</a>. Alias kept for source compatibility; the name is a misnomer since this type holds raw bytes, not text. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00095">95</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00105">105</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00087">Lightweight::SqlDynamicBinary&lt; N &gt;::Bytes()</a>.</p>
+<p class="reference">References <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00097">Lightweight::SqlDynamicBinary&lt; N &gt;::Bytes()</a>.</p>
 
 </div>
 </div>
@@ -444,7 +467,7 @@ template&lt;std::size_t N&gt; </div>
 </div><div class="memdoc">
 <p>Three-way comparison operator. Compares the byte payload only — the private <code>_indicator</code> member is ODBC bookkeeping and must not influence equality. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00103">103</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00113">113</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
@@ -476,7 +499,7 @@ template&lt;std::size_t N&gt; </div>
 
 <p>Equality operator derived from the spaceship comparison above. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00109">109</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00119">119</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
@@ -507,7 +530,7 @@ template&lt;std::size_t N&gt; </div>
 
 <p>Retrieves the size of the string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00115">115</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00125">125</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
@@ -539,7 +562,7 @@ template&lt;std::size_t N&gt; </div>
 
 <p>Resizes the underlying data storage to the given size. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00121">121</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00131">131</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
@@ -570,7 +593,7 @@ template&lt;std::size_t N&gt; </div>
 
 <p>Tests if the stored data is empty. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00127">127</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00137">137</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
@@ -602,7 +625,7 @@ template&lt;std::size_t N&gt; </div>
 
 <p>Retrieves the pointer to the string data. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00133">133</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00143">143</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
@@ -633,7 +656,7 @@ template&lt;std::size_t N&gt; </div>
 
 <p>Clears the storad data. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00140">140</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00150">150</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
@@ -662,7 +685,7 @@ template&lt;std::size_t N&gt; </div>
 
 <p>The SQL column type definition for this binary type. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00031">31</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00045">45</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
@@ -690,7 +713,7 @@ template&lt;std::size_t N&gt; </div>
 
 <p>The maximum size of the underlying data storage. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00034">34</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html#l00048">48</a> of file <a class="el" href="../../db/d8a/SqlDynamicBinary_8hpp_source.html">SqlDynamicBinary.hpp</a>.</p>
 
 </div>
 </div>
