@@ -1068,7 +1068,7 @@ void SqlStatement::BindOutputColumnsToRecord(Records*... records)
         ((EnumerateRecordMembers(*records,
                                  [this, &i]<size_t I, typename FieldType>(FieldType& value) {
                                      ++i;
-                                     RecordPrefetchOutputColumn<FieldType>(i, &value);
+                                     this->RecordPrefetchOutputColumn<FieldType>(i, &value);
                                  })),
          ...);
         return;
@@ -1798,20 +1798,42 @@ namespace detail
         }
     }
 
+    /// @brief Renders a block-buffer cell to UTF-8 text. Character columns are returned verbatim;
+    /// numeric, temporal and GUID columns are formatted to their text form. This mirrors the driver's
+    /// @c SQL_C_CHAR conversion on the single-row @c GetColumn path so that reading a non-character column
+    /// as a string (e.g. a generic "print every column as text" loop) yields the value rather than an
+    /// empty string. Integer text is identical to the driver's; floating/temporal text uses the value
+    /// type's @c std::formatter, which is backend-independent.
+    [[nodiscard]] inline std::string RenderCellAsUtf8(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column)
+    {
+        switch (cursor.ColumnBoundType(column))
+        {
+            case RowArrayCursor::BoundType::Char:
+            case RowArrayCursor::BoundType::WChar:
+                return cursor.GetString(row, column).value_or(std::string {});
+            case RowArrayCursor::BoundType::Int64:
+                return std::format("{}", cursor.GetI64(row, column).value_or(0));
+            case RowArrayCursor::BoundType::Double:
+                return std::format("{}", cursor.GetF64(row, column).value_or(0.0));
+            case RowArrayCursor::BoundType::Date:
+                return std::format("{}", cursor.GetDate(row, column).value_or(SqlDate {}));
+            case RowArrayCursor::BoundType::Timestamp:
+                return std::format("{}", cursor.GetTimestamp(row, column).value_or(SqlDateTime {}));
+            case RowArrayCursor::BoundType::Guid:
+                return std::format("{}", cursor.GetGuid(row, column).value_or(SqlGuid {}));
+        }
+        return std::string {};
+    }
+
     /// @brief Reconstructs a string-like cell (plain @c std::string flavours and the Lightweight string
-    /// wrappers) from the block buffer. Character columns bind as @c Char (SQL_C_CHAR) or @c WChar
-    /// (SQL_C_WCHAR); a non-text bound type (only reachable via a cross-type read of a numeric/temporal
-    /// column) yields an empty value. Fixed-capacity strings get the same trailing trim the single-row
-    /// @c GetColumn path applies via @c SqlFixedString::PostProcessOutputColumn, so the value is
-    /// byte-identical; the UTF-8 bytes are then re-encoded to the target's element type.
+    /// wrappers) from the block buffer, rendering any bound type to text via @ref RenderCellAsUtf8.
+    /// Fixed-capacity strings get the same trailing trim the single-row @c GetColumn path applies via
+    /// @c SqlFixedString::PostProcessOutputColumn; the UTF-8 bytes are then re-encoded to the target's
+    /// element type.
     template <typename T>
     [[nodiscard]] inline T ReadStringLikeCell(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column)
     {
-        using BoundType = RowArrayCursor::BoundType;
-        auto const boundType = cursor.ColumnBoundType(column);
-        if (boundType != BoundType::Char && boundType != BoundType::WChar)
-            return T {};
-        auto utf8 = cursor.GetString(row, column).value_or(std::string {});
+        auto utf8 = RenderCellAsUtf8(cursor, row, column);
         if constexpr (SqlFixedStringCell<T>)
             TrimFixedStringBytes<T::PostRetrieveOperation>(utf8);
         return T { DecodeUtf8To<typename T::value_type>(utf8) };

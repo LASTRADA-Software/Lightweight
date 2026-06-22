@@ -76,7 +76,7 @@ struct [[nodiscard]] SqlConnectionDataSource
     /// (rows requested per @c SQLFetchScroll round-trip on the transparent per-row fetch path).
     ///
     /// A value <= 1 disables prefetch (every classic loop keeps issuing one @c SQLFetch per row).
-    /// Defaults to @ref PrefetchDepthDefault. Has effect only on backends whose driver supports
+    /// Defaults to @c PrefetchDepthDefault. Has effect only on backends whose driver supports
     /// native row-array fetching (see @c SqlConnection::SupportsNativeRowArrayFetch).
     std::size_t defaultPrefetchDepth = PrefetchDepthDefault;
 

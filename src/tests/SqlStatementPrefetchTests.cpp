@@ -126,7 +126,7 @@ SqlStatement MakePerRowStatement()
 
 TEST_CASE_METHOD(SqlTestFixture, "Prefetch: raw GetColumn loop collapses round-trips", "[prefetch]")
 {
-    constexpr std::size_t rowCount = 2 * TestPrefetchDepth + 7; // crosses two block boundaries
+    constexpr std::size_t rowCount = (2 * TestPrefetchDepth) + 7; // crosses two block boundaries
 
     auto stmt = SqlStatement {};
     stmt.Connection().SetDefaultPrefetchDepth(TestPrefetchDepth);
@@ -152,6 +152,37 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: raw GetColumn loop collapses round-t
     auto const expectedDataBlocks = (rowCount + TestPrefetchDepth - 1) / TestPrefetchDepth;
     CHECK(probe.blockFetches == expectedDataBlocks + 1);
     CHECK(probe.blockFetches < rowCount); // proves batching: far fewer round-trips than rows
+}
+
+TEST_CASE_METHOD(SqlTestFixture, "Prefetch: numeric columns read as text render their value (cross-type)", "[prefetch]")
+{
+    // A generic "print every column as a string" loop (e.g. dbtool's `exec`) reads numeric columns via
+    // GetColumn<std::string>. On the per-row path the driver converts the value to text; the prefetch
+    // path must do the same rather than yield an empty string. Integer text is exact; the double is only
+    // checked for non-emptiness because its textual form is not portably defined.
+    auto stmt = SqlStatement {};
+    stmt.Connection().SetDefaultPrefetchDepth(TestPrefetchDepth);
+    CreateNumericTable(stmt);
+    constexpr std::size_t rowCount = TestPrefetchDepth + 5;
+    FillNumericTable(stmt, rowCount);
+
+    PrefetchProbe probe;
+    std::size_t seen = 0;
+    {
+        LoggerSwap const swap { probe };
+        auto cursor = stmt.ExecuteDirect(std::string { kNumericSelect });
+        while (cursor.FetchRow())
+        {
+            auto const rowNumber = static_cast<std::int64_t>(seen) + 1;
+            CHECK(cursor.GetColumn<std::string>(1) == std::format("{}", rowNumber));        // Id (exact)
+            CHECK(cursor.GetColumn<std::string>(2) == std::format("{}", rowNumber * 1000)); // Big (exact)
+            CHECK_FALSE(cursor.GetColumn<std::string>(3).empty());                          // Ratio (double)
+            CHECK(cursor.GetColumn<std::string>(4) == std::format("{}", rowNumber % 97));   // Mid (exact)
+            ++seen;
+        }
+    }
+    REQUIRE(seen == rowCount);
+    CHECK(probe.blockFetches >= 1); // the all-numeric result set is prefetched
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Prefetch: bound output columns with NULLs and optionals", "[prefetch]")
@@ -193,8 +224,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: bound output columns with NULLs and 
     CHECK(probe.blockFetches >= 2); // crossed at least one block boundary
     for (auto const i: std::views::iota(std::size_t { 0 }, rowCount))
     {
-        auto const rowNumber = i + 1;
-        CHECK(actual[i].first == static_cast<std::int64_t>(rowNumber));
+        auto const rowNumber = static_cast<std::int64_t>(i) + 1;
+        CHECK(actual[i].first == rowNumber);
         if (rowNumber % 5 == 0)
             CHECK_FALSE(actual[i].second.has_value());
         else
@@ -411,7 +442,13 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: string, fixed-string, wide and nulla
                      .Set("Note", SqlWildcard));
     for (auto const i: std::views::iota(std::size_t { 1 }, rowCount + 1))
     {
-        auto const name = i % 3 == 0 ? std::format("Grüße-{}", i) : (i % 3 == 1 ? std::string {} : std::format("row-{}", i));
+        auto const name = [i] {
+            if (i % 3 == 0)
+                return std::format("Grüße-{}", i);
+            if (i % 3 == 1)
+                return std::string {};
+            return std::format("row-{}", i);
+        }();
         auto const note = i % 7 == 0 ? std::optional<std::string> {} : std::optional<std::string> { std::format("n{}", i) };
         (void) stmt.Execute(static_cast<std::int64_t>(i),
                             name,
@@ -437,7 +474,9 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: string, fixed-string, wide and nulla
             auto wide = cursor.GetColumn<std::u16string>(3);
             auto tag = cursor.GetColumn<SqlTrimmedFixedString<8>>(4);
             auto note = cursor.GetNullableColumn<std::string>(5);
-            rows.emplace_back(id, std::move(name), std::move(wide), std::move(tag), std::move(note));
+            // name (SqlAnsiString<32>) and tag (SqlTrimmedFixedString<8>) are trivially copyable, so they
+            // are passed by value; only the heap-backed wide string and optional are moved.
+            rows.emplace_back(id, name, std::move(wide), tag, std::move(note));
         }
         return rows;
     };
@@ -473,8 +512,9 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: GUID column round-trips", "[prefetch
     stmt.Prepare(stmt.Query("PrefetchGuid").Insert().Set("Id", SqlWildcard).Set("Uid", SqlWildcard));
     for (auto const i: std::views::iota(std::size_t { 1 }, rowCount + 1))
     {
-        auto const uid = SqlGuid::TryParse(std::format("12345678-1234-1234-1234-{:012}", i)).value();
-        (void) stmt.Execute(static_cast<std::int64_t>(i), uid);
+        auto const parsedUid = SqlGuid::TryParse(std::format("12345678-1234-1234-1234-{:012}", i));
+        REQUIRE(parsedUid.has_value());
+        (void) stmt.Execute(static_cast<std::int64_t>(i), *parsedUid);
     }
 
     auto readGuids = [&](SqlStatement& source) {

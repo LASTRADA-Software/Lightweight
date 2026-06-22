@@ -191,7 +191,7 @@ class SqlConnection final
     /// instead of issuing one @c SQLFetch per row. A value <= 1 disables prefetch. Effective only when
     /// @ref SupportsNativeRowArrayFetch is true; otherwise statements fall back to per-row fetching.
     ///
-    /// @return The configured default prefetch depth (defaults to @ref PrefetchDepthDefault).
+    /// @return The configured default prefetch depth (defaults to @c PrefetchDepthDefault).
     [[nodiscard]] LIGHTWEIGHT_API std::size_t DefaultPrefetchDepth() const noexcept;
 
     /// @brief Sets the default block-prefetch depth for statements created on this connection.

@@ -118,8 +118,7 @@ class SqlLogger
     ///
     /// Non-pure with an empty default so existing loggers need no change; override to observe how many
     /// network round-trips a query actually cost (N rows at depth D collapse to @c ceil(N/D) blocks).
-    ///
-    /// @param rowsInBlock Number of rows materialized by this block fetch (0 at end of result set).
+    /// The argument is the number of rows materialized by this block fetch (0 at end of result set).
     virtual void OnFetchBlock(std::size_t /*rowsInBlock*/) {}
 
     /// Invoked when fetching is done.
