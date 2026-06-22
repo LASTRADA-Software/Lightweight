@@ -32,6 +32,7 @@ var NAVTREE =
     [ "Usage Examples", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html", [
       [ "Configure default connection information to the database", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#configure-default-connection-information-to-the-database", null ],
       [ "Raw SQL Queries", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#raw-sql-queries", null ],
+      [ "Transparent block-prefetch (fewer network round-trips)", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#transparent-block-prefetch-fewer-network-round-trips", null ],
       [ "Prepared Statements", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#prepared-statements", null ],
       [ "SQL Query Builder", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#sql-query-builder", null ],
       [ "High level Data Mapping", "d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html#high-level-data-mapping", [
@@ -63,7 +64,8 @@ var NAVTREE =
       [ "Performance Is Key", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#performance-is-key", [
         [ "Use Native Column Types", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-native-column-types", null ],
         [ "Use Prepared Statements", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-prepared-statements", null ],
-        [ "Use Pagination or Infinite Scrolling", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination-or-infinite-scrolling", null ]
+        [ "Use Pagination or Infinite Scrolling", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#use-pagination-or-infinite-scrolling", null ],
+        [ "Let block-prefetch cut network round-trips", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#let-block-prefetch-cut-network-round-trips", null ]
       ] ],
       [ "SQL Server Variation Challenges", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#sql-server-variation-challenges", [
         [ "64-bit Integer Handling in Oracle Database", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#autotoc_md64-bit-integer-handling-in-oracle-database", null ]
@@ -248,12 +250,12 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "d2/dd0/structLightweight_1_1Field.html#a8429602c0af011bde772fa07baa6243e",
-"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#abc42e76bbbae288ae9b6f214cbe4a4d0",
-"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac8acfa239959c3a361aae62ddac1df04",
-"d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#adda47749398b0516fc00f9b23aee086f",
-"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a89072cc6f0d70a556d2a16a52ab698d7",
-"de/d61/classLightweight_1_1DataMapper.html#aa17c743b55af25f5de7ccdc7a5264661",
-"dir_d70736013bfb52c2769b9815ff9be7e3.html"
+"d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aba0b0aa6a40a801a06a53e274847bcf7",
+"d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac4ae456dedf943abf9ef4f277ca35213",
+"d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241a9639e32cab248434a17ab32237cb3b71",
+"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#concepts",
+"de/d61/classLightweight_1_1DataMapper.html#a489a4e560de6cc475eec66252d6412bd",
+"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

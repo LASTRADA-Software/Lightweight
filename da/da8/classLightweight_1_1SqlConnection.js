@@ -19,6 +19,8 @@ var classLightweight_1_1SqlConnection =
     [ "QueryFormatter", "da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32", null ],
     [ "SupportsNativeRowBatch", "da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5", null ],
     [ "SupportsNativeRowArrayFetch", "da/da8/classLightweight_1_1SqlConnection.html#a7577a4c8347fede96bb3953f84b068d4", null ],
+    [ "DefaultPrefetchDepth", "da/da8/classLightweight_1_1SqlConnection.html#accca2c0c11b7132ef9a5996f680a9eda", null ],
+    [ "SetDefaultPrefetchDepth", "da/da8/classLightweight_1_1SqlConnection.html#aaeb89efa59bbc5a62e370c4297e9015e", null ],
     [ "Query", "da/da8/classLightweight_1_1SqlConnection.html#a40304c8c5a364f85cdd0a5e1afcd461f", null ],
     [ "QueryAs", "da/da8/classLightweight_1_1SqlConnection.html#a4165425040fb439fdbfc44efdad7f550", null ],
     [ "Migration", "da/da8/classLightweight_1_1SqlConnection.html#a2ebd525676d985a7c81aa9fe233915e7", null ],

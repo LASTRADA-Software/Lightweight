@@ -170,6 +170,16 @@ Use Prepared Statements</h2>
 Use Pagination or Infinite Scrolling</h2>
 <p>When querying large result sets, use pagination or infinite scrolling to limit the number of results returned in a single response. <br  />
  This will help to reduce the response time and the load on the server, and improve the performance of your application.</p>
+<h2><a class="anchor" id="let-block-prefetch-cut-network-round-trips"></a>
+Let block-prefetch cut network round-trips</h2>
+<p>Per-row fetch loops issue one <code>SQLFetch</code> (one network round-trip) per row. Lightweight transparently fetches rows in blocks (ODBC row-array binding) so a large result set costs <code>ceil(rows / depth)</code> round-trips instead of one per row — see <a class="el" href="../../d9/d80/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2usage.html">Transparent block-prefetch</a>. It is on by default (<code>Lightweight::PrefetchDepthDefault</code>, 1000 rows) and tuned per connection:</p>
+<div class="fragment"><div class="line">connection.SetDefaultPrefetchDepth(1000); <span class="comment">// rows per SQLFetchScroll round-trip; &lt;= 1 disables</span></div>
+</div><!-- fragment --><p>Keep in mind:</p>
+<ul>
+<li>It engages only for <b>fixed-width numeric/temporal</b> result sets; result sets with character, <code>GUID</code>, <code>NUMERIC</code>, <code>TIME</code>, binary or LOB columns transparently stay on the per-row path.</li>
+<li>An active cursor reads ahead up to one block and holds a few MB of buffers, so set the depth to <code>1</code> on a connection used for cursors you intend to abandon early or where memory is tight.</li>
+<li>It does not change results — values are identical to the per-row path.</li>
+</ul>
 <h1><a class="anchor" id="sql-server-variation-challenges"></a>
 SQL Server Variation Challenges</h1>
 <h2><a class="anchor" id="autotoc_md64-bit-integer-handling-in-oracle-database"></a>

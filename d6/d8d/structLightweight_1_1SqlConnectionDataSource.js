@@ -5,5 +5,6 @@ var structLightweight_1_1SqlConnectionDataSource =
     [ "datasource", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a80dd0177d9c6605cb7eb2922c78a7d0a", null ],
     [ "username", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae5c6b2a8de16cb5c82d6d82040f9de37", null ],
     [ "password", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#ae17b13fef2ebddad615a9bae6d942709", null ],
-    [ "timeout", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a98557607d1540f9e9a00233caf666eca", null ]
+    [ "timeout", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a98557607d1540f9e9a00233caf666eca", null ],
+    [ "defaultPrefetchDepth", "d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3", null ]
 ];

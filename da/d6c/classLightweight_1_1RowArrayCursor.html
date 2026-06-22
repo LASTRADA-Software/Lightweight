@@ -91,6 +91,7 @@ $(document).ready(function(){initNavTree('da/d6c/classLightweight_1_1RowArrayCur
 
 <div class="header">
   <div class="summary">
+<a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pub-static-attribs">Static Public Attributes</a> &#124;
 <a href="../../d6/d3c/classLightweight_1_1RowArrayCursor-members.html">List of all members</a>  </div>
@@ -103,6 +104,22 @@ $(document).ready(function(){initNavTree('da/d6c/classLightweight_1_1RowArrayCur
 
 <p><code>#include &lt;<a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>&gt;</code></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
+Public Types</h2></td></tr>
+<tr class="memitem:ab61ddfa5d28f1e672f16e9a0a2625fc2" id="r_ab61ddfa5d28f1e672f16e9a0a2625fc2"><td class="memItemLeft" align="right" valign="top">enum class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2">BoundType</a> : std::uint8_t { <br />
+&#160;&#160;<a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2afbde23b11d7e59af7828e81144c8b487">Int64</a>
+, <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ad909d38d705ce75386dd86e611a82f5b">Double</a>
+, <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2a8e95e84813830072b7516cfaa7dbc1a9">Char</a>
+, <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ab69c7c4d08b8454f814a52a1ccaa8ca9">WChar</a>
+, <br />
+&#160;&#160;<a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2a44749712dbec183e983dcd78a7736c41">Date</a>
+, <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2aa3d5de3eac8bb00ae86fd1a1005f1500">Timestamp</a>
+, <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ac195f641dd597766b98e4ffa9e2f0e75">Guid</a>
+<br />
+ }</td></tr>
+<tr class="memdesc:ab61ddfa5d28f1e672f16e9a0a2625fc2"><td class="mdescLeft">&#160;</td><td class="mdescRight">How a result column is bound for bulk fetch (the canonical fixed-stride C representation chosen from the column's SQL type). Public so a transparent prefetch layer can dispatch a generic cell read to the matching <code>Get*</code> accessor.  <a href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2">More...</a><br /></td></tr>
+<tr class="separator:ab61ddfa5d28f1e672f16e9a0a2625fc2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:af6e78c22390ca0dddc83d546417d0524" id="r_af6e78c22390ca0dddc83d546417d0524"><td class="memItemLeft" align="right" valign="top"><a id="af6e78c22390ca0dddc83d546417d0524" name="af6e78c22390ca0dddc83d546417d0524"></a>
@@ -153,6 +170,15 @@ LIGHTWEIGHT_API std::size_t&#160;</td><td class="memItemRight" valign="bottom"><
 <tr class="memitem:a20dadf4291b08d70e33fb7abb4e1987d" id="r_a20dadf4291b08d70e33fb7abb4e1987d"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API std::optional&lt; <a class="el" href="../../df/d7c/structLightweight_1_1SqlGuid.html">SqlGuid</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#a20dadf4291b08d70e33fb7abb4e1987d">GetGuid</a> (std::size_t rowInBatch, SQLUSMALLINT column) const</td></tr>
 <tr class="memdesc:a20dadf4291b08d70e33fb7abb4e1987d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reads a GUID cell from the last fetched block. Valid only for Guid-bound columns (drivers that report SQL_GUID, i.e. MSSQL uniqueidentifier / PostgreSQL uuid).  <br /></td></tr>
 <tr class="separator:a20dadf4291b08d70e33fb7abb4e1987d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a343089f58e33fc455a81916a71becb9a" id="r_a343089f58e33fc455a81916a71becb9a"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2">BoundType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#a343089f58e33fc455a81916a71becb9a">ColumnBoundType</a> (SQLUSMALLINT column) const</td></tr>
+<tr class="memdesc:a343089f58e33fc455a81916a71becb9a"><td class="mdescLeft">&#160;</td><td class="mdescRight">The bound representation chosen for a result column.  <br /></td></tr>
+<tr class="separator:a343089f58e33fc455a81916a71becb9a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0f33f603d4ac4acabbaf301335ffb75e" id="r_a0f33f603d4ac4acabbaf301335ffb75e"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API SQLSMALLINT&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#a0f33f603d4ac4acabbaf301335ffb75e">ColumnSqlType</a> (SQLUSMALLINT column) const</td></tr>
+<tr class="memdesc:a0f33f603d4ac4acabbaf301335ffb75e"><td class="mdescLeft">&#160;</td><td class="mdescRight">The raw SQL data type the driver reported for a result column (the <code>SQL_*</code> value from <code>SQLDescribeCol</code>), letting callers gate on the exact source type rather than the coarser <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2">BoundType</a> (which collapses e.g. textual TIME/NUMERIC into <code>Char</code>).  <br /></td></tr>
+<tr class="separator:a0f33f603d4ac4acabbaf301335ffb75e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa44fdd6c4bb8741e9e0d4fa8bea1fc5c" id="r_aa44fdd6c4bb8741e9e0d4fa8bea1fc5c"><td class="memItemLeft" align="right" valign="top">LIGHTWEIGHT_API bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#aa44fdd6c4bb8741e9e0d4fa8bea1fc5c">IsCellNull</a> (std::size_t rowInBatch, SQLUSMALLINT column) const</td></tr>
+<tr class="memdesc:aa44fdd6c4bb8741e9e0d4fa8bea1fc5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether a cell in the last fetched block is SQL NULL.  <br /></td></tr>
+<tr class="separator:aa44fdd6c4bb8741e9e0d4fa8bea1fc5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
@@ -174,8 +200,51 @@ Static Public Attributes</h2></td></tr>
 <p>LOB / unbounded columns (the driver reports column size 0 or an absurdly large size) are rejected: constructing the cursor throws std::runtime_error. Such columns must use the single-row SQLGetData fallback instead.</p>
 <p>The cursor is non-copyable and non-movable: it owns the ODBC statement's array-binding state for its entire lifetime. The constructor binds raw pointers into its own members (SQL_ATTR_ROWS_FETCHED_PTR, SQL_ATTR_ROW_STATUS_PTR) and SQLBindCol into its per-column buffers, so the object must not be relocated after construction — a move would leave the statement handle pointing at the moved-from storage (use-after-free). It is constructed in place via <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a72cc4c48512392a9f384fd16beec663a">SqlStatement::ExecuteBatchFetch</a> (guaranteed copy elision) and used as a local. The bound buffers must outlive the SQLBindCol binding until fetching completes. Cell indices are 1-based to match <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#a620b66e7d7ddbe332d8c824ca5a46759">SqlResultCursor::GetColumn</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00584">584</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
-</div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00647">647</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+</div><h2 class="groupheader">Member Enumeration Documentation</h2>
+<a id="ab61ddfa5d28f1e672f16e9a0a2625fc2" name="ab61ddfa5d28f1e672f16e9a0a2625fc2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab61ddfa5d28f1e672f16e9a0a2625fc2">&#9670;&#160;</a></span>BoundType</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum class <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2">Lightweight::RowArrayCursor::BoundType</a> : std::uint8_t</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">strong</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>How a result column is bound for bulk fetch (the canonical fixed-stride C representation chosen from the column's SQL type). Public so a transparent prefetch layer can dispatch a generic cell read to the matching <code>Get*</code> accessor. </p>
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="ab61ddfa5d28f1e672f16e9a0a2625fc2afbde23b11d7e59af7828e81144c8b487" name="ab61ddfa5d28f1e672f16e9a0a2625fc2afbde23b11d7e59af7828e81144c8b487"></a>Int64&#160;</td><td class="fielddoc"><p>bound as SQL_C_SBIGINT into an int64 buffer </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ab61ddfa5d28f1e672f16e9a0a2625fc2ad909d38d705ce75386dd86e611a82f5b" name="ab61ddfa5d28f1e672f16e9a0a2625fc2ad909d38d705ce75386dd86e611a82f5b"></a>Double&#160;</td><td class="fielddoc"><p>bound as SQL_C_DOUBLE into a double buffer </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ab61ddfa5d28f1e672f16e9a0a2625fc2a8e95e84813830072b7516cfaa7dbc1a9" name="ab61ddfa5d28f1e672f16e9a0a2625fc2a8e95e84813830072b7516cfaa7dbc1a9"></a>Char&#160;</td><td class="fielddoc"><p>bound as SQL_C_CHAR into a per-column byte buffer </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ab61ddfa5d28f1e672f16e9a0a2625fc2ab69c7c4d08b8454f814a52a1ccaa8ca9" name="ab61ddfa5d28f1e672f16e9a0a2625fc2ab69c7c4d08b8454f814a52a1ccaa8ca9"></a>WChar&#160;</td><td class="fielddoc"><p>bound as SQL_C_WCHAR (UTF-16) into a per-column byte buffer </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ab61ddfa5d28f1e672f16e9a0a2625fc2a44749712dbec183e983dcd78a7736c41" name="ab61ddfa5d28f1e672f16e9a0a2625fc2a44749712dbec183e983dcd78a7736c41"></a>Date&#160;</td><td class="fielddoc"><p>bound as SQL_C_TYPE_DATE into a SQL_DATE_STRUCT buffer </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ab61ddfa5d28f1e672f16e9a0a2625fc2aa3d5de3eac8bb00ae86fd1a1005f1500" name="ab61ddfa5d28f1e672f16e9a0a2625fc2aa3d5de3eac8bb00ae86fd1a1005f1500"></a>Timestamp&#160;</td><td class="fielddoc"><p>bound as SQL_C_TYPE_TIMESTAMP into a SQL_TIMESTAMP_STRUCT buffer </p>
+</td></tr>
+<tr><td class="fieldname"><a id="ab61ddfa5d28f1e672f16e9a0a2625fc2ac195f641dd597766b98e4ffa9e2f0e75" name="ab61ddfa5d28f1e672f16e9a0a2625fc2ac195f641dd597766b98e4ffa9e2f0e75"></a>Guid&#160;</td><td class="fielddoc"><p>bound as SQL_C_GUID into a 16-byte GUID buffer </p>
+</td></tr>
+</table>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00742">742</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+
+</div>
+</div>
+<h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a290264ba5f0a315a48accb62ef30ec9d" name="a290264ba5f0a315a48accb62ef30ec9d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a290264ba5f0a315a48accb62ef30ec9d">&#9670;&#160;</a></span>RowArrayCursor()</h2>
 
@@ -463,6 +532,98 @@ Static Public Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="a343089f58e33fc455a81916a71becb9a" name="a343089f58e33fc455a81916a71becb9a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a343089f58e33fc455a81916a71becb9a">&#9670;&#160;</a></span>ColumnBoundType()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2">BoundType</a> Lightweight::RowArrayCursor::ColumnBoundType </td>
+          <td>(</td>
+          <td class="paramtype">SQLUSMALLINT&#160;</td>
+          <td class="paramname"><em>column</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The bound representation chosen for a result column. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">column</td><td>1-based result column index. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2">BoundType</a> the column was bound as. </dd></dl>
+
+</div>
+</div>
+<a id="a0f33f603d4ac4acabbaf301335ffb75e" name="a0f33f603d4ac4acabbaf301335ffb75e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0f33f603d4ac4acabbaf301335ffb75e">&#9670;&#160;</a></span>ColumnSqlType()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API SQLSMALLINT Lightweight::RowArrayCursor::ColumnSqlType </td>
+          <td>(</td>
+          <td class="paramtype">SQLUSMALLINT&#160;</td>
+          <td class="paramname"><em>column</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>The raw SQL data type the driver reported for a result column (the <code>SQL_*</code> value from <code>SQLDescribeCol</code>), letting callers gate on the exact source type rather than the coarser <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2">BoundType</a> (which collapses e.g. textual TIME/NUMERIC into <code>Char</code>). </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">column</td><td>1-based result column index. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The reported <code>SQL_*</code> type code. </dd></dl>
+
+</div>
+</div>
+<a id="aa44fdd6c4bb8741e9e0d4fa8bea1fc5c" name="aa44fdd6c4bb8741e9e0d4fa8bea1fc5c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa44fdd6c4bb8741e9e0d4fa8bea1fc5c">&#9670;&#160;</a></span>IsCellNull()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIGHTWEIGHT_API bool Lightweight::RowArrayCursor::IsCellNull </td>
+          <td>(</td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"><em>rowInBatch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">SQLUSMALLINT&#160;</td>
+          <td class="paramname"><em>column</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Whether a cell in the last fetched block is SQL NULL. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">rowInBatch</td><td>0-based row offset within the block returned by the last <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#a8042bfb63155b312f2dfe885dd5cb653">FetchArray</a>. </td></tr>
+    <tr><td class="paramname">column</td><td>1-based result column index. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd><code>true</code> if the cell's length indicator is <code>SQL_NULL_DATA</code>. </dd></dl>
+
+</div>
+</div>
 <h2 class="groupheader">Member Data Documentation</h2>
 <a id="af2367273a2b52c51108ef36697bd84b8" name="af2367273a2b52c51108ef36697bd84b8"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af2367273a2b52c51108ef36697bd84b8">&#9670;&#160;</a></span>MaxCharColumnBytes</h2>
@@ -485,7 +646,7 @@ Static Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Maximum byte width allocated for a single bound character column (per row). Columns whose reported size exceeds this are treated as unbounded/LOB and rejected. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00589">589</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00652">652</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -510,7 +671,7 @@ Static Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Per-cursor byte budget for the bound column buffers. The effective array depth is clamp(budget / row-byte-width, MinArrayDepth, requested depth), so wide tables (many or large character columns) bind fewer rows per round-trip instead of exhausting memory — the footprint otherwise multiplies across workers x columns x depth on real schemas. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00595">595</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00658">658</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -535,7 +696,7 @@ Static Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Lower bound for the budget-adapted array depth, so bulk fetch always makes progress even on extremely wide rows (never reduced below this unless the caller requested less). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00599">599</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00662">662</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>

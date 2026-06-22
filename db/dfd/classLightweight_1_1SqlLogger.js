@@ -27,6 +27,7 @@ var classLightweight_1_1SqlLogger =
     [ "OnExecute", "db/dfd/classLightweight_1_1SqlLogger.html#a1d04bb81c9f5d37e8b3690a657cd3f9d", null ],
     [ "OnExecuteBatch", "db/dfd/classLightweight_1_1SqlLogger.html#a89a7b4c6fd89c71bfdab6e81b7f15f35", null ],
     [ "OnFetchRow", "db/dfd/classLightweight_1_1SqlLogger.html#af7c5638382912daeb780c763c5711ee2", null ],
+    [ "OnFetchBlock", "db/dfd/classLightweight_1_1SqlLogger.html#aa5d6a0226e5ec98b1a23bfa55b3228a9", null ],
     [ "OnFetchEnd", "db/dfd/classLightweight_1_1SqlLogger.html#a531204f908c6870f7e7e589ac0e20c2f", null ],
     [ "_messageWriter", "db/dfd/classLightweight_1_1SqlLogger.html#a02804ba49a0fb98fe967aae9ae089fac", null ]
 ];

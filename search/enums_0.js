@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['indextype_0',['IndexType',['../d6/daa/group__QueryBuilder.html#ga17470447b60d4554d19d30e877645d07',1,'Lightweight']]]
+  ['boundtype_0',['BoundType',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2',1,'Lightweight::RowArrayCursor']]]
 ];

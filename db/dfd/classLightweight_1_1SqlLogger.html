@@ -204,6 +204,9 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnExecuteBatc
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnFetchRow</b> ()=0</td></tr>
 <tr class="memdesc:af7c5638382912daeb780c763c5711ee2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked when a row is fetched. <br /></td></tr>
 <tr class="separator:af7c5638382912daeb780c763c5711ee2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa5d6a0226e5ec98b1a23bfa55b3228a9" id="r_aa5d6a0226e5ec98b1a23bfa55b3228a9"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../db/dfd/classLightweight_1_1SqlLogger.html#aa5d6a0226e5ec98b1a23bfa55b3228a9">OnFetchBlock</a> (std::size_t)</td></tr>
+<tr class="memdesc:aa5d6a0226e5ec98b1a23bfa55b3228a9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked once per block-prefetch round-trip (one <code>SQLFetchScroll</code> that materialized a whole row block on the transparent prefetch path), with the number of rows the block yielded.  <br /></td></tr>
+<tr class="separator:aa5d6a0226e5ec98b1a23bfa55b3228a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a531204f908c6870f7e7e589ac0e20c2f" id="r_a531204f908c6870f7e7e589ac0e20c2f"><td class="memItemLeft" align="right" valign="top"><a id="a531204f908c6870f7e7e589ac0e20c2f" name="a531204f908c6870f7e7e589ac0e20c2f"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>OnFetchEnd</b> ()=0</td></tr>
 <tr class="memdesc:a531204f908c6870f7e7e589ac0e20c2f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoked when fetching is done. <br /></td></tr>
@@ -401,6 +404,43 @@ template&lt;typename T &gt; </div>
 
 </div>
 </div>
+<a id="aa5d6a0226e5ec98b1a23bfa55b3228a9" name="aa5d6a0226e5ec98b1a23bfa55b3228a9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa5d6a0226e5ec98b1a23bfa55b3228a9">&#9670;&#160;</a></span>OnFetchBlock()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">virtual void Lightweight::SqlLogger::OnFetchBlock </td>
+          <td>(</td>
+          <td class="paramtype">std::size_t&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">virtual</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Invoked once per block-prefetch round-trip (one <code>SQLFetchScroll</code> that materialized a whole row block on the transparent prefetch path), with the number of rows the block yielded. </p>
+<p>Non-pure with an empty default so existing loggers need no change; override to observe how many network round-trips a query actually cost (N rows at depth D collapse to <code>ceil</code>(N/D) blocks).</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">rowsInBlock</td><td>Number of rows materialized by this block fetch (0 at end of result set). </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00123">123</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+
+</div>
+</div>
 <a id="a6e33664547f546dbb2c5561d76d24ffa" name="a6e33664547f546dbb2c5561d76d24ffa"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6e33664547f546dbb2c5561d76d24ffa">&#9670;&#160;</a></span>SetLogger()</h2>
 
@@ -452,7 +492,7 @@ template&lt;typename T &gt; </div>
 
 <p>The function used to write log messages. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00140">140</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html#l00149">149</a> of file <a class="el" href="../../d9/de5/SqlLogger_8hpp_source.html">SqlLogger.hpp</a>.</p>
 
 </div>
 </div>

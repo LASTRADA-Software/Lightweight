@@ -118,7 +118,16 @@ Raw SQL Queries</h1>
 <div class="line">   <span class="keyword">auto</span> c = stmt.GetColumn&lt;<span class="keywordtype">int</span>&gt;(3);</div>
 <div class="line">   std::println(<span class="stringliteral">&quot;{}|{}|{}&quot;</span>, a, b,c);</div>
 <div class="line">}</div>
-</div><!-- fragment --><h1><a class="anchor" id="prepared-statements"></a>
+</div><!-- fragment --><h1><a class="anchor" id="transparent-block-prefetch-fewer-network-round-trips"></a>
+Transparent block-prefetch (fewer network round-trips)</h1>
+<p>Classic per-row fetch loops like the one above issue <b>one <code>SQLFetch</code> per row</b>, i.e. one network round-trip per row. On TCP-backed drivers (Microsoft SQL Server, PostgreSQL) that latency dominates the wall-clock time of large result sets.</p>
+<p>Lightweight transparently reduces these round-trips: on the first <code>FetchRow()</code> of a result set it inspects the columns and, when eligible, fetches whole <b>blocks</b> of rows per <code>SQLFetchScroll</code> round-trip (ODBC row-array binding) and serves your <code>FetchRow()</code> / <code>GetColumn&lt;T&gt;()</code> calls from that buffer. <b>No code change is required</b> — the loops above, <code>SqlRowIterator&lt;T&gt;</code>, <code>SqlVariantRowCursor</code> and the <code>DataMapper</code> all benefit automatically.</p>
+<p>The depth is a connection-level setting (default <code>Lightweight::PrefetchDepthDefault</code>, 1000 rows). A value <code>&lt;= 1</code> disables prefetch and restores one <code>SQLFetch</code> per row:</p>
+<div class="fragment"><div class="line"><span class="keyword">auto</span> conn = SqlConnection {};</div>
+<div class="line">conn.SetDefaultPrefetchDepth(2000); <span class="comment">// request up to 2000 rows per SQLFetchScroll round-trip</span></div>
+<div class="line">conn.SetDefaultPrefetchDepth(1);    <span class="comment">// disable prefetch for this connection</span></div>
+</div><!-- fragment --><p>Prefetch engages only for result sets whose columns are <b>fixed-width numeric, temporal, or <code>GUID</code></b> types (integers, floating point, <code>DATE</code>, <code>TIMESTAMP</code>/<code>DATETIME</code>, and native <code>GUID</code>/<code>uniqueidentifier</code>/ <code>uuid</code>) on drivers that support native row-array fetching (Microsoft SQL Server, PostgreSQL, SQLite). Result sets that contain character/text, <code>NUMERIC</code>/<code>DECIMAL</code>, <code>TIME</code>, binary or LOB columns transparently keep the per-row path: faithful block reconstruction of those is not achievable uniformly across backends (e.g. Microsoft SQL Server returns narrow text in the client codepage rather than UTF-8, and SQLite's dynamic typing reports text/<code>NUMERIC</code> columns with an unreliable, unenforced size), so the dedicated single-row binders handle them. Memory is bounded to a few MB per active cursor (the depth is auto-clamped to that budget), and prefetch reads ahead up to one block, so a loop that stops early over-reads at most one block.</p>
+<h1><a class="anchor" id="prepared-statements"></a>
 Prepared Statements</h1>
 <p>You can also use prepared statements to execute queries, for example </p><div class="fragment"><div class="line"><span class="keyword">struct </span>Record { <span class="keywordtype">int</span> a; <span class="keywordtype">int</span> b; <span class="keywordtype">int</span> c; };</div>
 <div class="line"><span class="keyword">auto</span> conn = SqlConnection {};</div>

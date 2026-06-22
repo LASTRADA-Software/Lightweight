@@ -38,5 +38,6 @@ var searchData=
   ['getstring_35',['GetString',['../da/d6c/classLightweight_1_1RowArrayCursor.html#a6d0e1111dd4aa4f69a282b65de578c05',1,'Lightweight::RowArrayCursor']]],
   ['gettimestamp_36',['gettimestamp',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e',1,'Lightweight::SqlMigration::MigrationBase::GetTimestamp()'],['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab2a0986037e9cf89ee7e5ed09bf9fb19',1,'Lightweight::RowArrayCursor::GetTimestamp()']]],
   ['gettitle_37',['GetTitle',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0',1,'Lightweight::SqlMigration::MigrationBase']]],
-  ['growthstrategy_38',['growthStrategy',['../df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f',1,'Lightweight::PoolConfig']]]
+  ['growthstrategy_38',['growthStrategy',['../df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f',1,'Lightweight::PoolConfig']]],
+  ['guid_39',['Guid',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ac195f641dd597766b98e4ffa9e2f0e75',1,'Lightweight::RowArrayCursor']]]
 ];

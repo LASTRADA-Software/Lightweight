@@ -135,11 +135,14 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a98557607d1540f9e9a00233caf666eca" id="r_a98557607d1540f9e9a00233caf666eca"><td class="memItemLeft" align="right" valign="top">std::chrono::seconds&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a98557607d1540f9e9a00233caf666eca">timeout</a> { 5 }</td></tr>
 <tr class="memdesc:a98557607d1540f9e9a00233caf666eca"><td class="mdescLeft">&#160;</td><td class="mdescRight">The connection timeout duration.  <br /></td></tr>
 <tr class="separator:a98557607d1540f9e9a00233caf666eca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a04fd31415705ccc61b63eec99a7bf1f3" id="r_a04fd31415705ccc61b63eec99a7bf1f3"><td class="memItemLeft" align="right" valign="top">std::size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d6/d8d/structLightweight_1_1SqlConnectionDataSource.html#a04fd31415705ccc61b63eec99a7bf1f3">defaultPrefetchDepth</a> = PrefetchDepthDefault</td></tr>
+<tr class="memdesc:a04fd31415705ccc61b63eec99a7bf1f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default block-prefetch depth applied to statements created on the resulting connection (rows requested per <code>SQLFetchScroll</code> round-trip on the transparent per-row fetch path).  <br /></td></tr>
+<tr class="separator:a04fd31415705ccc61b63eec99a7bf1f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Represents a connection data source as a DSN, username, password, and timeout. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00055">55</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00065">65</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
 <a id="a294bef751b01e0f8e110c989afff2814" name="a294bef751b01e0f8e110c989afff2814"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a294bef751b01e0f8e110c989afff2814">&#9670;&#160;</a></span>ToConnectionString()</h2>
@@ -166,9 +169,9 @@ Public Attributes</h2></td></tr>
 
 <p>Converts this data source to an ODBC connection string. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00087">87</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
-<p class="reference">References <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00020">Lightweight::SqlConnectionString::value</a>.</p>
+<p class="reference">References <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00030">Lightweight::SqlConnectionString::value</a>.</p>
 
 </div>
 </div>
@@ -187,7 +190,7 @@ Public Attributes</h2></td></tr>
 
 <p>The ODBC data source name (DSN). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00058">58</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00068">68</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -205,7 +208,7 @@ Public Attributes</h2></td></tr>
 
 <p>The username for authentication. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00060">60</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00070">70</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -223,7 +226,7 @@ Public Attributes</h2></td></tr>
 
 <p>The password for authentication. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00062">62</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00072">72</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
@@ -241,7 +244,26 @@ Public Attributes</h2></td></tr>
 
 <p>The connection timeout duration. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00064">64</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00074">74</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
+
+</div>
+</div>
+<a id="a04fd31415705ccc61b63eec99a7bf1f3" name="a04fd31415705ccc61b63eec99a7bf1f3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a04fd31415705ccc61b63eec99a7bf1f3">&#9670;&#160;</a></span>defaultPrefetchDepth</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">std::size_t Lightweight::SqlConnectionDataSource::defaultPrefetchDepth = PrefetchDepthDefault</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Default block-prefetch depth applied to statements created on the resulting connection (rows requested per <code>SQLFetchScroll</code> round-trip on the transparent per-row fetch path). </p>
+<p>A value &lt;= 1 disables prefetch (every classic loop keeps issuing one <code>SQLFetch</code> per row). Defaults to PrefetchDepthDefault. Has effect only on backends whose driver supports native row-array fetching (see <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a7577a4c8347fede96bb3953f84b068d4" title="Whether this connection&#39;s ODBC driver supports native row-array fetching (SQL_ATTR_ROW_ARRAY_SIZE &gt; 1...">SqlConnection::SupportsNativeRowArrayFetch</a></code>). </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00081">81</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
 </div>
 </div>
