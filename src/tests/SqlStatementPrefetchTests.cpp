@@ -514,7 +514,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: GUID column round-trips", "[prefetch
     {
         auto const parsedUid = SqlGuid::TryParse(std::format("12345678-1234-1234-1234-{:012}", i));
         REQUIRE(parsedUid.has_value());
-        (void) stmt.Execute(static_cast<std::int64_t>(i), *parsedUid);
+        if (parsedUid.has_value()) // explicit guard so the optional access is statically checked
+            (void) stmt.Execute(static_cast<std::int64_t>(i), *parsedUid);
     }
 
     auto readGuids = [&](SqlStatement& source) {
