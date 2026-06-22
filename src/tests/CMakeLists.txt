@@ -49,6 +49,7 @@ set(SOURCE_FILES
     DataMapper/MiscTests.cpp
     DataMapper/NamingTests.cpp
     DataMapper/ReadTests.cpp
+    DataMapper/RowWiseFetchTests.cpp
     DataMapper/RelationTests.cpp
     DataMapper/BelongsToStateTests.cpp
     DataMapper/StateTests.cpp

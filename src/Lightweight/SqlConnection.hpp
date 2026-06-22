@@ -150,6 +150,40 @@ class SqlConnection final
     /// @return `true` if the driver honours parameter arrays.
     [[nodiscard]] bool SupportsNativeRowBatch() const noexcept;
 
+    /// @brief Whether this connection's ODBC driver supports native row-array fetching
+    /// (`SQL_ATTR_ROW_ARRAY_SIZE` > 1 with `SQLFetchScroll`) for block result retrieval.
+    ///
+    /// The fast retrieval path in @ref SqlStatement::FetchRecordsInto consults this to decide whether
+    /// it may bind the result columns row-wise over a record block and materialize whole row blocks per
+    /// `SQLFetchScroll` round-trip, or must fall back to the per-row `SQLFetch` path. Like
+    /// @ref SupportsNativeRowBatch this is a driver/backend capability — not a SQL-dialect concern — so
+    /// it lives on the connection. Kept distinct from the parameter-array flag so a backend that honours
+    /// one but not the other can be carved out independently.
+    ///
+    /// @return `true` if the driver honours row-array fetching.
+    [[nodiscard]] bool SupportsNativeRowArrayFetch() const noexcept;
+
+    /// @brief Server-type overload of @ref SupportsNativeRowArrayFetch, for callers that hold only the
+    /// server type (e.g. the DataMapper result reader) and not the connection. Keeps the single source of
+    /// truth for this capability on the connection rather than scattering a `switch (serverType)` into
+    /// business logic.
+    /// @param serverType The backend server type to test.
+    /// @return `true` if that backend honours row-array fetching.
+    [[nodiscard]] static bool SupportsNativeRowArrayFetch(SqlServerType serverType) noexcept;
+
+    /// @brief Whether @p serverType's driver round-trips narrow (@c SQL_C_CHAR) character data
+    /// byte-exact, so a fixed-capacity char string may be array-bound narrow on the row-wise fetch path.
+    ///
+    /// PostgreSQL's psqlODBC transcodes @c SQL_C_CHAR through the client codepage (cp1252 on Windows),
+    /// mangling non-ASCII bytes — its single-row binder therefore reads narrow strings via @c SQL_C_WCHAR.
+    /// That wide round-trip needs an external per-cell buffer + conversion, which cannot be expressed as an
+    /// in-place row-wise array bind, so a record carrying a fixed-capacity string falls back to the per-row
+    /// path on PostgreSQL. MS SQL Server and SQLite read @c SQL_C_CHAR verbatim and stay on the fast path.
+    ///
+    /// @param serverType The backend server type to test.
+    /// @return `true` if narrow character data round-trips byte-exact on that backend.
+    [[nodiscard]] static bool RoundTripsNarrowTextByteExact(SqlServerType serverType) noexcept;
+
     /// Creates a new query builder for the given table, compatible with the current connection.
     ///
     /// @param table The table to query.
@@ -293,6 +327,44 @@ inline bool SqlConnection::SupportsNativeRowBatch() const noexcept
         case SqlServerType::POSTGRESQL:
         case SqlServerType::SQLITE:
             return true;
+        case SqlServerType::MYSQL:
+        case SqlServerType::UNKNOWN:
+            return false;
+    }
+    return false;
+}
+
+inline bool SqlConnection::SupportsNativeRowArrayFetch(SqlServerType serverType) noexcept
+{
+    // Native ODBC row-array fetching (SQL_ATTR_ROW_ARRAY_SIZE > 1 + SQLFetchScroll) is a per-driver
+    // capability. Every backend Lightweight supports and tests against honours it; an unverified backend
+    // takes the always-correct per-row SQLFetch path rather than risk a driver that mis-handles the array.
+    switch (serverType)
+    {
+        case SqlServerType::MICROSOFT_SQL:
+        case SqlServerType::POSTGRESQL:
+        case SqlServerType::SQLITE:
+            return true;
+        case SqlServerType::MYSQL:
+        case SqlServerType::UNKNOWN:
+            return false;
+    }
+    return false;
+}
+
+inline bool SqlConnection::SupportsNativeRowArrayFetch() const noexcept
+{
+    return SupportsNativeRowArrayFetch(ServerType());
+}
+
+inline bool SqlConnection::RoundTripsNarrowTextByteExact(SqlServerType serverType) noexcept
+{
+    switch (serverType)
+    {
+        case SqlServerType::MICROSOFT_SQL:
+        case SqlServerType::SQLITE:
+            return true;
+        case SqlServerType::POSTGRESQL: // psqlODBC transcodes SQL_C_CHAR through the client codepage
         case SqlServerType::MYSQL:
         case SqlServerType::UNKNOWN:
             return false;

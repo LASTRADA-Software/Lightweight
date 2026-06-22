@@ -744,6 +744,220 @@ namespace detail
         BindAllOutputColumnsWithOffset(reader, record, 1);
     }
 
+    /// @brief Requested rows per SQLFetchScroll round-trip for the native row-wise fetch fast path. The
+    /// statement clamps this to a memory budget, so it is an upper bound, not a guarantee.
+    constexpr std::size_t kDefaultRowArrayFetchDepth = 1024;
+
+    /// @brief Mutable-reference output accessor for member @p I that is a Field/BelongsTo: yields the
+    /// field's mutable value so the row-wise fetch path binds the result column in place. The read-side
+    /// counterpart of @ref FieldValueAccessor.
+    template <std::size_t I>
+    struct MutableFieldValueAccessor
+    {
+        template <typename Record>
+        decltype(auto) operator()(Record& record) const
+        {
+            return GetRecordMemberAt<I>(record).MutableValue();
+        }
+    };
+
+    /// @brief The mutable value type bound for member @p FieldType on the row-wise fetch path (the type
+    /// the result column materializes into).
+    template <typename FieldType>
+    using RowWiseColumnValueType = std::remove_cvref_t<decltype(std::declval<FieldType&>().MutableValue())>;
+
+    /// @return Whether @p FieldType maps to a result column on the bound-output path (Field, BelongsTo, or
+    /// a directly-bindable member) — mirrors the classification in @ref BindAllOutputColumnsWithOffset.
+    template <typename FieldType>
+    constexpr bool RowWiseIsColumn()
+    {
+        return IsField<FieldType> || IsBelongsTo<FieldType> || SqlOutputColumnBinder<FieldType>;
+    }
+
+    /// @return Whether @p FieldType is acceptable on the row-wise fetch path: either it is not a result
+    /// column (a relation member, which is not bound) or it is a column whose value type is
+    /// @ref SqlRowWiseFetchableColumn. Directly-bindable non-Field members are conservatively rejected
+    /// (their value would need a separate accessor shape) so such records fall back to the per-row path.
+    template <typename FieldType>
+    constexpr bool RowWiseColumnAcceptable()
+    {
+        if constexpr (IsField<FieldType> || IsBelongsTo<FieldType>)
+            return SqlRowWiseFetchableColumn<RowWiseColumnValueType<FieldType>>;
+        else if constexpr (SqlOutputColumnBinder<FieldType>)
+            return false;
+        else
+            return true; // relation / non-column member: not bound, imposes no constraint
+    }
+
+    template <typename Record, std::size_t... Is>
+    constexpr bool CanRowWiseFetchRecordImpl(std::index_sequence<Is...>)
+    {
+        // The row-strided indicator slots are addressed at i * sizeof(Record); they must stay SQLLEN
+        // aligned, so sizeof(Record) must be a multiple of alignof(SQLLEN) (mirrors the write-side
+        // indicatorAlignmentSatisfied precondition).
+        return (sizeof(Record) % alignof(SQLLEN) == 0) && (RowWiseColumnAcceptable<RecordMemberTypeOf<Is, Record>>() && ...)
+               && (RowWiseIsColumn<RecordMemberTypeOf<Is, Record>>() || ...);
+    }
+
+    /// @brief Whether @p Record can be materialized via the native row-wise array-fetch fast path: every
+    /// result column is a Field/BelongsTo of a @ref SqlRowWiseFetchableColumn type, there is at least one
+    /// column, and the record size keeps the row-strided indicators aligned. Records that fail this fall
+    /// back to the per-row @c SQLFetch path, with identical results.
+    template <typename Record>
+    constexpr bool CanRowWiseFetchRecord()
+    {
+        return CanRowWiseFetchRecordImpl<Record>(std::make_index_sequence<RecordMemberCount<Record>> {});
+    }
+
+    /// Returns a one-element accessor tuple for member @p I when it is a bound result column, else an empty
+    /// tuple — flattened via tuple_cat so the accessor pack matches the bound column set and order exactly.
+    template <std::size_t I, typename Record>
+    auto MakeOutputColumnAccessor()
+    {
+        using FieldType = RecordMemberTypeOf<I, Record>;
+        if constexpr (IsField<FieldType> || IsBelongsTo<FieldType>)
+            return std::tuple<MutableFieldValueAccessor<I>> {};
+        else
+            return std::tuple<> {};
+    }
+
+    /// @brief Materializes the whole result set into @p records via @ref SqlStatement::FetchAllRowWise,
+    /// building one mutable value accessor per bound result column (same set and order as
+    /// @ref BindAllOutputColumnsWithOffset). Precondition: @ref CanRowWiseFetchRecord<Record>().
+    template <typename Record>
+    void ReadAllRowWise(SqlResultCursor& reader, std::vector<Record>* records)
+    {
+        [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+            std::apply(
+                [&](auto const&... accessors) {
+                    reader.FetchAllRowWise(*records, kDefaultRowArrayFetchDepth, accessors...);
+                },
+                std::tuple_cat(MakeOutputColumnAccessor<Is, Record>()...));
+        }(std::make_index_sequence<RecordMemberCount<Record>> {});
+    }
+
+    /// @return Whether @p FieldType is a result column whose value is a char fixed-capacity string (or a
+    /// @c std::optional of one). Such columns are array-bound narrow (SQL_C_CHAR), which only round-trips
+    /// byte-exact where @ref SqlConnection::RoundTripsNarrowTextByteExact holds.
+    template <typename FieldType>
+    constexpr bool ColumnIsNarrowFixedString()
+    {
+        if constexpr (IsField<FieldType> || IsBelongsTo<FieldType>)
+        {
+            using V = RowWiseColumnValueType<FieldType>;
+            if constexpr (SqlIsStdOptional<V>)
+                return IsSqlFixedString<typename V::value_type>;
+            else
+                return IsSqlFixedString<V>;
+        }
+        else
+            return false;
+    }
+
+    template <typename Record, std::size_t... Is>
+    constexpr bool RecordHasNarrowFixedStringColumnImpl(std::index_sequence<Is...>)
+    {
+        return (ColumnIsNarrowFixedString<RecordMemberTypeOf<Is, Record>>() || ...);
+    }
+
+    /// @brief Whether @p Record has any char fixed-capacity-string result column. Such records take the
+    /// row-wise fetch fast path only on backends that round-trip narrow text byte-exact; elsewhere they
+    /// fall back to the per-row (wide) path. See @ref SqlConnection::RoundTripsNarrowTextByteExact.
+    template <typename Record>
+    constexpr bool RecordHasNarrowFixedStringColumn()
+    {
+        return RecordHasNarrowFixedStringColumnImpl<Record>(std::make_index_sequence<RecordMemberCount<Record>> {});
+    }
+
+    /// @brief Whether @p Record may use the row-wise fetch fast path on @p serverType: it is row-wise
+    /// fetchable, the driver supports row-array fetch, and any narrow fixed-string column round-trips
+    /// byte-exact there. Single runtime gate composed from connection capabilities + the compile-time
+    /// record shape, so business logic never branches on the server type directly.
+    template <typename Record>
+    bool CanRowWiseFetchOn(SqlServerType serverType)
+    {
+        if constexpr (!CanRowWiseFetchRecord<Record>())
+            return false;
+        else
+            return SqlConnection::SupportsNativeRowArrayFetch(serverType)
+                   && (!RecordHasNarrowFixedStringColumn<Record>()
+                       || SqlConnection::RoundTripsNarrowTextByteExact(serverType));
+    }
+
+    // --- Two-record tuple (JOIN) fast path ----------------------------------------------------------
+
+    /// @brief Mutable-reference output accessor for member @p I of the @p TupleIndex-th sub-record of a
+    /// @c std::tuple result row; yields that field's mutable value so a JOIN result binds in place.
+    template <std::size_t TupleIndex, std::size_t I>
+    struct MutableTupleFieldAccessor
+    {
+        template <typename TupleType>
+        decltype(auto) operator()(TupleType& row) const
+        {
+            return GetRecordMemberAt<I>(std::get<TupleIndex>(row)).MutableValue();
+        }
+    };
+
+    template <typename First, typename Second, std::size_t... Fs, std::size_t... Ss>
+    constexpr bool CanRowWiseFetchTupleImpl(std::index_sequence<Fs...>, std::index_sequence<Ss...>)
+    {
+        return (sizeof(std::tuple<First, Second>) % alignof(SQLLEN) == 0)
+               && (RowWiseColumnAcceptable<RecordMemberTypeOf<Fs, First>>() && ...)
+               && (RowWiseColumnAcceptable<RecordMemberTypeOf<Ss, Second>>() && ...)
+               && ((RowWiseIsColumn<RecordMemberTypeOf<Fs, First>>() || ...)
+                   || (RowWiseIsColumn<RecordMemberTypeOf<Ss, Second>>() || ...));
+    }
+
+    /// @brief Whether a @c std::tuple<First,Second> JOIN row can be materialized via the row-wise fetch
+    /// fast path: both sub-records' columns are row-bindable and the combined row size keeps the
+    /// row-strided indicators aligned.
+    template <typename First, typename Second>
+    constexpr bool CanRowWiseFetchTuple()
+    {
+        return CanRowWiseFetchTupleImpl<First, Second>(std::make_index_sequence<RecordMemberCount<First>> {},
+                                                       std::make_index_sequence<RecordMemberCount<Second>> {});
+    }
+
+    /// @brief Whether a @c std::tuple<First,Second> JOIN row may use the row-wise fetch fast path on
+    /// @p serverType (row-wise fetchable + driver supports row-array fetch + any narrow fixed-string
+    /// column round-trips byte-exact there). The tuple counterpart of @ref CanRowWiseFetchOn.
+    template <typename First, typename Second>
+    bool CanRowWiseFetchTupleOn(SqlServerType serverType)
+    {
+        if constexpr (!CanRowWiseFetchTuple<First, Second>())
+            return false;
+        else
+            return SqlConnection::SupportsNativeRowArrayFetch(serverType)
+                   && ((!RecordHasNarrowFixedStringColumn<First>() && !RecordHasNarrowFixedStringColumn<Second>())
+                       || SqlConnection::RoundTripsNarrowTextByteExact(serverType));
+    }
+
+    /// Accessor tuple for member @p I of the @p TupleIndex-th sub-record, or empty for non-columns.
+    template <std::size_t TupleIndex, std::size_t I, typename SubRecord>
+    auto MakeTupleColumnAccessor()
+    {
+        using FieldType = RecordMemberTypeOf<I, SubRecord>;
+        if constexpr (IsField<FieldType> || IsBelongsTo<FieldType>)
+            return std::tuple<MutableTupleFieldAccessor<TupleIndex, I>> {};
+        else
+            return std::tuple<> {};
+    }
+
+    /// @brief Materializes a two-record JOIN result set into @p records via row-wise array fetch. The
+    /// accessor pack is First's columns followed by Second's, matching the column order of
+    /// @ref BindAllOutputColumnsWithOffset's offset scheme. Precondition: @ref CanRowWiseFetchTuple.
+    template <typename First, typename Second>
+    void ReadAllRowWiseTuple(SqlResultCursor& reader, std::vector<std::tuple<First, Second>>* records)
+    {
+        [&]<std::size_t... Fs, std::size_t... Ss>(std::index_sequence<Fs...>, std::index_sequence<Ss...>) {
+            std::apply(
+                [&](auto const&... accessors) {
+                    reader.FetchAllRowWise(*records, kDefaultRowArrayFetchDepth, accessors...);
+                },
+                std::tuple_cat(MakeTupleColumnAccessor<0, Fs, First>()..., MakeTupleColumnAccessor<1, Ss, Second>()...));
+        }(std::make_index_sequence<RecordMemberCount<First>> {}, std::make_index_sequence<RecordMemberCount<Second>> {});
+    }
+
     // when we iterate over all columns using element mask
     // indexes of the mask corresponds to the indexe of the field
     // inside the structure, not inside the SQL result set
@@ -1268,6 +1482,19 @@ void SqlAllFieldsQueryBuilder<Record, QueryOptions, Execution>::ReadResults(SqlS
                                                                             SqlResultCursor reader,
                                                                             std::vector<Record>* records)
 {
+    // Fast path: when every result column is a fixed-width row-bindable field and the driver honours
+    // native row-array fetching, materialize the whole result set in row blocks (one SQLFetchScroll per
+    // block) directly into records, instead of one SQLFetch round-trip per row. Results are identical to
+    // the per-row path below; this only collapses ODBC round-trips (the win on high-latency links).
+    if constexpr (detail::CanRowWiseFetchRecord<Record>())
+    {
+        if (detail::CanRowWiseFetchOn<Record>(sqlServerType))
+        {
+            detail::ReadAllRowWise(reader, records);
+            return;
+        }
+    }
+
     while (true)
     {
         Record& record = records->emplace_back();
@@ -1293,6 +1520,17 @@ template <typename FirstRecord, typename SecondRecord, DataMapperOptions QueryOp
 void SqlAllFieldsQueryBuilder<std::tuple<FirstRecord, SecondRecord>, QueryOptions, Execution>::ReadResults(
     SqlServerType sqlServerType, SqlResultCursor reader, std::vector<RecordType>* records)
 {
+    // Fast path: a JOIN row of two row-bindable records is bound row-wise over the tuple and fetched in
+    // blocks (one SQLFetchScroll per block) instead of one SQLFetch per row. Identical results.
+    if constexpr (detail::CanRowWiseFetchTuple<FirstRecord, SecondRecord>())
+    {
+        if (detail::CanRowWiseFetchTupleOn<FirstRecord, SecondRecord>(sqlServerType))
+        {
+            detail::ReadAllRowWiseTuple<FirstRecord, SecondRecord>(reader, records);
+            return;
+        }
+    }
+
     while (true)
     {
         auto& record = records->emplace_back();
