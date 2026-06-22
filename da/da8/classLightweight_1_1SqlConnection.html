@@ -710,7 +710,7 @@ static LIGHTWEIGHT_API void&#160;</td><td class="memItemRight" valign="bottom"><
 
 <p>The default block-prefetch depth applied to statements created on this connection. </p>
 <p>Classic per-row fetch loops (<code>while (cursor.FetchRow()) ...</code>, <code><a class="el" href="../../d2/d8e/classLightweight_1_1SqlRowIterator.html" title="SQL query result row iterator.">SqlRowIterator</a></code>, <code>SqlVariantRowCursor</code>) transparently request this many rows per <code>SQLFetchScroll</code> round-trip instead of issuing one <code>SQLFetch</code> per row. A value &lt;= 1 disables prefetch. Effective only when <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a7577a4c8347fede96bb3953f84b068d4">SupportsNativeRowArrayFetch</a> is true; otherwise statements fall back to per-row fetching.</p>
-<dl class="section return"><dt>Returns</dt><dd>The configured default prefetch depth (defaults to PrefetchDepthDefault). </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The configured default prefetch depth (defaults to <code>PrefetchDepthDefault</code>). </dd></dl>
 
 </div>
 </div>

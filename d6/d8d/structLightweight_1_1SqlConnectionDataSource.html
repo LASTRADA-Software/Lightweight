@@ -261,7 +261,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Default block-prefetch depth applied to statements created on the resulting connection (rows requested per <code>SQLFetchScroll</code> round-trip on the transparent per-row fetch path). </p>
-<p>A value &lt;= 1 disables prefetch (every classic loop keeps issuing one <code>SQLFetch</code> per row). Defaults to PrefetchDepthDefault. Has effect only on backends whose driver supports native row-array fetching (see <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a7577a4c8347fede96bb3953f84b068d4" title="Whether this connection&#39;s ODBC driver supports native row-array fetching (SQL_ATTR_ROW_ARRAY_SIZE &gt; 1...">SqlConnection::SupportsNativeRowArrayFetch</a></code>). </p>
+<p>A value &lt;= 1 disables prefetch (every classic loop keeps issuing one <code>SQLFetch</code> per row). Defaults to <code>PrefetchDepthDefault</code>. Has effect only on backends whose driver supports native row-array fetching (see <code><a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#a7577a4c8347fede96bb3953f84b068d4" title="Whether this connection&#39;s ODBC driver supports native row-array fetching (SQL_ATTR_ROW_ARRAY_SIZE &gt; 1...">SqlConnection::SupportsNativeRowArrayFetch</a></code>). </p>
 
 <p class="definition">Definition at line <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html#l00081">81</a> of file <a class="el" href="../../d7/d24/SqlConnectInfo_8hpp_source.html">SqlConnectInfo.hpp</a>.</p>
 
