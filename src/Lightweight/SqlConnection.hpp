@@ -153,7 +153,7 @@ class SqlConnection final
     /// @brief Whether this connection's ODBC driver supports native row-array fetching
     /// (`SQL_ATTR_ROW_ARRAY_SIZE` > 1 with `SQLFetchScroll`) for block result retrieval.
     ///
-    /// The fast retrieval path in @ref SqlStatement::FetchRecordsInto consults this to decide whether
+    /// The fast retrieval path in @c SqlStatement::FetchAllRowWise consults this to decide whether
     /// it may bind the result columns row-wise over a record block and materialize whole row blocks per
     /// `SQLFetchScroll` round-trip, or must fall back to the per-row `SQLFetch` path. Like
     /// @ref SupportsNativeRowBatch this is a driver/backend capability — not a SQL-dialect concern — so

@@ -314,14 +314,14 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
 
     /// @brief Native row-wise array fetch: materializes the already-executed result set into @p out by
     /// binding every result column row-wise over a contiguous block of @p out's records and pulling whole
-    /// blocks per @c SQLFetchScroll round-trip. The read-side mirror of @ref ExecuteBatchNativeRowWise.
+    /// blocks per @c SQLFetchScroll round-trip. The read-side mirror of @c ExecuteBatchNativeRowWise.
     ///
     /// Each @p accessors invocable maps a record to one bound column's mutable value reference (the same
     /// declaration-order column set the per-row path binds), so the driver writes results in place — no
     /// per-cell @c SQLGetData and no intermediate copy. @p out is grown a block at a time and trimmed to
     /// the exact row count on the final partial block.
     ///
-    /// @pre Every accessor's value type satisfies @ref SqlRowWiseFetchableColumn and
+    /// @pre Every accessor's value type satisfies @c SqlRowWiseFetchableColumn and
     ///      @c sizeof(Record) % alignof(SQLLEN) == 0 (so the row-strided indicator slots stay aligned).
     ///      The caller (DataMapper) guarantees both before selecting this path.
     /// @param out Destination vector; results are appended to its current contents.
@@ -331,7 +331,7 @@ class [[nodiscard]] SqlStatement final: public SqlDataBinderCallback
     void FetchAllRowWise(std::vector<Record>& out, std::size_t arrayDepth, ColumnAccessors const&... accessors);
 
     /// @brief Row-wise array-binds one output column over a record block; returns the row-strided
-    /// indicator buffer to feed @ref FinalizeRowWiseOutputColumn. For optional columns every row's
+    /// indicator buffer to feed @c FinalizeRowWiseOutputColumn. For optional columns every row's
     /// optional is pre-engaged so the contained storage is valid to bind into.
     template <typename ValueType>
     [[nodiscard]] SQLLEN* BindRowWiseOutputColumn(SQLUSMALLINT column,
@@ -490,7 +490,7 @@ class [[nodiscard]] SqlResultCursor
     }
 
     /// @brief Fast bulk retrieval: materializes this result set into @p out via native ODBC row-wise
-    /// array fetch. Forwards to @ref SqlStatement::FetchAllRowWise; see its contract (eligibility and
+    /// array fetch. Forwards to @c SqlStatement::FetchAllRowWise; see its contract (eligibility and
     /// alignment preconditions are the caller's responsibility).
     /// @param out Destination vector; results are appended.
     /// @param arrayDepth Requested maximum rows per @c SQLFetchScroll round-trip.
@@ -1085,14 +1085,14 @@ template <typename V>
 concept SqlRowBindableColumn = SqlNativeRowBindableValue<V> || SqlOptionalRowBindable<V>;
 
 /// @brief A column usable on the native row-wise array-FETCH fast path. Intentionally identical to the
-/// write-side @ref SqlRowBindableColumn — the set of types we can bind row-wise into a record block on
+/// write-side @c SqlRowBindableColumn — the set of types we can bind row-wise into a record block on
 /// fetch matches the set we can bind row-wise as a parameter array on execute: fixed-width primitives,
 /// date/time/datetime, numeric, char-based fixed-capacity strings, and non-numeric optionals of those.
 ///
 /// Char fixed strings are materialized by a dedicated SQL_C_CHAR bind plus a per-row length/trim fixup
-/// (see @ref BindRowWiseOutputColumn / @ref FinalizeRowWiseOutputColumn); on PostgreSQL, whose driver
+/// (see @c BindRowWiseOutputColumn / @c FinalizeRowWiseOutputColumn); on PostgreSQL, whose driver
 /// transcodes SQL_C_CHAR through the client codepage, records carrying one fall back to the per-row
-/// (wide) path instead — see @ref SqlConnection::RoundTripsNarrowTextByteExact. Growable strings/binary,
+/// (wide) path instead — see @c SqlConnection::RoundTripsNarrowTextByteExact. Growable strings/binary,
 /// GUID and variant are not row-bindable and make the whole record fall back to the per-row fetch path.
 template <typename V>
 concept SqlRowWiseFetchableColumn = SqlRowBindableColumn<V>;

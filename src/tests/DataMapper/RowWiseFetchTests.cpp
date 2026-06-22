@@ -214,7 +214,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     // Two full blocks plus a partial last block proves the grow-and-rebind loop and the trim of the
     // final partial block (rowcount % depth != 0).
     constexpr auto depth = detail::kDefaultRowArrayFetchDepth;
-    auto const total = static_cast<int>(depth * 2 + 7);
+    auto const total = static_cast<int>((depth * 2) + 7);
 
     auto seed = std::vector<RowFixedRecord> {};
     for (auto const i: std::views::iota(1, total + 1))
@@ -232,9 +232,9 @@ TEST_CASE_METHOD(SqlTestFixture,
     for (auto const& r: records)
         byId.emplace(r.id.Value(), &r);
     CHECK(byId[1]->big.Value() == 1);
-    CHECK(byId[static_cast<int64_t>(depth)]->big.Value() == static_cast<int64_t>(depth));
-    CHECK(byId[static_cast<int64_t>(depth) + 1]->big.Value() == static_cast<int64_t>(depth) + 1);
-    CHECK(byId[total]->big.Value() == total);
+    CHECK(std::cmp_equal(byId[static_cast<std::int64_t>(depth)]->big.Value(), depth));
+    CHECK(std::cmp_equal(byId[static_cast<std::int64_t>(depth) + 1]->big.Value(), depth + 1));
+    CHECK(std::cmp_equal(byId[total]->big.Value(), total));
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "RowWiseFetch: empty result set", "[DataMapper][rowwisefetch]")
