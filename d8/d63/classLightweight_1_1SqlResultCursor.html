@@ -145,7 +145,7 @@ requires (((std::is_class_v&lt;Records&gt; &amp;&amp; std::is_aggregate_v&lt;Rec
 <tr class="separator:a2bb8b99ccecdb98d49a349c3fbff18f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a56c863e6f00149494c8add6112ac1407" id="r_a56c863e6f00149494c8add6112ac1407"><td class="memTemplParams" colspan="2">template&lt;typename Record , typename... ColumnAccessors&gt; </td></tr>
 <tr class="memitem:a56c863e6f00149494c8add6112ac1407"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#a56c863e6f00149494c8add6112ac1407">FetchAllRowWise</a> (std::vector&lt; Record &gt; &amp;out, std::size_t arrayDepth, ColumnAccessors const &amp;... accessors)</td></tr>
-<tr class="memdesc:a56c863e6f00149494c8add6112ac1407"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fast bulk retrieval: materializes this result set into <code>out</code> via native ODBC row-wise array fetch. Forwards to SqlStatement::FetchAllRowWise; see its contract (eligibility and alignment preconditions are the caller's responsibility).  <br /></td></tr>
+<tr class="memdesc:a56c863e6f00149494c8add6112ac1407"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fast bulk retrieval: materializes this result set into <code>out</code> via native ODBC row-wise array fetch. Forwards to <code>SqlStatement::FetchAllRowWise</code>; see its contract (eligibility and alignment preconditions are the caller's responsibility).  <br /></td></tr>
 <tr class="separator:a56c863e6f00149494c8add6112ac1407"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a620b66e7d7ddbe332d8c824ca5a46759" id="r_a620b66e7d7ddbe332d8c824ca5a46759"><td class="memTemplParams" colspan="2">template&lt;SqlGetColumnNativeType T&gt; </td></tr>
 <tr class="memitem:a620b66e7d7ddbe332d8c824ca5a46759"><td class="memTemplItemLeft" align="right" valign="top">LIGHTWEIGHT_FORCE_INLINE bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#a620b66e7d7ddbe332d8c824ca5a46759">GetColumn</a> (SQLUSMALLINT column, T *result) const</td></tr>
@@ -556,7 +556,7 @@ template&lt;typename Record , typename... ColumnAccessors&gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p>Fast bulk retrieval: materializes this result set into <code>out</code> via native ODBC row-wise array fetch. Forwards to SqlStatement::FetchAllRowWise; see its contract (eligibility and alignment preconditions are the caller's responsibility). </p>
+<p>Fast bulk retrieval: materializes this result set into <code>out</code> via native ODBC row-wise array fetch. Forwards to <code>SqlStatement::FetchAllRowWise</code>; see its contract (eligibility and alignment preconditions are the caller's responsibility). </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">out</td><td>Destination vector; results are appended. </td></tr>
