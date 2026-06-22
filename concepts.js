@@ -8,6 +8,7 @@ var concepts =
       [ "SqlNativeRowBindableValue", "d4/dc2/conceptLightweight_1_1SqlNativeRowBindableValue.html", null ],
       [ "SqlOptionalRowBindable", "d0/dd4/conceptLightweight_1_1SqlOptionalRowBindable.html", null ],
       [ "SqlRowBindableColumn", "d7/d90/conceptLightweight_1_1SqlRowBindableColumn.html", null ],
+      [ "SqlRowWiseFetchableColumn", "db/d76/conceptLightweight_1_1SqlRowWiseFetchableColumn.html", null ],
       [ "SqlHasRowWiseBatchBinder", "dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html", null ]
     ] ]
 ];

@@ -108,7 +108,7 @@ Inheritance diagram for Lightweight::RowArrayCursorUnsupported:</div>
 <div class="textblock"><p>Thrown by <a class="el" href="../../da/d6c/classLightweight_1_1RowArrayCursor.html" title="A cursor that fetches result rows in bulk (ODBC row-array binding) for fast column reads.">RowArrayCursor</a>'s constructor when the executed result set cannot be fixed-stride array-bound. </p>
 <p>Raised for an unbounded/LOB or over-wide character column (e.g. a column the driver reports as SQL_LONGVARCHAR with no size, common for SQLite's dynamically-typed columns), or a query that produced no result columns. It is a precondition signal, not a database error, so callers that use bulk array-fetch purely as an optimization should catch it and fall back to the single-row path. Distinct from SqlException so transient-error retry logic does not mistake it for one. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00493">493</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00552">552</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 </div><hr/>The documentation for this class was generated from the following file:<ul>
 <li>Lightweight/<a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a></li>
 </ul>

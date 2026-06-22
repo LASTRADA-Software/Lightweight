@@ -32,8 +32,9 @@ var searchData=
   ['rightouterjoin_29',['rightouterjoin',['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a943ee6588d7153384fe60caeeaf0180e',1,'Lightweight::SqlWhereClauseBuilder::RightOuterJoin(TableName auto joinTable, std::string_view joinColumnName, SqlQualifiedTableColumnName onOtherColumn)'],['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#a239c5384b21eefed357e2912b7af34f0',1,'Lightweight::SqlWhereClauseBuilder::RightOuterJoin(TableName auto joinTable, std::string_view joinColumnName, std::string_view onMainTableColumn)'],['../d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#aba3c986f6278f6c462af37d09ed4f040',1,'Lightweight::SqlWhereClauseBuilder::RightOuterJoin(TableName auto joinTable, OnChainCallable const &amp;onClauseBuilder)']]],
   ['rollback_30',['Rollback',['../d0/ddc/classLightweight_1_1SqlTransaction.html#a6ed3f7b26252e7d105675187cd37d71b',1,'Lightweight::SqlTransaction']]],
   ['rollbackasync_31',['RollbackAsync',['../d9/d0c/classLightweight_1_1Async_1_1AsyncSqlTransaction.html#a34eaa45b7dd0244663721e1f7ec6362f',1,'Lightweight::Async::AsyncSqlTransaction']]],
-  ['rowarraycursor_32',['RowArrayCursor',['../da/d6c/classLightweight_1_1RowArrayCursor.html#a290264ba5f0a315a48accb62ef30ec9d',1,'Lightweight::RowArrayCursor']]],
-  ['run_33',['Run',['../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a91a62e9ccc6d98486fc872a0ab4fdbfd',1,'Lightweight::Async::ManualExecutor']]],
-  ['runone_34',['RunOne',['../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a75c169314113fd8e98804a5f5cb13336',1,'Lightweight::Async::ManualExecutor']]],
-  ['rununtil_35',['RunUntil',['../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#ac072d5f776bd5a46f58abcc8597ef3f2',1,'Lightweight::Async::ManualExecutor']]]
+  ['roundtripsnarrowtextbyteexact_32',['RoundTripsNarrowTextByteExact',['../da/da8/classLightweight_1_1SqlConnection.html#a68e00a8752a45b2dad9a9c45254c95f1',1,'Lightweight::SqlConnection']]],
+  ['rowarraycursor_33',['RowArrayCursor',['../da/d6c/classLightweight_1_1RowArrayCursor.html#a290264ba5f0a315a48accb62ef30ec9d',1,'Lightweight::RowArrayCursor']]],
+  ['run_34',['Run',['../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a91a62e9ccc6d98486fc872a0ab4fdbfd',1,'Lightweight::Async::ManualExecutor']]],
+  ['runone_35',['RunOne',['../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#a75c169314113fd8e98804a5f5cb13336',1,'Lightweight::Async::ManualExecutor']]],
+  ['rununtil_36',['RunUntil',['../d4/dbe/classLightweight_1_1Async_1_1ManualExecutor.html#ac072d5f776bd5a46f58abcc8597ef3f2',1,'Lightweight::Async::ManualExecutor']]]
 ];

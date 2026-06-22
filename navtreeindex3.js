@@ -131,12 +131,13 @@ var NAVTREEINDEX3 =
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a2bb8b99ccecdb98d49a349c3fbff18f7":[15,0,0,66,9],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a2d160238db489271e7d4244109242b7c":[15,0,0,66,1],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a33db70d71e35b772223c734f900af966":[15,0,0,66,0],
+"d8/d63/classLightweight_1_1SqlResultCursor.html#a56c863e6f00149494c8add6112ac1407":[15,0,0,66,10],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a5ea1e9b924db4690cd53663373b6a61b":[15,0,0,66,2],
-"d8/d63/classLightweight_1_1SqlResultCursor.html#a620b66e7d7ddbe332d8c824ca5a46759":[15,0,0,66,10],
+"d8/d63/classLightweight_1_1SqlResultCursor.html#a620b66e7d7ddbe332d8c824ca5a46759":[15,0,0,66,11],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#a8de60e0c6c3bcd3346c3a6df06cfaa3b":[15,0,0,66,5],
-"d8/d63/classLightweight_1_1SqlResultCursor.html#a9584b83387781b98d5251839cf2c581d":[15,0,0,66,12],
-"d8/d63/classLightweight_1_1SqlResultCursor.html#aab902bcb47bbc052de0f6b7f73c704d6":[15,0,0,66,11],
-"d8/d63/classLightweight_1_1SqlResultCursor.html#ab11374ccc4a6875c1ecf7fd8cc928660":[15,0,0,66,13],
+"d8/d63/classLightweight_1_1SqlResultCursor.html#a9584b83387781b98d5251839cf2c581d":[15,0,0,66,13],
+"d8/d63/classLightweight_1_1SqlResultCursor.html#aab902bcb47bbc052de0f6b7f73c704d6":[15,0,0,66,12],
+"d8/d63/classLightweight_1_1SqlResultCursor.html#ab11374ccc4a6875c1ecf7fd8cc928660":[15,0,0,66,14],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#ab38c77d3ca09d4546ea738da8e859d8c":[15,0,0,66,4],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#ac429ba6642b47cb29ff6cdab7d5a3586":[15,0,0,66,3],
 "d8/d63/classLightweight_1_1SqlResultCursor.html#ae83cff0d43f8d06bd5adfe34070f838d":[15,0,0,66,6],
@@ -248,6 +249,5 @@ var NAVTREEINDEX3 =
 "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241":[13,3,1,0],
 "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241a5289bf157522a5cd34676f2777d27048":[13,3,1,0,1],
 "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241a9639e32cab248434a17ab32237cb3b71":[13,3,1,0,0],
-"d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#add881a918e02ff27ec38f907f535b3ed":[13,3,1,3],
-"d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#adda47749398b0516fc00f9b23aee086f":[13,3,1,1]
+"d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#add881a918e02ff27ec38f907f535b3ed":[13,3,1,3]
 };

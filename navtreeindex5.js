@@ -1,5 +1,8 @@
 var NAVTREEINDEX5 =
 {
+"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#a89072cc6f0d70a556d2a16a52ab698d7":[13,4,9,1],
+"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#ac701438a61c7d2f150b24aa536e1779a":[13,4,9,2],
+"db/d8c/classLightweight_1_1SqlMigrationUpdateBuilder.html#aef625c1fdddcae0cdb986548f30f2ff9":[13,4,9,0],
 "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html":[13,4,23],
 "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#a1459637ec9641e6554ca94d6faf0edfe":[13,4,23,1],
 "db/d8e/structLightweight_1_1SqlQualifiedTableColumnName.html#a259b09aa04472c0b394790eb89b0131a":[13,4,23,0],
@@ -110,7 +113,7 @@ var NAVTREEINDEX5 =
 "dc/d8e/classLightweight_1_1Async_1_1StrandExecutor.html#aa8437222b43378b34b4ba32364123982":[15,0,0,0,7,0],
 "dc/d8e/classLightweight_1_1Async_1_1StrandExecutor.html#abd71976c6fcfd16ed031c0aa72192789":[15,0,0,0,7,2],
 "dc/d8e/classLightweight_1_1Async_1_1StrandExecutor.html#ac4873684029af50c0f62dfb565b833e9":[15,0,0,0,7,1],
-"dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html":[14,0,7],
+"dc/d8e/conceptLightweight_1_1SqlHasRowWiseBatchBinder.html":[14,0,8],
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html":[15,0,0,1,0],
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#a782c413681d6e9b9918c5d4643ccba09":[15,0,0,1,0,2],
 "dc/dbd/structLightweight_1_1SqlAlterTableCommands_1_1AddColumnIfNotExists.html#acfb1859f3c204725710cc91d9ceb2332":[15,0,0,1,0,1],
@@ -246,8 +249,5 @@ var NAVTREEINDEX5 =
 "de/d61/classLightweight_1_1DataMapper.html#a8a3bba1c99cbcff0f62611141fd1c219":[13,2,4,16],
 "de/d61/classLightweight_1_1DataMapper.html#a91d6ba541ec66c8c25d9f277b3655efa":[13,2,4,7],
 "de/d61/classLightweight_1_1DataMapper.html#a9876b49397398231200d326dfba78bdb":[13,2,4,11],
-"de/d61/classLightweight_1_1DataMapper.html#a9c5b656d89645356f1883956ed5fbb8e":[13,2,4,20],
-"de/d61/classLightweight_1_1DataMapper.html#aa17c743b55af25f5de7ccdc7a5264661":[13,2,4,13],
-"de/d61/classLightweight_1_1DataMapper.html#aa7b800a3b69075d96b38b2710df0229d":[13,2,4,9],
-"de/d61/classLightweight_1_1DataMapper.html#ab12c2b64f36fba895858da2ea17ed584":[13,2,4,33]
+"de/d61/classLightweight_1_1DataMapper.html#a9c5b656d89645356f1883956ed5fbb8e":[13,2,4,20]
 };

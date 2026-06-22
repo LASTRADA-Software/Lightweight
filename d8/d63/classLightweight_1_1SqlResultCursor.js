@@ -10,6 +10,7 @@ var classLightweight_1_1SqlResultCursor =
     [ "FetchRow", "d8/d63/classLightweight_1_1SqlResultCursor.html#af1167aa228464a5efaaae283ac9bf50f", null ],
     [ "TryFetchRow", "d8/d63/classLightweight_1_1SqlResultCursor.html#af36c15db70c2dc5b5cfb3e5e1007867d", null ],
     [ "BindOutputColumnsToRecord", "d8/d63/classLightweight_1_1SqlResultCursor.html#a2bb8b99ccecdb98d49a349c3fbff18f7", null ],
+    [ "FetchAllRowWise", "d8/d63/classLightweight_1_1SqlResultCursor.html#a56c863e6f00149494c8add6112ac1407", null ],
     [ "GetColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#a620b66e7d7ddbe332d8c824ca5a46759", null ],
     [ "GetColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#aab902bcb47bbc052de0f6b7f73c704d6", null ],
     [ "GetNullableColumn", "d8/d63/classLightweight_1_1SqlResultCursor.html#a9584b83387781b98d5251839cf2c581d", null ],

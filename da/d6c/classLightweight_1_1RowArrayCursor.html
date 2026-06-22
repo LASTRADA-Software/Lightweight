@@ -174,7 +174,7 @@ Static Public Attributes</h2></td></tr>
 <p>LOB / unbounded columns (the driver reports column size 0 or an absurdly large size) are rejected: constructing the cursor throws std::runtime_error. Such columns must use the single-row SQLGetData fallback instead.</p>
 <p>The cursor is non-copyable and non-movable: it owns the ODBC statement's array-binding state for its entire lifetime. The constructor binds raw pointers into its own members (SQL_ATTR_ROWS_FETCHED_PTR, SQL_ATTR_ROW_STATUS_PTR) and SQLBindCol into its per-column buffers, so the object must not be relocated after construction — a move would leave the statement handle pointing at the moved-from storage (use-after-free). It is constructed in place via <a class="el" href="../../db/dad/classLightweight_1_1SqlStatement.html#a72cc4c48512392a9f384fd16beec663a">SqlStatement::ExecuteBatchFetch</a> (guaranteed copy elision) and used as a local. The bound buffers must outlive the SQLBindCol binding until fetching completes. Cell indices are 1-based to match <a class="el" href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#a620b66e7d7ddbe332d8c824ca5a46759">SqlResultCursor::GetColumn</a>. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00525">525</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00584">584</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a290264ba5f0a315a48accb62ef30ec9d" name="a290264ba5f0a315a48accb62ef30ec9d"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a290264ba5f0a315a48accb62ef30ec9d">&#9670;&#160;</a></span>RowArrayCursor()</h2>
@@ -485,7 +485,7 @@ Static Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Maximum byte width allocated for a single bound character column (per row). Columns whose reported size exceeds this are treated as unbounded/LOB and rejected. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00530">530</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00589">589</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -510,7 +510,7 @@ Static Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Per-cursor byte budget for the bound column buffers. The effective array depth is clamp(budget / row-byte-width, MinArrayDepth, requested depth), so wide tables (many or large character columns) bind fewer rows per round-trip instead of exhausting memory — the footprint otherwise multiplies across workers x columns x depth on real schemas. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00536">536</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00595">595</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
@@ -535,7 +535,7 @@ Static Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 <p>Lower bound for the budget-adapted array depth, so bulk fetch always makes progress even on extremely wide rows (never reduced below this unless the caller requested less). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00540">540</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html#l00599">599</a> of file <a class="el" href="../../d9/d6e/SqlStatement_8hpp_source.html">SqlStatement.hpp</a>.</p>
 
 </div>
 </div>
