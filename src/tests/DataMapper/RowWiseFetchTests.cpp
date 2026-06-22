@@ -9,10 +9,15 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
 #include <map>
 #include <optional>
 #include <ranges>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace Lightweight;
@@ -366,6 +371,130 @@ TEST_CASE_METHOD(SqlTestFixture, "RowWiseFetch: statement is reusable after a fa
     // A second fast fetch on a fresh query also works.
     auto const second = dm.Query<RowFixedRecord>().All();
     CHECK(second.size() == 10);
+}
+
+// Hidden ([.]) opt-in benchmark: proves the row-wise block fetch beats the per-row path. Run with e.g.
+//   LightweightTest --test-env=sqlite3 "[rowwisefetchbench]"
+// and tune the dataset size via the ROWFETCH_BENCH_ROWS environment variable (default 500'000).
+//
+// It compares the shipped fast path (Query<>().All(), one SQLFetchScroll per block) against a faithful
+// reproduction of the per-row fallback (emplace + BindOutputColumnsToRecord + FetchRow per row — exactly
+// what detail::ReadSingleResult does). Both materialize the same std::vector<RowFixedRecord>, so the only
+// difference is the fetch mechanism. Locally (no network) this isolates the per-SQLFetch driver overhead,
+// which is the lower bound of the win: on a high-latency link each eliminated round-trip also saves a full
+// network RTT, so the real-world speedup is far larger than the local number.
+TEST_CASE_METHOD(SqlTestFixture, "RowWiseFetch.benchmark: block fetch vs per-row", "[.][rowwisefetchbench]")
+{
+    using std::chrono::microseconds;
+    using std::chrono::steady_clock;
+
+    auto const* const rowsEnv = std::getenv("ROWFETCH_BENCH_ROWS");
+    std::size_t const rowCount = rowsEnv != nullptr ? std::stoul(rowsEnv) : 500'000;
+    constexpr int reps = 5;
+
+    auto const nullLogger = ScopedSqlNullLogger {};
+    auto dm = DataMapper {};
+    dm.CreateTable<RowFixedRecord>();
+
+    // Seed the table (insertion time is not measured).
+    {
+        constexpr std::size_t chunk = 10'000;
+        for (std::size_t inserted = 0; inserted < rowCount;)
+        {
+            auto const n = std::min(chunk, rowCount - inserted);
+            std::vector<RowFixedRecord> batch;
+            batch.reserve(n);
+            for (auto const i: std::views::iota(std::size_t { 0 }, n))
+            {
+                auto const id = static_cast<std::int64_t>(inserted + i + 1);
+                batch.push_back({ .id = id,
+                                  .big = id * 7,
+                                  .ratio = static_cast<double>(id),
+                                  .mid = static_cast<std::int32_t>(id % 100'000),
+                                  .tiny = static_cast<std::int16_t>(id % 100) });
+            }
+            dm.CreateAll(batch);
+            inserted += n;
+        }
+    }
+    REQUIRE(dm.Query<RowFixedRecord>().Count() == rowCount);
+
+    auto const selectSql = std::format(R"(SELECT * FROM "{}")", RecordTableName<RowFixedRecord>);
+
+    // Shipped fast path: native row-wise array fetch (one SQLFetchScroll per block).
+    auto const fast = [&]() -> std::pair<std::size_t, std::int64_t> {
+        auto const records = dm.Query<RowFixedRecord>().All();
+        std::int64_t checksum = 0;
+        for (auto const& r: records)
+            checksum += r.big.Value();
+        return { records.size(), checksum };
+    };
+
+    // Per-row fallback, reproduced via the public cursor API: rebind output columns to each freshly
+    // emplaced record and FetchRow once per row — one SQLFetch round-trip per row.
+    auto const slow = [&]() -> std::pair<std::size_t, std::int64_t> {
+        auto stmt = SqlStatement { dm.Connection() };
+        auto cursor = stmt.ExecuteDirect(selectSql);
+        std::vector<RowFixedRecord> records;
+        while (true)
+        {
+            auto& record = records.emplace_back();
+            cursor.BindOutputColumnsToRecord(&record);
+            if (!cursor.FetchRow())
+            {
+                records.pop_back();
+                break;
+            }
+        }
+        std::int64_t checksum = 0;
+        for (auto const& r: records)
+            checksum += r.big.Value();
+        return { records.size(), checksum };
+    };
+
+    // Warm up once and assert the two paths return identical data before timing.
+    auto const fastWarm = fast();
+    auto const slowWarm = slow();
+    REQUIRE(fastWarm.first == rowCount);
+    REQUIRE(slowWarm.first == rowCount);
+    CHECK(fastWarm.second == slowWarm.second);
+
+    auto const medianMicros = [&](auto const& fn) {
+        std::vector<std::int64_t> samples;
+        samples.reserve(reps);
+        for (int i = 0; i < reps; ++i)
+        {
+            auto const start = steady_clock::now();
+            auto const result = fn();
+            auto const elapsed = steady_clock::now() - start;
+            CHECK(result.first == rowCount);
+            samples.push_back(std::chrono::duration_cast<microseconds>(elapsed).count());
+        }
+        std::ranges::sort(samples);
+        return samples[samples.size() / 2];
+    };
+
+    auto const slowMicros = medianMicros(slow);
+    auto const fastMicros = medianMicros(fast);
+
+    auto const rowsPerSec = [&](std::int64_t micros) {
+        return static_cast<double>(rowCount) * 1e6 / static_cast<double>(micros);
+    };
+    auto const speedup = static_cast<double>(slowMicros) / static_cast<double>(fastMicros);
+
+    WARN(std::format("\n[RowWiseFetch benchmark] {} rows, median of {} reps\n"
+                     "  per-row  SQLFetch    : {:>9} us  ({:>12.0f} rows/s)\n"
+                     "  row-wise block fetch : {:>9} us  ({:>12.0f} rows/s)\n"
+                     "  speedup              : {:.2f}x\n",
+                     rowCount,
+                     reps,
+                     slowMicros,
+                     rowsPerSec(slowMicros),
+                     fastMicros,
+                     rowsPerSec(fastMicros),
+                     speedup));
+
+    CHECK(fastMicros <= slowMicros); // the block fetch must not be slower than the per-row path
 }
 
 // NOLINTEND(bugprone-unchecked-optional-access)
