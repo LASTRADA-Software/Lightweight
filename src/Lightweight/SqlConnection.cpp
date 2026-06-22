@@ -54,7 +54,9 @@ struct SqlConnection::Data
     std::chrono::steady_clock::time_point lastUsed; // Last time the connection was used (mostly interesting for
                                                     // idle connections in the connection pool).
     SqlConnectionString connectionString;
-    std::unique_ptr<Async::IAsyncBackend> asyncBackend; // Async execution backend (null until EnableAsync()).
+    std::unique_ptr<Async::IAsyncBackend> asyncBackend;      // Async execution backend (null until EnableAsync()).
+    std::size_t defaultPrefetchDepth = PrefetchDepthDefault; // Rows requested per SQLFetchScroll on the
+                                                             // transparent per-row prefetch path (<= 1 disables).
 };
 
 SqlConnection::SqlConnection():
@@ -173,6 +175,16 @@ std::chrono::steady_clock::time_point SqlConnection::LastUsed() const noexcept
     return m_data->lastUsed;
 }
 
+std::size_t SqlConnection::DefaultPrefetchDepth() const noexcept
+{
+    return m_data->defaultPrefetchDepth;
+}
+
+void SqlConnection::SetDefaultPrefetchDepth(std::size_t depth) noexcept
+{
+    m_data->defaultPrefetchDepth = depth;
+}
+
 void SqlConnection::EnableAsync(Async::IExecutor& dbWorkers, Async::IResumeScheduler& resume)
 {
     // TODO(async): once the native event backend lands, select it here via a per-connection
@@ -218,6 +230,8 @@ bool SqlConnection::Connect(SqlConnectionDataSource const& info) noexcept
 {
     ZoneScopedN("SqlConnection::Connect(DataSource)");
     EnsureHandlesAllocated();
+
+    m_data->defaultPrefetchDepth = info.defaultPrefetchDepth;
 
     if (m_hDbc)
         SQLDisconnect(m_hDbc);

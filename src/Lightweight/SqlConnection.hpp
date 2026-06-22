@@ -184,6 +184,22 @@ class SqlConnection final
     /// @return `true` if narrow character data round-trips byte-exact on that backend.
     [[nodiscard]] static bool RoundTripsNarrowTextByteExact(SqlServerType serverType) noexcept;
 
+    /// @brief The default block-prefetch depth applied to statements created on this connection.
+    ///
+    /// Classic per-row fetch loops (`while (cursor.FetchRow()) ...`, @c SqlRowIterator,
+    /// @c SqlVariantRowCursor) transparently request this many rows per @c SQLFetchScroll round-trip
+    /// instead of issuing one @c SQLFetch per row. A value <= 1 disables prefetch. Effective only when
+    /// @ref SupportsNativeRowArrayFetch is true; otherwise statements fall back to per-row fetching.
+    ///
+    /// @return The configured default prefetch depth (defaults to @ref PrefetchDepthDefault).
+    [[nodiscard]] LIGHTWEIGHT_API std::size_t DefaultPrefetchDepth() const noexcept;
+
+    /// @brief Sets the default block-prefetch depth for statements created on this connection.
+    ///
+    /// @param depth Rows to request per @c SQLFetchScroll round-trip on the transparent prefetch path;
+    ///              a value <= 1 disables prefetch (restoring one @c SQLFetch per row).
+    LIGHTWEIGHT_API void SetDefaultPrefetchDepth(std::size_t depth) noexcept;
+
     /// Creates a new query builder for the given table, compatible with the current connection.
     ///
     /// @param table The table to query.

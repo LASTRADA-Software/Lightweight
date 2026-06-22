@@ -73,6 +73,7 @@ set(SOURCE_FILES
     SqlRealNameTests.cpp
     SqlSchemaDbTests.cpp
     SqlStatementBatchFetchTests.cpp
+    SqlStatementPrefetchTests.cpp
     SqlStatementDbTests.cpp
     SqlTransactionTests.cpp
     ThreadSafeQueueTests.cpp

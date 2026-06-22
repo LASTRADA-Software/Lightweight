@@ -1008,6 +1008,10 @@ TEMPLATE_LIST_TEST_CASE("SqlDataBinder specializations", "[SqlDataBinder]", Type
         }
 
         auto stmt = SqlStatement { conn };
+        // This suite exercises the per-cell SqlDataBinder round-trip (including custom binders with
+        // PostProcess hooks that the block-prefetch fast path intentionally defers to the per-row path).
+        // Disable transparent prefetch so every fetch exercises the single-row binder under test.
+        stmt.Connection().SetDefaultPrefetchDepth(1);
 
         auto const sqlColumnType = [&]() -> std::string {
             if constexpr (requires { TestTypeTraits<TestType>::sqlColumnTypeNameOverride; })
