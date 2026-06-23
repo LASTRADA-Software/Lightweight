@@ -5,6 +5,7 @@
 #include "Api.hpp"
 
 #include <chrono>
+#include <cstddef>
 #include <format>
 #include <map>
 #include <string>
@@ -12,6 +13,15 @@
 
 namespace Lightweight
 {
+
+/// @brief Default block-prefetch depth for new connections: the number of rows a classic per-row
+/// fetch loop requests per @c SQLFetchScroll round-trip on the transparent prefetch path.
+///
+/// Suffixed (not @c DefaultPrefetchDepth) so it does not collide with the
+/// @c SqlConnection::DefaultPrefetchDepth() accessor. A connection's depth can be overridden via
+/// @c SqlConnection::SetDefaultPrefetchDepth or @ref SqlConnectionDataSource::defaultPrefetchDepth;
+/// a value <= 1 disables prefetch.
+constexpr std::size_t PrefetchDepthDefault = 1000;
 
 /// Represents an ODBC connection string.
 struct SqlConnectionString
@@ -62,6 +72,13 @@ struct [[nodiscard]] SqlConnectionDataSource
     std::string password;
     /// The connection timeout duration.
     std::chrono::seconds timeout { 5 };
+    /// @brief Default block-prefetch depth applied to statements created on the resulting connection
+    /// (rows requested per @c SQLFetchScroll round-trip on the transparent per-row fetch path).
+    ///
+    /// A value <= 1 disables prefetch (every classic loop keeps issuing one @c SQLFetch per row).
+    /// Defaults to @c PrefetchDepthDefault. Has effect only on backends whose driver supports
+    /// native row-array fetching (see @c SqlConnection::SupportsNativeRowArrayFetch).
+    std::size_t defaultPrefetchDepth = PrefetchDepthDefault;
 
     /// Constructs a SqlConnectionDataSource from the given connection string.
     LIGHTWEIGHT_API static SqlConnectionDataSource FromConnectionString(SqlConnectionString const& value);

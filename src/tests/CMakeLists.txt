@@ -49,6 +49,7 @@ set(SOURCE_FILES
     DataMapper/MiscTests.cpp
     DataMapper/NamingTests.cpp
     DataMapper/ReadTests.cpp
+    DataMapper/RowWiseFetchTests.cpp
     DataMapper/RelationTests.cpp
     DataMapper/BelongsToStateTests.cpp
     DataMapper/StateTests.cpp
@@ -72,6 +73,7 @@ set(SOURCE_FILES
     SqlRealNameTests.cpp
     SqlSchemaDbTests.cpp
     SqlStatementBatchFetchTests.cpp
+    SqlStatementPrefetchTests.cpp
     SqlStatementDbTests.cpp
     SqlTransactionTests.cpp
     ThreadSafeQueueTests.cpp

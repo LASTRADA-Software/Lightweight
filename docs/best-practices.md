@@ -106,6 +106,25 @@ single response.
 This will help to reduce the response time and the load on the server, and improve the performance of your
 application.
 
+### Let block-prefetch cut network round-trips
+
+Per-row fetch loops issue one `SQLFetch` (one network round-trip) per row. Lightweight transparently
+fetches rows in blocks (ODBC row-array binding) so a large result set costs `ceil(rows / depth)`
+round-trips instead of one per row — see [Transparent block-prefetch](usage.md). It is on by default
+(`Lightweight::PrefetchDepthDefault`, 1000 rows) and tuned per connection:
+
+```cpp
+connection.SetDefaultPrefetchDepth(1000); // rows per SQLFetchScroll round-trip; <= 1 disables
+```
+
+Keep in mind:
+
+- It engages only for **fixed-width numeric/temporal** result sets; result sets with character,
+  `GUID`, `NUMERIC`, `TIME`, binary or LOB columns transparently stay on the per-row path.
+- An active cursor reads ahead up to one block and holds a few MB of buffers, so set the depth to `1`
+  on a connection used for cursors you intend to abandon early or where memory is tight.
+- It does not change results — values are identical to the per-row path.
+
 ## SQL Server Variation Challenges
 
 ### 64-bit Integer Handling in Oracle Database

@@ -10,9 +10,13 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <deque>
 #include <format>
+#include <functional>
+#include <limits>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -30,6 +34,24 @@ struct SqlStatement::Data
         batchStagingBuffers; // Holds temporary scratch buffers for batch input parameter binders
     std::vector<std::function<void()>> postExecuteCallbacks;
     std::vector<std::function<void()>> postProcessOutputColumnCallbacks;
+
+    /// @brief Lifecycle of the transparent block-prefetch on the current result set.
+    enum class PrefetchMode : std::uint8_t
+    {
+        Unarmed,  //!< not yet decided (before the first FetchRow of a result set)
+        Active,   //!< serving rows from the RowArrayCursor block buffer
+        Disabled, //!< per-row SQLFetch path (prefetch off, or result set ineligible)
+    };
+    PrefetchMode prefetchMode = PrefetchMode::Unarmed;
+    // unique_ptr keeps the cursor's address stable: RowArrayCursor is non-movable and binds raw
+    // pointers into its own members, so it must never be relocated after construction.
+    std::unique_ptr<RowArrayCursor> prefetch;
+    std::size_t prefetchBlockRows = 0;                        // rows materialized by the last FetchArray()
+    std::size_t prefetchRowInBlock = 0;                       // 0-based offset of the current logical row within that block
+    std::vector<std::function<void()>> prefetchScatters;      // copy current block cell -> bound output
+    std::vector<std::function<void()>> prefetchDeferredBinds; // real SQLBindCol thunks for the fallback
+    bool prefetchBindingUnsupported = false;                  // a bound output column's target type cannot be served
+                                                              // from the block buffer, so the set keeps the per-row path
 
     static Data const NoData;
 };
@@ -184,6 +206,12 @@ SqlStatement::SqlStatement():
                  .batchStagingBuffers = {},
                  .postExecuteCallbacks = {},
                  .postProcessOutputColumnCallbacks = {},
+                 .prefetchMode = Data::PrefetchMode::Unarmed,
+                 .prefetch = {},
+                 .prefetchBlockRows = 0,
+                 .prefetchRowInBlock = 0,
+                 .prefetchScatters = {},
+                 .prefetchDeferredBinds = {},
              },
 
              [](Data* data) {
@@ -437,6 +465,266 @@ size_t SqlStatement::LastInsertId(std::string_view tableName)
     return ExecuteDirectScalar<size_t>(Query(tableName).LastInsertId()).value_or(0);
 }
 
+namespace
+{
+    /// Sentinel for "no current row yet" in the block-prefetch row cursor (before the first row of a
+    /// result set is served).
+    constexpr std::size_t NoPrefetchRow = (std::numeric_limits<std::size_t>::max)();
+
+    /// @brief Whether a column's reported SQL type maps to a representation the block-prefetch path can
+    /// serve faithfully on the current backend — the natural-mapping allowlist.
+    ///
+    /// The fixed-width classes (integer, floating-point, DATE, TIMESTAMP) and @c SQL_GUID are bound by
+    /// @ref RowArrayCursor as a dedicated, encoding-independent C representation (@c Int64 / @c Double /
+    /// @c Date / @c Timestamp / @c Guid) that @ref SqlStatement::ConvertCell reconstructs exactly on every
+    /// backend.
+    ///
+    /// Character columns deliberately keep the per-row @c SQLFetch path. Faithful block reconstruction of
+    /// text is not achievable uniformly across the supported backends: MS SQL Server's narrow reads return
+    /// the client codepage (not UTF-8) with a target-width-dependent representation, and SQLite's dynamic
+    /// typing reports text columns with an unreliable (often too-small, and unenforced) column size, which
+    /// would truncate a longer value during a bulk fetch. NUMERIC/DECIMAL (which several drivers surface as
+    /// text), TIME, binary and LOB columns likewise keep the per-row path, where the dedicated single-row
+    /// binders already handle their representation. See docs/best-practices.md.
+    /// @param sqlType The @c SQL_* type code reported by @c SQLDescribeCol.
+    constexpr bool PrefetchableSqlType(SQLSMALLINT sqlType) noexcept
+    {
+        switch (sqlType)
+        {
+            case SQL_BIT:
+            case SQL_TINYINT:
+            case SQL_SMALLINT:
+            case SQL_INTEGER:
+            case SQL_BIGINT:
+            case SQL_REAL:
+            case SQL_FLOAT:
+            case SQL_DOUBLE:
+            case SQL_TYPE_DATE:
+            case SQL_DATE:
+            case SQL_TYPE_TIMESTAMP:
+            case SQL_TIMESTAMP:
+            case SQL_GUID:
+                return true;
+            default:
+                return false;
+        }
+    }
+} // namespace
+
+std::size_t SqlStatement::EffectivePrefetchDepth() const noexcept
+{
+    // Gate the connection's configured depth by the driver's row-array capability; on backends that do
+    // not honour SQL_ATTR_ROW_ARRAY_SIZE this collapses to 1 (disabled), so the per-row path is kept.
+    if (!m_connection || !m_connection->SupportsNativeRowArrayFetch())
+        return 1;
+    return m_connection->DefaultPrefetchDepth();
+}
+
+bool SqlStatement::IsPrefetchActive() const noexcept
+{
+    return m_data->prefetchMode == Data::PrefetchMode::Active;
+}
+
+RowArrayCursor const& SqlStatement::PrefetchCursorRef() const noexcept
+{
+    return *m_data->prefetch;
+}
+
+std::size_t SqlStatement::PrefetchRowInBlock() const noexcept
+{
+    return m_data->prefetchRowInBlock;
+}
+
+bool SqlStatement::ShouldRecordPrefetchBinding() const noexcept
+{
+    // Record scatter/deferred closures (rather than binding immediately) whenever prefetch is enabled
+    // and has not already fallen back to the per-row path for this result set.
+    return EffectivePrefetchDepth() > 1 && m_data->prefetchMode != Data::PrefetchMode::Disabled;
+}
+
+void SqlStatement::ResetPrefetchBindings() noexcept
+{
+    m_data->prefetchScatters.clear();
+    m_data->prefetchDeferredBinds.clear();
+    m_data->prefetchBindingUnsupported = false;
+}
+
+void SqlStatement::MarkPrefetchBindingUnsupported() noexcept
+{
+    m_data->prefetchBindingUnsupported = true;
+}
+
+void SqlStatement::RecordPrefetchColumn(SQLUSMALLINT column,
+                                        std::function<void()> scatter,
+                                        std::function<void()> deferredBind)
+{
+    // Slots are indexed by (column - 1); re-binding a column overwrites its slot instead of appending.
+    // The two vectors are resized independently: once prefetch is armed Active the deferred-bind vector
+    // is emptied (its thunks are unused on the fast path) while the scatter vector is retained, so they
+    // can legitimately differ in size when a column is re-bound mid-iteration.
+    auto const index = static_cast<std::size_t>(column - 1);
+    if (m_data->prefetchScatters.size() <= index)
+        m_data->prefetchScatters.resize(index + 1);
+    if (m_data->prefetchDeferredBinds.size() <= index)
+        m_data->prefetchDeferredBinds.resize(index + 1);
+    m_data->prefetchScatters[index] = std::move(scatter);
+    m_data->prefetchDeferredBinds[index] = std::move(deferredBind);
+}
+
+void SqlStatement::ResetPrefetchState() noexcept
+{
+    m_data->prefetch.reset(); // dtor restores SQL_ATTR_ROW_ARRAY_SIZE/bind state on the handle
+    m_data->prefetchScatters.clear();
+    m_data->prefetchDeferredBinds.clear();
+    m_data->prefetchBlockRows = 0;
+    m_data->prefetchRowInBlock = NoPrefetchRow;
+    m_data->prefetchBindingUnsupported = false;
+    m_data->prefetchMode = Data::PrefetchMode::Unarmed;
+}
+
+void SqlStatement::ArmPrefetchOnFirstFetch() noexcept
+{
+    if (m_data->prefetchMode != Data::PrefetchMode::Unarmed)
+        return;
+
+    // Disable the fast path: keep the deferred real-bind thunks (a bound-column loop relies on them and
+    // they are flushed by TryFetchRow, which can surface a bind error), but drop the unused scatters.
+    auto const disablePrefetch = [this] {
+        m_data->prefetchMode = Data::PrefetchMode::Disabled;
+        m_data->prefetchScatters.clear();
+    };
+
+    auto const depth = EffectivePrefetchDepth();
+    if (depth <= 1 || m_data->prefetchBindingUnsupported)
+    {
+        // Disabled outright, or a bound output column has a target type the block buffer cannot
+        // reconstruct (e.g. SqlNumeric, SqlTime, binary, or a user type) — keep the per-row path.
+        disablePrefetch();
+        return;
+    }
+
+    try
+    {
+        // Decide eligibility from result-set metadata only (SQLDescribeCol — no SQLBindCol, no cursor
+        // close). Constructing a RowArrayCursor just to inspect it and then destroying it would close the
+        // cursor (its destructor calls SQLFreeStmt(SQL_CLOSE)), breaking the per-row fallback; so the
+        // cursor is built only once the result set is known to be eligible.
+        SQLSMALLINT numColumns = 0;
+        if (!SQL_SUCCEEDED(SQLNumResultCols(m_hStmt, &numColumns)) || numColumns <= 0)
+        {
+            disablePrefetch();
+            return;
+        }
+        for (auto const column: std::views::iota(SQLUSMALLINT(1), static_cast<SQLUSMALLINT>(numColumns + 1)))
+        {
+            SQLSMALLINT sqlType = 0;
+            SQLULEN columnSize = 0;
+            SQLSMALLINT decimalDigits = 0;
+            SQLSMALLINT nullable = 0;
+            SQLSMALLINT nameLen = 0;
+            SQLWCHAR nameBuffer[256] = {};
+            if (!SQL_SUCCEEDED(SQLDescribeColW(m_hStmt,
+                                               column,
+                                               nameBuffer,
+                                               static_cast<SQLSMALLINT>(std::size(nameBuffer)),
+                                               &nameLen,
+                                               &sqlType,
+                                               &columnSize,
+                                               &decimalDigits,
+                                               &nullable)))
+            {
+                disablePrefetch();
+                return;
+            }
+            if (!PrefetchableSqlType(sqlType))
+            {
+                disablePrefetch();
+                return;
+            }
+        }
+
+        // Eligible by type: bind the block buffers. A RowArrayCursor ctor failure here throws before it
+        // mutates the statement, so the catch below leaves the cursor open for the per-row fallback.
+        m_data->prefetch = std::make_unique<RowArrayCursor>(*this, depth);
+        m_data->prefetchBlockRows = 0;
+        m_data->prefetchRowInBlock = NoPrefetchRow;
+        m_data->prefetchMode = Data::PrefetchMode::Active;
+        m_data->prefetchDeferredBinds.clear(); // eligible: scatters serve reads, deferred binds unused
+    }
+    catch (...)
+    {
+        // The RowArrayCursor ctor declined the set (RowArrayCursorUnsupported) or failed mid-setup. Drop
+        // any cursor and defensively restore single-row attributes WITHOUT closing the cursor, so the
+        // per-row path still sees the open result set.
+        m_data->prefetch.reset();
+        SQLFreeStmt(m_hStmt, SQL_UNBIND);
+        SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROW_ARRAY_SIZE, OdbcIntAttr(1), 0);
+        SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROW_BIND_TYPE, OdbcIntAttr(SQL_BIND_BY_COLUMN), 0);
+        SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROW_STATUS_PTR, nullptr, 0);
+        SQLSetStmtAttr(m_hStmt, SQL_ATTR_ROWS_FETCHED_PTR, nullptr, 0);
+        disablePrefetch();
+    }
+}
+
+void SqlStatement::RequirePrefetchColumnInRange(RowArrayCursor const& cursor, SQLUSMALLINT column) const
+{
+    if (column == 0 || static_cast<std::size_t>(column) > cursor.ColumnCount())
+        throw std::invalid_argument { std::format(
+            "SqlStatement: result column index {} is out of range (1..{})", column, cursor.ColumnCount()) };
+}
+
+SqlVariant SqlStatement::MakePrefetchVariantCell(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column) const
+{
+    // Mirror SqlDataBinder<SqlVariant>::GetColumn's alternative selection so a prefetched SqlVariant
+    // compares equal to one read on the per-row path. Only the prefetch allowlist's SQL types reach
+    // here (binary/LOB/TIME/NUMERIC keep the per-row binder), so the switch is intentionally narrow.
+    if (cursor.IsCellNull(row, column))
+        return SqlVariant { SqlNullValue };
+
+    auto const serverType = m_connection ? m_connection->ServerType() : SqlServerType::UNKNOWN;
+
+    switch (cursor.ColumnSqlType(column))
+    {
+        case SQL_BIT:
+            return SqlVariant { SqlVariant::InnerType { static_cast<bool>(cursor.GetI64(row, column).value_or(0)) } };
+        case SQL_TINYINT:
+            return SqlVariant { SqlVariant::InnerType { static_cast<int8_t>(cursor.GetI64(row, column).value_or(0)) } };
+        case SQL_SMALLINT:
+            return SqlVariant { SqlVariant::InnerType { static_cast<short>(cursor.GetI64(row, column).value_or(0)) } };
+        case SQL_INTEGER:
+            return SqlVariant { SqlVariant::InnerType { static_cast<int>(cursor.GetI64(row, column).value_or(0)) } };
+        case SQL_BIGINT:
+            return SqlVariant { SqlVariant::InnerType { static_cast<long long>(cursor.GetI64(row, column).value_or(0)) } };
+        case SQL_REAL:
+            return SqlVariant { SqlVariant::InnerType { static_cast<float>(cursor.GetF64(row, column).value_or(0.0)) } };
+        case SQL_FLOAT:
+        case SQL_DOUBLE:
+            return SqlVariant { SqlVariant::InnerType { cursor.GetF64(row, column).value_or(0.0) } };
+        case SQL_CHAR:
+        case SQL_VARCHAR:
+        case SQL_WCHAR:
+        case SQL_WVARCHAR: {
+            auto text = cursor.GetString(row, column).value_or(std::string {});
+            // The SQLite driver surfaces GUID columns as (W)VARCHAR; match the binder's heuristic.
+            if (serverType == SqlServerType::SQLITE)
+                if (auto const maybeGuid = SqlGuid::TryParse(text); maybeGuid)
+                    return SqlVariant { SqlVariant::InnerType { *maybeGuid } };
+            return SqlVariant { SqlVariant::InnerType { std::move(text) } };
+        }
+        case SQL_TYPE_DATE:
+        case SQL_DATE:
+            return SqlVariant { SqlVariant::InnerType { cursor.GetDate(row, column).value_or(SqlDate {}) } };
+        case SQL_TYPE_TIMESTAMP:
+        case SQL_TIMESTAMP:
+            return SqlVariant { SqlVariant::InnerType { cursor.GetTimestamp(row, column).value_or(SqlDateTime {}) } };
+        case SQL_GUID:
+            return SqlVariant { SqlVariant::InnerType { cursor.GetGuid(row, column).value_or(SqlGuid {}) } };
+        default:
+            // Unreachable: arming gates the prefetch path to the SQL types above.
+            return SqlVariant { SqlNullValue };
+    }
+}
+
 // Fetches the next row of the result set.
 bool SqlStatement::FetchRow()
 {
@@ -452,8 +740,101 @@ bool SqlStatement::FetchRow()
         throw SqlException(errorInfo);
 }
 
+std::expected<bool, SqlErrorInfo> SqlStatement::FetchRowPrefetched() noexcept
+{
+    // Advance to the next logical row. prefetchRowInBlock holds the *current* row (NoPrefetchRow before
+    // the first fetch), so GetColumn/scatters can read it while inside the caller's loop body.
+    auto const nextRow = m_data->prefetchRowInBlock == NoPrefetchRow ? std::size_t { 0 } : m_data->prefetchRowInBlock + 1;
+
+    if (nextRow >= m_data->prefetchBlockRows)
+    {
+        // The current block is exhausted: pull the next one with a single SQLFetchScroll round-trip.
+        try
+        {
+            m_data->prefetchBlockRows = m_data->prefetch->FetchArray();
+        }
+        catch (SqlException const& error)
+        {
+            return MakeUnexpected(error.info(), std::source_location::current());
+        }
+        catch (...)
+        {
+            return MakeUnexpected(LastError(), std::source_location::current());
+        }
+        SqlLogger::GetLogger().OnFetchBlock(m_data->prefetchBlockRows);
+        if (m_data->prefetchBlockRows == 0)
+        {
+            // End of result set. Drop the array binding now and switch to Disabled so a stray fetch after
+            // EOF takes the (closed-cursor) per-row path rather than re-arming on a dead handle. The full
+            // reset to Unarmed happens in CloseCursor when the result cursor is torn down.
+            m_data->prefetch.reset();
+            m_data->prefetchScatters.clear();
+            m_data->prefetchDeferredBinds.clear();
+            m_data->prefetchRowInBlock = NoPrefetchRow;
+            m_data->prefetchMode = Data::PrefetchMode::Disabled;
+            SQLCloseCursor(m_hStmt);
+            m_data->postProcessOutputColumnCallbacks.clear();
+            SqlLogger::GetLogger().OnFetchEnd();
+            return false;
+        }
+        m_data->prefetchRowInBlock = 0;
+    }
+    else
+    {
+        m_data->prefetchRowInBlock = nextRow;
+    }
+
+    // Copy the current block row into any bound output columns (the bound-column loop scatters).
+    try
+    {
+        for (auto const& scatter: m_data->prefetchScatters)
+            if (scatter)
+                scatter();
+    }
+    catch (SqlException const& error)
+    {
+        return MakeUnexpected(error.info(), std::source_location::current());
+    }
+    catch (...)
+    {
+        return MakeUnexpected(LastError(), std::source_location::current());
+    }
+    SqlLogger::GetLogger().OnFetchRow();
+    return true;
+}
+
 std::expected<bool, SqlErrorInfo> SqlStatement::TryFetchRow(std::source_location location) noexcept
 {
+    if (m_data->prefetchMode == Data::PrefetchMode::Unarmed)
+        ArmPrefetchOnFirstFetch();
+
+    if (m_data->prefetchMode == Data::PrefetchMode::Active)
+        return FetchRowPrefetched();
+
+    // Disabled (prefetch off, or the result set was ineligible). A bound-column loop deferred its real
+    // SQLBindCol calls pending that decision; issue them once now so this and every subsequent SQLFetch
+    // materializes into the caller's bound storage. A bind error surfaces here so FetchRow throws as it
+    // would have at BindOutputColumns time on the non-prefetch path.
+    if (!m_data->prefetchDeferredBinds.empty())
+    {
+        auto deferredBinds = std::move(m_data->prefetchDeferredBinds);
+        m_data->prefetchDeferredBinds.clear();
+        try
+        {
+            for (auto const& deferredBind: deferredBinds)
+                if (deferredBind)
+                    deferredBind();
+        }
+        catch (SqlException const& error)
+        {
+            return MakeUnexpected(error.info(), location);
+        }
+        catch (...)
+        {
+            return MakeUnexpected(LastError(), location);
+        }
+    }
+
     auto const sqlResult = SQLFetch(m_hStmt);
     switch (sqlResult)
     {
@@ -571,6 +952,7 @@ RowArrayCursor::RowArrayCursor(SqlStatement& stmt, std::size_t arrayDepth):
                                                &nullable));
 
         BoundColumn boundColumn;
+        boundColumn.sqlType = sqlType;
         if (IsIntegerSqlType(sqlType))
         {
             boundColumn.type = BoundType::Int64;
@@ -748,6 +1130,24 @@ std::size_t RowArrayCursor::FetchArray()
 std::size_t RowArrayCursor::ColumnCount() const noexcept
 {
     return m_columns.size();
+}
+
+RowArrayCursor::BoundType RowArrayCursor::ColumnBoundType(SQLUSMALLINT column) const
+{
+    return m_columns.at(column - 1).type;
+}
+
+SQLSMALLINT RowArrayCursor::ColumnSqlType(SQLUSMALLINT column) const
+{
+    return m_columns.at(column - 1).sqlType;
+}
+
+bool RowArrayCursor::IsCellNull(std::size_t rowInBatch, SQLUSMALLINT column) const
+{
+    if (rowInBatch >= m_lastFetched)
+        throw std::out_of_range { std::format(
+            "RowArrayCursor: rowInBatch {} >= rowsFetched {}", rowInBatch, m_lastFetched) };
+    return m_columns.at(column - 1).indicators[rowInBatch] == SQL_NULL_DATA;
 }
 
 std::size_t RowArrayCursor::ArrayDepth() const noexcept

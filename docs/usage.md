@@ -32,6 +32,38 @@ while (stmt.FetchRow())
 }
 ```
 
+## Transparent block-prefetch (fewer network round-trips)
+
+Classic per-row fetch loops like the one above issue **one `SQLFetch` per row**, i.e. one network
+round-trip per row. On TCP-backed drivers (Microsoft SQL Server, PostgreSQL) that latency dominates the
+wall-clock time of large result sets.
+
+Lightweight transparently reduces these round-trips: on the first `FetchRow()` of a result set it
+inspects the columns and, when eligible, fetches whole **blocks** of rows per `SQLFetchScroll`
+round-trip (ODBC row-array binding) and serves your `FetchRow()` / `GetColumn<T>()` calls from that
+buffer. **No code change is required** — the loops above, `SqlRowIterator<T>`, `SqlVariantRowCursor`
+and the `DataMapper` all benefit automatically.
+
+The depth is a connection-level setting (default `Lightweight::PrefetchDepthDefault`, 1000 rows). A
+value `<= 1` disables prefetch and restores one `SQLFetch` per row:
+
+```cpp
+auto conn = SqlConnection {};
+conn.SetDefaultPrefetchDepth(2000); // request up to 2000 rows per SQLFetchScroll round-trip
+conn.SetDefaultPrefetchDepth(1);    // disable prefetch for this connection
+```
+
+Prefetch engages only for result sets whose columns are **fixed-width numeric, temporal, or `GUID`**
+types (integers, floating point, `DATE`, `TIMESTAMP`/`DATETIME`, and native `GUID`/`uniqueidentifier`/
+`uuid`) on drivers that support native row-array fetching (Microsoft SQL Server, PostgreSQL, SQLite).
+Result sets that contain character/text, `NUMERIC`/`DECIMAL`, `TIME`, binary or LOB columns transparently
+keep the per-row path: faithful block reconstruction of those is not achievable uniformly across backends
+(e.g. Microsoft SQL Server returns narrow text in the client codepage rather than UTF-8, and SQLite's
+dynamic typing reports text/`NUMERIC` columns with an unreliable, unenforced size), so the dedicated
+single-row binders handle them. Memory is bounded to a few MB per active cursor (the depth is auto-clamped
+to that budget), and prefetch reads ahead up to one block, so a loop that stops early over-reads at most
+one block.
+
 ## Prepared Statements
 
 You can also use prepared statements to execute queries, for example
