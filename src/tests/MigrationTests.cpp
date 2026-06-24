@@ -2076,7 +2076,9 @@ TEST_CASE("ToSql: lup-truncate off leaves oversize INSERT values intact", "[SqlM
     (void) Lightweight::ToSql(formatter, SqlMigrationPlanElement { create }, context);
 
     SqlInsertDataPlan insert {
-        .schemaName = "", .tableName = "T", .columns = { { "n", Lightweight::SqlVariant(std::string("hellooo")) } }, // 7 > 5
+        .schemaName = "",
+        .tableName = "T",
+        .columns = { { "n", Lightweight::SqlVariant(std::string("hellooo")) } }, // 7 > 5
     };
 
     CapturingWarningLogger capture;
@@ -2384,9 +2386,8 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "Fold: drop table cleans residual refe
     fold_test::FoldStub<20'10'02'00'00'02> m2 { "create idx on temp", [](SqlMigrationQueryBuilder& plan) {
                                                    plan.CreateIndex("idx_temp_id", "temp_table", { "id" });
                                                } };
-    fold_test::FoldStub<20'10'02'00'00'03> m3 { "drop temp", [](SqlMigrationQueryBuilder& plan) {
-                                                   plan.DropTable("temp_table");
-                                               } };
+    fold_test::FoldStub<20'10'02'00'00'03> m3 { "drop temp",
+                                                [](SqlMigrationQueryBuilder& plan) { plan.DropTable("temp_table"); } };
 
     auto const fold = mgr.FoldRegisteredMigrations(SqlQueryFormatter::Sqlite());
 
