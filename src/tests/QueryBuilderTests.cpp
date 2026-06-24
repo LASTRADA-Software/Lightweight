@@ -1423,6 +1423,53 @@ TEST_CASE_METHOD(SqlTestFixture, "AlterTable AlterColumn", "[SqlQueryBuilder][Mi
     }
 }
 
+TEST_CASE_METHOD(SqlTestFixture, "AlterTable AlterColumn SQL", "[SqlQueryBuilder][Migration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // SQLite has no `ALTER TABLE … ALTER COLUMN`, so the formatter emits an ALTER_COLUMN
+    // sentinel that the migration executor turns into a table rebuild. The commented-out
+    // MSSQL-style ALTER on the second line keeps dry-run output readable. MS SQL Server and
+    // PostgreSQL alter the column in place.
+    SECTION("widen to TEXT, stay nullable (the shape that regressed CI on SQLite)")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                auto migration = q.Migration();
+                migration.AlterTable("Table").AlterColumn("column", Text {}, SqlNullable::Null);
+                return migration.GetPlan();
+            },
+            QueryExpectations {
+                .sqlite = R"sql(
+                            -- LIGHTWEIGHT_SQLITE_GUARD: ALTER_COLUMN "Table" "column" "TEXT" "NULL"
+                            -- ALTER TABLE "Table" ALTER COLUMN "column" TEXT NULL;
+                        )sql",
+                .postgres =
+                    R"sql(ALTER TABLE "Table" ALTER COLUMN "column" TYPE TEXT, ALTER COLUMN "column" DROP NOT NULL;)sql",
+                .sqlServer = R"sql(ALTER TABLE "Table" ALTER COLUMN "column" VARCHAR(MAX) NULL;)sql",
+            });
+    }
+
+    SECTION("change a parameterized type to NOT NULL")
+    {
+        CheckSqlQueryBuilder(
+            [](SqlQueryBuilder& q) {
+                auto migration = q.Migration();
+                migration.AlterTable("Table").AlterColumn("column", Varchar { 200 }, SqlNullable::NotNull);
+                return migration.GetPlan();
+            },
+            QueryExpectations {
+                .sqlite = R"sql(
+                            -- LIGHTWEIGHT_SQLITE_GUARD: ALTER_COLUMN "Table" "column" "VARCHAR(200)" "NOT NULL"
+                            -- ALTER TABLE "Table" ALTER COLUMN "column" VARCHAR(200) NOT NULL;
+                        )sql",
+                .postgres =
+                    R"sql(ALTER TABLE "Table" ALTER COLUMN "column" TYPE VARCHAR(200), ALTER COLUMN "column" SET NOT NULL;)sql",
+                .sqlServer = R"sql(ALTER TABLE "Table" ALTER COLUMN "column" VARCHAR(200) NOT NULL;)sql",
+            });
+    }
+}
+
 TEST_CASE_METHOD(SqlTestFixture, "AlterTable multiple AddColumn calls", "[SqlQueryBuilder][Migration]")
 {
     using namespace SqlColumnTypeDefinitions;

@@ -138,6 +138,15 @@ class SqlConnection final
     /// Retrieves a query formatter suitable for the SQL server being connected.
     [[nodiscard]] SqlQueryFormatter const& QueryFormatter() const noexcept;
 
+    /// @brief Whether this backend must rebuild a table to apply an `ALTER TABLE` schema change it
+    /// cannot express in place (foreign-key add/drop, or column type/nullability change).
+    ///
+    /// The migration executor consults this to decide whether a `-- LIGHTWEIGHT_SQLITE_GUARD:` sentinel
+    /// must be turned into a table rebuild (`true` for SQLite) or executed directly. Exposed on the
+    /// connection so capability decisions go through the backend, delegating the dialect knowledge to
+    /// the query formatter.
+    [[nodiscard]] LIGHTWEIGHT_API bool RequiresTableRebuildForSchemaChange() const noexcept;
+
     /// @brief Whether this connection's ODBC driver supports native parameter-array binding
     /// (`SQL_ATTR_PARAMSET_SIZE` > 1) for batched row-wise execution.
     ///

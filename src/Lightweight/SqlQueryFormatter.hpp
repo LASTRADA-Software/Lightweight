@@ -178,13 +178,14 @@ class [[nodiscard]] LIGHTWEIGHT_API SqlQueryFormatter
     /// Retrieves the SQL query formatter for the given SqlServerType.
     static SqlQueryFormatter const* Get(SqlServerType serverType) noexcept;
 
-    /// @brief Whether the dialect must rebuild a table to add or drop a foreign-key
-    /// constraint (i.e. cannot express it via `ALTER TABLE … ADD/DROP CONSTRAINT`).
+    /// @brief Whether the dialect must rebuild a table to apply an `ALTER TABLE` schema change that it
+    /// cannot express in place — adding/dropping a foreign-key constraint, or altering a column's
+    /// type/nullability (`ALTER TABLE … ADD/DROP CONSTRAINT` / `… ALTER COLUMN`).
     ///
-    /// SQLite returns `true`; every other backend defaults to `false`. The migration
-    /// executor consults this to decide whether to take the table-rebuild path on
-    /// `AlterTable` steps that touch foreign keys.
-    [[nodiscard]] virtual bool RequiresTableRebuildForForeignKeyChange() const noexcept
+    /// SQLite returns `true`; every other backend defaults to `false`. The migration executor consults
+    /// this (via @ref SqlConnection::RequiresTableRebuildForSchemaChange) to decide whether to take the
+    /// table-rebuild path for the `-- LIGHTWEIGHT_SQLITE_GUARD:` sentinels these dialects emit.
+    [[nodiscard]] virtual bool RequiresTableRebuildForSchemaChange() const noexcept
     {
         return false;
     }

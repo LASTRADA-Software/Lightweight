@@ -25,12 +25,12 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
   public:
-    /// SQLite has no native `ALTER TABLE … ADD/DROP CONSTRAINT`, so foreign-key
-    /// changes route through the migration executor's table-rebuild path. The
-    /// formatter signals that intent by emitting `-- LIGHTWEIGHT_SQLITE_GUARD:`
-    /// sentinels and overriding this hook so the executor takes the rebuild
-    /// branch instead of executing the (commented-out) sentinel script directly.
-    [[nodiscard]] bool RequiresTableRebuildForForeignKeyChange() const noexcept override
+    /// SQLite has no native `ALTER TABLE … ADD/DROP CONSTRAINT` and no `… ALTER COLUMN`, so foreign-key
+    /// changes and column type/nullability changes route through the migration executor's table-rebuild
+    /// path. The formatter signals that intent by emitting `-- LIGHTWEIGHT_SQLITE_GUARD:` sentinels and
+    /// overriding this hook so the executor takes the rebuild branch instead of executing the
+    /// (commented-out) sentinel script directly.
+    [[nodiscard]] bool RequiresTableRebuildForSchemaChange() const noexcept override
     {
         return true;
     }
@@ -417,6 +417,24 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
     }
 
   private:
+    /// @brief Escape an identifier for embedding inside a `"..."` field of a `LIGHTWEIGHT_SQLITE_GUARD`
+    /// sentinel by doubling embedded double-quotes, so a name containing `"` cannot desync the field
+    /// parsing on the executor side (which decodes `""` back to `"`).
+    /// @param identifier The raw identifier (table or column name).
+    /// @return The escaped text to place between the surrounding sentinel quotes.
+    [[nodiscard]] static std::string EscapeSentinelField(std::string_view identifier)
+    {
+        std::string out;
+        out.reserve(identifier.size());
+        for (auto const ch: identifier)
+        {
+            out += ch;
+            if (ch == '"')
+                out += '"';
+        }
+        return out;
+    }
+
     [[nodiscard]] std::string FormatAlterTableCommand(std::string_view tableName, SqlAlterTableCommand const& command) const
     {
         auto const formatTable = [tableName]() {
@@ -436,12 +454,21 @@ class SQLiteQueryFormatter: public SqlQueryFormatter
                                        ColumnType(actualCommand.columnType),
                                        actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
                 },
-                [&formatTable, this](AlterColumn const& actualCommand) -> std::string {
-                    return std::format(R"(ALTER TABLE {} ALTER COLUMN "{}" {} {};)",
-                                       formatTable(),
-                                       actualCommand.columnName,
-                                       ColumnType(actualCommand.columnType),
-                                       actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL");
+                [&formatTable, tableName, this](AlterColumn const& actualCommand) -> std::string {
+                    // SQLite has no `ALTER TABLE … ALTER COLUMN`. Route through the migration
+                    // executor's table-rebuild path: emit a sentinel carrying the new column
+                    // definition (type + nullability) that the executor recognises and applies by
+                    // recreating the table with the modified column. The commented-out MSSQL-style
+                    // ALTER below keeps dry-run output readable. Identifier fields are `""`-escaped so a
+                    // name containing a double-quote cannot desync the sentinel's field parsing.
+                    return std::format(
+                        R"(-- LIGHTWEIGHT_SQLITE_GUARD: ALTER_COLUMN "{0}" "{1}" "{2}" "{3}"
+-- ALTER TABLE {4} ALTER COLUMN "{1}" {2} {3};)",
+                        EscapeSentinelField(tableName),
+                        EscapeSentinelField(actualCommand.columnName),
+                        ColumnType(actualCommand.columnType),
+                        actualCommand.nullable == SqlNullable::NotNull ? "NOT NULL" : "NULL",
+                        formatTable());
                 },
                 [&formatTable](RenameColumn const& actualCommand) -> std::string {
                     return std::format(R"(ALTER TABLE {} RENAME COLUMN "{}" TO "{}";)",
