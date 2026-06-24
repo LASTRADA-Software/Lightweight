@@ -205,9 +205,9 @@ virtual <a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.h
 <tr class="separator:a9b5cc394c01daeccdafb032bd2da9003"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8513eaca58ba6015cecfd88973c18d4b" id="r_a8513eaca58ba6015cecfd88973c18d4b"><td class="memItemLeft" align="right" valign="top">virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a8513eaca58ba6015cecfd88973c18d4b">QueryServerVersion</a> () const =0</td></tr>
 <tr class="separator:a8513eaca58ba6015cecfd88973c18d4b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4259cbd0861534246ce81a9494caf032" id="r_a4259cbd0861534246ce81a9494caf032"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a4259cbd0861534246ce81a9494caf032">RequiresTableRebuildForForeignKeyChange</a> () const noexcept</td></tr>
-<tr class="memdesc:a4259cbd0861534246ce81a9494caf032"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the dialect must rebuild a table to add or drop a foreign-key constraint (i.e. cannot express it via <code>ALTER TABLE … ADD/DROP CONSTRAINT</code>).  <br /></td></tr>
-<tr class="separator:a4259cbd0861534246ce81a9494caf032"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab39585d3fa5fcd921a0e46afb27ff8d7" id="r_ab39585d3fa5fcd921a0e46afb27ff8d7"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab39585d3fa5fcd921a0e46afb27ff8d7">RequiresTableRebuildForSchemaChange</a> () const noexcept</td></tr>
+<tr class="memdesc:ab39585d3fa5fcd921a0e46afb27ff8d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the dialect must rebuild a table to apply an <code>ALTER TABLE</code> schema change that it cannot express in place — adding/dropping a foreign-key constraint, or altering a column's type/nullability (<code>ALTER TABLE … ADD/DROP CONSTRAINT</code> / <code>… ALTER COLUMN</code>).  <br /></td></tr>
+<tr class="separator:ab39585d3fa5fcd921a0e46afb27ff8d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a09abb2638365ecc1319c35aa8238eb72" id="r_a09abb2638365ecc1319c35aa8238eb72"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html#a09abb2638365ecc1319c35aa8238eb72">SupportsBatchedSchemaIntrospection</a> () const noexcept</td></tr>
 <tr class="memdesc:a09abb2638365ecc1319c35aa8238eb72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether the dialect provides a batched, whole-database schema-introspection fast path that <code>SqlSchema::ReadAllTables</code> can use instead of the per-table ODBC catalog loop.  <br /></td></tr>
 <tr class="separator:a09abb2638365ecc1319c35aa8238eb72"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -524,8 +524,8 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 
 </div>
 </div>
-<a id="a4259cbd0861534246ce81a9494caf032" name="a4259cbd0861534246ce81a9494caf032"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4259cbd0861534246ce81a9494caf032">&#9670;&#160;</a></span>RequiresTableRebuildForForeignKeyChange()</h2>
+<a id="ab39585d3fa5fcd921a0e46afb27ff8d7" name="ab39585d3fa5fcd921a0e46afb27ff8d7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab39585d3fa5fcd921a0e46afb27ff8d7">&#9670;&#160;</a></span>RequiresTableRebuildForSchemaChange()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -534,7 +534,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">virtual bool Lightweight::SqlQueryFormatter::RequiresTableRebuildForForeignKeyChange </td>
+          <td class="memname">virtual bool Lightweight::SqlQueryFormatter::RequiresTableRebuildForSchemaChange </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -547,10 +547,10 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 </table>
 </div><div class="memdoc">
 
-<p>Whether the dialect must rebuild a table to add or drop a foreign-key constraint (i.e. cannot express it via <code>ALTER TABLE … ADD/DROP CONSTRAINT</code>). </p>
-<p>SQLite returns <code>true</code>; every other backend defaults to <code>false</code>. The migration executor consults this to decide whether to take the table-rebuild path on <code>AlterTable</code> steps that touch foreign keys. </p>
+<p>Whether the dialect must rebuild a table to apply an <code>ALTER TABLE</code> schema change that it cannot express in place — adding/dropping a foreign-key constraint, or altering a column's type/nullability (<code>ALTER TABLE … ADD/DROP CONSTRAINT</code> / <code>… ALTER COLUMN</code>). </p>
+<p>SQLite returns <code>true</code>; every other backend defaults to <code>false</code>. The migration executor consults this (via <a class="el" href="../../da/da8/classLightweight_1_1SqlConnection.html#ad03129b17daf9ea6829425473db12877">SqlConnection::RequiresTableRebuildForSchemaChange</a>) to decide whether to take the table-rebuild path for the <code>-- LIGHTWEIGHT_SQLITE_GUARD:</code> sentinels these dialects emit. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00187">187</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00188">188</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -581,7 +581,7 @@ static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>FormatT
 <p>Defaults to <code>false</code>, meaning the generic per-table catalog reader is used. SQL Server returns <code>true</code>: it can answer the entire schema with a handful of <code>sys.*</code> queries, collapsing thousands of per-table round-trips into a few. The batched path must produce byte-identical schema metadata to the legacy path.</p>
 <dl class="section return"><dt>Returns</dt><dd><code>true</code> if the dialect supports the batched fast path, <code>false</code> otherwise. </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00202">202</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00203">203</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -625,7 +625,7 @@ template&lt;typename Range &gt; </div>
 <p>Produces <code>FK_&lt;table&gt;_&lt;col1&gt;[_&lt;col2&gt;…]</code>. A single-column FK collapses to <code>FK_&lt;table&gt;_&lt;col&gt;</code>; a composite FK includes every column so that a composite FK whose first column matches an existing single-column FK doesn't collide on the constraint name (which MSSQL enforces as globally unique per DB).</p>
 <p>Consumers include the SQL Server, PostgreSQL and SQLite formatters — centralising the convention here keeps CREATE/ALTER emission in sync with DROP CONSTRAINT lookup (e.g. <code>SQLiteRebuildDropForeignKey</code>). </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00218">218</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00219">219</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>
@@ -657,7 +657,7 @@ template&lt;typename Range &gt; </div>
 <p>Returns an empty string when the DBMS has no session-level concept of a default schema (SQL Server, SQLite). Callers must skip emission for empty results. PostgreSQL implements this via <code>SET search_path TO ...</code>.</p>
 <p>The <code>schema</code> value is interpolated into the statement; callers must validate it (e.g. whitelist <code>[A-Za-z0-9_]</code>) before invoking. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00239">239</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html#l00240">240</a> of file <a class="el" href="../../df/d13/SqlQueryFormatter_8hpp_source.html">SqlQueryFormatter.hpp</a>.</p>
 
 </div>
 </div>

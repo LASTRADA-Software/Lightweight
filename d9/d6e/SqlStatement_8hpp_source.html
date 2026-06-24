@@ -2174,85 +2174,108 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="line"><a id="l01983" name="l01983"></a><span class="lineno"> 1983</span>    callable(migration);</div>
 <div class="line"><a id="l01984" name="l01984"></a><span class="lineno"> 1984</span>    <span class="keyword">auto</span> <span class="keyword">const</span> queries = migration.GetPlan().ToSql();</div>
 <div class="line"><a id="l01985" name="l01985"></a><span class="lineno"> 1985</span>    ZoneValue(queries.size());</div>
-<div class="line"><a id="l01986" name="l01986"></a><span class="lineno"> 1986</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; query: queries)</div>
-<div class="line"><a id="l01987" name="l01987"></a><span class="lineno"> 1987</span>    {</div>
-<div class="line"><a id="l01988" name="l01988"></a><span class="lineno"> 1988</span>        [[maybe_unused]] <span class="keyword">auto</span> cursor = ExecuteDirect(query, location);</div>
-<div class="line"><a id="l01989" name="l01989"></a><span class="lineno"> 1989</span>    }</div>
-<div class="line"><a id="l01990" name="l01990"></a><span class="lineno"> 1990</span>}</div>
+<div class="line"><a id="l01986" name="l01986"></a><span class="lineno"> 1986</span> </div>
+<div class="line"><a id="l01987" name="l01987"></a><span class="lineno"> 1987</span>    <span class="comment">// A comment-only `-- LIGHTWEIGHT_SQLITE_GUARD:` script (e.g. ALTER COLUMN or a foreign-key change on</span></div>
+<div class="line"><a id="l01988" name="l01988"></a><span class="lineno"> 1988</span>    <span class="comment">// SQLite) carries no executable DDL: the schema change is performed by the migration executor&#39;s</span></div>
+<div class="line"><a id="l01989" name="l01989"></a><span class="lineno"> 1989</span>    <span class="comment">// table-rebuild path, which only runs via MigrationManager. Executing such a script directly here</span></div>
+<div class="line"><a id="l01990" name="l01990"></a><span class="lineno"> 1990</span>    <span class="comment">// would silently do nothing, so fail loudly and point at the supported entry point instead.</span></div>
+<div class="line"><a id="l01991" name="l01991"></a><span class="lineno"> 1991</span>    <span class="keyword">auto</span> <span class="keyword">const</span> isCommentOnlyGuardScript = [](std::string_view script) {</div>
+<div class="line"><a id="l01992" name="l01992"></a><span class="lineno"> 1992</span>        <span class="keyword">constexpr</span> std::string_view marker = <span class="stringliteral">&quot;-- LIGHTWEIGHT_SQLITE_GUARD:&quot;</span>;</div>
+<div class="line"><a id="l01993" name="l01993"></a><span class="lineno"> 1993</span>        <span class="keywordflow">if</span> (!script.starts_with(marker))</div>
+<div class="line"><a id="l01994" name="l01994"></a><span class="lineno"> 1994</span>            <span class="keywordflow">return</span> <span class="keyword">false</span>;</div>
+<div class="line"><a id="l01995" name="l01995"></a><span class="lineno"> 1995</span>        <span class="keyword">auto</span> <span class="keyword">const</span> newline = script.find(<span class="charliteral">&#39;\n&#39;</span>);</div>
+<div class="line"><a id="l01996" name="l01996"></a><span class="lineno"> 1996</span>        <span class="keywordflow">if</span> (newline == std::string_view::npos)</div>
+<div class="line"><a id="l01997" name="l01997"></a><span class="lineno"> 1997</span>            <span class="keywordflow">return</span> <span class="keyword">true</span>; <span class="comment">// sentinel line only, nothing executable follows</span></div>
+<div class="line"><a id="l01998" name="l01998"></a><span class="lineno"> 1998</span>        <span class="keyword">auto</span> <span class="keyword">const</span> body = script.substr(newline + 1);</div>
+<div class="line"><a id="l01999" name="l01999"></a><span class="lineno"> 1999</span>        <span class="keyword">auto</span> <span class="keyword">const</span> bodyStart = body.find_first_not_of(<span class="stringliteral">&quot; \t\r\n&quot;</span>);</div>
+<div class="line"><a id="l02000" name="l02000"></a><span class="lineno"> 2000</span>        <span class="keywordflow">return</span> bodyStart == std::string_view::npos || body.substr(bodyStart).starts_with(<span class="stringliteral">&quot;--&quot;</span>);</div>
+<div class="line"><a id="l02001" name="l02001"></a><span class="lineno"> 2001</span>    };</div>
+<div class="line"><a id="l02002" name="l02002"></a><span class="lineno"> 2002</span> </div>
+<div class="line"><a id="l02003" name="l02003"></a><span class="lineno"> 2003</span>    <span class="keywordflow">for</span> (<span class="keyword">auto</span> <span class="keyword">const</span>&amp; query: queries)</div>
+<div class="line"><a id="l02004" name="l02004"></a><span class="lineno"> 2004</span>    {</div>
+<div class="line"><a id="l02005" name="l02005"></a><span class="lineno"> 2005</span>        <span class="keywordflow">if</span> (isCommentOnlyGuardScript(query))</div>
+<div class="line"><a id="l02006" name="l02006"></a><span class="lineno"> 2006</span>            <span class="keywordflow">throw</span> std::runtime_error(</div>
+<div class="line"><a id="l02007" name="l02007"></a><span class="lineno"> 2007</span>                std::format(<span class="stringliteral">&quot;SqlStatement::MigrateDirect cannot apply this SQLite schema change directly because it &quot;</span></div>
+<div class="line"><a id="l02008" name="l02008"></a><span class="lineno"> 2008</span>                            <span class="stringliteral">&quot;requires a table rebuild (e.g. ALTER COLUMN or a foreign-key change). Apply it through &quot;</span></div>
+<div class="line"><a id="l02009" name="l02009"></a><span class="lineno"> 2009</span>                            <span class="stringliteral">&quot;MigrationManager::ApplyPendingMigrations, which runs the rebuild executor.\n  Script: {}&quot;</span>,</div>
+<div class="line"><a id="l02010" name="l02010"></a><span class="lineno"> 2010</span>                            query));</div>
+<div class="line"><a id="l02011" name="l02011"></a><span class="lineno"> 2011</span>        [[maybe_unused]] <span class="keyword">auto</span> cursor = ExecuteDirect(query, location);</div>
+<div class="line"><a id="l02012" name="l02012"></a><span class="lineno"> 2012</span>    }</div>
+<div class="line"><a id="l02013" name="l02013"></a><span class="lineno"> 2013</span>}</div>
 </div>
-<div class="line"><a id="l01991" name="l01991"></a><span class="lineno"> 1991</span> </div>
-<div class="line"><a id="l01992" name="l01992"></a><span class="lineno"> 1992</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l01993" name="l01993"></a><span class="lineno"> 1993</span>    <span class="keyword">requires</span>(!std::same_as&lt;T, SqlVariant&gt;)</div>
-<div class="foldopen" id="foldopen01994" data-start="{" data-end="}">
-<div class="line"><a id="l01994" name="l01994"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a"> 1994</a></span><span class="keyword">inline</span> std::optional&lt;T&gt; SqlStatement::ExecuteDirectScalar(std::string_view <span class="keyword">const</span>&amp; query, std::source_location location)</div>
-<div class="line"><a id="l01995" name="l01995"></a><span class="lineno"> 1995</span>{</div>
-<div class="line"><a id="l01996" name="l01996"></a><span class="lineno"> 1996</span>    <span class="keyword">auto</span> cursor = ExecuteDirect(query, location);</div>
-<div class="line"><a id="l01997" name="l01997"></a><span class="lineno"> 1997</span>    RequireSuccess(FetchRow());</div>
-<div class="line"><a id="l01998" name="l01998"></a><span class="lineno"> 1998</span>    <span class="keywordflow">return</span> GetNullableColumn&lt;T&gt;(1);</div>
-<div class="line"><a id="l01999" name="l01999"></a><span class="lineno"> 1999</span>}</div>
+<div class="line"><a id="l02014" name="l02014"></a><span class="lineno"> 2014</span> </div>
+<div class="line"><a id="l02015" name="l02015"></a><span class="lineno"> 2015</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l02016" name="l02016"></a><span class="lineno"> 2016</span>    <span class="keyword">requires</span>(!std::same_as&lt;T, SqlVariant&gt;)</div>
+<div class="foldopen" id="foldopen02017" data-start="{" data-end="}">
+<div class="line"><a id="l02017" name="l02017"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#aa8528873d2ff2b2f879f587e8aa5026a"> 2017</a></span><span class="keyword">inline</span> std::optional&lt;T&gt; SqlStatement::ExecuteDirectScalar(std::string_view <span class="keyword">const</span>&amp; query, std::source_location location)</div>
+<div class="line"><a id="l02018" name="l02018"></a><span class="lineno"> 2018</span>{</div>
+<div class="line"><a id="l02019" name="l02019"></a><span class="lineno"> 2019</span>    <span class="keyword">auto</span> cursor = ExecuteDirect(query, location);</div>
+<div class="line"><a id="l02020" name="l02020"></a><span class="lineno"> 2020</span>    RequireSuccess(FetchRow());</div>
+<div class="line"><a id="l02021" name="l02021"></a><span class="lineno"> 2021</span>    <span class="keywordflow">return</span> GetNullableColumn&lt;T&gt;(1);</div>
+<div class="line"><a id="l02022" name="l02022"></a><span class="lineno"> 2022</span>}</div>
 </div>
-<div class="line"><a id="l02000" name="l02000"></a><span class="lineno"> 2000</span> </div>
-<div class="line"><a id="l02001" name="l02001"></a><span class="lineno"> 2001</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l02002" name="l02002"></a><span class="lineno"> 2002</span>    <span class="keyword">requires</span>(std::same_as&lt;T, SqlVariant&gt;)</div>
-<div class="foldopen" id="foldopen02003" data-start="{" data-end="}">
-<div class="line"><a id="l02003" name="l02003"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#afa0ad7b88db2f3ea8bc4dcb8f102c9d3"> 2003</a></span><span class="keyword">inline</span> T SqlStatement::ExecuteDirectScalar(std::string_view <span class="keyword">const</span>&amp; query, std::source_location location)</div>
-<div class="line"><a id="l02004" name="l02004"></a><span class="lineno"> 2004</span>{</div>
-<div class="line"><a id="l02005" name="l02005"></a><span class="lineno"> 2005</span>    <span class="keyword">auto</span> cursor = ExecuteDirect(query, location);</div>
-<div class="line"><a id="l02006" name="l02006"></a><span class="lineno"> 2006</span>    RequireSuccess(FetchRow());</div>
-<div class="line"><a id="l02007" name="l02007"></a><span class="lineno"> 2007</span>    <span class="keywordflow">if</span> (<span class="keyword">auto</span> result = GetNullableColumn&lt;T&gt;(1); result.has_value())</div>
-<div class="line"><a id="l02008" name="l02008"></a><span class="lineno"> 2008</span>        <span class="keywordflow">return</span> *result;</div>
-<div class="line"><a id="l02009" name="l02009"></a><span class="lineno"> 2009</span>    <span class="keywordflow">return</span> <a class="code hl_struct" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> { <a class="code hl_variable" href="../../d4/d7c/group__DataTypes.html#ga557658392c27465b9ba0a5ecacdc7f45">SqlNullValue</a> };</div>
-<div class="line"><a id="l02010" name="l02010"></a><span class="lineno"> 2010</span>}</div>
-</div>
-<div class="line"><a id="l02011" name="l02011"></a><span class="lineno"> 2011</span> </div>
-<div class="line"><a id="l02012" name="l02012"></a><span class="lineno"> 2012</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l02013" name="l02013"></a><span class="lineno"> 2013</span>    <span class="keyword">requires</span>(!std::same_as&lt;T, SqlVariant&gt;)</div>
-<div class="foldopen" id="foldopen02014" data-start="{" data-end="}">
-<div class="line"><a id="l02014" name="l02014"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a2f51e2e203c890b25312deadcad244b1"> 2014</a></span><span class="keyword">inline</span> std::optional&lt;T&gt; SqlStatement::ExecuteDirectScalar(<a class="code hl_concept" href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">SqlQueryObject</a> <span class="keyword">auto</span> <span class="keyword">const</span>&amp; query, std::source_location location)</div>
-<div class="line"><a id="l02015" name="l02015"></a><span class="lineno"> 2015</span>{</div>
-<div class="line"><a id="l02016" name="l02016"></a><span class="lineno"> 2016</span>    <span class="keywordflow">return</span> ExecuteDirectScalar&lt;T&gt;(query.ToSql(), location);</div>
-<div class="line"><a id="l02017" name="l02017"></a><span class="lineno"> 2017</span>}</div>
-</div>
-<div class="line"><a id="l02018" name="l02018"></a><span class="lineno"> 2018</span> </div>
-<div class="line"><a id="l02019" name="l02019"></a><span class="lineno"> 2019</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l02020" name="l02020"></a><span class="lineno"> 2020</span>    <span class="keyword">requires</span>(std::same_as&lt;T, SqlVariant&gt;)</div>
-<div class="foldopen" id="foldopen02021" data-start="{" data-end="}">
-<div class="line"><a id="l02021" name="l02021"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a1dbd5345afd309378028c7ea6f455666"> 2021</a></span><span class="keyword">inline</span> T SqlStatement::ExecuteDirectScalar(<a class="code hl_concept" href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">SqlQueryObject</a> <span class="keyword">auto</span> <span class="keyword">const</span>&amp; query, std::source_location location)</div>
-<div class="line"><a id="l02022" name="l02022"></a><span class="lineno"> 2022</span>{</div>
-<div class="line"><a id="l02023" name="l02023"></a><span class="lineno"> 2023</span>    <span class="keywordflow">return</span> ExecuteDirectScalar&lt;T&gt;(query.ToSql(), location);</div>
-<div class="line"><a id="l02024" name="l02024"></a><span class="lineno"> 2024</span>}</div>
-</div>
-<div class="line"><a id="l02025" name="l02025"></a><span class="lineno"> 2025</span> </div>
-<div class="line"><a id="l02026" name="l02026"></a><span class="lineno"> 2026</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> SqlStatement::CloseCursor() noexcept</div>
+<div class="line"><a id="l02023" name="l02023"></a><span class="lineno"> 2023</span> </div>
+<div class="line"><a id="l02024" name="l02024"></a><span class="lineno"> 2024</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l02025" name="l02025"></a><span class="lineno"> 2025</span>    <span class="keyword">requires</span>(std::same_as&lt;T, SqlVariant&gt;)</div>
+<div class="foldopen" id="foldopen02026" data-start="{" data-end="}">
+<div class="line"><a id="l02026" name="l02026"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#afa0ad7b88db2f3ea8bc4dcb8f102c9d3"> 2026</a></span><span class="keyword">inline</span> T SqlStatement::ExecuteDirectScalar(std::string_view <span class="keyword">const</span>&amp; query, std::source_location location)</div>
 <div class="line"><a id="l02027" name="l02027"></a><span class="lineno"> 2027</span>{</div>
-<div class="line"><a id="l02028" name="l02028"></a><span class="lineno"> 2028</span>    <span class="comment">// Tear down any block-prefetch first: the RowArrayCursor destructor unbinds the columns and</span></div>
-<div class="line"><a id="l02029" name="l02029"></a><span class="lineno"> 2029</span>    <span class="comment">// restores SQL_ATTR_ROW_ARRAY_SIZE so the SQLFreeStmt(SQL_CLOSE) below — and the next query on this</span></div>
-<div class="line"><a id="l02030" name="l02030"></a><span class="lineno"> 2030</span>    <span class="comment">// statement — start from a clean single-row state. Resets the prefetch lifecycle to Unarmed.</span></div>
-<div class="line"><a id="l02031" name="l02031"></a><span class="lineno"> 2031</span>    ResetPrefetchState();</div>
-<div class="line"><a id="l02032" name="l02032"></a><span class="lineno"> 2032</span> </div>
-<div class="line"><a id="l02033" name="l02033"></a><span class="lineno"> 2033</span>    <span class="comment">// SQL Server batches and DML/DDL row-count tokens produce multiple result</span></div>
-<div class="line"><a id="l02034" name="l02034"></a><span class="lineno"> 2034</span>    <span class="comment">// sets per SQLExecDirect. SQLFreeStmt(SQL_CLOSE) only discards the current</span></div>
-<div class="line"><a id="l02035" name="l02035"></a><span class="lineno"> 2035</span>    <span class="comment">// cursor — remaining result sets stay pending on the *connection*, and</span></div>
-<div class="line"><a id="l02036" name="l02036"></a><span class="lineno"> 2036</span>    <span class="comment">// without MARS every subsequent statement on that connection fails with</span></div>
-<div class="line"><a id="l02037" name="l02037"></a><span class="lineno"> 2037</span>    <span class="comment">// HY000 &quot;Connection is busy with results for another command&quot;. Drain via</span></div>
-<div class="line"><a id="l02038" name="l02038"></a><span class="lineno"> 2038</span>    <span class="comment">// SQLMoreResults until SQL_NO_DATA (or an error), then close.</span></div>
-<div class="line"><a id="l02039" name="l02039"></a><span class="lineno"> 2039</span>    <span class="comment">//</span></div>
-<div class="line"><a id="l02040" name="l02040"></a><span class="lineno"> 2040</span>    <span class="comment">// SQLMoreResults is standard ODBC; SQLite and PostgreSQL drivers return</span></div>
-<div class="line"><a id="l02041" name="l02041"></a><span class="lineno"> 2041</span>    <span class="comment">// SQL_NO_DATA on the first call when nothing is pending, so the cost on</span></div>
-<div class="line"><a id="l02042" name="l02042"></a><span class="lineno"> 2042</span>    <span class="comment">// single-statement queries is one no-op driver call.</span></div>
-<div class="line"><a id="l02043" name="l02043"></a><span class="lineno"> 2043</span>    <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
-<div class="line"><a id="l02044" name="l02044"></a><span class="lineno"> 2044</span>    {</div>
-<div class="line"><a id="l02045" name="l02045"></a><span class="lineno"> 2045</span>        <span class="keyword">auto</span> <span class="keyword">const</span> rc = SQLMoreResults(m_hStmt);</div>
-<div class="line"><a id="l02046" name="l02046"></a><span class="lineno"> 2046</span>        <span class="keywordflow">if</span> (rc == SQL_NO_DATA || !SQL_SUCCEEDED(rc))</div>
-<div class="line"><a id="l02047" name="l02047"></a><span class="lineno"> 2047</span>            <span class="keywordflow">break</span>;</div>
-<div class="line"><a id="l02048" name="l02048"></a><span class="lineno"> 2048</span>    }</div>
-<div class="line"><a id="l02049" name="l02049"></a><span class="lineno"> 2049</span>    SQLFreeStmt(m_hStmt, SQL_CLOSE);</div>
-<div class="line"><a id="l02050" name="l02050"></a><span class="lineno"> 2050</span>    SqlLogger::GetLogger().OnFetchEnd();</div>
-<div class="line"><a id="l02051" name="l02051"></a><span class="lineno"> 2051</span>}</div>
-<div class="line"><a id="l02052" name="l02052"></a><span class="lineno"> 2052</span> </div>
-<div class="line"><a id="l02053" name="l02053"></a><span class="lineno"> 2053</span><span class="comment">// }}}</span></div>
-<div class="line"><a id="l02054" name="l02054"></a><span class="lineno"> 2054</span> </div>
-<div class="line"><a id="l02055" name="l02055"></a><span class="lineno"> 2055</span>} <span class="comment">// namespace Lightweight</span></div>
+<div class="line"><a id="l02028" name="l02028"></a><span class="lineno"> 2028</span>    <span class="keyword">auto</span> cursor = ExecuteDirect(query, location);</div>
+<div class="line"><a id="l02029" name="l02029"></a><span class="lineno"> 2029</span>    RequireSuccess(FetchRow());</div>
+<div class="line"><a id="l02030" name="l02030"></a><span class="lineno"> 2030</span>    <span class="keywordflow">if</span> (<span class="keyword">auto</span> result = GetNullableColumn&lt;T&gt;(1); result.has_value())</div>
+<div class="line"><a id="l02031" name="l02031"></a><span class="lineno"> 2031</span>        <span class="keywordflow">return</span> *result;</div>
+<div class="line"><a id="l02032" name="l02032"></a><span class="lineno"> 2032</span>    <span class="keywordflow">return</span> <a class="code hl_struct" href="../../df/d3f/structLightweight_1_1SqlVariant.html">SqlVariant</a> { <a class="code hl_variable" href="../../d4/d7c/group__DataTypes.html#ga557658392c27465b9ba0a5ecacdc7f45">SqlNullValue</a> };</div>
+<div class="line"><a id="l02033" name="l02033"></a><span class="lineno"> 2033</span>}</div>
+</div>
+<div class="line"><a id="l02034" name="l02034"></a><span class="lineno"> 2034</span> </div>
+<div class="line"><a id="l02035" name="l02035"></a><span class="lineno"> 2035</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l02036" name="l02036"></a><span class="lineno"> 2036</span>    <span class="keyword">requires</span>(!std::same_as&lt;T, SqlVariant&gt;)</div>
+<div class="foldopen" id="foldopen02037" data-start="{" data-end="}">
+<div class="line"><a id="l02037" name="l02037"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a2f51e2e203c890b25312deadcad244b1"> 2037</a></span><span class="keyword">inline</span> std::optional&lt;T&gt; SqlStatement::ExecuteDirectScalar(<a class="code hl_concept" href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">SqlQueryObject</a> <span class="keyword">auto</span> <span class="keyword">const</span>&amp; query, std::source_location location)</div>
+<div class="line"><a id="l02038" name="l02038"></a><span class="lineno"> 2038</span>{</div>
+<div class="line"><a id="l02039" name="l02039"></a><span class="lineno"> 2039</span>    <span class="keywordflow">return</span> ExecuteDirectScalar&lt;T&gt;(query.ToSql(), location);</div>
+<div class="line"><a id="l02040" name="l02040"></a><span class="lineno"> 2040</span>}</div>
+</div>
+<div class="line"><a id="l02041" name="l02041"></a><span class="lineno"> 2041</span> </div>
+<div class="line"><a id="l02042" name="l02042"></a><span class="lineno"> 2042</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l02043" name="l02043"></a><span class="lineno"> 2043</span>    <span class="keyword">requires</span>(std::same_as&lt;T, SqlVariant&gt;)</div>
+<div class="foldopen" id="foldopen02044" data-start="{" data-end="}">
+<div class="line"><a id="l02044" name="l02044"></a><span class="lineno"><a class="line" href="../../db/dad/classLightweight_1_1SqlStatement.html#a1dbd5345afd309378028c7ea6f455666"> 2044</a></span><span class="keyword">inline</span> T SqlStatement::ExecuteDirectScalar(<a class="code hl_concept" href="../../d4/da8/conceptLightweight_1_1SqlQueryObject.html">SqlQueryObject</a> <span class="keyword">auto</span> <span class="keyword">const</span>&amp; query, std::source_location location)</div>
+<div class="line"><a id="l02045" name="l02045"></a><span class="lineno"> 2045</span>{</div>
+<div class="line"><a id="l02046" name="l02046"></a><span class="lineno"> 2046</span>    <span class="keywordflow">return</span> ExecuteDirectScalar&lt;T&gt;(query.ToSql(), location);</div>
+<div class="line"><a id="l02047" name="l02047"></a><span class="lineno"> 2047</span>}</div>
+</div>
+<div class="line"><a id="l02048" name="l02048"></a><span class="lineno"> 2048</span> </div>
+<div class="line"><a id="l02049" name="l02049"></a><span class="lineno"> 2049</span><span class="keyword">inline</span> LIGHTWEIGHT_FORCE_INLINE <span class="keywordtype">void</span> SqlStatement::CloseCursor() noexcept</div>
+<div class="line"><a id="l02050" name="l02050"></a><span class="lineno"> 2050</span>{</div>
+<div class="line"><a id="l02051" name="l02051"></a><span class="lineno"> 2051</span>    <span class="comment">// Tear down any block-prefetch first: the RowArrayCursor destructor unbinds the columns and</span></div>
+<div class="line"><a id="l02052" name="l02052"></a><span class="lineno"> 2052</span>    <span class="comment">// restores SQL_ATTR_ROW_ARRAY_SIZE so the SQLFreeStmt(SQL_CLOSE) below — and the next query on this</span></div>
+<div class="line"><a id="l02053" name="l02053"></a><span class="lineno"> 2053</span>    <span class="comment">// statement — start from a clean single-row state. Resets the prefetch lifecycle to Unarmed.</span></div>
+<div class="line"><a id="l02054" name="l02054"></a><span class="lineno"> 2054</span>    ResetPrefetchState();</div>
+<div class="line"><a id="l02055" name="l02055"></a><span class="lineno"> 2055</span> </div>
+<div class="line"><a id="l02056" name="l02056"></a><span class="lineno"> 2056</span>    <span class="comment">// SQL Server batches and DML/DDL row-count tokens produce multiple result</span></div>
+<div class="line"><a id="l02057" name="l02057"></a><span class="lineno"> 2057</span>    <span class="comment">// sets per SQLExecDirect. SQLFreeStmt(SQL_CLOSE) only discards the current</span></div>
+<div class="line"><a id="l02058" name="l02058"></a><span class="lineno"> 2058</span>    <span class="comment">// cursor — remaining result sets stay pending on the *connection*, and</span></div>
+<div class="line"><a id="l02059" name="l02059"></a><span class="lineno"> 2059</span>    <span class="comment">// without MARS every subsequent statement on that connection fails with</span></div>
+<div class="line"><a id="l02060" name="l02060"></a><span class="lineno"> 2060</span>    <span class="comment">// HY000 &quot;Connection is busy with results for another command&quot;. Drain via</span></div>
+<div class="line"><a id="l02061" name="l02061"></a><span class="lineno"> 2061</span>    <span class="comment">// SQLMoreResults until SQL_NO_DATA (or an error), then close.</span></div>
+<div class="line"><a id="l02062" name="l02062"></a><span class="lineno"> 2062</span>    <span class="comment">//</span></div>
+<div class="line"><a id="l02063" name="l02063"></a><span class="lineno"> 2063</span>    <span class="comment">// SQLMoreResults is standard ODBC; SQLite and PostgreSQL drivers return</span></div>
+<div class="line"><a id="l02064" name="l02064"></a><span class="lineno"> 2064</span>    <span class="comment">// SQL_NO_DATA on the first call when nothing is pending, so the cost on</span></div>
+<div class="line"><a id="l02065" name="l02065"></a><span class="lineno"> 2065</span>    <span class="comment">// single-statement queries is one no-op driver call.</span></div>
+<div class="line"><a id="l02066" name="l02066"></a><span class="lineno"> 2066</span>    <span class="keywordflow">while</span> (<span class="keyword">true</span>)</div>
+<div class="line"><a id="l02067" name="l02067"></a><span class="lineno"> 2067</span>    {</div>
+<div class="line"><a id="l02068" name="l02068"></a><span class="lineno"> 2068</span>        <span class="keyword">auto</span> <span class="keyword">const</span> rc = SQLMoreResults(m_hStmt);</div>
+<div class="line"><a id="l02069" name="l02069"></a><span class="lineno"> 2069</span>        <span class="keywordflow">if</span> (rc == SQL_NO_DATA || !SQL_SUCCEEDED(rc))</div>
+<div class="line"><a id="l02070" name="l02070"></a><span class="lineno"> 2070</span>            <span class="keywordflow">break</span>;</div>
+<div class="line"><a id="l02071" name="l02071"></a><span class="lineno"> 2071</span>    }</div>
+<div class="line"><a id="l02072" name="l02072"></a><span class="lineno"> 2072</span>    SQLFreeStmt(m_hStmt, SQL_CLOSE);</div>
+<div class="line"><a id="l02073" name="l02073"></a><span class="lineno"> 2073</span>    SqlLogger::GetLogger().OnFetchEnd();</div>
+<div class="line"><a id="l02074" name="l02074"></a><span class="lineno"> 2074</span>}</div>
+<div class="line"><a id="l02075" name="l02075"></a><span class="lineno"> 2075</span> </div>
+<div class="line"><a id="l02076" name="l02076"></a><span class="lineno"> 2076</span><span class="comment">// }}}</span></div>
+<div class="line"><a id="l02077" name="l02077"></a><span class="lineno"> 2077</span> </div>
+<div class="line"><a id="l02078" name="l02078"></a><span class="lineno"> 2078</span>} <span class="comment">// namespace Lightweight</span></div>
 <div class="ttc" id="aclassLightweight_1_1RowArrayCursorUnsupported_html"><div class="ttname"><a href="../../de/d9f/classLightweight_1_1RowArrayCursorUnsupported.html">Lightweight::RowArrayCursorUnsupported</a></div><div class="ttdoc">Thrown by RowArrayCursor's constructor when the executed result set cannot be fixed-stride array-boun...</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00615">SqlStatement.hpp:616</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1RowArrayCursor_html"><div class="ttname"><a href="../../da/d6c/classLightweight_1_1RowArrayCursor.html">Lightweight::RowArrayCursor</a></div><div class="ttdoc">A cursor that fetches result rows in bulk (ODBC row-array binding) for fast column reads.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00647">SqlStatement.hpp:648</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1RowArrayCursor_html_a0f33f603d4ac4acabbaf301335ffb75e"><div class="ttname"><a href="../../da/d6c/classLightweight_1_1RowArrayCursor.html#a0f33f603d4ac4acabbaf301335ffb75e">Lightweight::RowArrayCursor::ColumnSqlType</a></div><div class="ttdeci">LIGHTWEIGHT_API SQLSMALLINT ColumnSqlType(SQLUSMALLINT column) const</div><div class="ttdoc">The raw SQL data type the driver reported for a result column (the SQL_* value from SQLDescribeCol),...</div></div>
@@ -2264,7 +2287,7 @@ $(document).ready(function(){initNavTree('d9/d6e/SqlStatement_8hpp_source.html',
 <div class="ttc" id="aclassLightweight_1_1SqlConnection_html"><div class="ttname"><a href="../../da/da8/classLightweight_1_1SqlConnection.html">Lightweight::SqlConnection</a></div><div class="ttdoc">Represents a connection to a SQL database.</div><div class="ttdef"><b>Definition</b> <a href="../../d5/df9/SqlConnection_8hpp_source.html#l00040">SqlConnection.hpp:41</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlConnection_html_a3c238ed531289bd1efff63f44ec1bb70"><div class="ttname"><a href="../../da/da8/classLightweight_1_1SqlConnection.html#a3c238ed531289bd1efff63f44ec1bb70">Lightweight::SqlConnection::IsAlive</a></div><div class="ttdeci">LIGHTWEIGHT_API bool IsAlive() const noexcept</div><div class="ttdoc">Tests if the connection is still active.</div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlDataBinderCallback_html"><div class="ttname"><a href="../../d9/dbb/classLightweight_1_1SqlDataBinderCallback.html">Lightweight::SqlDataBinderCallback</a></div><div class="ttdef"><b>Definition</b> <a href="../../d7/d0f/DataBinder_2Core_8hpp_source.html#l00035">Core.hpp:36</a></div></div>
-<div class="ttc" id="aclassLightweight_1_1SqlMigrationQueryBuilder_html"><div class="ttname"><a href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">Lightweight::SqlMigrationQueryBuilder</a></div><div class="ttdoc">Query builder for building SQL migration queries.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6b/Migrate_8hpp_source.html#l00468">Migrate.hpp:469</a></div></div>
+<div class="ttc" id="aclassLightweight_1_1SqlMigrationQueryBuilder_html"><div class="ttname"><a href="../../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html">Lightweight::SqlMigrationQueryBuilder</a></div><div class="ttdoc">Query builder for building SQL migration queries.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6b/Migrate_8hpp_source.html#l00476">Migrate.hpp:477</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlQueryBuilder_html"><div class="ttname"><a href="../../de/da0/classLightweight_1_1SqlQueryBuilder.html">Lightweight::SqlQueryBuilder</a></div><div class="ttdoc">API Entry point for building SQL queries.</div><div class="ttdef"><b>Definition</b> <a href="../../dc/dcc/SqlQuery_8hpp_source.html#l00031">SqlQuery.hpp:32</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlResultCursor_html"><div class="ttname"><a href="../../d8/d63/classLightweight_1_1SqlResultCursor.html">Lightweight::SqlResultCursor</a></div><div class="ttdoc">API for reading an SQL query result set.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00466">SqlStatement.hpp:467</a></div></div>
 <div class="ttc" id="aclassLightweight_1_1SqlResultCursor_html_a2bb8b99ccecdb98d49a349c3fbff18f7"><div class="ttname"><a href="../../d8/d63/classLightweight_1_1SqlResultCursor.html#a2bb8b99ccecdb98d49a349c3fbff18f7">Lightweight::SqlResultCursor::BindOutputColumnsToRecord</a></div><div class="ttdeci">LIGHTWEIGHT_FORCE_INLINE void BindOutputColumnsToRecord(Records *... records)</div><div class="ttdoc">Binds the given records to the prepared statement to store the fetched data to.</div><div class="ttdef"><b>Definition</b> <a href="../../d9/d6e/SqlStatement_8hpp_source.html#l00550">SqlStatement.hpp:550</a></div></div>

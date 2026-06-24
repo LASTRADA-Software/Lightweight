@@ -1,5 +1,6 @@
 var NAVTREEINDEX5 =
 {
+"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#cancellation":[10,7],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#concepts":[10,1],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#enabling-async-on-a-connection":[10,2],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#errors":[10,8],
@@ -248,6 +249,5 @@ var NAVTREEINDEX5 =
 "de/d61/classLightweight_1_1DataMapper.html#a2b2b5b2f4bc610b6a8f518ce88a6e485":[13,2,4,23],
 "de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702":[13,2,4,30],
 "de/d61/classLightweight_1_1DataMapper.html#a2eb801d4d427d114bbc0c3b01068f307":[13,2,4,5],
-"de/d61/classLightweight_1_1DataMapper.html#a31796375b71cdc19158ee3a18ab60bcb":[13,2,4,40],
-"de/d61/classLightweight_1_1DataMapper.html#a488bd29dff332905ebd7975e16b095dc":[13,2,4,29]
+"de/d61/classLightweight_1_1DataMapper.html#a31796375b71cdc19158ee3a18ab60bcb":[13,2,4,40]
 };

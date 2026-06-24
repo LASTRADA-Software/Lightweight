@@ -17,6 +17,7 @@ var classLightweight_1_1SqlConnection =
     [ "ServerType", "da/da8/classLightweight_1_1SqlConnection.html#a2cf1b575719f949078c4a5c31145e501", null ],
     [ "DriverName", "da/da8/classLightweight_1_1SqlConnection.html#ae8e906b9e44522971275823056bc5a5e", null ],
     [ "QueryFormatter", "da/da8/classLightweight_1_1SqlConnection.html#a6dabdd78f7aad57d5deb2597d553bc32", null ],
+    [ "RequiresTableRebuildForSchemaChange", "da/da8/classLightweight_1_1SqlConnection.html#ad03129b17daf9ea6829425473db12877", null ],
     [ "SupportsNativeRowBatch", "da/da8/classLightweight_1_1SqlConnection.html#ac4ea8b83a43459581e2a52a568c595c5", null ],
     [ "SupportsNativeRowArrayFetch", "da/da8/classLightweight_1_1SqlConnection.html#a7577a4c8347fede96bb3953f84b068d4", null ],
     [ "DefaultPrefetchDepth", "da/da8/classLightweight_1_1SqlConnection.html#accca2c0c11b7132ef9a5996f680a9eda", null ],

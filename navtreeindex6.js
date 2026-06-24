@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"de/d61/classLightweight_1_1DataMapper.html#a488bd29dff332905ebd7975e16b095dc":[13,2,4,29],
 "de/d61/classLightweight_1_1DataMapper.html#a489a4e560de6cc475eec66252d6412bd":[13,2,4,25],
 "de/d61/classLightweight_1_1DataMapper.html#a491f414bc1e2179dd7bad850142a2c89":[13,2,4,34],
 "de/d61/classLightweight_1_1DataMapper.html#a49a09de3ddac27a67a854688b0b506bc":[13,2,4,35],
@@ -248,6 +249,5 @@ var NAVTREEINDEX6 =
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a76e7f25e2a31b6e38d7f2aa88ddd6941":[15,0,0,4,3,0],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#a8870abb3a72671cdff7649b1b65f1db2":[15,0,0,4,3,6],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#adabe124eab18853596c5feeb6bdb3111":[15,0,0,4,3,10],
-"df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#adaf530d21f5ca78f77d0269e1cbd925c":[15,0,0,4,3,8],
-"df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#af2329bf6d2266dd4309b1b0e55a1116a":[15,0,0,4,3,2]
+"df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#adaf530d21f5ca78f77d0269e1cbd925c":[15,0,0,4,3,8]
 };
