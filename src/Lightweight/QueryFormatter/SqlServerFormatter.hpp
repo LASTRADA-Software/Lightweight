@@ -26,7 +26,7 @@ class SqlServerQueryFormatter final: public SQLiteQueryFormatter
     }
 
   public:
-    [[nodiscard]] bool RequiresTableRebuildForForeignKeyChange() const noexcept override
+    [[nodiscard]] bool RequiresTableRebuildForSchemaChange() const noexcept override
     {
         return false;
     }

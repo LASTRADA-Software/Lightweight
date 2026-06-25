@@ -181,14 +181,14 @@ TEST_CASE("SqlQueryFormatter::QueryServerVersion emits the per-DBMS version quer
 }
 
 // ================================================================================================
-// RequiresTableRebuildForForeignKeyChange — SQLite needs a full table rebuild, others don't
+// RequiresTableRebuildForSchemaChange — SQLite needs a full table rebuild, others don't
 // ================================================================================================
 
-TEST_CASE("SqlQueryFormatter::RequiresTableRebuildForForeignKeyChange flag matches the dialect", "[SqlQueryFormatter]")
+TEST_CASE("SqlQueryFormatter::RequiresTableRebuildForSchemaChange flag matches the dialect", "[SqlQueryFormatter]")
 {
-    CHECK(SqlQueryFormatter::Sqlite().RequiresTableRebuildForForeignKeyChange());
-    CHECK_FALSE(SqlQueryFormatter::PostgrSQL().RequiresTableRebuildForForeignKeyChange());
-    CHECK_FALSE(SqlQueryFormatter::SqlServer().RequiresTableRebuildForForeignKeyChange());
+    CHECK(SqlQueryFormatter::Sqlite().RequiresTableRebuildForSchemaChange());
+    CHECK_FALSE(SqlQueryFormatter::PostgrSQL().RequiresTableRebuildForSchemaChange());
+    CHECK_FALSE(SqlQueryFormatter::SqlServer().RequiresTableRebuildForSchemaChange());
 }
 
 // ================================================================================================

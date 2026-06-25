@@ -1983,8 +1983,31 @@ void SqlStatement::MigrateDirect(Callable const& callable, std::source_location 
     callable(migration);
     auto const queries = migration.GetPlan().ToSql();
     ZoneValue(queries.size());
+
+    // A comment-only `-- LIGHTWEIGHT_SQLITE_GUARD:` script (e.g. ALTER COLUMN or a foreign-key change on
+    // SQLite) carries no executable DDL: the schema change is performed by the migration executor's
+    // table-rebuild path, which only runs via MigrationManager. Executing such a script directly here
+    // would silently do nothing, so fail loudly and point at the supported entry point instead.
+    auto const isCommentOnlyGuardScript = [](std::string_view script) {
+        constexpr std::string_view marker = "-- LIGHTWEIGHT_SQLITE_GUARD:";
+        if (!script.starts_with(marker))
+            return false;
+        auto const newline = script.find('\n');
+        if (newline == std::string_view::npos)
+            return true; // sentinel line only, nothing executable follows
+        auto const body = script.substr(newline + 1);
+        auto const bodyStart = body.find_first_not_of(" \t\r\n");
+        return bodyStart == std::string_view::npos || body.substr(bodyStart).starts_with("--");
+    };
+
     for (auto const& query: queries)
     {
+        if (isCommentOnlyGuardScript(query))
+            throw std::runtime_error(
+                std::format("SqlStatement::MigrateDirect cannot apply this SQLite schema change directly because it "
+                            "requires a table rebuild (e.g. ALTER COLUMN or a foreign-key change). Apply it through "
+                            "MigrationManager::ApplyPendingMigrations, which runs the rebuild executor.\n  Script: {}",
+                            query));
         [[maybe_unused]] auto cursor = ExecuteDirect(query, location);
     }
 }

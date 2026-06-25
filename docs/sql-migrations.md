@@ -158,6 +158,13 @@ plan.AlterTable("users")
 | `.DropForeignKey(column)` | Remove foreign key constraint |
 | `.RenameTo(newName)` | Rename the table |
 
+> **SQLite note:** SQLite has no native `ALTER TABLE … ALTER COLUMN` or `… ADD/DROP CONSTRAINT`, so
+> `.AlterColumn(...)`, `.AddForeignKey(...)`, and `.DropForeignKey(...)` are applied by rebuilding the
+> table. That rebuild runs only when the migration is applied through `MigrationManager`
+> (`ApplyPendingMigrations()`); the generated `ToSql()` text for these operations is a
+> `-- LIGHTWEIGHT_SQLITE_GUARD:` sentinel comment that does nothing if executed directly. Applying such
+> a migration via `SqlStatement::MigrateDirect` throws rather than silently skipping the change.
+
 **Conditional operations:**
 
 ```cpp

@@ -7,6 +7,7 @@
 #include "SqlBackup/Sha256.hpp"
 #include "SqlConnection.hpp"
 #include "SqlErrorDetection.hpp"
+#include "SqlLogger.hpp"
 #include "SqlMigration.hpp"
 #include "SqlSchema.hpp"
 #include "SqlTransaction.hpp"
@@ -689,6 +690,7 @@ namespace
             AddForeignKey,
             DropForeignKey,
             AddCompositeForeignKey,
+            AlterColumn,
         };
 
         Kind kind;
@@ -700,6 +702,9 @@ namespace
         // Only populated for Kind::AddCompositeForeignKey. Empty otherwise.
         std::vector<std::string> columns;
         std::vector<std::string> referencedColumns;
+        // Only populated for Kind::AlterColumn. Empty / false otherwise.
+        std::string columnType;
+        bool notNull = false;
     };
 
     [[nodiscard]] std::optional<SqliteGuard::Kind> ParseSqliteGuardKind(std::string_view kindStr)
@@ -714,25 +719,50 @@ namespace
             return SqliteGuard::Kind::DropForeignKey;
         if (kindStr == "ADD_COMPOSITE_FOREIGN_KEY")
             return SqliteGuard::Kind::AddCompositeForeignKey;
+        if (kindStr == "ALTER_COLUMN")
+            return SqliteGuard::Kind::AlterColumn;
         return std::nullopt;
     }
 
-    [[nodiscard]] std::optional<std::vector<std::string_view>> ExtractQuotedStrings(std::string_view directive,
-                                                                                    size_t searchPos,
-                                                                                    size_t expectedStrings)
+    /// Extract @p expectedStrings double-quoted fields from a sentinel directive, starting at
+    /// @p searchPos. A doubled `""` inside a field is treated as an escaped quote and decoded to a
+    /// single `"`, so identifiers containing a double-quote survive the round-trip (the formatter
+    /// escapes them the same way). Returns the decoded field values, or `std::nullopt` if fewer than
+    /// @p expectedStrings well-formed fields are present.
+    [[nodiscard]] std::optional<std::vector<std::string>> ExtractQuotedStrings(std::string_view directive,
+                                                                               size_t searchPos,
+                                                                               size_t expectedStrings)
     {
-        std::vector<std::string_view> quoted;
+        std::vector<std::string> quoted;
         quoted.reserve(expectedStrings);
         while (quoted.size() < expectedStrings)
         {
             auto const openQuote = directive.find('"', searchPos);
             if (openQuote == std::string_view::npos)
                 return std::nullopt;
-            auto const closeQuote = directive.find('"', openQuote + 1);
-            if (closeQuote == std::string_view::npos)
+            std::string value;
+            size_t scan = openQuote + 1;
+            bool closed = false;
+            while (scan < directive.size())
+            {
+                if (directive[scan] == '"')
+                {
+                    if (scan + 1 < directive.size() && directive[scan + 1] == '"')
+                    {
+                        value += '"'; // doubled-quote escape inside the field
+                        scan += 2;
+                        continue;
+                    }
+                    closed = true;
+                    break;
+                }
+                value += directive[scan];
+                ++scan;
+            }
+            if (!closed)
                 return std::nullopt;
-            quoted.push_back(directive.substr(openQuote + 1, closeQuote - openQuote - 1));
-            searchPos = closeQuote + 1;
+            quoted.push_back(std::move(value));
+            searchPos = scan + 1;
         }
         return quoted;
     }
@@ -753,7 +783,7 @@ namespace
         return result;
     }
 
-    [[nodiscard]] SqliteGuard BuildSqliteGuard(SqliteGuard::Kind kind, std::span<std::string_view const> quoted)
+    [[nodiscard]] SqliteGuard BuildSqliteGuard(SqliteGuard::Kind kind, std::span<std::string const> quoted)
     {
         SqliteGuard guard {
             .kind = kind,
@@ -763,6 +793,8 @@ namespace
             .referencedColumn = {},
             .columns = {},
             .referencedColumns = {},
+            .columnType = {},
+            .notNull = false,
         };
         if (kind == SqliteGuard::Kind::AddForeignKey)
         {
@@ -775,6 +807,11 @@ namespace
             guard.columns = SplitCommaList(quoted[1]);
             guard.referencedTable = std::string { quoted[2] };
             guard.referencedColumns = SplitCommaList(quoted[3]);
+        }
+        else if (kind == SqliteGuard::Kind::AlterColumn)
+        {
+            guard.columnType = std::string { quoted[2] };
+            guard.notNull = quoted[3] == "NOT NULL";
         }
         return guard;
     }
@@ -810,9 +847,13 @@ namespace
         // Parse N quoted identifiers after the kind keyword. Single-column kinds take
         // exactly 2 quoted args (table, column); AddForeignKey takes 4 (adds referenced
         // table, referenced column); AddCompositeForeignKey also takes 4 but the 2nd
-        // and 4th are comma-joined column lists split by the consumer.
+        // and 4th are comma-joined column lists split by the consumer; AlterColumn takes
+        // 4 (adds the new column type and the NULL/NOT NULL token).
         size_t const expectedStrings =
-            (*kind == SqliteGuard::Kind::AddForeignKey || *kind == SqliteGuard::Kind::AddCompositeForeignKey) ? 4 : 2;
+            (*kind == SqliteGuard::Kind::AddForeignKey || *kind == SqliteGuard::Kind::AddCompositeForeignKey
+             || *kind == SqliteGuard::Kind::AlterColumn)
+                ? 4
+                : 2;
         auto const quoted = ExtractQuotedStrings(directive, kindEnd, expectedStrings);
         if (!quoted)
             return std::nullopt;
@@ -833,24 +874,81 @@ namespace
         return cursor.GetColumn<int64_t>(1) > 0;
     }
 
+    /// @brief Escape a value for embedding inside a single-quoted SQL string literal (doubles `'`).
+    /// @param value The raw value (e.g. a table name) to embed.
+    /// @return The escaped text, to be placed between the surrounding single quotes.
+    [[nodiscard]] std::string EscapeSqlStringLiteral(std::string_view value)
+    {
+        std::string out;
+        out.reserve(value.size());
+        for (auto const ch: value)
+        {
+            out += ch;
+            if (ch == '\'')
+                out += '\'';
+        }
+        return out;
+    }
+
+    /// @brief Escape a value for embedding inside a double-quoted SQL identifier (doubles `"`).
+    /// @param value The raw identifier (e.g. a table name) to embed.
+    /// @return The escaped text, to be placed between the surrounding double quotes.
+    [[nodiscard]] std::string EscapeSqlIdentifier(std::string_view value)
+    {
+        std::string out;
+        out.reserve(value.size());
+        for (auto const ch: value)
+        {
+            out += ch;
+            if (ch == '"')
+                out += '"';
+        }
+        return out;
+    }
+
     /// Fetch the stored `CREATE TABLE` SQL for a SQLite table.
     [[nodiscard]] std::string FetchSqliteCreateTableSql(SqlStatement& stmt, std::string_view tableName)
     {
-        auto cursor =
-            stmt.ExecuteDirect(std::format(R"(SELECT sql FROM sqlite_schema WHERE type='table' AND name='{}')", tableName));
+        auto cursor = stmt.ExecuteDirect(std::format(R"(SELECT sql FROM sqlite_schema WHERE type='table' AND name='{}')",
+                                                     EscapeSqlStringLiteral(tableName)));
         if (!cursor.FetchRow())
             throw std::runtime_error(std::format("SQLite rebuild: table '{}' not found in sqlite_schema", tableName));
         return cursor.GetColumn<std::string>(1);
     }
 
-    /// Fetch the column names of a SQLite table in declared order.
+    /// Fetch the insertable column names of a SQLite table in declared order.
+    ///
+    /// Uses `table_xinfo` so generated columns can be excluded: its `hidden` flag is 0 for an ordinary
+    /// column, 1 for a hidden column, and 2/3 for VIRTUAL/STORED generated columns. Only ordinary
+    /// columns may appear in an `INSERT`, so the rebuild's data-copy column list must skip the rest.
     [[nodiscard]] std::vector<std::string> FetchSqliteColumnNames(SqlStatement& stmt, std::string_view tableName)
     {
-        auto cursor = stmt.ExecuteDirect(std::format(R"(PRAGMA table_info("{}"))", tableName));
+        auto cursor = stmt.ExecuteDirect(std::format(R"(PRAGMA table_xinfo("{}"))", EscapeSqlIdentifier(tableName)));
         std::vector<std::string> columns;
         while (cursor.FetchRow())
-            columns.push_back(cursor.GetColumn<std::string>(2)); // column 2 is `name`
+            // table_xinfo columns: 1=cid 2=name 3=type 4=notnull 5=dflt_value 6=pk 7=hidden.
+            if (cursor.GetColumn<int64_t>(7) == 0) // ordinary (insertable) column
+                columns.push_back(cursor.GetColumn<std::string>(2));
         return columns;
+    }
+
+    /// @brief Fetch the DDL of explicitly-created indexes and triggers attached to a SQLite table.
+    ///
+    /// These live in their own `sqlite_schema` rows and are destroyed by `DROP TABLE`, so a table
+    /// rebuild must re-create them afterwards. Auto-indexes that back inline `UNIQUE` / `PRIMARY KEY`
+    /// constraints have a NULL `sql` and are excluded — SQLite recreates those with the table itself.
+    /// @param stmt A statement bound to the connection being rebuilt.
+    /// @param tableName The table whose dependent objects to collect.
+    /// @return The `CREATE INDEX` / `CREATE TRIGGER` statements in `sqlite_schema` order.
+    [[nodiscard]] std::vector<std::string> FetchSqliteDependentObjectsSql(SqlStatement& stmt, std::string_view tableName)
+    {
+        auto cursor = stmt.ExecuteDirect(std::format(
+            R"(SELECT sql FROM sqlite_schema WHERE tbl_name = '{}' AND type IN ('index', 'trigger') AND sql IS NOT NULL)",
+            EscapeSqlStringLiteral(tableName)));
+        std::vector<std::string> dependentObjectsSql;
+        while (cursor.FetchRow())
+            dependentObjectsSql.push_back(cursor.GetColumn<std::string>(1));
+        return dependentObjectsSql;
     }
 
     /// Rebuild a SQLite table while transforming its stored `CREATE TABLE` SQL.
@@ -863,12 +961,15 @@ namespace
     ///
     /// The caller supplies `transformCreateSql` which receives the original SQL (with the
     /// table name already substituted for the temp name) and returns the final CREATE TABLE
-    /// text. The migration transaction covers all four steps for atomicity.
+    /// text. Explicitly-created indexes and triggers are captured beforehand and re-created
+    /// afterwards. The migration transaction covers every step for atomicity.
     ///
-    /// Assumes SQLite's default `foreign_keys = OFF` session setting, which is standard
-    /// during migrations — with enforcement on, `DROP TABLE orig` would succeed but the
-    /// brief interval between DROP and RENAME would leave FKs in other tables temporarily
-    /// dangling.
+    /// Foreign-key enforcement is NOT toggled here: SQLite only honours `PRAGMA foreign_keys`
+    /// outside a transaction, and migrations run inside one. The caller must therefore ensure
+    /// `foreign_keys = OFF` before migrating a table that other tables reference — with enforcement
+    /// on, the `DROP TABLE` can fire cascade actions or leave another table's FK dangling. (The
+    /// proper fix is to disable `foreign_keys` at the migration-runner level, before the
+    /// transaction is opened, gated on SQLite.)
     void RebuildSqliteTable(SqlConnection& connection, std::string_view tableName, auto&& transformCreateSql)
     {
         auto stmt = SqlStatement { connection };
@@ -877,19 +978,41 @@ namespace
         if (columns.empty())
             throw std::runtime_error(std::format("SQLite rebuild: table '{}' has no columns", tableName));
 
+        // Capture indexes/triggers before the drop destroys them; they are re-created after RENAME.
+        auto const dependentObjectsSql = FetchSqliteDependentObjectsSql(stmt, tableName);
+
         std::string const tmpName = std::string { tableName } + "__lw_rebuild";
 
-        // Substitute the original table name with the temp name in the stored SQL. The
-        // quoted form is the one Lightweight emits; the unquoted fallback covers tables
-        // created outside the library.
-        auto replaceFirst = [](std::string s, std::string_view from, std::string_view to) {
-            if (auto const pos = s.find(from); pos != std::string::npos)
-                s.replace(pos, from.size(), to);
+        // Substitute the original table name with the temp name in the stored SQL. Prefer the quoted
+        // form Lightweight emits. For tables created outside the library, fall back to a *word-boundary*
+        // match of the bare name so a short name (e.g. "T", a substring of "CREATE"/"TABLE") is not
+        // spliced into a keyword, a column name, or a self-referential REFERENCES clause. Only the first
+        // matching occurrence — the table declaration — is replaced.
+        auto const isIdentifierChar = [](char c) noexcept {
+            return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
+        };
+        auto replaceFirstWord = [&isIdentifierChar](std::string s, std::string_view word, std::string_view to) {
+            size_t from = 0;
+            while ((from = s.find(word, from)) != std::string::npos)
+            {
+                bool const leftOk = from == 0 || !isIdentifierChar(s[from - 1]);
+                size_t const after = from + word.size();
+                bool const rightOk = after >= s.size() || !isIdentifierChar(s[after]);
+                if (leftOk && rightOk)
+                {
+                    s.replace(from, word.size(), to);
+                    break;
+                }
+                from = after;
+            }
             return s;
         };
-        auto withTmpName = replaceFirst(originalSql, std::format(R"("{}")", tableName), std::format(R"("{}")", tmpName));
-        if (withTmpName == originalSql) // unquoted fallback
-            withTmpName = replaceFirst(originalSql, tableName, tmpName);
+        auto const quotedName = std::format(R"("{}")", tableName);
+        std::string withTmpName = originalSql;
+        if (auto const pos = withTmpName.find(quotedName); pos != std::string::npos)
+            withTmpName.replace(pos, quotedName.size(), std::format(R"("{}")", tmpName));
+        else // unquoted fallback for externally-created tables
+            withTmpName = replaceFirstWord(originalSql, tableName, tmpName);
 
         auto const newSql = transformCreateSql(std::move(withTmpName));
 
@@ -910,6 +1033,8 @@ namespace
             }
         };
 
+        // Clear any leftover temp table from a previously-failed rebuild so the CREATE can't collide.
+        exec(std::format(R"(DROP TABLE IF EXISTS "{}")", tmpName), "DROP stale tmp");
         exec(newSql, "CREATE TABLE (tmp)");
 
         std::string columnList;
@@ -923,6 +1048,11 @@ namespace
              "INSERT SELECT");
         exec(std::format(R"(DROP TABLE "{}")", tableName), "DROP TABLE");
         exec(std::format(R"(ALTER TABLE "{}" RENAME TO "{}")", tmpName, tableName), "ALTER TABLE RENAME");
+
+        // Re-create the indexes and triggers dropped with the original table. Their stored DDL
+        // names the table by its (now restored) original name, so it applies unchanged.
+        for (auto const& dependentObjectSql: dependentObjectsSql)
+            exec(dependentObjectSql, "recreate dependent object");
     }
 
     /// Rebuild a SQLite table to add a new foreign key constraint.
@@ -982,7 +1112,87 @@ namespace
         });
     }
 
+    /// @brief Advance past a single-quoted SQL string literal.
+    /// Handles doubled-quote (`''`) escapes. If @p from is not at a quote, returns it unchanged so
+    /// the caller can keep scanning ordinary text.
+    /// @param s The text being scanned.
+    /// @param from Index to inspect.
+    /// @return Index just past the literal's closing quote, or `s.size()` if it is unterminated.
+    [[nodiscard]] size_t SkipStringLiteral(std::string_view s, size_t from) noexcept
+    {
+        if (from >= s.size() || s[from] != '\'')
+            return from;
+        size_t scan = from + 1;
+        while (scan < s.size())
+        {
+            if (s[scan] == '\'')
+            {
+                if (scan + 1 < s.size() && s[scan + 1] == '\'')
+                {
+                    scan += 2; // doubled-quote escape inside the literal
+                    continue;
+                }
+                return scan + 1;
+            }
+            ++scan;
+        }
+        return s.size();
+    }
+
+    /// @brief Advance past a double-quoted SQL identifier (`"..."`), honouring `""` escapes.
+    /// If @p from is not at a double quote, returns it unchanged so the caller can keep scanning.
+    /// Quoted identifiers can legally contain `'`, `(`, `)`, and `,`, so treating them as opaque keeps
+    /// those characters from being misread as string-literal, paren, or column-list structure.
+    /// @param s The text being scanned.
+    /// @param from Index to inspect.
+    /// @return Index just past the identifier's closing quote, or `s.size()` if it is unterminated.
+    [[nodiscard]] size_t SkipQuotedIdentifier(std::string_view s, size_t from) noexcept
+    {
+        if (from >= s.size() || s[from] != '"')
+            return from;
+        size_t scan = from + 1;
+        while (scan < s.size())
+        {
+            if (s[scan] == '"')
+            {
+                if (scan + 1 < s.size() && s[scan + 1] == '"')
+                {
+                    scan += 2; // doubled-quote escape inside the identifier
+                    continue;
+                }
+                return scan + 1;
+            }
+            ++scan;
+        }
+        return s.size();
+    }
+
+    /// @brief Decode a double-quoted SQL identifier into its raw name (collapsing `""` to `"`).
+    /// @param s The text containing the identifier.
+    /// @param openQuote Index of the opening `"`.
+    /// @param pastClose Index just past the closing `"` (as returned by @ref SkipQuotedIdentifier).
+    /// @return The unquoted, unescaped identifier text.
+    [[nodiscard]] std::string UnquoteSqlIdentifier(std::string_view s, size_t openQuote, size_t pastClose)
+    {
+        std::string out;
+        size_t const closeQuote = pastClose - 1; // index of the closing '"'
+        size_t k = openQuote + 1;
+        while (k < closeQuote)
+        {
+            if (s[k] == '"' && k + 1 < closeQuote && s[k + 1] == '"')
+            {
+                out += '"';
+                k += 2;
+            }
+            else
+                out += s[k++];
+        }
+        return out;
+    }
+
     /// Advance past a `(...)` group starting at the first `(` at or after `from`.
+    /// Single-quoted string literals and double-quoted identifiers inside the group are skipped whole
+    /// so a `)` within a literal or identifier cannot unbalance the depth count.
     /// Returns the index just past the matching close paren, or `std::string::npos`
     /// if the text is malformed.
     [[nodiscard]] size_t SkipMatchingParens(std::string_view s, size_t from)
@@ -994,6 +1204,16 @@ namespace
         size_t scan = open + 1;
         while (scan < s.size() && depth > 0)
         {
+            if (s[scan] == '\'')
+            {
+                scan = SkipStringLiteral(s, scan);
+                continue;
+            }
+            if (s[scan] == '"')
+            {
+                scan = SkipQuotedIdentifier(s, scan);
+                continue;
+            }
             if (s[scan] == '(')
                 ++depth;
             else if (s[scan] == ')')
@@ -1001,6 +1221,37 @@ namespace
             ++scan;
         }
         return depth == 0 ? scan : std::string_view::npos;
+    }
+
+    /// @brief Find the next whitespace-delimited token in @p s starting at @p from, treating
+    /// parenthesised groups, single-quoted string literals, and double-quoted identifiers as opaque
+    /// (so commas, parens, quotes, and keywords inside them are never split out).
+    /// @param s The text being tokenised.
+    /// @param from Index to start scanning from.
+    /// @return The token's `[start, end)` range; an empty range `{s.size(), s.size()}` when none remains.
+    [[nodiscard]] std::pair<size_t, size_t> NextSqlToken(std::string_view s, size_t from)
+    {
+        size_t i = from;
+        while (i < s.size() && (s[i] == ' ' || s[i] == '\t' || s[i] == '\n'))
+            ++i;
+        if (i >= s.size())
+            return { s.size(), s.size() };
+        size_t const start = i;
+        while (i < s.size() && s[i] != ' ' && s[i] != '\t' && s[i] != '\n')
+        {
+            if (s[i] == '(')
+            {
+                auto const end = SkipMatchingParens(s, i);
+                i = end == std::string_view::npos ? s.size() : end;
+            }
+            else if (s[i] == '\'')
+                i = SkipStringLiteral(s, i);
+            else if (s[i] == '"')
+                i = SkipQuotedIdentifier(s, i);
+            else
+                ++i;
+        }
+        return { start, i };
     }
 
     /// Expand `[start..pos)` backwards to include adjacent whitespace and up to one
@@ -1060,6 +1311,375 @@ namespace
         });
     }
 
+    /// @brief ASCII-fold a character to upper case (locale-independent — SQL keywords are ASCII).
+    [[nodiscard]] constexpr char AsciiFold(char c) noexcept
+    {
+        return (c >= 'a' && c <= 'z') ? static_cast<char>(c - ('a' - 'A')) : c;
+    }
+
+    /// @brief ASCII case-insensitive string equality, without allocating.
+    /// @param a First string.
+    /// @param b Second string.
+    /// @return True iff @p a and @p b are equal ignoring ASCII letter case.
+    [[nodiscard]] bool IEqualsAscii(std::string_view a, std::string_view b) noexcept
+    {
+        return a.size() == b.size() && std::ranges::equal(a, b, [](char x, char y) { return AsciiFold(x) == AsciiFold(y); });
+    }
+
+    /// @brief Whether @p text contains @p keyword as a standalone ASCII case-insensitive token.
+    /// Unlike a substring search this only matches a real SQL token: @ref NextSqlToken treats
+    /// parenthesised groups, string literals, and quoted identifiers as opaque, so the keyword is
+    /// never matched inside a `DEFAULT 'value'`, a `CHECK(...)` expression, or an identifier.
+    /// @param text The text to search.
+    /// @param keyword The keyword to look for.
+    /// @return True iff @p keyword occurs in @p text as a token, ignoring ASCII letter case.
+    [[nodiscard]] bool ContainsTokenAscii(std::string_view text, std::string_view keyword)
+    {
+        size_t scan = 0;
+        while (true)
+        {
+            auto const [start, end] = NextSqlToken(text, scan);
+            if (start == end)
+                return false;
+            if (IEqualsAscii(text.substr(start, end - start), keyword))
+                return true;
+            scan = end;
+        }
+    }
+
+    /// @brief Drop the nullability keywords (`NOT NULL`, standalone `NULL`) from a column's inline
+    /// constraint list so a fresh nullability can be applied. A `NULL` that belongs to a
+    /// `DEFAULT NULL` clause is normally preserved; when @p makingNotNull is set the now contradictory
+    /// default is dropped as well, in all three spellings: `DEFAULT NULL`, `DEFAULT (NULL)`, and the
+    /// space-less `DEFAULT(NULL)` (which the tokeniser collapses into a single token). Parenthesised
+    /// groups (`CHECK(...)`), single-quoted string literals, and double-quoted identifiers are treated
+    /// as opaque so commas, quotes, and keywords inside them are never misread.
+    /// @param constraints The inline constraint text following a column's type token.
+    /// @param makingNotNull Whether the column is being changed to `NOT NULL`.
+    /// @return The constraint text with the nullability keywords removed.
+    ///
+    /// @note SQLite necessarily reconstructs the whole column here, so it normalises a contradictory
+    /// `DEFAULT NULL` away. The in-place `ALTER COLUMN` emitted for PostgreSQL / SQL Server leaves the
+    /// existing default untouched; that cross-dialect difference is intentional — only SQLite has to
+    /// re-render the column definition from scratch.
+    [[nodiscard]] std::string StripNullabilityKeywords(std::string_view constraints, bool makingNotNull)
+    {
+        std::vector<std::string_view> tokens; // views into `constraints` — no per-token allocation
+        size_t scan = 0;
+        while (true)
+        {
+            auto const [start, end] = NextSqlToken(constraints, scan);
+            if (start == end)
+                break;
+            tokens.push_back(constraints.substr(start, end - start));
+            scan = end;
+        }
+
+        auto const isNullToken = [](std::string_view tok) {
+            return IEqualsAscii(tok, "NULL") || IEqualsAscii(tok, "(NULL)");
+        };
+        // A `DEFAULT(NULL)` written without a space is collapsed into one token by NextSqlToken.
+        auto const isDefaultNullToken = [](std::string_view tok) {
+            return IEqualsAscii(tok, "DEFAULT(NULL)");
+        };
+
+        std::vector<std::string_view> kept;
+        kept.reserve(tokens.size());
+        size_t t = 0;
+        while (t < tokens.size())
+        {
+            if (IEqualsAscii(tokens[t], "NOT") && t + 1 < tokens.size() && IEqualsAscii(tokens[t + 1], "NULL"))
+            {
+                t += 2; // skip `NOT NULL`
+                continue;
+            }
+            if (makingNotNull && IEqualsAscii(tokens[t], "DEFAULT") && t + 1 < tokens.size() && isNullToken(tokens[t + 1]))
+            {
+                t += 2; // a NULL default contradicts NOT NULL — drop the whole `DEFAULT NULL` clause
+                continue;
+            }
+            if (makingNotNull && isDefaultNullToken(tokens[t]))
+            {
+                ++t; // same, for the space-less `DEFAULT(NULL)` spelling
+                continue;
+            }
+            if (IEqualsAscii(tokens[t], "NULL") && (kept.empty() || !IEqualsAscii(kept.back(), "DEFAULT")))
+            {
+                ++t;
+                continue;
+            }
+            kept.push_back(tokens[t]);
+            ++t;
+        }
+
+        std::string out;
+        for (auto const& token: kept)
+        {
+            if (!out.empty())
+                out += ' ';
+            out += token;
+        }
+        return out;
+    }
+
+    /// @brief Find the byte offset of the column-list opening parenthesis in a `CREATE TABLE` statement.
+    /// Scans top-level text only, skipping quoted identifiers and string literals, so a `(` inside a
+    /// quoted name or a string literal is never mistaken for the column-list opener.
+    /// @param createSql The stored `CREATE TABLE` text.
+    /// @return The index of the `(` that opens the column list, or `std::string::npos` if none exists.
+    [[nodiscard]] size_t FindColumnListOpen(std::string_view createSql) noexcept
+    {
+        size_t pos = 0;
+        while (pos < createSql.size())
+        {
+            char const ch = createSql[pos];
+            if (ch == '"')
+                pos = SkipQuotedIdentifier(createSql, pos);
+            else if (ch == '\'')
+                pos = SkipStringLiteral(createSql, pos);
+            else if (ch == '(')
+                return pos;
+            else
+                ++pos;
+        }
+        return std::string::npos;
+    }
+
+    /// @brief Test whether a column-list entry defines a given column, i.e. its first
+    /// whitespace-skipped token is the quoted column name.
+    /// @param createSql The stored `CREATE TABLE` text.
+    /// @param entryStart Index of the entry's first character.
+    /// @param entryEnd Index just past the entry (its terminating comma or the list's `)`).
+    /// @param columnName The column name to match.
+    /// @return The index just past the entry's quoted name when it defines @p columnName; otherwise
+    /// `std::string::npos`.
+    [[nodiscard]] size_t MatchColumnEntryName(std::string_view createSql,
+                                              size_t entryStart,
+                                              size_t entryEnd,
+                                              std::string_view columnName)
+    {
+        size_t nameStart = entryStart;
+        while (nameStart < entryEnd
+               && (createSql[nameStart] == ' ' || createSql[nameStart] == '\t' || createSql[nameStart] == '\n'))
+            ++nameStart;
+        if (nameStart >= entryEnd || createSql[nameStart] != '"')
+            return std::string::npos;
+        size_t const nameEnd = SkipQuotedIdentifier(createSql, nameStart);
+        if (nameEnd <= entryEnd && UnquoteSqlIdentifier(createSql, nameStart, nameEnd) == columnName)
+            return nameEnd;
+        return std::string::npos;
+    }
+
+    /// @brief Locate a column's definition as a top-level entry of a `CREATE TABLE` column list.
+    /// The list entries are separated by top-level commas; a column definition is an entry whose first
+    /// token is the quoted column name. Nested parens, string literals, and quoted identifiers are
+    /// skipped so the match never lands on a `CHECK("name" > 0)`, a `REFERENCES "T"("name")`, or a
+    /// `DEFAULT '... "name" ...'` that merely mentions the name.
+    /// @param createSql The stored `CREATE TABLE` text.
+    /// @param listOpen The index of the column list's opening `(` (see @ref FindColumnListOpen).
+    /// @param columnName The column to locate.
+    /// @return `{afterName, defEnd}` — the index just past the column's quoted name and the index of
+    /// the entry's terminating comma or the list's `)`; `{npos, npos}` if the column is not found.
+    [[nodiscard]] std::pair<size_t, size_t> LocateColumnDefinition(std::string_view createSql,
+                                                                   size_t listOpen,
+                                                                   std::string_view columnName)
+    {
+        size_t entryStart = listOpen + 1;
+        size_t pos = entryStart;
+        int depth = 0;
+        while (pos < createSql.size())
+        {
+            char const ch = createSql[pos];
+            if (ch == '"')
+            {
+                pos = SkipQuotedIdentifier(createSql, pos);
+                continue;
+            }
+            if (ch == '\'')
+            {
+                pos = SkipStringLiteral(createSql, pos);
+                continue;
+            }
+            if (ch == '(')
+            {
+                ++depth;
+                ++pos;
+                continue;
+            }
+            if (ch == ')' && depth > 0)
+            {
+                --depth;
+                ++pos;
+                continue;
+            }
+
+            bool const isEntryComma = ch == ',' && depth == 0;
+            bool const isListEnd = ch == ')' && depth == 0;
+            if (isEntryComma || isListEnd)
+            {
+                if (size_t const afterName = MatchColumnEntryName(createSql, entryStart, pos, columnName);
+                    afterName != std::string::npos)
+                    return { afterName, pos };
+                if (isListEnd)
+                    break;
+                entryStart = pos + 1;
+            }
+            ++pos;
+        }
+        return { std::string::npos, std::string::npos };
+    }
+
+    /// Rewrite a single column's type and nullability inside a stored `CREATE TABLE` statement,
+    /// preserving the column's other inline constraints (PRIMARY KEY, UNIQUE, DEFAULT, …) and
+    /// every other column verbatim. Backs the SQLite `AlterColumn` table rebuild.
+    ///
+    /// @param createSql The stored `CREATE TABLE` text (temp-table-named by the rebuild helper).
+    /// @param columnName The column to alter.
+    /// @param newType The new column type (already formatted, e.g. `TEXT` or `VARCHAR(200)`).
+    /// @param notNull Whether the column should become `NOT NULL`.
+    /// @return The transformed `CREATE TABLE` text.
+    [[nodiscard]] std::string RewriteSqliteColumnDefinition(std::string createSql,
+                                                            std::string_view columnName,
+                                                            std::string_view newType,
+                                                            bool notNull)
+    {
+        // Locate the target column's definition as a top-level entry of the column list, rather than by
+        // a naive substring search for `"name"`. The column list is the first top-level `(...)` group;
+        // its entries are separated by top-level commas, and a column definition is an entry whose first
+        // token is the quoted column name. Walking the structure (skipping nested parens, string
+        // literals, and quoted identifiers) keeps the match off a `CHECK("name" > 0)` expression, a
+        // `REFERENCES "T"("name")` clause, a `DEFAULT '... "name" ...'` literal, or any other column
+        // that merely mentions the name.
+        //
+        // We deliberately rewrite the stored DDL as text rather than reconstruct the column from PRAGMA
+        // metadata: PRAGMA cannot faithfully round-trip CHECK / COLLATE / generated-column / inline-FK
+        // clauses, all of which this text surgery preserves verbatim.
+        size_t const listOpen = FindColumnListOpen(createSql);
+        if (listOpen == std::string::npos)
+            throw std::runtime_error(
+                std::format(R"(SQLite rebuild: no column list found in CREATE TABLE for "{}")", columnName));
+
+        // `afterName` sits just past the target column's quoted name; `defEnd` at the entry's
+        // terminating comma or the list's ')'.
+        auto const [afterName, defEnd] = LocateColumnDefinition(createSql, listOpen, columnName);
+        if (afterName == std::string::npos)
+            throw std::runtime_error(std::format(R"(SQLite rebuild: column "{}" not found in CREATE TABLE)", columnName));
+
+        // Definition body after the column name: `<type> [type-params] <constraints...>`. The type token
+        // is the first whitespace-delimited token, with any `(...)` parameter group attached (NextSqlToken
+        // treats the group as opaque); the remainder is the surviving constraints.
+        auto const body = std::string_view { createSql }.substr(afterName, defEnd - afterName);
+        auto const [typeStart, typeEnd] = NextSqlToken(body, 0);
+        std::string const rest =
+            typeStart < typeEnd ? StripNullabilityKeywords(body.substr(typeEnd), notNull) : std::string {};
+
+        // SQLite only allows `AUTOINCREMENT` on an `INTEGER PRIMARY KEY` column. Changing such a column
+        // to any other type would emit DDL SQLite rejects mid-rebuild, so fail early with a clear,
+        // actionable message. The check is token-based so it is not fooled by the text `AUTOINCREMENT`
+        // appearing inside a DEFAULT literal or an identifier.
+        if (!IEqualsAscii(newType, "INTEGER") && ContainsTokenAscii(rest, "AUTOINCREMENT"))
+            throw std::runtime_error(std::format(R"(SQLite rebuild: cannot change AUTOINCREMENT column "{}" to type "{}" )"
+                                                 R"((AUTOINCREMENT requires INTEGER PRIMARY KEY))",
+                                                 columnName,
+                                                 newType));
+
+        // Reassemble ` <newType> [NOT NULL] <surviving constraints>` in place of the old definition
+        // body. `afterName` sits at the closing quote of the name, so a single leading space is included.
+        std::string rebuilt = " ";
+        rebuilt += newType;
+        if (notNull)
+            rebuilt += " NOT NULL";
+        if (!rest.empty())
+        {
+            rebuilt += ' ';
+            rebuilt += rest;
+        }
+
+        createSql.replace(afterName, defEnd - afterName, rebuilt);
+        return createSql;
+    }
+
+    /// Rebuild a SQLite table to change a column's type and/or nullability.
+    ///
+    /// SQLite has no `ALTER TABLE … ALTER COLUMN`, so the executor recreates the table from its
+    /// stored `CREATE TABLE` definition with the one column's type/nullability rewritten, then
+    /// copies the data across. Other columns, constraints, indexes, and triggers are preserved
+    /// (indexes/triggers via @ref RebuildSqliteTable's capture-and-recreate step).
+    void SqliteRebuildAlterColumn(SqlConnection& connection, SqliteGuard const& guard)
+    {
+        RebuildSqliteTable(connection, guard.tableName, [&](std::string createSql) {
+            return RewriteSqliteColumnDefinition(std::move(createSql), guard.columnName, guard.columnType, guard.notNull);
+        });
+    }
+
+    /// @brief RAII helper that disables SQLite foreign-key enforcement for the duration of a migration,
+    /// then restores it. A table rebuild's `DROP TABLE` would otherwise fire cascade actions or leave
+    /// another table's foreign key dangling when enforcement is on.
+    ///
+    /// SQLite only honours `PRAGMA foreign_keys` *outside* a transaction, and migrations run inside one,
+    /// so the toggle must bracket the transaction: construct this before the `SqlTransaction` and let it
+    /// outlive it (locals are destroyed in reverse order). It is a no-op on non-SQLite backends and when
+    /// enforcement is already off (the SQLite default), so the common case is untouched.
+    class SqliteForeignKeysGuard
+    {
+      public:
+        /// @param connection The connection whose foreign-key enforcement to toggle.
+        explicit SqliteForeignKeysGuard(SqlConnection& connection):
+            _connection { connection }
+        {
+            if (!connection.RequiresTableRebuildForSchemaChange())
+                return;
+            bool enabled = false;
+            {
+                // Read the current value in its own scope so the result cursor is released before the
+                // `SET` below: reusing a statement while its cursor is still open is an invalid-cursor-
+                // state error on the SQLite ODBC driver.
+                auto stmt = SqlStatement { connection };
+                auto cursor = stmt.ExecuteDirect("PRAGMA foreign_keys");
+                enabled = cursor.FetchRow() && cursor.GetColumn<int64_t>(1) != 0;
+            }
+            if (enabled)
+            {
+                auto stmt = SqlStatement { connection };
+                (void) stmt.ExecuteDirect("PRAGMA foreign_keys = OFF");
+                _restore = true;
+            }
+        }
+
+        ~SqliteForeignKeysGuard()
+        {
+            if (!_restore)
+                return;
+            // Destructors must not propagate. Route a failed restore to the active SqlLogger so a
+            // silently-left-disabled foreign-key enforcement doesn't become an invisible regression.
+            try
+            {
+                auto stmt = SqlStatement { _connection };
+                (void) stmt.ExecuteDirect("PRAGMA foreign_keys = ON");
+            }
+            catch (...)
+            {
+                try
+                {
+                    SqlLogger::GetLogger().OnWarning("SqliteForeignKeysGuard: failed to restore PRAGMA foreign_keys = ON");
+                }
+                // NOLINTNEXTLINE(bugprone-empty-catch) — destructor must never throw.
+                catch (...)
+                {
+                }
+            }
+        }
+
+        SqliteForeignKeysGuard(SqliteForeignKeysGuard const&) = delete;
+        SqliteForeignKeysGuard& operator=(SqliteForeignKeysGuard const&) = delete;
+        SqliteForeignKeysGuard(SqliteForeignKeysGuard&&) = delete;
+        SqliteForeignKeysGuard& operator=(SqliteForeignKeysGuard&&) = delete;
+
+      private:
+        SqlConnection& _connection;
+        bool _restore = false;
+    };
+
     /// Execute a SQL script that may be prefixed with a SQLite runtime-guard sentinel.
     ///
     /// If the script carries a guard, perform the presence check first and skip the DDL
@@ -1068,7 +1688,7 @@ namespace
     void ExecuteScriptRespectingSqliteGuards(SqlStatement& stmt, SqlConnection& connection, std::string_view script)
     {
         auto const parsed = TryParseSqliteGuard(script);
-        if (!parsed || !connection.QueryFormatter().RequiresTableRebuildForForeignKeyChange())
+        if (!parsed || !connection.RequiresTableRebuildForSchemaChange())
         {
             (void) stmt.ExecuteDirect(script);
             return;
@@ -1096,6 +1716,9 @@ namespace
                 return;
             case SqliteGuard::Kind::AddCompositeForeignKey:
                 SqliteRebuildAddCompositeForeignKey(connection, guard);
+                return;
+            case SqliteGuard::Kind::AlterColumn:
+                SqliteRebuildAlterColumn(connection, guard);
                 return;
         }
     }
@@ -1218,6 +1841,9 @@ void MigrationManager::ApplySingleMigration(MigrationBase const& migration, Migr
     }
 
     auto& dm = GetDataMapper();
+    // Disable SQLite FK enforcement around the transaction so a table rebuild's DROP TABLE cannot
+    // cascade or leave a referencing table's FK dangling (no-op off SQLite / when already disabled).
+    auto foreignKeysGuard = SqliteForeignKeysGuard { dm.Connection() };
     auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
 
     SqlMigrationQueryBuilder migrationBuilder = dm.Connection().Migration();
@@ -1283,6 +1909,9 @@ void MigrationManager::RevertSingleMigration(MigrationBase const& migration)
     }
 
     auto& dm = GetDataMapper();
+    // Disable SQLite FK enforcement around the transaction so a table rebuild's DROP TABLE cannot
+    // cascade or leave a referencing table's FK dangling (no-op off SQLite / when already disabled).
+    auto foreignKeysGuard = SqliteForeignKeysGuard { dm.Connection() };
     auto transaction = SqlTransaction { dm.Connection(), SqlTransactionMode::ROLLBACK };
 
     SqlMigrationQueryBuilder migrationBuilder = dm.Connection().Migration();

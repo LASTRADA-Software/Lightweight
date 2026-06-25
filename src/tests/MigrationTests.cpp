@@ -1149,6 +1149,591 @@ TEST_CASE_METHOD(SqlMigrationTestFixture, "AlterTable AddCompositeForeignKey reb
     }
 }
 
+TEST_CASE_METHOD(SqlMigrationTestFixture, "AlterTable AlterColumn rebuilds SQLite table", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // ALTER COLUMN is a SQLite-specific code path: SQLite has no `ALTER TABLE … ALTER COLUMN`,
+    // so the formatter emits an ALTER_COLUMN sentinel and the executor rebuilds the table.
+    // This test drives the change through MigrationManager::ApplyPendingMigrations() so the
+    // guard-aware executor (not a bare ExecuteDirect) runs — i.e. it exercises the real
+    // rebuild and is verified against live SQLite by CI's --test-env=sqlite3 matrix leg.
+    // Other dialects ALTER the column in place and are covered by the formatter-output test.
+    auto conn = SqlConnection {};
+    auto skipStmt = SqlStatement { conn };
+    UNSUPPORTED_DATABASE(skipStmt, SqlServerType::MICROSOFT_SQL);
+    UNSUPPORTED_DATABASE(skipStmt, SqlServerType::POSTGRESQL);
+    UNSUPPORTED_DATABASE(skipStmt, SqlServerType::MYSQL);
+
+    auto& manager = SqlMigration::MigrationManager::GetInstance();
+
+    SECTION("widen type: rows, other columns, and the primary key all survive")
+    {
+        auto create = SqlMigration::Migration<202602010001>(
+            "create widen",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.CreateTable("Widen")
+                    .PrimaryKey("id", Integer())
+                    .RequiredColumn("descr", Varchar(10))
+                    .Column("note", Varchar(20));
+            },
+            [](SqlMigrationQueryBuilder& plan) { plan.DropTable("Widen"); });
+
+        manager.CreateMigrationHistory();
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Widen" ("id", "descr", "note") VALUES (1, 'short', 'keep'))");
+        }
+
+        auto widen = SqlMigration::Migration<202602010002>(
+            "widen descr",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.AlterTable("Widen").AlterColumn("descr", Text(), SqlNullable::NotNull);
+            },
+            [](SqlMigrationQueryBuilder&) {});
+
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        // Row-preservation: the rebuild must not lose data, including the untouched 'note'.
+        {
+            auto stmt = SqlStatement { conn };
+            auto cursor = stmt.ExecuteDirect(R"(SELECT "id", "descr", "note" FROM "Widen")");
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<int64_t>(1) == 1);
+            CHECK(cursor.GetColumn<std::string>(2) == "short");
+            CHECK(cursor.GetColumn<std::string>(3) == "keep");
+            CHECK_FALSE(cursor.FetchRow());
+        }
+
+        // Schema: 'descr' is now TEXT and still NOT NULL; the primary key on 'id' survived.
+        {
+            auto stmt = SqlStatement { conn };
+            auto cursor = stmt.ExecuteDirect(R"(PRAGMA table_info("Widen"))");
+            bool checkedDescr = false;
+            bool checkedId = false;
+            while (cursor.FetchRow())
+            {
+                auto const name = cursor.GetColumn<std::string>(2); // name
+                if (name == "descr")
+                {
+                    CHECK(cursor.GetColumn<std::string>(3) == "TEXT"); // type
+                    CHECK(cursor.GetColumn<int64_t>(4) == 1);          // notnull
+                    checkedDescr = true;
+                }
+                else if (name == "id")
+                {
+                    CHECK(cursor.GetColumn<int64_t>(6) == 1); // pk
+                    checkedId = true;
+                }
+            }
+            CHECK(checkedDescr);
+            CHECK(checkedId);
+        }
+    }
+
+    SECTION("relax NOT NULL to NULL lets a NULL be inserted afterwards")
+    {
+        auto create = SqlMigration::Migration<202602020001>(
+            "create relax",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.CreateTable("Relax").PrimaryKey("id", Integer()).RequiredColumn("descr", Varchar(20));
+            },
+            [](SqlMigrationQueryBuilder& plan) { plan.DropTable("Relax"); });
+
+        manager.CreateMigrationHistory();
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto relax = SqlMigration::Migration<202602020002>(
+            "relax descr",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.AlterTable("Relax").AlterColumn("descr", Varchar(20), SqlNullable::Null);
+            },
+            [](SqlMigrationQueryBuilder&) {});
+
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto stmt = SqlStatement { conn };
+        // A NULL is now accepted where the column previously was NOT NULL.
+        CHECK_NOTHROW(stmt.ExecuteDirect(R"(INSERT INTO "Relax" ("id", "descr") VALUES (1, NULL))"));
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "descr" FROM "Relax" WHERE "id" = 1)");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<std::optional<std::string>>(1) == std::nullopt);
+    }
+
+    SECTION("tighten NULL to NOT NULL enforces the constraint and keeps existing rows")
+    {
+        auto create = SqlMigration::Migration<202602030001>(
+            "create tighten",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.CreateTable("Tighten").PrimaryKey("id", Integer()).Column("descr", Varchar(20));
+            },
+            [](SqlMigrationQueryBuilder& plan) { plan.DropTable("Tighten"); });
+
+        manager.CreateMigrationHistory();
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Tighten" ("id", "descr") VALUES (1, 'present'))");
+        }
+
+        auto tighten = SqlMigration::Migration<202602030002>(
+            "tighten descr",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.AlterTable("Tighten").AlterColumn("descr", Varchar(20), SqlNullable::NotNull);
+            },
+            [](SqlMigrationQueryBuilder&) {});
+
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto stmt = SqlStatement { conn };
+        // The existing non-null row survived the rebuild.
+        {
+            auto cursor = stmt.ExecuteDirect(R"(SELECT "descr" FROM "Tighten" WHERE "id" = 1)");
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<std::string>(1) == "present");
+        }
+        // NOT NULL is now enforced.
+        CHECK_THROWS(stmt.ExecuteDirect(R"(INSERT INTO "Tighten" ("id", "descr") VALUES (2, NULL))"));
+    }
+
+    SECTION("two successive AlterColumn calls in one migration fold and apply")
+    {
+        auto create = SqlMigration::Migration<202602040001>(
+            "create multi",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.CreateTable("Multi").PrimaryKey("id", Integer()).RequiredColumn("descr", Varchar(10));
+            },
+            [](SqlMigrationQueryBuilder& plan) { plan.DropTable("Multi"); });
+
+        manager.CreateMigrationHistory();
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Multi" ("id", "descr") VALUES (1, 'x'))");
+        }
+
+        auto alter = SqlMigration::Migration<202602040002>(
+            "two alters",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.AlterTable("Multi").AlterColumn("descr", Varchar(50), SqlNullable::NotNull);
+                plan.AlterTable("Multi").AlterColumn("descr", Text(), SqlNullable::Null);
+            },
+            [](SqlMigrationQueryBuilder&) {});
+
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto stmt = SqlStatement { conn };
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "id", "descr" FROM "Multi")");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int64_t>(1) == 1);
+        CHECK(cursor.GetColumn<std::string>(2) == "x");
+        CHECK_FALSE(cursor.FetchRow());
+    }
+
+    SECTION("altering a non-existent column raises and leaves the table intact")
+    {
+        auto create = SqlMigration::Migration<202602050001>(
+            "create missing",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.CreateTable("Missing").PrimaryKey("id", Integer()).RequiredColumn("descr", Varchar(10));
+            },
+            [](SqlMigrationQueryBuilder& plan) { plan.DropTable("Missing"); });
+
+        manager.CreateMigrationHistory();
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Missing" ("id", "descr") VALUES (1, 'here'))");
+        }
+
+        auto bad = SqlMigration::Migration<202602050002>(
+            "alter missing column",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.AlterTable("Missing").AlterColumn("nonexistent", Text(), SqlNullable::Null);
+            },
+            [](SqlMigrationQueryBuilder&) {});
+
+        CHECK_THROWS(manager.ApplyPendingMigrations());
+
+        // The transform throws before any DDL runs, so the original table and its row remain.
+        auto stmt = SqlStatement { conn };
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "id", "descr" FROM "Missing")");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int64_t>(1) == 1);
+        CHECK(cursor.GetColumn<std::string>(2) == "here");
+    }
+
+    SECTION("indexes and uniqueness survive the rebuild")
+    {
+        // A column with a separately-created UNIQUE INDEX lives in its own sqlite_schema row, which
+        // DROP TABLE destroys. The rebuild must re-create it, or altering an unrelated column would
+        // silently drop the index and stop enforcing uniqueness.
+        auto create = SqlMigration::Migration<202602060001>(
+            "create indexed",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.CreateTable("Indexed")
+                    .PrimaryKey("id", Integer())
+                    .RequiredColumn("code", Varchar(10))
+                    .Unique()
+                    .Index() // emits a separate CREATE UNIQUE INDEX "Indexed_code_index"
+                    .RequiredColumn("descr", Varchar(10));
+            },
+            [](SqlMigrationQueryBuilder& plan) { plan.DropTable("Indexed"); });
+
+        manager.CreateMigrationHistory();
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Indexed" ("id", "code", "descr") VALUES (1, 'AAA', 'x'))");
+        }
+
+        auto alter = SqlMigration::Migration<202602060002>(
+            "widen descr keep index",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.AlterTable("Indexed").AlterColumn("descr", Text(), SqlNullable::NotNull);
+            },
+            [](SqlMigrationQueryBuilder&) {});
+
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto stmt = SqlStatement { conn };
+        // The explicitly-created index still exists after the rebuild of an unrelated column.
+        {
+            auto cursor = stmt.ExecuteDirect(
+                R"(SELECT COUNT(*) FROM sqlite_schema WHERE type='index' AND tbl_name='Indexed' AND name='Indexed_code_index')");
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<int64_t>(1) == 1);
+        }
+        // ...and it still enforces uniqueness on 'code'.
+        CHECK_THROWS(stmt.ExecuteDirect(R"(INSERT INTO "Indexed" ("id", "code", "descr") VALUES (2, 'AAA', 'y'))"));
+    }
+
+    SECTION("altering an AUTOINCREMENT primary key to a non-integer type is rejected")
+    {
+        auto create = SqlMigration::Migration<202602070001>(
+            "create autoinc",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.CreateTable("Autoinc")
+                    .PrimaryKeyWithAutoIncrement("id", Integer())
+                    .RequiredColumn("descr", Varchar(10));
+            },
+            [](SqlMigrationQueryBuilder& plan) { plan.DropTable("Autoinc"); });
+
+        manager.CreateMigrationHistory();
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Autoinc" ("descr") VALUES ('x'))");
+        }
+
+        auto bad = SqlMigration::Migration<202602070002>(
+            "retype autoinc pk",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.AlterTable("Autoinc").AlterColumn("id", Text(), SqlNullable::NotNull);
+            },
+            [](SqlMigrationQueryBuilder&) {});
+
+        // SQLite cannot keep AUTOINCREMENT on a non-INTEGER column; the rebuild refuses up front
+        // rather than emitting DDL SQLite rejects mid-rebuild.
+        CHECK_THROWS(manager.ApplyPendingMigrations());
+
+        // The table and its row are intact (the rewrite throws before any DDL runs).
+        auto stmt = SqlStatement { conn };
+        auto cursor = stmt.ExecuteDirect(R"(SELECT COUNT(*) FROM "Autoinc")");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int64_t>(1) == 1);
+    }
+
+    SECTION("rebuild drops a contradictory DEFAULT NULL and survives literal defaults")
+    {
+        manager.CreateMigrationHistory();
+
+        // A DEFAULT NULL column and a sibling whose default is a string literal with an unbalanced
+        // parenthesis — neither shape is producible via the CreateTable DSL, so build the table
+        // out-of-band, then drive the rebuilds through a migration.
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(
+                R"(CREATE TABLE "Defs" ("id" INTEGER PRIMARY KEY, "a" INTEGER DEFAULT NULL, "b" TEXT DEFAULT '(x'))");
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Defs" ("id", "a", "b") VALUES (1, 5, 'keep'))");
+        }
+
+        auto alter = SqlMigration::Migration<202602080002>(
+            "tighten a and retype b",
+            [](SqlMigrationQueryBuilder& plan) {
+                // Tighten 'a' (DEFAULT NULL) to NOT NULL, then retype 'b' (paren-literal default).
+                plan.AlterTable("Defs").AlterColumn("a", Integer(), SqlNullable::NotNull);
+                plan.AlterTable("Defs").AlterColumn("b", Text(), SqlNullable::NotNull);
+            },
+            [](SqlMigrationQueryBuilder&) {});
+
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto stmt = SqlStatement { conn };
+        // The row survived; 'b''s literal default with a stray '(' did not corrupt the rebuild.
+        {
+            auto cursor = stmt.ExecuteDirect(R"(SELECT "id", "a", "b" FROM "Defs")");
+            REQUIRE(cursor.FetchRow());
+            CHECK(cursor.GetColumn<int64_t>(1) == 1);
+            CHECK(cursor.GetColumn<int64_t>(2) == 5);
+            CHECK(cursor.GetColumn<std::string>(3) == "keep");
+        }
+        // 'a' is now NOT NULL with the contradictory NULL default removed: omitting it must fail.
+        CHECK_THROWS(stmt.ExecuteDirect(R"(INSERT INTO "Defs" ("id", "b") VALUES (2, 'y'))"));
+        {
+            auto cursor = stmt.ExecuteDirect(R"(SELECT sql FROM sqlite_schema WHERE type='table' AND name='Defs')");
+            REQUIRE(cursor.FetchRow());
+            auto const sql = cursor.GetColumn<std::string>(1);
+            CHECK(!sql.contains("NOT NULL DEFAULT NULL")); // no contradiction
+            CHECK(sql.contains("DEFAULT '(x'"));           // literal default preserved verbatim
+        }
+    }
+
+    SECTION("the column anchor is not confused by an earlier inline REFERENCES")
+    {
+        manager.CreateMigrationHistory();
+
+        // Externally-created tables: 'Child' has a first column whose inline REFERENCES names a
+        // column ("descr") sharing the name of a later column we then alter. A first-match without
+        // the trailing-space anchor would splice into the REFERENCES clause instead of the column.
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(R"(CREATE TABLE "Parent" ("descr" INTEGER PRIMARY KEY))");
+            (void) stmt.ExecuteDirect(
+                R"(CREATE TABLE "Child" ("ref" INTEGER REFERENCES "Parent"("descr"), "descr" VARCHAR(10) NOT NULL))");
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Parent" ("descr") VALUES (7))");
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Child" ("ref", "descr") VALUES (7, 'hi'))");
+        }
+
+        auto alter = SqlMigration::Migration<202602090002>(
+            "widen child descr",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.AlterTable("Child").AlterColumn("descr", Text(), SqlNullable::NotNull);
+            },
+            [](SqlMigrationQueryBuilder&) {});
+
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto stmt = SqlStatement { conn };
+        {
+            auto cursor = stmt.ExecuteDirect(R"(SELECT sql FROM sqlite_schema WHERE type='table' AND name='Child')");
+            REQUIRE(cursor.FetchRow());
+            auto const sql = cursor.GetColumn<std::string>(1);
+            // The FK clause stays intact and the real 'descr' column (not the FK reference) is retyped.
+            CHECK(sql.contains(R"(REFERENCES "Parent"("descr"))"));
+            CHECK(sql.contains(R"("descr" TEXT)"));
+        }
+
+        auto rows = stmt.ExecuteDirect(R"(SELECT "ref", "descr" FROM "Child")");
+        REQUIRE(rows.FetchRow());
+        CHECK(rows.GetColumn<int64_t>(1) == 7);
+        CHECK(rows.GetColumn<std::string>(2) == "hi");
+    }
+
+    SECTION("an earlier inline CHECK mentioning the column does not misanchor the rewrite")
+    {
+        manager.CreateMigrationHistory();
+
+        // The first column's inline CHECK references a *later* column ("descr") by quoted name followed
+        // by a space — a first-substring anchor would splice the new type into the CHECK clause. Build
+        // out-of-band since the DSL cannot emit such a CHECK.
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(
+                R"(CREATE TABLE "Chk" ("a" INTEGER CHECK("descr" <> ''), "descr" VARCHAR(10) NOT NULL))");
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Chk" ("a", "descr") VALUES (1, 'x'))");
+        }
+
+        auto alter = SqlMigration::Migration<202602100002>(
+            "widen chk descr",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.AlterTable("Chk").AlterColumn("descr", Text(), SqlNullable::NotNull);
+            },
+            [](SqlMigrationQueryBuilder&) {});
+
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto stmt = SqlStatement { conn };
+        {
+            auto cursor = stmt.ExecuteDirect(R"(SELECT sql FROM sqlite_schema WHERE type='table' AND name='Chk')");
+            REQUIRE(cursor.FetchRow());
+            auto const sql = cursor.GetColumn<std::string>(1);
+            CHECK(sql.contains(R"(CHECK("descr" <> ''))")); // CHECK clause intact
+            CHECK(sql.contains(R"("descr" TEXT)"));         // real column retyped
+        }
+        auto rows = stmt.ExecuteDirect(R"(SELECT "a", "descr" FROM "Chk")");
+        REQUIRE(rows.FetchRow());
+        CHECK(rows.GetColumn<int64_t>(1) == 1);
+        CHECK(rows.GetColumn<std::string>(2) == "x");
+    }
+
+    SECTION("a column whose quoted name contains an apostrophe survives the rebuild")
+    {
+        manager.CreateMigrationHistory();
+
+        // The apostrophe-bearing identifier precedes the altered column, so the rewriter must scan past
+        // it; treating the `'` as a string-literal delimiter would corrupt the column list.
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(
+                R"(CREATE TABLE "Apos" ("id" INTEGER PRIMARY KEY, "O'Brien" INTEGER, "descr" VARCHAR(10)))");
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Apos" ("id", "O'Brien", "descr") VALUES (1, 7, 'x'))");
+        }
+
+        auto alter = SqlMigration::Migration<202602110002>(
+            "widen apos descr",
+            [](SqlMigrationQueryBuilder& plan) { plan.AlterTable("Apos").AlterColumn("descr", Text(), SqlNullable::Null); },
+            [](SqlMigrationQueryBuilder&) {});
+
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto stmt = SqlStatement { conn };
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "id", "O'Brien", "descr" FROM "Apos")");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int64_t>(1) == 1);
+        CHECK(cursor.GetColumn<int64_t>(2) == 7);
+        CHECK(cursor.GetColumn<std::string>(3) == "x");
+    }
+
+    SECTION("a space-less DEFAULT(NULL) is dropped when tightening to NOT NULL")
+    {
+        manager.CreateMigrationHistory();
+
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(R"(CREATE TABLE "DefNs" ("id" INTEGER PRIMARY KEY, "a" INTEGER DEFAULT(NULL)))");
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "DefNs" ("id", "a") VALUES (1, 5))");
+        }
+
+        auto alter = SqlMigration::Migration<202602120002>(
+            "tighten defns a",
+            [](SqlMigrationQueryBuilder& plan) {
+                plan.AlterTable("DefNs").AlterColumn("a", Integer(), SqlNullable::NotNull);
+            },
+            [](SqlMigrationQueryBuilder&) {});
+
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto stmt = SqlStatement { conn };
+        {
+            auto cursor = stmt.ExecuteDirect(R"(SELECT sql FROM sqlite_schema WHERE type='table' AND name='DefNs')");
+            REQUIRE(cursor.FetchRow());
+            auto const sql = cursor.GetColumn<std::string>(1);
+            CHECK(!sql.contains("DEFAULT(NULL)")); // contradictory default removed
+        }
+        // NOT NULL is now enforced even though the default was a no-space DEFAULT(NULL).
+        CHECK_THROWS(stmt.ExecuteDirect(R"(INSERT INTO "DefNs" ("id") VALUES (2))"));
+    }
+
+    SECTION("a DEFAULT literal containing the word AUTOINCREMENT does not block retyping")
+    {
+        manager.CreateMigrationHistory();
+
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(
+                R"(CREATE TABLE "Faux" ("id" INTEGER PRIMARY KEY, "note" VARCHAR(40) DEFAULT 'has AUTOINCREMENT word'))");
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Faux" ("id") VALUES (1))");
+        }
+
+        auto alter = SqlMigration::Migration<202602130002>(
+            "retype faux note",
+            [](SqlMigrationQueryBuilder& plan) { plan.AlterTable("Faux").AlterColumn("note", Text(), SqlNullable::Null); },
+            [](SqlMigrationQueryBuilder&) {});
+
+        // The substring 'AUTOINCREMENT' inside the DEFAULT literal must not trip the INTEGER-PK guard.
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto stmt = SqlStatement { conn };
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "note" FROM "Faux" WHERE "id" = 1)");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<std::string>(1) == "has AUTOINCREMENT word"); // default applied, literal preserved
+    }
+
+    SECTION("a generated column is preserved and excluded from the data copy")
+    {
+        manager.CreateMigrationHistory();
+
+        // A STORED generated column lives in the column list but cannot be inserted into; the rebuild's
+        // INSERT...SELECT must skip it, and its expression (referencing the altered column) must survive.
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(
+                R"(CREATE TABLE "Gen" ("id" INTEGER PRIMARY KEY, "a" INTEGER, "b" INTEGER GENERATED ALWAYS AS ("a" * 2) STORED))");
+            (void) stmt.ExecuteDirect(R"(INSERT INTO "Gen" ("id", "a") VALUES (1, 5))");
+        }
+
+        auto alter = SqlMigration::Migration<202602140002>(
+            "tighten gen a",
+            [](SqlMigrationQueryBuilder& plan) { plan.AlterTable("Gen").AlterColumn("a", Integer(), SqlNullable::NotNull); },
+            [](SqlMigrationQueryBuilder&) {});
+
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto stmt = SqlStatement { conn };
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "id", "a", "b" FROM "Gen")");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int64_t>(1) == 1);
+        CHECK(cursor.GetColumn<int64_t>(2) == 5);
+        CHECK(cursor.GetColumn<int64_t>(3) == 10); // generated column still computes a*2
+    }
+
+    SECTION("an externally-created table with an unquoted short name rebuilds correctly")
+    {
+        manager.CreateMigrationHistory();
+
+        // Unquoted table name "T" is a substring of "CREATE"/"TABLE"; a naive substring replace of the
+        // name would corrupt the stored DDL. The word-boundary fallback must target the declaration.
+        {
+            auto stmt = SqlStatement { conn };
+            (void) stmt.ExecuteDirect(R"(CREATE TABLE T ("id" INTEGER PRIMARY KEY, "descr" VARCHAR(10)))");
+            (void) stmt.ExecuteDirect(R"(INSERT INTO T ("id", "descr") VALUES (1, 'x'))");
+        }
+
+        auto alter = SqlMigration::Migration<202602150002>(
+            "widen T descr",
+            [](SqlMigrationQueryBuilder& plan) { plan.AlterTable("T").AlterColumn("descr", Text(), SqlNullable::Null); },
+            [](SqlMigrationQueryBuilder&) {});
+
+        REQUIRE(manager.ApplyPendingMigrations() == 1);
+
+        auto stmt = SqlStatement { conn };
+        auto cursor = stmt.ExecuteDirect(R"(SELECT "id", "descr" FROM T)");
+        REQUIRE(cursor.FetchRow());
+        CHECK(cursor.GetColumn<int64_t>(1) == 1);
+        CHECK(cursor.GetColumn<std::string>(2) == "x");
+    }
+}
+
+TEST_CASE_METHOD(SqlMigrationTestFixture, "AlterColumn via MigrateDirect fails loudly on SQLite", "[SqlMigration]")
+{
+    using namespace SqlColumnTypeDefinitions;
+
+    // ALTER COLUMN on SQLite needs a table rebuild that only MigrationManager performs. Applying it
+    // through the comment-only-sentinel-unaware MigrateDirect must throw rather than silently no-op.
+    auto conn = SqlConnection {};
+    auto skipStmt = SqlStatement { conn };
+    UNSUPPORTED_DATABASE(skipStmt, SqlServerType::MICROSOFT_SQL);
+    UNSUPPORTED_DATABASE(skipStmt, SqlServerType::POSTGRESQL);
+    UNSUPPORTED_DATABASE(skipStmt, SqlServerType::MYSQL);
+
+    auto stmt = SqlStatement { conn };
+    stmt.MigrateDirect([](SqlMigrationQueryBuilder& plan) {
+        plan.CreateTable("DirectAlter").PrimaryKey("id", Integer()).RequiredColumn("descr", Varchar(10));
+    });
+
+    CHECK_THROWS(stmt.MigrateDirect([](SqlMigrationQueryBuilder& plan) {
+        plan.AlterTable("DirectAlter").AlterColumn("descr", Text(), SqlNullable::Null);
+    }));
+}
+
 TEST_CASE_METHOD(SqlMigrationTestFixture, "RegisterRelease stores and orders releases", "[SqlMigration]")
 {
     auto& manager = SqlMigration::MigrationManager::GetInstance();

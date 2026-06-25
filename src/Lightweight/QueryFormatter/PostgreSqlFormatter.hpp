@@ -16,7 +16,7 @@ class PostgreSqlFormatter final: public SQLiteQueryFormatter
   public:
     using SQLiteQueryFormatter::CreateTable;
 
-    [[nodiscard]] bool RequiresTableRebuildForForeignKeyChange() const noexcept override
+    [[nodiscard]] bool RequiresTableRebuildForSchemaChange() const noexcept override
     {
         return false;
     }

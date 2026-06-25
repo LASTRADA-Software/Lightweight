@@ -448,6 +448,11 @@ std::string SqlConnection::ServerVersion() const
     return GetInfoStringW(m_hDbc, SQL_DBMS_VER);
 }
 
+bool SqlConnection::RequiresTableRebuildForSchemaChange() const noexcept
+{
+    return QueryFormatter().RequiresTableRebuildForSchemaChange();
+}
+
 bool SqlConnection::TransactionActive() const noexcept
 {
     SQLUINTEGER state {};

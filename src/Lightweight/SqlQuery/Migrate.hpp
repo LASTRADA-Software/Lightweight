@@ -140,14 +140,22 @@ class [[nodiscard]] SqlAlterTableQueryBuilder final
     ///
     /// @see SqlColumnTypeDefinition
     ///
+    /// @note On SQLite, `ALTER COLUMN` has no native SQL form: it is applied by rebuilding the table,
+    /// which only happens through @ref SqlMigration::MigrationManager. Executing the generated `ToSql()`
+    /// text yourself (the formatter emits a `-- LIGHTWEIGHT_SQLITE_GUARD:` sentinel comment for SQLite)
+    /// would silently do nothing — apply the migration via the manager, as shown below.
+    ///
     /// @code
-    /// auto stmt = SqlStatement();
-    /// auto sqlMigration = stmt.Migration()
-    ///                         .AlterTable("Table")
-    ///                         .AlterColumn("column", Integer {}, SqlNullable::NotNull)
-    ///                         .GetPlan().ToSql();
-    /// for (auto const& sql: sqlMigration)
-    ///     stmt.ExecuteDirect(sql);
+    /// auto widen = SqlMigration::Migration<202602010001>(
+    ///     "widen column",
+    ///     [](SqlMigrationQueryBuilder& plan) {
+    ///         plan.AlterTable("Table").AlterColumn("column", Integer {}, SqlNullable::NotNull);
+    ///     },
+    ///     [](SqlMigrationQueryBuilder&) {});
+    ///
+    /// auto& manager = SqlMigration::MigrationManager::GetInstance();
+    /// manager.CreateMigrationHistory();
+    /// manager.ApplyPendingMigrations();
     /// @endcode
     LIGHTWEIGHT_API SqlAlterTableQueryBuilder& AlterColumn(std::string columnName,
                                                            SqlColumnTypeDefinition columnType,
