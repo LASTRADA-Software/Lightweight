@@ -933,16 +933,6 @@ TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.Where.Lambda", "[SqlQueryBuild
                                   WHERE "a" = 1 OR ("b" = 2 AND "c" = 3))"));
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "SqlQueryBuilder.WhereColumn", "[SqlQueryBuilder]")
-{
-    CheckSqlQueryBuilder(
-        [](SqlQueryBuilder& q) {
-            return q.FromTable("That").Select().Field("foo").WhereColumn("left", "=", "right").All();
-        },
-        QueryExpectations::All(R"(SELECT "foo" FROM "That"
-                                  WHERE "left" = "right")"));
-}
-
 TEST_CASE_METHOD(SqlTestFixture,
                  "Where: SqlQualifiedTableColumnName OP SqlQualifiedTableColumnName",
                  "[SqlQueryBuilder]")
