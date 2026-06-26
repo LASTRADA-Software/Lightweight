@@ -44,7 +44,6 @@ var NAVTREEINDEX4 =
 "d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a7b9e872d2afb20e37e1725886934a197":[15,0,0,72,0],
 "d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#a854831226a9aefce1afeb1ad06f871f2":[15,0,0,72,1],
 "d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#aaa7992a48a7fcdd4e8215643a02768e7":[15,0,0,72,4],
-"d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#ad2cb37cc75c422a1eba097335103071a":[15,0,0,72,5],
 "d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#aecde81ddfa2e95f916a035eb5afe1e1f":[15,0,0,72,3],
 "d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html#af7d085eb90fabbec24d1493d0a4d725a":[15,0,0,72,2],
 "d9/dc2/SqlGuid_8hpp_source.html":[16,0,1,1,9],
@@ -249,5 +248,6 @@ var NAVTREEINDEX4 =
 "db/d47/MigrationPlan_8hpp_source.html":[16,0,1,5,4],
 "db/d48/ThreadOffloadBackend_8hpp_source.html":[16,0,1,0,13],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html":[10],
-"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#build":[10,10]
+"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#build":[10,10],
+"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#cancellation":[10,7]
 };
