@@ -85,6 +85,8 @@ jobs:
         run: cmake --preset gcc-release -D LIGHTWEIGHT_BUILD_DOCUMENTATION=ON -D LIGHTWEIGHT_DOCS_WARN_AS_ERROR=ON
       - name: "check documentation"
         run: cmake --build --preset gcc-release --target doc
+      - name: "check doc code snippets are in sync with tested source"
+        run: python3 scripts/check-doc-snippets.py
 
   check_clang_tidy:
     name: "Check clang-tidy"

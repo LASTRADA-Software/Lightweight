@@ -41,6 +41,7 @@ set(SOURCE_FILES
     CxxModelPrinterTests.cpp
     DataBinderTests.cpp
     DataSourceEnumeratorTests.cpp
+    DocExampleTests.cpp
     PluginDiscoveryTests.cpp
     PluginIngestionTests.cpp
     SecretResolverTests.cpp
