@@ -191,13 +191,23 @@ auto rows = dm.Query<Employee>().WhereNotNull(FieldNameOf<&Employee::age>).All()
 
 ### Optional / conditional filters
 
-A filter that should only apply when a value is present (e.g. coming from request parameters)
-maps to `If(optional).ThenWhere(column[, op])` — an empty optional makes the call a no-op, so no
-manual `if` branching is needed (here `Events` has `userId` and `createdAt` columns):
+Search, report, and "filter form" queries usually have several criteria that each apply *only* when
+the caller supplied a value. Done by hand that becomes a chain of `if (opt) query.Where(...)`
+statements that mutate the builder. Lightweight expresses the same thing inline with
+`If(optional).ThenWhere(column[, binaryOp])`:
+
+- `If(opt)` guards the single `ThenWhere(...)` that immediately follows it.
+- When `opt` **holds a value**, `ThenWhere(column)` appends `WHERE column = *opt`, and
+  `ThenWhere(column, binaryOp)` appends `WHERE column <binaryOp> *opt` (e.g. `">="`, `"<"`, `"LIKE"`).
+- When `opt` is **empty**, the call is a no-op: the predicate is omitted and the rest of the query is
+  left untouched.
+
+So one piece of code produces a different `WHERE` depending on which inputs are present — no manual
+branching. In the example below (`Events` has `id`, `userId`, and `createdAt` columns) the helpers
+return `userId = 42` with both timestamps absent, so only the first predicate survives:
 
 ```sql
--- Only the predicates whose inputs are present end up in the query
-SELECT "id" FROM "Events" WHERE "userId" = 42;
+SELECT "id" FROM "Events" WHERE "Events"."userId" = 42 ORDER BY "id";
 ```
 
 <!-- snippet: doc-optional-filters -->
@@ -218,6 +228,19 @@ auto query = dm.FromTable("Events")
                  .OrderBy("id")
                  .All();
 ```
+
+The same builder yields different SQL as the inputs change:
+
+| `userId` | `since` | `until` | Emitted `WHERE` |
+|----------|---------|---------|-----------------|
+| `42` | — | — | `WHERE "Events"."userId" = 42` |
+| `42` | `2026-01-01` | — | `WHERE "Events"."userId" = 42 AND "Events"."createdAt" >= '2026-01-01T00:00:00.000'` |
+| — | — | `2026-05-18` | `WHERE "Events"."createdAt" < '2026-05-18T00:00:00.000'` |
+| — | — | — | *(no `WHERE` clause is emitted)* |
+
+`If` / `ThenWhere` accept any column-name form that `Where` does (plain strings,
+`SqlQualifiedTableColumnName`, `FullyQualifiedNameOf<&Record::field>`) and are available on the
+`Select`, `Update`, and `Delete` builders.
 
 ### ORDER BY
 
