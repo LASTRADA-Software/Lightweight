@@ -220,9 +220,14 @@ WHERE — NULL / NOT NULL</h2>
 <div class="line"><span class="comment">// WhereNull(...) emits IS NULL; WhereNotEqual(column, value) emits &quot;&lt;&gt; ?&quot;</span></div>
 </div><!-- fragment --><h2><a class="anchor" id="optional--conditional-filters"></a>
 Optional / conditional filters</h2>
-<p>A filter that should only apply when a value is present (e.g. coming from request parameters) maps to <code>If(optional).ThenWhere(column[, op])</code> — an empty optional makes the call a no-op, so no manual <code>if</code> branching is needed (here <code>Events</code> has <code>userId</code> and <code>createdAt</code> columns):</p>
-<div class="fragment"><div class="line"><span class="comment">-- Only the predicates whose inputs are present end up in the query</span></div>
-<div class="line"><span class="keyword">SELECT</span> <span class="stringliteral">&quot;id&quot;</span> <span class="keyword">FROM</span> <span class="stringliteral">&quot;Events&quot;</span> <span class="keyword">WHERE</span> <span class="stringliteral">&quot;userId&quot;</span> = <span class="stringliteral">42</span>;</div>
+<p>Search, report, and "filter form" queries usually have several criteria that each apply <em>only</em> when the caller supplied a value. Done by hand that becomes a chain of <code>if (opt) query.Where(...)</code> statements that mutate the builder. Lightweight expresses the same thing inline with <code>If(optional).ThenWhere(column[, binaryOp])</code>:</p>
+<ul>
+<li><code>If(opt)</code> guards the single <code>ThenWhere(...)</code> that immediately follows it.</li>
+<li>When <code>opt</code> <b>holds a value</b>, <code>ThenWhere(column)</code> appends <code>WHERE column = *opt</code>, and <code>ThenWhere(column, binaryOp)</code> appends <code>WHERE column &lt;binaryOp&gt; *opt</code> (e.g. <code>"&gt;="</code>, <code>"&lt;"</code>, <code>"LIKE"</code>).</li>
+<li>When <code>opt</code> is <b>empty</b>, the call is a no-op: the predicate is omitted and the rest of the query is left untouched.</li>
+</ul>
+<p>So one piece of code produces a different <code>WHERE</code> depending on which inputs are present — no manual branching. In the example below (<code>Events</code> has <code>id</code>, <code>userId</code>, and <code>createdAt</code> columns) the helpers return <code>userId = 42</code> with both timestamps absent, so only the first predicate survives:</p>
+<div class="fragment"><div class="line"><span class="keyword">SELECT</span> <span class="stringliteral">&quot;id&quot;</span> <span class="keyword">FROM</span> <span class="stringliteral">&quot;Events&quot;</span> <span class="keyword">WHERE</span> <span class="stringliteral">&quot;Events&quot;</span>.<span class="stringliteral">&quot;userId&quot;</span> = <span class="stringliteral">42</span> <span class="keyword">ORDER</span> <span class="keyword">BY</span> <span class="stringliteral">&quot;id&quot;</span>;</div>
 </div><!-- fragment --><div class="fragment"><div class="line">std::optional&lt;int&gt; userId = MaybeUserIdFromRequest();</div>
 <div class="line">std::optional&lt;SqlDateTime&gt; since = MaybeSinceFromRequest();</div>
 <div class="line">std::optional&lt;SqlDateTime&gt; until = MaybeUntilFromRequest(); <span class="comment">// empty -&gt; skipped</span></div>
@@ -238,7 +243,17 @@ Optional / conditional filters</h2>
 <div class="line">                 .ThenWhere(FullyQualifiedNameOf&lt;&amp;Events::createdAt&gt;, <span class="stringliteral">&quot;&lt;&quot;</span>)</div>
 <div class="line">                 .OrderBy(<span class="stringliteral">&quot;id&quot;</span>)</div>
 <div class="line">                 .All();</div>
-</div><!-- fragment --><h2><a class="anchor" id="order-by"></a>
+</div><!-- fragment --><p>The same builder yields different SQL as the inputs change:</p>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone"><code>userId</code>   </th><th class="markdownTableHeadNone"><code>since</code>   </th><th class="markdownTableHeadNone"><code>until</code>   </th><th class="markdownTableHeadNone">Emitted <code>WHERE</code>    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone"><code>42</code>   </td><td class="markdownTableBodyNone">—   </td><td class="markdownTableBodyNone">—   </td><td class="markdownTableBodyNone"><code>WHERE "Events"."userId" = 42</code>    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>42</code>   </td><td class="markdownTableBodyNone"><code>2026-01-01</code>   </td><td class="markdownTableBodyNone">—   </td><td class="markdownTableBodyNone">&lsquo;WHERE "Events"."userId" = 42 AND "Events"."createdAt" &gt;= '2026-01-01T00:00:00.000&rsquo;<code>\ilinebr &lt;/td&gt; &lt;/tr&gt; &lt;tr class="markdownTableRowOdd"&gt; &lt;td class="markdownTableBodyNone"&gt; — \ilinebr &lt;/td&gt; &lt;td class="markdownTableBodyNone"&gt; — \ilinebr &lt;/td&gt; &lt;td class="markdownTableBodyNone"&gt;</code>2026-05-18<code>\ilinebr &lt;/td&gt; &lt;td class="markdownTableBodyNone"&gt;</code>WHERE "Events"."createdAt" &lt; '2026-05-18T00:00:00.000'<code>\ilinebr &lt;/td&gt; &lt;/tr&gt; &lt;tr class="markdownTableRowEven"&gt; &lt;td class="markdownTableBodyNone"&gt; — \ilinebr &lt;/td&gt; &lt;td class="markdownTableBodyNone"&gt; — \ilinebr &lt;/td&gt; &lt;td class="markdownTableBodyNone"&gt; — \ilinebr &lt;/td&gt; &lt;td class="markdownTableBodyNone"&gt; *(no</code>WHERE` clause is emitted)*   </td></tr>
+</table>
+<p><code>If</code> / <code>ThenWhere</code> accept any column-name form that <code>Where</code> does (plain strings, <code>SqlQualifiedTableColumnName</code>, <code>FullyQualifiedNameOf&lt;&amp;Record::field&gt;</code>) and are available on the <code>Select</code>, <code>Update</code>, and <code>Delete</code> builders.</p>
+<h2><a class="anchor" id="order-by"></a>
 ORDER BY</h2>
 <div class="fragment"><div class="line"><span class="keyword">SELECT</span> * <span class="keyword">FROM</span> <span class="stringliteral">&quot;Employees&quot;</span> <span class="keyword">ORDER</span> <span class="keyword">BY</span> <span class="stringliteral">&quot;lastName&quot;</span> DESC;</div>
 </div><!-- fragment --><div class="fragment"><div class="line"><span class="keyword">auto</span> rows = dm.Query&lt;Employee&gt;().OrderBy(FieldNameOf&lt;&amp;Employee::lastName&gt;, SqlResultOrdering::DESCENDING).All();</div>
