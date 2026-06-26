@@ -44,7 +44,7 @@ var searchData=
   ['livetype_41',['liveType',['../d1/d42/structLightweight_1_1SqlMigration_1_1MigrationManager_1_1ColumnUpgradeEntry.html#a396642e22f36188c7ea4dce037c2204e',1,'Lightweight::SqlMigration::MigrationManager::ColumnUpgradeEntry']]],
   ['loading_42',['Relationships with Lazy Loading',['../d4/db0/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2announcement-reddit.html#relationships-with-lazy-loading',1,'']]],
   ['loading_20plugins_43',['Loading Plugins',['../d5/dc4/dbtool.html#loading-plugins',1,'']]],
-  ['loadrelations_44',['loadrelations',['../de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702',1,'Lightweight::DataMapper::LoadRelations()'],['../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a',1,'Lightweight::DataMapperOptions::loadRelations']]],
+  ['loadrelations_44',['loadrelations',['../d3/db2/structLightweight_1_1DataMapperOptions.html#ae7030386be6995fdafef8903818bfe2a',1,'Lightweight::DataMapperOptions::loadRelations'],['../de/d61/classLightweight_1_1DataMapper.html#a2cd193a868954406545c989fbefec702',1,'Lightweight::DataMapper::LoadRelations(Record &amp;record)']]],
   ['loadrelationsasync_45',['LoadRelationsAsync',['../de/d61/classLightweight_1_1DataMapper.html#a1c49ec5976087ab4899eb8d2b3c534b3',1,'Lightweight::DataMapper']]],
   ['locally_46',['Producing the installer locally',['../d5/dc4/dbtool.html#producing-the-installer-locally',1,'']]],
   ['locateentry_47',['LocateEntry',['../d4/d8a/classLightweight_1_1Zip_1_1ZipArchive.html#ad890fbbd6aadf8a5a2ceb6204a57a299',1,'Lightweight::Zip::ZipArchive']]],

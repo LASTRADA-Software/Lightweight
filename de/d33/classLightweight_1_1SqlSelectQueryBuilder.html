@@ -123,6 +123,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a14d230b26b041223ba97cc6d04443a5d" id="r_a14d230b26b041223ba97cc6d04443a5d"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a14d230b26b041223ba97cc6d04443a5d">SqlSelectQueryBuilder</a> (<a class="el" href="../../d8/df7/classLightweight_1_1SqlQueryFormatter.html">SqlQueryFormatter</a> const &amp;formatter, std::string table, std::string tableAlias) noexcept</td></tr>
 <tr class="memdesc:a14d230b26b041223ba97cc6d04443a5d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a SELECT query builder.  <br /></td></tr>
 <tr class="separator:a14d230b26b041223ba97cc6d04443a5d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad6c4d16035eeae14498503654c48dcbb" id="r_ad6c4d16035eeae14498503654c48dcbb"><td class="memItemLeft" align="right" valign="top">constexpr LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">SqlSelectQueryBuilder</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#ad6c4d16035eeae14498503654c48dcbb">Varying</a> () noexcept</td></tr>
+<tr class="memdesc:ad6c4d16035eeae14498503654c48dcbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the builder mode to Varying, allowing varying final query types.  <br /></td></tr>
+<tr class="separator:ad6c4d16035eeae14498503654c48dcbb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7baedc7ddf58b2b9b1beb1dbfae43c17" id="r_a7baedc7ddf58b2b9b1beb1dbfae43c17"><td class="memTemplParams" colspan="2">template&lt;typename... MoreFields&gt; </td></tr>
 <tr class="memitem:a7baedc7ddf58b2b9b1beb1dbfae43c17"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">SqlSelectQueryBuilder</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#a7baedc7ddf58b2b9b1beb1dbfae43c17">Fields</a> (std::string_view const &amp;firstField, MoreFields &amp;&amp;... moreFields)</td></tr>
 <tr class="memdesc:a7baedc7ddf58b2b9b1beb1dbfae43c17"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adds a sequence of columns to the SELECT clause.  <br /></td></tr>
@@ -258,7 +261,7 @@ LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"
 <dd>
 <a class="el" href="../../d9/dc0/classLightweight_1_1SqlSelectQueryStarter.html" title="Compile-time gate for SELECT query construction.">SqlSelectQueryStarter</a> </dd></dl>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00092">92</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00098">98</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="af4ccd5e64aa4e1be75ee688d107afcee" name="af4ccd5e64aa4e1be75ee688d107afcee"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#af4ccd5e64aa4e1be75ee688d107afcee">&#9670;&#160;</a></span>SelectType</h2>
@@ -274,7 +277,7 @@ LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"
 
 <p>The select query type alias. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00096">96</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00102">102</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -321,11 +324,40 @@ LIGHTWEIGHT_API ComposedQuery&#160;</td><td class="memItemRight" valign="bottom"
 
 <p>Constructs a SELECT query builder. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00099">99</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00105">105</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
+<a id="ad6c4d16035eeae14498503654c48dcbb" name="ad6c4d16035eeae14498503654c48dcbb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad6c4d16035eeae14498503654c48dcbb">&#9670;&#160;</a></span>Varying()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">constexpr LIGHTWEIGHT_FORCE_INLINE <a class="el" href="../../de/d33/classLightweight_1_1SqlSelectQueryBuilder.html">SqlSelectQueryBuilder</a> &amp; Lightweight::SqlSelectQueryBuilder::Varying </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">constexpr</span><span class="mlabel">noexcept</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Sets the builder mode to Varying, allowing varying final query types. </p>
+
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00116">116</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+
+</div>
+</div>
 <a id="a7baedc7ddf58b2b9b1beb1dbfae43c17" name="a7baedc7ddf58b2b9b1beb1dbfae43c17"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a7baedc7ddf58b2b9b1beb1dbfae43c17">&#9670;&#160;</a></span>Fields() <span class="overload">[1/7]</span></h2>
 
@@ -356,7 +388,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Adds a sequence of columns to the SELECT clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00254">254</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00268">268</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -686,7 +718,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Returns the search condition for the query. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00230">230</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00243">243</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -715,7 +747,7 @@ template&lt;typename... MoreFields&gt; </div>
 
 <p>Returns the SQL query formatter. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00238">238</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00251">251</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -747,7 +779,7 @@ template&lt;typename Callable &gt; </div>
 
 <p>Builds the query using a callable. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00274">274</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00288">288</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 </div>
 </div>
@@ -778,7 +810,7 @@ template&lt;typename FirstRecord , typename... MoreRecords&gt; </div>
 
 <p>Adds fields from one or more record types to the SELECT clause. </p>
 
-<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00282">282</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
+<p class="definition">Definition at line <a class="el" href="../../d2/d51/Select_8hpp_source.html#l00296">296</a> of file <a class="el" href="../../d2/d51/Select_8hpp_source.html">Select.hpp</a>.</p>
 
 <p class="reference">References <a class="el" href="../../d7/d09/Utils_8hpp_source.html#l00320">Lightweight::SqlQualifiedTableColumnName::tableName</a>.</p>
 
