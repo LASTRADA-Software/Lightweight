@@ -616,7 +616,7 @@ migration.CreateTable("Appointment")
 auto const plan = migration.GetPlan();
 ```
 
-See [sql-migrations.md](sql-migrations.md) and [sqlquery.md](sqlquery.md) for the full DDL surface
+See [sql-migrations.md](#sql-migrations) and [sqlquery.md](sqlquery.md) for the full DDL surface
 (`AlterTable`, `Index`, `UniqueIndex`, `Timestamps`, `DropTable`, ...).
 
 ---
@@ -702,7 +702,6 @@ indentation). To change an example:
 
 - [usage.md](usage.md) — getting started: connections, prepared statements, the `DataMapper` CRUD loop.
 - [sqlquery.md](sqlquery.md) — the query-builder DSL in depth.
-- [sql-migrations.md](sql-migrations.md) — schema creation and migrations.
+- [sql-migrations.md](#sql-migrations) — schema creation and migrations.
 - [best-practices.md](best-practices.md) — choosing between the layers, performance notes.
 - [async.md](async.md) — the coroutine / async API.
-</content>
