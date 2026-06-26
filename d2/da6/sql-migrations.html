@@ -248,19 +248,19 @@ DropTable</h2>
 <div class="fragment"><div class="line">plan.DropTableCascade(<span class="stringliteral">&quot;table_with_dependencies&quot;</span>);</div>
 </div><!-- fragment --><h1><a class="anchor" id="data-manipulation"></a>
 Data Manipulation</h1>
-<h2><a class="anchor" id="insert"></a>
+<h2><a class="anchor" id="insert-1"></a>
 Insert</h2>
 <p>Insert data during migrations:</p>
 <div class="fragment"><div class="line">plan.Insert(<span class="stringliteral">&quot;settings&quot;</span>)</div>
 <div class="line">    .Set(<span class="stringliteral">&quot;key&quot;</span>, <span class="stringliteral">&quot;app_version&quot;</span>)</div>
 <div class="line">    .Set(<span class="stringliteral">&quot;value&quot;</span>, <span class="stringliteral">&quot;1.0.0&quot;</span>);</div>
-</div><!-- fragment --><h2><a class="anchor" id="update"></a>
+</div><!-- fragment --><h2><a class="anchor" id="update-1"></a>
 Update</h2>
 <p>Update existing data:</p>
 <div class="fragment"><div class="line">plan.Update(<span class="stringliteral">&quot;settings&quot;</span>)</div>
 <div class="line">    .Set(<span class="stringliteral">&quot;value&quot;</span>, <span class="stringliteral">&quot;2.0.0&quot;</span>)</div>
 <div class="line">    .Where(<span class="stringliteral">&quot;key&quot;</span>, <span class="stringliteral">&quot;=&quot;</span>, <span class="stringliteral">&quot;app_version&quot;</span>);</div>
-</div><!-- fragment --><h2><a class="anchor" id="delete"></a>
+</div><!-- fragment --><h2><a class="anchor" id="delete-1"></a>
 Delete</h2>
 <p>Remove data:</p>
 <div class="fragment"><div class="line">plan.Delete(<span class="stringliteral">&quot;settings&quot;</span>)</div>
@@ -470,7 +470,7 @@ Best Practices</h1>
 <li><b>Review dry-run output</b> - Always preview migrations with <code>--dry-run</code> before applying: <div class="fragment"><div class="line">dbtool migrate --dry-run</div>
 </div><!-- fragment --></li>
 </ol>
-<h1><a class="anchor" id="see-also-2"></a>
+<h1><a class="anchor" id="see-also-3"></a>
 See Also</h1>
 <ul>
 <li><a class="el" href="../../d5/dc4/dbtool.html">dbtool - Database Management CLI</a> - Command-line tool for managing migrations</li>

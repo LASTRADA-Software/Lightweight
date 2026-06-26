@@ -31,13 +31,14 @@ var searchData=
   ['getnullablecolumn_28',['GetNullableColumn',['../d8/d63/classLightweight_1_1SqlResultCursor.html#a9584b83387781b98d5251839cf2c581d',1,'Lightweight::SqlResultCursor']]],
   ['getoperation_29',['GetOperation',['../d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a53cfe81acb8bc98d0d67e9a45fbb5fc6',1,'Lightweight::SqlMigration::MigrationException']]],
   ['getpending_30',['GetPending',['../d4/d5c/classLightweight_1_1SqlMigration_1_1MigrationManager.html#a5f02a99faee92eb68b52a9cb49876c0e',1,'Lightweight::SqlMigration::MigrationManager']]],
-  ['getplan_31',['getplan',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() const &amp;'],['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a503a9d905ab222a68bb4fcbec1510154',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() &amp;&amp;']]],
+  ['getplan_31',['getplan',['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a503a9d905ab222a68bb4fcbec1510154',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() &amp;&amp;'],['../d8/d65/classLightweight_1_1SqlMigrationQueryBuilder.html#a52eaec0c096b8f29fce67268c22cf433',1,'Lightweight::SqlMigrationQueryBuilder::GetPlan() const &amp;']]],
   ['getprimarykeyfield_32',['GetPrimaryKeyField',['../d7/d2f/group__DataMapper.html#ga0690ab017d7ae25c81a0889a6385ba33',1,'Lightweight']]],
   ['getrecordmemberat_33',['GetRecordMemberAt',['../d7/d2f/group__DataMapper.html#ga3803a99a6793b7b2dcd55824b002fc69',1,'Lightweight']]],
   ['getstepindex_34',['GetStepIndex',['../d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#ae719f328736efcdb1e98ad53a6dbe6dd',1,'Lightweight::SqlMigration::MigrationException']]],
   ['getstring_35',['GetString',['../da/d6c/classLightweight_1_1RowArrayCursor.html#a6d0e1111dd4aa4f69a282b65de578c05',1,'Lightweight::RowArrayCursor']]],
   ['gettimestamp_36',['gettimestamp',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a0ab6e8c26f230333862500cc5e39a03e',1,'Lightweight::SqlMigration::MigrationBase::GetTimestamp()'],['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab2a0986037e9cf89ee7e5ed09bf9fb19',1,'Lightweight::RowArrayCursor::GetTimestamp()']]],
   ['gettitle_37',['GetTitle',['../de/dfc/classLightweight_1_1SqlMigration_1_1MigrationBase.html#a120faae4809045b0fd412b6550b634f0',1,'Lightweight::SqlMigration::MigrationBase']]],
-  ['growthstrategy_38',['growthStrategy',['../df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f',1,'Lightweight::PoolConfig']]],
-  ['guid_39',['Guid',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ac195f641dd597766b98e4ffa9e2f0e75',1,'Lightweight::RowArrayCursor']]]
+  ['group_20by_38',['GROUP BY',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#group-by',1,'']]],
+  ['growthstrategy_39',['growthStrategy',['../df/d1a/structLightweight_1_1PoolConfig.html#a82b19e524cdb6dc43c0ec8aab3201e6f',1,'Lightweight::PoolConfig']]],
+  ['guid_40',['Guid',['../da/d6c/classLightweight_1_1RowArrayCursor.html#ab61ddfa5d28f1e672f16e9a0a2625fc2ac195f641dd597766b98e4ffa9e2f0e75',1,'Lightweight::RowArrayCursor']]]
 ];

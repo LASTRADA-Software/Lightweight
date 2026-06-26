@@ -4,5 +4,6 @@ var searchData=
   ['sql_20backup_20file_20format_1',['Lightweight SQL Backup File Format',['../d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html',1,'']]],
   ['sql_20backup_3a_20how_20it_20works_2',['SQL Backup: How It Works',['../dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html',1,'']]],
   ['sql_20migrations_3',['SQL Migrations',['../d2/da6/sql-migrations.html',1,'']]],
-  ['sql_20query_4',['SQL Query',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html',1,'']]]
+  ['sql_20query_4',['SQL Query',['../d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html',1,'']]],
+  ['sql_20to_20lightweight_5',['SQL to Lightweight',['../d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html',1,'']]]
 ];
