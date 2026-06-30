@@ -225,7 +225,7 @@ Single-threaded vs multi-threaded</h1>
 <li>**<code>BoundedWait</code>** — when the pool is at <code>maxSize</code>, <code>AcquireAsync</code> <em>suspends</em> the coroutine and resumes it once another caller returns a connection. No thread is parked.</li>
 <li>**<code>BoundedOverflow</code>** (the <b>default</b> <code>DataMapperPool</code>) and **<code>UnboundedGrow</code>** — never suspend: if no idle connection is available a fresh one is created (matching the synchronous <code>Acquire</code>). Under load this can open an unbounded number of connections, so choose <code>BoundedWait</code> when you need back-pressure.</li>
 </ul>
-<h1><a class="anchor" id="transactions-1"></a>
+<h1><a class="anchor" id="transactions"></a>
 Transactions</h1>
 <p><code>AsyncSqlTransaction</code> is the one distinct async type (a transaction is a scoped object):</p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;Lightweight/Async/AsyncSqlTransaction.hpp&gt;</span></div>
