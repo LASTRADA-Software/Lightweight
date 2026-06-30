@@ -990,26 +990,6 @@ TEST_CASE_METHOD(SqlTestFixture, "Where: left IS NULL", "[SqlQueryBuilder]")
                                   WHERE "Left1" IS NOT NULL OR "Left2" IS NOT NULL)"));
 }
 
-TEST_CASE_METHOD(SqlTestFixture, "Varying: multiple varying final query types", "[SqlQueryBuilder]")
-{
-    auto const& sqliteFormatter = SqlQueryFormatter::Sqlite();
-
-    auto queryBuilder = SqlQueryBuilder { sqliteFormatter }
-                            .FromTable("Table")
-                            .Select()
-                            .Varying()
-                            .Fields({ "foo", "bar", "baz" })
-                            .Where("condition", 42);
-
-    auto const countQuery = EraseLinefeeds(queryBuilder.Count().ToSql());
-    auto const allQuery = EraseLinefeeds(queryBuilder.All().ToSql());
-    auto const firstQuery = EraseLinefeeds(queryBuilder.First().ToSql());
-
-    CHECK(countQuery == R"(SELECT COUNT(*) FROM "Table" WHERE "condition" = 42)");
-    CHECK(allQuery == R"(SELECT "foo", "bar", "baz" FROM "Table" WHERE "condition" = 42)");
-    CHECK(firstQuery == R"(SELECT "foo", "bar", "baz" FROM "Table" WHERE "condition" = 42 LIMIT 1)");
-}
-
 TEST_CASE_METHOD(SqlTestFixture, "Use SqlQueryBuilder for SqlStatement.ExecuteDirct", "[SqlQueryBuilder]")
 {
     auto stmt = SqlStatement {};

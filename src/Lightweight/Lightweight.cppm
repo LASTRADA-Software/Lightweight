@@ -173,7 +173,6 @@ using Lightweight::SqlOutputColumnBinder;
 using Lightweight::SqlPrimaryKeyType;
 using Lightweight::SqlQualifiedTableColumnName;
 using Lightweight::SqlQueryBuilder;
-using Lightweight::SqlQueryBuilderMode;
 using Lightweight::SqlQueryExecutionMode;
 using Lightweight::SqlQueryFormatter;
 using Lightweight::SqlQueryObject;

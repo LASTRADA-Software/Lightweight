@@ -14,12 +14,6 @@
 namespace Lightweight
 {
 
-enum class SqlQueryBuilderMode : uint8_t
-{
-    Fluent,
-    Varying
-};
-
 struct [[nodiscard]] SqlFieldExpression final
 {
     std::string expression;
@@ -110,13 +104,6 @@ class [[nodiscard]] SqlSelectQueryBuilder: public SqlBasicSelectQueryBuilder<Sql
         _query.searchCondition.tableName = std::move(table);
         _query.searchCondition.tableAlias = std::move(tableAlias);
         _query.fields.reserve(256);
-    }
-
-    /// Sets the builder mode to Varying, allowing varying final query types.
-    constexpr LIGHTWEIGHT_FORCE_INLINE SqlSelectQueryBuilder& Varying() noexcept
-    {
-        _mode = SqlQueryBuilderMode::Varying;
-        return *this;
     }
 
     /// Adds a sequence of columns to the SELECT clause.
@@ -256,7 +243,6 @@ class [[nodiscard]] SqlSelectQueryBuilder: public SqlBasicSelectQueryBuilder<Sql
 
   private:
     SqlQueryFormatter const& _formatter;
-    SqlQueryBuilderMode _mode = SqlQueryBuilderMode::Fluent;
     // mutable: see the note on _query in SqlBasicSelectQueryBuilder — the alias
     // flag is part of the projection accumulator, so it follows _query's policy.
     // Marked mutable so the const-qualified Field/Fields/As overloads above can
@@ -348,9 +334,9 @@ namespace detail
 ///   - @c Count is intentionally not overridden — `SELECT COUNT(*) FROM ...`
 ///     is well-formed without an explicit column list, so the inherited
 ///     @c Count remains directly callable.
-///   - @c Distinct and @c Varying are overridden via deducing this so they
-///     return @c Self&& and the starter identity survives them. That keeps
-///     the gate intact for `Select().Distinct().All()` while still allowing
+///   - @c Distinct is overridden via deducing this so it returns @c Self&& and
+///     the starter identity survives it. That keeps the gate intact for
+///     `Select().Distinct().All()` while still allowing
 ///     `Select().Distinct().Fields(...).All()`.
 ///
 /// Methods that conceptually follow the column list (@c Where, @c OrderBy,
@@ -431,14 +417,6 @@ class [[nodiscard]] SqlSelectQueryStarter final: public SqlSelectQueryBuilder
     LIGHTWEIGHT_FORCE_INLINE auto&& Distinct(this Self&& self) noexcept
     {
         self.SqlSelectQueryBuilder::Distinct();
-        return std::forward<Self>(self);
-    }
-
-    /// State-preserving override; see @ref Distinct.
-    template <typename Self>
-    LIGHTWEIGHT_FORCE_INLINE auto&& Varying(this Self&& self) noexcept
-    {
-        self.SqlSelectQueryBuilder::Varying();
         return std::forward<Self>(self);
     }
 };

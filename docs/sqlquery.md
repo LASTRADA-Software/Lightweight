@@ -163,8 +163,8 @@ interface. Here we present a compressed list of functions that can be used to cr
 > the wildcard. `Fields("*")` and `Fields({"*"})` quote the literal and produce
 > `SELECT "*" FROM ...`, which is not what you want.
 >
-> `Distinct()` and `Varying()` are exposed on the starter as state-preserving
-> overrides (they return `SqlSelectQueryStarter&`), so chains like
+> `Distinct()` is exposed on the starter as a state-preserving override (it
+> returns `SqlSelectQueryStarter&`), so chains like
 > `Select().Distinct().Fields(...).All()` keep working while
 > `Select().Distinct().All()` is still a compile error. `Where`, `OrderBy`,
 > `GroupBy`, and the join family (`InnerJoin`, `LeftOuterJoin`, etc.) are
