@@ -1,7 +1,5 @@
 var NAVTREEINDEX6 =
 {
-"de/d61/classLightweight_1_1DataMapper.html#a491f414bc1e2179dd7bad850142a2c89":[13,2,4,34],
-"de/d61/classLightweight_1_1DataMapper.html#a49a09de3ddac27a67a854688b0b506bc":[13,2,4,35],
 "de/d61/classLightweight_1_1DataMapper.html#a572f96a940e6a856d3d2a2b16ded4591":[13,2,4,32],
 "de/d61/classLightweight_1_1DataMapper.html#a5c200e70a1b329afb4e21f3d3cbe95fc":[13,2,4,3],
 "de/d61/classLightweight_1_1DataMapper.html#a605a385e4e02f73e89fe1f1bfd0b549b":[13,2,4,14],
@@ -249,5 +247,7 @@ var NAVTREEINDEX6 =
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#adabe124eab18853596c5feeb6bdb3111":[15,0,0,4,3,10],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#adaf530d21f5ca78f77d0269e1cbd925c":[15,0,0,4,3,8],
 "df/da2/classLightweight_1_1SqlSchema_1_1EventHandler.html#af2329bf6d2266dd4309b1b0e55a1116a":[15,0,0,4,3,2],
-"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html":[15,0,0,2,4]
+"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html":[15,0,0,2,4],
+"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8":[15,0,0,2,4,1],
+"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb":[15,0,0,2,4,0]
 };

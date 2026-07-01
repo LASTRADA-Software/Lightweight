@@ -1,7 +1,5 @@
 var NAVTREEINDEX5 =
 {
-"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#concepts":[10,1],
-"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#enabling-async-on-a-connection":[10,2],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#errors":[10,8],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#integrating-with-an-external-event-loop--coroutine-runtime":[10,9],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#interop-with-stdexecution":[10,10,0],
@@ -249,5 +247,7 @@ var NAVTREEINDEX5 =
 "de/d61/classLightweight_1_1DataMapper.html#a2eb801d4d427d114bbc0c3b01068f307":[13,2,4,5],
 "de/d61/classLightweight_1_1DataMapper.html#a31796375b71cdc19158ee3a18ab60bcb":[13,2,4,40],
 "de/d61/classLightweight_1_1DataMapper.html#a488bd29dff332905ebd7975e16b095dc":[13,2,4,29],
-"de/d61/classLightweight_1_1DataMapper.html#a489a4e560de6cc475eec66252d6412bd":[13,2,4,25]
+"de/d61/classLightweight_1_1DataMapper.html#a489a4e560de6cc475eec66252d6412bd":[13,2,4,25],
+"de/d61/classLightweight_1_1DataMapper.html#a491f414bc1e2179dd7bad850142a2c89":[13,2,4,34],
+"de/d61/classLightweight_1_1DataMapper.html#a49a09de3ddac27a67a854688b0b506bc":[13,2,4,35]
 };

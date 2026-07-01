@@ -1,7 +1,5 @@
 var NAVTREEINDEX4 =
 {
-"d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#a7ac19fb91d4b1c37df372428d663b241a9639e32cab248434a17ab32237cb3b71":[13,3,1,0,0],
-"d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#add881a918e02ff27ec38f907f535b3ed":[13,3,1,3],
 "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#adda47749398b0516fc00f9b23aee086f":[13,3,1,1],
 "d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#ae719f328736efcdb1e98ad53a6dbe6dd":[13,3,1,5],
 "d9/d6b/Migrate_8hpp_source.html":[16,0,1,5,3],
@@ -249,5 +247,7 @@ var NAVTREEINDEX4 =
 "db/d48/ThreadOffloadBackend_8hpp_source.html":[16,0,1,0,13],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html":[10],
 "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#build":[10,10],
-"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#cancellation":[10,7]
+"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#cancellation":[10,7],
+"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#concepts":[10,1],
+"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#enabling-async-on-a-connection":[10,2]
 };

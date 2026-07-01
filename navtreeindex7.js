@@ -1,7 +1,5 @@
 var NAVTREEINDEX7 =
 {
-"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#a522f8b5d94a8744bdf7c9b6cc1c01fa8":[15,0,0,2,4,1],
-"df/da5/classLightweight_1_1SqlBackup_1_1ErrorTrackingProgressManager.html#aaaac5355924f8867dac6c7b106cc44fb":[15,0,0,2,4,0],
 "df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html":[15,0,0,0,4],
 "df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html#a61affb71e9dfa363e87514d23d32d5bf":[15,0,0,0,4,0],
 "df/db7/QueryBuilders_8hpp_source.html":[16,0,1,2,9],
