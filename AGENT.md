@@ -209,6 +209,10 @@ If a database is **deliberately** skipped (e.g., feature genuinely doesn't apply
 
 When touching anything in `DataBinder/`, also exercise both `u8`/`u16`/`wchar_t` paths (the `WideChar` typedef in `Utils.hpp` selects the platform-appropriate UTF-16 code unit). See `.agent/testing.md` and `.agent/databases.md` for deeper guidance.
 
+### Documentation code snippets must stay test-backed
+
+`docs/sql-to-lightweight.md` tags each C++ example with `<!-- snippet: <id> -->`; the identical code lives in `src/tests/DocExampleTests.cpp` between `//! [<id>]` markers, where it is compiled and executed against every DBMS. `scripts/check-doc-snippets.py` (run in the `check_docs` CI job) fails if the two drift. When you change such an example, edit the `//! [<id>]` region first, copy the same lines into the doc block, then run `python3 scripts/check-doc-snippets.py`. Prefer this snippet-backed pattern for any new SQL/DataMapper usage examples you add to `docs/`.
+
 ## Adding Features
 
 ### New `SqlDataBinder<T>` specialization

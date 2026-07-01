@@ -122,6 +122,15 @@ list(APPEND SOURCE_FILES
     Async/SenderTests.cpp
 )
 
+# DocExampleTests.cpp mirrors docs/sql-to-lightweight.md verbatim (enforced by
+# scripts/check-doc-snippets.py), so its snippet regions must use the stable C++20 member-pointer
+# API (e.g. &Employee::salary) that users actually write — not the reflection-only Member(...) test
+# macro. That API is not expressible under the experimental C++26 reflection mode, so exclude this
+# translation unit there. It is still compiled and executed against every DBMS in all other builds.
+if(NOT LIGHTWEIGHT_CXX26_REFLECTION)
+    list(APPEND SOURCE_FILES DocExampleTests.cpp)
+endif()
+
 target_sources(LightweightTest PRIVATE ${SOURCE_FILES})
 
 enable_testing()
