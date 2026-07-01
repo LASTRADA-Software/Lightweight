@@ -306,10 +306,6 @@ class [[nodiscard]] SqlWhereClauseBuilder
     template <typename ColumnName>
     [[nodiscard]] Derived& WhereFalse(ColumnName const& columnName);
 
-    /// Construts or extends a WHERE clause to test for a binary operation between two columns.
-    template <typename LeftColumn, typename RightColumn>
-    [[nodiscard]] Derived& WhereColumn(LeftColumn const& left, std::string_view binaryOp, RightColumn const& right);
-
     /// Constructs an INNER JOIN clause.
     ///
     /// @param joinTable The table's name to join with. This can be a string, a string_view, or an AliasedTableName.
@@ -756,24 +752,6 @@ template <typename ColumnName>
 inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereFalse(ColumnName const& columnName)
 {
     return Where(columnName, "=", false);
-}
-
-/// Constructs or extends a WHERE clause to compare two columns.
-template <typename Derived>
-template <typename LeftColumn, typename RightColumn>
-inline LIGHTWEIGHT_FORCE_INLINE Derived& SqlWhereClauseBuilder<Derived>::WhereColumn(LeftColumn const& left,
-                                                                                     std::string_view binaryOp,
-                                                                                     RightColumn const& right)
-{
-    AppendWhereJunctor();
-
-    AppendColumnName(left);
-    SearchCondition().condition += ' ';
-    SearchCondition().condition += binaryOp;
-    SearchCondition().condition += ' ';
-    AppendColumnName(right);
-
-    return static_cast<Derived&>(*this);
 }
 
 template <typename T>
