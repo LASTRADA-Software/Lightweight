@@ -50,6 +50,40 @@ var NAVTREE =
         [ "Examples of SQL to DataMapper mappings", "d9/dbe/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sqlquery.html#examples-of-sql-to-datamapper-mappings", null ]
       ] ]
     ] ],
+    [ "SQL to Lightweight", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html", [
+      [ "The example schema", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#the-example-schema", null ],
+      [ "SELECT", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#select", [
+        [ "Select all rows", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#select-all-rows", null ],
+        [ "Select specific columns", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#select-specific-columns", null ],
+        [ "WHERE — a single condition", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#where--a-single-condition", null ],
+        [ "WHERE — multiple conditions (AND / OR)", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#where--multiple-conditions-and--or", null ],
+        [ "WHERE IN", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#where-in", null ],
+        [ "WHERE — NULL / NOT NULL", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#where--null--not-null", null ],
+        [ "Optional / conditional filters", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#optional--conditional-filters", null ],
+        [ "ORDER BY", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#order-by", null ],
+        [ "LIMIT / TOP (fetch the first row)", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#limit--top-fetch-the-first-row", null ],
+        [ "OFFSET / LIMIT (pagination)", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#offset--limit-pagination", null ],
+        [ "DISTINCT", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#distinct", null ],
+        [ "COUNT and aggregates", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#count-and-aggregates", null ],
+        [ "GROUP BY", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#group-by", null ]
+      ] ],
+      [ "JOIN", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#join", [
+        [ "INNER JOIN", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#inner-join", null ],
+        [ "LEFT OUTER JOIN", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#left-outer-join", null ],
+        [ "Multi-condition / aliased joins", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#multi-condition--aliased-joins", null ]
+      ] ],
+      [ "INSERT", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#insert", [
+        [ "Bulk insert", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#bulk-insert", null ]
+      ] ],
+      [ "UPDATE", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#update", null ],
+      [ "DELETE", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#delete", null ],
+      [ "Relationships", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#relationships", null ],
+      [ "CREATE TABLE", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#create-table", null ],
+      [ "Transactions", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#transactions", null ],
+      [ "Mapping a custom result shape", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#mapping-a-custom-result-shape", null ],
+      [ "Keeping these examples honest", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#keeping-these-examples-honest", null ],
+      [ "See also", "d7/d97/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-to-lightweight.html#see-also", null ]
+    ] ],
     [ "Best Practices", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html", [
       [ "Introduction", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#introduction", null ],
       [ "Common Best Practices", "d2/d10/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2best-practices.html#common-best-practices", [
@@ -87,7 +121,7 @@ var NAVTREE =
       [ "Fault tolerance", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#fault-tolerance", null ],
       [ "Consistency caveats (online backup)", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#consistency-caveats-online-backup", null ],
       [ "Tuning", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#tuning", null ],
-      [ "See also", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#see-also", null ]
+      [ "See also", "dd/d39/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup.html#see-also-1", null ]
     ] ],
     [ "Lightweight SQL Backup File Format", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html", [
       [ "1. Archive Structure", "d3/dac/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2sql-backup-format.html#autotoc_md1-archive-structure", null ],
@@ -161,7 +195,7 @@ var NAVTREE =
         [ "Checksum Mismatches", "d5/dc4/dbtool.html#checksum-mismatches", null ],
         [ "Lock Acquisition Failed", "d5/dc4/dbtool.html#lock-acquisition-failed", null ]
       ] ],
-      [ "See Also", "d5/dc4/dbtool.html#see-also-1", null ]
+      [ "See Also", "d5/dc4/dbtool.html#see-also-2", null ]
     ] ],
     [ "SQL Migrations", "d2/da6/sql-migrations.html", [
       [ "Introduction", "d2/da6/sql-migrations.html#introduction-1", null ],
@@ -177,9 +211,9 @@ var NAVTREE =
         [ "DropTable", "d2/da6/sql-migrations.html#droptable", null ]
       ] ],
       [ "Data Manipulation", "d2/da6/sql-migrations.html#data-manipulation", [
-        [ "Insert", "d2/da6/sql-migrations.html#insert", null ],
-        [ "Update", "d2/da6/sql-migrations.html#update", null ],
-        [ "Delete", "d2/da6/sql-migrations.html#delete", null ],
+        [ "Insert", "d2/da6/sql-migrations.html#insert-1", null ],
+        [ "Update", "d2/da6/sql-migrations.html#update-1", null ],
+        [ "Delete", "d2/da6/sql-migrations.html#delete-1", null ],
         [ "CreateIndex", "d2/da6/sql-migrations.html#createindex", null ]
       ] ],
       [ "Raw SQL", "d2/da6/sql-migrations.html#raw-sql", null ],
@@ -197,7 +231,7 @@ var NAVTREE =
         [ "Concurrency Control", "d2/da6/sql-migrations.html#concurrency-control", null ]
       ] ],
       [ "Best Practices", "d2/da6/sql-migrations.html#best-practices-1", null ],
-      [ "See Also", "d2/da6/sql-migrations.html#see-also-2", null ]
+      [ "See Also", "d2/da6/sql-migrations.html#see-also-3", null ]
     ] ],
     [ "Asynchronous API (C++23 coroutines)", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html", [
       [ "Why offloading (and not \"true\" async ODBC)", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#why-offloading-and-not-true-async-odbc", null ],
@@ -206,7 +240,7 @@ var NAVTREE =
       [ "Querying asynchronously", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#querying-asynchronously", null ],
       [ "Record-level async methods", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#record-level-async-methods", null ],
       [ "Single-threaded vs multi-threaded", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#single-threaded-vs-multi-threaded", null ],
-      [ "Transactions", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#transactions", null ],
+      [ "Transactions", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#transactions-1", null ],
       [ "Cancellation", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#cancellation", null ],
       [ "Errors", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#errors", null ],
       [ "Integrating with an external event loop / coroutine runtime", "db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#integrating-with-an-external-event-loop--coroutine-runtime", null ],
@@ -252,10 +286,10 @@ var NAVTREEINDEX =
 "d2/dd0/structLightweight_1_1Field.html#a8429602c0af011bde772fa07baa6243e",
 "d4/de8/classLightweight_1_1SqlCreateTableQueryBuilder.html#aba0b0aa6a40a801a06a53e274847bcf7",
 "d7/d10/classLightweight_1_1SqlWhereClauseBuilder.html#ac8acfa239959c3a361aae62ddac1df04",
-"d9/d49/classLightweight_1_1SqlMigration_1_1MigrationException.html#adda47749398b0516fc00f9b23aee086f",
-"db/d5f/md__2home_2runner_2work_2Lightweight_2Lightweight_2docs_2async.html#errors",
-"de/d61/classLightweight_1_1DataMapper.html#a572f96a940e6a856d3d2a2b16ded4591",
-"df/db1/classLightweight_1_1Async_1_1IResumeScheduler.html"
+"d8/df7/classLightweight_1_1SqlQueryFormatter.html#ab9502d79df4bc885858166ea11c493a0",
+"da/df4/classLightweight_1_1HasMany.html#a09fad713034eccede8096fbe4235a95d",
+"de/d33/classLightweight_1_1SqlSelectQueryBuilder.html#aae4fefe001ee5316395f9e475aca1a05",
+"df/d7c/structLightweight_1_1SqlGuid.html#ae7573accb00b48a05d2b8085f14483c5"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
