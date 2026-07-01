@@ -133,6 +133,29 @@ std::optional<std::string> TrimRight(std::optional<std::string> value)
     return value;
 }
 
+// Unwraps a RowArrayCursor cell known to be non-NULL (e.g. the primary key column, or a text
+// column the test never inserts NULL into), REQUIRE-ing that first. The explicit if-with-throw is
+// what clang-tidy's bugprone-unchecked-optional-access analysis recognizes as a null check —
+// REQUIRE alone is a macro it cannot reason about (see the same pattern in SqlGuidTests.cpp's
+// RequireParsed).
+std::int64_t RequireI64(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column)
+{
+    auto const value = cursor.GetI64(row, column);
+    REQUIRE(value.has_value());
+    if (!value.has_value())
+        throw std::runtime_error("REQUIRE failed but flow continued"); // unreachable
+    return *value;
+}
+
+std::string RequireString(RowArrayCursor const& cursor, std::size_t row, SQLUSMALLINT column)
+{
+    auto value = cursor.GetString(row, column);
+    REQUIRE(value.has_value());
+    if (!value.has_value())
+        throw std::runtime_error("REQUIRE failed but flow continued"); // unreachable
+    return std::move(*value);
+}
+
 } // namespace
 
 TEST_CASE_METHOD(SqlTestFixture, "Prefetch: raw GetColumn loop collapses round-trips", "[prefetch]")
@@ -639,7 +662,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: RowArrayCursor bulk-reads fixed-widt
             ++blocks;
             for (auto const row: std::views::iota(std::size_t { 0 }, rowsInBlock))
             {
-                auto const id = cursor.GetI64(row, 1).value();
+                auto const id = RequireI64(cursor, row, 1);
                 // Trim the CHAR(8)/NCHAR(8) driver padding to compare against the trimmed reference.
                 auto code = TrimRight(cursor.GetString(row, 2));
                 auto wideCode = TrimRight(cursor.GetString(row, 3));
@@ -705,7 +728,7 @@ TEST_CASE_METHOD(SqlTestFixture,
         for (auto rowsInBlock = cursor.FetchArray(); rowsInBlock > 0; rowsInBlock = cursor.FetchArray())
             for (auto const row: std::views::iota(std::size_t { 0 }, rowsInBlock))
                 actual.emplace_back(
-                    cursor.GetI64(row, 1).value(), cursor.GetString(row, 2).value(), cursor.GetString(row, 3).value());
+                    RequireI64(cursor, row, 1), RequireString(cursor, row, 2), RequireString(cursor, row, 3));
     }
 
     REQUIRE(actual.size() == rowCount);
@@ -759,7 +782,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     {
         for (auto const row: std::views::iota(std::size_t { 0 }, rowsInBlock))
         {
-            auto const id = cursor.GetI64(row, 1).value();
+            auto const id = RequireI64(cursor, row, 1);
             ++rowsSeen;
 
             if (id % 3 == 0)
@@ -815,7 +838,7 @@ TEST_CASE_METHOD(SqlTestFixture,
     REQUIRE(rowsInFirstBlock == rowCount); // the whole result set fit in one block
     for (auto const row: std::views::iota(std::size_t { 0 }, rowsInFirstBlock))
     {
-        auto const id = cursor.GetI64(row, 1).value();
+        auto const id = RequireI64(cursor, row, 1);
         CHECK(TrimRight(cursor.GetString(row, 2)) == std::optional<std::string> { std::format("C{}", id) });
     }
     CHECK(cursor.FetchArray() == 0); // no more rows
