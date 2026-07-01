@@ -38,26 +38,26 @@ struct Department
 {
     static constexpr std::string_view TableName = "Departments";
 
-    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
-    Field<SqlAnsiString<40>> name;
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<40>> name {};
 
-    HasMany<Employee> employees; // one department, many employees
+    HasMany<Employee> employees {}; // one department, many employees
 };
 
 struct Employee
 {
     static constexpr std::string_view TableName = "Employees";
 
-    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
-    Field<SqlAnsiString<30>> firstName;
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<30>> firstName {};
 
     // FK -> Departments.id. A HasMany and its inverse BelongsTo are matched by field
     // position, so this member sits at the same index as Department::employees above.
-    BelongsTo<&Department::id, SqlRealName { "department_id" }, SqlNullable::Null> department;
+    BelongsTo<&Department::id, SqlRealName { "department_id" }, SqlNullable::Null> department {};
 
-    Field<SqlAnsiString<30>> lastName;
-    Field<int> salary;
-    Field<std::optional<int>> age;
+    Field<SqlAnsiString<30>> lastName {};
+    Field<int> salary {};
+    Field<std::optional<int>> age {};
 };
 ```
 
@@ -468,7 +468,7 @@ stmt.Prepare(R"(INSERT INTO "Employees" ("firstName", "lastName", "salary") VALU
 auto const firstNames = std::array { "Alice"sv, "Bob"sv, "Charlie"sv };
 auto const lastNames = std::array { "Smith"sv, "Johnson"sv, "Brown"sv };
 auto const salaries = std::array { 50'000, 60'000, 70'000 };
-stmt.ExecuteBatch(firstNames, lastNames, salaries);
+std::ignore = stmt.ExecuteBatch(firstNames, lastNames, salaries);
 ```
 
 ---
@@ -483,9 +483,11 @@ UPDATE "Employees" SET "salary" = 55000 WHERE "salary" = 50000;
 ```cpp
 // DataMapper — load, mutate, write back by primary key.
 // Only Field<>s you changed are written; the WHERE is the primary key.
-auto employee = dm.QuerySingle<Employee>(id).value();
-employee.salary = 55'000;
-dm.Update(employee);
+if (auto employee = dm.QuerySingle<Employee>(id))
+{
+    employee->salary = 55'000;
+    dm.Update(*employee);
+}
 ```
 
 <!-- snippet: doc-update-builder -->
@@ -552,23 +554,24 @@ SELECT * FROM "Employees" WHERE "department_id" = <department.id>;
 
 <!-- snippet: doc-relationships -->
 ```cpp
-auto employee = dm.QuerySingle<Employee>(id).value();
-dm.ConfigureRelationAutoLoading(employee);
-
-// BelongsTo: the parent record is fetched on demand. The FK here is nullable, so
-// Record() yields an optional; Unwrap turns the optional-reference into a value.
-if (employee.department)
+if (auto employee = dm.QuerySingle<Employee>(id))
 {
-    auto const dept = employee.department.Record().transform(Unwrap).value();
-    std::println("Department: {}", dept.name.Value());
+    dm.ConfigureRelationAutoLoading(*employee);
+
+    // BelongsTo: the parent record is fetched on demand. The FK here is nullable, so
+    // Record() yields an optional; Unwrap turns the optional-reference into a value.
+    if (auto const dept = employee->department.Record().transform(Unwrap))
+        std::println("Department: {}", dept->name.Value());
 }
 
 // HasMany: Count() and All() on the collection
-auto department = dm.QuerySingle<Department>(deptId).value();
-dm.ConfigureRelationAutoLoading(department);
-std::println("{} employees", department.employees.Count());
-for (auto const& emp: department.employees.All())
-    std::println("  {}", emp->lastName.Value());
+if (auto department = dm.QuerySingle<Department>(deptId))
+{
+    dm.ConfigureRelationAutoLoading(*department);
+    std::println("{} employees", department->employees.Count());
+    for (auto const& emp: department->employees.All())
+        std::println("  {}", emp->lastName.Value());
+}
 ```
 
 When the `BelongsTo` is **mandatory** (omit `SqlNullable::Null`), the parent is reached with the
@@ -658,7 +661,7 @@ selected columns:
 struct DepartmentHeadcount
 {
     SqlAnsiString<40> name;
-    int headcount;
+    int headcount = 0;
 };
 ```
 

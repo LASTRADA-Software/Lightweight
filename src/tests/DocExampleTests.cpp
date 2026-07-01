@@ -45,26 +45,26 @@ struct Department
 {
     static constexpr std::string_view TableName = "Departments";
 
-    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
-    Field<SqlAnsiString<40>> name;
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<40>> name {};
 
-    HasMany<Employee> employees; // one department, many employees
+    HasMany<Employee> employees {}; // one department, many employees
 };
 
 struct Employee
 {
     static constexpr std::string_view TableName = "Employees";
 
-    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id;
-    Field<SqlAnsiString<30>> firstName;
+    Field<uint64_t, PrimaryKey::ServerSideAutoIncrement> id {};
+    Field<SqlAnsiString<30>> firstName {};
 
     // FK -> Departments.id. A HasMany and its inverse BelongsTo are matched by field
     // position, so this member sits at the same index as Department::employees above.
-    BelongsTo<&Department::id, SqlRealName { "department_id" }, SqlNullable::Null> department;
+    BelongsTo<&Department::id, SqlRealName { "department_id" }, SqlNullable::Null> department {};
 
-    Field<SqlAnsiString<30>> lastName;
-    Field<int> salary;
-    Field<std::optional<int>> age;
+    Field<SqlAnsiString<30>> lastName {};
+    Field<int> salary {};
+    Field<std::optional<int>> age {};
 };
 //! [doc-schema]
 
@@ -72,7 +72,7 @@ struct Employee
 struct DepartmentHeadcount
 {
     SqlAnsiString<40> name;
-    int headcount;
+    int headcount = 0;
 };
 //! [doc-custom-result-struct]
 
@@ -127,7 +127,7 @@ inline SeededCompany SeedCompany(DataMapper& dm)
     auto erin = Employee { .firstName = "Erin", .department = engineering, .lastName = "Evans", .salary = 45'000 };
     dm.Create(erin);
 
-    return { engineering, sales };
+    return { .engineering = engineering, .sales = sales };
 }
 
 } // namespace docex
@@ -224,7 +224,8 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Select", "[DocExample]")
             std::println("{}", highestPaid->lastName.Value());
         //! [doc-limit-first]
         REQUIRE(highestPaid.has_value());
-        CHECK(highestPaid->salary.Value() == 70'000);
+        if (highestPaid)
+            CHECK(highestPaid->salary.Value() == 70'000);
     }
 
     SECTION("pagination")
@@ -257,7 +258,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Select", "[DocExample]")
         auto total = stmt.ExecuteDirectScalar<int>(R"(SELECT COUNT(*) FROM "Employees")"); // std::optional<int>
         //! [doc-count-raw]
         REQUIRE(total.has_value());
-        CHECK(total.value() == 5);
+        CHECK(total == 5);
     }
 
     SECTION("aggregate")
@@ -470,7 +471,7 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Insert", "[DocExample]")
         auto const firstNames = std::array { "Alice"sv, "Bob"sv, "Charlie"sv };
         auto const lastNames = std::array { "Smith"sv, "Johnson"sv, "Brown"sv };
         auto const salaries = std::array { 50'000, 60'000, 70'000 };
-        stmt.ExecuteBatch(firstNames, lastNames, salaries);
+        std::ignore = stmt.ExecuteBatch(firstNames, lastNames, salaries);
         //! [doc-bulk-insert-raw]
         CHECK(dm.Query<Employee>().Count() == 3);
     }
@@ -480,18 +481,25 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Update", "[DocExample]")
 {
     auto dm = DataMapper();
     SeedCompany(dm);
-    auto const id = dm.Query<Employee>().First().value().id.Value();
+    auto const employees = dm.Query<Employee>().All();
+    REQUIRE(!employees.empty());
+    auto const id = employees.front().id.Value();
 
     SECTION("update datamapper")
     {
         //! [doc-update-datamapper]
         // DataMapper — load, mutate, write back by primary key.
         // Only Field<>s you changed are written; the WHERE is the primary key.
-        auto employee = dm.QuerySingle<Employee>(id).value();
-        employee.salary = 55'000;
-        dm.Update(employee);
+        if (auto employee = dm.QuerySingle<Employee>(id))
+        {
+            employee->salary = 55'000;
+            dm.Update(*employee);
+        }
         //! [doc-update-datamapper]
-        CHECK(dm.QuerySingle<Employee>(id).value().salary.Value() == 55'000);
+        auto const updated = dm.QuerySingle<Employee>(id);
+        REQUIRE(updated.has_value());
+        if (updated)
+            CHECK(updated->salary.Value() == 55'000);
     }
 
     SECTION("update builder")
@@ -528,7 +536,9 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Delete", "[DocExample]")
 
     SECTION("delete datamapper")
     {
-        auto employee = dm.Query<Employee>().First().value();
+        auto const employees = dm.Query<Employee>().All();
+        REQUIRE(!employees.empty());
+        auto const& employee = employees.front();
         //! [doc-delete-datamapper]
         // DataMapper — bulk delete by predicate
         dm.Query<Employee, DataMapperOptions { .loadRelations = false }>()
@@ -555,30 +565,39 @@ TEST_CASE_METHOD(SqlTestFixture, "Doc.Relationships", "[DocExample]")
 {
     auto dm = DataMapper();
     auto const company = SeedCompany(dm);
-    auto const id = dm.Query<Employee>().First().value().id.Value();
+    auto const employees = dm.Query<Employee>().All();
+    REQUIRE(!employees.empty());
+    auto const id = employees.front().id.Value();
     auto const deptId = company.engineering.id.Value();
 
     //! [doc-relationships]
-    auto employee = dm.QuerySingle<Employee>(id).value();
-    dm.ConfigureRelationAutoLoading(employee);
-
-    // BelongsTo: the parent record is fetched on demand. The FK here is nullable, so
-    // Record() yields an optional; Unwrap turns the optional-reference into a value.
-    if (employee.department)
+    if (auto employee = dm.QuerySingle<Employee>(id))
     {
-        auto const dept = employee.department.Record().transform(Unwrap).value();
-        std::println("Department: {}", dept.name.Value());
+        dm.ConfigureRelationAutoLoading(*employee);
+
+        // BelongsTo: the parent record is fetched on demand. The FK here is nullable, so
+        // Record() yields an optional; Unwrap turns the optional-reference into a value.
+        if (auto const dept = employee->department.Record().transform(Unwrap))
+            std::println("Department: {}", dept->name.Value());
     }
 
     // HasMany: Count() and All() on the collection
-    auto department = dm.QuerySingle<Department>(deptId).value();
-    dm.ConfigureRelationAutoLoading(department);
-    std::println("{} employees", department.employees.Count());
-    for (auto const& emp: department.employees.All())
-        std::println("  {}", emp->lastName.Value());
+    if (auto department = dm.QuerySingle<Department>(deptId))
+    {
+        dm.ConfigureRelationAutoLoading(*department);
+        std::println("{} employees", department->employees.Count());
+        for (auto const& emp: department->employees.All())
+            std::println("  {}", emp->lastName.Value());
+    }
     //! [doc-relationships]
 
-    CHECK(department.employees.Count() == 3);
+    auto reloaded = dm.QuerySingle<Department>(deptId);
+    REQUIRE(reloaded.has_value());
+    if (reloaded)
+    {
+        dm.ConfigureRelationAutoLoading(*reloaded);
+        CHECK(reloaded->employees.Count() == 3);
+    }
 }
 
 TEST_CASE_METHOD(SqlTestFixture, "Doc.DDL", "[DocExample]")
