@@ -622,13 +622,16 @@ TEST_CASE_METHOD(SqlTestFixture, "Prefetch: RowArrayCursor bulk-reads fixed-widt
                                              TestPrefetchDepth);
 
         // Confirm the columns actually bound as text (Char/WChar), not silently as something else.
-        // Some drivers (e.g. SQLite3's ODBC driver, psqlODBC) report narrow CHAR columns as WChar
-        // regardless of the declared SQL type, so accept either for the narrow column.
+        // Which of Char/WChar a driver picks for a given declared SQL type is driver-specific and does
+        // not affect correctness (RowArrayCursor::GetString normalizes both to UTF-8) — e.g. SQLite3's
+        // ODBC driver reports CHAR(N) as WChar on Windows but as Char on Linux, and NCHAR(N) the other
+        // way around on Linux vs Windows. Accept either for both columns; only the byte-identity check
+        // below actually matters.
         auto const isTextlike = [](RowArrayCursor::BoundType type) {
             return type == RowArrayCursor::BoundType::Char || type == RowArrayCursor::BoundType::WChar;
         };
         CHECK(isTextlike(cursor.ColumnBoundType(2)));
-        CHECK(cursor.ColumnBoundType(3) == RowArrayCursor::BoundType::WChar);
+        CHECK(isTextlike(cursor.ColumnBoundType(3)));
 
         std::size_t blocks = 0;
         for (auto rowsInBlock = cursor.FetchArray(); rowsInBlock > 0; rowsInBlock = cursor.FetchArray())
